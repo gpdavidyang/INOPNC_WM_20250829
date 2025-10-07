@@ -982,7 +982,7 @@ function DrawingsTab() {
           <div className="doc-selection-content">
             <div className="doc-selection-title">할당된 현장이 없습니다</div>
             <div style={{ fontSize: 12, color: '#6B7280' }}>
-              관리자에게 파트너사-현장 매핑을 요청해 주세요.
+              관리자에게 업체-현장 매핑을 요청해 주세요.
             </div>
           </div>
         </div>
@@ -992,7 +992,7 @@ function DrawingsTab() {
           <div className="doc-selection-content">
             <div className="doc-selection-title">현장을 먼저 선택하세요</div>
             <div style={{ fontSize: 12, color: '#6B7280' }}>
-              파트너 사용자는 배정된 현장 선택 후 도면을 조회할 수 있습니다.
+              시공업체 사용자는 배정된 현장 선택 후 도면을 조회할 수 있습니다.
             </div>
           </div>
         </div>

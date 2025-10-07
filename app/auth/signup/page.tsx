@@ -170,7 +170,7 @@ export default function SignupPage() {
               >
                 <option value="worker">작업자</option>
                 <option value="site_manager">현장관리자</option>
-                <option value="customer_manager">파트너사</option>
+                <option value="customer_manager">시공업체</option>
               </select>
             </div>
 

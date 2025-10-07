@@ -10,29 +10,29 @@ interface Props {
   onSuccess?: () => void
 }
 
-export default function InventoryRecordDialog({ 
-  open, 
-  onOpenChange, 
-  siteId, 
+export default function InventoryRecordDialog({
+  open,
+  onOpenChange,
+  siteId,
   siteName,
-  onSuccess 
+  onSuccess,
 }: Props) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
-  
+
   // State
   const [saving, setSaving] = useState(false)
   const [transactionType, setTransactionType] = useState<'in' | 'out'>('in')
   const [currentStock, setCurrentStock] = useState<number>(0)
   const [loadingStock, setLoadingStock] = useState(false)
   const [currentStep, setCurrentStep] = useState<'type' | 'quantity' | 'details'>('type')
-  
+
   // Form state
   const [quantity, setQuantity] = useState('')
   const [notes, setNotes] = useState('')
   const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0])
   const [showAdvanced, setShowAdvanced] = useState(false)
-  
+
   // Refs for focus management
   const quantityInputRef = useRef<HTMLInputElement>(null)
 
@@ -83,7 +83,7 @@ export default function InventoryRecordDialog({
     setLoadingStock(true)
     try {
       const supabase = createClient()
-      
+
       // Get NPC-1000 material ID
       const { data: npcMaterial } = await supabase
         .from('materials')
@@ -157,7 +157,7 @@ export default function InventoryRecordDialog({
     setSaving(true)
     try {
       const supabase = createClient()
-      
+
       // Get current user session
       if (!(await getSessionUser(supabase))) throw new Error('로그인이 필요합니다.')
 
@@ -173,7 +173,7 @@ export default function InventoryRecordDialog({
       }
 
       const actionText = transactionType === 'in' ? '입고' : '사용'
-      
+
       // Create material transaction using server action
       const transactionResult = await recordInventoryTransaction({
         siteId: siteId,
@@ -181,23 +181,24 @@ export default function InventoryRecordDialog({
         transactionType: transactionType,
         quantity: quantityNum,
         transactionDate: new Date(transactionDate).toISOString(),
-        notes: notes || `${actionText} 기록 - ${format(new Date(transactionDate), 'yyyy년 MM월 dd일', { locale: ko })}`
+        notes:
+          notes ||
+          `${actionText} 기록 - ${format(new Date(transactionDate), 'yyyy년 MM월 dd일', { locale: ko })}`,
       })
 
       if (!transactionResult.success) {
         throw new Error(transactionResult.error || '거래 기록에 실패했습니다.')
       }
-      
+
       toast.success(
         <div className="flex items-center gap-2">
           <CheckCircle className="h-4 w-4 text-green-600" />
           <span>{actionText} 기록이 저장되었습니다.</span>
         </div>
       )
-      
+
       onSuccess?.()
       onOpenChange(false)
-      
     } catch (error) {
       console.error('Error saving record:', error)
       toast.error('기록 저장에 실패했습니다.')
@@ -210,17 +211,20 @@ export default function InventoryRecordDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[95vh] overflow-y-auto p-0">
         {/* Mobile-first header with progress indicator */}
-        <div className={`
+        <div
+          className={`
           sticky top-0 z-10 bg-background border-b px-6 py-4
-          ${currentStep === 'type' 
-            ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20' 
-            : currentStep === 'quantity'
-            ? transactionType === 'in'
-              ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
-              : 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20'
-            : 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20'
+          ${
+            currentStep === 'type'
+              ? 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20'
+              : currentStep === 'quantity'
+                ? transactionType === 'in'
+                  ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20'
+                  : 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20'
+                : 'bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-900/20 dark:to-slate-900/20'
           }
-        `}>
+        `}
+        >
           <div className="flex items-center justify-between mb-4">
             {currentStep !== 'type' && (
               <Button
@@ -232,14 +236,16 @@ export default function InventoryRecordDialog({
                 <ArrowLeft className={getIconSize()} />
               </Button>
             )}
-            
+
             <div className="flex items-center gap-2 flex-1 justify-center">
               <Package className="h-5 w-5 text-blue-600" />
-              <h1 className={`${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold`}>
+              <h1
+                className={`${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold`}
+              >
                 NPC-1000 기록
               </h1>
             </div>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -252,15 +258,25 @@ export default function InventoryRecordDialog({
 
           {/* Progress dots */}
           <div className="flex items-center justify-center gap-2">
-            <div className={`w-2 h-2 rounded-full transition-all ${
-              currentStep === 'type' ? 'bg-blue-500 w-6' : 'bg-gray-300'
-            }`} />
-            <div className={`w-2 h-2 rounded-full transition-all ${
-              currentStep === 'quantity' ? (transactionType === 'in' ? 'bg-green-500 w-6' : 'bg-red-500 w-6') : 'bg-gray-300'
-            }`} />
-            <div className={`w-2 h-2 rounded-full transition-all ${
-              currentStep === 'details' ? 'bg-purple-500 w-6' : 'bg-gray-300'
-            }`} />
+            <div
+              className={`w-2 h-2 rounded-full transition-all ${
+                currentStep === 'type' ? 'bg-blue-500 w-6' : 'bg-gray-300'
+              }`}
+            />
+            <div
+              className={`w-2 h-2 rounded-full transition-all ${
+                currentStep === 'quantity'
+                  ? transactionType === 'in'
+                    ? 'bg-green-500 w-6'
+                    : 'bg-red-500 w-6'
+                  : 'bg-gray-300'
+              }`}
+            />
+            <div
+              className={`w-2 h-2 rounded-full transition-all ${
+                currentStep === 'details' ? 'bg-purple-500 w-6' : 'bg-gray-300'
+              }`}
+            />
           </div>
 
           {siteName && (
@@ -276,7 +292,9 @@ export default function InventoryRecordDialog({
           {currentStep === 'type' && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold mb-2`}>
+                <h2
+                  className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold mb-2`}
+                >
                   거래 유형을 선택하세요
                 </h2>
                 <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
@@ -290,45 +308,58 @@ export default function InventoryRecordDialog({
                   onClick={() => setTransactionType('in')}
                   className={`
                     w-full relative p-8 rounded-2xl border-2 transition-all ${getMinTouchTarget(touchMode)}
-                    ${transactionType === 'in' 
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-200 dark:ring-green-800' 
-                      : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50/50'
+                    ${
+                      transactionType === 'in'
+                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20 ring-2 ring-green-200 dark:ring-green-800'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50/50'
                     }
                   `}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`
+                    <div
+                      className={`
                       p-4 rounded-full shrink-0
-                      ${transactionType === 'in' 
-                        ? 'bg-green-100 dark:bg-green-900/50' 
-                        : 'bg-gray-100 dark:bg-gray-800'
+                      ${
+                        transactionType === 'in'
+                          ? 'bg-green-100 dark:bg-green-900/50'
+                          : 'bg-gray-100 dark:bg-gray-800'
                       }
-                    `}>
-                      <TrendingUp className={`
+                    `}
+                    >
+                      <TrendingUp
+                        className={`
                         h-8 w-8
-                        ${transactionType === 'in' 
-                          ? 'text-green-600 dark:text-green-400' 
-                          : 'text-gray-400'
+                        ${
+                          transactionType === 'in'
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-gray-400'
                         }
-                      `} />
+                      `}
+                      />
                     </div>
                     <div className="text-left">
-                      <h3 className={`
+                      <h3
+                        className={`
                         ${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold
-                        ${transactionType === 'in' 
-                          ? 'text-green-700 dark:text-green-300' 
-                          : 'text-gray-700 dark:text-gray-300'
+                        ${
+                          transactionType === 'in'
+                            ? 'text-green-700 dark:text-green-300'
+                            : 'text-gray-700 dark:text-gray-300'
                         }
-                      `}>
+                      `}
+                      >
                         입고 등록
                       </h3>
-                      <p className={`
+                      <p
+                        className={`
                         ${getFullTypographyClass('body', 'sm', isLargeFont)} mt-1
-                        ${transactionType === 'in' 
-                          ? 'text-green-600 dark:text-green-400' 
-                          : 'text-gray-500 dark:text-gray-400'
+                        ${
+                          transactionType === 'in'
+                            ? 'text-green-600 dark:text-green-400'
+                            : 'text-gray-500 dark:text-gray-400'
                         }
-                      `}>
+                      `}
+                      >
                         자재가 현장에 도착했을 때
                       </p>
                     </div>
@@ -343,45 +374,58 @@ export default function InventoryRecordDialog({
                   onClick={() => setTransactionType('out')}
                   className={`
                     w-full relative p-8 rounded-2xl border-2 transition-all ${getMinTouchTarget(touchMode)}
-                    ${transactionType === 'out' 
-                      ? 'border-red-500 bg-red-50 dark:bg-red-900/20 ring-2 ring-red-200 dark:ring-red-800' 
-                      : 'border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 hover:bg-red-50/50'
+                    ${
+                      transactionType === 'out'
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20 ring-2 ring-red-200 dark:ring-red-800'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 hover:bg-red-50/50'
                     }
                   `}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`
+                    <div
+                      className={`
                       p-4 rounded-full shrink-0
-                      ${transactionType === 'out' 
-                        ? 'bg-red-100 dark:bg-red-900/50' 
-                        : 'bg-gray-100 dark:bg-gray-800'
+                      ${
+                        transactionType === 'out'
+                          ? 'bg-red-100 dark:bg-red-900/50'
+                          : 'bg-gray-100 dark:bg-gray-800'
                       }
-                    `}>
-                      <TrendingDown className={`
+                    `}
+                    >
+                      <TrendingDown
+                        className={`
                         h-8 w-8
-                        ${transactionType === 'out' 
-                          ? 'text-red-600 dark:text-red-400' 
-                          : 'text-gray-400'
+                        ${
+                          transactionType === 'out'
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-gray-400'
                         }
-                      `} />
+                      `}
+                      />
                     </div>
                     <div className="text-left">
-                      <h3 className={`
+                      <h3
+                        className={`
                         ${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold
-                        ${transactionType === 'out' 
-                          ? 'text-red-700 dark:text-red-300' 
-                          : 'text-gray-700 dark:text-gray-300'
+                        ${
+                          transactionType === 'out'
+                            ? 'text-red-700 dark:text-red-300'
+                            : 'text-gray-700 dark:text-gray-300'
                         }
-                      `}>
+                      `}
+                      >
                         사용량 등록
                       </h3>
-                      <p className={`
+                      <p
+                        className={`
                         ${getFullTypographyClass('body', 'sm', isLargeFont)} mt-1
-                        ${transactionType === 'out' 
-                          ? 'text-red-600 dark:text-red-400' 
-                          : 'text-gray-500 dark:text-gray-400'
+                        ${
+                          transactionType === 'out'
+                            ? 'text-red-600 dark:text-red-400'
+                            : 'text-gray-500 dark:text-gray-400'
                         }
-                      `}>
+                      `}
+                      >
                         자재를 공사에 사용했을 때
                       </p>
                     </div>
@@ -398,10 +442,14 @@ export default function InventoryRecordDialog({
                   <div className="flex items-center gap-3">
                     <Warehouse className="h-6 w-6 text-blue-600" />
                     <div>
-                      <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-blue-600 dark:text-blue-400`}>
+                      <p
+                        className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-blue-600 dark:text-blue-400`}
+                      >
                         현재 재고량
                       </p>
-                      <p className={`${getFullTypographyClass('heading', 'xl', isLargeFont)} font-bold text-blue-800 dark:text-blue-200`}>
+                      <p
+                        className={`${getFullTypographyClass('heading', 'xl', isLargeFont)} font-bold text-blue-800 dark:text-blue-200`}
+                      >
                         {loadingStock ? (
                           <span className="text-gray-400">조회중...</span>
                         ) : (
@@ -418,9 +466,10 @@ export default function InventoryRecordDialog({
                 size="lg"
                 className={`
                   w-full py-4 text-lg font-semibold ${getMinTouchTarget(touchMode)}
-                  ${transactionType === 'in' 
-                    ? 'bg-green-600 hover:bg-green-700 text-white' 
-                    : 'bg-red-600 hover:bg-red-700 text-white'
+                  ${
+                    transactionType === 'in'
+                      ? 'bg-green-600 hover:bg-green-700 text-white'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
                   }
                 `}
               >
@@ -434,7 +483,9 @@ export default function InventoryRecordDialog({
           {currentStep === 'quantity' && (
             <div className="space-y-6">
               <div className="text-center mb-8">
-                <h2 className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold mb-2`}>
+                <h2
+                  className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold mb-2`}
+                >
                   {transactionType === 'in' ? '입고량을' : '사용량을'} 입력하세요
                 </h2>
                 <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
@@ -452,14 +503,15 @@ export default function InventoryRecordDialog({
                     min="0"
                     placeholder="0"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={e => setQuantity(e.target.value)}
                     className={`
                       w-full text-center text-4xl font-bold py-8 px-6 border-2 rounded-2xl
                       bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700
                       focus:outline-none focus:ring-4
-                      ${transactionType === 'in' 
-                        ? 'focus:ring-green-200 focus:border-green-500 text-green-700 dark:text-green-300' 
-                        : 'focus:ring-red-200 focus:border-red-500 text-red-700 dark:text-red-300'
+                      ${
+                        transactionType === 'in'
+                          ? 'focus:ring-green-200 focus:border-green-500 text-green-700 dark:text-green-300'
+                          : 'focus:ring-red-200 focus:border-red-500 text-red-700 dark:text-red-300'
                       }
                       ${getMinTouchTarget(touchMode)}
                     `}
@@ -472,11 +524,13 @@ export default function InventoryRecordDialog({
 
                 {/* Quick preset buttons */}
                 <div>
-                  <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 mb-3 text-center`}>
+                  <p
+                    className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 mb-3 text-center`}
+                  >
                     빠른 선택
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    {quantityPresets.map((preset) => (
+                    {quantityPresets.map(preset => (
                       <Button
                         key={preset.value}
                         type="button"
@@ -485,11 +539,12 @@ export default function InventoryRecordDialog({
                         onClick={() => setQuantity(preset.value.toString())}
                         className={`
                           py-4 text-lg font-semibold ${getMinTouchTarget(touchMode)}
-                          ${parseFloat(quantity) === preset.value
-                            ? transactionType === 'in'
-                              ? 'border-green-500 bg-green-50 text-green-700'
-                              : 'border-red-500 bg-red-50 text-red-700'
-                            : 'hover:bg-gray-50'
+                          ${
+                            parseFloat(quantity) === preset.value
+                              ? transactionType === 'in'
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-red-500 bg-red-50 text-red-700'
+                              : 'hover:bg-gray-50'
                           }
                         `}
                       >
@@ -502,35 +557,43 @@ export default function InventoryRecordDialog({
 
                 {/* Real-time calculation */}
                 {quantity && isQuantityValid() && (
-                  <Card className={`
+                  <Card
+                    className={`
                     p-6 border-2
-                    ${calculateProjectedStock() < 0 
-                      ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' 
-                      : transactionType === 'in'
-                      ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
-                      : 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                    ${
+                      calculateProjectedStock() < 0
+                        ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                        : transactionType === 'in'
+                          ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                          : 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
                     }
-                  `}>
+                  `}
+                  >
                     <div className="text-center space-y-4">
-                      <h3 className={`${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold`}>
+                      <h3
+                        className={`${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold`}
+                      >
                         재고 계산 결과
                       </h3>
-                      
+
                       <div className="flex items-center justify-center gap-4 text-lg">
-                        <span className="font-semibold">
-                          {currentStock.toLocaleString()}말
-                        </span>
-                        <span className={`
+                        <span className="font-semibold">{currentStock.toLocaleString()}말</span>
+                        <span
+                          className={`
                           font-bold text-xl
                           ${transactionType === 'in' ? 'text-green-600' : 'text-red-600'}
-                        `}>
-                          {transactionType === 'in' ? '+' : '-'}{parseFloat(quantity).toLocaleString()}말
+                        `}
+                        >
+                          {transactionType === 'in' ? '+' : '-'}
+                          {parseFloat(quantity).toLocaleString()}말
                         </span>
                         <span className="font-semibold">=</span>
-                        <span className={`
+                        <span
+                          className={`
                           font-bold text-xl
                           ${calculateProjectedStock() < 0 ? 'text-red-600' : 'text-blue-600'}
-                        `}>
+                        `}
+                        >
                           {calculateProjectedStock().toLocaleString()}말
                         </span>
                       </div>
@@ -568,9 +631,10 @@ export default function InventoryRecordDialog({
                   size="lg"
                   className={`
                     flex-2 py-4 text-lg font-semibold ${getMinTouchTarget(touchMode)}
-                    ${transactionType === 'in' 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-red-600 hover:bg-red-700 text-white'
+                    ${
+                      transactionType === 'in'
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-red-600 hover:bg-red-700 text-white'
                     }
                   `}
                 >
@@ -585,7 +649,9 @@ export default function InventoryRecordDialog({
           {currentStep === 'details' && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h2 className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold mb-2`}>
+                <h2
+                  className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-bold mb-2`}
+                >
                   추가 정보 및 완료
                 </h2>
                 <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
@@ -594,17 +660,23 @@ export default function InventoryRecordDialog({
               </div>
 
               {/* Summary */}
-              <Card className={`
+              <Card
+                className={`
                 p-6 border-2
-                ${transactionType === 'in' 
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700' 
-                  : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
+                ${
+                  transactionType === 'in'
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-700'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700'
                 }
-              `}>
+              `}
+              >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">거래 유형:</span>
-                    <Badge variant={transactionType === 'in' ? 'default' : 'destructive'} className="text-sm">
+                    <Badge
+                      variant={transactionType === 'in' ? 'default' : 'destructive'}
+                      className="text-sm"
+                    >
                       {transactionType === 'in' ? '입고' : '사용'}
                     </Badge>
                   </div>
@@ -616,10 +688,12 @@ export default function InventoryRecordDialog({
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">예상 재고:</span>
-                    <span className={`
+                    <span
+                      className={`
                       text-lg font-bold
                       ${calculateProjectedStock() < 0 ? 'text-red-600' : 'text-blue-600'}
-                    `}>
+                    `}
+                    >
                       {calculateProjectedStock().toLocaleString()} kg
                     </span>
                   </div>
@@ -638,13 +712,18 @@ export default function InventoryRecordDialog({
                     <FileText className="h-4 w-4" />
                     추가 정보 입력 (선택)
                   </span>
-                  <ArrowLeft className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-90' : '-rotate-90'}`} />
+                  <ArrowLeft
+                    className={`h-4 w-4 transition-transform ${showAdvanced ? 'rotate-90' : '-rotate-90'}`}
+                  />
                 </Button>
 
                 {showAdvanced && (
                   <div className="space-y-4 border rounded-lg p-4">
                     <div>
-                      <Label htmlFor="date" className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2 flex items-center gap-2`}>
+                      <Label
+                        htmlFor="date"
+                        className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2 flex items-center gap-2`}
+                      >
                         <Calendar className="h-4 w-4" />
                         거래 일자
                       </Label>
@@ -652,24 +731,28 @@ export default function InventoryRecordDialog({
                         id="date"
                         type="date"
                         value={transactionDate}
-                        onChange={(e) => setTransactionDate(e.target.value)}
+                        onChange={e => setTransactionDate(e.target.value)}
                         max={new Date().toISOString().split('T')[0]}
                         className={`text-lg ${getMinTouchTarget(touchMode)}`}
                       />
                     </div>
 
                     <div>
-                      <Label htmlFor="notes" className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2`}>
+                      <Label
+                        htmlFor="notes"
+                        className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2`}
+                      >
                         비고 및 특이사항
                       </Label>
                       <Textarea
                         id="notes"
-                        placeholder={transactionType === 'in' 
-                          ? "공급업체, 품질 상태 등"
-                          : "사용 위치, 작업 내용 등"
+                        placeholder={
+                          transactionType === 'in'
+                            ? '시공업체, 품질 상태 등'
+                            : '사용 위치, 작업 내용 등'
                         }
                         value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
+                        onChange={e => setNotes(e.target.value)}
                         rows={3}
                         className={`${getFullTypographyClass('body', 'sm', isLargeFont)} ${getMinTouchTarget(touchMode)}`}
                       />
@@ -694,9 +777,10 @@ export default function InventoryRecordDialog({
                   size="lg"
                   className={`
                     flex-2 py-4 text-lg font-semibold ${getMinTouchTarget(touchMode)}
-                    ${transactionType === 'in' 
-                      ? 'bg-green-600 hover:bg-green-700 text-white' 
-                      : 'bg-red-600 hover:bg-red-700 text-white'
+                    ${
+                      transactionType === 'in'
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-red-600 hover:bg-red-700 text-white'
                     }
                   `}
                 >

@@ -255,7 +255,7 @@ export default async function MobileDailyReportDetailPage({
             }}
           >
             <li>작업내용이 아직 입력되지 않았습니다(‘작업내용 미입력’ 상태).</li>
-            <li>접근 권한이 없거나, 현재 파트너사에 매핑되지 않은 현장입니다.</li>
+            <li>접근 권한이 없거나, 현재 시공업체에 매핑되지 않은 현장입니다.</li>
             <li>해당 작업일지가 삭제되었거나 존재하지 않습니다.</li>
           </ul>
           <div style={{ display: 'flex', gap: 8 }}>

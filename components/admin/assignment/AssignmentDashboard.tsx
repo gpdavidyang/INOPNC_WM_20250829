@@ -12,13 +12,7 @@ import {
   Users,
   UserPlus,
 } from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -135,7 +129,7 @@ export default function AssignmentDashboard() {
             <History className="h-6 w-6 text-purple-500" />
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            파트너사-현장 매핑과 사용자 배정 현황을 한눈에 확인합니다.
+            시공업체-현장 매핑과 사용자 배정 현황을 한눈에 확인합니다.
           </p>
         </div>
         <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -149,7 +143,9 @@ export default function AssignmentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">전체 사용자</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalUsers}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {stats.totalUsers}
+                </p>
                 <div className="flex items-center gap-1 mt-1">
                   <Badge variant="secondary" className="text-xs">
                     배정됨: {stats.assignedUsers}
@@ -169,7 +165,9 @@ export default function AssignmentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">현장 현황</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalSites}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {stats.totalSites}
+                </p>
                 <div className="flex items-center gap-1 mt-1">
                   <Badge variant="default" className="text-xs">
                     활성: {stats.activeSites}
@@ -185,11 +183,15 @@ export default function AssignmentDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">파트너사 매핑</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.partnerSiteMappings}</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  시공업체 매핑
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {stats.partnerSiteMappings}
+                </p>
                 <div className="flex items-center gap-1 mt-1">
                   <Badge variant="secondary" className="text-xs">
-                    파트너사: {stats.totalPartners}
+                    시공업체: {stats.totalPartners}
                   </Badge>
                 </div>
               </div>
@@ -203,7 +205,9 @@ export default function AssignmentDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">최근 배정</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.recentAssignments}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {stats.recentAssignments}
+                </p>
                 <div className="flex items-center gap-1 mt-1">
                   <Badge variant="outline" className="text-xs">
                     지난 7일 기준
@@ -216,7 +220,7 @@ export default function AssignmentDashboard() {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)}>
+      <Tabs value={activeTab} onValueChange={value => setActiveTab(value as typeof activeTab)}>
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="overview">전체 현황</TabsTrigger>
           <TabsTrigger value="activity">최근 활동</TabsTrigger>
@@ -230,9 +234,7 @@ export default function AssignmentDashboard() {
                   <CheckCircle className="h-5 w-5" />
                   배정 현황 요약
                 </CardTitle>
-                <CardDescription>
-                  전체 사용자의 현장 배정 상태를 보여줍니다.
-                </CardDescription>
+                <CardDescription>전체 사용자의 현장 배정 상태를 보여줍니다.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -241,7 +243,9 @@ export default function AssignmentDashboard() {
                       <CheckCircle className="h-5 w-5 text-green-600" />
                       <div>
                         <p className="font-medium text-green-900 dark:text-green-300">배정 완료</p>
-                        <p className="text-sm text-green-600 dark:text-green-400">활성 배정이 있는 사용자</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">
+                          활성 배정이 있는 사용자
+                        </p>
                       </div>
                     </div>
                     <span className="text-xl font-bold text-green-600">{stats.assignedUsers}</span>
@@ -252,10 +256,14 @@ export default function AssignmentDashboard() {
                       <AlertCircle className="h-5 w-5 text-orange-600" />
                       <div>
                         <p className="font-medium text-orange-900 dark:text-orange-300">미배정</p>
-                        <p className="text-sm text-orange-600 dark:text-orange-400">현장 배정이 필요한 사용자</p>
+                        <p className="text-sm text-orange-600 dark:text-orange-400">
+                          현장 배정이 필요한 사용자
+                        </p>
                       </div>
                     </div>
-                    <span className="text-xl font-bold text-orange-600">{stats.unassignedUsers}</span>
+                    <span className="text-xl font-bold text-orange-600">
+                      {stats.unassignedUsers}
+                    </span>
                   </div>
                 </div>
 
@@ -279,7 +287,7 @@ export default function AssignmentDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {recentActivity.slice(0, 5).map((activity) => (
+                  {recentActivity.slice(0, 5).map(activity => (
                     <div
                       key={activity.id}
                       className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/40 rounded-lg"
@@ -305,7 +313,11 @@ export default function AssignmentDashboard() {
 
                   {recentActivity.length > 5 && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      <Button onClick={() => setActiveTab('activity')} className="w-full" variant="outline">
+                      <Button
+                        onClick={() => setActiveTab('activity')}
+                        className="w-full"
+                        variant="outline"
+                      >
                         모든 활동 보기
                       </Button>
                     </div>
@@ -324,19 +336,27 @@ export default function AssignmentDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {recentActivity.map((activity) => (
+                {recentActivity.map(activity => (
                   <div
                     key={activity.id}
                     className="flex items-center gap-3 p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
                     {getActivityIcon(activity.type)}
                     <div className="flex-1">
-                      <p className="text-sm text-gray-900 dark:text-gray-100">{activity.description}</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">
+                        {activity.description}
+                      </p>
                       <div className="flex items-center gap-4 mt-1 text-xs text-gray-500 dark:text-gray-400">
                         <span>{new Date(activity.timestamp).toLocaleString('ko-KR')}</span>
-                        {activity.user_name && <Badge variant="outline">사용자: {activity.user_name}</Badge>}
-                        {activity.site_name && <Badge variant="outline">현장: {activity.site_name}</Badge>}
-                        {activity.partner_name && <Badge variant="outline">파트너사: {activity.partner_name}</Badge>}
+                        {activity.user_name && (
+                          <Badge variant="outline">사용자: {activity.user_name}</Badge>
+                        )}
+                        {activity.site_name && (
+                          <Badge variant="outline">현장: {activity.site_name}</Badge>
+                        )}
+                        {activity.partner_name && (
+                          <Badge variant="outline">시공업체: {activity.partner_name}</Badge>
+                        )}
                       </div>
                     </div>
                   </div>

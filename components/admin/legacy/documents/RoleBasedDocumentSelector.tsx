@@ -1,6 +1,5 @@
 'use client'
 
-
 interface DocumentType {
   id: string
   code: string
@@ -25,14 +24,14 @@ const ROLE_NAMES = {
   worker: '작업자',
   site_manager: '현장관리자',
   admin: '관리자',
-  partner: '파트너사'
+  partner: '시공업체',
 }
 
 export default function RoleBasedDocumentSelector({
   userRole,
   siteId,
   onSelectionChange,
-  selectedIds = []
+  selectedIds = [],
 }: RoleBasedDocumentSelectorProps) {
   const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
   const [loading, setLoading] = useState(true)
@@ -45,13 +44,13 @@ export default function RoleBasedDocumentSelector({
   const fetchDocumentTypes = async () => {
     try {
       setLoading(true)
-      
+
       const params = new URLSearchParams()
       if (userRole) params.append('role_type', userRole)
       if (siteId) params.append('site_id', siteId)
 
       const response = await fetch(`/api/required-document-types?${params}`)
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch document types')
       }
@@ -68,13 +67,15 @@ export default function RoleBasedDocumentSelector({
 
   const handleSelectionChange = (documentType: DocumentType, selected: boolean) => {
     let newSelection: DocumentType[]
-    
+
     if (selected) {
       newSelection = [...documentTypes.filter(dt => selectedIds.includes(dt.id)), documentType]
     } else {
-      newSelection = documentTypes.filter(dt => selectedIds.includes(dt.id) && dt.id !== documentType.id)
+      newSelection = documentTypes.filter(
+        dt => selectedIds.includes(dt.id) && dt.id !== documentType.id
+      )
     }
-    
+
     onSelectionChange(newSelection)
   }
 
@@ -131,9 +132,9 @@ export default function RoleBasedDocumentSelector({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {documentTypes.map((docType) => {
+          {documentTypes.map(docType => {
             const isSelected = selectedIds.includes(docType.id)
-            
+
             return (
               <div
                 key={docType.id}
@@ -145,30 +146,24 @@ export default function RoleBasedDocumentSelector({
                 onClick={() => handleSelectionChange(docType, !isSelected)}
               >
                 {/* Selection Indicator */}
-                <div className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  isSelected 
-                    ? 'bg-blue-600 border-blue-600 text-white' 
-                    : 'border-gray-300'
-                }`}>
+                <div
+                  className={`absolute top-3 right-3 w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                    isSelected ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-300'
+                  }`}
+                >
                   {isSelected && <Check className="w-3 h-3" />}
                 </div>
 
                 {/* Document Info */}
                 <div className="pr-8">
-                  <h4 className="font-medium text-gray-900 mb-1">
-                    {docType.name_ko}
-                  </h4>
-                  
+                  <h4 className="font-medium text-gray-900 mb-1">{docType.name_ko}</h4>
+
                   {docType.name_en && (
-                    <p className="text-sm text-gray-600 mb-2">
-                      {docType.name_en}
-                    </p>
+                    <p className="text-sm text-gray-600 mb-2">{docType.name_en}</p>
                   )}
-                  
+
                   {docType.description && (
-                    <p className="text-sm text-gray-700 mb-3">
-                      {docType.description}
-                    </p>
+                    <p className="text-sm text-gray-700 mb-3">{docType.description}</p>
                   )}
 
                   {/* File Constraints */}

@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Partner {
   id: string
   company_name: string
@@ -34,9 +33,24 @@ interface PartnerFormProps {
 }
 
 const tradeTypes = [
-  '철근공사', '콘크리트공사', '전기공사', '배관공사', '타일공사', '도배공사',
-  '유리공사', '미장공사', '방수공사', '단열공사', '지붕공사', '조경공사',
-  '토공사', '석공사', '목공사', '금속공사', '도장공사', '기타'
+  '철근공사',
+  '콘크리트공사',
+  '전기공사',
+  '배관공사',
+  '타일공사',
+  '도배공사',
+  '유리공사',
+  '미장공사',
+  '방수공사',
+  '단열공사',
+  '지붕공사',
+  '조경공사',
+  '토공사',
+  '석공사',
+  '목공사',
+  '금속공사',
+  '도장공사',
+  '기타',
 ]
 
 export default function PartnerForm({ partner, profile, onSave, onCancel }: PartnerFormProps) {
@@ -56,7 +70,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
     contract_start_date: '',
     contract_end_date: '',
     status: 'active' as const,
-    notes: ''
+    notes: '',
   })
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [selectedOrgId, setSelectedOrgId] = useState('')
@@ -66,7 +80,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
 
   useEffect(() => {
     loadOrganizations()
-    
+
     if (partner) {
       setFormData({
         company_name: partner.company_name || '',
@@ -84,7 +98,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
         contract_start_date: partner.contract_start_date || '',
         contract_end_date: partner.contract_end_date || '',
         status: partner.status || 'active',
-        notes: partner.notes || ''
+        notes: partner.notes || '',
       })
     }
   }, [partner])
@@ -99,7 +113,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
 
       if (error) throw error
       setOrganizations(data || [])
-      
+
       // Set default organization if only one exists
       if (data && data.length === 1) {
         setSelectedOrgId(data[0].id)
@@ -112,7 +126,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
   const handleInputChange = (field: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
@@ -120,12 +134,12 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
     if (checked) {
       setFormData(prev => ({
         ...prev,
-        trade_type: [...prev.trade_type, trade]
+        trade_type: [...prev.trade_type, trade],
       }))
     } else {
       setFormData(prev => ({
         ...prev,
-        trade_type: prev.trade_type.filter(t => t !== trade)
+        trade_type: prev.trade_type.filter(t => t !== trade),
       }))
     }
   }
@@ -134,7 +148,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
     if (customTrade.trim() && !formData.trade_type.includes(customTrade.trim())) {
       setFormData(prev => ({
         ...prev,
-        trade_type: [...prev.trade_type, customTrade.trim()]
+        trade_type: [...prev.trade_type, customTrade.trim()],
       }))
       setCustomTrade('')
     }
@@ -143,13 +157,13 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
   const removeTradeType = (trade: string) => {
     setFormData(prev => ({
       ...prev,
-      trade_type: prev.trade_type.filter(t => t !== trade)
+      trade_type: prev.trade_type.filter(t => t !== trade),
     }))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.company_name.trim()) {
       alert('회사명을 입력해주세요.')
       return
@@ -173,10 +187,12 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
         trade_type: formData.trade_type.length > 0 ? formData.trade_type : null,
         updated_by: profile.id,
         updated_at: new Date().toISOString(),
-        ...(partner ? {} : { 
-          created_by: profile.id,
-          created_at: new Date().toISOString()
-        })
+        ...(partner
+          ? {}
+          : {
+              created_by: profile.id,
+              created_at: new Date().toISOString(),
+            }),
       }
 
       if (partner) {
@@ -186,26 +202,24 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
           .eq('id', partner.id)
 
         if (error) throw error
-        alert('파트너사 정보가 수정되었습니다.')
+        alert('시공업체 정보가 수정되었습니다.')
       } else {
-        const { error } = await supabase
-          .from('partner_companies')
-          .insert([submitData])
+        const { error } = await supabase.from('partner_companies').insert([submitData])
 
         if (error) throw error
-        alert('새 파트너사가 등록되었습니다.')
+        alert('새 시공업체가 등록되었습니다.')
       }
 
       onSave()
     } catch (error: unknown) {
       console.error('Failed to save partner:', error)
-      
+
       if (error.code === '23505') {
         alert('이미 등록된 사업자번호입니다.')
       } else if (error.code === '23503') {
         alert('선택한 소속 조직이 유효하지 않습니다.')
       } else {
-        alert(error.message || '파트너사 저장에 실패했습니다.')
+        alert(error.message || '시공업체 저장에 실패했습니다.')
       }
     } finally {
       setLoading(false)
@@ -225,11 +239,9 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
           </button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {partner ? '파트너사 수정' : '새 파트너사 등록'}
+              {partner ? '시공업체 수정' : '새 시공업체 등록'}
             </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              파트너사 정보를 입력하세요
-            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">시공업체 정보를 입력하세요</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -265,7 +277,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.company_name}
-                onChange={(e) => handleInputChange('company_name', e.target.value)}
+                onChange={e => handleInputChange('company_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
@@ -279,7 +291,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.business_number}
-                onChange={(e) => handleInputChange('business_number', e.target.value)}
+                onChange={e => handleInputChange('business_number', e.target.value)}
                 placeholder="000-00-00000"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
@@ -292,12 +304,12 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               </label>
               <select
                 value={selectedOrgId}
-                onChange={(e) => setSelectedOrgId(e.target.value)}
+                onChange={e => setSelectedOrgId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               >
                 <option value="">소속을 선택하세요</option>
-                {organizations.map((org) => (
+                {organizations.map(org => (
                   <option key={org.id} value={org.id}>
                     {org.name}
                   </option>
@@ -312,12 +324,12 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               </label>
               <select
                 value={formData.company_type}
-                onChange={(e) => handleInputChange('company_type', e.target.value)}
+                onChange={e => handleInputChange('company_type', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="general_contractor">종합건설업</option>
                 <option value="subcontractor">전문건설업</option>
-                <option value="supplier">자재공급업체</option>
+                <option value="supplier">시공업체</option>
                 <option value="consultant">설계/감리</option>
               </select>
             </div>
@@ -330,7 +342,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.representative_name}
-                onChange={(e) => handleInputChange('representative_name', e.target.value)}
+                onChange={e => handleInputChange('representative_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -343,7 +355,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.contact_person}
-                onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                onChange={e => handleInputChange('contact_person', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -356,7 +368,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onChange={e => handleInputChange('phone', e.target.value)}
                 placeholder="010-0000-0000"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
@@ -370,7 +382,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={e => handleInputChange('email', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -383,7 +395,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
+                onChange={e => handleInputChange('address', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -395,7 +407,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
+                onChange={e => handleInputChange('status', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="active">활성</option>
@@ -409,16 +421,16 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
         {/* 업종 정보 */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">업종 정보</h2>
-          
+
           {/* 업종 선택 */}
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {tradeTypes.map((trade) => (
+              {tradeTypes.map(trade => (
                 <label key={trade} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     checked={formData.trade_type.includes(trade)}
-                    onChange={(e) => handleTradeTypeChange(trade, e.target.checked)}
+                    onChange={e => handleTradeTypeChange(trade, e.target.checked)}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">{trade}</span>
@@ -431,7 +443,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={customTrade}
-                onChange={(e) => setCustomTrade(e.target.value)}
+                onChange={e => setCustomTrade(e.target.value)}
                 placeholder="기타 업종 직접 입력"
                 className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
@@ -447,9 +459,11 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
             {/* 선택된 업종 */}
             {formData.trade_type.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">선택된 업종:</p>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  선택된 업종:
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {formData.trade_type.map((trade) => (
+                  {formData.trade_type.map(trade => (
                     <span
                       key={trade}
                       className="inline-flex items-center px-2 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
@@ -472,7 +486,9 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
 
         {/* 계약/금융 정보 */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">계약/금융 정보</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            계약/금융 정보
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 은행명 */}
             <div>
@@ -482,7 +498,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.bank_name}
-                onChange={(e) => handleInputChange('bank_name', e.target.value)}
+                onChange={e => handleInputChange('bank_name', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -495,7 +511,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.bank_account}
-                onChange={(e) => handleInputChange('bank_account', e.target.value)}
+                onChange={e => handleInputChange('bank_account', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -508,7 +524,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="text"
                 value={formData.credit_rating}
-                onChange={(e) => handleInputChange('credit_rating', e.target.value)}
+                onChange={e => handleInputChange('credit_rating', e.target.value)}
                 placeholder="예: AAA, AA, A"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
@@ -522,7 +538,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="date"
                 value={formData.contract_start_date}
-                onChange={(e) => handleInputChange('contract_start_date', e.target.value)}
+                onChange={e => handleInputChange('contract_start_date', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -535,7 +551,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
               <input
                 type="date"
                 value={formData.contract_end_date}
-                onChange={(e) => handleInputChange('contract_end_date', e.target.value)}
+                onChange={e => handleInputChange('contract_end_date', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
@@ -547,7 +563,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">메모</h2>
           <textarea
             value={formData.notes}
-            onChange={(e) => handleInputChange('notes', e.target.value)}
+            onChange={e => handleInputChange('notes', e.target.value)}
             rows={4}
             placeholder="추가 정보나 특이사항을 입력하세요..."
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"

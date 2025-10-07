@@ -128,22 +128,31 @@ export default async function AdminMaterialsPage({
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '자재 관리' }]}
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="mb-4 flex gap-2">
-          {[
-            { key: 'inventory', label: '현장별 재고현황' },
-            { key: 'requests', label: '입고요청 관리' },
-            { key: 'productions', label: '생산정보 관리' },
-            { key: 'shipments', label: '출고배송 관리' },
-          ].map(t => (
-            <Link
-              key={t.key}
-              href={buildQuery({ tab: t.key })}
-              className={`px-3 py-1.5 rounded-md border text-sm ${tab === t.key ? 'bg-gray-100' : 'bg-white'}`}
-            >
-              {t.label}
-            </Link>
-          ))}
+        {/* Tabs (styled like site detail sub-tabs) */}
+        <div className="mb-4">
+          <div className="inline-flex items-center gap-1 rounded-xl border-0 shadow bg-gradient-to-r from-[--brand-600] to-[--brand-700] p-1">
+            {[
+              { key: 'inventory', label: '현장별 재고현황' },
+              { key: 'requests', label: '입고요청 관리' },
+              { key: 'productions', label: '생산정보 관리' },
+              { key: 'shipments', label: '출고배송 관리' },
+            ].map(t => {
+              const isActive = tab === t.key
+              return (
+                <Link
+                  key={t.key}
+                  href={buildQuery({ tab: t.key })}
+                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-white text-[--brand-700] shadow-md'
+                      : 'text-white/90 hover:text-white'
+                  }`}
+                >
+                  {t.label}
+                </Link>
+              )
+            })}
+          </div>
         </div>
 
         {/* Filters */}

@@ -14,7 +14,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [abbr, setAbbr] = useState<string>('')
 
-  // 파트너사 약어(2글자) 계산: 한글은 2글자, 영문은 그대로 대문자 유지
+  // 시공업체 약어(2글자) 계산: 한글은 2글자, 영문은 그대로 대문자 유지
   const getPartnerAbbr = (raw?: string | null): string => {
     if (!raw) return ''
     let s = String(raw)
@@ -85,7 +85,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         )
         if (alive) setItems(list)
 
-        // 현재 사용자 프로필의 파트너사 약어 계산 (p-main 동일 표시: [롯데], [삼성], ...)
+        // 현재 사용자 프로필의 시공업체 약어 계산 (p-main 동일 표시: [롯데], [삼성], ...)
         try {
           const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
           const me = (await meRes.json().catch(() => null)) || {}

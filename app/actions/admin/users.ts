@@ -749,7 +749,7 @@ export async function updateUserRole(
       const roleText = {
         worker: '작업자',
         site_manager: '현장관리자',
-        customer_manager: '파트너사',
+        customer_manager: '시공업체',
         admin: '관리자',
         system_admin: '시스템관리자',
       }[role]

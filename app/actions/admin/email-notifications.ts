@@ -439,7 +439,7 @@ export async function sendWelcomeEmail(
       {
         worker: '작업자',
         site_manager: '현장관리자',
-        customer_manager: '파트너사 관리자',
+        customer_manager: '시공업체 관리자',
         admin: '관리자',
         system_admin: '시스템관리자',
       }[userRole] || '사용자'

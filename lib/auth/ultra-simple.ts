@@ -22,7 +22,7 @@ const UI_TRACKS: Record<string, string> = {
 export interface SimpleAuth {
   userId: string
   email: string
-  isRestricted: boolean // true = 파트너사 (데이터 제한)
+  isRestricted: boolean // true = 시공업체 제한 계정(데이터 제한)
   restrictedOrgId?: string // 제한된 조직 ID
   uiTrack: string // UI 라우팅 경로
   role?: string // 원본 역할 (하위 호환성)
@@ -71,8 +71,8 @@ function getUITrack(role?: string): string {
 // 3. 데이터 접근 체크 (10줄)
 export async function canAccessData(auth: SimpleAuth | null, orgId?: string): Promise<boolean> {
   if (!auth) return false
-  if (!auth.isRestricted) return true // 파트너사 아니면 모두 허용
-  return auth.restrictedOrgId === orgId // 파트너사는 자기 조직만
+  if (!auth.isRestricted) return true // 제한 계정이 아니면 모두 허용
+  return auth.restrictedOrgId === orgId // 제한 계정은 자기 조직만
 }
 
 // 4. 페이지 보호 (Server Component용) (15줄)

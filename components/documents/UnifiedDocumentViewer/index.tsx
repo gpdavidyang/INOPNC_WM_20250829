@@ -20,61 +20,61 @@ interface UnifiedDocumentViewerProps {
 
 // 카테고리 설정
 const DOCUMENT_CATEGORIES = [
-  { 
-    id: 'all', 
-    name: '전체', 
-    icon: FolderOpen, 
+  {
+    id: 'all',
+    name: '전체',
+    icon: FolderOpen,
     color: 'gray',
-    description: '모든 문서'
+    description: '모든 문서',
   },
-  { 
-    id: 'shared', 
-    name: '공유문서', 
-    icon: Share2, 
+  {
+    id: 'shared',
+    name: '공유문서',
+    icon: Share2,
     color: 'blue',
-    description: '현장 공유 문서'
+    description: '현장 공유 문서',
   },
-  { 
-    id: 'markup', 
-    name: '도면마킹', 
-    icon: Image, 
+  {
+    id: 'markup',
+    name: '도면마킹',
+    icon: Image,
     color: 'purple',
-    description: '도면 및 마킹 문서'
+    description: '도면 및 마킹 문서',
   },
-  { 
-    id: 'photo_grid', 
-    name: '사진대지', 
-    icon: Image, 
+  {
+    id: 'photo_grid',
+    name: '사진대지',
+    icon: Image,
     color: 'orange',
-    description: '작업 전후 사진'
+    description: '작업 전후 사진',
   },
-  { 
-    id: 'required', 
-    name: '필수제출', 
-    icon: Shield, 
+  {
+    id: 'required',
+    name: '필수제출',
+    icon: Shield,
     color: 'green',
-    description: '필수 제출 서류'
+    description: '필수 제출 서류',
   },
-  { 
-    id: 'invoice', 
-    name: '기성청구', 
-    icon: Package, 
+  {
+    id: 'invoice',
+    name: '기성청구',
+    icon: Package,
     color: 'yellow',
-    description: '기성 청구 문서'
-  }
+    description: '기성 청구 문서',
+  },
 ]
 
 export default function UnifiedDocumentViewer({
   profile,
   initialCategory = 'all',
   siteId,
-  companyId
+  companyId,
 }: UnifiedDocumentViewerProps) {
   const { toast } = useToast()
   const [documents, setDocuments] = useState<UnifiedDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  
+
   // UI 상태
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list')
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
@@ -83,36 +83,36 @@ export default function UnifiedDocumentViewer({
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<UnifiedDocument | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  
+
   // 필터 상태
   const [filters, setFilters] = useState({
     status: 'active',
     siteId: siteId || 'all',
     documentType: 'all',
-    dateRange: 'all'
+    dateRange: 'all',
   })
-  
+
   // 페이지네이션
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
-    totalPages: 0
+    totalPages: 0,
   })
-  
+
   // 통계
   const [statistics, setStatistics] = useState<unknown>(null)
-  
+
   // 역할 확인
   const isAdmin = ['admin', 'system_admin'].includes(profile.role)
   const isPartner = profile.role === 'customer_manager'
   const isGeneralUser = ['worker', 'site_manager'].includes(profile.role)
-  
+
   // 문서 로드
   const fetchDocuments = async (page = 1) => {
     try {
       setLoading(true)
-      
+
       const params = new URLSearchParams({
         page: page.toString(),
         limit: pagination.limit.toString(),
@@ -121,17 +121,17 @@ export default function UnifiedDocumentViewer({
         status: filters.status,
         site_id: filters.siteId === 'all' ? '' : filters.siteId,
         document_type: filters.documentType === 'all' ? '' : filters.documentType,
-        include_stats: 'true'
+        include_stats: 'true',
       })
-      
-      // 파트너사는 자동으로 회사 필터 적용
+
+      // 제한 계정(시공업체 담당)은 자동으로 회사 필터 적용
       if (isPartner && profile.customer_company_id) {
         params.append('company_id', profile.customer_company_id)
       }
-      
+
       const response = await fetch(`/api/unified-documents/v2?${params}`)
       const data = await response.json()
-      
+
       if (data.success) {
         setDocuments(data.data || [])
         setPagination(data.pagination)
@@ -140,7 +140,7 @@ export default function UnifiedDocumentViewer({
         toast({
           title: '오류',
           description: '문서를 불러오는데 실패했습니다.',
-          variant: 'destructive'
+          variant: 'destructive',
         })
       }
     } catch (error) {
@@ -148,14 +148,14 @@ export default function UnifiedDocumentViewer({
       toast({
         title: '오류',
         description: '문서를 불러오는데 실패했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
   }
-  
+
   // 문서 업로드 핸들러
   const handleUpload = async (file: File, metadata: Partial<UnifiedDocument>) => {
     try {
@@ -164,18 +164,18 @@ export default function UnifiedDocumentViewer({
       Object.keys(metadata).forEach(key => {
         formData.append(key, (metadata as unknown)[key])
       })
-      
+
       const response = await fetch('/api/unified-documents/v2/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         toast({
           title: '성공',
-          description: '문서가 업로드되었습니다.'
+          description: '문서가 업로드되었습니다.',
         })
         fetchDocuments(pagination.page)
         setShowUploadModal(false)
@@ -186,26 +186,26 @@ export default function UnifiedDocumentViewer({
       toast({
         title: '오류',
         description: '문서 업로드에 실패했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     }
   }
-  
+
   // 문서 액션 핸들러
   const handleDocumentAction = async (action: string, documentIds: string[]) => {
     try {
       const response = await fetch('/api/unified-documents/v2', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, documentIds })
+        body: JSON.stringify({ action, documentIds }),
       })
-      
+
       const data = await response.json()
-      
+
       if (data.success) {
         toast({
           title: '성공',
-          description: data.message
+          description: data.message,
         })
         fetchDocuments(pagination.page)
         setSelectedDocuments([])
@@ -216,16 +216,16 @@ export default function UnifiedDocumentViewer({
       toast({
         title: '오류',
         description: '작업 처리에 실패했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     }
   }
-  
+
   // 초기 로드 및 필터 변경 감지
   useEffect(() => {
     fetchDocuments(1)
   }, [selectedCategory, filters])
-  
+
   // 검색어 디바운싱
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -233,10 +233,10 @@ export default function UnifiedDocumentViewer({
         fetchDocuments(1)
       }
     }, 500)
-    
+
     return () => clearTimeout(timer)
   }, [searchTerm])
-  
+
   return (
     <div className="space-y-4">
       {/* 헤더 */}
@@ -247,20 +247,16 @@ export default function UnifiedDocumentViewer({
             {isPartner ? '회사 문서를 관리합니다.' : '모든 문서를 통합 관리합니다.'}
           </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* 통계 배지 */}
           {statistics && (
             <>
-              <Badge variant="secondary">
-                총 {statistics.total_documents || 0}개
-              </Badge>
-              <Badge variant="outline">
-                최근 7일: {statistics.recent_uploads || 0}개
-              </Badge>
+              <Badge variant="secondary">총 {statistics.total_documents || 0}개</Badge>
+              <Badge variant="outline">최근 7일: {statistics.recent_uploads || 0}개</Badge>
             </>
           )}
-          
+
           {/* 새로고침 */}
           <Button
             variant="outline"
@@ -273,29 +269,26 @@ export default function UnifiedDocumentViewer({
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
           </Button>
-          
+
           {/* 업로드 버튼 */}
-          <Button
-            onClick={() => setShowUploadModal(true)}
-            size="sm"
-          >
+          <Button onClick={() => setShowUploadModal(true)} size="sm">
             <Plus className="h-4 w-4 mr-2" />
             문서 업로드
           </Button>
         </div>
       </div>
-      
+
       {/* 카테고리 탭 */}
       <div className="flex gap-2 overflow-x-auto pb-2">
         {DOCUMENT_CATEGORIES.map(category => {
-          // 파트너사는 기성청구 카테고리만 특별 처리
+          // 제한 계정(시공업체 담당)은 기성청구 카테고리만 특별 처리
           if (isPartner && !['all', 'invoice', 'shared'].includes(category.id)) {
             return null
           }
-          
+
           const Icon = category.icon
           const isActive = selectedCategory === category.id
-          
+
           return (
             <Button
               key={category.id}
@@ -315,7 +308,7 @@ export default function UnifiedDocumentViewer({
           )
         })}
       </div>
-      
+
       {/* 검색 및 필터 */}
       <DocumentFilters
         searchTerm={searchTerm}
@@ -326,7 +319,7 @@ export default function UnifiedDocumentViewer({
         onViewModeChange={setViewMode}
         isAdmin={isAdmin}
       />
-      
+
       {/* 역할별 뷰 */}
       {isAdmin ? (
         <AdminView
@@ -336,12 +329,12 @@ export default function UnifiedDocumentViewer({
           selectedDocuments={selectedDocuments}
           onSelectionChange={setSelectedDocuments}
           onDocumentAction={handleDocumentAction}
-          onDocumentClick={(doc) => {
+          onDocumentClick={doc => {
             setSelectedDocument(doc)
             setShowDetailModal(true)
           }}
           pagination={pagination}
-          onPageChange={(page) => fetchDocuments(page)}
+          onPageChange={page => fetchDocuments(page)}
         />
       ) : isPartner ? (
         <PartnerView
@@ -351,12 +344,12 @@ export default function UnifiedDocumentViewer({
           selectedDocuments={selectedDocuments}
           onSelectionChange={setSelectedDocuments}
           onDocumentAction={handleDocumentAction}
-          onDocumentClick={(doc) => {
+          onDocumentClick={doc => {
             setSelectedDocument(doc)
             setShowDetailModal(true)
           }}
           pagination={pagination}
-          onPageChange={(page) => fetchDocuments(page)}
+          onPageChange={page => fetchDocuments(page)}
           companyId={profile.customer_company_id}
         />
       ) : (
@@ -367,15 +360,15 @@ export default function UnifiedDocumentViewer({
           selectedDocuments={selectedDocuments}
           onSelectionChange={setSelectedDocuments}
           onDocumentAction={handleDocumentAction}
-          onDocumentClick={(doc) => {
+          onDocumentClick={doc => {
             setSelectedDocument(doc)
             setShowDetailModal(true)
           }}
           pagination={pagination}
-          onPageChange={(page) => fetchDocuments(page)}
+          onPageChange={page => fetchDocuments(page)}
         />
       )}
-      
+
       {/* 문서 업로드 모달 */}
       {showUploadModal && (
         <DocumentUploadModal
@@ -386,7 +379,7 @@ export default function UnifiedDocumentViewer({
           profile={profile}
         />
       )}
-      
+
       {/* 문서 상세 모달 */}
       {showDetailModal && selectedDocument && (
         <DocumentDetailModal
@@ -396,7 +389,7 @@ export default function UnifiedDocumentViewer({
             setShowDetailModal(false)
             setSelectedDocument(null)
           }}
-          onUpdate={(updatedDoc) => {
+          onUpdate={updatedDoc => {
             fetchDocuments(pagination.page)
             setSelectedDocument(updatedDoc)
           }}

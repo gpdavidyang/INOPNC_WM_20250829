@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Organization {
   id: string
   name: string
@@ -33,7 +32,8 @@ export default function OrganizationPartnerList() {
     try {
       let query = supabase
         .from('organizations')
-        .select(`
+        .select(
+          `
           *,
           profiles (
             id,
@@ -42,11 +42,14 @@ export default function OrganizationPartnerList() {
             phone,
             role
           )
-        `)
-        .eq('type', 'branch_office') // Only show partner organizations
+        `
+        )
+        .eq('type', 'branch_office') // Only show organizations (legacy)
 
       if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`)
+        query = query.or(
+          `name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`
+        )
       }
 
       if (statusFilter === 'active') {
@@ -88,20 +91,17 @@ export default function OrganizationPartnerList() {
   }
 
   const handleDelete = async (orgId: string) => {
-    if (!confirm('정말로 이 파트너사를 삭제하시겠습니까?')) return
+    if (!confirm('정말로 이 시공업체를 삭제하시겠습니까?')) return
 
     try {
-      const { error } = await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', orgId)
+      const { error } = await supabase.from('organizations').delete().eq('id', orgId)
 
       if (error) throw error
 
       await loadOrganizations()
     } catch (error) {
       console.error('Failed to delete organization:', error)
-      alert('파트너사 삭제에 실패했습니다.')
+      alert('시공업체 삭제에 실패했습니다.')
     }
   }
 
@@ -124,16 +124,13 @@ export default function OrganizationPartnerList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">파트너사 관리</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">시공업체 관리</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            협력업체 및 파트너사를 관리합니다
+            협력업체(시공업체)를 관리합니다
           </p>
         </div>
-        <button
-          className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          새 파트너사 등록
+        <button className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors">
+          <Plus className="h-4 w-4 mr-2" />새 시공업체 등록
         </button>
       </div>
 
@@ -147,7 +144,7 @@ export default function OrganizationPartnerList() {
               type="text"
               placeholder="회사명, 설명, 주소로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -155,7 +152,7 @@ export default function OrganizationPartnerList() {
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">전체 상태</option>
@@ -168,7 +165,7 @@ export default function OrganizationPartnerList() {
       {/* View Toggle */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">파트너사 목록</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">시공업체 목록</h3>
           <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-1">
             <button
               onClick={() => setViewMode('card')}
@@ -201,7 +198,10 @@ export default function OrganizationPartnerList() {
         viewMode === 'card' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <div
+                key={i}
+                className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow"
+              >
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
                 <div className="space-y-2">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -243,14 +243,12 @@ export default function OrganizationPartnerList() {
           <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
             {searchTerm || statusFilter !== 'all'
               ? '검색 결과가 없습니다'
-              : '등록된 파트너사가 없습니다'
-            }
+              : '등록된 시공업체가 없습니다'}
           </h3>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             {searchTerm || statusFilter !== 'all'
               ? '다른 검색 조건을 시도해보세요'
-              : '새 파트너사를 등록해보세요'
-            }
+              : '새 시공업체를 등록해보세요'}
           </p>
         </div>
       ) : viewMode === 'list' ? (
@@ -260,7 +258,7 @@ export default function OrganizationPartnerList() {
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  파트너사명
+                  시공업체명
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                   상태
@@ -280,7 +278,7 @@ export default function OrganizationPartnerList() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {organizations.map((org) => (
+              {organizations.map(org => (
                 <tr key={org.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -297,9 +295,7 @@ export default function OrganizationPartnerList() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(org.is_active)}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(org.is_active)}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {org.phone && (
                       <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
@@ -361,7 +357,7 @@ export default function OrganizationPartnerList() {
       ) : (
         // Card View (existing implementation)
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {organizations.map((org) => (
+          {organizations.map(org => (
             <div
               key={org.id}
               className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow"
@@ -370,9 +366,7 @@ export default function OrganizationPartnerList() {
                 <div className="flex items-start gap-3">
                   <Building2 className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {org.name}
-                    </h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{org.name}</h3>
                     {org.description && (
                       <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                         {org.description}
@@ -380,9 +374,7 @@ export default function OrganizationPartnerList() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {getStatusBadge(org.is_active)}
-                </div>
+                <div className="flex items-center gap-2">{getStatusBadge(org.is_active)}</div>
               </div>
 
               <div className="space-y-2">
@@ -409,9 +401,11 @@ export default function OrganizationPartnerList() {
               {/* Contact Persons */}
               {org.profiles && org.profiles.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">담당자</p>
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                    담당자
+                  </p>
                   <div className="space-y-1">
-                    {org.profiles.slice(0, 2).map((profile) => (
+                    {org.profiles.slice(0, 2).map(profile => (
                       <div key={profile.id} className="text-xs text-gray-600 dark:text-gray-400">
                         <span className="font-medium">{profile.full_name}</span>
                         {profile.email && (
@@ -461,19 +455,19 @@ export default function OrganizationPartnerList() {
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {organizations.length}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">전체 파트너사</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">전체 시공업체</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-green-600">
                 {organizations.filter(o => o.is_active).length}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">활성 파트너사</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">활성 시공업체</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-500">
                 {organizations.filter(o => !o.is_active).length}
               </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">비활성 파트너사</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">비활성 시공업체</p>
             </div>
           </div>
         </div>

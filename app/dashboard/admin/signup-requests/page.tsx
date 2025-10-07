@@ -78,8 +78,13 @@ export default async function AdminSignupRequestsPage({
           </CardHeader>
           <CardContent>
             <div className="mb-3">
-              <form method="GET" className="flex items-center gap-2">
-                <Input name="search" defaultValue={search} placeholder={t('common.search')} />
+              <form method="GET" className="flex items-center gap-2 flex-nowrap">
+                <Input
+                  name="search"
+                  defaultValue={search}
+                  placeholder={t('common.search')}
+                  className="w-64 sm:w-72 md:w-80"
+                />
                 <Button type="submit" variant="outline">
                   {t('common.search')}
                 </Button>

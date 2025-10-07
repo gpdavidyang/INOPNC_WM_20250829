@@ -98,7 +98,7 @@ const documentCategories = [
     id: 'invoice-documents',
     label: '기성청구함',
     icon: FileText,
-    description: '현장 및 파트너사 계약 서류',
+    description: '현장 및 업체(시공/공급) 계약 서류',
     color: 'red',
     features: ['upload', 'download', 'preview', 'contractStage'],
     adminFeatures: ['viewAll', 'manageAll', 'stageControl'],
@@ -873,10 +873,10 @@ export default function EnhancedDocumentManagement() {
               {activeTab === 'invoice-documents' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    파트너사 선택
+                    업체 선택
                   </label>
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="">파트너사 선택...</option>
+                    <option value="">업체 선택...</option>
                     {partners.map(partner => (
                       <option key={partner.id} value={partner.id}>
                         {partner.full_name}
@@ -1028,7 +1028,7 @@ export default function EnhancedDocumentManagement() {
                   <optgroup label="역할">
                     <option value="worker">작업자 전체</option>
                     <option value="site_manager">현장관리자 전체</option>
-                    <option value="partner">파트너사 전체</option>
+                    <option value="partner">업체 전체</option>
                   </optgroup>
                   <optgroup label="개별 사용자">
                     {users.map(user => (

@@ -20,6 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const supabase = createClient()
     const svc = createServiceRoleClient()
+    const SINGLE_CODE = (process.env.NEXT_PUBLIC_SINGLE_MATERIAL_CODE || 'INC-1000').toUpperCase()
 
     // Resolve role/profile
     const { data: profile } = await supabase
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }
     }
 
-    const inboundItems = txIn.map((t: any) => ({
+    const inboundItemsAll = txIn.map((t: any) => ({
       material_code: materialMap.get(String(t.material_id))?.code || '',
       material_name: materialMap.get(String(t.material_id))?.name || '',
       unit: materialMap.get(String(t.material_id))?.unit || '',
@@ -144,7 +145,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       source: t.reference_type === 'shipment' ? 'shipment' : 'transaction',
     }))
 
-    const usageItems = txOut.map((t: any) => ({
+    const inboundItems = inboundItemsAll.filter(
+      it => String(it.material_code || '').toUpperCase() === SINGLE_CODE
+    )
+
+    const usageItemsAll = txOut.map((t: any) => ({
       material_code: materialMap.get(String(t.material_id))?.code || '',
       material_name: materialMap.get(String(t.material_id))?.name || '',
       unit: materialMap.get(String(t.material_id))?.unit || '',
@@ -152,6 +157,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       date: t.transaction_date,
       daily_report_id: t.reference_type === 'daily_report' ? t.reference_id : null,
     }))
+
+    const usageItems = usageItemsAll.filter(
+      it => String(it.material_code || '').toUpperCase() === SINGLE_CODE
+    )
 
     const inboundTotal = inboundItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
     const usageTotal = usageItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
@@ -185,12 +194,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }
     }
 
-    const inventoryItems = (invRows || []).map((r: any) => ({
-      material_code: materialMap.get(String(r.material_id))?.code || '',
-      material_name: materialMap.get(String(r.material_id))?.name || '',
-      unit: materialMap.get(String(r.material_id))?.unit || '',
-      current_stock: Number(r.current_stock || 0),
-    }))
+    const inventoryItems = (invRows || [])
+      .map((r: any) => ({
+        material_code: materialMap.get(String(r.material_id))?.code || '',
+        material_name: materialMap.get(String(r.material_id))?.name || '',
+        unit: materialMap.get(String(r.material_id))?.unit || '',
+        current_stock: Number(r.current_stock || 0),
+      }))
+      .filter(it => String(it.material_code || '').toUpperCase() === SINGLE_CODE)
 
     return NextResponse.json({
       success: true,

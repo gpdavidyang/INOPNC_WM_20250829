@@ -30,8 +30,8 @@ async function testManagerAccess() {
     console.log('   역할:', managerProfile.role)
     console.log('   User ID:', managerProfile.id)
 
-    // 2. 파트너사 조회 테스트
-    console.log('\n2️⃣ 활성 파트너사 조회 테스트')
+    // 2. 시공업체 조회 테스트
+    console.log('\n2️⃣ 활성 시공업체 조회 테스트')
     const { data: partners, error: partnerError } = await supabase
       .from('partner_companies')
       .select('id, company_name, company_type')
@@ -39,23 +39,23 @@ async function testManagerAccess() {
       .order('company_name')
 
     if (partnerError) {
-      console.error('❌ 파트너사 조회 실패:', partnerError.message)
+      console.error('❌ 시공업체 조회 실패:', partnerError.message)
     } else {
-      console.log('✅ 조회 가능한 파트너사:', partners?.length || 0, '개')
-      console.log('   샘플 파트너사:')
+      console.log('✅ 조회 가능한 시공업체:', partners?.length || 0, '개')
+      console.log('   샘플 시공업체:')
       partners?.slice(0, 3).forEach((partner, index) => {
         console.log(`   ${index + 1}. ${partner.company_name} (${partner.company_type})`)
       })
     }
 
-    // 3. 특정 파트너사의 현장 조회 테스트
-    console.log('\n3️⃣ 파트너사별 현장 조회 테스트')
+    // 3. 특정 시공업체의 현장 조회 테스트
+    console.log('\n3️⃣ 시공업체별 현장 조회 테스트')
 
     // 인옵앤씨 파트너 선택 (가장 많은 현장 보유)
     const inopncPartner = partners?.find(p => p.company_name === '인옵앤씨 파트너')
 
     if (inopncPartner) {
-      console.log('📍 테스트 파트너사: 인옵앤씨 파트너')
+      console.log('📍 테스트 시공업체: 인옵앤씨')
 
       const { data: mappings, error: mappingError } = await supabase
         .from('partner_site_mappings')
@@ -138,8 +138,8 @@ async function testManagerAccess() {
     console.log('📊 manager@inopnc.com 계정 접근 권한 요약')
     console.log('='.repeat(60))
     console.log('✅ 프로필 정보 조회: 성공')
-    console.log('✅ 파트너사 목록 조회: 성공 (9개)')
-    console.log('✅ 파트너사별 현장 조회: 성공')
+    console.log('✅ 시공업체 목록 조회: 성공 (9개)')
+    console.log('✅ 시공업체별 현장 조회: 성공')
     console.log('✅ 현장별 공도면 조회: 성공')
     console.log('✅ documents 테이블 접근: 성공')
 
@@ -151,8 +151,8 @@ async function testManagerAccess() {
     console.log('   - 역할: site_manager → /mobile 리다이렉트 ✅')
 
     console.log('\n2. 작업일지 작성:')
-    console.log('   - 소속(파트너사) 선택: 9개 옵션 표시 ✅')
-    console.log('   - 인옵앤씨 파트너 선택 시: 5개 현장 표시 ✅')
+    console.log('   - 소속(시공업체) 선택: 9개 옵션 표시 ✅')
+    console.log('   - 인옵앤씨 선택 시: 5개 현장 표시 ✅')
 
     console.log('\n3. 도면 마킹:')
     console.log('   - 삼성전자 평택캠퍼스 P3 선택 ✅')
@@ -161,7 +161,7 @@ async function testManagerAccess() {
 
     console.log('\n' + '='.repeat(60))
     console.log('🎉 모든 테스트 통과! manager@inopnc.com 계정으로')
-    console.log('   파트너사-현장-공도면 조회가 정상 작동합니다.')
+    console.log('   시공업체-현장-공도면 조회가 정상 작동합니다.')
   } catch (error) {
     console.error('❌ 테스트 실행 중 오류:', error)
   }

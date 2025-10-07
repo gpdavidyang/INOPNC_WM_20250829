@@ -87,7 +87,7 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="org-name">조직명</Label>
+              <Label htmlFor="org-name">시공업체명</Label>
               <Input
                 id="org-name"
                 value={formState.name}
@@ -95,14 +95,7 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
                 onChange={handleChange('name')}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="org-type">구분</Label>
-              <Input
-                id="org-type"
-                value={formState.type ? TYPE_LABEL[formState.type] || formState.type : '미지정'}
-                disabled
-              />
-            </div>
+            {/* 유형(구분) 필드는 사용하지 않으므로 숨김 */}
             <div className="space-y-2">
               <Label htmlFor="org-phone">대표 전화</Label>
               <Input

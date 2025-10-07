@@ -22,15 +22,30 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const offset = Math.max(0, Number(searchParams.get('offset') || '0') || 0)
 
     const svc = createServiceRoleClient()
+    const SINGLE_CODE = (process.env.NEXT_PUBLIC_SINGLE_MATERIAL_CODE || '').toUpperCase()
 
     // Step 1: get transactions (paged) and total count
-    const baseQuery = svc
+    let baseQuery = svc
       .from('material_transactions')
       .select('id, site_id, material_id, transaction_type, transaction_date, quantity', {
         count: 'exact',
       })
       .eq('site_id', siteId)
       .order('transaction_date', { ascending: false, nullsFirst: false })
+
+    // Optional single-material filter by code (INC-1000)
+    if (SINGLE_CODE) {
+      const { data: mats } = await svc
+        .from('materials')
+        .select('id, code')
+        .ilike('code', SINGLE_CODE)
+      const ids = (mats || []).map((m: any) => m.id)
+      if (ids.length > 0) {
+        baseQuery = baseQuery.in('material_id', ids)
+      } else {
+        return NextResponse.json({ success: true, data: [], total: 0 })
+      }
+    }
 
     const { data: txns, error, count } = await baseQuery.range(offset, offset + limit - 1)
     if (error) throw error

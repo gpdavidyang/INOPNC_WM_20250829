@@ -5,7 +5,7 @@ import { PartnerDetail } from '@/components/admin/partners/PartnerDetail'
 import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
-  title: '파트너 상세',
+  title: '공급업체 상세',
 }
 
 interface PartnerDetailPageProps {
@@ -43,11 +43,11 @@ export default async function AdminPartnerDetailPage({ params }: PartnerDetailPa
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="파트너 상세"
+        title="공급업체 상세"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '파트너 관리', href: '/dashboard/admin/partners' },
-          { label: '파트너 상세' },
+          { label: '공급업체 관리', href: '/dashboard/admin/partners' },
+          { label: '상세' },
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/partners"
@@ -61,7 +61,7 @@ export default async function AdminPartnerDetailPage({ params }: PartnerDetailPa
           />
         ) : (
           <p className="rounded-md border border-dashed border-muted-foreground/40 px-4 py-10 text-center text-sm text-muted-foreground">
-            파트너 정보를 불러오지 못했습니다. 파트너가 존재하지 않거나 권한이 없습니다.
+            업체 정보를 불러오지 못했습니다. 업체가 존재하지 않거나 권한이 없습니다.
           </p>
         )}
       </div>

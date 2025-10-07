@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         companyName = company.company_name
       } else {
         // If invalid partnerCompanyId provided, return a friendly error
-        return NextResponse.json({ error: '파트너사 정보를 찾을 수 없습니다.' }, { status: 400 })
+        return NextResponse.json({ error: '시공업체 정보를 찾을 수 없습니다.' }, { status: 400 })
       }
     }
 
@@ -50,13 +50,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: '이미 승인 요청이 제출된 이메일입니다.' }, { status: 409 })
     }
 
+    const normalizedJobType = 'construction'
     const { error: insertErr } = await admin.from('signup_requests').insert({
       full_name: fullName,
       company: companyName,
       job_title: jobTitle,
       phone,
       email,
-      job_type: 'construction',
+      job_type: normalizedJobType,
       status: 'pending',
       requested_at: new Date().toISOString(),
     } as any)

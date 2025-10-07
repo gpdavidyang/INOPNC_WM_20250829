@@ -27,7 +27,7 @@ const notificationTypes = [
 const targetRoles = [
   { value: 'worker', label: '작업자' },
   { value: 'site_manager', label: '현장관리자' },
-  { value: 'customer_manager', label: '파트너사' },
+  { value: 'customer_manager', label: '파트너/업체' },
   { value: 'admin', label: '시스템관리자' },
 ]
 

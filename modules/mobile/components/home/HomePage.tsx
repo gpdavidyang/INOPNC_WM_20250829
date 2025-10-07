@@ -254,7 +254,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     }
   }
 
-  // 선택된 파트너사(소속)에 따라 현장 목록 불러오기
+  // 선택된 시공업체(소속)에 따라 현장 목록 불러오기
   useEffect(() => {
     if (!department) {
       setSites([])

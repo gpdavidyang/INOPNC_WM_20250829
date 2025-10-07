@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
     // 역할 기반 필터링
     if (role === 'customer_manager') {
-      // 파트너사: 자사 문서만
+      // 제한 계정(시공업체 담당): 자사 문서만
       query = query.eq('customer_company_id', profile.customer_company_id)
     }
     // 작업자, 현장관리자, 관리자는 모든 문서 접근 가능 (필터링 없음)
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    // 파트너사인 경우 자사 문서만 생성 가능
+    // 제한 계정(시공업체 담당)인 경우 자사 문서만 생성 가능
     if (profile.role === 'customer_manager') {
       body.customer_company_id = profile.customer_company_id
     }

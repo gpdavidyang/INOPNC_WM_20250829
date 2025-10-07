@@ -121,3 +121,33 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
   }
 }
+
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const supabase = await createClient()
+
+    const { error: delError } = await supabase.from('organizations').delete().eq('id', params.id)
+
+    if (delError) {
+      console.error('Organization delete error:', delError)
+      return NextResponse.json({ success: false, error: delError.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Organization delete exception:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to delete organization' },
+      { status: 500 }
+    )
+  }
+}

@@ -8,6 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { t } from '@/lib/ui/strings'
+import Link from 'next/link'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface Organization {
   id: string
@@ -80,6 +83,32 @@ export function OrganizationsOverview() {
     void loadOrganizations()
   }
 
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirm({
+      title: '시공업체 삭제',
+      description: `"${name}" 시공업체를 삭제할까요? 되돌릴 수 없습니다.`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE' })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || j?.success === false) throw new Error(j?.error || '삭제 실패')
+      toast({ title: '삭제 완료', description: '시공업체가 삭제되었습니다.', variant: 'success' })
+      void loadOrganizations()
+    } catch (e: any) {
+      toast({
+        title: '오류',
+        description: e?.message || '삭제 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -87,13 +116,13 @@ export function OrganizationsOverview() {
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Building2 className="h-5 w-5" />
-              조직 관리
+              소속(시공사) 관리
             </CardTitle>
             <CardDescription>
-              현장 및 파트너 연동에 사용되는 조직 정보를 조회합니다.
+              현장 연동에 사용되는 시공업체(소속사) 정보를 조회합니다.
             </CardDescription>
           </div>
-          <div className="flex w-full max-w-md items-center gap-2">
+          <div className="flex w-full max-w-xl items-center gap-2">
             <Input
               placeholder={t('common.search')}
               value={keyword}
@@ -108,6 +137,9 @@ export function OrganizationsOverview() {
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               <span className="sr-only">{t('common.refresh')}</span>
             </Button>
+            <Button asChild variant="primary" className="shrink-0">
+              <Link href="/dashboard/admin/organizations/new">신규 등록</Link>
+            </Button>
           </div>
         </CardHeader>
       </Card>
@@ -115,7 +147,7 @@ export function OrganizationsOverview() {
       {loading ? (
         <Card>
           <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            조직 정보를 불러오는 중입니다...
+            소속(시공사) 정보를 불러오는 중입니다...
           </CardContent>
         </Card>
       ) : error ? (
@@ -125,7 +157,7 @@ export function OrganizationsOverview() {
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="py-20 text-center text-sm text-muted-foreground">
-            조건에 맞는 조직이 없습니다.
+            조건에 맞는 소속(시공사)이 없습니다.
           </CardContent>
         </Card>
       ) : (
@@ -139,7 +171,7 @@ export function OrganizationsOverview() {
                 [
                   {
                     key: 'name',
-                    header: '조직명',
+                    header: '시공업체명',
                     sortable: true,
                     width: '28%',
                     render: (o: Organization) => (
@@ -153,18 +185,6 @@ export function OrganizationsOverview() {
                         ) : null}
                       </div>
                     ),
-                  },
-                  {
-                    key: 'type',
-                    header: '유형',
-                    sortable: true,
-                    width: '14%',
-                    render: (o: Organization) =>
-                      o.type ? (
-                        <Badge variant="secondary">{TYPE_LABEL[o.type] || o.type}</Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      ),
                   },
                   {
                     key: 'address',
@@ -215,6 +235,30 @@ export function OrganizationsOverview() {
                       <div className="flex items-center justify-end gap-1 text-sm font-medium">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         {o.member_count ?? 0}명
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    header: '작업',
+                    sortable: false,
+                    width: '16%',
+                    align: 'right',
+                    render: (o: Organization) => (
+                      <div className="flex items-center justify-end gap-1">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/dashboard/admin/organizations/${o.id}`}>상세</Link>
+                        </Button>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/dashboard/admin/organizations/${o.id}/edit`}>수정</Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(o.id, o.name)}
+                        >
+                          삭제
+                        </Button>
                       </div>
                     ),
                   },

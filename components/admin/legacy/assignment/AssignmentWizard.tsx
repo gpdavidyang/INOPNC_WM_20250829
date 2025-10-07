@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Partner {
   id: string
   company_name: string
@@ -32,51 +31,51 @@ interface WizardStep {
 const WIZARD_STEPS: WizardStep[] = [
   {
     id: 1,
-    title: '파트너사 선택',
-    description: '현장에 배정할 파트너사를 선택합니다',
-    icon: <Building2 className="h-5 w-5" />
+    title: '업체 선택',
+    description: '현장에 배정할 업체(시공/공급)를 선택합니다',
+    icon: <Building2 className="h-5 w-5" />,
   },
   {
     id: 2,
     title: '현장 선택',
     description: '작업할 현장을 선택합니다',
-    icon: <MapPin className="h-5 w-5" />
+    icon: <MapPin className="h-5 w-5" />,
   },
   {
     id: 3,
     title: '사용자 선택',
     description: '배정할 사용자들을 선택합니다',
-    icon: <Users className="h-5 w-5" />
+    icon: <Users className="h-5 w-5" />,
   },
   {
     id: 4,
     title: '배정 설정',
     description: '배정 유형과 역할을 설정합니다',
-    icon: <FileText className="h-5 w-5" />
+    icon: <FileText className="h-5 w-5" />,
   },
   {
     id: 5,
     title: '확인 및 완료',
     description: '배정 정보를 확인하고 완료합니다',
-    icon: <CheckCircle className="h-5 w-5" />
-  }
+    icon: <CheckCircle className="h-5 w-5" />,
+  },
 ]
 
-export default function AssignmentWizard({ 
-  onClose, 
-  onComplete 
-}: { 
+export default function AssignmentWizard({
+  onClose,
+  onComplete,
+}: {
   onClose: () => void
-  onComplete: () => void 
+  onComplete: () => void
 }) {
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  
+
   // Data states
   const [partners, setPartners] = useState<Partner[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [users, setUsers] = useState<User[]>([])
-  
+
   // Selection states
   const [selectedPartner, setSelectedPartner] = useState<string>('')
   const [selectedSite, setSelectedSite] = useState<string>('')
@@ -119,13 +118,13 @@ export default function AssignmentWizard({
   const fetchUsers = async () => {
     try {
       const response = await fetch('/api/admin/users')
-    if (response.ok) {
-      const data = await response.json()
-      const users: User[] = (data.data?.users || data.data || []).filter(
-        (user: User) => user.role !== 'system_admin'
-      )
-      setUsers(users)
-    }
+      if (response.ok) {
+        const data = await response.json()
+        const users: User[] = (data.data?.users || data.data || []).filter(
+          (user: User) => user.role !== 'system_admin'
+        )
+        setUsers(users)
+      }
     } catch (error) {
       console.error('Failed to fetch users:', error)
     }
@@ -156,13 +155,13 @@ export default function AssignmentWizard({
         site_id: selectedSite,
         assignment_type: assignmentType,
         role: assignmentRole,
-        notes: notes || null
+        notes: notes || null,
       }))
 
       const response = await fetch('/api/admin/assignment/user-assignments/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignments })
+        body: JSON.stringify({ assignments }),
       })
 
       if (response.ok) {
@@ -182,12 +181,18 @@ export default function AssignmentWizard({
 
   const canProceedToNext = () => {
     switch (currentStep) {
-      case 1: return selectedPartner !== ''
-      case 2: return selectedSite !== ''
-      case 3: return selectedUsers.length > 0
-      case 4: return assignmentType !== '' && assignmentRole !== ''
-      case 5: return true
-      default: return false
+      case 1:
+        return selectedPartner !== ''
+      case 2:
+        return selectedSite !== ''
+      case 3:
+        return selectedUsers.length > 0
+      case 4:
+        return assignmentType !== '' && assignmentRole !== ''
+      case 5:
+        return true
+      default:
+        return false
     }
   }
 
@@ -235,9 +240,7 @@ export default function AssignmentWizard({
               <h3 className="text-lg font-medium">현장 선택</h3>
               <AssignmentTooltip type="site" />
             </div>
-            <p className="text-sm text-muted-foreground">
-              사용자들이 작업할 현장을 선택해주세요.
-            </p>
+            <p className="text-sm text-muted-foreground">사용자들이 작업할 현장을 선택해주세요.</p>
             <Select value={selectedSite} onValueChange={setSelectedSite}>
               <SelectTrigger>
                 <SelectValue placeholder="현장을 선택하세요" />
@@ -269,8 +272,12 @@ export default function AssignmentWizard({
         )
 
       case 3:
-        const filteredUsers = selectedPartner 
-          ? users.filter(user => user.partner_company?.company_name === partners.find(p => p.id === selectedPartner)?.company_name)
+        const filteredUsers = selectedPartner
+          ? users.filter(
+              user =>
+                user.partner_company?.company_name ===
+                partners.find(p => p.id === selectedPartner)?.company_name
+            )
           : users
 
         return (
@@ -280,12 +287,15 @@ export default function AssignmentWizard({
               <AssignmentTooltip type="assignment" />
             </div>
             <p className="text-sm text-muted-foreground">
-              현장에 배정할 사용자들을 선택해주세요. {selectedPartner ? '선택된 파트너사의 직원들이 표시됩니다.' : '모든 사용자가 표시됩니다.'}
+              현장에 배정할 사용자들을 선택해주세요.{' '}
+              {selectedPartner
+                ? '선택된 파트너사의 직원들이 표시됩니다.'
+                : '모든 사용자가 표시됩니다.'}
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto">
               {filteredUsers.map(user => (
-                <div 
+                <div
                   key={user.id}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
                     selectedUsers.includes(user.id)
@@ -320,9 +330,7 @@ export default function AssignmentWizard({
               <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-green-700">
-                    {selectedUsers.length}명 선택됨
-                  </span>
+                  <span className="text-sm text-green-700">{selectedUsers.length}명 선택됨</span>
                 </div>
               </div>
             )}
@@ -333,10 +341,8 @@ export default function AssignmentWizard({
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">배정 설정</h3>
-            <p className="text-sm text-muted-foreground">
-              배정 유형과 역할을 설정해주세요.
-            </p>
-            
+            <p className="text-sm text-muted-foreground">배정 유형과 역할을 설정해주세요.</p>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="assignment-type">배정 유형</Label>
@@ -372,7 +378,7 @@ export default function AssignmentWizard({
               <Textarea
                 id="notes"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={e => setNotes(e.target.value)}
                 placeholder="배정에 대한 추가 정보를 입력하세요..."
                 rows={3}
               />
@@ -390,9 +396,7 @@ export default function AssignmentWizard({
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-medium">배정 정보 확인</h3>
-            <p className="text-sm text-muted-foreground">
-              아래 정보를 확인하고 배정을 완료하세요.
-            </p>
+            <p className="text-sm text-muted-foreground">아래 정보를 확인하고 배정을 완료하세요.</p>
 
             <div className="space-y-4">
               <Card>
@@ -401,7 +405,7 @@ export default function AssignmentWizard({
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">파트너사:</span>
+                    <span className="text-sm text-muted-foreground">업체:</span>
                     <span className="text-sm font-medium">{selectedPartnerName}</span>
                   </div>
                   <div className="flex justify-between">
@@ -415,15 +419,21 @@ export default function AssignmentWizard({
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">배정 유형:</span>
                     <Badge variant="outline">
-                      {assignmentType === 'permanent' ? '정규' : 
-                       assignmentType === 'temporary' ? '임시' : '대체'}
+                      {assignmentType === 'permanent'
+                        ? '정규'
+                        : assignmentType === 'temporary'
+                          ? '임시'
+                          : '대체'}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-muted-foreground">역할:</span>
                     <Badge variant="outline">
-                      {assignmentRole === 'worker' ? '작업자' : 
-                       assignmentRole === 'supervisor' ? '감독자' : '현장관리자'}
+                      {assignmentRole === 'worker'
+                        ? '작업자'
+                        : assignmentRole === 'supervisor'
+                          ? '감독자'
+                          : '현장관리자'}
                     </Badge>
                   </div>
                 </CardContent>
@@ -470,23 +480,23 @@ export default function AssignmentWizard({
       <div className="flex items-center justify-between">
         {WIZARD_STEPS.map((step, index) => (
           <div key={step.id} className="flex items-center">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-              currentStep === step.id
-                ? 'border-blue-500 bg-blue-500 text-white'
-                : currentStep > step.id
-                ? 'border-green-500 bg-green-500 text-white'
-                : 'border-gray-300 bg-white text-gray-500'
-            }`}>
-              {currentStep > step.id ? (
-                <CheckCircle className="h-5 w-5" />
-              ) : (
-                step.icon
-              )}
+            <div
+              className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                currentStep === step.id
+                  ? 'border-blue-500 bg-blue-500 text-white'
+                  : currentStep > step.id
+                    ? 'border-green-500 bg-green-500 text-white'
+                    : 'border-gray-300 bg-white text-gray-500'
+              }`}
+            >
+              {currentStep > step.id ? <CheckCircle className="h-5 w-5" /> : step.icon}
             </div>
             {index < WIZARD_STEPS.length - 1 && (
-              <div className={`w-full h-0.5 mx-4 ${
-                currentStep > step.id ? 'bg-green-500' : 'bg-gray-300'
-              }`} />
+              <div
+                className={`w-full h-0.5 mx-4 ${
+                  currentStep > step.id ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              />
             )}
           </div>
         ))}
@@ -494,9 +504,7 @@ export default function AssignmentWizard({
 
       {/* Step Info */}
       <div className="text-center">
-        <h2 className="text-xl font-semibold">
-          {WIZARD_STEPS[currentStep - 1]?.title}
-        </h2>
+        <h2 className="text-xl font-semibold">{WIZARD_STEPS[currentStep - 1]?.title}</h2>
         <p className="text-sm text-muted-foreground mt-1">
           {WIZARD_STEPS[currentStep - 1]?.description}
         </p>
@@ -504,9 +512,7 @@ export default function AssignmentWizard({
 
       {/* Step Content */}
       <Card>
-        <CardContent className="p-6">
-          {getStepContent()}
-        </CardContent>
+        <CardContent className="p-6">{getStepContent()}</CardContent>
       </Card>
 
       {/* Navigation */}
@@ -521,8 +527,8 @@ export default function AssignmentWizard({
         </Button>
 
         {currentStep === WIZARD_STEPS.length ? (
-          <Button 
-            onClick={handleComplete} 
+          <Button
+            onClick={handleComplete}
             disabled={loading || !canProceedToNext()}
             className="bg-green-600 hover:bg-green-700"
           >
@@ -530,10 +536,7 @@ export default function AssignmentWizard({
             <CheckCircle className="h-4 w-4 ml-2" />
           </Button>
         ) : (
-          <Button 
-            onClick={handleNext} 
-            disabled={!canProceedToNext()}
-          >
+          <Button onClick={handleNext} disabled={!canProceedToNext()}>
             다음
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>

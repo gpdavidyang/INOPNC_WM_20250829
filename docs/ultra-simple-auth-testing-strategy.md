@@ -44,7 +44,7 @@ describe('getAuth()', () => {
     expect(auth).toBeNull()
   })
 
-  test('파트너사 역할 제한 플래그 정확성', async () => {
+  test('시공업체 담당 역할 제한 플래그 정확성', async () => {
     // Mock customer_manager profile
     const auth = await getAuth()
     expect(auth?.isRestricted).toBe(true)
@@ -230,7 +230,7 @@ describe('API Protection', () => {
 
 ```typescript
 describe('Data Access Security', () => {
-  test('파트너사는 자기 데이터만 접근', async () => {
+  test('시공업체 담당은 자기 데이터만 접근', async () => {
     const partnerAuth = {
       isRestricted: true,
       restrictedOrgId: 'partner-123',
@@ -337,8 +337,8 @@ describe('Worker User Flow', () => {
 
 ```typescript
 describe('Partner User Flow', () => {
-  test('파트너사 관리자 제한적 접근', async () => {
-    // 1. 파트너사 로그인
+  test('시공업체 담당 제한적 접근', async () => {
+    // 1. 시공업체 담당 로그인
     const auth = await getAuth()
     expect(auth?.role).toBe('customer_manager')
     expect(auth?.isRestricted).toBe(true)
@@ -407,13 +407,13 @@ describe('Security Validation', () => {
 
 ```typescript
 describe('Data Leak Prevention', () => {
-  test('파트너사 간 데이터 유출 차단', async () => {
+  test('시공업체 간 데이터 유출 차단', async () => {
     const partner1 = {
       isRestricted: true,
       restrictedOrgId: 'partner-1',
     } as SimpleAuth
 
-    // 다른 파트너사 데이터 접근 시도
+    // 다른 시공업체 데이터 접근 시도
     expect(await canAccessData(partner1, 'partner-2')).toBe(false)
   })
 
@@ -578,7 +578,7 @@ npm run test:report
 
 ### 보안
 
-- [ ] 파트너사 데이터 제한 정확성
+- [ ] 시공업체 데이터 제한 정확성
 - [ ] 인증 우회 시도 차단
 - [ ] 권한 상승 시도 차단
 - [ ] API 보안 검증

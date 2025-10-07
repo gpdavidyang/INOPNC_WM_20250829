@@ -1,11 +1,13 @@
 # UI Implementation Testing Guide
 
 ## 🎯 Overview
+
 This document provides testing instructions for the new simplified UI implementation for mobile roles (worker, site_manager, customer_manager).
 
 ## 📱 Test Pages
 
 ### Individual Component Tests
+
 Test each component in isolation to verify styling and functionality:
 
 1. **Design System Test**
@@ -15,7 +17,7 @@ Test each component in isolation to verify styling and functionality:
 
 2. **Home Screen Test**
    - URL: `/test/home-new`
-   - Verify: 
+   - Verify:
      - 6 fixed quick menu items
      - Auto-sliding announcements (3-second interval)
      - Work content recording form
@@ -69,6 +71,7 @@ Test each component in isolation to verify styling and functionality:
 ## ✅ Testing Checklist
 
 ### Design Fidelity
+
 - [ ] Colors match exactly (#1A254F brand, #0068FE accent, #E6ECF4 line)
 - [ ] Typography uses Noto Sans KR (400,600,700,800) and Poppins (600,700,800)
 - [ ] Spacing follows 14px padding, 14px border-radius standard
@@ -76,6 +79,7 @@ Test each component in isolation to verify styling and functionality:
 - [ ] Quick menu is exactly 6 items in a grid
 
 ### Functionality
+
 - [ ] Home: Announcements auto-slide every 3 seconds
 - [ ] Home: Work content form submits properly
 - [ ] Daily Reports: Calendar navigation works
@@ -87,18 +91,21 @@ Test each component in isolation to verify styling and functionality:
 - [ ] Site Info: Details toggle expands/collapses
 
 ### Navigation
+
 - [ ] Bottom nav highlights active screen
 - [ ] All navigation links work correctly
 - [ ] Back navigation maintains state
 - [ ] Search overlay opens and closes properly
 
 ### Responsive Behavior
+
 - [ ] Content adjusts to different screen sizes
 - [ ] Touch targets are at least 44px
 - [ ] No horizontal scrolling
 - [ ] Safe area insets respected (iOS)
 
 ### Dark Mode (if applicable)
+
 - [ ] Text remains readable
 - [ ] Contrast ratios maintained
 - [ ] Icons visible
@@ -107,6 +114,7 @@ Test each component in isolation to verify styling and functionality:
 ## 🚀 Production Deployment Checklist
 
 ### Before Deployment
+
 1. [ ] Remove all test pages from production build
 2. [ ] Verify environment variables are set
 3. [ ] Test with real user accounts
@@ -114,15 +122,19 @@ Test each component in isolation to verify styling and functionality:
 5. [ ] Verify Supabase connection
 
 ### Role-Based Access
+
 Ensure these roles see the simplified UI:
+
 - `worker` - 작업자
-- `site_manager` - 현장관리자  
-- `customer_manager` - 파트너사
+- `site_manager` - 현장관리자
+- `customer_manager` - 시공업체 담당
 
 Admin roles (`admin`, `system_admin`) should continue using the existing desktop UI.
 
 ### Performance Metrics
+
 Target metrics for mobile UI:
+
 - First Contentful Paint: < 1.5s
 - Time to Interactive: < 3.5s
 - Largest Contentful Paint: < 2.5s
@@ -131,6 +143,7 @@ Target metrics for mobile UI:
 ## 📊 Key Improvements
 
 ### Code Reduction
+
 - Home: 64% less code than original
 - Daily Reports: 58% less code
 - Documents: 61% less code
@@ -138,6 +151,7 @@ Target metrics for mobile UI:
 - Average: **59.5% code reduction**
 
 ### Removed Complexity
+
 - No complex filters
 - No pagination
 - No infinite scroll
@@ -145,6 +159,7 @@ Target metrics for mobile UI:
 - No unnecessary animations
 
 ### Added Simplicity
+
 - Direct action buttons
 - Clear navigation
 - Fixed layouts
@@ -154,15 +169,19 @@ Target metrics for mobile UI:
 ## 🐛 Known Issues & Solutions
 
 ### Issue: Quick menu icons not loading
+
 **Solution**: Ensure `/public/images/brand/` contains all icon files
 
 ### Issue: Calendar not displaying correctly
+
 **Solution**: Check that `components.css` is imported in `globals.css`
 
 ### Issue: Bottom nav overlapping content
+
 **Solution**: Verify `paddingBottom` includes `env(safe-area-inset-bottom)`
 
 ### Issue: Search overlay not closing
+
 **Solution**: Check z-index values and event handlers
 
 ## 📝 Notes

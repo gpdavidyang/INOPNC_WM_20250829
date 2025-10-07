@@ -340,7 +340,7 @@ export default function UploadDocumentModal({
                   <p className="text-amber-700 dark:text-amber-300 mt-1">
                     이 문서는 선택된 현장의 모든 구성원에게 자동으로 공유됩니다.
                     {category === 'required' && ' (읽기 전용)'}
-                    {category === 'progress_payment' && ' (파트너사와 자동 공유)'}
+                    {category === 'progress_payment' && ' (시공업체와 자동 공유)'}
                   </p>
                 </div>
               </div>

@@ -65,6 +65,12 @@ export default function SiteDetailTabs({
   initialRequests,
 }: Props) {
   const { confirm } = useConfirm()
+  // Single-material mode and visibility toggles
+  const SINGLE_MATERIAL_CODE = (
+    process.env.NEXT_PUBLIC_SINGLE_MATERIAL_CODE || 'INC-1000'
+  ).toUpperCase()
+  const MATERIAL_UNIT = process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'
+  const SHOW_INVENTORY_SNAPSHOT = process.env.NEXT_PUBLIC_SHOW_INVENTORY_SNAPSHOT === 'true'
   const ROLE_KO: Record<string, string> = {
     worker: '작업자',
     site_manager: '현장관리자',
@@ -2196,91 +2202,93 @@ export default function SiteDetailTabs({
             </div>
           </div>
 
-          {/* Inventory snapshot */}
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">재고 스냅샷</h3>
-              <div className="flex items-center gap-2">
-                <input
-                  value={invQuery}
-                  onChange={e => setInvQuery(e.target.value)}
-                  placeholder="자재명/코드 검색"
-                  className="w-56 rounded border px-3 py-2 text-sm"
-                />
+          {/* Inventory snapshot (hidden by default in single-material mode) */}
+          {SHOW_INVENTORY_SNAPSHOT && (
+            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold text-muted-foreground">재고 스냅샷</h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={invQuery}
+                    onChange={e => setInvQuery(e.target.value)}
+                    placeholder="자재명/코드 검색"
+                    className="w-56 rounded border px-3 py-2 text-sm"
+                  />
+                </div>
               </div>
+              {invLoading && inventory.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <DataTable<any>
+                  data={(Array.isArray(inventory) ? inventory : []).filter((it: any) => {
+                    const q = invQuery.trim().toLowerCase()
+                    if (!q) return true
+                    const name = String(it?.materials?.name || '').toLowerCase()
+                    const code = String(it?.materials?.code || '').toLowerCase()
+                    return name.includes(q) || code.includes(q)
+                  })}
+                  rowKey={(it: any) => it.id}
+                  stickyHeader
+                  emptyMessage="재고 데이터가 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'name',
+                        header: '자재',
+                        sortable: true,
+                        accessor: (it: any) => it?.materials?.name || '',
+                        render: (it: any) =>
+                          it?.materials?.code ? (
+                            <a
+                              href={`/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`}
+                              className="underline text-blue-600"
+                              title="자재관리 인벤토리로 이동"
+                            >
+                              {it?.materials?.name || '-'}
+                            </a>
+                          ) : (
+                            it?.materials?.name || '-'
+                          ),
+                      },
+                      {
+                        key: 'code',
+                        header: '코드',
+                        sortable: true,
+                        accessor: (it: any) => it?.materials?.code || '',
+                        render: (it: any) => it?.materials?.code || '-',
+                      },
+                      {
+                        key: 'qty',
+                        header: '수량',
+                        sortable: true,
+                        accessor: (it: any) => Number(it?.quantity ?? 0),
+                        render: (it: any) => Number(it?.quantity ?? 0),
+                        align: 'right',
+                        width: '12%',
+                      },
+                      {
+                        key: 'unit',
+                        header: '단위',
+                        sortable: true,
+                        accessor: (it: any) => it?.materials?.unit || '',
+                        render: (it: any) => it?.materials?.unit || '-',
+                      },
+                      {
+                        key: 'updated',
+                        header: '업데이트',
+                        sortable: true,
+                        accessor: (it: any) => it?.last_updated || '',
+                        render: (it: any) =>
+                          it?.last_updated
+                            ? new Date(it.last_updated).toLocaleDateString('ko-KR')
+                            : '-',
+                      },
+                    ] as Column<any>[]
+                  }
+                />
+              )}
             </div>
-            {invLoading && inventory.length === 0 ? (
-              <TableSkeleton rows={5} />
-            ) : (
-              <DataTable<any>
-                data={(Array.isArray(inventory) ? inventory : []).filter((it: any) => {
-                  const q = invQuery.trim().toLowerCase()
-                  if (!q) return true
-                  const name = String(it?.materials?.name || '').toLowerCase()
-                  const code = String(it?.materials?.code || '').toLowerCase()
-                  return name.includes(q) || code.includes(q)
-                })}
-                rowKey={(it: any) => it.id}
-                stickyHeader
-                emptyMessage="재고 데이터가 없습니다."
-                columns={
-                  [
-                    {
-                      key: 'name',
-                      header: '자재',
-                      sortable: true,
-                      accessor: (it: any) => it?.materials?.name || '',
-                      render: (it: any) =>
-                        it?.materials?.code ? (
-                          <a
-                            href={`/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`}
-                            className="underline text-blue-600"
-                            title="자재관리 인벤토리로 이동"
-                          >
-                            {it?.materials?.name || '-'}
-                          </a>
-                        ) : (
-                          it?.materials?.name || '-'
-                        ),
-                    },
-                    {
-                      key: 'code',
-                      header: '코드',
-                      sortable: true,
-                      accessor: (it: any) => it?.materials?.code || '',
-                      render: (it: any) => it?.materials?.code || '-',
-                    },
-                    {
-                      key: 'qty',
-                      header: '수량',
-                      sortable: true,
-                      accessor: (it: any) => Number(it?.quantity ?? 0),
-                      render: (it: any) => Number(it?.quantity ?? 0),
-                      align: 'right',
-                      width: '12%',
-                    },
-                    {
-                      key: 'unit',
-                      header: '단위',
-                      sortable: true,
-                      accessor: (it: any) => it?.materials?.unit || '',
-                      render: (it: any) => it?.materials?.unit || '-',
-                    },
-                    {
-                      key: 'updated',
-                      header: '업데이트',
-                      sortable: true,
-                      accessor: (it: any) => it?.last_updated || '',
-                      render: (it: any) =>
-                        it?.last_updated
-                          ? new Date(it.last_updated).toLocaleDateString('ko-KR')
-                          : '-',
-                    },
-                  ] as Column<any>[]
-                }
-              />
-            )}
-          </div>
+          )}
 
           {/* Recent shipments */}
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
@@ -2398,7 +2406,10 @@ export default function SiteDetailTabs({
               <TableSkeleton rows={5} />
             ) : (
               <DataTable<any>
-                data={transactions}
+                data={(transactions || []).filter(
+                  (t: any) =>
+                    String(t?.materials?.code || '').toUpperCase() === SINGLE_MATERIAL_CODE
+                )}
                 rowKey={(t: any) => t.id}
                 stickyHeader
                 emptyMessage="최근 입출고 내역이 없습니다."
@@ -2419,7 +2430,21 @@ export default function SiteDetailTabs({
                       header: '유형',
                       sortable: true,
                       accessor: (t: any) => t?.transaction_type || '',
-                      render: (t: any) => t?.transaction_type || '-',
+                      render: (t: any) => {
+                        const map: Record<string, string> = {
+                          in: '입고',
+                          out: '사용',
+                          usage: '사용',
+                          transfer: '이동',
+                          adjustment: '조정',
+                          return: '반품',
+                          shipment: '출고',
+                          shipped: '출고',
+                          production: '생산',
+                        }
+                        const key = String(t?.transaction_type || '').toLowerCase()
+                        return map[key] || t?.transaction_type || '-'
+                      },
                     },
                     {
                       key: 'material',

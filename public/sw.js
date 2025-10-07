@@ -2,10 +2,10 @@
 // Provides offline functionality and intelligent caching for construction sites
 
 // Updated cache version to force refresh in PWA - Fixed manifest loop issue
-const CACHE_NAME = 'inopnc-wm-v1.7.0'
-const STATIC_CACHE = 'inopnc-static-v1.7.0'
-const API_CACHE = 'inopnc-api-v1.7.0'
-const IMAGES_CACHE = 'inopnc-images-v1.4.0'
+const CACHE_NAME = 'inopnc-wm-v1.7.2'
+const STATIC_CACHE = 'inopnc-static-v1.7.2'
+const API_CACHE = 'inopnc-api-v1.7.2'
+const IMAGES_CACHE = 'inopnc-images-v1.4.2'
 const OFFLINE_PAGE = '/offline'
 
 // Cache size limits for mobile devices
@@ -53,24 +53,19 @@ const SYNC_TAGS = {
 // Install event - cache critical resources
 self.addEventListener('install', event => {
   console.log('[ServiceWorker] Installing...')
-  
+
+  // Do NOT precache HTML pages to avoid stale markup referencing old Next.js chunks.
+  // Only cache static assets that are safe to keep immutable over time.
   event.waitUntil(
-    Promise.all([
-      // Cache critical pages
-      caches.open(CACHE_NAME).then(cache => {
-        console.log('[ServiceWorker] Caching critical pages')
-        return cache.addAll(CRITICAL_PAGES)
-      }),
-      // Cache static assets
-      caches.open(STATIC_CACHE).then(cache => {
+    caches.open(STATIC_CACHE)
+      .then(cache => {
         console.log('[ServiceWorker] Caching static assets')
         return cache.addAll(STATIC_ASSETS)
       })
-    ]).then(() => {
-      console.log('[ServiceWorker] Installation complete')
-      // Force activation of new service worker
-      return self.skipWaiting()
-    })
+      .then(() => {
+        console.log('[ServiceWorker] Installation complete')
+        return self.skipWaiting()
+      })
   )
 })
 
@@ -104,10 +99,20 @@ self.addEventListener('activate', event => {
                    url.pathname.includes('/login') ||
                    url.pathname.includes('/signup')
           })
-          return Promise.all(authRequests.map(request => {
-            console.log('[ServiceWorker] Removing cached auth page:', request.url)
-            return cache.delete(request)
-          }))
+          const criticalPageRequests = requests.filter(request => {
+            const url = new URL(request.url)
+            return CRITICAL_PAGES.includes(url.pathname)
+          })
+          return Promise.all([
+            ...authRequests.map(request => {
+              console.log('[ServiceWorker] Removing cached auth page:', request.url)
+              return cache.delete(request)
+            }),
+            ...criticalPageRequests.map(request => {
+              console.log('[ServiceWorker] Removing cached critical page:', request.url)
+              return cache.delete(request)
+            })
+          ])
         })
       }),
       // Take control of all pages
@@ -122,6 +127,11 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const { request } = event
   const url = new URL(request.url)
+  
+  // Always bypass Next.js internal assets to avoid 404s on hashed chunks
+  if (url.pathname.startsWith('/_next/')) {
+    return // Let the browser fetch Next.js assets directly
+  }
   
   // CRITICAL FIX: Complete bypass for auth pages and their resources
   // Check if this is an auth-related request (page, API, or resources)

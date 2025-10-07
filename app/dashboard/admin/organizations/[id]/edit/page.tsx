@@ -3,9 +3,10 @@ import { cookies } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { OrganizationEditForm } from '@/components/admin/organizations/OrganizationEditForm'
 import { PageHeader } from '@/components/ui/page-header'
+import OrganizationEditActions from '@/components/admin/organizations/OrganizationEditActions'
 
 export const metadata: Metadata = {
-  title: '조직 수정',
+  title: '소속(시공사) 수정',
 }
 
 interface OrganizationEditPageProps {
@@ -41,14 +42,15 @@ export default async function AdminOrganizationEditPage({ params }: Organization
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="조직 수정"
+        title="소속(시공사) 수정"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '조직 관리', href: '/dashboard/admin/organizations' },
-          { label: '조직 수정' },
+          { label: '소속(시공사) 관리', href: '/dashboard/admin/organizations' },
+          { label: '수정' },
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/organizations"
+        actions={<OrganizationEditActions id={params.id} />}
       />
       <div className="px-4 py-8 sm:px-6 lg:px-8">
         {organization ? (

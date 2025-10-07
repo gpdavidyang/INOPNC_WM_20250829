@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-
 // TODO: Seed route disabled due to database schema mismatches
 
 export async function GET() {
@@ -29,7 +28,7 @@ export async function GET_DISABLED() {
         },
         {
           id: 'org-2',
-          name: '건설파트너사',
+          name: '시공업체A',
           business_number: '234-56-78901',
           address: '서울특별시 서초구 서초대로 456',
           phone: '02-2345-6789',
@@ -67,12 +66,12 @@ export async function GET_DISABLED() {
 
     return NextResponse.json({ 
       message: '데모 조직 및 사이트가 생성되었습니다. Supabase 대시보드에서 사용자를 생성하세요.',
-      organizations: ['이노피앤씨', '건설파트너사'],
+      organizations: ['이노피앤씨', '시공업체A'],
       sites: ['강남 오피스빌딩 신축공사', '판교 물류센터 건설'],
       demo_users: [
         { email: 'worker@inopnc.com', password: 'password123', role: '작업자' },
         { email: 'manager@inopnc.com', password: 'password123', role: '현장관리자' },
-        { email: 'customer@partner.com', password: 'password123', role: '파트너사' },
+        { email: 'customer@partner.com', password: 'password123', role: '시공업체 담당' },
         { email: 'admin@inopnc.com', password: 'password123', role: '관리자' },
         { email: 'system@inopnc.com', password: 'password123', role: '시스템관리자' }
       ]

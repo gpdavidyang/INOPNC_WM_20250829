@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Partner {
   id: string
   company_name: string
@@ -24,7 +23,13 @@ interface Partner {
   site_count?: number
 }
 
-type PartnerSortField = 'company_name' | 'company_type' | 'status' | 'phone' | 'site_count' | 'created_at'
+type PartnerSortField =
+  | 'company_name'
+  | 'company_type'
+  | 'status'
+  | 'phone'
+  | 'site_count'
+  | 'created_at'
 type SortDirection = 'asc' | 'desc'
 
 interface PartnerListProps {
@@ -49,15 +54,15 @@ export default function PartnerList({ profile }: PartnerListProps) {
     setLoading(true)
     try {
       // Get all partners with site counts using a single query
-      let query = supabase
-        .from('partner_companies')
-        .select(`
+      let query = supabase.from('partner_companies').select(`
           *,
           site_partners(count)
         `)
 
       if (searchTerm) {
-        query = query.or(`company_name.ilike.%${searchTerm}%,representative_name.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`)
+        query = query.or(
+          `company_name.ilike.%${searchTerm}%,representative_name.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`
+        )
       }
 
       if (statusFilter !== 'all') {
@@ -73,22 +78,23 @@ export default function PartnerList({ profile }: PartnerListProps) {
       if (error) throw error
 
       // Transform data to include site count
-      const partnersWithCounts = data?.map((partner) => ({
-        ...partner,
-        site_count: partner.site_partners?.length || 0
-      })) || []
+      const partnersWithCounts =
+        data?.map(partner => ({
+          ...partner,
+          site_count: partner.site_partners?.length || 0,
+        })) || []
 
       setPartners(partnersWithCounts)
     } catch (error) {
       console.error('Failed to load partners:', error)
       // Fallback: try simple query without site_partners
       try {
-        let fallbackQuery = supabase
-          .from('partner_companies')
-          .select('*')
+        let fallbackQuery = supabase.from('partner_companies').select('*')
 
         if (searchTerm) {
-          fallbackQuery = fallbackQuery.or(`company_name.ilike.%${searchTerm}%,representative_name.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`)
+          fallbackQuery = fallbackQuery.or(
+            `company_name.ilike.%${searchTerm}%,representative_name.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`
+          )
         }
 
         if (statusFilter !== 'all') {
@@ -99,14 +105,18 @@ export default function PartnerList({ profile }: PartnerListProps) {
           fallbackQuery = fallbackQuery.eq('company_type', typeFilter)
         }
 
-        const { data: fallbackData, error: fallbackError } = await fallbackQuery.order('created_at', { ascending: false })
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery.order(
+          'created_at',
+          { ascending: false }
+        )
 
         if (fallbackError) throw fallbackError
 
-        const fallbackPartnersWithCounts = fallbackData?.map((partner) => ({
-          ...partner,
-          site_count: 0
-        })) || []
+        const fallbackPartnersWithCounts =
+          fallbackData?.map(partner => ({
+            ...partner,
+            site_count: 0,
+          })) || []
 
         setPartners(fallbackPartnersWithCounts)
       } catch (fallbackError) {
@@ -138,14 +148,16 @@ export default function PartnerList({ profile }: PartnerListProps) {
     if (sortField !== field) {
       return <ChevronsUpDown className="h-4 w-4 ml-1" />
     }
-    return sortDirection === 'asc' 
-      ? <ChevronUp className="h-4 w-4 ml-1" />
-      : <ChevronDown className="h-4 w-4 ml-1" />
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="h-4 w-4 ml-1" />
+    ) : (
+      <ChevronDown className="h-4 w-4 ml-1" />
+    )
   }
 
   const sortedAndFilteredPartners = [...partners].sort((a, b) => {
     const multiplier = sortDirection === 'asc' ? 1 : -1
-    
+
     switch (sortField) {
       case 'company_name':
         return multiplier * a.company_name.localeCompare(b.company_name, 'ko')
@@ -174,25 +186,25 @@ export default function PartnerList({ profile }: PartnerListProps) {
   }
 
   const handleDelete = async (partnerId: string) => {
-    if (!confirm('정말로 이 파트너사를 삭제하시겠습니까?\n\n관련된 모든 데이터가 함께 삭제됩니다.')) return
+    if (!confirm('정말로 이 시공업체를 삭제하시겠습니까?\n\n관련된 모든 데이터가 함께 삭제됩니다.'))
+      return
 
     try {
-      const { error } = await supabase
-        .from('partner_companies')
-        .delete()
-        .eq('id', partnerId)
+      const { error } = await supabase.from('partner_companies').delete().eq('id', partnerId)
 
       if (error) throw error
 
-      alert('파트너사가 삭제되었습니다.')
+      alert('시공업체가 삭제되었습니다.')
       await loadPartners()
     } catch (error: unknown) {
       console.error('Failed to delete partner:', error)
-      
+
       if (error.code === '23503') {
-        alert('이 파트너사는 삭제할 수 없습니다.\n\n해당 파트너사가 현장에 배정되어 있거나 관련 데이터가 있습니다.\n먼저 관련 데이터를 삭제하거나 다른 파트너사로 변경한 후 다시 시도해주세요.')
+        alert(
+          '이 시공업체는 삭제할 수 없습니다.\n\n해당 시공업체가 현장에 배정되어 있거나 관련 데이터가 있습니다.\n먼저 관련 데이터를 삭제하거나 다른 시공업체로 변경한 후 다시 시도해주세요.'
+        )
       } else {
-        alert('파트너사 삭제에 실패했습니다.')
+        alert('시공업체 삭제에 실패했습니다.')
       }
     }
   }
@@ -207,7 +219,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
       general_contractor: '종합건설업',
       subcontractor: '전문건설업',
       supplier: '자재공급업체',
-      consultant: '설계/감리'
+      consultant: '설계/감리',
     }
     return typeLabels[type as keyof typeof typeLabels] || type
   }
@@ -216,12 +228,14 @@ export default function PartnerList({ profile }: PartnerListProps) {
     const statusConfig = {
       active: { label: '활성', className: 'bg-green-100 text-green-800' },
       suspended: { label: '중단', className: 'bg-yellow-100 text-yellow-800' },
-      terminated: { label: '종료', className: 'bg-red-100 text-red-800' }
+      terminated: { label: '종료', className: 'bg-red-100 text-red-800' },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}
+      >
         {config.label}
       </span>
     )
@@ -229,7 +243,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
 
   if (showForm) {
     return (
-      <PartnerForm 
+      <PartnerForm
         partner={selectedPartner}
         profile={profile}
         onSave={() => {
@@ -264,9 +278,9 @@ export default function PartnerList({ profile }: PartnerListProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">파트너사 관리</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">시공업체 관리</h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            협력업체 및 파트너사를 관리합니다
+            협력업체(시공업체)를 관리합니다
           </p>
         </div>
         <button
@@ -276,8 +290,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
           }}
           className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          새 파트너사 등록
+          <Plus className="h-4 w-4 mr-2" />새 시공업체 등록
         </button>
       </div>
 
@@ -291,7 +304,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
               type="text"
               placeholder="회사명, 대표자명, 담당자명으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -299,7 +312,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">전체 상태</option>
@@ -311,13 +324,13 @@ export default function PartnerList({ profile }: PartnerListProps) {
           {/* Type Filter */}
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={e => setTypeFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="all">전체 업종</option>
             <option value="general_contractor">종합건설업</option>
             <option value="subcontractor">전문건설업</option>
-            <option value="supplier">자재공급업체</option>
+            <option value="supplier">시공업체</option>
             <option value="consultant">설계/감리</option>
           </select>
 
@@ -351,13 +364,19 @@ export default function PartnerList({ profile }: PartnerListProps) {
 
       {/* Partners Display */}
       {loading ? (
-        <div className={viewMode === 'grid' 
-          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-          : "space-y-3"
-        }>
-          {[...Array(6)].map((_, i) => (
+        <div
+          className={
+            viewMode === 'grid'
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+              : 'space-y-3'
+          }
+        >
+          {[...Array(6)].map((_, i) =>
             viewMode === 'grid' ? (
-              <div key={i} className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+              <div
+                key={i}
+                className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow"
+              >
                 <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
                 <div className="space-y-2">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -366,7 +385,10 @@ export default function PartnerList({ profile }: PartnerListProps) {
                 </div>
               </div>
             ) : (
-              <div key={i} className="animate-pulse bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center">
+              <div
+                key={i}
+                className="animate-pulse bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center"
+              >
                 <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded mr-4"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
@@ -374,27 +396,25 @@ export default function PartnerList({ profile }: PartnerListProps) {
                 </div>
               </div>
             )
-          ))}
+          )}
         </div>
       ) : partners.length === 0 ? (
         <div className="text-center py-12">
           <Building2 className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
-            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all' 
+            {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
               ? '검색 결과가 없습니다'
-              : '등록된 파트너사가 없습니다'
-            }
+              : '등록된 시공업체가 없습니다'}
           </h3>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
             {searchTerm || statusFilter !== 'all' || typeFilter !== 'all'
               ? '다른 검색 조건을 시도해보세요'
-              : '새 파트너사를 등록해보세요'
-            }
+              : '새 시공업체를 등록해보세요'}
           </p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedAndFilteredPartners.map((partner) => (
+          {sortedAndFilteredPartners.map(partner => (
             <div
               key={partner.id}
               className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
@@ -414,7 +434,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                   <div className="relative">
                     <div className="flex gap-2">
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           handleEdit(partner)
                         }}
@@ -423,7 +443,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                         수정
                       </button>
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           handleDelete(partner.id)
                         }}
@@ -489,7 +509,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th 
+                  <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('company_name')}
                   >
@@ -498,7 +518,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                       {getSortIcon('company_name')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('company_type')}
                   >
@@ -507,7 +527,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                       {getSortIcon('company_type')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('phone')}
                   >
@@ -516,7 +536,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                       {getSortIcon('phone')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('site_count')}
                   >
@@ -525,7 +545,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                       {getSortIcon('site_count')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('status')}
                   >
@@ -543,9 +563,9 @@ export default function PartnerList({ profile }: PartnerListProps) {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {sortedAndFilteredPartners.map((partner) => (
-                  <tr 
-                    key={partner.id} 
+                {sortedAndFilteredPartners.map(partner => (
+                  <tr
+                    key={partner.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
                     onClick={() => handleView(partner)}
                   >
@@ -562,14 +582,14 @@ export default function PartnerList({ profile }: PartnerListProps) {
                         )}
                       </div>
                     </td>
-                    
+
                     {/* 업종 */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white">
                         {getCompanyTypeLabel(partner.company_type)}
                       </div>
                     </td>
-                    
+
                     {/* 연락처 */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white">
@@ -593,7 +613,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                         )}
                       </div>
                     </td>
-                    
+
                     {/* 현장수 */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1 text-sm text-gray-900 dark:text-white">
@@ -601,12 +621,12 @@ export default function PartnerList({ profile }: PartnerListProps) {
                         {partner.site_count}개
                       </div>
                     </td>
-                    
+
                     {/* 상태 */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(partner.status)}
                     </td>
-                    
+
                     {/* 전문분야 */}
                     <td className="px-6 py-4">
                       {partner.trade_type && partner.trade_type.length > 0 ? (
@@ -629,12 +649,12 @@ export default function PartnerList({ profile }: PartnerListProps) {
                         <span className="text-sm text-gray-400">-</span>
                       )}
                     </td>
-                    
+
                     {/* 작업 */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex gap-2">
                         <button
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation()
                             handleEdit(partner)
                           }}
@@ -643,7 +663,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                           수정
                         </button>
                         <button
-                          onClick={(e) => {
+                          onClick={e => {
                             e.stopPropagation()
                             handleDelete(partner.id)
                           }}

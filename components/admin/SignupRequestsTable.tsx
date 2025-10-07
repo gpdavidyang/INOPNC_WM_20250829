@@ -60,6 +60,12 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
     }
   }
 
+  const STATUS_KO: Record<string, string> = {
+    pending: '대기',
+    approved: '승인',
+    rejected: '거절',
+  }
+
   const columns = useMemo(
     () => [
       {
@@ -103,7 +109,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
         header: '상태',
         sortable: true,
         accessor: (r: any) => r?.status || '',
-        render: (r: any) => r?.status || '-',
+        render: (r: any) => STATUS_KO[String(r?.status || '').toLowerCase()] || '-',
       },
       {
         key: 'actions',
@@ -111,6 +117,12 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
         sortable: false,
         render: (r: any) => (
           <div className="flex gap-1">
+            <a
+              href={`/dashboard/admin/signup-requests/${r.id}`}
+              className="inline-flex items-center px-2 py-1 text-xs border rounded-md hover:bg-gray-50"
+            >
+              상세
+            </a>
             {r?.status === 'pending' ? (
               <>
                 <Button

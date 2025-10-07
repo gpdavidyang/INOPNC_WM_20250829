@@ -5,7 +5,7 @@ import { PartnerEditForm } from '@/components/admin/partners/PartnerEditForm'
 import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
-  title: '파트너 수정',
+  title: '공급업체 수정',
 }
 
 interface PartnerEditPageProps {
@@ -41,11 +41,11 @@ export default async function AdminPartnerEditPage({ params }: PartnerEditPagePr
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="파트너 수정"
+        title="공급업체 수정"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '파트너 관리', href: '/dashboard/admin/partners' },
-          { label: '파트너 수정' },
+          { label: '공급업체 관리', href: '/dashboard/admin/partners' },
+          { label: '수정' },
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/partners"
@@ -55,7 +55,7 @@ export default async function AdminPartnerEditPage({ params }: PartnerEditPagePr
           <PartnerEditForm partner={partner as any} />
         ) : (
           <p className="rounded-md border border-dashed border-muted-foreground/40 px-4 py-10 text-center text-sm text-muted-foreground">
-            파트너 정보를 불러오지 못했습니다. 파트너가 존재하지 않거나 권한이 없습니다.
+            업체 정보를 불러오지 못했습니다. 업체가 존재하지 않거나 권한이 없습니다.
           </p>
         )}
       </div>

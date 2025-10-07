@@ -38,32 +38,32 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
         setError(null)
 
         // Use direct API call instead of Supabase client
-        console.log('Fetching partner companies via API...')
+        console.log('Fetching companies via API...')
 
-        const response = await fetch('/api/partner-companies')
+        const response = await fetch('/api/partner-companies?scope=construction')
 
         if (!response.ok) {
           throw new Error(`API Error: ${response.status}`)
         }
 
         const result = await response.json()
-        console.log('Partner companies API response:', result)
+        console.log('Companies API response:', result)
 
         if (result.error) {
-          console.error('파트너사 조회 실패:', result.error)
-          setError('파트너사 목록을 불러올 수 없습니다.')
+          console.error('업체 조회 실패:', result.error)
+          setError('업체(시공/공급) 목록을 불러올 수 없습니다.')
           setPartners([])
         } else {
           const activePartners = (result.data || [])
             .filter((p: any) => p.status === 'active')
             .sort((a: any, b: any) => a.company_name.localeCompare(b.company_name))
 
-          console.log('Setting partners:', activePartners.length, 'active companies')
+          console.log('Setting companies:', activePartners.length, 'active companies')
           setPartners(activePartners)
         }
       } catch (err) {
-        console.error('파트너사 조회 오류:', err)
-        setError('파트너사 목록을 불러올 수 없습니다.')
+        console.error('업체 조회 오류:', err)
+        setError('업체(시공/공급) 목록을 불러올 수 없습니다.')
         setPartners([])
       } finally {
         setLoading(false)

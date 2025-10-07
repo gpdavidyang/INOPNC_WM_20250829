@@ -3,9 +3,10 @@ import { cookies } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { OrganizationDetail } from '@/components/admin/organizations/OrganizationDetail'
 import { PageHeader } from '@/components/ui/page-header'
+import OrganizationDetailActions from '@/components/admin/organizations/OrganizationDetailActions'
 
 export const metadata: Metadata = {
-  title: '조직 상세',
+  title: '소속(시공사) 상세',
 }
 
 interface OrganizationDetailPageProps {
@@ -43,14 +44,15 @@ export default async function AdminOrganizationDetailPage({ params }: Organizati
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="조직 상세"
+        title="소속(시공사) 상세"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '조직 관리', href: '/dashboard/admin/organizations' },
-          { label: '조직 상세' },
+          { label: '소속(시공사) 관리', href: '/dashboard/admin/organizations' },
+          { label: '상세' },
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/organizations"
+        actions={<OrganizationDetailActions id={params.id} />}
       />
       <div className="px-4 py-8 sm:px-6 lg:px-8">
         {organization ? (

@@ -7,7 +7,6 @@ import StickyActionBar from '@/components/ui/sticky-action-bar'
 
 export default function OrganizationCreateForm() {
   const [name, setName] = useState('')
-  const [type, setType] = useState('partner')
   const [address, setAddress] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -24,7 +23,6 @@ export default function OrganizationCreateForm() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           name,
-          type,
           address,
           contact_email: email,
           contact_phone: phone,
@@ -36,7 +34,6 @@ export default function OrganizationCreateForm() {
       }
       setMsg('조직이 생성되었습니다.')
       setName('')
-      setType('partner')
       setAddress('')
       setEmail('')
       setPhone('')
@@ -54,18 +51,6 @@ export default function OrganizationCreateForm() {
         <Input value={name} onChange={e => setName(e.target.value)} required />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="block text-sm text-muted-foreground mb-1">유형</label>
-          <select
-            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={type}
-            onChange={e => setType(e.target.value)}
-          >
-            <option value="partner">partner</option>
-            <option value="customer">customer</option>
-            <option value="internal">internal</option>
-          </select>
-        </div>
         <div>
           <label className="block text-sm text-muted-foreground mb-1">이메일</label>
           <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />

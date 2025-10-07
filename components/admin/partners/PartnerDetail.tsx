@@ -1,7 +1,14 @@
 import { Building, Building2, Mail, Phone, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 const COMPANY_TYPE_LABEL: Record<string, string> = {
   npc: '원도급사',
@@ -43,9 +50,7 @@ export function PartnerDetail({ partner, sites = [], contacts = [] }: PartnerDet
             <Building2 className="h-5 w-5" />
             {partner.company_name}
           </CardTitle>
-          <CardDescription>
-            협력사 정보를 확인하고 상태를 검토할 수 있습니다.
-          </CardDescription>
+          <CardDescription>협력사 정보를 확인하고 상태를 검토할 수 있습니다.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-3">
@@ -56,7 +61,9 @@ export function PartnerDetail({ partner, sites = [], contacts = [] }: PartnerDet
                   ? COMPANY_TYPE_LABEL[partner.company_type] || partner.company_type
                   : '분류 미지정'}
               </Badge>
-              <Badge variant={partner.status === 'inactive' ? 'outline' : 'default'}>{statusLabel}</Badge>
+              <Badge variant={partner.status === 'inactive' ? 'outline' : 'default'}>
+                {statusLabel}
+              </Badge>
             </div>
           </div>
           <div className="space-y-3">
@@ -99,8 +106,8 @@ export function PartnerDetail({ partner, sites = [], contacts = [] }: PartnerDet
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            파트너사는 가입 승인 후 현장과 매핑되어 사용자 계정과 연동됩니다. Phase 2에서 신규 등록 및 승인
-            프로세스가 제공될 예정입니다.
+            시공업체는 가입 승인 후 현장과 매핑되어 사용자 계정과 연동됩니다. Phase 2에서 신규 등록
+            및 승인 프로세스가 제공될 예정입니다.
           </p>
         </CardContent>
       </Card>
@@ -124,7 +131,7 @@ export function PartnerDetail({ partner, sites = [], contacts = [] }: PartnerDet
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sites.map((site) => (
+                {sites.map(site => (
                   <TableRow key={site.id}>
                     <TableCell className="font-medium text-foreground">{site.name}</TableCell>
                     <TableCell className="text-right">
@@ -165,7 +172,7 @@ export function PartnerDetail({ partner, sites = [], contacts = [] }: PartnerDet
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {contacts.map((contact) => (
+                {contacts.map(contact => (
                   <TableRow key={`${contact.name}-${contact.email ?? contact.phone ?? 'contact'}`}>
                     <TableCell className="font-medium text-foreground">{contact.name}</TableCell>
                     <TableCell>{contact.position ?? '-'}</TableCell>

@@ -299,7 +299,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
             color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
           },
           customer_manager: {
-            text: '파트너사',
+            text: '시공업체',
             color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300',
           },
           admin: {
@@ -558,7 +558,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
             <option value="">모든 역할</option>
             <option value="worker">작업자</option>
             <option value="site_manager">현장관리자</option>
-            <option value="customer_manager">파트너사</option>
+            <option value="customer_manager">시공업체</option>
             <option value="admin">관리자</option>
             <option value="system_admin">시스템관리자</option>
           </select>
@@ -790,7 +790,7 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
               >
                 <option value="worker">작업자</option>
                 <option value="site_manager">현장관리자</option>
-                <option value="customer_manager">파트너사</option>
+                <option value="customer_manager">시공업체</option>
                 <option value="admin">관리자</option>
                 <option value="system_admin">시스템관리자</option>
               </select>

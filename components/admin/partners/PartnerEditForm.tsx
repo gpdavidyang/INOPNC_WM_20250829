@@ -31,9 +31,9 @@ export function PartnerEditForm({ partner }: PartnerEditFormProps) {
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
-  const handleChange = (field: keyof PartnerEditFormProps['partner']) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setFormState((prev) => ({ ...prev, [field]: event.target.value }))
+  const handleChange =
+    (field: keyof PartnerEditFormProps['partner']) => (event: ChangeEvent<HTMLInputElement>) => {
+      setFormState(prev => ({ ...prev, [field]: event.target.value }))
     }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -81,7 +81,7 @@ export function PartnerEditForm({ partner }: PartnerEditFormProps) {
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="partner-name">파트너사</Label>
+              <Label htmlFor="partner-name">시공업체</Label>
               <Input
                 id="partner-name"
                 value={formState.company_name}
@@ -93,7 +93,11 @@ export function PartnerEditForm({ partner }: PartnerEditFormProps) {
               <Label htmlFor="partner-type">유형</Label>
               <Input
                 id="partner-type"
-                value={formState.company_type ? COMPANY_TYPE_LABEL[formState.company_type] || formState.company_type : '미지정'}
+                value={
+                  formState.company_type
+                    ? COMPANY_TYPE_LABEL[formState.company_type] || formState.company_type
+                    : '미지정'
+                }
                 disabled
               />
             </div>
