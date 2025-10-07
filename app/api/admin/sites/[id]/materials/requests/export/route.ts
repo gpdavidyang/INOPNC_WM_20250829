@@ -1,93 +1,73 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createClient } from '@/lib/supabase/server'
-import * as XLSX from 'xlsx'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const auth = await requireApiAuth()
-  if (auth instanceof NextResponse) return auth
-  if (!auth.role || !['admin', 'system_admin', 'site_manager'].includes(auth.role)) {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-  }
+// GET /api/admin/sites/:id/materials/requests/export
+// Exports site material requests as CSV with simple filters
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
 
-  const siteId = params.id
-  const sp = new URL(request.url).searchParams
-  const q = (sp.get('q') || '').trim()
-  const status = sp.get('status') || undefined
-  const sortParam = (sp.get('sort') as 'date' | 'status' | 'number') || 'date'
-  const orderParam = (sp.get('order') as 'asc' | 'desc') || 'desc'
+    const siteId = params.id
+    if (!siteId) {
+      return NextResponse.json({ success: false, error: 'Missing site id' }, { status: 400 })
+    }
 
-  const supabase = createClient()
-  let query = supabase
-    .from('material_requests')
-    .select(
-      `
-      id,
-      request_number,
-      status,
-      request_date,
-      created_at,
-      requester:profiles!material_requests_requested_by_fkey(full_name)
-    `
-    )
-    .eq('site_id', siteId)
+    const { searchParams } = new URL(req.url)
+    const q = (searchParams.get('q') || '').trim()
+    const statusParam = (searchParams.get('status') || 'all').trim()
+    const sortParam = (searchParams.get('sort') || 'date').trim() as 'date' | 'status' | 'number'
+    const orderParam = (searchParams.get('order') || 'desc').trim() as 'asc' | 'desc'
 
-  if (status && status !== 'all') query = query.eq('status', status)
-  if (q) query = query.ilike('request_number', `%${q}%`)
+    const svc = createServiceRoleClient()
 
-  if (sortParam === 'status') {
-    query = query.order('status', { ascending: orderParam === 'asc' })
-  } else if (sortParam === 'number') {
-    query = query.order('request_number', { ascending: orderParam === 'asc' })
-  } else {
-    query = query
-      .order('request_date', { ascending: orderParam === 'asc', nullsFirst: false })
-      .order('created_at', { ascending: orderParam === 'asc' })
-  }
+    let query = svc
+      .from('material_requests')
+      .select(
+        `id, request_number, status, requested_by, request_date, created_at,
+         requester:profiles!material_requests_requested_by_fkey(full_name)`
+      )
+      .eq('site_id', siteId)
 
-  const { data, error } = await query.limit(5000)
-  if (error) {
-    return NextResponse.json({ error: 'Failed to export' }, { status: 500 })
-  }
+    if (statusParam && statusParam !== 'all') {
+      query = query.eq('status', statusParam)
+    }
+    if (q) {
+      query = query.or(`request_number.ilike.%${q}%`)
+    }
 
-  const preset = (sp.get('preset') || 'basic') as 'basic' | 'full'
-  let cols = (sp.get('cols') || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-  if (cols.length === 0) {
-    cols =
-      preset === 'full'
-        ? ['request_number', 'requester', 'status', 'request_date', 'id']
-        : ['request_number', 'requester', 'status', 'request_date']
-  }
+    const orderBy =
+      sortParam === 'number' ? 'request_number' : sortParam === 'status' ? 'status' : 'request_date'
+    query = query.order(orderBy, { ascending: orderParam === 'asc' })
 
-  const rows = (data || []).map((r: any) => ({
-    request_number: r.request_number || r.id,
-    requester: r.requester?.full_name || r.requested_by || '',
-    status: r.status || '',
-    request_date: r.request_date || '',
-    id: r.id,
-  }))
-  const sheetData = rows.map(row => {
-    const o: Record<string, any> = {}
-    cols.forEach(c => {
-      o[c] = (row as any)[c]
+    const { data, error } = await query.limit(1000)
+    if (error) throw error
+
+    const rows = data || []
+    const header = ['요청번호', '요청자', '상태', '요청일', '생성일']
+    const lines = [header.join(',')]
+    for (const r of rows) {
+      const num = JSON.stringify(r.request_number || r.id || '')
+      const reqBy = JSON.stringify(r.requester?.full_name || r.requested_by || '')
+      const st = JSON.stringify(r.status || '')
+      const rd = JSON.stringify(r.request_date || '')
+      const cd = JSON.stringify(r.created_at || '')
+      lines.push([num, reqBy, st, rd, cd].join(','))
+    }
+    const csv = lines.join('\n')
+
+    return new NextResponse(csv, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="site_${siteId}_material_requests.csv"`,
+      },
     })
-    return o
-  })
-  const ws = XLSX.utils.json_to_sheet(sheetData)
-  const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '입고요청')
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
-  return new NextResponse(buf, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="site_${siteId}_material_requests.xlsx"`,
-      'Cache-Control': 'no-store',
-    },
-  })
+  } catch (e) {
+    console.error('[admin/sites/:id/materials/requests/export] error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+  }
 }

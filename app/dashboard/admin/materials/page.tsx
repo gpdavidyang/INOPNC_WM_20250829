@@ -313,7 +313,19 @@ export default async function AdminMaterialsPage({
                         </a>
                       </TableCell>
                       <TableCell>{rq.sites?.name || '-'}</TableCell>
-                      <TableCell>{rq.requester?.full_name || '-'}</TableCell>
+                      <TableCell>
+                        {rq.requested_by ? (
+                          <a
+                            href={`/dashboard/admin/users/${rq.requested_by}`}
+                            className="underline-offset-2 hover:underline"
+                            title="사용자 상세 보기"
+                          >
+                            {rq.requester?.full_name || rq.requested_by}
+                          </a>
+                        ) : (
+                          <span>{rq.requester?.full_name || '-'}</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         {rq.request_date
                           ? new Date(rq.request_date).toLocaleDateString('ko-KR')

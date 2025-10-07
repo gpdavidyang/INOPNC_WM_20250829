@@ -9,6 +9,7 @@ import { getLoginLogoSrc } from '@/lib/ui/brand'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
@@ -31,6 +32,19 @@ export default function LoginPage() {
     if (savedRemember === 'true' && savedEmail) {
       setRememberMe(true)
       setEmail(savedEmail)
+    }
+    // Query params: email & reason
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const qEmail = params.get('email')
+      if (qEmail) setEmail(qEmail)
+      const reason = params.get('reason')
+      if (reason === 'reset_success')
+        setInfo('비밀번호가 재설정되었습니다. 새 비밀번호로 로그인해주세요.')
+      if (reason === 'approved') setInfo('관리자 승인 완료. 로그인 후 프로필을 확인해주세요.')
+    } catch (e) {
+      // Ignore parse errors in non-browser contexts or malformed URL
+      void e
     }
   }, [])
 
@@ -66,7 +80,23 @@ export default function LoginPage() {
         console.error('Login error:', error)
         const msg = error.message || ''
         if (msg.toLowerCase().includes('invalid login credentials')) {
-          setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
+          // 추가: 가입요청 상태 확인 후 메시지 보완
+          try {
+            const statusRes = await fetch(
+              `/api/auth/signup-request/status?email=${encodeURIComponent(email)}`,
+              {
+                cache: 'no-store',
+              }
+            )
+            const statusJson = await statusRes.json().catch(() => ({}))
+            if (statusRes.ok && statusJson?.success && statusJson?.status === 'pending') {
+              setError('가입 승인 대기 중입니다. 승인 완료 후 이메일로 안내됩니다.')
+            } else {
+              setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
+            }
+          } catch {
+            setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
+          }
           if (
             process.env.NODE_ENV !== 'production' &&
             email.toLowerCase() === 'partner@inopnc.com'
@@ -601,6 +631,14 @@ export default function LoginPage() {
             <h1 className="login-title">로그인</h1>
           </div>
 
+          {info && (
+            <div
+              className="error-message"
+              style={{ backgroundColor: '#F3F7FA', color: '#15347C', borderColor: '#8DA0CD' }}
+            >
+              {info}
+            </div>
+          )}
           <form onSubmit={handleLogin}>
             <div className="form-group">
               <div className="input-wrapper">

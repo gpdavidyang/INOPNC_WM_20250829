@@ -31,45 +31,9 @@ import { useToast } from '@/components/ui/use-toast'
 // Detail view moved to dedicated page: /dashboard/admin/sites/[id]
 import { t } from '@/lib/ui/strings'
 
-function StatsCell({ siteId, type }: { siteId: string; type: 'reports' | 'labor' }) {
-  const [value, setValue] = useState<number | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
+type SiteStats = { daily_reports_count: number; total_labor_hours: number }
 
-  useEffect(() => {
-    let active = true
-    ;(async () => {
-      try {
-        const res = await fetch(`/api/admin/sites/${siteId}/stats`, { cache: 'no-store' })
-        const json = await res.json().catch(() => ({}))
-        if (!active) return
-        if (res.ok && json?.success) {
-          setValue(
-            type === 'reports'
-              ? (json.data?.daily_reports_count ?? 0)
-              : (json.data?.total_labor_hours ?? 0)
-          )
-        } else {
-          setValue(0)
-        }
-      } catch {
-        if (active) setValue(0)
-      } finally {
-        if (active) setLoading(false)
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [siteId, type])
-
-  if (loading) return <>…</>
-  if (value == null) return <>-</>
-  if (type === 'labor') {
-    const v = Math.floor(Number(value) * 10) / 10
-    return <>{v.toFixed(1)} 공수</>
-  }
-  return <>{value}</>
-}
+// ManagerLinkCell replaced by bulk managersMap above
 
 interface SitesContentProps {
   initialSites: Site[]
@@ -135,6 +99,71 @@ export function SitesContent({
   const activeCount = useMemo(() => sites.filter(site => site.status === 'active').length, [sites])
   const { confirm } = useConfirm()
   const { toast } = useToast()
+  const [statsMap, setStatsMap] = useState<Record<string, SiteStats>>({})
+  const [managersMap, setManagersMap] = useState<
+    Record<string, { user_id: string; full_name: string }>
+  >({})
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [managersLoading, setManagersLoading] = useState(false)
+  const [statsError, setStatsError] = useState<string | null>(null)
+  const [managersError, setManagersError] = useState<string | null>(null)
+
+  // Bulk-load stats and managers for current page sites
+  useEffect(() => {
+    const ids = (sites || []).map(s => s.id).filter(Boolean)
+    if (ids.length === 0) {
+      setStatsMap({})
+      setManagersMap({})
+      return
+    }
+    const idsParam = encodeURIComponent(ids.join(','))
+    let cancelled = false
+    ;(async () => {
+      setStatsLoading(true)
+      setManagersLoading(true)
+      setStatsError(null)
+      setManagersError(null)
+      try {
+        const [statsRes, mgrRes] = await Promise.all([
+          fetch(`/api/admin/sites/stats?ids=${idsParam}`, { cache: 'no-store' }),
+          fetch(`/api/admin/sites/managers?ids=${idsParam}`, { cache: 'no-store' }),
+        ])
+        const statsJson = await statsRes.json().catch(() => ({}))
+        const mgrJson = await mgrRes.json().catch(() => ({}))
+        if (!cancelled) {
+          if (!statsRes.ok || !statsJson?.success) {
+            setStatsError(statsJson?.error || '통계를 불러오지 못했습니다.')
+            setStatsMap({})
+          } else {
+            setStatsMap((statsJson?.data || {}) as Record<string, SiteStats>)
+          }
+          if (!mgrRes.ok || !mgrJson?.success) {
+            setManagersError(mgrJson?.error || '관리자 정보를 불러오지 못했습니다.')
+            setManagersMap({})
+          } else {
+            setManagersMap(
+              (mgrJson?.data || {}) as Record<string, { user_id: string; full_name: string }>
+            )
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setStatsError('통계를 불러오지 못했습니다.')
+          setManagersError('관리자 정보를 불러오지 못했습니다.')
+          setStatsMap({})
+          setManagersMap({})
+        }
+      } finally {
+        if (!cancelled) {
+          setStatsLoading(false)
+          setManagersLoading(false)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [sites])
 
   const fetchSites = useCallback(
     async (
@@ -208,6 +237,42 @@ export function SitesContent({
 
   // 선택/일괄 작업 제거됨
 
+  // Cell render helpers for bulk-fetched data
+  const renderManagerCell = (s: Site) => {
+    const m = managersMap[s.id]
+    if (managersLoading && !m) {
+      return <span className="inline-block h-3 w-20 bg-gray-200 animate-pulse rounded" />
+    }
+    return m ? (
+      <a
+        href={`/dashboard/admin/users/${m.user_id}`}
+        className="underline-offset-2 hover:underline"
+        title="사용자 상세 보기"
+      >
+        {m.full_name}
+      </a>
+    ) : (
+      <>{(s as any).manager_name || '미지정'}</>
+    )
+  }
+
+  const renderReportsCountCell = (s: Site) => {
+    if (statsLoading && statsMap[s.id] === undefined) {
+      return <span className="inline-block h-3 w-8 bg-gray-200 animate-pulse rounded" />
+    }
+    return (statsMap[s.id]?.daily_reports_count ?? '-') as any
+  }
+
+  const renderLaborCell = (s: Site) => {
+    const v = statsMap[s.id]?.total_labor_hours
+    if (statsLoading && v === undefined) {
+      return <span className="inline-block h-3 w-12 bg-gray-200 animate-pulse rounded" />
+    }
+    if (typeof v !== 'number') return '-' as any
+    const n = Math.floor(v * 10) / 10
+    return `${n.toFixed(1)} 공수` as any
+  }
+
   // 복구/영구 삭제 대량 작업 제거됨
 
   // Detail navigation handled via anchor links in DataTable cells
@@ -255,7 +320,7 @@ export function SitesContent({
         key: 'manager_name',
         header: t('sites.table.manager'),
         sortable: true,
-        render: s => s.manager_name || '미지정',
+        render: s => renderManagerCell(s),
       },
       {
         key: 'manager_phone',
@@ -267,21 +332,21 @@ export function SitesContent({
         key: 'daily_reports_count',
         header: t('sites.table.dailyReports'),
         sortable: false,
-        render: s => <StatsCell siteId={s.id} type="reports" />,
+        render: s => renderReportsCountCell(s),
       },
       {
         key: 'total_labor_hours',
         header: t('sites.table.totalLabor'),
         sortable: false,
-        render: s => <StatsCell siteId={s.id} type="labor" />,
+        render: s => renderLaborCell(s),
       },
       {
         key: 'actions',
         header: '작업',
         sortable: false,
-        align: 'right',
+        align: 'left',
         render: s => (
-          <div className="flex items-center justify-end gap-1">
+          <div className="flex items-center justify-start gap-1">
             <Button asChild variant="outline" size="sm">
               <a href={`/dashboard/admin/sites/${s.id}`}>상세</a>
             </Button>
@@ -390,6 +455,12 @@ export function SitesContent({
       </section>
 
       <section className="rounded-lg border bg-card p-4 shadow-sm">
+        {(statsError || managersError) && (
+          <div className="mb-3 text-xs text-red-600">
+            {statsError && <div>통계 로딩 오류: {statsError}</div>}
+            {managersError && <div>관리자 로딩 오류: {managersError}</div>}
+          </div>
+        )}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
             <div className="relative flex-1 md:w-72">

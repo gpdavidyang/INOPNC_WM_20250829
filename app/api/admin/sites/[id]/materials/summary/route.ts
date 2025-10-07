@@ -1,64 +1,61 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+// GET /api/admin/sites/:id/materials/summary
+// Returns inventory snapshot and recent shipments for a site
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
-    if (!auth.role || !['admin', 'system_admin', 'site_manager'].includes(auth.role)) {
-      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-    }
 
     const siteId = params.id
     if (!siteId) {
-      return NextResponse.json({ success: false, error: 'Site ID is required' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Missing site id' }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const svc = createServiceRoleClient()
 
-    // Inventory snapshot with material info
-    const { data: inventory, error: invError } = await supabase
-      .from('material_inventory')
-      .select(
-        `
-        id,
-        quantity,
-        last_updated,
-        materials:materials!inner(id, name, code, unit)
-      `
-      )
-      .eq('site_id', siteId)
-      .order('last_updated', { ascending: false })
-      .limit(20)
+    const [invRes, shipRes] = await Promise.all([
+      svc
+        .from('material_inventory')
+        .select(
+          'id, site_id, material_name, material_code, unit, current_stock, updated_at, created_at'
+        )
+        .eq('site_id', siteId)
+        .order('updated_at', { ascending: false, nullsFirst: false })
+        .limit(50),
+      svc
+        .from('material_shipments')
+        .select('id, shipment_number, status, shipment_date, site_id, created_at')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false })
+        .limit(10),
+    ])
 
-    if (invError) {
-      if (process.env.NODE_ENV === 'development') console.error('Inventory query error:', invError)
-    }
-
-    // Recent shipments
-    const { data: shipments, error: shipError } = await supabase
-      .from('material_shipments')
-      .select('id, shipment_number, status, shipment_date, created_at')
-      .eq('site_id', siteId)
-      .order('created_at', { ascending: false })
-      .limit(10)
-
-    if (shipError) {
-      if (process.env.NODE_ENV === 'development') console.error('Shipments query error:', shipError)
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        inventory: Array.isArray(inventory) ? inventory : [],
-        shipments: Array.isArray(shipments) ? shipments : [],
+    const inventory = (invRes.data || []).map((row: any) => ({
+      id: row.id,
+      quantity: row.current_stock ?? 0,
+      last_updated: row.updated_at || row.created_at || null,
+      materials: {
+        name: row.material_name || '',
+        code: row.material_code || '',
+        unit: row.unit || '',
       },
-    })
-  } catch (error) {
-    if (process.env.NODE_ENV === 'development') console.error('Materials summary error:', error)
+    }))
+
+    const shipments = (shipRes.data || []).map((s: any) => ({
+      id: s.id,
+      shipment_number: s.shipment_number || s.id,
+      status: s.status || '-',
+      shipment_date: s.shipment_date || s.created_at || null,
+    }))
+
+    return NextResponse.json({ success: true, data: { inventory, shipments } })
+  } catch (e) {
+    console.error('[admin/sites/:id/materials/summary] error:', e)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

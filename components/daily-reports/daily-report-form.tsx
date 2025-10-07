@@ -152,15 +152,15 @@ const CollapsibleSection = ({
   if (managerOnly && !permissions?.canViewAdvancedFeatures) return null
 
   const getBorderColor = () => {
-    if (adminOnly) return 'border-purple-200 dark:border-purple-700 shadow-sm'
-    if (managerOnly) return 'border-orange-200 dark:border-orange-700 shadow-sm'
+    if (adminOnly) return 'border-[#8DA0CD] shadow-sm'
+    if (managerOnly) return 'border-[#FF461C] shadow-sm'
     return 'border-gray-200 dark:border-gray-700'
   }
 
   const getHeaderBg = () => {
-    if (adminOnly) return 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
-    if (managerOnly) return 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
-    return 'hover:bg-gray-50 dark:hover:bg-gray-700'
+    if (adminOnly) return 'hover:bg-[rgba(141,160,205,0.15)]'
+    if (managerOnly) return 'hover:bg-[rgba(255,70,28,0.08)]'
+    return 'hover:bg-[#F3F7FA] dark:hover:bg-gray-700'
   }
 
   return (
@@ -183,20 +183,16 @@ const CollapsibleSection = ({
             className={cn(
               'p-1.5 rounded',
               adminOnly
-                ? 'bg-purple-100 dark:bg-purple-900/30'
+                ? 'bg-[rgba(141,160,205,0.25)]'
                 : managerOnly
-                  ? 'bg-orange-100 dark:bg-orange-900/30'
-                  : 'bg-blue-50 dark:bg-blue-900/20'
+                  ? 'bg-[rgba(255,70,28,0.12)]'
+                  : 'bg-[#F3F7FA]'
             )}
           >
             <Icon
               className={cn(
                 'h-4 w-4',
-                adminOnly
-                  ? 'text-purple-600 dark:text-purple-400'
-                  : managerOnly
-                    ? 'text-orange-600 dark:text-orange-400'
-                    : 'text-blue-600 dark:text-blue-400'
+                adminOnly ? 'text-[#1B419C]' : managerOnly ? 'text-[#E62C00]' : 'text-[#5F7AB9]'
               )}
             />
           </div>
@@ -206,13 +202,13 @@ const CollapsibleSection = ({
               {required && <span className="text-red-500 ml-1">*</span>}
             </h3>
             {adminOnly && (
-              <Badge className="px-1.5 py-0.5 text-xs bg-purple-100 text-purple-700 border-purple-200">
+              <Badge className="px-1.5 py-0.5 text-xs bg-[rgba(141,160,205,0.25)] text-[#1B419C] border-[#8DA0CD]">
                 <Shield className="h-3 w-3 mr-1" />
                 관리자
               </Badge>
             )}
             {managerOnly && !adminOnly && (
-              <Badge className="px-1.5 py-0.5 text-xs bg-orange-100 text-orange-700 border-orange-200">
+              <Badge className="px-1.5 py-0.5 text-xs bg-[rgba(255,70,28,0.12)] text-[#E62C00] border-[#FF461C]">
                 <Settings className="h-3 w-3 mr-1" />
                 관리자/현장관리자
               </Badge>
@@ -488,15 +484,19 @@ export default function DailyReportForm({
   }
 
   const getRoleIcon = () => {
-    if (permissions.isAdmin) return <Shield className="h-5 w-5 text-purple-600" />
-    if (permissions.isSiteManager) return <Settings className="h-5 w-5 text-orange-600" />
-    return <Users className="h-5 w-5 text-blue-600" />
+    // Color mapping aligned to brand guide
+    // Admin → Dark Blue, Site Manager → Orange, Worker → Mid Blue
+    if (permissions.isAdmin) return <Shield className="h-5 w-5 text-[#1B419C]" />
+    if (permissions.isSiteManager) return <Settings className="h-5 w-5 text-[#FF461C]" />
+    return <Users className="h-5 w-5 text-[#5F7AB9]" />
   }
 
   const getRoleBadgeColor = () => {
-    if (permissions.isAdmin) return 'bg-purple-100 text-purple-800 border-purple-200'
-    if (permissions.isSiteManager) return 'bg-orange-100 text-orange-800 border-orange-200'
-    return 'bg-blue-100 text-blue-800 border-blue-200'
+    // Badge color tokens using Basic Colors
+    if (permissions.isAdmin) return 'bg-[rgba(141,160,205,0.15)] text-[#1B419C] border-[#8DA0CD]'
+    if (permissions.isSiteManager)
+      return 'bg-[rgba(255,70,28,0.12)] text-[#E62C00] border-[#FF461C]'
+    return 'bg-[rgba(243,247,250,1)] text-[#5F7AB9] border-[#BAC6E1]'
   }
 
   const getBreadcrumb = () => {
@@ -554,14 +554,44 @@ export default function DailyReportForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(submitData),
         })
-        ok = res.ok
+        if (res.status === 409) {
+          const j = await res.json().catch(() => ({}))
+          const existingId = j?.existing_id
+          setError(j?.error || '중복된 작업일지가 있습니다.')
+          toast.error(j?.error || '중복된 작업일지가 있습니다.', {
+            action: existingId
+              ? {
+                  label: '해당 일지로 이동',
+                  onClick: () => router.push(`/dashboard/admin/daily-reports/${existingId}`),
+                }
+              : undefined,
+          })
+          ok = false
+        } else {
+          ok = res.ok
+        }
       } else {
         const res = await fetch('/api/admin/daily-reports', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(submitData),
         })
-        ok = res.ok
+        if (res.status === 409) {
+          const j = await res.json().catch(() => ({}))
+          const existingId = j?.existing_id
+          setError(j?.error || '중복된 작업일지가 있습니다.')
+          toast.error(j?.error || '중복된 작업일지가 있습니다.', {
+            action: existingId
+              ? {
+                  label: '해당 일지로 이동',
+                  onClick: () => router.push(`/dashboard/admin/daily-reports/${existingId}`),
+                }
+              : undefined,
+          })
+          ok = false
+        } else {
+          ok = res.ok
+        }
       }
 
       if (ok) {
@@ -591,7 +621,7 @@ export default function DailyReportForm({
               <Button
                 variant="ghost"
                 onClick={() => router.push(getBreadcrumb())}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                className="flex items-center gap-2 text-gray-600 hover:text-[#15347C] hover:bg-[#F3F7FA]"
               >
                 <ArrowLeft className="h-5 w-5" />
                 <span>돌아가기</span>
@@ -609,20 +639,20 @@ export default function DailyReportForm({
                 {mode === 'edit' && (
                   <Badge
                     variant="outline"
-                    className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200"
+                    className="text-xs bg-[#FFDF00] text-[#15347C] border-[#FFDF00]"
                   >
                     편집 모드
                   </Badge>
                 )}
                 <Badge
                   variant="outline"
-                  className="text-xs text-green-700 bg-green-50 border-green-200 shadow-sm"
+                  className="text-xs text-[#28BE6E] bg-[rgba(40,190,110,0.12)] border-[#28BE6E] shadow-sm"
                 >
                   ✨ 통합 시스템 v2.0
                 </Badge>
                 <Badge
                   variant="outline"
-                  className="text-xs text-blue-600 bg-blue-50 border-blue-200"
+                  className="text-xs text-[#5F7AB9] bg-[rgba(141,160,205,0.15)] border-[#8DA0CD]"
                 >
                   동적 옵션 활성화
                 </Badge>
@@ -1240,15 +1270,15 @@ export default function DailyReportForm({
               permissions={permissions}
             >
               <div className="space-y-4">
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-3">관리자 권한 기능</h4>
-                  <div className="space-y-2 text-sm text-purple-600">
+                <div className="p-4 bg-[rgba(141,160,205,0.15)] border border-[#8DA0CD] rounded-lg">
+                  <h4 className="font-medium text-[#1B419C] mb-3">관리자 권한 기능</h4>
+                  <div className="space-y-2 text-sm text-[#5F7AB9]">
                     <p className="font-medium">
                       이 섹션은 관리자(admin/system_admin)만 사용 가능합니다.
                     </p>
 
                     <div className="mt-2 space-y-1">
-                      <p className="font-medium text-purple-700">📋 주요 기능:</p>
+                      <p className="font-medium text-[#15347C]">📋 주요 기능:</p>
                       <ul className="ml-4 space-y-1 list-disc">
                         <li>
                           <strong>작성자 이름 수정:</strong> 다른 사람을 대신하여 작업일지 작성 가능
@@ -1261,7 +1291,7 @@ export default function DailyReportForm({
                     </div>
 
                     <div className="mt-2 space-y-1">
-                      <p className="font-medium text-purple-700">🎯 사용 목적:</p>
+                      <p className="font-medium text-[#15347C]">🎯 사용 목적:</p>
                       <ul className="ml-4 space-y-1 list-disc">
                         <li>현장 작업자가 직접 작성하지 못한 경우 대리 작성</li>
                         <li>잘못 입력된 정보의 수정 및 보정</li>
@@ -1269,7 +1299,7 @@ export default function DailyReportForm({
                       </ul>
                     </div>
 
-                    <p className="mt-2 text-xs text-purple-500 italic">
+                    <p className="mt-2 text-xs text-[#8DA0CD] italic">
                       ※ 추후 승인 프로세스, 일괄 처리 등 추가 기능이 확장될 예정입니다.
                     </p>
                   </div>
@@ -1282,7 +1312,7 @@ export default function DailyReportForm({
                       value={formData.created_by || ''}
                       onChange={e => setFormData(prev => ({ ...prev, created_by: e.target.value }))}
                       placeholder="작성자 이름"
-                      className="border-purple-200 focus:border-purple-400"
+                      className="border-[#8DA0CD] focus:border-[#5F7AB9]"
                     />
                     <p className="text-xs text-gray-500 mt-1">
                       다른 작업자를 대신하여 작성 시 사용
@@ -1297,7 +1327,7 @@ export default function DailyReportForm({
                         setFormData(prev => ({ ...prev, total_workers: Number(e.target.value) }))
                       }
                       placeholder="총 작업자 수"
-                      className="border-purple-200 focus:border-purple-400"
+                      className="border-[#8DA0CD] focus:border-[#5F7AB9]"
                     />
                     <p className="text-xs text-gray-500 mt-1">현장 전체 인원 수 (급여 계산 기준)</p>
                   </div>
@@ -1310,17 +1340,17 @@ export default function DailyReportForm({
         {/* Submit Buttons - Enhanced with role-based styling */}
         <div className="mt-8 bg-white p-6 rounded-lg border shadow-sm">
           {/* Action Summary */}
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+          <div className="mb-4 p-3 bg-[#F3F7FA] dark:bg-gray-800 rounded-lg">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <div
                   className={cn(
                     'w-2 h-2 rounded-full',
                     permissions.isAdmin
-                      ? 'bg-purple-500'
+                      ? 'bg-[#1B419C]'
                       : permissions.isSiteManager
-                        ? 'bg-orange-500'
-                        : 'bg-blue-500'
+                        ? 'bg-[#E62C00]'
+                        : 'bg-[#5F7AB9]'
                   )}
                 />
                 <span className="font-medium text-gray-700 dark:text-gray-300">
@@ -1358,7 +1388,7 @@ export default function DailyReportForm({
               variant="outline"
               onClick={() => handleSubmit(true)}
               disabled={loading}
-              className="min-w-[120px] border-gray-300 hover:bg-gray-50"
+              className="min-w-[120px] border-[#8DA0CD] text-[#5F7AB9] hover:bg-[#F3F7FA]"
             >
               <Save className="h-4 w-4 mr-2" />
               {loading && loadingType === 'draft' ? '저장 중...' : '임시저장'}
@@ -1370,10 +1400,10 @@ export default function DailyReportForm({
               className={cn(
                 'min-w-[160px] font-semibold text-white',
                 permissions.isAdmin
-                  ? 'bg-purple-600 hover:bg-purple-700'
+                  ? 'bg-gradient-to-r from-[#1B419C] to-[#15347C] hover:from-[#15347C] hover:to-[#1B419C]'
                   : permissions.isSiteManager
-                    ? 'bg-orange-600 hover:bg-orange-700'
-                    : 'bg-blue-600 hover:bg-blue-700'
+                    ? 'bg-gradient-to-r from-[#FF461C] to-[#E62C00] hover:from-[#E62C00] hover:to-[#FF461C]'
+                    : 'bg-gradient-to-r from-[#8DA0CD] to-[#5F7AB9] hover:from-[#5F7AB9] hover:to-[#8DA0CD]'
               )}
             >
               <Send className="h-4 w-4 mr-2" />

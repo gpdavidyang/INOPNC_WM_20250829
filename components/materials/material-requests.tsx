@@ -24,7 +24,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set())
   const [selectedSite, setSelectedSite] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  
+
   // Form data for new request
   const [requestForm, setRequestForm] = useState({
     site_id: '',
@@ -35,7 +35,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
       material_id: string
       requested_quantity: number
       notes: string
-    }>
+    }>,
   })
 
   useEffect(() => {
@@ -79,30 +79,40 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="warning" className="gap-1">
-          <Clock className="h-3 w-3" />
-          대기중
-        </Badge>
+        return (
+          <Badge variant="warning" className="gap-1">
+            <Clock className="h-3 w-3" />
+            대기중
+          </Badge>
+        )
       case 'approved':
-        return <Badge variant="success" className="gap-1">
-          <CheckCircle className="h-3 w-3" />
-          승인됨
-        </Badge>
+        return (
+          <Badge variant="success" className="gap-1">
+            <CheckCircle className="h-3 w-3" />
+            승인됨
+          </Badge>
+        )
       case 'rejected':
-        return <Badge variant="error" className="gap-1">
-          <XCircle className="h-3 w-3" />
-          반려됨
-        </Badge>
+        return (
+          <Badge variant="error" className="gap-1">
+            <XCircle className="h-3 w-3" />
+            반려됨
+          </Badge>
+        )
       case 'ordered':
-        return <Badge variant="secondary" className="gap-1">
-          <Package className="h-3 w-3" />
-          발주완료
-        </Badge>
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Package className="h-3 w-3" />
+            발주완료
+          </Badge>
+        )
       case 'delivered':
-        return <Badge variant="default" className="gap-1">
-          <Truck className="h-3 w-3" />
-          입고완료
-        </Badge>
+        return (
+          <Badge variant="default" className="gap-1">
+            <Truck className="h-3 w-3" />
+            입고완료
+          </Badge>
+        )
       default:
         return <Badge variant="secondary">{status}</Badge>
     }
@@ -124,11 +134,14 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
   const addRequestItem = () => {
     setRequestForm({
       ...requestForm,
-      items: [...requestForm.items, {
-        material_id: '',
-        requested_quantity: 0,
-        notes: ''
-      }]
+      items: [
+        ...requestForm.items,
+        {
+          material_id: '',
+          requested_quantity: 0,
+          notes: '',
+        },
+      ],
     })
   }
 
@@ -141,7 +154,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
   const removeRequestItem = (index: number) => {
     setRequestForm({
       ...requestForm,
-      items: requestForm.items.filter((_, i) => i !== index)
+      items: requestForm.items.filter((_, i) => i !== index),
     })
   }
 
@@ -152,13 +165,13 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
         priority: requestForm.priority,
         needed_by: requestForm.required_date, // Map required_date to needed_by
         notes: requestForm.notes,
-        items: requestForm.items
+        items: requestForm.items,
       })
 
       if (result.success) {
         toast({
           title: '자재 요청 생성 완료',
-          description: '자재 요청이 성공적으로 생성되었습니다.'
+          description: '자재 요청이 성공적으로 생성되었습니다.',
         })
         setShowCreateDialog(false)
         resetForm()
@@ -167,14 +180,14 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
         toast({
           title: '자재 요청 실패',
           description: result.error,
-          variant: 'destructive'
+          variant: 'destructive',
         })
       }
     } catch (error) {
       toast({
         title: '오류 발생',
         description: '자재 요청 생성 중 오류가 발생했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     }
   }
@@ -185,21 +198,21 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
       if (result.success) {
         toast({
           title: '상태 변경 완료',
-          description: '요청 상태가 성공적으로 변경되었습니다.'
+          description: '요청 상태가 성공적으로 변경되었습니다.',
         })
         loadRequests()
       } else {
         toast({
           title: '상태 변경 실패',
           description: result.error,
-          variant: 'destructive'
+          variant: 'destructive',
         })
       }
     } catch (error) {
       toast({
         title: '오류 발생',
         description: '상태 변경 중 오류가 발생했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     }
   }
@@ -210,7 +223,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
       required_date: format(new Date(), 'yyyy-MM-dd'),
       priority: 'normal',
       notes: '',
-      items: []
+      items: [],
     })
   }
 
@@ -226,7 +239,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
       <div className="flex flex-col sm:flex-row gap-4">
         <select
           value={selectedSite}
-          onChange={(e) => {
+          onChange={e => {
             setSelectedSite(e.target.value)
             loadRequests()
           }}
@@ -242,7 +255,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
 
         <select
           value={statusFilter}
-          onChange={(e) => {
+          onChange={e => {
             setStatusFilter(e.target.value)
             loadRequests()
           }}
@@ -256,7 +269,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
           <option value="delivered">입고완료</option>
         </select>
 
-        <Button 
+        <Button
           onClick={() => {
             resetForm()
             setShowCreateDialog(true)
@@ -271,26 +284,20 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
       {/* Request List */}
       <div className="space-y-3">
         {loading ? (
-          <div className="text-center py-8 text-gray-500">
-            요청 목록을 불러오는 중...
-          </div>
+          <div className="text-center py-8 text-gray-500">요청 목록을 불러오는 중...</div>
         ) : filteredRequests.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            자재 요청이 없습니다.
-          </div>
+          <div className="text-center py-8 text-gray-500">자재 요청이 없습니다.</div>
         ) : (
           filteredRequests.map(request => (
             <Card key={request.id} className="overflow-hidden">
-              <div 
+              <div
                 className="p-4 cursor-pointer hover:bg-gray-50"
                 onClick={() => toggleRequestExpanded(request.id)}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-medium text-gray-900">
-                        요청 #{request.id.slice(-8)}
-                      </h3>
+                      <h3 className="font-medium text-gray-900">요청 #{request.id.slice(-8)}</h3>
                       {getStatusBadge(request.status)}
                       {getPriorityBadge(request.priority)}
                     </div>
@@ -301,7 +308,16 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                       </span>
                       <span className="flex items-center gap-1">
                         <User className="h-3.5 w-3.5" />
-                        {request.requester?.full_name || '알 수 없음'}
+                        {request.requested_by ? (
+                          <a
+                            href={`/dashboard/admin/users/${request.requested_by}`}
+                            className="underline-offset-2 hover:underline"
+                          >
+                            {request.requester?.full_name || request.requested_by}
+                          </a>
+                        ) : (
+                          <span>{request.requester?.full_name || '알 수 없음'}</span>
+                        )}
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
@@ -329,12 +345,15 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                     <h4 className="text-sm font-medium text-gray-700 mb-2">요청 품목</h4>
                     <div className="space-y-2">
                       {request.items?.map((item: unknown, index: number) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                        >
                           <div className="flex-1">
                             <p className="font-medium text-sm">{item.material?.name}</p>
                             <p className="text-xs text-gray-600">
-                              코드: {item.material?.material_code} | 
-                              요청수량: {item.requested_quantity} {item.material?.unit}
+                              코드: {item.material?.material_code} | 요청수량:{' '}
+                              {item.requested_quantity} {item.material?.unit}
                             </p>
                             {item.notes && (
                               <p className="text-xs text-gray-600 mt-1">비고: {item.notes}</p>
@@ -417,7 +436,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                 <select
                   id="site"
                   value={requestForm.site_id}
-                  onChange={(e) => setRequestForm({ ...requestForm, site_id: e.target.value })}
+                  onChange={e => setRequestForm({ ...requestForm, site_id: e.target.value })}
                   className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   required
                 >
@@ -436,7 +455,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                   id="required_date"
                   type="date"
                   value={requestForm.required_date}
-                  onChange={(e) => setRequestForm({ ...requestForm, required_date: e.target.value })}
+                  onChange={e => setRequestForm({ ...requestForm, required_date: e.target.value })}
                   min={format(new Date(), 'yyyy-MM-dd')}
                   required
                 />
@@ -448,7 +467,9 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
               <select
                 id="priority"
                 value={requestForm.priority}
-                onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value as unknown })}
+                onChange={e =>
+                  setRequestForm({ ...requestForm, priority: e.target.value as unknown })
+                }
                 className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
                 <option value="low">낮음</option>
@@ -465,7 +486,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                   <div key={index} className="flex gap-2 items-start">
                     <select
                       value={item.material_id}
-                      onChange={(e) => updateRequestItem(index, 'material_id', e.target.value)}
+                      onChange={e => updateRequestItem(index, 'material_id', e.target.value)}
                       className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                       required
                     >
@@ -479,7 +500,9 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                     <Input
                       type="number"
                       value={item.requested_quantity}
-                      onChange={(e) => updateRequestItem(index, 'requested_quantity', parseFloat(e.target.value))}
+                      onChange={e =>
+                        updateRequestItem(index, 'requested_quantity', parseFloat(e.target.value))
+                      }
                       placeholder="수량"
                       className="w-24"
                       required
@@ -512,7 +535,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
               <textarea
                 id="notes"
                 value={requestForm.notes}
-                onChange={(e) => setRequestForm({ ...requestForm, notes: e.target.value })}
+                onChange={e => setRequestForm({ ...requestForm, notes: e.target.value })}
                 placeholder="자재 요청 사유를 입력하세요"
                 rows={3}
                 className="w-full mt-1.5 px-3 py-2 rounded-md border border-gray-300"
@@ -524,7 +547,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
               취소
             </Button>
-            <Button 
+            <Button
               onClick={handleCreateRequest}
               disabled={!requestForm.site_id || requestForm.items.length === 0}
             >

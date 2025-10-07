@@ -1,64 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createDailyReport } from '@/app/actions/admin/daily-reports'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: NextRequest) {
-  const auth = await requireApiAuth()
-  if (auth instanceof NextResponse) return auth
-  if (!auth.role || !['admin', 'system_admin'].includes(auth.role)) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-  }
-
-  const body = await request.json().catch(() => ({}))
-
+// POST /api/admin/daily-reports
+// Body: { site_id, work_date, ... }
+// Guards:
+//  - Site must be active
+//  - No duplicate (site_id + work_date)
+export async function POST(req: NextRequest) {
   try {
-    const svc = createServiceRoleClient()
-    const payload: any = {
-      site_id: body.site_id,
-      work_date: body.work_date,
-      member_name: body.member_name || auth.email || '관리자',
-      process_type: body.process_type || 'general',
-      total_workers: body.total_workers ?? 0,
-      npc1000_incoming: body.npc1000_incoming ?? 0,
-      npc1000_used: body.npc1000_used ?? 0,
-      npc1000_remaining: body.npc1000_remaining ?? 0,
-      issues: body.issues || null,
-      component_name: body.component_name || null,
-      work_process: body.work_process || null,
-      work_section: body.work_section || null,
-      status: body.status || 'draft',
-      created_by: auth.userId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+    const body = await req.json().catch(() => ({}))
+    const siteId = String(body?.site_id || '').trim()
+    const workDate = String(body?.work_date || body?.report_date || '').trim()
+    if (!siteId || !workDate) {
+      return NextResponse.json(
+        { success: false, error: 'site_id와 work_date는 필수입니다.' },
+        { status: 400 }
+      )
     }
 
-    const { data: report, error } = await svc
+    const supabase = createClient()
+    // 1) Site status guard
+    const { data: site } = await supabase
+      .from('sites')
+      .select('status')
+      .eq('id', siteId)
+      .maybeSingle()
+    const status = (site as any)?.status || 'active'
+    if (status !== 'active') {
+      return NextResponse.json(
+        { success: false, error: '완료/중단 현장에는 작업일지를 작성할 수 없습니다.' },
+        { status: 409 }
+      )
+    }
+
+    // 2) Duplicate check
+    const { data: dup } = await supabase
       .from('daily_reports')
-      .insert(payload)
-      .select()
-      .single()
-    if (error) throw error
-
-    // Optional worker entries
-    if (Array.isArray(body.worker_entries) && report) {
-      const rows = body.worker_entries
-        .filter((w: any) => (w.worker_name || w.worker_id) && Number(w.labor_hours) > 0)
-        .map((w: any) => ({
-          daily_report_id: report.id,
-          worker_name: w.worker_name || String(w.worker_id || ''),
-          work_hours: Number(w.labor_hours) || 0,
-          created_at: new Date().toISOString(),
-        }))
-      if (rows.length > 0) await svc.from('daily_report_workers').insert(rows)
+      .select('id')
+      .eq('site_id', siteId)
+      .eq('work_date', workDate)
+      .maybeSingle()
+    if (dup?.id) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: '동일한 현장과 일자의 작업일지가 이미 존재합니다.',
+          existing_id: dup.id,
+        },
+        { status: 409 }
+      )
     }
 
-    return NextResponse.json({ success: true, data: report })
-  } catch (e: any) {
-    return NextResponse.json(
-      { success: false, error: e?.message || 'Failed to create' },
-      { status: 400 }
-    )
+    const result = await createDailyReport(body)
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 })
+    }
+    return NextResponse.json({ success: true, data: result.data })
+  } catch (e) {
+    console.error('[admin/daily-reports:POST] error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

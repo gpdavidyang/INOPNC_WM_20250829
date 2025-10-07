@@ -1,44 +1,66 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { deleteDailyReport, updateDailyReport } from '@/app/actions/admin/daily-reports'
+import { updateDailyReport, deleteDailyReport } from '@/app/actions/admin/daily-reports'
 
 export const dynamic = 'force-dynamic'
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await requireApiAuth()
-  if (auth instanceof NextResponse) return auth
-
-  if (!auth.role || !['admin', 'system_admin'].includes(auth.role)) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-  }
-
+// PATCH /api/admin/daily-reports/:id
+// Guards: duplicate site_id+work_date when updated
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const result = await deleteDailyReport(params.id)
-    return NextResponse.json({ success: true, data: result })
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to delete daily report' },
-      { status: 400 }
-    )
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+    const id = params.id
+    const updates = await req.json().catch(() => ({}))
+
+    const siteId = String(updates?.site_id || '').trim()
+    const workDate = String(updates?.work_date || updates?.report_date || '').trim()
+    if (siteId && workDate) {
+      const supabase = createClient()
+      const { data: dup } = await supabase
+        .from('daily_reports')
+        .select('id')
+        .eq('site_id', siteId)
+        .eq('work_date', workDate)
+        .neq('id', id)
+        .maybeSingle()
+      if (dup?.id) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: '동일한 현장과 일자의 작업일지가 이미 존재합니다.',
+            existing_id: dup.id,
+          },
+          { status: 409 }
+        )
+      }
+    }
+
+    const result = await updateDailyReport(id, updates)
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 })
+    }
+    return NextResponse.json({ success: true, data: result.data })
+  } catch (e) {
+    console.error('[admin/daily-reports:PATCH] error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
-  const auth = await requireApiAuth()
-  if (auth instanceof NextResponse) return auth
-
-  if (!auth.role || !['admin', 'system_admin'].includes(auth.role)) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-  }
-
+// DELETE /api/admin/daily-reports/:id
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json().catch(() => ({}))
-    const result = await updateDailyReport(params.id, body)
-    return NextResponse.json({ success: true, data: result })
-  } catch (error: any) {
-    return NextResponse.json(
-      { success: false, error: error?.message || 'Failed to update daily report' },
-      { status: 400 }
-    )
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+    const id = params.id
+    const result = await deleteDailyReport(id)
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 400 })
+    }
+    return NextResponse.json({ success: true, message: result.message })
+  } catch (e) {
+    console.error('[admin/daily-reports:DELETE] error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

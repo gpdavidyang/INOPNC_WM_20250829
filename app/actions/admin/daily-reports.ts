@@ -23,11 +23,7 @@ interface DailyReportsFilter {
 
 type AdminSupabaseClient = SupabaseClient<Database>
 
-async function ensureSiteAccess(
-  supabase: AdminSupabaseClient,
-  auth: SimpleAuth,
-  siteId?: string
-) {
+async function ensureSiteAccess(supabase: AdminSupabaseClient, auth: SimpleAuth, siteId?: string) {
   if (!siteId || !auth.isRestricted) {
     return
   }
@@ -216,63 +212,102 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
 
     if (error) throw error
 
-    // Enrich with additional data
-    const enrichedReports = await Promise.all(
-      (data || []).map(async (report: any) => {
-        try {
-          // Get profile data
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, email, phone, role, last_login_at')
-            .eq('id', report.created_by)
-            .single()
+    // Avoid N+1: bulk load related data
+    const reports = (data || []) as any[]
+    const reportIds = Array.from(new Set(reports.map(r => r.id)))
+    const creatorIds = Array.from(new Set(reports.map(r => r.created_by).filter(Boolean)))
+    const siteIds = Array.from(new Set(reports.map(r => r.site_id).filter(Boolean)))
 
-          // Get worker details count
-          const { count: workerCount } = await supabase
-            .from('daily_report_workers')
-            .select('id', { count: 'exact', head: true })
-            .eq('daily_report_id', report.id)
+    // 1) Profiles (creators)
+    let profiles: Array<{
+      id: string
+      full_name: string
+      email?: string
+      role?: string
+      phone?: string
+      last_login_at?: string | null
+    }> = []
+    if (creatorIds.length > 0) {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, phone, last_login_at')
+        .in('id', creatorIds)
+      profiles = (p as any) || []
+    }
+    const pMap = new Map(profiles.map(p => [String(p.id), p]))
 
-          // Get total manhours from worker_assignments
-          const { data: workerAssignments } = await supabase
-            .from('work_records')
-            .select('labor_hours')
-            .eq('daily_report_id', report.id)
+    // 2) Worker details count per report
+    const workerCountMap = new Map<string, number>()
+    if (reportIds.length > 0) {
+      const { data: wd } = await supabase
+        .from('daily_report_workers')
+        .select('id, daily_report_id')
+        .in('daily_report_id', reportIds)
+      for (const row of (wd as any[]) || []) {
+        const rid = String((row as any).daily_report_id)
+        workerCountMap.set(rid, (workerCountMap.get(rid) || 0) + 1)
+      }
+    }
 
-          const totalManhours = workerAssignments
-            ? workerAssignments.reduce(
-                (sum: number, w: any) => sum + (Number(w.labor_hours) || 0),
-                0
-              )
-            : 0
+    // 3) Total manhours per report (work_records)
+    const manhoursMap = new Map<string, number>()
+    if (reportIds.length > 0) {
+      const { data: wr } = await supabase
+        .from('work_records')
+        .select('daily_report_id, labor_hours')
+        .in('daily_report_id', reportIds)
+      for (const row of (wr as any[]) || []) {
+        const rid = String((row as any).daily_report_id)
+        const add = Number((row as any).labor_hours) || 0
+        manhoursMap.set(rid, Number(((manhoursMap.get(rid) || 0) + add).toFixed(1)))
+      }
+    }
 
-          // Get documents count for that day
-          const { count: documentCount } = await supabase
-            .from('documents')
-            .select('id', { count: 'exact', head: true })
-            .eq('site_id', report.site_id)
-            .gte('created_at', `${report.work_date}T00:00:00`)
-            .lt('created_at', `${report.work_date}T23:59:59`)
-
-          return {
-            ...report,
-            profiles: profile,
-            worker_details_count: workerCount || 0,
-            daily_documents_count: documentCount || 0,
-            total_manhours: totalManhours,
-          }
-        } catch (err) {
-          // If profile not found, continue without it
-          return {
-            ...report,
-            profiles: null,
-            worker_details_count: 0,
-            daily_documents_count: 0,
-            total_manhours: 0,
-          }
+    // 4) Documents count per site+date
+    const docsCountMap = new Map<string, number>() // key: `${site_id}|${YYYY-MM-DD}`
+    if (siteIds.length > 0 && reports.length > 0) {
+      const minDate = reports.reduce<string | null>((acc, r: any) => {
+        const d = String(r.work_date || r.report_date)
+        return !acc || d < acc ? d : acc
+      }, null)
+      const maxDate = reports.reduce<string | null>((acc, r: any) => {
+        const d = String(r.work_date || r.report_date)
+        return !acc || d > acc ? d : acc
+      }, null)
+      if (minDate && maxDate) {
+        const fromDate = `${minDate}T00:00:00`
+        const toDate = `${maxDate}T23:59:59`
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('site_id, created_at')
+          .in('site_id', siteIds)
+          .gte('created_at', fromDate)
+          .lt('created_at', toDate)
+        for (const d of (docs as any[]) || []) {
+          const sid = String((d as any).site_id)
+          const date = new Date(String((d as any).created_at))
+          const yyyy = date.getFullYear()
+          const mm = String(date.getMonth() + 1).padStart(2, '0')
+          const dd = String(date.getDate()).padStart(2, '0')
+          const key = `${sid}|${yyyy}-${mm}-${dd}`
+          docsCountMap.set(key, (docsCountMap.get(key) || 0) + 1)
         }
-      })
-    )
+      }
+    }
+
+    const enrichedReports = reports.map(r => {
+      const rid = String(r.id)
+      const sid = String(r.site_id)
+      const dateStr = String(r.work_date || r.report_date)
+      const docsKey = `${sid}|${dateStr}`
+      return {
+        ...r,
+        profiles: pMap.get(String(r.created_by)) || null,
+        worker_details_count: workerCountMap.get(rid) || 0,
+        daily_documents_count: docsCountMap.get(docsKey) || 0,
+        total_manhours: manhoursMap.get(rid) || 0,
+      }
+    })
 
     // Sort by total_manhours if needed (since it's calculated after the query)
     const finalReports =

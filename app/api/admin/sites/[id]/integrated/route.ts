@@ -28,7 +28,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       svc
         .from('daily_reports')
         .select(
-          'id, work_date, status, member_name, process_type, component_name, work_process, work_section, total_workers, created_by, site_id'
+          `id, work_date, status, member_name, process_type, component_name, work_process, work_section, total_workers, created_by, site_id,
+           created_by_profile:profiles!daily_reports_created_by_fkey(id, full_name, email)`
         )
         .eq('site_id', siteId)
         .order('work_date', { ascending: false })

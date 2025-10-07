@@ -1,90 +1,76 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+// GET /api/admin/sites/:id/materials/transactions
+// Query: q (material name/code), limit, offset
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
-    if (!auth.role || !['admin', 'system_admin', 'site_manager'].includes(auth.role)) {
-      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-    }
 
     const siteId = params.id
-    if (!siteId)
-      return NextResponse.json({ success: false, error: 'Site ID is required' }, { status: 400 })
-
-    const sp = new URL(request.url).searchParams
-    const q = (sp.get('q') || '').trim()
-    const limit = Math.min(201, Math.max(1, Number(sp.get('limit')) || 21))
-    const offset = Math.max(0, Number(sp.get('offset')) || 0)
-
-    const supabase = createClient()
-
-    // Optional material filter by name/code when q provided
-    let materialIds: string[] | null = null
-    if (q) {
-      const { data: mats, error: matsError } = await supabase
-        .from('materials')
-        .select('id')
-        .or(`name.ilike.%${q}%,code.ilike.%${q}%`)
-        .limit(1000)
-      if (matsError) {
-        if (process.env.NODE_ENV === 'development')
-          console.error('Materials search error:', matsError)
-      }
-      materialIds = Array.isArray(mats) ? mats.map((m: any) => m.id).filter(Boolean) : []
-      if (materialIds.length === 0) {
-        return NextResponse.json({ success: true, data: [], total: 0 })
-      }
+    if (!siteId) {
+      return NextResponse.json({ success: false, error: 'Missing site id' }, { status: 400 })
     }
 
-    let query = supabase.from('material_transactions').select(
-      `
-        id,
-        transaction_type,
-        quantity,
-        transaction_date,
-        created_at,
-        materials:materials!inner(id, name, code, unit)
-      `
-    )
-    query = query.eq('site_id', siteId)
-    if (materialIds && materialIds.length > 0) {
-      query = query.in('material_id', materialIds)
-    }
-    query = query
-      .order('transaction_date', { ascending: false, nullsFirst: false })
-      .order('created_at', { ascending: false })
+    const { searchParams } = new URL(req.url)
+    const q = (searchParams.get('q') || '').trim().toLowerCase()
+    const limit = Math.max(1, Math.min(200, Number(searchParams.get('limit') || '21') || 21))
+    const offset = Math.max(0, Number(searchParams.get('offset') || '0') || 0)
 
-    // Total count (without text search q; q is applied client-side)
-    let countQuery = supabase
+    const svc = createServiceRoleClient()
+
+    // Step 1: get transactions (paged) and total count
+    const baseQuery = svc
       .from('material_transactions')
-      .select('*', { count: 'exact', head: true })
+      .select('id, site_id, material_id, transaction_type, transaction_date, quantity', {
+        count: 'exact',
+      })
       .eq('site_id', siteId)
-    if (materialIds && materialIds.length > 0) {
-      countQuery = countQuery.in('material_id', materialIds)
+      .order('transaction_date', { ascending: false, nullsFirst: false })
+
+    const { data: txns, error, count } = await baseQuery.range(offset, offset + limit - 1)
+    if (error) throw error
+
+    const transactions = txns || []
+
+    // Step 2: hydrate materials info (from materials master)
+    const matIds = Array.from(new Set(transactions.map((t: any) => t.material_id).filter(Boolean)))
+    let materialsMap = new Map<string, { name: string; code: string; unit: string }>()
+    if (matIds.length > 0) {
+      const { data: mats, error: matErr } = await svc
+        .from('materials')
+        .select('id, name, code, unit')
+        .in('id', matIds)
+      if (matErr) throw matErr
+      for (const m of mats || []) {
+        materialsMap.set(String(m.id), {
+          name: m.name || '',
+          code: m.code || '',
+          unit: m.unit || '',
+        })
+      }
     }
-    const { count: totalCount } = await countQuery
 
-    // Pagination (overfetch by 1)
-    query = query.range(offset, offset + limit - 1)
-    const { data, error } = await query
-    if (error) {
-      if (process.env.NODE_ENV === 'development') console.error('Transactions query error:', error)
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch transactions' },
-        { status: 500 }
-      )
-    }
+    // Step 3: optional q filter by material name/code (client expects server-side)
+    const hydrated = transactions
+      .map((t: any) => ({
+        ...t,
+        materials: materialsMap.get(String(t.material_id)) || { name: '', code: '', unit: '' },
+      }))
+      .filter(t => {
+        if (!q) return true
+        const name = (t.materials?.name || '').toLowerCase()
+        const code = (t.materials?.code || '').toLowerCase()
+        return name.includes(q) || code.includes(q)
+      })
 
-    let rows = Array.isArray(data) ? data : []
-
-    return NextResponse.json({ success: true, data: rows, total: totalCount ?? 0 })
+    return NextResponse.json({ success: true, data: hydrated, total: count || 0 })
   } catch (e) {
-    if (process.env.NODE_ENV === 'development') console.error('Transactions API error:', e)
+    console.error('[admin/sites/:id/materials/transactions] error:', e)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
