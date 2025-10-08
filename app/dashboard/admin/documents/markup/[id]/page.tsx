@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { headers } from 'next/headers'
 import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
+import DeleteMarkupButton from './DeleteButton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import DataTable, { type Column } from '@/components/admin/DataTable'
+import DetailTablesClient from './DetailTablesClient'
 
 export const metadata: Metadata = {
-  title: '마크업 문서 상세',
+  title: '도면마킹 문서 상세',
 }
 
 export default async function AdminMarkupDocumentDetailPage({
@@ -15,18 +17,31 @@ export default async function AdminMarkupDocumentDetailPage({
   params: { id: string }
 }) {
   await requireAdminProfile()
-  const res = await fetch(`/api/admin/documents/markup/${params.id}`, { cache: 'no-store' })
+  const h = headers()
+  const proto = h.get('x-forwarded-proto') || 'http'
+  const host = h.get('host') || process.env.VERCEL_URL || 'localhost:3000'
+  const base = host.startsWith('http') ? host : `${proto}://${host}`
+  const res = await fetch(new URL(`/api/admin/documents/markup/${params.id}`, base).toString(), {
+    cache: 'no-store',
+    headers: { cookie: h.get('cookie') || '' },
+  })
   const json = await res.json()
   const doc = json?.data || null
 
   const [versionsRes, historyRes] = await Promise.all([
-    fetch(`/api/admin/documents/markup/${params.id}/versions`, { cache: 'no-store' }),
-    fetch(`/api/admin/documents/markup/${params.id}/history`, { cache: 'no-store' }),
+    fetch(new URL(`/api/admin/documents/markup/${params.id}/versions`, base).toString(), {
+      cache: 'no-store',
+      headers: { cookie: h.get('cookie') || '' },
+    }),
+    fetch(new URL(`/api/admin/documents/markup/${params.id}/history`, base).toString(), {
+      cache: 'no-store',
+      headers: { cookie: h.get('cookie') || '' },
+    }),
   ])
   const versionsJson = await versionsRes.json().catch(() => ({}))
   const historyJson = await historyRes.json().catch(() => ({}))
-  const versions = versionsJson?.data?.versions || []
-  const history = historyJson?.data?.history || []
+  const versionsRaw = versionsJson?.data?.versions || []
+  const historyRaw = historyJson?.data?.history || []
 
   // Signed preview URL for source file
   let previewUrl: string | null = null
@@ -45,7 +60,7 @@ export default async function AdminMarkupDocumentDetailPage({
   return (
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
-        title="마크업 문서 상세"
+        title="도면마킹 문서 상세"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
           { label: '문서 관리', href: '/dashboard/admin/documents' },
@@ -54,6 +69,18 @@ export default async function AdminMarkupDocumentDetailPage({
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/documents/markup"
+        actions={
+          <div className="flex items-center gap-2">
+            <a
+              href={`/dashboard/admin/documents/markup/${params.id}/edit`}
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+              role="button"
+            >
+              편집
+            </a>
+            <DeleteMarkupButton id={params.id} />
+          </div>
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <Card>
@@ -86,78 +113,26 @@ export default async function AdminMarkupDocumentDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>메타데이터</CardTitle>
-          <CardDescription>기본 필드</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable<{ key: string; value: string }>
-            data={([
-              { key: 'id', value: String(doc?.id ?? '-') },
-              {
-                key: 'created_at',
-                value: doc?.created_at ? new Date(doc.created_at).toLocaleString('ko-KR') : '-',
-              },
-              {
-                key: 'updated_at',
-                value: doc?.updated_at ? new Date(doc.updated_at).toLocaleString('ko-KR') : '-',
-              },
-              { key: 'description', value: String(doc?.description ?? '-') },
-              { key: 'mime_type', value: String(doc?.mime_type ?? '-') },
-            ])}
-            rowKey={r => r.key}
-            stickyHeader
-            columns={([
-              { key: 'key', header: '키', sortable: true, render: r => <span className="font-medium text-foreground">{r.key}</span> },
-              { key: 'value', header: '값', sortable: true, render: r => <span className="truncate inline-block max-w-[560px]" title={r.value}>{r.value}</span> },
-            ] as Column<{ key: string; value: string }>)}
-          />
-        </CardContent>
-      </Card>
+      {(() => {
+        const versions = (versionsRaw || []).map((v: any) => ({
+          id: v?.id,
+          version: v?.version_number ?? v?.version ?? '-',
+          title: v?.title || '-',
+          author: v?.created_by?.full_name || v?.created_by?.email || '-',
+          created_at_str: v?.created_at ? new Date(v.created_at).toLocaleString('ko-KR') : '-',
+          latest_label: v?.is_latest_version ? '예' : '',
+        }))
 
-      <Card>
-        <CardHeader>
-          <CardTitle>버전</CardTitle>
-          <CardDescription>최신순</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable<any>
-            data={versions}
-            rowKey={(v: any) => v.id}
-            stickyHeader
-            emptyMessage="버전 정보가 없습니다."
-            columns={([
-              { key: 'version', header: '버전', sortable: true, render: (v: any) => v?.version_number ?? v?.version ?? '-' },
-              { key: 'title', header: '제목', sortable: true, render: (v: any) => v?.title || '-' },
-              { key: 'author', header: '작성자', sortable: true, render: (v: any) => v?.created_by?.full_name || v?.created_by?.email || '-' },
-              { key: 'created_at', header: '생성일', sortable: true, render: (v: any) => (v?.created_at ? new Date(v.created_at).toLocaleString('ko-KR') : '-') },
-              { key: 'latest', header: '최신', sortable: true, render: (v: any) => (v?.is_latest_version ? '예' : '') },
-            ] as Column<any>[])}
-          />
-        </CardContent>
-      </Card>
+        const history = (historyRaw || []).map((h: any) => ({
+          id: h?.id,
+          changed_at_str: h?.changed_at ? new Date(h.changed_at).toLocaleString('ko-KR') : '-',
+          change_type: h?.change_type || '-',
+          summary: h?.change_summary || '-',
+          user_label: h?.user?.full_name || h?.user?.email || '-',
+        }))
 
-      <Card>
-        <CardHeader>
-          <CardTitle>변경 이력</CardTitle>
-          <CardDescription>최근 기록</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <DataTable<any>
-            data={history}
-            rowKey={(h: any) => h.id}
-            stickyHeader
-            emptyMessage="이력이 없습니다."
-            columns={([
-              { key: 'changed_at', header: '일시', sortable: true, render: (h: any) => (h?.changed_at ? new Date(h.changed_at).toLocaleString('ko-KR') : '-') },
-              { key: 'change_type', header: '변경', sortable: true, render: (h: any) => h?.change_type || '-' },
-              { key: 'summary', header: '요약', sortable: false, render: (h: any) => <span className="truncate inline-block max-w-[420px]" title={h?.change_summary || ''}>{h?.change_summary || '-'}</span> },
-              { key: 'user', header: '사용자', sortable: true, render: (h: any) => h?.user?.full_name || h?.user?.email || '-' },
-            ] as Column<any>[])}
-          />
-        </CardContent>
-      </Card>
+        return <DetailTablesClient versions={versions} history={history} />
+      })()}
       </div>
     </div>
   )
