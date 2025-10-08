@@ -19,7 +19,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   markup: '도면마킹',
   required: '필수서류',
   required_user_docs: '필수서류(개인)',
-  invoice: '기성청구',
+  invoice: '기성청구 관리',
   photo_grid: '사진대지',
   personal: '개인문서',
   certificate: '증명서류',

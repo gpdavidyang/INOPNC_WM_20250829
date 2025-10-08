@@ -181,7 +181,7 @@ export default async function AdminDocumentsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>공유</CardTitle>
+            <CardTitle>회사서류함</CardTitle>
             <CardDescription>shared</CardDescription>
           </CardHeader>
           <CardContent>
@@ -241,7 +241,7 @@ export default async function AdminDocumentsPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>정산문서</CardTitle>
+            <CardTitle>기성청구 관리</CardTitle>
             <CardDescription>invoice</CardDescription>
           </CardHeader>
           <CardContent>

@@ -84,10 +84,10 @@ export default function MinimalDocumentUpload() {
             value={category}
             onChange={e => setCategory(e.target.value)}
           >
-            <option value="shared">공유문서</option>
+            <option value="shared">회사서류함</option>
             <option value="markup">도면마킹</option>
             <option value="photo_grid">사진대지</option>
-            <option value="invoice">정산문서</option>
+            <option value="invoice">기성청구 관리</option>
             <option value="required">필수서류</option>
           </select>
         </div>

@@ -85,6 +85,20 @@ self.addEventListener('fetch', event => {
     return
   }
 
+  // Skip Next.js internals and dev assets to avoid hydration/HMR issues
+  // Do not cache or intercept framework chunks, HMR, RSC/flight, webpack, or static runtime files
+  if (
+    url.pathname.startsWith('/_next/') ||
+    url.pathname.startsWith('/__nextjs/') ||
+    url.pathname.startsWith('/__next/') ||
+    url.pathname.includes('webpack') ||
+    url.pathname.includes('/_next/static') ||
+    url.search.includes('__next') ||
+    url.pathname.endsWith('.rsc')
+  ) {
+    return
+  }
+
   // Handle API requests with network-first strategy
   if (API_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname))) {
     event.respondWith(networkFirstStrategy(request))

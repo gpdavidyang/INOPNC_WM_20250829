@@ -567,7 +567,10 @@ function CompanyTab() {
     ;(async () => {
       setLoading(true)
       try {
-        const res = await fetch('/api/documents?type=shared&limit=100', { credentials: 'include' })
+        const res = await fetch(
+          '/api/unified-documents/v2?category_type=shared&status=active&limit=100',
+          { credentials: 'include' }
+        )
         const json = await res.json()
         if (res.ok && json?.success) {
           const list = Array.isArray(json.data)
@@ -598,9 +601,10 @@ function CompanyTab() {
         })
         setMigrateTried(true)
         // 성공 또는 권한 부족이어도 무시 후 목록 리프레시 시도
-        const reload = await fetch('/api/documents?type=shared&limit=100', {
-          credentials: 'include',
-        })
+        const reload = await fetch(
+          '/api/unified-documents/v2?category_type=shared&status=active&limit=100',
+          { credentials: 'include' }
+        )
         const j = await reload.json().catch(() => ({}))
         if (reload.ok && j?.success) {
           const list = Array.isArray(j.data)
@@ -805,7 +809,7 @@ function DrawingsTab() {
       // Fallback: 회사서류함(공유)에서 '공도면' 포함 문서를 그리드에 보조 노출
       try {
         const shared = await fetch(
-          '/api/documents?type=shared&limit=200&search=%EA%B3%B5%EB%8F%84%EB%A9%B4',
+          '/api/unified-documents/v2?category_type=shared&status=active&limit=200&search=%EA%B3%B5%EB%8F%84%EB%A9%B4',
           { credentials: 'include' }
         )
         const sj = await shared.json()

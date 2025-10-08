@@ -12,7 +12,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
 export const metadata: Metadata = {
-  title: '공유 문서',
+  title: '회사서류',
 }
 
 export default async function AdminSharedDocumentsPage({
@@ -78,9 +78,9 @@ export default async function AdminSharedDocumentsPage({
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="공유 문서"
-        description="조직 간 공유된 문서 목록"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '공유 문서' }]}
+        title="회사서류"
+        description="회사 차원의 공통 문서 목록"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '회사서류' }]}
         showBackButton
         backButtonHref="/dashboard/admin/documents"
       />

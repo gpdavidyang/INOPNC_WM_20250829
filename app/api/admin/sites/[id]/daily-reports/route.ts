@@ -47,6 +47,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         component_name,
         work_process,
         work_section,
+        before_photos,
+        after_photos,
+        additional_before_photos,
+        additional_after_photos,
         total_workers,
         npc1000_incoming,
         npc1000_used,
@@ -115,11 +119,74 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Pagination
     query = query.range(offset, offset + limit - 1)
 
-    const { data: reports, error } = await query
+    let reports: any[] | null = null
+    let error: any = null
+    {
+      const r = await query
+      reports = r.data as any[] | null
+      error = r.error
+    }
 
+    // Fallback: retry without photo JSON columns if columns don't exist in the schema
     if (error) {
-      console.error('Daily reports query error:', error)
-      return NextResponse.json({ error: 'Failed to fetch daily reports' }, { status: 500 })
+      console.warn(
+        '[admin/sites/:id/daily-reports] primary select failed, retrying with minimal fields:',
+        error?.message
+      )
+      let fallback = supabase
+        .from('daily_reports')
+        .select(
+          `
+          id,
+          site_id,
+          work_date,
+          member_name,
+          process_type,
+          component_name,
+          work_process,
+          work_section,
+          total_workers,
+          npc1000_incoming,
+          npc1000_used,
+          npc1000_remaining,
+          status,
+          issues,
+          created_at,
+          updated_at,
+          created_by
+        `
+        )
+        .eq('site_id', siteId)
+
+      // Reapply filters to fallback query
+      if (status && status !== 'all') fallback = fallback.eq('status', status)
+      if (date) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(date)) fallback = fallback.eq('work_date', date)
+        else fallback = fallback.gte('work_date', `${date}-01`).lte('work_date', `${date}-31`)
+      }
+      if (q) {
+        const pattern = `%${q}%`
+        fallback = fallback.or(
+          `member_name.ilike.${pattern},process_type.ilike.${pattern},component_name.ilike.${pattern},work_process.ilike.${pattern},work_section.ilike.${pattern}`
+        )
+      }
+      if (sort === 'status') fallback = fallback.order('status', { ascending: order === 'asc' })
+      else if (sort === 'workers')
+        fallback = fallback.order('total_workers', {
+          ascending: order === 'asc',
+          nullsFirst: false,
+        })
+      else fallback = fallback.order('work_date', { ascending: order === 'asc', nullsFirst: false })
+
+      fallback = fallback.range(offset, offset + limit - 1)
+
+      const fr = await fallback
+      if (fr.error) {
+        console.error('Daily reports minimal query error:', fr.error)
+        return NextResponse.json({ error: 'Failed to fetch daily reports' }, { status: 500 })
+      }
+      reports = fr.data as any[]
+      error = null
     }
 
     // Get additional statistics for the site

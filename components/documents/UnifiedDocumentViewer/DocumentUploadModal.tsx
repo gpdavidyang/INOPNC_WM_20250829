@@ -23,13 +23,13 @@ const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
 const ALLOWED_MIME_TYPES = [
   'application/pdf',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'image/jpeg',
   'image/png',
   'image/gif',
   'image/webp',
-  'text/plain'
+  'text/plain',
 ]
 
 const DOCUMENT_CATEGORIES = [
@@ -37,7 +37,7 @@ const DOCUMENT_CATEGORIES = [
   { value: 'markup', label: '도면마킹' },
   { value: 'photo_grid', label: '사진대지' },
   { value: 'required', label: '필수제출' },
-  { value: 'invoice', label: '기성청구' }
+  { value: 'invoice', label: '기성청구 관리' },
 ]
 
 export default function DocumentUploadModal({
@@ -45,30 +45,30 @@ export default function DocumentUploadModal({
   onClose,
   onUpload,
   categoryType,
-  profile
+  profile,
 }: DocumentUploadModalProps) {
   const [loading, setLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
   const [files, setFiles] = useState<UploadFile[]>([])
   const [sites, setSites] = useState<any[]>([])
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     categoryType: categoryType || 'shared',
     siteId: '',
-    tags: ''
+    tags: '',
   })
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // 현장 목록 로드
   useEffect(() => {
     if (isOpen) {
       loadSites()
     }
   }, [isOpen])
-  
+
   const loadSites = async () => {
     try {
       const response = await fetch('/api/sites')
@@ -80,7 +80,7 @@ export default function DocumentUploadModal({
       console.error('Failed to load sites:', error)
     }
   }
-  
+
   // Drag and drop handlers
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -127,7 +127,7 @@ export default function DocumentUploadModal({
       validFiles.push({
         file,
         id: Math.random().toString(36).substring(2),
-        progress: 0
+        progress: 0,
       })
     })
 
@@ -137,7 +137,7 @@ export default function DocumentUploadModal({
     if (!formData.title && validFiles.length === 1) {
       setFormData(prev => ({
         ...prev,
-        title: validFiles[0].file.name.replace(/\.[^/.]+$/, '')
+        title: validFiles[0].file.name.replace(/\.[^/.]+$/, ''),
       }))
     }
   }
@@ -145,7 +145,7 @@ export default function DocumentUploadModal({
   const removeFile = (fileId: string) => {
     setFiles(prev => prev.filter(f => f.id !== fileId))
   }
-  
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -153,7 +153,7 @@ export default function DocumentUploadModal({
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
-  
+
   const getFileIcon = (file: File) => {
     if (file.type.startsWith('image/')) return '🖼️'
     if (file.type === 'application/pdf') return '📄'
@@ -192,43 +192,40 @@ export default function DocumentUploadModal({
           description: formData.description,
           categoryType: formData.categoryType,
           siteId: formData.siteId || undefined,
-          tags: formData.tags
+          tags: formData.tags,
         }
-        
+
         await onUpload(uploadFile.file, metadata)
-        
+
         // 파일 성공 표시
-        setFiles(prev => prev.map(f => 
-          f.id === uploadFile.id 
-            ? { ...f, progress: 100, success: true }
-            : f
-        ))
+        setFiles(prev =>
+          prev.map(f => (f.id === uploadFile.id ? { ...f, progress: 100, success: true } : f))
+        )
       }
-      
+
       // 성공 후 모달 닫기
       setTimeout(() => {
         onClose()
         resetForm()
       }, 1000)
-      
     } catch (error) {
       console.error('Upload error:', error)
     } finally {
       setLoading(false)
     }
   }
-  
+
   const resetForm = () => {
     setFormData({
       title: '',
       description: '',
       categoryType: categoryType || 'shared',
       siteId: '',
-      tags: ''
+      tags: '',
     })
     setFiles([])
   }
-  
+
   const handleClose = () => {
     if (!loading) {
       onClose()
@@ -243,9 +240,7 @@ export default function DocumentUploadModal({
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            문서 업로드
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">문서 업로드</h2>
           <button
             type="button"
             onClick={handleClose}
@@ -260,15 +255,18 @@ export default function DocumentUploadModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* File Upload Area */}
           <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">파일 선택</label>
-            
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              파일 선택
+            </label>
+
             {/* Drag & Drop Area */}
             <div
               className={`
                 relative border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-                ${dragActive 
-                  ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
-                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                ${
+                  dragActive
+                    ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                 }
               `}
               onDragEnter={handleDrag}
@@ -286,22 +284,28 @@ export default function DocumentUploadModal({
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={loading}
               />
-              
+
               <Upload className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
                 파일을 드래그하거나 클릭하여 선택
               </h3>
               <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                PDF, Word, Excel, PowerPoint, 이미지 파일 지원 (최대 {formatFileSize(MAX_FILE_SIZE)})
+                PDF, Word, Excel, PowerPoint, 이미지 파일 지원 (최대 {formatFileSize(MAX_FILE_SIZE)}
+                )
               </p>
             </div>
 
             {/* File List */}
             {files.length > 0 && (
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">선택된 파일 ({files.length})</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  선택된 파일 ({files.length})
+                </label>
                 {files.map(uploadFile => (
-                  <div key={uploadFile.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div
+                    key={uploadFile.id}
+                    className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
                     <span className="text-xl">{getFileIcon(uploadFile.file)}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -310,7 +314,7 @@ export default function DocumentUploadModal({
                       <p className="text-xs text-gray-600 dark:text-gray-400">
                         {formatFileSize(uploadFile.file.size)}
                       </p>
-                      
+
                       {/* Progress/Status */}
                       {uploadFile.success && (
                         <div className="flex items-center gap-1 mt-1">
@@ -318,7 +322,7 @@ export default function DocumentUploadModal({
                           <span className="text-xs text-green-600">업로드 완료</span>
                         </div>
                       )}
-                      
+
                       {uploadFile.error && (
                         <div className="flex items-center gap-1 mt-1">
                           <AlertCircle className="h-4 w-4 text-red-500" />
@@ -326,7 +330,7 @@ export default function DocumentUploadModal({
                         </div>
                       )}
                     </div>
-                    
+
                     <button
                       type="button"
                       onClick={() => removeFile(uploadFile.id)}
@@ -344,12 +348,17 @@ export default function DocumentUploadModal({
           {/* Document Information */}
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">문서 제목 *</label>
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                문서 제목 *
+              </label>
               <input
                 id="title"
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="문서 제목을 입력하세요"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
@@ -357,24 +366,34 @@ export default function DocumentUploadModal({
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">설명</label>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                설명
+              </label>
               <textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="문서에 대한 설명을 입력하세요"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">카테고리</label>
+                <label
+                  htmlFor="category"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  카테고리
+                </label>
                 <select
                   id="category"
                   value={formData.categoryType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, categoryType: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, categoryType: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   {DOCUMENT_CATEGORIES.map(category => (
@@ -386,11 +405,16 @@ export default function DocumentUploadModal({
               </div>
 
               <div>
-                <label htmlFor="site" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">현장</label>
+                <label
+                  htmlFor="site"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
+                  현장
+                </label>
                 <select
                   id="site"
                   value={formData.siteId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, siteId: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, siteId: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">현장 선택 안함</option>
@@ -404,12 +428,17 @@ export default function DocumentUploadModal({
             </div>
 
             <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">태그</label>
+              <label
+                htmlFor="tags"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                태그
+              </label>
               <input
                 id="tags"
                 type="text"
                 value={formData.tags}
-                onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                 placeholder="태그를 쉼표로 구분하여 입력 (예: 도면, 1층, 설계)"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />

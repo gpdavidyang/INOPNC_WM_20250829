@@ -57,7 +57,7 @@ const DOCUMENT_CATEGORIES = [
   },
   {
     id: 'invoice',
-    name: '기성청구',
+    name: '기성청구 관리',
     icon: Package,
     color: 'yellow',
     description: '기성 청구 문서',

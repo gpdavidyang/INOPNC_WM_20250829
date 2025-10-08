@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
-
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
@@ -21,27 +20,24 @@ export async function POST(request: NextRequest) {
       .select('id, role, customer_company_id, full_name')
       .eq('id', authResult.userId)
       .single()
-    
+
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
-    
+
     const formData = await request.formData()
     const file = formData.get('file') as File
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
-    
+
     // 파일 크기 제한 (50MB)
     const MAX_FILE_SIZE = 50 * 1024 * 1024
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File size exceeds 50MB limit' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'File size exceeds 50MB limit' }, { status: 400 })
     }
-    
+
     // 허용된 파일 타입 확인
     const ALLOWED_TYPES = [
       'application/pdf',
@@ -52,55 +48,47 @@ export async function POST(request: NextRequest) {
       'image/png',
       'image/gif',
       'image/webp',
-      'text/plain'
+      'text/plain',
     ]
-    
+
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: 'File type not allowed' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'File type not allowed' }, { status: 400 })
     }
-    
+
     // 파일 이름에서 확장자 추출
     const fileName = file.name
     const fileExtension = fileName.split('.').pop()
     const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9가-힣._-]/g, '_')
-    
+
     // 고유한 파일명 생성
     const timestamp = Date.now()
     const uniqueFileName = `${timestamp}_${sanitizedFileName}`
     const storagePath = `documents/${authResult.userId}/${uniqueFileName}`
-    
+
     // 파일을 Supabase Storage에 업로드
     const fileBuffer = Buffer.from(await file.arrayBuffer())
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(storagePath, fileBuffer, {
         contentType: file.type,
-        upsert: false
+        upsert: false,
       })
-    
+
     if (uploadError) {
       console.error('Storage upload error:', uploadError)
-      return NextResponse.json(
-        { error: 'Failed to upload file' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
     }
-    
+
     // 공용 URL 생성
-    const { data: urlData } = supabase.storage
-      .from('documents')
-      .getPublicUrl(storagePath)
-    
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(storagePath)
+
     // 문서 메타데이터 추출
     const title = formData.get('title')?.toString() || fileName
     const description = formData.get('description')?.toString() || ''
     const categoryType = formData.get('categoryType')?.toString()
     const siteId = formData.get('siteId')?.toString() || null
     const tags = formData.get('tags')?.toString() || ''
-    
+
     // unified_documents 테이블에 문서 정보 저장
     const documentData = {
       title,
@@ -117,19 +105,26 @@ export async function POST(request: NextRequest) {
       uploaded_by: authResult.userId,
       status: 'active',
       workflow_status: 'draft',
-      is_public: false,
+      // 회사서류함(shared)은 전역 열람 가능해야 하므로 공개 처리
+      is_public: (categoryType || 'shared') === 'shared',
       is_archived: false,
       access_level: 'role',
-      tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      tags: tags
+        ? tags
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean)
+        : [],
       version: 1,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }
-    
+
     const { data: document, error: dbError } = await supabase
       .from('unified_documents')
       .insert(documentData)
-      .select(`
+      .select(
+        `
         *,
         uploader:uploaded_by (
           id,
@@ -145,47 +140,37 @@ export async function POST(request: NextRequest) {
           id,
           name
         )
-      `)
+      `
+      )
       .single()
-    
+
     if (dbError) {
       console.error('Database insert error:', dbError)
-      
+
       // 실패 시 업로드된 파일 삭제
-      await supabase.storage
-        .from('documents')
-        .remove([storagePath])
-      
-      return NextResponse.json(
-        { error: 'Failed to save document metadata' },
-        { status: 500 }
-      )
+      await supabase.storage.from('documents').remove([storagePath])
+
+      return NextResponse.json({ error: 'Failed to save document metadata' }, { status: 500 })
     }
-    
+
     // 문서 이력 기록
-    await supabase
-      .from('document_history')
-      .insert({
-        document_id: document.id,
-        action: 'uploaded',
-        changed_by: authResult.userId,
-        changes: { file_name: fileName, file_size: file.size },
-        ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
-        user_agent: request.headers.get('user-agent')
-      })
-    
+    await supabase.from('document_history').insert({
+      document_id: document.id,
+      action: 'uploaded',
+      changed_by: authResult.userId,
+      changes: { file_name: fileName, file_size: file.size },
+      ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
+      user_agent: request.headers.get('user-agent'),
+    })
+
     return NextResponse.json({
       success: true,
       data: document,
-      message: 'File uploaded successfully'
+      message: 'File uploaded successfully',
     })
-    
   } catch (error) {
     console.error('Upload API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 

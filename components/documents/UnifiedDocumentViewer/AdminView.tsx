@@ -45,15 +45,14 @@ export default function AdminView({
   onDocumentAction,
   onDocumentClick,
   pagination,
-  onPageChange
+  onPageChange,
 }: AdminViewProps) {
-  
   const [showApprovalDialog, setShowApprovalDialog] = useState(false)
   const [showRejectionDialog, setShowRejectionDialog] = useState(false)
   const [approvalComment, setApprovalComment] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
   const [pendingDocumentIds, setPendingDocumentIds] = useState<string[]>([])
-  
+
   // 문서 선택 토글
   const toggleSelection = (documentId: string) => {
     if (selectedDocuments.includes(documentId)) {
@@ -62,7 +61,7 @@ export default function AdminView({
       onSelectionChange([...selectedDocuments, documentId])
     }
   }
-  
+
   // 전체 선택/해제
   const toggleAllSelection = () => {
     if (selectedDocuments.length === documents.length) {
@@ -71,33 +70,33 @@ export default function AdminView({
       onSelectionChange(documents.map(doc => doc.id))
     }
   }
-  
+
   // 승인 처리
   const handleApprove = (documentIds: string[]) => {
     setPendingDocumentIds(documentIds)
     setShowApprovalDialog(true)
   }
-  
+
   const confirmApproval = () => {
     onDocumentAction('approve', pendingDocumentIds, { comment: approvalComment })
     setShowApprovalDialog(false)
     setApprovalComment('')
     setPendingDocumentIds([])
   }
-  
+
   // 반려 처리
   const handleReject = (documentIds: string[]) => {
     setPendingDocumentIds(documentIds)
     setShowRejectionDialog(true)
   }
-  
+
   const confirmRejection = () => {
     onDocumentAction('reject', pendingDocumentIds, { reason: rejectionReason })
     setShowRejectionDialog(false)
     setRejectionReason('')
     setPendingDocumentIds([])
   }
-  
+
   // 문서 타입 아이콘
   const getDocumentIcon = (document: UnifiedDocument) => {
     const iconMap: Record<string, unknown> = {
@@ -106,11 +105,11 @@ export default function AdminView({
       required: Shield,
       invoice: FileText,
       shared: Share2,
-      personal: User
+      personal: User,
     }
     return iconMap[document.category_type] || FileText
   }
-  
+
   // 상태 배지
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -151,7 +150,7 @@ export default function AdminView({
         )
     }
   }
-  
+
   // 카테고리 배지
   const getCategoryBadge = (category: string) => {
     const categoryMap: Record<string, { label: string; color: string }> = {
@@ -159,10 +158,10 @@ export default function AdminView({
       markup: { label: '도면마킹', color: 'bg-purple-100 text-purple-700' },
       photo_grid: { label: '사진대지', color: 'bg-orange-100 text-orange-700' },
       required: { label: '필수제출', color: 'bg-green-100 text-green-700' },
-      invoice: { label: '기성청구', color: 'bg-yellow-100 text-yellow-700' },
-      personal: { label: '개인문서', color: 'bg-gray-100 text-gray-700' }
+      invoice: { label: '기성청구 관리', color: 'bg-yellow-100 text-yellow-700' },
+      personal: { label: '개인문서', color: 'bg-gray-100 text-gray-700' },
     }
-    
+
     const config = categoryMap[category] || { label: category, color: 'bg-gray-100' }
     return (
       <Badge className={config.color} variant="secondary">
@@ -170,16 +169,16 @@ export default function AdminView({
       </Badge>
     )
   }
-  
+
   // 통계 카드
   const renderStatistics = () => {
     const stats = {
       total: documents.length,
       pending: documents.filter(d => d.workflow_status === 'pending').length,
       approved: documents.filter(d => d.workflow_status === 'approved').length,
-      rejected: documents.filter(d => d.workflow_status === 'rejected').length
+      rejected: documents.filter(d => d.workflow_status === 'rejected').length,
     }
-    
+
     return (
       <div className="grid grid-cols-4 gap-4 mb-6">
         <Card>
@@ -209,7 +208,7 @@ export default function AdminView({
       </div>
     )
   }
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -217,18 +216,16 @@ export default function AdminView({
       </div>
     )
   }
-  
+
   return (
     <div className="space-y-4">
       {/* 통계 */}
       {renderStatistics()}
-      
+
       {/* 일괄 작업 도구바 */}
       {selectedDocuments.length > 0 && (
         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg flex items-center justify-between">
-          <span className="text-sm font-medium">
-            {selectedDocuments.length}개 문서 선택됨
-          </span>
+          <span className="text-sm font-medium">{selectedDocuments.length}개 문서 선택됨</span>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -239,11 +236,7 @@ export default function AdminView({
               <CheckCircle className="h-4 w-4 mr-2" />
               승인
             </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => handleReject(selectedDocuments)}
-            >
+            <Button size="sm" variant="destructive" onClick={() => handleReject(selectedDocuments)}>
               <XCircle className="h-4 w-4 mr-2" />
               반려
             </Button>
@@ -273,7 +266,7 @@ export default function AdminView({
           </div>
         </div>
       )}
-      
+
       {/* 문서 리스트 */}
       {viewMode === 'list' ? (
         <Card>
@@ -283,7 +276,9 @@ export default function AdminView({
                 <tr>
                   <th className="text-left p-4">
                     <Checkbox
-                      checked={selectedDocuments.length === documents.length && documents.length > 0}
+                      checked={
+                        selectedDocuments.length === documents.length && documents.length > 0
+                      }
                       onCheckedChange={toggleAllSelection}
                     />
                   </th>
@@ -298,10 +293,13 @@ export default function AdminView({
                 </tr>
               </thead>
               <tbody>
-                {documents.map((document) => {
+                {documents.map(document => {
                   const Icon = getDocumentIcon(document)
                   return (
-                    <tr key={document.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-900">
+                    <tr
+                      key={document.id}
+                      className="border-b hover:bg-gray-50 dark:hover:bg-gray-900"
+                    >
                       <td className="p-4">
                         <Checkbox
                           checked={selectedDocuments.includes(document.id)}
@@ -322,18 +320,12 @@ export default function AdminView({
                           </div>
                         </button>
                       </td>
+                      <td className="p-4">{getCategoryBadge(document.category_type)}</td>
                       <td className="p-4">
-                        {getCategoryBadge(document.category_type)}
+                        <p className="text-sm">{document.site?.name || '-'}</p>
                       </td>
                       <td className="p-4">
-                        <p className="text-sm">
-                          {document.site?.name || '-'}
-                        </p>
-                      </td>
-                      <td className="p-4">
-                        <p className="text-sm">
-                          {document.customer_company?.name || '-'}
-                        </p>
+                        <p className="text-sm">{document.customer_company?.name || '-'}</p>
                       </td>
                       <td className="p-4">
                         {getStatusBadge(document.workflow_status || document.status)}
@@ -361,13 +353,15 @@ export default function AdminView({
                               <Eye className="h-4 w-4 mr-2" />
                               상세 보기
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onDocumentAction('download', [document.id])}>
+                            <DropdownMenuItem
+                              onClick={() => onDocumentAction('download', [document.id])}
+                            >
                               <Download className="h-4 w-4 mr-2" />
                               다운로드
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             {document.workflow_status !== 'approved' && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleApprove([document.id])}
                                 className="text-green-600"
                               >
@@ -376,7 +370,7 @@ export default function AdminView({
                               </DropdownMenuItem>
                             )}
                             {document.workflow_status !== 'rejected' && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => handleReject([document.id])}
                                 className="text-orange-600"
                               >
@@ -385,11 +379,13 @@ export default function AdminView({
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => onDocumentAction('edit', [document.id])}>
+                            <DropdownMenuItem
+                              onClick={() => onDocumentAction('edit', [document.id])}
+                            >
                               <Edit3 className="h-4 w-4 mr-2" />
                               수정
                             </DropdownMenuItem>
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={() => onDocumentAction('delete', [document.id])}
                               className="text-red-600"
                             >
@@ -409,7 +405,7 @@ export default function AdminView({
       ) : (
         /* 그리드 뷰 */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {documents.map((document) => {
+          {documents.map(document => {
             const Icon = getDocumentIcon(document)
             return (
               <Card key={document.id} className="hover:shadow-lg transition-shadow">
@@ -432,7 +428,7 @@ export default function AdminView({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {document.workflow_status !== 'approved' && (
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleApprove([document.id])}
                             className="text-green-600"
                           >
@@ -441,7 +437,7 @@ export default function AdminView({
                           </DropdownMenuItem>
                         )}
                         {document.workflow_status !== 'rejected' && (
-                          <DropdownMenuItem 
+                          <DropdownMenuItem
                             onClick={() => handleReject([document.id])}
                             className="text-orange-600"
                           >
@@ -452,11 +448,8 @@ export default function AdminView({
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  
-                  <button
-                    onClick={() => onDocumentClick(document)}
-                    className="w-full text-left"
-                  >
+
+                  <button onClick={() => onDocumentClick(document)} className="w-full text-left">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded">
                         <Icon className="h-6 w-6 text-gray-600" />
@@ -466,19 +459,17 @@ export default function AdminView({
                           {document.title || document.file_name}
                         </p>
                         {document.description && (
-                          <p className="text-sm text-gray-500 truncate">
-                            {document.description}
-                          </p>
+                          <p className="text-sm text-gray-500 truncate">{document.description}</p>
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex gap-2">
                         {getCategoryBadge(document.category_type)}
                         {getStatusBadge(document.workflow_status || document.status)}
                       </div>
-                      
+
                       <div className="text-sm space-y-1">
                         {document.site && (
                           <p className="text-gray-600">
@@ -509,7 +500,7 @@ export default function AdminView({
           })}
         </div>
       )}
-      
+
       {/* 페이지네이션 */}
       {pagination.totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-6">
@@ -521,11 +512,11 @@ export default function AdminView({
           >
             이전
           </Button>
-          
+
           <span className="flex items-center px-3 text-sm">
             {pagination.page} / {pagination.totalPages}
           </span>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -536,7 +527,7 @@ export default function AdminView({
           </Button>
         </div>
       )}
-      
+
       {/* 승인 다이얼로그 */}
       <Dialog open={showApprovalDialog} onOpenChange={setShowApprovalDialog}>
         <DialogContent>
@@ -551,7 +542,7 @@ export default function AdminView({
               <label className="text-sm font-medium">승인 의견 (선택)</label>
               <Textarea
                 value={approvalComment}
-                onChange={(e) => setApprovalComment(e.target.value)}
+                onChange={e => setApprovalComment(e.target.value)}
                 placeholder="승인 의견을 입력하세요..."
                 rows={3}
               />
@@ -567,7 +558,7 @@ export default function AdminView({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* 반려 다이얼로그 */}
       <Dialog open={showRejectionDialog} onOpenChange={setShowRejectionDialog}>
         <DialogContent>
@@ -582,7 +573,7 @@ export default function AdminView({
               <label className="text-sm font-medium">반려 사유 (필수)</label>
               <Textarea
                 value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
+                onChange={e => setRejectionReason(e.target.value)}
                 placeholder="반려 사유를 입력하세요..."
                 rows={3}
                 required
@@ -593,8 +584,8 @@ export default function AdminView({
             <Button variant="outline" onClick={() => setShowRejectionDialog(false)}>
               취소
             </Button>
-            <Button 
-              onClick={confirmRejection} 
+            <Button
+              onClick={confirmRejection}
               variant="destructive"
               disabled={!rejectionReason.trim()}
             >
