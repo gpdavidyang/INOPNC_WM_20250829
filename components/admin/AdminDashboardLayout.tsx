@@ -57,6 +57,7 @@ const menuCategories = [
         label: '통합 관리 대시보드',
         icon: Layout,
         href: '/dashboard/admin/integrated',
+        hidden: true,
       },
     ],
   },
