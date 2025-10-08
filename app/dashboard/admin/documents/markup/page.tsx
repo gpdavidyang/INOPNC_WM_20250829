@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
 
 export const metadata: Metadata = {
-  title: '마크업 문서',
+  title: '도면마킹 관리',
 }
 
 export default async function AdminMarkupDocumentsPage({
@@ -44,11 +44,20 @@ export default async function AdminMarkupDocumentsPage({
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="마크업 문서"
+        title="도면마킹 관리"
         description="최근 생성된 도면 마킹 문서 목록"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '마크업' }]}
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '도면마킹' }]}
         showBackButton
         backButtonHref="/dashboard/admin/documents"
+        actions={
+          <a
+            href="/dashboard/admin/tools/markup"
+            className={buttonVariants({ variant: 'primary', size: 'standard' })}
+            role="button"
+          >
+            도면마킹 작성
+          </a>
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
 

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table'
 
 export const metadata: Metadata = {
-  title: '도면 마크업 도구',
+  title: '도면마킹 관리',
 }
 
 export default async function AdminMarkupToolPage() {
@@ -25,7 +25,7 @@ export default async function AdminMarkupToolPage() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>도면 마크업 도구</CardTitle>
+          <CardTitle>도면마킹 관리</CardTitle>
           <CardDescription>마크업 문서 편집/관리는 문서 목록에서 시작하세요.</CardDescription>
         </CardHeader>
         <CardContent>

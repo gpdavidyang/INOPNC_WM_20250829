@@ -1,11 +1,28 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { DataTable } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
+import { buttonVariants } from '@/components/ui/button'
 
 export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
+  const router = useRouter()
+
+  const handleDelete = async (id: string) => {
+    const ok = window.confirm('해당 마크업 문서를 삭제하시겠습니까?')
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/markup-documents/${id}`, { method: 'DELETE' })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || j?.error) throw new Error(j?.error || '삭제 실패')
+      router.refresh()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : '삭제 중 오류가 발생했습니다.')
+    }
+  }
+
   return (
     <DataTable
       data={docs}
@@ -56,15 +73,31 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           ),
         },
         {
-          key: 'open',
-          header: '보기',
+          key: 'actions',
+          header: '작업',
           render: (d: any) => (
-            <Link
-              href={`/dashboard/admin/documents/markup/${d.id}`}
-              className="underline text-blue-600"
-            >
-              열기
-            </Link>
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <Link
+                href={`/dashboard/admin/documents/markup/${d.id}`}
+                className={buttonVariants({ variant: 'outline', size: 'compact' })}
+                role="button"
+              >
+                상세
+              </Link>
+              <Link
+                href={`/dashboard/admin/documents/markup/${d.id}/edit`}
+                className={buttonVariants({ variant: 'secondary', size: 'compact' })}
+                role="button"
+              >
+                수정
+              </Link>
+              <button
+                className={buttonVariants({ variant: 'destructive', size: 'compact' })}
+                onClick={() => handleDelete(d.id)}
+              >
+                삭제
+              </button>
+            </div>
           ),
         },
       ]}
