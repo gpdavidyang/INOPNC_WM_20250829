@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sort_by') || 'created_at'
     const sortOrder = searchParams.get('sort_order') || 'desc'
     const includeStats = searchParams.get('include_stats') === 'true'
+    const organizationId = searchParams.get('organization_id') || undefined
 
     const offset = (page - 1) * limit
 
@@ -74,8 +75,9 @@ export async function GET(request: NextRequest) {
 
     // 역할 기반 필터링
     if (role === 'customer_manager') {
-      // 제한 계정(시공업체 담당): 자사 문서만
-      query = query.eq('customer_company_id', profile.customer_company_id)
+      // 제한 계정(시공업체 담당): 자사 문서 + 공개 문서(회사서류함 등) 열람 허용
+      // OR 조건: customer_company_id = 내 회사 OR is_public = true
+      query = query.or(`customer_company_id.eq.${profile.customer_company_id},is_public.eq.true`)
     }
     // 작업자, 현장관리자, 관리자는 모든 문서 접근 가능 (필터링 없음)
 
@@ -91,6 +93,11 @@ export async function GET(request: NextRequest) {
     // 카테고리 필터
     if (categoryType && categoryType !== 'all') {
       query = query.eq('category_type', categoryType)
+    }
+
+    // 조직(시공사) 필터
+    if (organizationId && organizationId !== 'all') {
+      query = query.eq('customer_company_id', organizationId)
     }
 
     // 문서 타입 필터
@@ -144,6 +151,8 @@ export async function GET(request: NextRequest) {
       if (statusValue) cq = cq.eq('status', statusValue)
       if (categoryType && categoryType !== 'all') cq = cq.eq('category_type', categoryType)
       if (documentType && documentType !== 'all') cq = cq.eq('document_type', documentType)
+      if (organizationId && organizationId !== 'all')
+        cq = cq.eq('customer_company_id', organizationId)
       if (siteId && siteId !== 'all') cq = cq.eq('site_id', siteId)
       if (search)
         cq = cq.or(

@@ -1,10 +1,16 @@
 'use client'
 
 import React from 'react'
-import DataTable from '@/components/admin/DataTable'
+import { DataTable } from '@/components/admin/DataTable'
 import Link from 'next/link'
 
-export default function RequiredDocumentsTable({ docs }: { docs: any[] }) {
+export default function RequiredDocumentsTable({
+  docs,
+  onOpen,
+}: {
+  docs: any[]
+  onOpen?: (doc: any) => void
+}) {
   return (
     <DataTable
       data={docs}
@@ -30,20 +36,6 @@ export default function RequiredDocumentsTable({ docs }: { docs: any[] }) {
           ),
         },
         {
-          key: 'document_type',
-          header: '유형',
-          sortable: true,
-          accessor: (d: any) => d?.document_type || 'unknown',
-          render: (d: any) => (
-            <Link
-              href={`/dashboard/admin/documents/required/${encodeURIComponent(d?.document_type || 'unknown')}`}
-              className="underline text-blue-600"
-            >
-              {d?.document_type || 'unknown'}
-            </Link>
-          ),
-        },
-        {
           key: 'submitted_by',
           header: '제출자',
           sortable: true,
@@ -56,6 +48,20 @@ export default function RequiredDocumentsTable({ docs }: { docs: any[] }) {
           sortable: true,
           accessor: (d: any) => d?.status || '',
           render: (d: any) => d?.status || '-',
+        },
+        {
+          key: 'actions',
+          header: '동작',
+          sortable: false,
+          render: (d: any) => (
+            <button
+              className="underline text-blue-600"
+              onClick={() => onOpen?.(d)}
+              disabled={!onOpen}
+            >
+              보기
+            </button>
+          ),
         },
       ]}
     />

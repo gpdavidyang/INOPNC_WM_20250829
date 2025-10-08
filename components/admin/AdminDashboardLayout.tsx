@@ -85,73 +85,16 @@ const menuCategories = [
         href: '/dashboard/admin/daily-reports',
       },
       {
+        id: 'invoice-documents',
+        label: '기성청구 관리',
+        icon: FileText,
+        href: '/dashboard/admin/documents/invoice',
+      },
+      {
         id: 'materials',
         label: '자재 관리',
         icon: Package,
         href: '/dashboard/admin/materials',
-      },
-    ],
-  },
-  {
-    id: 'accounts',
-    label: '사용자 및 업체 관리',
-    collapsible: true,
-    items: [
-      {
-        id: 'signup-requests',
-        label: '가입 요청 관리',
-        icon: UserPlus,
-        href: '/dashboard/admin/signup-requests',
-      },
-      {
-        id: 'users',
-        label: '사용자 관리',
-        icon: Users,
-        href: '/dashboard/admin/users',
-      },
-      {
-        id: 'organizations',
-        label: '소속(시공사) 관리',
-        icon: Shield,
-        href: '/dashboard/admin/organizations',
-      },
-      // 공급업체 관리는 UI에서 노출하지 않음 (혼선 방지)
-    ],
-  },
-  {
-    id: 'documents-tools',
-    label: '도구',
-    collapsible: true,
-    items: [
-      {
-        id: 'documents-management',
-        label: '문서함 관리',
-        icon: FolderOpen,
-        href: '/dashboard/admin/documents',
-      },
-      {
-        id: 'documents-company',
-        label: '회사서류 관리',
-        icon: FileText,
-        href: '/dashboard/admin/documents/company',
-      },
-      {
-        id: 'document-requirements',
-        label: '필수서류 설정',
-        icon: Settings,
-        href: '/dashboard/admin/document-requirements',
-      },
-      {
-        id: 'document-submissions',
-        label: '필수서류 제출현황',
-        icon: FileCheck,
-        href: '/dashboard/admin/documents/required',
-      },
-      {
-        id: 'salary',
-        label: '급여관리 도구',
-        icon: DollarSign,
-        href: '/dashboard/admin/salary',
       },
       {
         id: 'photo-grid-tool',
@@ -167,6 +110,45 @@ const menuCategories = [
       },
     ],
   },
+  {
+    id: 'accounts',
+    label: '사용자 및 소속 관리',
+    collapsible: true,
+    items: [
+      {
+        id: 'signup-requests',
+        label: '가입 요청 관리',
+        icon: UserPlus,
+        href: '/dashboard/admin/signup-requests',
+      },
+      {
+        id: 'users',
+        label: '사용자 관리',
+        icon: Users,
+        href: '/dashboard/admin/users',
+      },
+      {
+        id: 'salary',
+        label: '급여관리 도구',
+        icon: DollarSign,
+        href: '/dashboard/admin/salary',
+      },
+      {
+        id: 'document-required',
+        label: '필수서류 관리',
+        icon: FileCheck,
+        href: '/dashboard/admin/documents/required',
+      },
+      {
+        id: 'organizations',
+        label: '소속(시공사) 관리',
+        icon: Shield,
+        href: '/dashboard/admin/organizations',
+      },
+      // 공급업체 관리는 UI에서 노출하지 않음 (혼선 방지)
+    ],
+  },
+
   {
     id: 'communication',
     label: '소통',
@@ -213,10 +195,10 @@ const systemCategory = {
       href: '/dashboard/admin/audit-logs',
     },
     {
-      id: 'documents-maint',
-      label: '문서 유지보수',
+      id: 'documents-company',
+      label: '이노피앤씨 설정',
       icon: FileText,
-      href: '/dashboard/admin/documents/maintenance',
+      href: '/dashboard/admin/documents/company',
     },
   ],
 }
@@ -245,6 +227,8 @@ function Sidebar({
   const router = useRouter()
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   // State for managing collapsed categories
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set())
@@ -330,7 +314,11 @@ function Sidebar({
                           }`}
                           title={item.label}
                         >
-                          <Icon className="h-5 w-5" />
+                          {mounted ? (
+                            <Icon className="h-5 w-5" />
+                          ) : (
+                            <span className="h-5 w-5 inline-block" />
+                          )}
                           {/* Tooltip on hover */}
                           <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
                             {item.label}
@@ -454,7 +442,11 @@ function Sidebar({
                                 : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                             }`}
                           >
-                            <Icon className="mr-3 h-5 w-5" />
+                            {mounted ? (
+                              <Icon className="mr-3 h-5 w-5" />
+                            ) : (
+                              <span className="mr-3 h-5 w-5 inline-block" />
+                            )}
                             <span className="mr-2">{item.label}</span>
                             {item.id === 'signup-requests' && pendingSignupCount > 0 && (
                               <span className="inline-flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full text-xs font-semibold text-white bg-red-600">

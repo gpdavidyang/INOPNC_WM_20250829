@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import DataTable from '@/components/admin/DataTable'
+import { DataTable } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 
 export default function SystemConfigsTable({ configs }: { configs: any[] }) {

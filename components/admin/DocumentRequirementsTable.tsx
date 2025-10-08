@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import DataTable from '@/components/admin/DataTable'
+import { DataTable } from '@/components/admin/DataTable'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 

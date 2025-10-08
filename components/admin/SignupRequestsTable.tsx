@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import DataTable from '@/components/admin/DataTable'
+import { DataTable } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from 'next/navigation'

@@ -11,7 +11,12 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  PillTabs as Tabs,
+  PillTabsContent as TabsContent,
+  PillTabsList as TabsList,
+  PillTabsTrigger as TabsTrigger,
+} from '@/components/ui/pill-tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
@@ -28,10 +33,10 @@ import {
 type Category = 'shared' | 'markup' | 'required' | 'invoice' | 'photo_grid'
 
 const CATEGORY_LABEL: Record<Category, string> = {
-  shared: '공유문서',
+  shared: '회사서류함',
   markup: '도면마킹',
   required: '필수서류',
-  invoice: '정산문서',
+  invoice: '기성청구 관리',
   photo_grid: '사진대지',
 }
 
@@ -54,7 +59,6 @@ export default function TabbedDocumentsClient({
 }) {
   const [active, setActive] = useState<Category>(defaultTab)
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('all')
   const [siteId, setSiteId] = useState('')
   const [limit, setLimit] = useState(10)
   const [page, setPage] = useState(1)
@@ -88,7 +92,6 @@ export default function TabbedDocumentsClient({
       params.set('include_stats', 'false')
       if (search) params.set('search', search)
       if (siteId) params.set('site_id', siteId)
-      if (status && status !== 'all') params.set('status', status)
       const res = await fetch(`/api/unified-documents/v2?${params.toString()}`, {
         cache: 'no-store',
       })
@@ -197,6 +200,7 @@ export default function TabbedDocumentsClient({
         }}
         className="w-full"
       >
+        {/* Match Materials tabs: pill group with gradient bar, text-only */}
         <TabsList className="mb-4">
           {(Object.keys(CATEGORY_LABEL) as Category[]).map(c => (
             <TabsTrigger key={c} value={c}>
@@ -222,22 +226,6 @@ export default function TabbedDocumentsClient({
                   onChange={e => setSearch(e.target.value)}
                   placeholder="제목/파일명/설명"
                 />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">상태</label>
-                <select
-                  value={status}
-                  onChange={e => setStatus(e.target.value)}
-                  className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  <option value="all">전체</option>
-                  <option value="active">active</option>
-                  <option value="uploaded">uploaded</option>
-                  <option value="pending">pending</option>
-                  <option value="approved">approved</option>
-                  <option value="rejected">rejected</option>
-                  <option value="archived">archived</option>
-                </select>
               </div>
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">현장 ID</label>
@@ -268,7 +256,6 @@ export default function TabbedDocumentsClient({
                   variant="outline"
                   onClick={() => {
                     setSearch('')
-                    setStatus('all')
                     setSiteId('')
                     setPage(1)
                     void load()
@@ -331,7 +318,6 @@ export default function TabbedDocumentsClient({
                   <TableHead>등록일</TableHead>
                   <TableHead>문서명</TableHead>
                   <TableHead>현장</TableHead>
-                  <TableHead>상태</TableHead>
                   <TableHead>동작</TableHead>
                 </TableRow>
               </TableHeader>
@@ -375,9 +361,6 @@ export default function TabbedDocumentsClient({
                         {d.title || '-'}
                       </TableCell>
                       <TableCell>{d.site?.name || '-'}</TableCell>
-                      <TableCell>
-                        <Status s={d.status} />
-                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Link

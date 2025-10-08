@@ -72,7 +72,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     // 제한 계정(시공업체 담당) 접근 권한 확인
     if (role === 'customer_manager') {
-      if (document.customer_company_id !== profile.customer_company_id) {
+      // 공개 문서는 모든 사용자 열람 허용
+      const isPublic = (document as any).is_public === true
+      if (!isPublic && document.customer_company_id !== profile.customer_company_id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
       }
     }

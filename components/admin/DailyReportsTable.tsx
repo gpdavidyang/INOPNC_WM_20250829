@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useTransition } from 'react'
-import DataTable from '@/components/admin/DataTable'
+import { DataTable } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'

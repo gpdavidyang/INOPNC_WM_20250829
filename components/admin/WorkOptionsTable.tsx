@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import DataTable from '@/components/admin/DataTable'
+import { DataTable } from '@/components/admin/DataTable'
 
 export default function WorkOptionsTable({ items }: { items: any[] }) {
   return (

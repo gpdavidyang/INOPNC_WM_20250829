@@ -20,12 +20,12 @@ export default function DocumentDetailModal({
   onUpdate,
   onDelete,
   isAdmin,
-  profile
+  profile,
 }: DocumentDetailModalProps) {
   const [loading, setLoading] = useState(false)
-  
+
   if (!isOpen) return null
-  
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -33,28 +33,28 @@ export default function DocumentDetailModal({
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
-  
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('ko-KR', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
-  
+
   const getCategoryLabel = (categoryType: string) => {
     const categories = {
       shared: '공유문서',
       markup: '도면마킹',
       photo_grid: '사진대지',
       required: '필수제출',
-      invoice: '기성청구'
+      invoice: '기성청구 관리',
     }
     return categories[categoryType as keyof typeof categories] || categoryType
   }
-  
+
   const getStatusBadge = (status: string) => {
     const configs = {
       active: { label: '활성', className: 'bg-green-100 text-green-800' },
@@ -62,9 +62,9 @@ export default function DocumentDetailModal({
       pending: { label: '검토중', className: 'bg-yellow-100 text-yellow-800' },
       approved: { label: '승인됨', className: 'bg-blue-100 text-blue-800' },
       rejected: { label: '반려됨', className: 'bg-red-100 text-red-800' },
-      archived: { label: '보관됨', className: 'bg-purple-100 text-purple-800' }
+      archived: { label: '보관됨', className: 'bg-purple-100 text-purple-800' },
     }
-    
+
     const config = configs[status as keyof typeof configs] || configs.draft
     return (
       <Badge variant="secondary" className={config.className}>
@@ -72,7 +72,7 @@ export default function DocumentDetailModal({
       </Badge>
     )
   }
-  
+
   const handleDownload = () => {
     if (document.file_url) {
       const link = document.createElement('a')
@@ -84,22 +84,22 @@ export default function DocumentDetailModal({
       document.body.removeChild(link)
     }
   }
-  
+
   const handlePreview = () => {
     if (document.file_url) {
       window.open(document.file_url, '_blank')
     }
   }
-  
+
   const handleDelete = async () => {
     if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return
-    
+
     setLoading(true)
     try {
       const response = await fetch(`/api/unified-documents/v2/${document.id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       if (response.ok) {
         onDelete()
       } else {
@@ -112,7 +112,7 @@ export default function DocumentDetailModal({
       setLoading(false)
     }
   }
-  
+
   const canEdit = isAdmin || document.uploaded_by === profile.id
   const canDelete = isAdmin || document.uploaded_by === profile.id
 
@@ -127,9 +127,7 @@ export default function DocumentDetailModal({
             </h2>
             <div className="flex items-center gap-2 mt-1">
               {getStatusBadge(document.status)}
-              <Badge variant="outline">
-                {getCategoryLabel(document.category_type)}
-              </Badge>
+              <Badge variant="outline">{getCategoryLabel(document.category_type)}</Badge>
             </div>
           </div>
           <button
@@ -175,25 +173,21 @@ export default function DocumentDetailModal({
               </button>
             </div>
           </div>
-          
+
           {/* Description */}
           {document.description && (
             <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                설명
-              </h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">설명</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap">
                 {document.description}
               </p>
             </div>
           )}
-          
+
           {/* Tags */}
           {document.tags && document.tags.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                태그
-              </h3>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-2">태그</h3>
               <div className="flex flex-wrap gap-1">
                 {document.tags.map((tag, index) => (
                   <Badge key={index} variant="secondary">
@@ -204,9 +198,9 @@ export default function DocumentDetailModal({
               </div>
             </div>
           )}
-          
+
           <hr className="border-gray-200 dark:border-gray-700" />
-          
+
           {/* Metadata */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
             <div className="space-y-3">
@@ -217,7 +211,7 @@ export default function DocumentDetailModal({
                   {document.uploader?.full_name || '알 수 없음'}
                 </span>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-500 dark:text-gray-400">업로드:</span>
@@ -225,7 +219,7 @@ export default function DocumentDetailModal({
                   {formatDate(document.created_at)}
                 </span>
               </div>
-              
+
               {document.updated_at !== document.created_at && (
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
@@ -236,18 +230,16 @@ export default function DocumentDetailModal({
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-3">
               {document.site && (
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-500 dark:text-gray-400">현장:</span>
-                  <span className="text-gray-900 dark:text-white">
-                    {document.site.name}
-                  </span>
+                  <span className="text-gray-900 dark:text-white">{document.site.name}</span>
                 </div>
               )}
-              
+
               {document.customer_company && (
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-gray-400" />
@@ -257,13 +249,11 @@ export default function DocumentDetailModal({
                   </span>
                 </div>
               )}
-              
+
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-gray-400" />
                 <span className="text-gray-500 dark:text-gray-400">버전:</span>
-                <span className="text-gray-900 dark:text-white">
-                  v{document.version || 1}
-                </span>
+                <span className="text-gray-900 dark:text-white">v{document.version || 1}</span>
               </div>
             </div>
           </div>
@@ -285,7 +275,7 @@ export default function DocumentDetailModal({
               </Badge>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             {canEdit && (
               <button
@@ -297,7 +287,7 @@ export default function DocumentDetailModal({
                 편집
               </button>
             )}
-            
+
             {canDelete && (
               <button
                 type="button"
@@ -309,7 +299,7 @@ export default function DocumentDetailModal({
                 삭제
               </button>
             )}
-            
+
             <button
               type="button"
               onClick={onClose}

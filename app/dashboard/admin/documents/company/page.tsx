@@ -39,6 +39,7 @@ type Row = {
   file_name?: string
   file_url?: string
   document_type?: string
+  tags?: string[]
   created_at?: string
   file_size?: number
   mime_type?: string
@@ -60,7 +61,10 @@ export default function AdminCompanyDocumentsPage() {
   const load = async () => {
     setBusy(true)
     try {
-      const res = await fetch('/api/documents?type=shared&limit=200', { credentials: 'include' })
+      const res = await fetch(
+        '/api/unified-documents/v2?category_type=shared&status=active&limit=200',
+        { credentials: 'include' }
+      )
       const j = await res.json()
       if (res.ok && j?.success) setRows(Array.isArray(j.data) ? j.data : [])
       else setRows([])
@@ -90,21 +94,29 @@ export default function AdminCompanyDocumentsPage() {
       for (const alias of COMPANY_TYPE_ALIASES[key]) typeToCanonical[alias] = key
     }
     for (const d of rows) {
+      // 1) 태그 우선: company_slug:* 태그 사용
+      const tags = Array.isArray(d.tags) ? d.tags : []
+      const slugTag = tags.find(t => t.startsWith('company_slug:'))
+      if (slugTag) {
+        const slug = slugTag.split(':')[1] as CompanySlug
+        if (slug && (['biz_reg', 'bankbook', 'npc1000_form', 'completion_form'] as string[]).includes(slug)) {
+          map[slug].push(d)
+          continue
+        }
+      }
+      // 2) 레거시 타입 매핑
       const t = String(d.document_type || '')
       const canonical = typeToCanonical[t]
       if (canonical) {
         map[canonical].push(d)
         continue
       }
-      // Fallback: infer from description marker (company_slug:...)
+      // 3) 설명 내 마커(호환)
       const desc = String(d.description || '')
       const m = desc.match(/company_slug:([a-zA-Z0-9_\-]+)/)
       if (m) {
         const slug = m[1] as CompanySlug
-        if (
-          slug &&
-          (['biz_reg', 'bankbook', 'npc1000_form', 'completion_form'] as string[]).includes(slug)
-        ) {
+        if (slug && (['biz_reg', 'bankbook', 'npc1000_form', 'completion_form'] as string[]).includes(slug)) {
           map[slug as CompanySlug].push(d)
         }
       }
@@ -128,10 +140,11 @@ export default function AdminCompanyDocumentsPage() {
     try {
       const form = new FormData()
       form.append('file', f)
-      form.append('category', 'company')
-      form.append('documentType', slug)
-      form.append('isPublic', 'true')
-      const res = await fetch('/api/documents', {
+      form.append('categoryType', 'shared')
+      form.append('title', f.name)
+      // 회사서류 유형을 태그로 저장하여 모바일/관리자에서 구분 가능하도록 함
+      form.append('tags', `company_slug:${slug}`)
+      const res = await fetch('/api/unified-documents/v2/upload', {
         method: 'POST',
         body: form,
         credentials: 'include',
@@ -176,7 +189,7 @@ export default function AdminCompanyDocumentsPage() {
     if (!ok) return
     setBusy(true)
     try {
-      const res = await fetch(`/api/documents?id=${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/unified-documents/v2/${encodeURIComponent(id)}?hard=true`, {
         method: 'DELETE',
         credentials: 'include',
       })
