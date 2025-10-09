@@ -137,7 +137,15 @@ export function OrganizationDetail({
                     header: '이름',
                     sortable: true,
                     width: '35%',
-                    render: m => <span className="font-medium text-foreground">{m.name}</span>,
+                    render: m => (
+                      <a
+                        href={`/dashboard/admin/users/${m.id}`}
+                        className="font-medium text-foreground underline underline-offset-2"
+                        title="사용자 상세"
+                      >
+                        {m.name}
+                      </a>
+                    ),
                   },
                   {
                     key: 'role',
@@ -146,7 +154,12 @@ export function OrganizationDetail({
                     width: '25%',
                     render: m => <Badge variant="outline">{m.role}</Badge>,
                   },
-                  { key: 'email', header: '이메일', sortable: true, render: m => m.email ?? '-' },
+                  {
+                    key: 'email',
+                    header: '이메일',
+                    sortable: true,
+                    render: m => m.email ?? '-',
+                  },
                 ] as Column<{ id: string; name: string; role: string; email?: string }>[]
               }
             />
@@ -175,7 +188,15 @@ export function OrganizationDetail({
                     key: 'name',
                     header: '현장명',
                     sortable: true,
-                    render: s => <span className="font-medium text-foreground">{s.name}</span>,
+                    render: s => (
+                      <a
+                        href={`/dashboard/admin/sites/${s.id}`}
+                        className="font-medium text-foreground underline underline-offset-2"
+                        title="현장 상세"
+                      >
+                        {s.name}
+                      </a>
+                    ),
                   },
                   {
                     key: 'status',

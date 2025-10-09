@@ -23,10 +23,10 @@ export async function listSiteAssignments(
 
   const { data: assigns, error } = await (includeInactive ? base : base.eq('is_active', true))
 
-  if (error) return []
+  if (error) return { rows: [], total: 0 }
 
   let assignments = assigns || []
-  if (assignments.length === 0) return []
+  if (assignments.length === 0) return { rows: [], total: 0 }
 
   const userIds = Array.from(new Set(assignments.map((a: any) => a.user_id).filter(Boolean)))
 

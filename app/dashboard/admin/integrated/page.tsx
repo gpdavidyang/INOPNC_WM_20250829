@@ -6,7 +6,7 @@ import EmptyState from '@/components/ui/empty-state'
 import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
-  title: '통합 대시보드',
+  title: '통합 관리 대시보드',
 }
 
 export default async function AdminIntegratedDashboardPage() {
@@ -17,7 +17,7 @@ export default async function AdminIntegratedDashboardPage() {
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="통합 관리자 대시보드"
+        title="통합 관리 대시보드"
         description="주요 지표와 최근 활동 요약"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '통합' }]}
       />

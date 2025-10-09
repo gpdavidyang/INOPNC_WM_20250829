@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { PageHeader } from '@/components/ui/page-header'
 import { useToast } from '@/components/ui/use-toast'
@@ -20,6 +21,7 @@ type PersonalRate = {
 }
 
 export default function PersonalRatesPage() {
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const supabase = useMemo(() => createClient(), [])
   const [items, setItems] = useState<PersonalRate[]>([])
@@ -63,6 +65,15 @@ export default function PersonalRatesPage() {
   }
 
   useEffect(() => {
+    // Initialize query from URL (?q= or ?worker_id=)
+    try {
+      const q = searchParams.get('q') || ''
+      const wid = searchParams.get('worker_id') || ''
+      const initial = q || wid
+      if (initial) setQuery(initial)
+    } catch {
+      // ignore
+    }
     load()
     ;(async () => {
       const { data } = await supabase
@@ -73,7 +84,7 @@ export default function PersonalRatesPage() {
         .order('full_name')
       setWorkers(Array.isArray(data) ? (data as any) : [])
     })()
-  }, [supabase])
+  }, [supabase, searchParams])
 
   const displayRows = useMemo(() => {
     const map = new Map(activeRows.map(r => [r.worker_id, r]))

@@ -18,7 +18,7 @@ export default async function PhotoGridToolPage() {
         description="작업 전/후 사진으로 사진대지 생성 및 관리"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '도구', href: '/dashboard/admin/tools/markup' },
+          { label: '현장작업 관리' },
           { label: '사진대지 관리' },
         ]}
       />

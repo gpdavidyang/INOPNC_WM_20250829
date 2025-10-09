@@ -41,7 +41,19 @@ export default function RequiredDocumentsTable({
           header: '제출자',
           sortable: true,
           accessor: (d: any) => d?.submitted_by?.full_name || d?.submitted_by?.email || '',
-          render: (d: any) => d?.submitted_by?.full_name || d?.submitted_by?.email || '-',
+          render: (d: any) =>
+            d?.submitted_by?.id ? (
+              <a
+                href={`/dashboard/admin/users/${d.submitted_by.id}`}
+                className="underline underline-offset-2"
+                title="사용자 상세"
+                onClick={e => e.stopPropagation()}
+              >
+                {d?.submitted_by?.full_name || d?.submitted_by?.email || '-'}
+              </a>
+            ) : (
+              d?.submitted_by?.full_name || d?.submitted_by?.email || '-'
+            ),
         },
         {
           key: 'status',

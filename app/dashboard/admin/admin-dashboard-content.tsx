@@ -159,7 +159,7 @@ export function AdminDashboardContent() {
           <h1
             className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold text-gray-900 dark:text-gray-100`}
           >
-            시스템 관리자 대시보드
+            홈
           </h1>
         </div>
         <p

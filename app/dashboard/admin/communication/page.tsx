@@ -12,7 +12,7 @@ import PillTabLinks from '@/components/ui/pill-tab-links'
 import NotificationsTable from '@/components/admin/NotificationsTable'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata: Metadata = { title: '커뮤니케이션 센터' }
+export const metadata: Metadata = { title: '커뮤니케이션' }
 
 export default async function CommunicationManagementPage({
   searchParams,
@@ -95,7 +95,7 @@ export default async function CommunicationManagementPage({
   return (
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
-        title="커뮤니케이션 센터"
+        title="커뮤니케이션"
         description="공지 작성과 전달 로그를 통합 관리합니다"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '커뮤니케이션' }]}
       />
