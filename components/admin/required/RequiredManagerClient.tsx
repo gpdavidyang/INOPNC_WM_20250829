@@ -170,25 +170,33 @@ export default function RequiredManagerClient({
               <div className="col-span-1">
                 <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
                   <div className="text-sm text-[#8DA0CD] mb-1">총 제출</div>
-                  <div className="text-2xl font-semibold">{stats.total}</div>
+                  <div className="text-2xl font-semibold">
+                    {stats.total.toLocaleString('ko-KR')}
+                  </div>
                 </div>
               </div>
               <div className="col-span-1">
                 <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
                   <div className="text-sm text-[#8DA0CD] mb-1">승인</div>
-                  <div className="text-2xl font-semibold">{stats.approved}</div>
+                  <div className="text-2xl font-semibold">
+                    {stats.approved.toLocaleString('ko-KR')}
+                  </div>
                 </div>
               </div>
               <div className="col-span-1">
                 <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
                   <div className="text-sm text-[#8DA0CD] mb-1">대기</div>
-                  <div className="text-2xl font-semibold">{stats.pending}</div>
+                  <div className="text-2xl font-semibold">
+                    {stats.pending.toLocaleString('ko-KR')}
+                  </div>
                 </div>
               </div>
               <div className="col-span-1">
                 <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
                   <div className="text-sm text-[#8DA0CD] mb-1">반려</div>
-                  <div className="text-2xl font-semibold">{stats.rejected}</div>
+                  <div className="text-2xl font-semibold">
+                    {stats.rejected.toLocaleString('ko-KR')}
+                  </div>
                 </div>
               </div>
             </div>

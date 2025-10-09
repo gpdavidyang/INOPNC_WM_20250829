@@ -800,20 +800,6 @@ export interface SiteDocument {
   } | null
 }
 
-// 빠른 작업
-export interface QuickAction {
-  id: string
-  title: string
-  description?: string
-  icon_name: string
-  link_url: string
-  is_active: boolean
-  display_order: number
-  created_by?: string
-  created_at: string
-  updated_at: string
-}
-
 // 이메일 알림 상태
 export type EmailNotificationStatus = 'pending' | 'sent' | 'failed' | 'scheduled'
 

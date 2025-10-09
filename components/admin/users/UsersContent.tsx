@@ -216,7 +216,7 @@ export function UsersContent({
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <StatsCard label={t('users.stats.total')} value={total.toLocaleString()} />
+        <StatsCard label={t('users.stats.total')} value={total} unit="person" />
         <StatsCard label={t('users.filters.roleSelected')} value={ROLE_FILTER_LABELS[roleFilter]} />
         <StatsCard label={t('users.filters.statusSelected')} value={STATUS_LABELS[statusFilter]} />
       </section>

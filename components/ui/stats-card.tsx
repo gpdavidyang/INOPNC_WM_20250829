@@ -4,15 +4,25 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
+import { formatMetric, unitLabel, type UnitKey } from '@/lib/ui/metrics'
 
 interface StatsCardProps {
   label: string
-  value: React.ReactNode
-  unit?: string
+  value: number | string | React.ReactNode
+  unit?: UnitKey | string
+  decimals?: number
+  currency?: boolean
   className?: string
 }
 
-export default function StatsCard({ label, value, unit, className }: StatsCardProps) {
+export default function StatsCard({
+  label,
+  value,
+  unit,
+  decimals,
+  currency,
+  className,
+}: StatsCardProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
 
@@ -38,14 +48,48 @@ export default function StatsCard({ label, value, unit, className }: StatsCardPr
       </div>
       {/* Value row */}
       <div className="flex items-baseline gap-1">
-        <div className={cn(getFullTypographyClass('heading', '2xl', isLargeFont), 'font-semibold')}>
-          {value}
-        </div>
-        {unit ? (
-          <div className={cn(getFullTypographyClass('body', 'sm', isLargeFont), 'text-[#8DA0CD]')}>
-            {unit}
-          </div>
-        ) : null}
+        {typeof value === 'number' ? (
+          (() => {
+            const fm = formatMetric(value, unit as any, { decimals, currency })
+            return (
+              <>
+                <div
+                  className={cn(
+                    getFullTypographyClass('heading', '2xl', isLargeFont),
+                    'font-semibold'
+                  )}
+                >
+                  {fm.valueText}
+                </div>
+                {fm.unitText && (
+                  <div
+                    className={cn(
+                      getFullTypographyClass('body', 'sm', isLargeFont),
+                      'text-[#8DA0CD]'
+                    )}
+                  >
+                    {fm.unitText}
+                  </div>
+                )}
+              </>
+            )
+          })()
+        ) : (
+          <>
+            <div
+              className={cn(getFullTypographyClass('heading', '2xl', isLargeFont), 'font-semibold')}
+            >
+              {value}
+            </div>
+            {unit && (
+              <div
+                className={cn(getFullTypographyClass('body', 'sm', isLargeFont), 'text-[#8DA0CD]')}
+              >
+                {unitLabel(unit as any)}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   )

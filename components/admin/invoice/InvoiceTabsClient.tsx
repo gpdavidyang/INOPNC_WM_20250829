@@ -185,8 +185,8 @@ export default function InvoiceTabsClient() {
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <StatsCard label="현장" value={summary.totals.sites} unit="개" />
-                <StatsCard label="업로드" value={summary.totals.documents} unit="건" />
+                <StatsCard label="현장" value={summary.totals.sites} unit="site" />
+                <StatsCard label="업로드" value={summary.totals.documents} unit="count" />
               </div>
 
               <div className="overflow-x-auto border rounded-md bg-white">
