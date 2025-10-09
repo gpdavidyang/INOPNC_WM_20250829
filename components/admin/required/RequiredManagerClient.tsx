@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import {
   PillTabs as Tabs,
   PillTabsList as TabsList,
@@ -35,6 +36,7 @@ export default function RequiredManagerClient({
   types,
   defaultTab = 'submissions',
 }: Props) {
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState<'submissions' | 'settings'>(defaultTab)
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
@@ -87,6 +89,26 @@ export default function RequiredManagerClient({
       return true
     })
   }, [docs, q, status, from, to])
+
+  // One-time initialization from URL params
+  useEffect(() => {
+    try {
+      const spQ = searchParams.get('q') || ''
+      const spStatus = searchParams.get('status') || ''
+      const spFrom = searchParams.get('from') || ''
+      const spTo = searchParams.get('to') || ''
+      const spSubmittedBy = searchParams.get('submitted_by') || ''
+      if (spQ) setQ(spQ)
+      if (spStatus && ['all', 'pending', 'approved', 'rejected'].includes(spStatus))
+        setStatus(spStatus as any)
+      if (spFrom) setFrom(spFrom)
+      if (spTo) setTo(spTo)
+      if (spSubmittedBy) setSubmittedBy(spSubmittedBy)
+    } catch {
+      // noop
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // 서버측 필터 적용: 목록 + 요약 동기화
   useEffect(() => {

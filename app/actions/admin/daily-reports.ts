@@ -15,6 +15,7 @@ interface DailyReportsFilter {
   component_name?: string
   work_process?: string
   work_section?: string
+  created_by?: string
   page?: number
   itemsPerPage?: number
   sortField?: string
@@ -88,6 +89,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       component_name,
       work_process,
       work_section,
+      created_by,
       page = 1,
       itemsPerPage = 20,
       sortField = 'work_date',
@@ -158,6 +160,9 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
         throw new AppError('조직 정보가 필요합니다.', ErrorType.AUTHORIZATION, 403)
       }
       query = query.eq('sites.organization_id', auth.restrictedOrgId).eq('created_by', auth.userId)
+    } else if (created_by) {
+      // Admin view: allow filtering by creator
+      query = query.eq('created_by', created_by)
     }
 
     // Apply sorting

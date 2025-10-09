@@ -31,7 +31,7 @@ export default async function AdminMarkupEditorPage() {
         description="다음 단계에서 에디터 UI 연결"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '도구', href: '/dashboard/admin/tools/markup' },
+          { label: '현장작업 관리' },
           { label: '마크업 에디터' },
         ]}
       />

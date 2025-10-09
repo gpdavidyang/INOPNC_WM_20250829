@@ -275,11 +275,11 @@ export default function AdminCompanyDocumentsPage() {
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="회사서류 관리"
+        title="이노피앤씨 설정"
         description="사업자등록증/통장사본/NPC-1000/완료확인서 관리"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '회사서류' }]}
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '시스템' }, { label: '이노피앤씨 설정' }]}
         showBackButton
-        backButtonHref="/dashboard/admin/documents"
+        backButtonHref="/dashboard/admin/system"
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex items-end justify-between gap-3 flex-wrap">

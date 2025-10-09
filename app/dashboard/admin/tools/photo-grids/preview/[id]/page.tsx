@@ -23,7 +23,7 @@ export default async function PhotoGridPreview({ params }: PhotoGridPreviewPageP
         description={`ID: ${params.id}`}
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '도구', href: '/dashboard/admin/tools/photo-grid' },
+          { label: '현장작업 관리' },
           { label: '미리보기' },
         ]}
         showBackButton

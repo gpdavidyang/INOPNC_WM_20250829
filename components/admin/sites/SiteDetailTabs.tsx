@@ -1518,14 +1518,28 @@ export default function SiteDetailTabs({
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
             <DataTable<any>
-              data={(initialDocs || []).filter((d: any) => {
+              data={(recentDocs || []).filter((d: any) => {
                 if (docFilter === 'all') return true
-                const category = String(d?.category_type || '')
-                const docType = String(d?.document_type || '')
-                const sub = String(d?.sub_category || '')
-                if (docFilter === 'ptw')
+                const category = String(
+                  d?.category_type ?? d?.categoryType ?? d?.metadata?.category_type ?? ''
+                )
+                const docType = String(
+                  d?.document_type ?? d?.documentType ?? d?.metadata?.document_type ?? ''
+                )
+                const sub = String(d?.sub_category ?? d?.subType ?? d?.metadata?.sub_type ?? '')
+
+                if (docFilter === 'ptw') {
                   return docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw'
-                if (docFilter === 'blueprint') return category === 'blueprint'
+                }
+                if (docFilter === 'blueprint') {
+                  // unified: category_type === 'blueprint'
+                  // partner transform: categoryType === 'drawing' && subType === 'blueprint'
+                  return (
+                    category === 'blueprint' ||
+                    (category === 'drawing' && sub === 'blueprint') ||
+                    docType === 'blueprint'
+                  )
+                }
                 if (docFilter === 'shared') return category === 'shared'
                 return true
               })}
@@ -1571,11 +1585,12 @@ export default function SiteDetailTabs({
                     key: 'category',
                     header: '유형',
                     sortable: true,
-                    accessor: (d: any) => d?.category_type || '',
-                    render: (d: any) =>
-                      d?.category_type
-                        ? CATEGORY_LABELS[String(d.category_type)] || String(d.category_type)
-                        : '-',
+                    accessor: (d: any) =>
+                      d?.category_type ?? d?.categoryType ?? d?.metadata?.category_type ?? '',
+                    render: (d: any) => {
+                      const cat = d?.category_type ?? d?.categoryType ?? d?.metadata?.category_type
+                      return cat ? CATEGORY_LABELS[String(cat)] || String(cat) : '-'
+                    },
                   },
                   {
                     key: 'status',

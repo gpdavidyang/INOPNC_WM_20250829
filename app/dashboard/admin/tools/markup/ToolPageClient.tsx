@@ -162,7 +162,7 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
           description="브라우저에서 도면에 주석/스탬프를 추가하고 저장합니다."
           breadcrumbs={[
             { label: '대시보드', href: '/dashboard/admin' },
-            { label: '도구', href: '/dashboard/admin/tools/markup' },
+            { label: '현장작업 관리' },
             { label: '도면마킹 도구' },
           ]}
           showBackButton
@@ -184,7 +184,7 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
         description="최근 문서를 열거나 새 도면마킹 작업을 시작하세요."
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '도구', href: '/dashboard/admin/tools/photo-grid' },
+          { label: '현장작업 관리' },
           { label: '도면마킹 관리' },
         ]}
       />

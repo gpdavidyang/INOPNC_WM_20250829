@@ -4,6 +4,7 @@ import { getUser } from '@/app/actions/admin/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
 import UserTablesClient from '@/components/admin/users/UserTablesClient'
+import { Button, buttonVariants } from '@/components/ui/button'
 
 export const metadata: Metadata = {
   title: '사용자 상세',
@@ -42,6 +43,37 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/users"
+        actions={
+          user ? (
+            <div className="flex gap-2">
+              <a
+                href={`/dashboard/admin/salary/personal?q=${encodeURIComponent(
+                  user.full_name || user.email || params.id
+                )}&worker_id=${encodeURIComponent(params.id)}`}
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
+              >
+                급여 관리
+              </a>
+              <a
+                href={`/dashboard/admin/daily-reports?created_by=${encodeURIComponent(params.id)}`}
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
+              >
+                작업일지 보기
+              </a>
+              <a
+                href={`/dashboard/admin/documents/required?tab=submissions&submitted_by=${encodeURIComponent(
+                  params.id
+                )}`}
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
+              >
+                필수서류 제출현황
+              </a>
+            </div>
+          ) : null
+        }
       />
 
       <Card>

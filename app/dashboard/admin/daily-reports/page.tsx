@@ -28,6 +28,7 @@ export default async function AdminDailyReportsPage({
   const dir = ((searchParams?.dir as string) || 'desc').trim() as 'asc' | 'desc'
   const siteNameQuery = ((searchParams?.site_name as string) || '').trim()
   let siteId = ((searchParams?.site_id as string) || (searchParams?.site as string) || '').trim()
+  const createdBy = ((searchParams?.created_by as string) || '').trim()
   const statusParam = ((searchParams?.status as string) || '').trim()
   const status = statusParam === 'draft' || statusParam === 'submitted' ? statusParam : ''
   const dateFrom = ((searchParams?.date_from as string) || '').trim()
@@ -72,6 +73,7 @@ export default async function AdminDailyReportsPage({
     status: status || undefined,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
+    created_by: createdBy || undefined,
   })
   const reports =
     result.success && Array.isArray((result.data as any)?.reports)
@@ -101,6 +103,7 @@ export default async function AdminDailyReportsPage({
         <div className="mb-4 rounded-lg border bg-card p-4 shadow-sm">
           <form method="GET" className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
             <input type="hidden" name="page" value="1" />
+            {createdBy && <input type="hidden" name="created_by" value={createdBy} />}
             <div>
               <label className="block text-sm text-muted-foreground mb-1">현장명</label>
               <Input
