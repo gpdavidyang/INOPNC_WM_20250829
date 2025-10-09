@@ -179,20 +179,20 @@ export default function PayrollDashboardPage() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">스냅샷 수</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">스냅샷 수</div>
           <div className="text-2xl font-semibold">{data.count}</div>
         </div>
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">총액</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">총액</div>
           <div className="text-2xl font-semibold">₩{data.gross.toLocaleString()}</div>
         </div>
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">공제</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">공제</div>
           <div className="text-2xl font-semibold">₩{data.deductions.toLocaleString()}</div>
         </div>
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">실수령</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">실수령</div>
           <div className="text-2xl font-semibold">₩{data.net.toLocaleString()}</div>
         </div>
       </div>

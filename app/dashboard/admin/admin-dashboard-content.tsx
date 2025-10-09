@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import type { QuickAction } from '@/types'
 import { Card } from '@/components/ui/card'
 import StatsCard from '@/components/ui/stats-card'
-import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { getDashboardStats, type DashboardStats } from '@/app/actions/admin/dashboard-stats'
@@ -36,29 +34,7 @@ const {
   Camera,
 } = Icons
 
-// 아이콘 매핑 - explicitly typed to avoid bundling issues
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
-  Users: Users,
-  Building2: Building2,
-  DollarSign: DollarSign,
-  Package: Package,
-  FileText: FileText,
-  Layers: Layers,
-  Home: Home,
-  Search: Search,
-  Calendar: Calendar,
-  Bell: Bell,
-  Shield: Shield,
-  Monitor: Monitor,
-  Database: Database,
-  Settings: Settings,
-  HelpCircle: HelpCircle,
-  TrendingUp: TrendingUp,
-  AlertCircle: AlertCircle,
-  CheckCircle: CheckCircle,
-  Clock: Clock,
-  Camera: Camera,
-}
+// (빠른 작업 섹션 제거로 ICON_MAP 불필요)
 
 // 활동 아이콘 매핑 - explicitly typed to avoid bundling issues
 const ACTIVITY_ICON_MAP: Record<string, React.ComponentType<any>> = {
@@ -74,8 +50,6 @@ export function AdminDashboardContent() {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
   const [mounted, setMounted] = useState(false)
-  const [quickActions, setQuickActions] = useState<QuickAction[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [pendingSignups, setPendingSignups] = useState(0)
   const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
@@ -111,22 +85,6 @@ export function AdminDashboardContent() {
       .filter(k => url.startsWith(k))
       .sort((a, b) => b.length - a.length)[0]
     return match ? SIDEBAR_LABELS[match] : fallback
-  }
-
-  // 빠른 작업 불러오기
-  const fetchQuickActions = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch('/api/admin/quick-actions')
-      if (response.ok) {
-        const data = await response.json()
-        setQuickActions(data.quickActions?.filter((action: QuickAction) => action.is_active) || [])
-      }
-    } catch (error) {
-      console.error('Error fetching quick actions:', error)
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   // 읽지 않은 알림 수 불러오기
@@ -170,7 +128,6 @@ export function AdminDashboardContent() {
 
   useEffect(() => {
     setMounted(true)
-    fetchQuickActions()
     fetchUnreadNotifications()
     fetchPendingSignups()
     fetchDashboardStats()
@@ -221,87 +178,6 @@ export function AdminDashboardContent() {
           <StatsCard label="미확인 알림" value={unreadNotifications} unit="건" />
           <StatsCard label="가입요청 승인대기" value={pendingSignups} unit="건" />
         </div>
-
-        {/* Quick Actions - Compact Version */}
-        <Card
-          className={`${touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'}`}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h2
-              className={`${getFullTypographyClass('heading', 'base', isLargeFont)} font-semibold`}
-            >
-              빠른 작업
-            </h2>
-            <QuickActionsSettings onUpdate={fetchQuickActions} />
-          </div>
-
-          {isLoading ? (
-            <div className="grid grid-cols-6 gap-2">
-              {[...Array(6)].map((_, index) => (
-                <div
-                  key={index}
-                  className={`${
-                    touchMode === 'glove' ? 'h-14' : touchMode === 'precision' ? 'h-10' : 'h-12'
-                  } bg-gray-100 rounded-md animate-pulse`}
-                />
-              ))}
-            </div>
-          ) : Array.isArray(quickActions) && quickActions.length > 0 ? (
-            <div className="grid grid-cols-6 gap-2">
-              {quickActions.map(action => {
-                const IconComponent = ICON_MAP[action.icon_name] || Home
-
-                const baseClass = `${
-                  touchMode === 'glove' ? 'h-14' : touchMode === 'precision' ? 'h-10' : 'h-12'
-                } flex items-center justify-center gap-2 w-full border border-[--brand-400] hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md px-2 text-[--brand-700]`
-
-                const url = String(action.link_url || '#')
-                const resolvedTitle = resolveQuickActionTitle(url, action.title)
-                const content = (
-                  <>
-                    <IconComponent className="h-4 w-4 flex-shrink-0" />
-                    <span
-                      className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} truncate`}
-                    >
-                      {resolvedTitle}
-                    </span>
-                  </>
-                )
-                const isExternal = /^https?:\/\//i.test(url)
-                return isExternal ? (
-                  <a
-                    key={action.id}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={baseClass}
-                    title={action.description || ''}
-                  >
-                    {content}
-                  </a>
-                ) : (
-                  <Link
-                    key={action.id}
-                    href={url}
-                    className={baseClass}
-                    title={action.description || ''}
-                  >
-                    {content}
-                  </Link>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p
-                className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500 mb-2`}
-              >
-                등록된 빠른 작업이 없습니다.
-              </p>
-              <QuickActionsSettings onUpdate={fetchQuickActions} />
-            </div>
-          )}
-        </Card>
 
         {/* Recent Activities */}
         <div className="grid grid-cols-2 gap-6">
