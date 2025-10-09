@@ -385,20 +385,20 @@ export default function PayrollPreviewPage() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">인원</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">인원</div>
           <div className="text-2xl font-semibold">{totals.count}</div>
         </div>
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">총급여</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">총급여</div>
           <div className="text-2xl font-semibold">₩{totals.gross.toLocaleString()}</div>
         </div>
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">실수령</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">실수령</div>
           <div className="text-2xl font-semibold">₩{totals.net.toLocaleString()}</div>
         </div>
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="text-xs text-gray-500">선택</div>
+        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+          <div className="text-sm text-[#8DA0CD] mb-1">선택</div>
           <div className="text-2xl font-semibold">{selected.size}</div>
         </div>
       </div>
