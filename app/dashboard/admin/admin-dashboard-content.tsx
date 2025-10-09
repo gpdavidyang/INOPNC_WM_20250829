@@ -172,11 +172,11 @@ export function AdminDashboardContent() {
       <div className="space-y-6">
         {/* Quick Stats (standardized) */}
         <div className="grid grid-cols-5 gap-4">
-          <StatsCard label="전체 사용자" value={dashboardStats.totalUsers} unit="명" />
-          <StatsCard label="활성 현장" value={dashboardStats.activeSites} unit="개" />
-          <StatsCard label="오늘 작업일지" value={dashboardStats.todayReports} unit="건" />
-          <StatsCard label="미확인 알림" value={unreadNotifications} unit="건" />
-          <StatsCard label="가입요청 승인대기" value={pendingSignups} unit="건" />
+          <StatsCard label="전체 사용자" value={dashboardStats.totalUsers} unit="person" />
+          <StatsCard label="활성 현장" value={dashboardStats.activeSites} unit="site" />
+          <StatsCard label="오늘 작업일지" value={dashboardStats.todayReports} unit="count" />
+          <StatsCard label="미확인 알림" value={unreadNotifications} unit="count" />
+          <StatsCard label="가입요청 승인대기" value={pendingSignups} unit="count" />
         </div>
 
         {/* Recent Activities */}

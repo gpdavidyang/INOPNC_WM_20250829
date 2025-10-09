@@ -214,9 +214,9 @@ export function DocumentsContent({
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <StatsCard label="전체 문서" value={total.toLocaleString()} />
-        <StatsCard label="승인 대기" value={approvalStats.pending ?? 0} unit="건" />
-        <StatsCard label="승인 완료" value={approvalStats.approved ?? 0} unit="건" />
+        <StatsCard label="전체 문서" value={total} unit="count" />
+        <StatsCard label="승인 대기" value={approvalStats.pending ?? 0} unit="count" />
+        <StatsCard label="승인 완료" value={approvalStats.approved ?? 0} unit="count" />
       </section>
 
       <section className="rounded-lg border bg-card p-4 shadow-sm">

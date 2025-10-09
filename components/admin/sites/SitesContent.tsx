@@ -424,8 +424,8 @@ export function SitesContent({
       )}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <StatsCard label={t('sites.stats.total')} value={total.toLocaleString()} />
-        <StatsCard label={t('sites.stats.activeOnPage')} value={activeCount} unit="개" />
+        <StatsCard label={t('sites.stats.total')} value={total} unit="site" />
+        <StatsCard label={t('sites.stats.activeOnPage')} value={activeCount} unit="site" />
         <StatsCard label={t('users.filters.statusSelected')} value={STATUS_LABELS[statusFilter]} />
       </section>
 

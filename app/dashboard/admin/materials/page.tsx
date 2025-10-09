@@ -220,10 +220,10 @@ export default async function AdminMaterialsPage({
               </a>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatsCard label="현장 수" value={npcSummary?.total_sites ?? '-'} unit="개" />
-              <StatsCard label="입고" value={npcSummary?.total_incoming ?? '-'} unit="EA" />
-              <StatsCard label="사용" value={npcSummary?.total_used ?? '-'} unit="EA" />
-              <StatsCard label="잔여" value={npcSummary?.total_remaining ?? '-'} unit="EA" />
+              <StatsCard label="현장 수" value={Number(npcSummary?.total_sites ?? 0)} unit="site" />
+              <StatsCard label="입고" value={Number(npcSummary?.total_incoming ?? 0)} unit="ea" />
+              <StatsCard label="사용" value={Number(npcSummary?.total_used ?? 0)} unit="ea" />
+              <StatsCard label="잔여" value={Number(npcSummary?.total_remaining ?? 0)} unit="ea" />
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
               <Table>
