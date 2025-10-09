@@ -23,9 +23,13 @@ export default function PhotoGridToolMain() {
       <div className="rounded-lg border bg-card shadow-sm">
         <div className="px-4 pt-4">
           <Tabs defaultValue="upload">
-            <TabsList>
-              <TabsTrigger value="upload">직접 업로드</TabsTrigger>
-              <TabsTrigger value="from-daily">작업일지에서 생성</TabsTrigger>
+            <TabsList fill className="w-full">
+              <TabsTrigger fill value="upload">
+                직접 업로드
+              </TabsTrigger>
+              <TabsTrigger fill value="from-daily">
+                작업일지에서 생성
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="upload">
               <div className="rounded-lg border bg-white">

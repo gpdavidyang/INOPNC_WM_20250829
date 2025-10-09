@@ -48,8 +48,7 @@ export default function AnnouncementCreateForm() {
     () => [
       { value: 'worker', label: '작업자' },
       { value: 'site_manager', label: '현장관리자' },
-      // Optional future role; included per 요구사항. If 미존재, 선택해도 필터에만 반영됨.
-      { value: 'production_manager', label: '생산관리자' },
+      // 생산관리자(production_manager)는 미도입 상태 — 향후 롤 생성 시 추가 예정
       { value: 'admin', label: '본사관리자' },
       { value: 'system_admin', label: '시스템관리자' },
     ],
