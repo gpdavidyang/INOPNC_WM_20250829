@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { QuickAction } from '@/types'
 import { Card } from '@/components/ui/card'
+import StatsCard from '@/components/ui/stats-card'
 import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
@@ -205,97 +206,13 @@ export function AdminDashboardContent() {
       </div>
 
       <div className="space-y-6">
-        {/* Quick Stats */}
+        {/* Quick Stats (standardized) */}
         <div className="grid grid-cols-5 gap-4">
-          <Card
-            className={`${
-              touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
-                  전체 사용자
-                </p>
-                <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                  {dashboardStats.totalUsers}명
-                </p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </Card>
-
-          <Card
-            className={`${
-              touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
-                  활성 현장
-                </p>
-                <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                  {dashboardStats.activeSites}개
-                </p>
-              </div>
-              <Building2 className="h-8 w-8 text-green-500" />
-            </div>
-          </Card>
-
-          <Card
-            className={`${
-              touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
-                  오늘 작업일지
-                </p>
-                <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                  {dashboardStats.todayReports}건
-                </p>
-              </div>
-              <FileText className="h-8 w-8 text-orange-500" />
-            </div>
-          </Card>
-
-          <Card
-            className={`${
-              touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
-                  미확인 알림
-                </p>
-                <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                  {unreadNotifications}건
-                </p>
-              </div>
-              <Bell className="h-8 w-8 text-purple-500" />
-            </div>
-          </Card>
-
-          <Card
-            className={`${
-              touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
-                  가입요청 승인대기
-                </p>
-                <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                  {pendingSignups}건
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-red-500" />
-            </div>
-          </Card>
+          <StatsCard label="전체 사용자" value={dashboardStats.totalUsers} unit="명" />
+          <StatsCard label="활성 현장" value={dashboardStats.activeSites} unit="개" />
+          <StatsCard label="오늘 작업일지" value={dashboardStats.todayReports} unit="건" />
+          <StatsCard label="미확인 알림" value={unreadNotifications} unit="건" />
+          <StatsCard label="가입요청 승인대기" value={pendingSignups} unit="건" />
         </div>
 
         {/* Quick Actions - Compact Version */}

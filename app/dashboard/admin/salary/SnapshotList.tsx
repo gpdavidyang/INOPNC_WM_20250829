@@ -72,9 +72,16 @@ export default function SnapshotList() {
         url = `/api/admin/payroll/snapshots/list?${params.toString()}`
       }
       const res = await fetch(url)
-      const json = await res.json()
-      if (!json?.success) throw new Error(json?.error || '목록 조회 실패')
-      setItems(json.data as Snapshot[])
+      const json = await res.json().catch(() => null)
+      if (!json || json?.success === false) throw new Error(json?.error || '목록 조회 실패')
+      const data = Array.isArray(json.data)
+        ? json.data
+        : Array.isArray(json.data?.items)
+          ? json.data.items
+          : Array.isArray(json.snapshots)
+            ? json.snapshots
+            : []
+      setItems(data as Snapshot[])
     } catch (e: any) {
       setError(e?.message || '목록 조회 실패')
     } finally {
@@ -95,9 +102,10 @@ export default function SnapshotList() {
 
   const onSelectAll = () => {
     setSelectedKeys(prev => {
-      if (prev.size === filtered.length) return new Set()
+      const list = Array.isArray(filtered) ? filtered : []
+      if (prev.size === list.length) return new Set()
       const next = new Set<string>()
-      filtered.forEach(s => next.add(makeKey(s)))
+      list.forEach(s => next.add(makeKey(s)))
       return next
     })
   }
@@ -251,7 +259,7 @@ export default function SnapshotList() {
   }, [items, yearMonth, supabase])
 
   const filtered = useMemo(() => {
-    let list = items
+    let list = Array.isArray(items) ? items : []
     if (employmentType) list = list.filter(s => (s as any).employment_type === employmentType)
     if (siteId) list = list.filter(s => (workerSites[s.worker_id] || []).includes(siteId))
     return list
@@ -359,7 +367,10 @@ export default function SnapshotList() {
                 <input
                   type="checkbox"
                   aria-label="전체 선택"
-                  checked={selectedKeys.size === items.length && items.length > 0}
+                  checked={
+                    selectedKeys.size === (Array.isArray(filtered) ? filtered.length : 0) &&
+                    (Array.isArray(filtered) ? filtered.length > 0 : false)
+                  }
                   onChange={onSelectAll}
                 />
               </th>
@@ -372,7 +383,7 @@ export default function SnapshotList() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s, idx) => (
+            {(Array.isArray(filtered) ? filtered : []).map((s, idx) => (
               <tr key={`${s.worker_id}-${s.year}-${s.month}-${idx}`} className="border-t">
                 <td className="px-3 py-2">
                   <input
@@ -399,13 +410,13 @@ export default function SnapshotList() {
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right">
-                  ₩{s.salary.total_gross_pay.toLocaleString()}
+                  ₩{(s.salary?.total_gross_pay ?? 0).toLocaleString()}
                 </td>
                 <td className="px-3 py-2 text-right">
-                  ₩{s.salary.total_deductions.toLocaleString()}
+                  ₩{(s.salary?.total_deductions ?? 0).toLocaleString()}
                 </td>
                 <td className="px-3 py-2 text-right font-semibold">
-                  ₩{s.salary.net_pay.toLocaleString()}
+                  ₩{(s.salary?.net_pay ?? 0).toLocaleString()}
                 </td>
                 <td className="px-3 py-2 flex items-center gap-2">
                   <button
@@ -435,7 +446,7 @@ export default function SnapshotList() {
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && !loading && (
+            {(Array.isArray(filtered) ? filtered.length === 0 : true) && !loading && (
               <tr>
                 <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
                   스냅샷이 없습니다.
