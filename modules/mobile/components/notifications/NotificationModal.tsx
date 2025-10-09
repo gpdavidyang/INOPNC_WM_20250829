@@ -2,9 +2,9 @@
 
 import React, { useEffect, useState } from 'react'
 import { X, CheckCircle, FileText, AlertCircle, Calendar } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+// Switch to server history API backed by notification_logs
 
-interface Notification {
+interface NotificationItem {
   id: string
   title: string
   message: string
@@ -24,10 +24,9 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   onClose,
   userId,
 }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(false)
   const [dontShowToday, setDontShowToday] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
     if (isOpen && userId) {
@@ -38,38 +37,21 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   const fetchNotifications = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(10)
-
-      if (error) {
-        // Handle specific API errors
-        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-          // Table doesn't exist, show empty state
-          setNotifications([])
-        } else {
-          console.warn('Notifications API unavailable:', error.message)
-          // Show fallback notifications for demo
-          setNotifications([
-            {
-              id: '1',
-              title: '알림 서비스',
-              message: '알림 기능이 현재 준비 중입니다.',
-              type: 'info',
-              is_read: false,
-              created_at: new Date().toISOString(),
-            },
-          ])
-        }
-      } else {
-        setNotifications(data || [])
-      }
+      const res = await fetch(`/api/notifications/history?limit=10`, { cache: 'no-store' })
+      if (!res.ok) throw new Error('history api failed')
+      const json = await res.json()
+      const items = Array.isArray(json?.notifications) ? json.notifications : []
+      const mapped: NotificationItem[] = items.map((n: any) => ({
+        id: String(n.id),
+        title: n.title || '알림',
+        message: n.body || '',
+        type: 'info',
+        created_at: n.sent_at || n.created_at || new Date().toISOString(),
+        is_read: !!n.read_at,
+      }))
+      setNotifications(mapped)
     } catch (error) {
       console.warn('Failed to fetch notifications:', error)
-      // Use mock data if database fails
       setNotifications([
         {
           id: '1',
@@ -103,8 +85,11 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
   const markAsRead = async (notificationId: string) => {
     try {
-      await supabase.from('notifications').update({ is_read: true }).eq('id', notificationId)
-
+      await fetch('/api/notifications/history', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId, action: 'read' }),
+      })
       setNotifications(prev =>
         prev.map(n => (n.id === notificationId ? { ...n, is_read: true } : n))
       )
@@ -115,15 +100,18 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
   const markAllAsRead = async () => {
     try {
-      if (userId) {
-        await supabase
-          .from('notifications')
-          .update({ is_read: true })
-          .eq('user_id', userId)
-          .eq('is_read', false)
-
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
-      }
+      const unread = notifications.filter(n => !n.is_read).map(n => n.id)
+      if (unread.length === 0) return
+      await Promise.allSettled(
+        unread.map(id =>
+          fetch('/api/notifications/history', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notificationId: id, action: 'read' }),
+          })
+        )
+      )
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
     } catch (error) {
       console.error('Failed to mark all as read:', error)
     }

@@ -4,7 +4,12 @@ import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import SiteForm from '@/components/admin/sites/SiteForm'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BrandTabs as Tabs,
+  BrandTabsContent as TabsContent,
+  BrandTabsList as TabsList,
+  BrandTabsTrigger as TabsTrigger,
+} from '@/components/ui/brand-tabs'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/use-confirm'
@@ -657,55 +662,15 @@ export default function SiteDetailTabs({
   return (
     <div>
       <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-        <TabsList className="sticky top-0 z-10 bg-gradient-to-r from-[--brand-600] to-[--brand-700] border-0 shadow">
-          <TabsTrigger
-            value="overview"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            개요
-          </TabsTrigger>
-          <TabsTrigger
-            value="reports"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            작업일지
-          </TabsTrigger>
-          <TabsTrigger
-            value="documents"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            문서
-          </TabsTrigger>
-          <TabsTrigger
-            value="drawings"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            도면
-          </TabsTrigger>
-          <TabsTrigger
-            value="photos"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            사진
-          </TabsTrigger>
-          <TabsTrigger
-            value="assignments"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            배정
-          </TabsTrigger>
-          <TabsTrigger
-            value="materials"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            자재
-          </TabsTrigger>
-          <TabsTrigger
-            value="edit"
-            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
-          >
-            정보 수정
-          </TabsTrigger>
+        <TabsList className="sticky top-0 z-10" fill>
+          <TabsTrigger value="overview">개요</TabsTrigger>
+          <TabsTrigger value="reports">작업일지</TabsTrigger>
+          <TabsTrigger value="documents">문서</TabsTrigger>
+          <TabsTrigger value="drawings">도면</TabsTrigger>
+          <TabsTrigger value="photos">사진</TabsTrigger>
+          <TabsTrigger value="assignments">배정</TabsTrigger>
+          <TabsTrigger value="materials">자재</TabsTrigger>
+          <TabsTrigger value="edit">정보 수정</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-6">

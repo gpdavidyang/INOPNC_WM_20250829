@@ -1,5 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { deepLinkHandler } from '@/lib/deep-linking'
 
 export function useDeepLinking() {
   const router = useRouter()
@@ -19,7 +22,7 @@ export function useDeepLinking() {
           type: event.data.notificationType,
           id: event.data.notificationId,
           action: event.data.action,
-          params: event.data.params
+          params: event.data.params,
         })
       }
     }
@@ -35,7 +38,10 @@ export function useDeepLinking() {
 
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleMessage)
-      window.removeEventListener('foregroundNotification', handleForegroundNotification as EventListener)
+      window.removeEventListener(
+        'foregroundNotification',
+        handleForegroundNotification as EventListener
+      )
     }
   }, [router])
 }

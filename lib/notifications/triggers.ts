@@ -1,10 +1,12 @@
 import type { DailyReport } from '@/types'
+import { createClient } from '@/lib/supabase/server'
+import { logError } from '@/lib/error-handling'
 
 // 일일보고서 제출 시 알림 생성
 export async function notifyDailyReportSubmitted(report: DailyReport, submitterId: string) {
   try {
     const supabase = createClient()
-    
+
     // 현장 관리자들에게 알림 전송
     const { data: siteManagers } = await supabase
       .from('profiles')
@@ -21,14 +23,12 @@ export async function notifyDailyReportSubmitted(report: DailyReport, submitterI
         data: {
           report_id: report.id,
           site_id: report.site_id,
-          work_date: report.work_date
+          work_date: report.work_date,
         },
-        action_url: `/dashboard/daily-reports/${report.id}`
+        action_url: `/dashboard/daily-reports/${report.id}`,
       }))
 
-      const { error } = await supabase
-        .from('notifications')
-        .insert(notifications)
+      const { error } = await supabase.from('notifications').insert(notifications)
 
       if (error) {
         logError(error, 'notifyDailyReportSubmitted')
@@ -43,7 +43,7 @@ export async function notifyDailyReportSubmitted(report: DailyReport, submitterI
 export async function notifyDailyReportApproved(report: DailyReport, approverId: string) {
   try {
     const supabase = createClient()
-    
+
     // 작성자에게 알림 전송
     const notification = {
       user_id: report.created_by,
@@ -54,14 +54,12 @@ export async function notifyDailyReportApproved(report: DailyReport, approverId:
         report_id: report.id,
         site_id: report.site_id,
         work_date: report.work_date,
-        approved_by: approverId
+        approved_by: approverId,
       },
-      action_url: `/dashboard/daily-reports/${report.id}`
+      action_url: `/dashboard/daily-reports/${report.id}`,
     }
 
-    const { error } = await supabase
-      .from('notifications')
-      .insert(notification)
+    const { error } = await supabase.from('notifications').insert(notification)
 
     if (error) {
       logError(error, 'notifyDailyReportApproved')
@@ -73,19 +71,19 @@ export async function notifyDailyReportApproved(report: DailyReport, approverId:
 
 // 일일보고서 반려 시 알림 생성
 export async function notifyDailyReportRejected(
-  report: DailyReport, 
-  rejectedBy: string, 
+  report: DailyReport,
+  rejectedBy: string,
   reason?: string
 ) {
   try {
     const supabase = createClient()
-    
+
     // 작성자에게 알림 전송
     const notification = {
       user_id: report.created_by,
       type: 'warning' as const,
       title: '작업일지가 반려되었습니다',
-      message: reason 
+      message: reason
         ? `${report.work_date} 작업일지가 반려되었습니다. 사유: ${reason}`
         : `${report.work_date} 작업일지가 반려되었습니다.`,
       data: {
@@ -93,14 +91,12 @@ export async function notifyDailyReportRejected(
         site_id: report.site_id,
         work_date: report.work_date,
         rejected_by: rejectedBy,
-        reason
+        reason,
       },
-      action_url: `/dashboard/daily-reports/${report.id}/edit`
+      action_url: `/dashboard/daily-reports/${report.id}/edit`,
     }
 
-    const { error } = await supabase
-      .from('notifications')
-      .insert(notification)
+    const { error } = await supabase.from('notifications').insert(notification)
 
     if (error) {
       logError(error, 'notifyDailyReportRejected')
@@ -112,13 +108,13 @@ export async function notifyDailyReportRejected(
 
 // NPC-1000 재고 부족 알림
 export async function notifyLowNPC1000Stock(
-  siteId: string, 
-  currentStock: number, 
+  siteId: string,
+  currentStock: number,
   threshold: number = 1000
 ) {
   try {
     const supabase = createClient()
-    
+
     // 현장 관리자들에게 알림 전송
     const { data: siteManagers } = await supabase
       .from('profiles')
@@ -135,14 +131,12 @@ export async function notifyLowNPC1000Stock(
         data: {
           site_id: siteId,
           current_stock: currentStock,
-          threshold
+          threshold,
         },
-        action_url: `/dashboard/materials/npc1000`
+        action_url: `/dashboard/materials/npc1000`,
       }))
 
-      const { error } = await supabase
-        .from('notifications')
-        .insert(notifications)
+      const { error } = await supabase.from('notifications').insert(notifications)
 
       if (error) {
         logError(error, 'notifyLowNPC1000Stock')
@@ -161,10 +155,10 @@ export async function notifySystemAnnouncement(
 ) {
   try {
     const supabase = createClient()
-    
+
     // 대상 사용자 조회
     let query = supabase.from('profiles').select('id')
-    
+
     if (targetRoles && targetRoles.length > 0) {
       query = query.in('role', targetRoles)
     }
@@ -179,18 +173,16 @@ export async function notifySystemAnnouncement(
         message,
         data: {
           announcement: true,
-          target_roles: targetRoles
-        }
+          target_roles: targetRoles,
+        },
       }))
 
       // 배치로 삽입 (최대 100개씩)
       const batchSize = 100
       for (let i = 0; i < notifications.length; i += batchSize) {
         const batch = notifications.slice(i, i + batchSize)
-        
-        const { error } = await supabase
-          .from('notifications')
-          .insert(batch)
+
+        const { error } = await supabase.from('notifications').insert(batch)
 
         if (error) {
           logError(error, 'notifySystemAnnouncement')
@@ -211,7 +203,7 @@ export async function notifyWorkerCheckIn(
 ) {
   try {
     const supabase = createClient()
-    
+
     // 현장 관리자에게 알림 전송
     const { data: siteManagers } = await supabase
       .from('profiles')
@@ -228,14 +220,12 @@ export async function notifyWorkerCheckIn(
         data: {
           worker_id: workerId,
           site_id: siteId,
-          check_in_time: checkInTime
+          check_in_time: checkInTime,
         },
-        action_url: `/dashboard/attendance`
+        action_url: `/dashboard/attendance`,
       }))
 
-      const { error } = await supabase
-        .from('notifications')
-        .insert(notifications)
+      const { error } = await supabase.from('notifications').insert(notifications)
 
       if (error) {
         logError(error, 'notifyWorkerCheckIn')

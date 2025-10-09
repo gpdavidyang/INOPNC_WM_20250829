@@ -143,6 +143,17 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
     [startEditor]
   )
 
+  const handleCloseEditor = React.useCallback(() => {
+    try {
+      // remove query to avoid re-entry on reload
+      router.replace('/dashboard/admin/tools/markup')
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') console.debug('router.replace failed', err)
+    }
+    setInitialDocument(null)
+    setState('launcher')
+  }, [router])
+
   if (state === 'editor' && initialDocument) {
     return (
       <div className="px-0 pb-8">
@@ -158,7 +169,7 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
           backButtonHref="/dashboard/admin/tools/markup"
         />
         <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <AdminMarkupToolClient initialDocument={initialDocument} />
+          <AdminMarkupToolClient initialDocument={initialDocument} onClose={handleCloseEditor} />
         </div>
       </div>
     )

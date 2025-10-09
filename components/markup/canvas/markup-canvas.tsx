@@ -83,7 +83,8 @@ function renderObject(selectedIds: string[]) {
             y={obj.y}
             width={(obj as any).width}
             height={(obj as any).height}
-            fill="transparent"
+            fill={selected ? stroke : 'transparent'}
+            fillOpacity={selected ? 0.18 : 1}
             stroke={stroke}
             strokeWidth={selected ? 3 : 2}
           />
