@@ -202,7 +202,12 @@ export default async function CommunicationManagementPage({
               <div className="mb-3 flex items-center gap-2">
                 <form method="GET" className="flex items-center gap-2">
                   <input type="hidden" name="tab" value="announcements" />
-                  <Input name="search" defaultValue={search} placeholder={t('common.search')} />
+                  <Input
+                    name="search"
+                    defaultValue={search}
+                    placeholder={t('common.search')}
+                    className="w-64 md:w-80"
+                  />
                   <Button type="submit" variant="outline">
                     {t('common.search')}
                   </Button>
@@ -223,7 +228,12 @@ export default async function CommunicationManagementPage({
               <div className="mb-3">
                 <form method="GET" className="flex items-center gap-2">
                   <input type="hidden" name="tab" value="logs" />
-                  <Input name="search" defaultValue={search} placeholder={t('common.search')} />
+                  <Input
+                    name="search"
+                    defaultValue={search}
+                    placeholder={t('common.search')}
+                    className="w-64 md:w-80"
+                  />
                   <Button type="submit" variant="outline">
                     {t('common.search')}
                   </Button>
