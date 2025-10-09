@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { calculateMonthlySalary } from '@/app/actions/salary'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import StatsCard from '@/components/ui/stats-card'
 import { PageHeader } from '@/components/ui/page-header'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import { createClient } from '@/lib/supabase/server'
@@ -83,59 +84,10 @@ export default async function AdminWorkerSalaryCalendarPage({
       <div className="px-4 sm:px-6 lg:px-8 py-8">
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>총 근로시간</CardTitle>
-            <CardDescription>정규+추가</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {calc ? calc.total_labor_hours : <span className="text-muted-foreground">-</span>}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>총급여</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {calc ? (
-                `₩${Number(calc.total_gross_pay || 0).toLocaleString()}`
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>공제합계</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {calc ? (
-                `₩${Number(calc.total_deductions || 0).toLocaleString()}`
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>실수령</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {calc ? (
-                `₩${Number(calc.net_pay || 0).toLocaleString()}`
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard label="총 근로시간" value={Number(calc?.total_labor_hours || 0)} unit="count" />
+        <StatsCard label="총급여" value={Number(calc?.total_gross_pay || 0)} unit="won" currency />
+        <StatsCard label="공제합계" value={Number(calc?.total_deductions || 0)} unit="won" currency />
+        <StatsCard label="실수령" value={Number(calc?.net_pay || 0)} unit="won" currency />
       </div>
 
       <Card>
