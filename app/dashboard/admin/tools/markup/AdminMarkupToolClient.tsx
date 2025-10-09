@@ -15,9 +15,13 @@ type AnyDoc = {
 
 interface AdminMarkupToolClientProps {
   initialDocument: AnyDoc
+  onClose?: () => void
 }
 
-export default function AdminMarkupToolClient({ initialDocument }: AdminMarkupToolClientProps) {
+export default function AdminMarkupToolClient({
+  initialDocument,
+  onClose,
+}: AdminMarkupToolClientProps) {
   const router = useRouter()
   const params = useSearchParams()
 
@@ -79,8 +83,9 @@ export default function AdminMarkupToolClient({ initialDocument }: AdminMarkupTo
     }
   }
 
-  const onClose = () => {
-    // close back to tool launcher (without query)
+  const handleClose = () => {
+    if (onClose) return onClose()
+    // fallback: route back to launcher
     router.push('/dashboard/admin/tools/markup')
   }
 
@@ -90,7 +95,7 @@ export default function AdminMarkupToolClient({ initialDocument }: AdminMarkupTo
         mode="admin"
         initialDocument={initialDocument}
         onSave={onSave}
-        onClose={onClose}
+        onClose={handleClose}
       />
     </div>
   )

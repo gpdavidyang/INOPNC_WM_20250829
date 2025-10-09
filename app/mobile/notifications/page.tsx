@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
@@ -17,72 +17,55 @@ export default function MobileNotificationsPage() {
 const NotificationsContent: React.FC = () => {
   const { profile } = useUnifiedAuth()
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'important'>('all')
+  const [loading, setLoading] = useState(false)
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string
+      title: string
+      message: string
+      type:
+        | 'assignment'
+        | 'safety'
+        | 'materials'
+        | 'schedule'
+        | 'payroll'
+        | 'announcement'
+        | 'documents'
+        | 'general'
+      time: string
+      read: boolean
+      important: boolean
+    }>
+  >([])
 
-  const notifications = [
-    {
-      id: 1,
-      title: '새로운 현장 배정',
-      message: '서울 본사 건설현장에 배정되었습니다.',
-      type: 'assignment',
-      time: '방금 전',
-      read: false,
-      important: true,
-    },
-    {
-      id: 2,
-      title: '안전교육 이수 알림',
-      message: '월간 안전교육을 이수해주세요. 마감일: 3월 25일',
-      type: 'safety',
-      time: '30분 전',
-      read: false,
-      important: true,
-    },
-    {
-      id: 3,
-      title: '자재 요청 승인',
-      message: '시멘트 100kg 요청이 승인되었습니다.',
-      type: 'materials',
-      time: '1시간 전',
-      read: true,
-      important: false,
-    },
-    {
-      id: 4,
-      title: '출근 시간 알림',
-      message: '내일 출근 시간이 08:00로 변경되었습니다.',
-      type: 'schedule',
-      time: '2시간 전',
-      read: false,
-      important: false,
-    },
-    {
-      id: 5,
-      title: '급여명세서 발급',
-      message: '3월 급여명세서가 발급되었습니다.',
-      type: 'payroll',
-      time: '어제',
-      read: true,
-      important: false,
-    },
-    {
-      id: 6,
-      title: '현장 공지사항',
-      message: '우천으로 인한 작업 일정 변경 안내',
-      type: 'announcement',
-      time: '2일 전',
-      read: true,
-      important: false,
-    },
-    {
-      id: 7,
-      title: '문서 제출 요청',
-      message: '건강검진서 제출 기한이 임박했습니다.',
-      type: 'documents',
-      time: '3일 전',
-      read: false,
-      important: true,
-    },
-  ]
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/notifications/history?limit=50', { cache: 'no-store' })
+        if (!res.ok) throw new Error('history api failed')
+        const json = await res.json()
+        const items = Array.isArray(json?.notifications) ? json.notifications : []
+        const mapped = items.map((n: any) => ({
+          id: String(n.id),
+          title: n.title || '알림',
+          message: n.body || '',
+          type: (n.notification_type as any) || 'general',
+          time: n.sent_at ? new Date(n.sent_at).toLocaleString('ko-KR') : '',
+          read: !!n.read_at,
+          important: ['safety_alert', 'urgent', 'high'].includes(
+            String(n.priority || n.notification_type || '')
+          ),
+        }))
+        setNotifications(mapped)
+      } catch (_) {
+        setNotifications([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -137,8 +120,11 @@ const NotificationsContent: React.FC = () => {
     }
   })
 
-  const unreadCount = notifications.filter(n => !n.read).length
-  const importantCount = notifications.filter(n => n.important).length
+  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications])
+  const importantCount = useMemo(
+    () => notifications.filter(n => n.important).length,
+    [notifications]
+  )
 
   return (
     <MobileLayoutShell>
@@ -199,92 +185,100 @@ const NotificationsContent: React.FC = () => {
 
         {/* Notifications List */}
         <div className="space-y-2">
-          {filteredNotifications.map(notification => (
-            <Card
-              key={notification.id}
-              className={`${
-                !notification.read ? 'border-l-4 border-l-blue-500' : ''
-              } cursor-pointer hover:bg-gray-50 transition-colors`}
-            >
-              <CardContent className="p-4">
-                <Stack gap="sm">
-                  <Row justify="between" align="start">
-                    <div className="flex items-start gap-3 flex-1">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${getNotificationColor(notification.type)}`}
-                      >
-                        <span className="text-lg">{getNotificationIcon(notification.type)}</span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4
-                            className={`t-body ${!notification.read ? 'font-bold' : 'font-medium'}`}
-                          >
-                            {notification.title}
-                          </h4>
-                          {notification.important && <Badge variant="tag1" />}
-                          {!notification.read && (
-                            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                          )}
-                        </div>
-                        <p
-                          className={`t-cap ${!notification.read ? 'text-gray-900' : 'text-gray-600'}`}
-                        >
-                          {notification.message}
-                        </p>
-                        <p className="t-cap text-gray-500 mt-1">{notification.time}</p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" className="text-sm px-2 py-1 h-auto">
-                      ⋯
-                    </Button>
-                  </Row>
-
-                  {/* Action buttons for specific notification types */}
-                  {notification.type === 'safety' && !notification.read && (
-                    <Row gap="sm" className="mt-2">
-                      <Button variant="primary" className="flex-1 text-sm">
-                        교육 받기
-                      </Button>
-                      <Button variant="outline" className="flex-1 text-sm">
-                        나중에
-                      </Button>
-                    </Row>
-                  )}
-
-                  {notification.type === 'documents' && !notification.read && (
-                    <Row gap="sm" className="mt-2">
-                      <Button variant="primary" className="flex-1 text-sm">
-                        문서 제출
-                      </Button>
-                      <Button variant="outline" className="flex-1 text-sm">
-                        확인
-                      </Button>
-                    </Row>
-                  )}
-
-                  {notification.type === 'materials' && (
-                    <Row gap="sm" className="mt-2">
-                      <Button variant="outline" className="flex-1 text-sm">
-                        자세히 보기
-                      </Button>
-                    </Row>
-                  )}
-
-                  {notification.type === 'payroll' && (
-                    <Row gap="sm" className="mt-2">
-                      <Button variant="primary" className="flex-1 text-sm">
-                        급여명세서 보기
-                      </Button>
-                    </Row>
-                  )}
-                </Stack>
+          {loading && (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <p className="t-body">불러오는 중…</p>
               </CardContent>
             </Card>
-          ))}
+          )}
+          {!loading &&
+            filteredNotifications.map(notification => (
+              <Card
+                key={notification.id}
+                className={`${
+                  !notification.read ? 'border-l-4 border-l-blue-500' : ''
+                } cursor-pointer hover:bg-gray-50 transition-colors`}
+              >
+                <CardContent className="p-4">
+                  <Stack gap="sm">
+                    <Row justify="between" align="start">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-lg flex items-center justify-center ${getNotificationColor(notification.type)}`}
+                        >
+                          <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4
+                              className={`t-body ${!notification.read ? 'font-bold' : 'font-medium'}`}
+                            >
+                              {notification.title}
+                            </h4>
+                            {notification.important && <Badge variant="tag1" />}
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                            )}
+                          </div>
+                          <p
+                            className={`t-cap ${!notification.read ? 'text-gray-900' : 'text-gray-600'}`}
+                          >
+                            {notification.message}
+                          </p>
+                          <p className="t-cap text-gray-500 mt-1">{notification.time}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" className="text-sm px-2 py-1 h-auto">
+                        ⋯
+                      </Button>
+                    </Row>
+
+                    {/* Action buttons for specific notification types */}
+                    {notification.type === 'safety' && !notification.read && (
+                      <Row gap="sm" className="mt-2">
+                        <Button variant="primary" className="flex-1 text-sm">
+                          교육 받기
+                        </Button>
+                        <Button variant="outline" className="flex-1 text-sm">
+                          나중에
+                        </Button>
+                      </Row>
+                    )}
+
+                    {notification.type === 'documents' && !notification.read && (
+                      <Row gap="sm" className="mt-2">
+                        <Button variant="primary" className="flex-1 text-sm">
+                          문서 제출
+                        </Button>
+                        <Button variant="outline" className="flex-1 text-sm">
+                          확인
+                        </Button>
+                      </Row>
+                    )}
+
+                    {notification.type === 'materials' && (
+                      <Row gap="sm" className="mt-2">
+                        <Button variant="outline" className="flex-1 text-sm">
+                          자세히 보기
+                        </Button>
+                      </Row>
+                    )}
+
+                    {notification.type === 'payroll' && (
+                      <Row gap="sm" className="mt-2">
+                        <Button variant="primary" className="flex-1 text-sm">
+                          급여명세서 보기
+                        </Button>
+                      </Row>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
+            ))}
         </div>
 
-        {filteredNotifications.length === 0 && (
+        {!loading && filteredNotifications.length === 0 && (
           <Card>
             <CardContent className="p-8 text-center">
               <div className="text-4xl mb-4">

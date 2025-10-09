@@ -6,7 +6,7 @@ import { Button } from '@/modules/shared/ui'
 import { NotificationModal } from '../notifications/NotificationModal'
 // Drawer is now managed by MobileLayout, not AppBar
 import { SearchPage } from './SearchPage'
-import { createClient } from '@/lib/supabase/client'
+// Switched to server API for unread count to align with notification_logs
 import { useUser } from '@/hooks/use-user'
 import { useFontSize } from '@/contexts/FontSizeContext'
 
@@ -23,43 +23,23 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user } = useUser()
-  const supabase = createClient()
   const { isLargeFont, toggleFontSize } = useFontSize()
 
   // Fetch notification count function
   const fetchNotificationCount = useCallback(async () => {
     try {
-      // Skip notifications fetch if no user
-      if (!user?.id) {
-        setNotificationCount(0)
-        return
-      }
+      // Skip if no user session (API infers from cookies, but avoid unnecessary calls)
+      if (!user?.id) return setNotificationCount(0)
 
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact' })
-        .eq('user_id', user?.id)
-        .eq('is_read', false)
-
-      if (error) {
-        // Handle specific API errors silently
-        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
-          // Table doesn't exist, set count to 0
-          setNotificationCount(0)
-        } else {
-          // Other errors, use fallback
-          console.warn('Notifications API unavailable:', error.message)
-          setNotificationCount(0)
-        }
-      } else {
-        setNotificationCount(count || 0)
-      }
+      const res = await fetch('/api/notifications/unread-count', { cache: 'no-store' })
+      if (!res.ok) return setNotificationCount(0)
+      const json = await res.json().catch(() => ({ count: 0 }))
+      setNotificationCount(Number(json?.count || 0))
     } catch (error) {
-      // Network or other errors - fail silently with 0 count
-      console.warn('Failed to fetch notification count:', error)
+      // Fail silently
       setNotificationCount(0)
     }
-  }, [supabase, user?.id])
+  }, [user?.id])
 
   // Initialize theme from localStorage
   useEffect(() => {

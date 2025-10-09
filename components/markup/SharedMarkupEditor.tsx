@@ -64,6 +64,7 @@ export function SharedMarkupEditor({
   onClose,
   embedded,
 }: SharedMarkupEditorProps) {
+  const isMobile = Boolean(embedded)
   const [editorState, setEditorState] = React.useState<MarkupEditorState>(() => ({
     currentFile: initialDocument as unknown as any,
     originalBlueprint: null,
@@ -94,7 +95,18 @@ export function SharedMarkupEditor({
   }))
 
   const { zoomIn, zoomOut, resetZoom, pan } = useCanvasState(editorState, setEditorState)
-  const { undo, redo, deleteSelected } = useMarkupTools(editorState, setEditorState)
+  const { undo, redo, deleteSelected, copySelected, paste } = useMarkupTools(
+    editorState,
+    setEditorState
+  )
+
+  // Local tool preferences
+  const [textSize, setTextSize] = React.useState<'small' | 'medium' | 'large'>('medium')
+  const [textColor, setTextColor] = React.useState<'gray' | 'red' | 'blue'>('gray')
+  const [penColor, setPenColor] = React.useState<'gray' | 'red' | 'blue'>('red')
+  const [penWidth, setPenWidth] = React.useState<1 | 3 | 5>(3)
+
+  const [showMobileSheet, setShowMobileSheet] = React.useState(false)
 
   const bgUrl = (initialDocument?.original_blueprint_url || '') as string
 
@@ -127,6 +139,12 @@ export function SharedMarkupEditor({
   // Pointer handlers
   const isPanningRef = React.useRef(false)
   const lastPointRef = React.useRef<{ x: number; y: number } | null>(null)
+  const dragSelectedRef = React.useRef<{
+    active: boolean
+    start: { x: number; y: number } | null
+    initialObjects: MarkupObject[] | null
+    pos: Record<string, { x: number; y: number }>
+  }>({ active: false, start: null, initialObjects: null, pos: {} })
 
   const worldFromClient = React.useCallback(
     (pt: { x: number; y: number }) => {
@@ -175,8 +193,8 @@ export function SharedMarkupEditor({
           createdAt: new Date().toISOString(),
           modifiedAt: new Date().toISOString(),
           content,
-          fontSize: 14,
-          fontColor: '#111827',
+          fontSize: textSize === 'small' ? 12 : textSize === 'large' ? 18 : 14,
+          fontColor: colorToHex(textColor),
         } as any
         addObjectWithUndo(obj)
         return
@@ -203,9 +221,24 @@ export function SharedMarkupEditor({
         return
       }
 
-      // select (simple hit-test)
+      // select (hit-test + drag start)
       const hitId = hitTest(editorState.markupObjects, p)
-      setEditorState(prev => ({ ...prev, selectedObjects: hitId ? [hitId] : [] }))
+      if (hitId) {
+        const selectedIds = [hitId]
+        const pos: Record<string, { x: number; y: number }> = {}
+        editorState.markupObjects.forEach((o: any) => {
+          if (selectedIds.includes(o.id)) pos[o.id] = { x: o.x, y: o.y }
+        })
+        dragSelectedRef.current = {
+          active: true,
+          start: p,
+          initialObjects: editorState.markupObjects,
+          pos,
+        }
+        setEditorState(prev => ({ ...prev, selectedObjects: selectedIds }))
+        return
+      }
+      setEditorState(prev => ({ ...prev, selectedObjects: [] }))
     },
     [
       editorState.toolState.activeTool,
@@ -227,6 +260,31 @@ export function SharedMarkupEditor({
         return
       }
 
+      // handle dragging selected in select mode
+      if (editorState.toolState.activeTool === 'select' && dragSelectedRef.current.active) {
+        const start = dragSelectedRef.current.start
+        if (start) {
+          const now = worldFromClient(client)
+          const dx = now.x - start.x
+          const dy = now.y - start.y
+          const base = dragSelectedRef.current.pos
+          setEditorState(prev => ({
+            ...prev,
+            markupObjects: prev.markupObjects.map((o: any) =>
+              prev.selectedObjects.includes(o.id)
+                ? {
+                    ...o,
+                    x: (base[o.id]?.x ?? o.x) + dx,
+                    y: (base[o.id]?.y ?? o.y) + dy,
+                    modifiedAt: new Date().toISOString(),
+                  }
+                : o
+            ),
+          }))
+        }
+        return
+      }
+
       if (!editorState.toolState.isDrawing) return
 
       if (tool === 'pen' && (lastPointRef as any).currentPath) {
@@ -243,6 +301,18 @@ export function SharedMarkupEditor({
       if (tool === 'pan') {
         isPanningRef.current = false
         lastPointRef.current = null
+        return
+      }
+
+      if (tool === 'select' && dragSelectedRef.current.active) {
+        const init = dragSelectedRef.current.initialObjects
+        dragSelectedRef.current.active = false
+        dragSelectedRef.current.start = null
+        dragSelectedRef.current.initialObjects = null
+        dragSelectedRef.current.pos = {}
+        if (init) {
+          setEditorState(prev => ({ ...prev, undoStack: [...prev.undoStack, init], redoStack: [] }))
+        }
         return
       }
 
@@ -283,8 +353,8 @@ export function SharedMarkupEditor({
             x: path[0].x,
             y: path[0].y,
             path,
-            strokeColor: '#ef4444',
-            strokeWidth: 2,
+            strokeColor: colorToHex(penColor),
+            strokeWidth: penWidth,
             createdAt: new Date().toISOString(),
             modifiedAt: new Date().toISOString(),
           } as any
@@ -332,133 +402,155 @@ export function SharedMarkupEditor({
     await onSave?.(payload)
   }
 
-  return (
-    <div className="flex h-full w-full flex-col gap-2">
-      {/* Top toolbar */}
-      <TopToolbar>
-        <div className="flex items-center gap-2">
-          <button
-            className={`px-2 py-1 rounded border ${editorState.toolState.activeTool === 'select' ? 'bg-gray-100' : ''}`}
-            onClick={() => setTool('select')}
-          >
-            선택
-          </button>
-          <button
-            className={`px-2 py-1 rounded border ${editorState.toolState.activeTool === 'pan' ? 'bg-gray-100' : ''}`}
-            onClick={() => setTool('pan')}
-          >
-            팬
-          </button>
-          <button className="px-2 py-1 rounded border" onClick={zoomOut}>
-            -
-          </button>
-          <button className="px-2 py-1 rounded border" onClick={zoomIn}>
-            +
-          </button>
-          <button className="px-2 py-1 rounded border" onClick={resetZoom}>
-            100%
-          </button>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-2 py-1 rounded border"
-            onClick={undo}
-            disabled={editorState.undoStack.length === 0}
-          >
-            되돌리기
-          </button>
-          <button
-            className="px-2 py-1 rounded border"
-            onClick={redo}
-            disabled={editorState.redoStack.length === 0}
-          >
-            다시하기
-          </button>
-          <button
-            className="px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-            onClick={doSave}
-            disabled={editorState.isSaving}
-          >
-            저장
-          </button>
-          {onClose && (
-            <button className="px-3 py-1.5 rounded border" onClick={onClose}>
-              닫기
-            </button>
-          )}
-        </div>
-      </TopToolbar>
+  const ContextContent = () => (
+    <>
+      {editorState.selectedObjects.length > 0 ? (
+        <>
+          <div className="text-xs font-medium text-gray-500">선택 항목</div>
+          <div className="grid gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                className="px-2 py-1 rounded border"
+                onClick={() => deleteSelected()}
+                disabled={editorState.selectedObjects.length === 0}
+              >
+                삭제
+              </button>
+              <button
+                className="px-2 py-1 rounded border"
+                onClick={copySelected}
+                disabled={editorState.selectedObjects.length === 0}
+              >
+                복사
+              </button>
+              <button
+                className="px-2 py-1 rounded border"
+                onClick={paste}
+                disabled={editorState.toolState.clipboard.length === 0}
+              >
+                붙여넣기
+              </button>
+            </div>
 
-      {/* Middle area */}
-      <div className="flex min-h-0 flex-1 gap-2">
-        {/* Tool palette */}
-        <div className="w-56 shrink-0">
-          <ToolPalette>
-            <div className="grid gap-3">
-              <div className="text-xs font-medium text-gray-500">도구</div>
-              <div className="grid grid-cols-3 gap-2">
-                <IconToggle
-                  active={editorState.toolState.activeTool === 'select'}
-                  label="선택"
-                  onClick={() => setTool('select')}
-                >
-                  <MousePointer className="w-4 h-4" />
-                </IconToggle>
-                <IconToggle
-                  active={editorState.toolState.activeTool === 'pan'}
-                  label="이동"
-                  onClick={() => setTool('pan')}
-                >
-                  <Hand className="w-4 h-4" />
-                </IconToggle>
-                <IconToggle
-                  active={editorState.toolState.activeTool === 'pen'}
-                  label="펜"
-                  onClick={() => setTool('pen')}
-                >
-                  <Pencil className="w-4 h-4" />
-                </IconToggle>
-                <IconToggle
-                  active={editorState.toolState.activeTool === 'text'}
-                  label="텍스트"
-                  onClick={() => setTool('text')}
-                >
-                  <TypeIcon className="w-4 h-4" />
-                </IconToggle>
-                <IconToggle
-                  active={editorState.toolState.activeTool === 'stamp'}
-                  label="스탬프"
-                  onClick={() => setTool('stamp')}
-                >
-                  <StampIcon className="w-4 h-4" />
-                </IconToggle>
-              </div>
-
-              <div className="h-px bg-gray-200" />
+            {editorState.selectedObjects.length === 1 &&
+              (() => {
+                const sel = editorState.markupObjects.find(
+                  o => o.id === editorState.selectedObjects[0]
+                ) as any
+                if (!sel) return null
+                const apply = (updates: Partial<any>) => {
+                  setEditorState(prev => ({
+                    ...prev,
+                    undoStack: [...prev.undoStack, prev.markupObjects],
+                    redoStack: [],
+                    markupObjects: prev.markupObjects.map((o: any) =>
+                      o.id === sel.id
+                        ? { ...o, ...updates, modifiedAt: new Date().toISOString() }
+                        : o
+                    ),
+                  }))
+                }
+                if (sel.type === 'box') {
+                  return (
+                    <div className="grid gap-2">
+                      <div className="text-xs text-gray-500">색/의미</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <ColorTool
+                          color="gray"
+                          active={sel.color === 'gray'}
+                          label="자재구간"
+                          onClick={() => apply({ color: 'gray', label: '자재구간' })}
+                        />
+                        <ColorTool
+                          color="red"
+                          active={sel.color === 'red'}
+                          label="작업진행"
+                          onClick={() => apply({ color: 'red', label: '작업진행' })}
+                        />
+                        <ColorTool
+                          color="blue"
+                          active={sel.color === 'blue'}
+                          label="작업완료"
+                          onClick={() => apply({ color: 'blue', label: '작업완료' })}
+                        />
+                      </div>
+                    </div>
+                  )
+                }
+                if (sel.type === 'text') {
+                  return (
+                    <div className="grid gap-2">
+                      <div className="text-xs text-gray-500">텍스트 편집</div>
+                      <button
+                        className="px-2 py-1 rounded border"
+                        onClick={() => {
+                          const t = window.prompt('텍스트 수정', sel.content || '')
+                          if (t != null) apply({ content: t })
+                        }}
+                      >
+                        내용 수정
+                      </button>
+                    </div>
+                  )
+                }
+                if (sel.type === 'stamp') {
+                  return (
+                    <div className="grid gap-2">
+                      <div className="text-xs text-gray-500">스탬프 속성</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <StampColor
+                          color="red"
+                          active={sel.color === 'red'}
+                          onClick={() => apply({ color: 'red' })}
+                        />
+                        <StampColor
+                          color="blue"
+                          active={sel.color === 'blue'}
+                          onClick={() => apply({ color: 'blue' })}
+                        />
+                        <StampColor
+                          color="gray"
+                          active={sel.color === 'gray'}
+                          onClick={() => apply({ color: 'gray' })}
+                        />
+                      </div>
+                    </div>
+                  )
+                }
+                return null
+              })()}
+          </div>
+        </>
+      ) : (
+        <>
+          {editorState.toolState.activeTool.startsWith('box-') && (
+            <>
               <div className="text-xs font-medium text-gray-500">박스</div>
               <div className="grid grid-cols-3 gap-2">
                 <ColorTool
+                  color="gray"
+                  active={editorState.toolState.activeTool === 'box-gray'}
+                  label="자재구간"
+                  onClick={() => setTool('box-gray')}
+                />
+                <ColorTool
                   color="red"
                   active={editorState.toolState.activeTool === 'box-red'}
-                  label="박스 빨강"
+                  label="작업진행"
                   onClick={() => setTool('box-red')}
                 />
                 <ColorTool
                   color="blue"
                   active={editorState.toolState.activeTool === 'box-blue'}
-                  label="박스 파랑"
+                  label="작업완료"
                   onClick={() => setTool('box-blue')}
                 />
-                <ColorTool
-                  color="gray"
-                  active={editorState.toolState.activeTool === 'box-gray'}
-                  label="박스 회색"
-                  onClick={() => setTool('box-gray')}
-                />
               </div>
-
-              <div className="h-px bg-gray-200" />
-              <div className="text-xs font-medium text-gray-500">스탬프 설정</div>
+            </>
+          )}
+          {editorState.toolState.activeTool === 'stamp' && (
+            <>
+              <div className="text-xs font-medium text-gray-500">스탬프</div>
               <div className="grid gap-2">
                 <div className="grid grid-cols-3 gap-2">
                   <StampColor
@@ -483,32 +575,268 @@ export function SharedMarkupEditor({
                     onClick={() => setStamp({ color: 'gray' })}
                   />
                 </div>
-                <select
-                  className="rounded border px-2 py-1"
-                  value={editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape}
-                  onChange={e => setStamp({ shape: e.target.value as any })}
-                >
-                  <option value="circle">원</option>
-                  <option value="triangle">삼각형</option>
-                  <option value="square">사각형</option>
-                  <option value="star">별</option>
-                </select>
-                <select
-                  className="rounded border px-2 py-1"
-                  value={editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size}
-                  onChange={e => setStamp({ size: e.target.value as any })}
-                >
-                  <option value="small">작게</option>
-                  <option value="medium">중간</option>
-                  <option value="large">크게</option>
-                </select>
-                <button className="px-2 py-1 rounded border" onClick={() => deleteSelected()}>
-                  선택 삭제
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ShapeChip
+                    shape="circle"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) ===
+                      'circle'
+                    }
+                    onClick={() => setStamp({ shape: 'circle' })}
+                  />
+                  <ShapeChip
+                    shape="triangle"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) ===
+                      'triangle'
+                    }
+                    onClick={() => setStamp({ shape: 'triangle' })}
+                  />
+                  <ShapeChip
+                    shape="square"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) ===
+                      'square'
+                    }
+                    onClick={() => setStamp({ shape: 'square' })}
+                  />
+                  <ShapeChip
+                    shape="star"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'star'
+                    }
+                    onClick={() => setStamp({ shape: 'star' })}
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <SizeChip
+                    size="small"
+                    active={
+                      (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'small'
+                    }
+                    onClick={() => setStamp({ size: 'small' })}
+                  />
+                  <SizeChip
+                    size="medium"
+                    active={
+                      (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'medium'
+                    }
+                    onClick={() => setStamp({ size: 'medium' })}
+                  />
+                  <SizeChip
+                    size="large"
+                    active={
+                      (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'large'
+                    }
+                    onClick={() => setStamp({ size: 'large' })}
+                  />
+                </div>
               </div>
-            </div>
-          </ToolPalette>
-        </div>
+            </>
+          )}
+          {editorState.toolState.activeTool === 'text' && (
+            <>
+              <div className="text-xs font-medium text-gray-500">텍스트</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <SizeChip
+                  size="small"
+                  active={textSize === 'small'}
+                  onClick={() => setTextSize('small')}
+                />
+                <SizeChip
+                  size="medium"
+                  active={textSize === 'medium'}
+                  onClick={() => setTextSize('medium')}
+                />
+                <SizeChip
+                  size="large"
+                  active={textSize === 'large'}
+                  onClick={() => setTextSize('large')}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StampColor
+                  color="gray"
+                  active={textColor === 'gray'}
+                  onClick={() => setTextColor('gray')}
+                />
+                <StampColor
+                  color="red"
+                  active={textColor === 'red'}
+                  onClick={() => setTextColor('red')}
+                />
+                <StampColor
+                  color="blue"
+                  active={textColor === 'blue'}
+                  onClick={() => setTextColor('blue')}
+                />
+              </div>
+            </>
+          )}
+          {editorState.toolState.activeTool === 'pen' && (
+            <>
+              <div className="text-xs font-medium text-gray-500">펜</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <StampColor
+                  color="gray"
+                  active={penColor === 'gray'}
+                  onClick={() => setPenColor('gray')}
+                />
+                <StampColor
+                  color="red"
+                  active={penColor === 'red'}
+                  onClick={() => setPenColor('red')}
+                />
+                <StampColor
+                  color="blue"
+                  active={penColor === 'blue'}
+                  onClick={() => setPenColor('blue')}
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <WidthChip w={1} active={penWidth === 1} onClick={() => setPenWidth(1)} />
+                <WidthChip w={3} active={penWidth === 3} onClick={() => setPenWidth(3)} />
+                <WidthChip w={5} active={penWidth === 5} onClick={() => setPenWidth(5)} />
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </>
+  )
+
+  return (
+    <div className="flex h-full w-full flex-col gap-2">
+      {/* Top toolbar (desktop/admin only) */}
+      {!isMobile && (
+        <TopToolbar>
+          <div className="flex items-center gap-2">
+            <button
+              className={`px-2 py-1 rounded border ${editorState.toolState.activeTool === 'select' ? 'bg-gray-100' : ''}`}
+              onClick={() => setTool('select')}
+            >
+              선택
+            </button>
+            <button
+              className={`px-2 py-1 rounded border ${editorState.toolState.activeTool === 'pan' ? 'bg-gray-100' : ''}`}
+              onClick={() => setTool('pan')}
+            >
+              팬
+            </button>
+            <button className="px-2 py-1 rounded border" onClick={zoomOut}>
+              -
+            </button>
+            <button className="px-2 py-1 rounded border" onClick={zoomIn}>
+              +
+            </button>
+            <button className="px-2 py-1 rounded border" onClick={resetZoom}>
+              100%
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-2 py-1 rounded border"
+              onClick={undo}
+              disabled={editorState.undoStack.length === 0}
+            >
+              되돌리기
+            </button>
+            <button
+              className="px-2 py-1 rounded border"
+              onClick={redo}
+              disabled={editorState.redoStack.length === 0}
+            >
+              다시하기
+            </button>
+            <button
+              className="px-2 py-1 rounded border"
+              onClick={copySelected}
+              disabled={editorState.selectedObjects.length === 0}
+              title="선택 복사"
+            >
+              복사
+            </button>
+            <button
+              className="px-2 py-1 rounded border"
+              onClick={paste}
+              disabled={editorState.toolState.clipboard.length === 0}
+              title="붙여넣기"
+            >
+              붙여넣기
+            </button>
+            <button
+              className="px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+              onClick={doSave}
+              disabled={editorState.isSaving}
+            >
+              저장
+            </button>
+            {onClose && (
+              <button className="px-3 py-1.5 rounded border" onClick={onClose}>
+                닫기
+              </button>
+            )}
+          </div>
+        </TopToolbar>
+      )}
+
+      {/* Middle area */}
+      <div className="flex min-h-0 flex-1 gap-2">
+        {/* Tool palette */}
+        {!isMobile && (
+          <div className="w-56 shrink-0">
+            <ToolPalette>
+              <div className="grid gap-3">
+                <div className="text-xs font-medium text-gray-500">도구</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <IconToggle
+                    active={editorState.toolState.activeTool === 'select'}
+                    label="선택"
+                    onClick={() => setTool('select')}
+                  >
+                    <MousePointer className="w-4 h-4" />
+                  </IconToggle>
+                  <IconToggle
+                    active={editorState.toolState.activeTool === 'pan'}
+                    label="이동"
+                    onClick={() => setTool('pan')}
+                  >
+                    <Hand className="w-4 h-4" />
+                  </IconToggle>
+                  <IconToggle
+                    active={editorState.toolState.activeTool === 'pen'}
+                    label="펜"
+                    onClick={() => setTool('pen')}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </IconToggle>
+                  <IconToggle
+                    active={editorState.toolState.activeTool === 'text'}
+                    label="텍스트"
+                    onClick={() => setTool('text')}
+                  >
+                    <TypeIcon className="w-4 h-4" />
+                  </IconToggle>
+                  <IconToggle
+                    active={editorState.toolState.activeTool === 'stamp'}
+                    label="스탬프"
+                    onClick={() => setTool('stamp')}
+                  >
+                    <StampIcon className="w-4 h-4" />
+                  </IconToggle>
+                  <IconToggle
+                    active={editorState.toolState.activeTool.startsWith('box-')}
+                    label="박스"
+                    onClick={() => setTool('box-gray')}
+                  >
+                    <Square className="w-4 h-4" />
+                  </IconToggle>
+                </div>
+                <ContextContent />
+              </div>
+            </ToolPalette>
+          </div>
+        )}
 
         {/* Canvas */}
         <div className="min-h-0 flex-1">
@@ -525,13 +853,98 @@ export function SharedMarkupEditor({
       </div>
 
       {/* Bottom status bar */}
-      <BottomStatusbar>
-        <div className="flex items-center gap-3">
-          <span>줌: {Math.round(editorState.viewerState.zoom * 100)}%</span>
-          <span>선택: {editorState.selectedObjects.length}개</span>
-          <span>객체: {editorState.markupObjects.length}개</span>
-        </div>
-      </BottomStatusbar>
+      {!isMobile && (
+        <BottomStatusbar>
+          <div className="flex items-center gap-3">
+            <span>줌: {Math.round(editorState.viewerState.zoom * 100)}%</span>
+            <span>선택: {editorState.selectedObjects.length}개</span>
+            <span>객체: {editorState.markupObjects.length}개</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2" />
+        </BottomStatusbar>
+      )}
+
+      {/* Mobile bottom toolbar + sheet */}
+      {isMobile && (
+        <>
+          <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-white">
+            <div className="flex items-center justify-between px-2 py-2">
+              <div className="flex items-center gap-2">
+                <IconToggle
+                  active={editorState.toolState.activeTool === 'select'}
+                  label="선택"
+                  onClick={() => setTool('select')}
+                >
+                  <MousePointer className="w-5 h-5" />
+                </IconToggle>
+                <IconToggle
+                  active={editorState.toolState.activeTool === 'pan'}
+                  label="이동"
+                  onClick={() => setTool('pan')}
+                >
+                  <Hand className="w-5 h-5" />
+                </IconToggle>
+                <IconToggle
+                  active={editorState.toolState.activeTool.startsWith('box-')}
+                  label="박스"
+                  onClick={() => setTool('box-gray')}
+                >
+                  <Square className="w-5 h-5" />
+                </IconToggle>
+                <IconToggle
+                  active={editorState.toolState.activeTool === 'text'}
+                  label="텍스트"
+                  onClick={() => setTool('text')}
+                >
+                  <TypeIcon className="w-5 h-5" />
+                </IconToggle>
+                <IconToggle
+                  active={editorState.toolState.activeTool === 'pen'}
+                  label="펜"
+                  onClick={() => setTool('pen')}
+                >
+                  <Pencil className="w-5 h-5" />
+                </IconToggle>
+                <IconToggle
+                  active={editorState.toolState.activeTool === 'stamp'}
+                  label="스탬프"
+                  onClick={() => setTool('stamp')}
+                >
+                  <StampIcon className="w-5 h-5" />
+                </IconToggle>
+              </div>
+              <button
+                type="button"
+                className="px-3 py-1.5 text-sm rounded-md border"
+                onClick={() => setShowMobileSheet(s => !s)}
+              >
+                설정
+              </button>
+            </div>
+          </div>
+
+          {showMobileSheet && (
+            <>
+              <div
+                className="fixed inset-0 z-40 bg-black/30"
+                onClick={() => setShowMobileSheet(false)}
+              />
+              <div className="fixed inset-x-0 bottom-12 z-50 max-h-[55vh] overflow-y-auto rounded-t-2xl border-t bg-white p-4 shadow-xl">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-700">도구 설정</div>
+                  <button
+                    className="px-2 py-1 text-sm rounded border"
+                    onClick={() => setShowMobileSheet(false)}
+                  >
+                    닫기
+                  </button>
+                </div>
+                <ContextContent />
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   )
 }
@@ -667,5 +1080,96 @@ function StampColor({
       onClick={onClick}
       className={`h-7 w-7 rounded-full ${bg} ${active ? 'ring-2 ring-blue-500' : ''}`}
     />
+  )
+}
+
+function SizeChip({
+  size,
+  active,
+  onClick,
+}: {
+  size: 'small' | 'medium' | 'large'
+  active?: boolean
+  onClick?: () => void
+}) {
+  const label = size === 'small' ? 'S' : size === 'large' ? 'L' : 'M'
+  return (
+    <button
+      type="button"
+      aria-label={`크기 ${label}`}
+      title={`크기 ${label}`}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs ${
+        active ? 'ring-2 ring-blue-500 bg-gray-50' : ''
+      }`}
+    >
+      {label}
+    </button>
+  )
+}
+
+function WidthChip({
+  w,
+  active,
+  onClick,
+}: {
+  w: 1 | 3 | 5
+  active?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`굵기 ${w}px`}
+      title={`굵기 ${w}px`}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center rounded-md border px-2 py-1 text-xs ${
+        active ? 'ring-2 ring-blue-500 bg-gray-50' : ''
+      }`}
+    >
+      {w}px
+    </button>
+  )
+}
+
+function ShapeChip({
+  shape,
+  active,
+  onClick,
+}: {
+  shape: 'circle' | 'triangle' | 'square' | 'star'
+  active?: boolean
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={`모양 ${shape}`}
+      title={`모양 ${shape}`}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center rounded-md border px-2 py-1 ${
+        active ? 'ring-2 ring-blue-500 bg-gray-50' : ''
+      }`}
+    >
+      {shape === 'circle' && (
+        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+          <circle cx="6" cy="6" r="5" fill="#374151" />
+        </svg>
+      )}
+      {shape === 'triangle' && (
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <polygon points="6,1 11,11 1,11" fill="#374151" />
+        </svg>
+      )}
+      {shape === 'square' && <span className="inline-block h-3 w-3 bg-gray-700" />}
+      {shape === 'star' && (
+        <svg width="12" height="12" viewBox="0 0 24 24">
+          <path
+            d="M12 2l3.09 6.26L22 9.27l-5 4.9L18.18 22 12 18.77 5.82 22 7 14.17l-5-4.9 6.91-1.01z"
+            fill="#374151"
+          />
+        </svg>
+      )}
+    </button>
   )
 }

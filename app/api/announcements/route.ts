@@ -62,6 +62,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create announcement' }, { status: 500 })
     }
 
+    // Fire-and-forget push notifications to targeted users/sites/roles
+    try {
+      const origin = request.nextUrl.origin
+      const payload = {
+        notificationType: 'site_announcement',
+        payload: {
+          title: `📢 ${title}`,
+          body: String(content || '').slice(0, 200),
+          urgency: ['urgent', 'high'].includes(priority) ? 'high' : 'low',
+          data: {
+            announcementId: announcement.id,
+            priority,
+          },
+        },
+        // include target filters if provided
+        ...(targetSiteIds && targetSiteIds.length ? { siteIds: targetSiteIds } : {}),
+        ...(targetRoles && targetRoles.length ? { roles: targetRoles } : {}),
+      }
+      await fetch(`${origin}/api/notifications/push`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Forward cookies to preserve session for requireApiAuth
+          Cookie: request.headers.get('cookie') || '',
+        },
+        body: JSON.stringify(payload),
+      }).catch(() => {})
+    } catch (e) {
+      // Non-blocking
+      console.warn('Announcement push dispatch failed:', e)
+    }
+
     return NextResponse.json({
       success: true,
       data: announcement,
