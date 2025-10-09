@@ -14,7 +14,7 @@ export const BrandTabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'flex items-center gap-1 rounded-xl border-0 shadow bg-gradient-to-r from-[--brand-600] to-[--brand-700] p-1',
+      'flex items-center gap-1 rounded-xl border-0 shadow bg-gradient-to-r from-[--brand-600] to-[--brand-700] p-1 min-w-0',
       fill ? 'w-full' : '',
       className
     )}
@@ -31,7 +31,7 @@ export const BrandTabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center justify-center gap-2 px-3 py-1.5 text-sm rounded-md transition-colors',
-      fill ? 'flex-1 text-center' : '',
+      fill ? 'flex-1 basis-0 grow text-center' : '',
       'text-white/90 hover:text-white',
       'data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md',
       className

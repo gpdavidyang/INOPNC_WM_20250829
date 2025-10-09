@@ -179,10 +179,22 @@ const systemCategory = {
   collapsible: true,
   items: [
     {
+      id: 'system',
+      label: '시스템 설정',
+      icon: Settings,
+      href: '/dashboard/admin/system',
+    },
+    {
       id: 'work-options',
       label: '작업 옵션 관리',
       icon: Settings,
       href: '/dashboard/admin/work-options',
+    },
+    {
+      id: 'audit-logs',
+      label: '감사 로그',
+      icon: FileText,
+      href: '/dashboard/admin/audit-logs',
     },
     {
       id: 'documents-company',
