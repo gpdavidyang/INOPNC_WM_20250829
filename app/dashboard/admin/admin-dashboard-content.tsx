@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { QuickAction } from '@/types'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
@@ -300,22 +299,42 @@ export function AdminDashboardContent() {
               {quickActions.map(action => {
                 const IconComponent = ICON_MAP[action.icon_name] || Home
 
-                return (
-                  <Link key={action.id} href={action.link_url}>
-                    <Button
-                      variant="outline"
-                      className={`${
-                        touchMode === 'glove' ? 'h-14' : touchMode === 'precision' ? 'h-10' : 'h-12'
-                      } flex items-center justify-center gap-2 w-full hover:bg-gray-50 dark:hover:bg-gray-700 px-2`}
-                      title={action.description}
+                const baseClass = `${
+                  touchMode === 'glove' ? 'h-14' : touchMode === 'precision' ? 'h-10' : 'h-12'
+                } flex items-center justify-center gap-2 w-full border border-[--brand-400] hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md px-2 text-[--brand-700]`
+
+                const content = (
+                  <>
+                    <IconComponent className="h-4 w-4 flex-shrink-0" />
+                    <span
+                      className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} truncate`}
                     >
-                      <IconComponent className="h-4 w-4 flex-shrink-0" />
-                      <span
-                        className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} truncate`}
-                      >
-                        {action.title}
-                      </span>
-                    </Button>
+                      {action.title}
+                    </span>
+                  </>
+                )
+
+                const url = String(action.link_url || '#')
+                const isExternal = /^https?:\/\//i.test(url)
+                return isExternal ? (
+                  <a
+                    key={action.id}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={baseClass}
+                    title={action.description || ''}
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <Link
+                    key={action.id}
+                    href={url}
+                    className={baseClass}
+                    title={action.description || ''}
+                  >
+                    {content}
                   </Link>
                 )
               })}
