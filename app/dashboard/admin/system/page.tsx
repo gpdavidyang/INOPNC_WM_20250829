@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getSystemStats, getSystemConfigurations } from '@/app/actions/admin/system'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
 import SystemConfigsTable from '@/components/admin/SystemConfigsTable'
-import { Badge } from '@/components/ui/badge'
+import StatsCard from '@/components/ui/stats-card'
 import { formatBytes } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -28,124 +28,17 @@ export default async function SystemManagementPage() {
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>사용자</CardTitle>
-            <CardDescription>전체/활성 (30일)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {stats ? (
-                <span>
-                  {stats.total_users}{' '}
-                  <span className="text-muted-foreground text-base">/ {stats.active_users}</span>
-                </span>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>현장</CardTitle>
-            <CardDescription>전체/활성</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {stats ? (
-                <span>
-                  {stats.total_sites}{' '}
-                  <span className="text-muted-foreground text-base">/ {stats.active_sites}</span>
-                </span>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>문서</CardTitle>
-            <CardDescription>저장소 사용량 포함</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {stats ? (
-                <span>{stats.total_documents}</span>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground mt-1">
-              저장소: {stats ? formatBytes(stats.storage_used * 1024 * 1024) : '-'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>일일보고</CardTitle>
-            <CardDescription>총 보고서 수</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {stats ? (
-                <span>{stats.total_reports}</span>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>백업 상태</CardTitle>
-            <CardDescription>최근 백업 시각</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              {stats ? (
-                <Badge
-                  variant={
-                    stats.backup_status === 'healthy'
-                      ? 'default'
-                      : stats.backup_status === 'warning'
-                        ? 'outline'
-                        : 'outline'
-                  }
-                >
-                  {stats.backup_status === 'healthy'
-                    ? '정상'
-                    : stats.backup_status === 'warning'
-                      ? '경고'
-                      : '오류'}
-                </Badge>
-              ) : (
-                <span className="text-muted-foreground text-sm">-</span>
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground mt-2">
-              {stats ? new Date(stats.last_backup).toLocaleString('ko-KR') : '-'}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>시스템 버전</CardTitle>
-            <CardDescription>현재 배포 버전</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-semibold">
-              {stats ? stats.system_version : <span className="text-muted-foreground">-</span>}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-6 mb-8">
+        <StatsCard label="전체 사용자" value={Number(stats?.total_users ?? 0)} unit="person" />
+        <StatsCard label="활성 사용자(30일)" value={Number(stats?.active_users ?? 0)} unit="person" />
+        <StatsCard label="전체 현장" value={Number(stats?.total_sites ?? 0)} unit="site" />
+        <StatsCard label="활성 현장" value={Number(stats?.active_sites ?? 0)} unit="site" />
+        <StatsCard label="문서 총수" value={Number(stats?.total_documents ?? 0)} unit="count" />
+        <StatsCard label="저장소 사용량" value={stats ? formatBytes(stats.storage_used * 1024 * 1024) : '-'} />
+        <StatsCard label="일일보고 총수" value={Number(stats?.total_reports ?? 0)} unit="count" />
+        <StatsCard label="백업 상태" value={stats ? (stats.backup_status === 'healthy' ? '정상' : stats.backup_status === 'warning' ? '경고' : '오류') : '-'} />
+        <StatsCard label="최근 백업" value={stats ? new Date(stats.last_backup).toLocaleString('ko-KR') : '-'} />
+        <StatsCard label="시스템 버전" value={stats ? String(stats.system_version) : '-'} />
       </div>
 
       <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
