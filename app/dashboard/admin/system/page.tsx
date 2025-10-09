@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatBytes } from '@/lib/utils'
 
 export const metadata: Metadata = {
-  title: '시스템 관리',
+  title: '시스템 설정',
 }
 
 export default async function SystemManagementPage() {
@@ -22,9 +22,9 @@ export default async function SystemManagementPage() {
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="시스템 관리"
+        title="시스템 설정"
         description="설정과 지표를 읽기 전용으로 표시"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '시스템 관리' }]}
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '시스템 설정' }]}
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
 

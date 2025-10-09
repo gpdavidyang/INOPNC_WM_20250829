@@ -195,6 +195,7 @@ const systemCategory = {
       label: '감사 로그',
       icon: FileText,
       href: '/dashboard/admin/audit-logs',
+      hidden: true,
     },
     {
       id: 'documents-company',
