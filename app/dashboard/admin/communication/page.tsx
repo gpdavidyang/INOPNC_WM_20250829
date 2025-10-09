@@ -200,7 +200,7 @@ export default async function CommunicationManagementPage({
             </CardHeader>
             <CardContent>
               <div className="mb-3 flex items-center gap-2">
-                <form method="GET" className="flex items-center gap-2">
+                <form method="GET" className="flex items-center gap-2 flex-nowrap">
                   <input type="hidden" name="tab" value="announcements" />
                   <Input
                     name="search"
@@ -226,7 +226,7 @@ export default async function CommunicationManagementPage({
             </CardHeader>
             <CardContent>
               <div className="mb-3">
-                <form method="GET" className="flex items-center gap-2">
+                <form method="GET" className="flex items-center gap-2 flex-nowrap">
                   <input type="hidden" name="tab" value="logs" />
                   <Input
                     name="search"
