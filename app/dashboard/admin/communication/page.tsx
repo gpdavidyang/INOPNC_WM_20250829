@@ -96,7 +96,7 @@ export default async function CommunicationManagementPage({
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
         title="커뮤니케이션 센터"
-        description="공지 작성, 전달 로그, 분석을 통합 관리합니다"
+        description="공지 작성과 전달 로그를 통합 관리합니다"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '커뮤니케이션' }]}
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
