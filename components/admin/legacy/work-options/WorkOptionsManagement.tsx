@@ -1,6 +1,5 @@
 'use client'
 
-
 export function WorkOptionsManagement() {
   const [componentTypes, setComponentTypes] = useState<WorkOptionSetting[]>([])
   const [processTypes, setProcessTypes] = useState<WorkOptionSetting[]>([])
@@ -16,15 +15,15 @@ export function WorkOptionsManagement() {
       setLoading(true)
       const response = await fetch('/api/admin/work-options')
       if (!response.ok) throw new Error('Failed to fetch options')
-      
+
       const data: WorkOptionSetting[] = await response.json()
-      
+
       setComponentTypes(
         data
           .filter(opt => opt.option_type === 'component_type' && opt.is_active)
           .sort((a, b) => a.display_order - b.display_order)
       )
-      
+
       setProcessTypes(
         data
           .filter(opt => opt.option_type === 'process_type' && opt.is_active)
@@ -40,15 +39,15 @@ export function WorkOptionsManagement() {
 
   useEffect(() => {
     let isCancelled = false
-    
+
     const loadData = async () => {
       if (!isCancelled) {
         await fetchOptions()
       }
     }
-    
+
     loadData()
-    
+
     return () => {
       isCancelled = true
     }
@@ -69,10 +68,9 @@ export function WorkOptionsManagement() {
           option_type: type,
           option_value: label.toLowerCase().replace(/\s+/g, '_'),
           option_label: label,
-          display_order: type === 'component_type' 
-            ? componentTypes.length + 1 
-            : processTypes.length + 1
-        })
+          display_order:
+            type === 'component_type' ? componentTypes.length + 1 : processTypes.length + 1,
+        }),
       })
 
       if (!response.ok) {
@@ -81,14 +79,14 @@ export function WorkOptionsManagement() {
       }
 
       toast.success('옵션이 추가되었습니다')
-      
+
       // Clear input
       if (type === 'component_type') {
         setNewComponentLabel('')
       } else {
         setNewProcessLabel('')
       }
-      
+
       // Refresh data
       await fetchOptions()
     } catch (error) {
@@ -110,8 +108,8 @@ export function WorkOptionsManagement() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id,
-          option_label: editingValue
-        })
+          option_label: editingValue,
+        }),
       })
 
       if (!response.ok) throw new Error('Failed to update option')
@@ -126,7 +124,6 @@ export function WorkOptionsManagement() {
     }
   }
 
-
   // Delete option (soft delete by setting is_active to false)
   const handleDelete = async (id: string) => {
     if (!confirm('정말로 이 옵션을 삭제하시겠습니까?')) {
@@ -135,7 +132,7 @@ export function WorkOptionsManagement() {
 
     try {
       const response = await fetch(`/api/admin/work-options?id=${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       if (!response.ok) {
@@ -152,9 +149,16 @@ export function WorkOptionsManagement() {
   }
 
   // Update display order
-  const handleOrderChange = async (id: string, direction: 'up' | 'down', options: WorkOptionSetting[]) => {
+  const handleOrderChange = async (
+    id: string,
+    direction: 'up' | 'down',
+    options: WorkOptionSetting[]
+  ) => {
     const index = options.findIndex(opt => opt.id === id)
-    if ((direction === 'up' && index === 0) || (direction === 'down' && index === options.length - 1)) {
+    if (
+      (direction === 'up' && index === 0) ||
+      (direction === 'down' && index === options.length - 1)
+    ) {
       return
     }
 
@@ -170,17 +174,17 @@ export function WorkOptionsManagement() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: currentOption.id,
-            display_order: swapOption.display_order
-          })
+            display_order: swapOption.display_order,
+          }),
         }),
         fetch('/api/admin/work-options', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: swapOption.id,
-            display_order: currentOption.display_order
-          })
-        })
+            display_order: currentOption.display_order,
+          }),
+        }),
       ])
 
       toast.success('순서가 변경되었습니다')
@@ -192,7 +196,10 @@ export function WorkOptionsManagement() {
   }
 
   // Render option list
-  const renderOptionList = (options: WorkOptionSetting[], type: 'component_type' | 'process_type') => (
+  const renderOptionList = (
+    options: WorkOptionSetting[],
+    type: 'component_type' | 'process_type'
+  ) => (
     <div className="space-y-2">
       {options.map((option, index) => (
         <div
@@ -216,14 +223,14 @@ export function WorkOptionsManagement() {
                 <ArrowDown className="h-3 w-3" />
               </button>
             </div>
-            
+
             {editingId === option.id ? (
               <Input
                 value={editingValue}
-                onChange={(e) => setEditingValue(e.target.value)}
+                onChange={e => setEditingValue(e.target.value)}
                 className="max-w-xs"
                 autoFocus
-                onKeyPress={(e) => {
+                onKeyPress={e => {
                   if (e.key === 'Enter') handleUpdate(option.id)
                 }}
               />
@@ -236,7 +243,7 @@ export function WorkOptionsManagement() {
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             {editingId === option.id ? (
               <>
@@ -288,25 +295,27 @@ export function WorkOptionsManagement() {
           </div>
         </div>
       ))}
-      
+
       {/* Add new option */}
       <div className="flex items-center gap-2 mt-4 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
         <Input
           placeholder="새 옵션 라벨 입력"
           value={type === 'component_type' ? newComponentLabel : newProcessLabel}
-          onChange={(e) => 
-            type === 'component_type' 
+          onChange={e =>
+            type === 'component_type'
               ? setNewComponentLabel(e.target.value)
               : setNewProcessLabel(e.target.value)
           }
-          onKeyPress={(e) => {
+          onKeyPress={e => {
             if (e.key === 'Enter') {
               handleAdd(type, type === 'component_type' ? newComponentLabel : newProcessLabel)
             }
           }}
         />
         <Button
-          onClick={() => handleAdd(type, type === 'component_type' ? newComponentLabel : newProcessLabel)}
+          onClick={() =>
+            handleAdd(type, type === 'component_type' ? newComponentLabel : newProcessLabel)
+          }
           className="text-sm"
         >
           추가
@@ -336,7 +345,7 @@ export function WorkOptionsManagement() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="component" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="w-full" fill>
             <TabsTrigger value="component">
               <List className="h-4 w-4 mr-2" />
               부재명 관리
@@ -346,7 +355,7 @@ export function WorkOptionsManagement() {
               작업공정 관리
             </TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="component" className="mt-6">
             <div className="space-y-4">
               <div>
@@ -358,7 +367,7 @@ export function WorkOptionsManagement() {
               {renderOptionList(componentTypes, 'component_type')}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="process" className="mt-6">
             <div className="space-y-4">
               <div>

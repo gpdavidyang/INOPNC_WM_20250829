@@ -48,7 +48,7 @@ interface UserSiteAssignmentModalProps {
 export default function UserSiteAssignmentModal({
   isOpen,
   onClose,
-  user
+  user,
 }: UserSiteAssignmentModalProps) {
   const [activeTab, setActiveTab] = useState('sites')
   const [assignments, setAssignments] = useState<UserSiteAssignment[]>([])
@@ -57,8 +57,12 @@ export default function UserSiteAssignmentModal({
   const [assigning, setAssigning] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSiteId, setSelectedSiteId] = useState<string>('')
-  const [selectedRole, setSelectedRole] = useState<'worker' | 'site_manager' | 'supervisor'>('worker')
-  const [assignmentType, setAssignmentType] = useState<'permanent' | 'temporary' | 'substitute'>('permanent')
+  const [selectedRole, setSelectedRole] = useState<'worker' | 'site_manager' | 'supervisor'>(
+    'worker'
+  )
+  const [assignmentType, setAssignmentType] = useState<'permanent' | 'temporary' | 'substitute'>(
+    'permanent'
+  )
   const [notes, setNotes] = useState('')
   const [error, setError] = useState<string | null>(null)
 
@@ -92,7 +96,7 @@ export default function UserSiteAssignmentModal({
     try {
       const response = await fetch(`/api/users/${user.id}/sites?activeOnly=true`)
       const result = await response.json()
-      
+
       if (result.success && result.data) {
         setAssignments(result.data)
       } else {
@@ -112,12 +116,12 @@ export default function UserSiteAssignmentModal({
       // Get list of all active sites that user is not assigned to
       const response = await fetch(`/api/sites?status=active&excludeUser=${user.id}`)
       const result = await response.json()
-      
+
       if (result.success && result.data) {
         // Filter out sites where user is already assigned
         const assignedSiteIds = assignments.map(a => a.site_id)
-        const unassignedSites = result.data.filter((site: Site) => 
-          !assignedSiteIds.includes(site.id)
+        const unassignedSites = result.data.filter(
+          (site: Site) => !assignedSiteIds.includes(site.id)
         )
         setAvailableSites(unassignedSites)
       }
@@ -140,8 +144,8 @@ export default function UserSiteAssignmentModal({
           siteId: selectedSiteId,
           role: selectedRole,
           assignmentType: assignmentType,
-          notes: notes || null
-        })
+          notes: notes || null,
+        }),
       })
 
       const result = await response.json()
@@ -150,7 +154,7 @@ export default function UserSiteAssignmentModal({
         // Reload assignments
         await loadUserSites()
         await loadAvailableSites()
-        
+
         // Reset form
         setSelectedSiteId('')
         setSelectedRole('worker')
@@ -172,11 +176,11 @@ export default function UserSiteAssignmentModal({
 
     try {
       const response = await fetch(`/api/users/${user.id}/sites?siteId=${siteId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       const result = await response.json()
-      
+
       if (result.success) {
         // Reload assignments
         await loadUserSites()
@@ -192,52 +196,73 @@ export default function UserSiteAssignmentModal({
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'site_manager': return 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-      case 'supervisor': return 'bg-green-100 text-green-800 hover:bg-green-200'
-      case 'worker': return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-      default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      case 'site_manager':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+      case 'supervisor':
+        return 'bg-green-100 text-green-800 hover:bg-green-200'
+      case 'worker':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
     }
   }
 
   const getRoleText = (role: string) => {
     switch (role) {
-      case 'site_manager': return '현장관리자'
-      case 'supervisor': return '감독자'
-      case 'worker': return '작업자'
-      default: return role
+      case 'site_manager':
+        return '현장관리자'
+      case 'supervisor':
+        return '감독자'
+      case 'worker':
+        return '작업자'
+      default:
+        return role
     }
   }
 
   const getAssignmentTypeText = (type: string) => {
     switch (type) {
-      case 'permanent': return '정규'
-      case 'temporary': return '임시'
-      case 'substitute': return '대체'
-      default: return type
+      case 'permanent':
+        return '정규'
+      case 'temporary':
+        return '임시'
+      case 'substitute':
+        return '대체'
+      default:
+        return type
     }
   }
 
   const getAssignmentTypeBadgeColor = (type: string) => {
     switch (type) {
-      case 'permanent': return 'bg-green-100 text-green-800'
-      case 'temporary': return 'bg-yellow-100 text-yellow-800'
-      case 'substitute': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'permanent':
+        return 'bg-green-100 text-green-800'
+      case 'temporary':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'substitute':
+        return 'bg-orange-100 text-orange-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'completed': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'active':
+        return 'bg-green-100 text-green-800'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'completed':
+        return 'bg-gray-100 text-gray-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const filteredSites = availableSites.filter(site =>
-    site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    site.address.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredSites = availableSites.filter(
+    site =>
+      site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      site.address.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (!user) return null
@@ -262,9 +287,7 @@ export default function UserSiteAssignmentModal({
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{user.full_name}</span>
-                  <Badge variant="outline">
-                    {getRoleText(user.role)}
-                  </Badge>
+                  <Badge variant="outline">{getRoleText(user.role)}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
@@ -299,7 +322,7 @@ export default function UserSiteAssignmentModal({
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="w-full" fill>
             <TabsTrigger value="sites" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               배정된 현장 ({assignments.filter(a => a.is_active).length})
@@ -323,53 +346,58 @@ export default function UserSiteAssignmentModal({
               </div>
             ) : (
               <div className="space-y-3">
-                {assignments.filter(a => a.is_active).map((assignment, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium">{assignment.site_name}</h4>
-                          <Badge className={getRoleBadgeColor(assignment.site_role)}>
-                            {getRoleText(assignment.site_role)}
-                          </Badge>
-                          <Badge className={getAssignmentTypeBadgeColor(assignment.assignment_type)}>
-                            {getAssignmentTypeText(assignment.assignment_type)}
-                          </Badge>
-                        </div>
-                        <div className="text-sm text-muted-foreground space-y-1">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {assignment.site_address}
+                {assignments
+                  .filter(a => a.is_active)
+                  .map((assignment, index) => (
+                    <Card key={index} className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-medium">{assignment.site_name}</h4>
+                            <Badge className={getRoleBadgeColor(assignment.site_role)}>
+                              {getRoleText(assignment.site_role)}
+                            </Badge>
+                            <Badge
+                              className={getAssignmentTypeBadgeColor(assignment.assignment_type)}
+                            >
+                              {getAssignmentTypeText(assignment.assignment_type)}
+                            </Badge>
                           </div>
-                          <div className="flex items-center gap-4">
+                          <div className="text-sm text-muted-foreground space-y-1">
                             <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              배정일: {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
+                              <MapPin className="h-3 w-3" />
+                              {assignment.site_address}
                             </div>
-                            <div className="flex items-center gap-1">
-                              기간: {assignment.assignment_duration_days}일
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                배정일:{' '}
+                                {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                기간: {assignment.assignment_duration_days}일
+                              </div>
                             </div>
+                            {assignment.assignment_notes && (
+                              <div className="flex items-start gap-1">
+                                <FileText className="h-3 w-3 mt-0.5" />
+                                <span className="text-xs">{assignment.assignment_notes}</span>
+                              </div>
+                            )}
                           </div>
-                          {assignment.assignment_notes && (
-                            <div className="flex items-start gap-1">
-                              <FileText className="h-3 w-3 mt-0.5" />
-                              <span className="text-xs">{assignment.assignment_notes}</span>
-                            </div>
-                          )}
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleRemoveSite(assignment.site_id)}
+                          className="text-red-600 hover:text-red-700 hover:border-red-200"
+                        >
+                          <UserMinus className="h-4 w-4 mr-2" />
+                          배정 해제
+                        </Button>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveSite(assignment.site_id)}
-                        className="text-red-600 hover:text-red-700 hover:border-red-200"
-                      >
-                        <UserMinus className="h-4 w-4 mr-2" />
-                        배정 해제
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))}
               </div>
             )}
           </TabsContent>
@@ -386,7 +414,7 @@ export default function UserSiteAssignmentModal({
                         <SelectValue placeholder="현장을 선택하세요" />
                       </SelectTrigger>
                       <SelectContent>
-                        {filteredSites.map((site) => (
+                        {filteredSites.map(site => (
                           <SelectItem key={site.id} value={site.id}>
                             <div className="flex flex-col">
                               <span>{site.name}</span>
@@ -433,13 +461,13 @@ export default function UserSiteAssignmentModal({
                     <Input
                       placeholder="배정 관련 특이사항"
                       value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
+                      onChange={e => setNotes(e.target.value)}
                     />
                   </div>
                 </div>
 
-                <Button 
-                  onClick={handleAssignSite} 
+                <Button
+                  onClick={handleAssignSite}
                   disabled={!selectedSiteId || assigning}
                   className="w-full"
                 >
@@ -461,7 +489,7 @@ export default function UserSiteAssignmentModal({
               <Input
                 placeholder="현장명 또는 주소로 검색..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
@@ -475,7 +503,7 @@ export default function UserSiteAssignmentModal({
                   {searchTerm && <p className="text-sm">검색어를 다시 확인해보세요.</p>}
                 </div>
               ) : (
-                filteredSites.map((site) => (
+                filteredSites.map(site => (
                   <Card key={site.id} className="p-3 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">

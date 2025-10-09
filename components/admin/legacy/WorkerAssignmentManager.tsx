@@ -215,7 +215,7 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
 
       {/* Tabs for current/available workers */}
       <Tabs defaultValue="current" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="w-full" fill>
           <TabsTrigger value="current" className="flex items-center gap-2">
             <UsersIcon className="h-4 w-4" />
             현재 배정 ({assignments.length})
