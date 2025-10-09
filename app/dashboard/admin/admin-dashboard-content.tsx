@@ -73,6 +73,7 @@ const ACTIVITY_ICON_MAP: Record<string, React.ComponentType<any>> = {
 export function AdminDashboardContent() {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
+  const [mounted, setMounted] = useState(false)
   const [quickActions, setQuickActions] = useState<QuickAction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
@@ -168,6 +169,7 @@ export function AdminDashboardContent() {
   }
 
   useEffect(() => {
+    setMounted(true)
     fetchQuickActions()
     fetchUnreadNotifications()
     fetchPendingSignups()
@@ -177,6 +179,11 @@ export function AdminDashboardContent() {
     const interval = setInterval(fetchDashboardStats, 30000)
     return () => clearInterval(interval)
   }, [])
+
+  if (!mounted) {
+    // Avoid hydration mismatch by rendering after client mount
+    return <div />
+  }
 
   return (
     <div

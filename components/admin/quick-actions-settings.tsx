@@ -389,6 +389,10 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
                 {quickActions.map(action => {
                   const IconComponent =
                     AVAILABLE_ICONS.find(icon => icon.name === action.icon_name)?.icon || Home
+                  const resolvedTitle = resolveQuickActionTitle(
+                    String(action.link_url || ''),
+                    action.title
+                  )
 
                   return (
                     <div
@@ -408,7 +412,7 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
                           <h4
                             className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium ${!action.is_active ? 'text-gray-500' : ''}`}
                           >
-                            {action.title}
+                            {resolvedTitle}
                           </h4>
                           <p
                             className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}
@@ -451,4 +455,31 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
       </DialogContent>
     </Dialog>
   )
+}
+// 사이드바 라벨과 동일한 맵핑으로 표기 일관성 유지
+const SIDEBAR_LABELS: Record<string, string> = {
+  '/dashboard/admin': '홈',
+  '/dashboard/admin/sites': '현장 관리',
+  '/dashboard/admin/daily-reports': '작업일지 관리',
+  '/dashboard/admin/documents/invoice': '기성청구 관리',
+  '/dashboard/admin/materials': '자재 관리',
+  '/dashboard/admin/tools/photo-grid': '사진대지 관리',
+  '/dashboard/admin/tools/markup': '도면마킹 관리',
+  '/dashboard/admin/signup-requests': '가입 요청 관리',
+  '/dashboard/admin/users': '사용자 관리',
+  '/dashboard/admin/salary': '급여관리 도구',
+  '/dashboard/admin/documents/required': '필수서류 관리',
+  '/dashboard/admin/organizations': '소속(시공사) 관리',
+  '/dashboard/admin/communication': '커뮤니케이션',
+  '/dashboard/admin/notifications': '알림 관리',
+  '/dashboard/admin/documents/company': '이노피앤씨 설정',
+}
+
+const resolveQuickActionTitle = (url: string, fallback: string) => {
+  if (!url) return fallback
+  if (SIDEBAR_LABELS[url]) return SIDEBAR_LABELS[url]
+  const match = Object.keys(SIDEBAR_LABELS)
+    .filter(k => url.startsWith(k))
+    .sort((a, b) => b.length - a.length)[0]
+  return match ? SIDEBAR_LABELS[match] : fallback
 }
