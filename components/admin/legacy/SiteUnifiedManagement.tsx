@@ -110,7 +110,7 @@ export default function SiteUnifiedManagement({
           onValueChange={handleTabChange}
           className="h-full flex flex-col"
         >
-          <TabsList className="grid w-full grid-cols-3 mx-6 mt-6">
+          <TabsList className="w-full mx-6 mt-6" fill>
             <TabsTrigger value="info" className="flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               현장 정보

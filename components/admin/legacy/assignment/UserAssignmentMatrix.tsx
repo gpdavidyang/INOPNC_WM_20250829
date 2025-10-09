@@ -67,14 +67,14 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
-  
+
   // Form state
   const [assignmentData, setAssignmentData] = useState({
     user_id: '',
     site_id: '',
     assignment_type: 'permanent' as const,
     role: 'worker' as const,
-    notes: ''
+    notes: '',
   })
 
   const [bulkAssignmentData, setBulkAssignmentData] = useState({
@@ -82,7 +82,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
     assignment_type: 'permanent' as const,
     role: 'worker' as const,
     partner_company_id: 'all',
-    notes: ''
+    notes: '',
   })
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
     try {
       const response = await fetch(`/api/admin/assignment/user-assignments?status=${statusFilter}`)
       const result = await response.json()
-      
+
       if (result.success) {
         setAssignments(result.data)
       } else {
@@ -113,7 +113,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
     try {
       const response = await fetch('/api/admin/users?limit=1000')
       const result = await response.json()
-      
+
       if (result.success) {
         setUsers(result.data.users)
       }
@@ -126,7 +126,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
     try {
       const response = await fetch('/api/admin/sites?status=active&limit=1000')
       const result = await response.json()
-      
+
       if (result.success) {
         setSites(result.data.sites || result.data)
       }
@@ -140,11 +140,11 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
       const response = await fetch('/api/admin/assignment/user-assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assignmentData)
+        body: JSON.stringify(assignmentData),
       })
-      
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadAssignments()
         setShowAssignModal(false)
@@ -172,17 +172,17 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
         site_id: bulkAssignmentData.site_id,
         assignment_type: bulkAssignmentData.assignment_type,
         role: bulkAssignmentData.role,
-        notes: bulkAssignmentData.notes
+        notes: bulkAssignmentData.notes,
       }))
 
       const response = await fetch('/api/admin/assignment/user-assignments/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignments })
+        body: JSON.stringify({ assignments }),
       })
-      
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadAssignments()
         setShowBulkAssignModal(false)
@@ -191,7 +191,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
           assignment_type: 'permanent',
           role: 'worker',
           partner_company_id: '',
-          notes: ''
+          notes: '',
         })
         setSelectedUsers([])
         toast.success(`${selectedUsers.length}명의 사용자가 현장에 배정되었습니다`)
@@ -210,11 +210,11 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
 
     try {
       const response = await fetch(`/api/admin/assignment/user-assignments/${assignmentId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadAssignments()
         toast.success('사용자의 현장 배정이 해제되었습니다')
@@ -234,52 +234,51 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
       site_id: '',
       assignment_type: 'permanent',
       role: 'worker',
-      notes: ''
+      notes: '',
     })
   }
 
   const getUnassignedUsers = () => {
-    const assignedUserIds = assignments
-      .filter(a => a.is_active)
-      .map(a => a.user_id)
-    
+    const assignedUserIds = assignments.filter(a => a.is_active).map(a => a.user_id)
+
     return users.filter(user => !assignedUserIds.includes(user.id))
   }
 
   const filteredAssignments = assignments.filter(assignment => {
     const searchLower = searchTerm.toLowerCase()
-    const matchesSearch = 
+    const matchesSearch =
       assignment.user.full_name.toLowerCase().includes(searchLower) ||
       assignment.user.email.toLowerCase().includes(searchLower) ||
       assignment.site.name.toLowerCase().includes(searchLower) ||
       assignment.site.address.toLowerCase().includes(searchLower)
-    
+
     const matchesRole = roleFilter === 'all' || assignment.user.role === roleFilter
-    
+
     return matchesSearch && matchesRole
   })
 
   const filteredUnassignedUsers = getUnassignedUsers().filter(user => {
     const searchLower = searchTerm.toLowerCase()
-    const matchesSearch = 
+    const matchesSearch =
       user.full_name.toLowerCase().includes(searchLower) ||
       user.email.toLowerCase().includes(searchLower)
-    
+
     const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    const matchesPartner = bulkAssignmentData.partner_company_id === 'all' || 
+    const matchesPartner =
+      bulkAssignmentData.partner_company_id === 'all' ||
       user.partner_company?.id === bulkAssignmentData.partner_company_id
-    
+
     return matchesSearch && matchesRole && matchesPartner
   })
 
-  const partnersWithUsers = Array.from(new Set(
-    users
-      .filter(u => u.partner_company)
-      .map(u => u.partner_company!.id)
-  )).map(id => {
-    const user = users.find(u => u.partner_company?.id === id)
-    return user?.partner_company!
-  }).filter(Boolean)
+  const partnersWithUsers = Array.from(
+    new Set(users.filter(u => u.partner_company).map(u => u.partner_company!.id))
+  )
+    .map(id => {
+      const user = users.find(u => u.partner_company?.id === id)
+      return user?.partner_company!
+    })
+    .filter(Boolean)
 
   return (
     <div className="space-y-6">
@@ -299,7 +298,11 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
             <UserPlus className="h-4 w-4" />
             개별 배정
           </Button>
-          <Button onClick={() => setShowBulkAssignModal(true)} variant="outline" className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowBulkAssignModal(true)}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
             <Users className="h-4 w-4" />
             일괄 배정
           </Button>
@@ -313,7 +316,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
           <Input
             placeholder="사용자명, 이메일, 현장명으로 검색..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -342,7 +345,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
 
       {/* Main Content */}
       <Tabs defaultValue="assigned" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="w-full" fill>
           <TabsTrigger value="assigned" className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
             배정된 사용자 ({filteredAssignments.length})
@@ -376,19 +379,20 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <p className="text-gray-600 dark:text-gray-400 mb-6">
                   사용자를 현장에 배정하여 작업 관리를 시작하세요
                 </p>
-                <Button onClick={() => setShowAssignModal(true)}>
-                  첫 배정 추가하기
-                </Button>
+                <Button onClick={() => setShowAssignModal(true)}>첫 배정 추가하기</Button>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAssignments.map((assignment) => (
-                <Card key={assignment.id} className={`transition-all ${
-                  assignment.is_active 
-                    ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800' 
-                    : 'border-gray-200 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 opacity-75'
-                }`}>
+              {filteredAssignments.map(assignment => (
+                <Card
+                  key={assignment.id}
+                  className={`transition-all ${
+                    assignment.is_active
+                      ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
+                      : 'border-gray-200 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700 opacity-75'
+                  }`}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -398,8 +402,11 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                             {assignment.user.full_name}
                           </span>
                           <Badge variant="outline" className="text-xs">
-                            {assignment.role === 'worker' ? '작업자' : 
-                             assignment.role === 'site_manager' ? '현장관리자' : '감독자'}
+                            {assignment.role === 'worker'
+                              ? '작업자'
+                              : assignment.role === 'site_manager'
+                                ? '현장관리자'
+                                : '감독자'}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -411,7 +418,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                           </p>
                         )}
                       </div>
-                      <Badge variant={assignment.is_active ? "default" : "secondary"}>
+                      <Badge variant={assignment.is_active ? 'default' : 'secondary'}>
                         {assignment.is_active ? '활성' : '비활성'}
                       </Badge>
                     </div>
@@ -432,8 +439,11 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                           {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
                         </div>
                         <Badge variant="outline" className="text-xs">
-                          {assignment.assignment_type === 'permanent' ? '정규' :
-                           assignment.assignment_type === 'temporary' ? '임시' : '대체'}
+                          {assignment.assignment_type === 'permanent'
+                            ? '정규'
+                            : assignment.assignment_type === 'temporary'
+                              ? '임시'
+                              : '대체'}
                         </Badge>
                       </div>
                       {assignment.notes && (
@@ -463,8 +473,11 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
 
         <TabsContent value="unassigned" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredUnassignedUsers.map((user) => (
-              <Card key={user.id} className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800">
+            {filteredUnassignedUsers.map(user => (
+              <Card
+                key={user.id}
+                className="border-orange-200 bg-orange-50 dark:bg-orange-900/20 dark:border-orange-800"
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex-1">
@@ -474,14 +487,16 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                           {user.full_name}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                          {user.role === 'worker' ? '작업자' : 
-                           user.role === 'site_manager' ? '현장관리자' : 
-                           user.role === 'customer_manager' ? '파트너사' : user.role}
+                          {user.role === 'worker'
+                            ? '작업자'
+                            : user.role === 'site_manager'
+                              ? '현장관리자'
+                              : user.role === 'customer_manager'
+                                ? '파트너사'
+                                : user.role}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                        {user.email}
-                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{user.email}</p>
                       {user.phone && (
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                           {user.phone}
@@ -534,23 +549,21 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>사용자 현장 배정</DialogTitle>
-            <DialogDescription>
-              개별 사용자를 특정 현장에 배정합니다
-            </DialogDescription>
+            <DialogDescription>개별 사용자를 특정 현장에 배정합니다</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label>사용자</Label>
               <Select
                 value={assignmentData.user_id}
-                onValueChange={(value) => setAssignmentData(prev => ({ ...prev, user_id: value }))}
+                onValueChange={value => setAssignmentData(prev => ({ ...prev, user_id: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="사용자를 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  {getUnassignedUsers().map((user) => (
+                  {getUnassignedUsers().map(user => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.full_name} ({user.email})
                     </SelectItem>
@@ -563,13 +576,13 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
               <Label>현장</Label>
               <Select
                 value={assignmentData.site_id}
-                onValueChange={(value) => setAssignmentData(prev => ({ ...prev, site_id: value }))}
+                onValueChange={value => setAssignmentData(prev => ({ ...prev, site_id: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="현장을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <SelectItem key={site.id} value={site.id}>
                       {site.name} - {site.address}
                     </SelectItem>
@@ -583,7 +596,9 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>배정 유형</Label>
                 <Select
                   value={assignmentData.assignment_type}
-                  onValueChange={(value: unknown) => setAssignmentData(prev => ({ ...prev, assignment_type: value }))}
+                  onValueChange={(value: unknown) =>
+                    setAssignmentData(prev => ({ ...prev, assignment_type: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -600,7 +615,9 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>현장 역할</Label>
                 <Select
                   value={assignmentData.role}
-                  onValueChange={(value: unknown) => setAssignmentData(prev => ({ ...prev, role: value }))}
+                  onValueChange={(value: unknown) =>
+                    setAssignmentData(prev => ({ ...prev, role: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -619,21 +636,22 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
               <Input
                 placeholder="배정 관련 메모"
                 value={assignmentData.notes}
-                onChange={(e) => setAssignmentData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e => setAssignmentData(prev => ({ ...prev, notes: e.target.value }))}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowAssignModal(false)
-              resetAssignmentForm()
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAssignModal(false)
+                resetAssignmentForm()
+              }}
+            >
               취소
             </Button>
-            <Button onClick={handleAssignUser}>
-              배정하기
-            </Button>
+            <Button onClick={handleAssignUser}>배정하기</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -643,24 +661,24 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>일괄 현장 배정</DialogTitle>
-            <DialogDescription>
-              여러 사용자를 한번에 현장에 배정할 수 있습니다
-            </DialogDescription>
+            <DialogDescription>여러 사용자를 한번에 현장에 배정할 수 있습니다</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>현장</Label>
                 <Select
                   value={bulkAssignmentData.site_id}
-                  onValueChange={(value) => setBulkAssignmentData(prev => ({ ...prev, site_id: value }))}
+                  onValueChange={value =>
+                    setBulkAssignmentData(prev => ({ ...prev, site_id: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="현장을 선택하세요" />
                   </SelectTrigger>
                   <SelectContent>
-                    {sites.map((site) => (
+                    {sites.map(site => (
                       <SelectItem key={site.id} value={site.id}>
                         {site.name}
                       </SelectItem>
@@ -673,14 +691,16 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>파트너사 필터 (선택)</Label>
                 <Select
                   value={bulkAssignmentData.partner_company_id}
-                  onValueChange={(value) => setBulkAssignmentData(prev => ({ ...prev, partner_company_id: value }))}
+                  onValueChange={value =>
+                    setBulkAssignmentData(prev => ({ ...prev, partner_company_id: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="모든 파트너사" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">모든 파트너사</SelectItem>
-                    {partnersWithUsers.map((partner) => (
+                    {partnersWithUsers.map(partner => (
                       <SelectItem key={partner.id} value={partner.id}>
                         {partner.company_name}
                       </SelectItem>
@@ -695,7 +715,9 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>배정 유형</Label>
                 <Select
                   value={bulkAssignmentData.assignment_type}
-                  onValueChange={(value: unknown) => setBulkAssignmentData(prev => ({ ...prev, assignment_type: value }))}
+                  onValueChange={(value: unknown) =>
+                    setBulkAssignmentData(prev => ({ ...prev, assignment_type: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -712,7 +734,9 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>현장 역할</Label>
                 <Select
                   value={bulkAssignmentData.role}
-                  onValueChange={(value: unknown) => setBulkAssignmentData(prev => ({ ...prev, role: value }))}
+                  onValueChange={(value: unknown) =>
+                    setBulkAssignmentData(prev => ({ ...prev, role: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -729,12 +753,15 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
             <div>
               <Label>사용자 선택</Label>
               <div className="max-h-64 overflow-y-auto border rounded-md p-4 space-y-2">
-                {filteredUnassignedUsers.map((user) => (
-                  <label key={user.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+                {filteredUnassignedUsers.map(user => (
+                  <label
+                    key={user.id}
+                    className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedUsers.includes(user.id)}
-                      onChange={(e) => {
+                      onChange={e => {
                         if (e.target.checked) {
                           setSelectedUsers(prev => [...prev, user.id])
                         } else {
@@ -753,19 +780,17 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                     </div>
                   </label>
                 ))}
-                
+
                 {filteredUnassignedUsers.length === 0 && (
                   <div className="text-center py-4 text-gray-500">
                     배정 가능한 사용자가 없습니다
                   </div>
                 )}
               </div>
-              
+
               {selectedUsers.length > 0 && (
                 <div className="mt-2">
-                  <Badge variant="secondary">
-                    {selectedUsers.length}명 선택됨
-                  </Badge>
+                  <Badge variant="secondary">{selectedUsers.length}명 선택됨</Badge>
                 </div>
               )}
             </div>
@@ -775,23 +800,26 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
               <Input
                 placeholder="일괄 배정 관련 메모"
                 value={bulkAssignmentData.notes}
-                onChange={(e) => setBulkAssignmentData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e => setBulkAssignmentData(prev => ({ ...prev, notes: e.target.value }))}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowBulkAssignModal(false)
-              setBulkAssignmentData({
-                site_id: '',
-                assignment_type: 'permanent',
-                role: 'worker',
-                partner_company_id: '',
-                notes: ''
-              })
-              setSelectedUsers([])
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowBulkAssignModal(false)
+                setBulkAssignmentData({
+                  site_id: '',
+                  assignment_type: 'permanent',
+                  role: 'worker',
+                  partner_company_id: '',
+                  notes: '',
+                })
+                setSelectedUsers([])
+              }}
+            >
               취소
             </Button>
             <Button onClick={handleBulkAssign} disabled={selectedUsers.length === 0}>

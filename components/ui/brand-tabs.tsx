@@ -14,7 +14,7 @@ export const BrandTabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex items-center gap-1 rounded-xl border-0 shadow bg-gradient-to-r from-[--brand-600] to-[--brand-700] p-1',
+      'flex items-center gap-1 rounded-xl border-0 shadow bg-gradient-to-r from-[--brand-600] to-[--brand-700] p-1',
       fill ? 'w-full' : '',
       className
     )}

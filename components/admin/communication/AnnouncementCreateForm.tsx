@@ -10,7 +10,7 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import MultiSelectFilter from '@/components/admin/legacy/salary/components/MultiSelectFilter'
+import CustomMultiSelect from '@/components/ui/custom-multi-select'
 
 export default function AnnouncementCreateForm() {
   const [title, setTitle] = useState('')
@@ -120,7 +120,7 @@ export default function AnnouncementCreateForm() {
           </CustomSelect>
         </div>
         <div>
-          <MultiSelectFilter
+          <CustomMultiSelect
             label="대상 현장"
             options={availableSites}
             selected={selectedSiteIds}
@@ -129,7 +129,7 @@ export default function AnnouncementCreateForm() {
           />
         </div>
         <div>
-          <MultiSelectFilter
+          <CustomMultiSelect
             label="대상 역할"
             options={roleOptions}
             selected={selectedRoles}

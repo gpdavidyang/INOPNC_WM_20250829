@@ -253,7 +253,7 @@ export default function SiteWorkersModal({ isOpen, onClose, site }: SiteWorkersM
 
           <div className="flex-1 overflow-hidden px-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 flex-shrink-0">
+              <TabsList className="w-full flex-shrink-0" fill>
                 <TabsTrigger value="workers" className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   배정된 작업자 ({assignments.filter(a => a.is_active).length})
