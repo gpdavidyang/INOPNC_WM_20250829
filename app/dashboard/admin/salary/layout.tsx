@@ -26,6 +26,8 @@ export default function SalaryLayout({ children }: { children: React.ReactNode }
         <PillTabLinks
           activeKey={activeKey}
           items={tabs.map(t => ({ key: t.label, label: t.label, href: t.href }))}
+          fill
+          className="w-full"
         />
       </div>
       <div className="rounded-lg border bg-white p-4">{children}</div>

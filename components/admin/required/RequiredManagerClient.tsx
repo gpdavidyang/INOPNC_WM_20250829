@@ -155,9 +155,13 @@ export default function RequiredManagerClient({
   return (
     <div className="w-full">
       <Tabs value={tab} onValueChange={v => setTab(v as any)} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="submissions">제출현황</TabsTrigger>
-          <TabsTrigger value="settings">설정</TabsTrigger>
+        <TabsList className="mb-4 w-full" fill>
+          <TabsTrigger value="submissions" fill>
+            제출현황
+          </TabsTrigger>
+          <TabsTrigger value="settings" fill>
+            설정
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="submissions" className="w-full">
