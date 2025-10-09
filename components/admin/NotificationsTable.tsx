@@ -28,6 +28,27 @@ export default function NotificationsTable({
   }, [initialStars])
 
   const rows = useMemo(() => logs || [], [logs])
+  const typeLabel = (t: string) =>
+    (
+      ({
+        site_announcement: '현장 공지',
+        material_approval: '자재 승인',
+        daily_report_reminder: '일보 리마인더',
+        safety_alert: '안전 알림',
+        equipment_maintenance: '장비 점검',
+      }) as Record<string, string>
+    )[t] || t
+
+  const statusLabel = (s: string) =>
+    (
+      ({
+        delivered: '전달됨',
+        failed: '실패',
+        read: '읽음',
+        acknowledged: '확인',
+        rejected: '반려',
+      }) as Record<string, string>
+    )[s] || s
 
   const handleStatus = async (id: string, action: 'read' | 'ack' | 'reject') => {
     await postJson(`/api/admin/notifications/${id}/status`, { action })
@@ -58,7 +79,7 @@ export default function NotificationsTable({
           header: '유형',
           sortable: true,
           accessor: (n: any) => n?.notification_type || '-',
-          render: (n: any) => n?.notification_type || '-',
+          render: (n: any) => typeLabel(String(n?.notification_type || '')),
         },
         {
           key: 'title',
@@ -76,7 +97,7 @@ export default function NotificationsTable({
           header: '상태',
           sortable: true,
           accessor: (n: any) => n?.status || '',
-          render: (n: any) => n?.status || '-',
+          render: (n: any) => statusLabel(String(n?.status || '')),
         },
         {
           key: 'user_id',

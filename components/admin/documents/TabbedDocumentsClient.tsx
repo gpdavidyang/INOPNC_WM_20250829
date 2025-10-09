@@ -201,9 +201,9 @@ export default function TabbedDocumentsClient({
         className="w-full"
       >
         {/* Match Materials tabs: pill group with gradient bar, text-only */}
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 w-full" fill>
           {(Object.keys(CATEGORY_LABEL) as Category[]).map(c => (
-            <TabsTrigger key={c} value={c}>
+            <TabsTrigger key={c} value={c} fill>
               {CATEGORY_LABEL[c]}
             </TabsTrigger>
           ))}

@@ -163,11 +163,19 @@ export default function InvoiceTabsClient() {
             </CustomSelect>
           </div>
         </div>
-        <TabsList className="mb-4">
-          <TabsTrigger value="summary">요약</TabsTrigger>
-          <TabsTrigger value="by-site">현장별</TabsTrigger>
-          <TabsTrigger value="list">문서목록</TabsTrigger>
-          <TabsTrigger value="settings">설정</TabsTrigger>
+        <TabsList className="mb-4 w-full" fill>
+          <TabsTrigger fill value="summary">
+            요약
+          </TabsTrigger>
+          <TabsTrigger fill value="by-site">
+            현장별
+          </TabsTrigger>
+          <TabsTrigger fill value="list">
+            문서목록
+          </TabsTrigger>
+          <TabsTrigger fill value="settings">
+            설정
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="summary">

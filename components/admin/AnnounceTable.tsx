@@ -4,6 +4,22 @@ import React from 'react'
 import { DataTable } from '@/components/admin/DataTable'
 
 export default function AnnounceTable({ announcements }: { announcements: any[] }) {
+  const roleLabel = (r: string) =>
+    (
+      ({
+        worker: '작업자',
+        site_manager: '현장관리자',
+        admin: '본사관리자',
+        system_admin: '시스템관리자',
+        production_manager: '생산관리자',
+      }) as Record<string, string>
+    )[r] || r
+
+  const priorityLabel = (p: string) =>
+    (({ low: '낮음', medium: '보통', high: '높음', urgent: '긴급' }) as Record<string, string>)[
+      p
+    ] || p
+
   return (
     <DataTable
       className="mt-1"
@@ -21,6 +37,13 @@ export default function AnnounceTable({ announcements }: { announcements: any[] 
             a?.created_at ? new Date(a.created_at).toLocaleString('ko-KR') : '-',
         },
         {
+          key: 'priority',
+          header: '우선순위',
+          sortable: true,
+          accessor: (a: any) => a?.priority || '',
+          render: (a: any) => priorityLabel(String(a?.priority || '')),
+        },
+        {
           key: 'title',
           header: '제목',
           sortable: true,
@@ -34,14 +57,15 @@ export default function AnnounceTable({ announcements }: { announcements: any[] 
           header: '대상 역할',
           sortable: true,
           accessor: (a: any) => (Array.isArray(a?.target_roles) ? a.target_roles.join(', ') : ''),
-          render: (a: any) => (
-            <span
-              className="truncate inline-block max-w-[320px]"
-              title={(a?.target_roles || []).join(', ')}
-            >
-              {(a?.target_roles || []).join(', ') || '-'}
-            </span>
-          ),
+          render: (a: any) => {
+            const roles = Array.isArray(a?.target_roles) ? a.target_roles : []
+            const labels = roles.map((r: string) => roleLabel(r))
+            return (
+              <span className="truncate inline-block max-w-[320px]" title={labels.join(', ')}>
+                {labels.join(', ') || '-'}
+              </span>
+            )
+          },
         },
         {
           key: 'is_active',
