@@ -1,7 +1,12 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BrandTabs as Tabs,
+  BrandTabsContent as TabsContent,
+  BrandTabsList as TabsList,
+  BrandTabsTrigger as TabsTrigger,
+} from '@/components/ui/brand-tabs'
 import type { Site } from '@/types'
 import type { NPC1000Data } from '@/types/materials'
 import { NPC1000RequestForm } from './NPC1000RequestForm'
@@ -22,7 +27,7 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
     pendingRequests: 0,
     lowStockAlerts: 0,
     averageDailyUsage: 0,
-    projectedDaysRemaining: 0
+    projectedDaysRemaining: 0,
   })
   const [loading, setLoading] = useState(false)
   const [showRequestForm, setShowRequestForm] = useState(false)
@@ -49,7 +54,7 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
         pendingRequests: 5,
         lowStockAlerts: 2,
         averageDailyUsage: 106,
-        projectedDaysRemaining: 118
+        projectedDaysRemaining: 118,
       })
     } catch (error) {
       console.error('Failed to load NPC-1000 stats:', error)
@@ -71,13 +76,19 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>NPC-1000 자재 관리</h2>
-          <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600 mt-1`}>통합 자재 재고 및 사용 현황 관리</p>
+          <h2 className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
+            NPC-1000 자재 관리
+          </h2>
+          <p
+            className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600 mt-1`}
+          >
+            통합 자재 재고 및 사용 현황 관리
+          </p>
         </div>
         <div className="flex gap-2">
           <select
             value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
+            onChange={e => setSelectedSite(e.target.value)}
             className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           >
             <option value="">현장 선택</option>
@@ -90,7 +101,9 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
           <Button
             variant="primary"
             onClick={() => setShowRequestForm(true)}
-            size={touchMode === 'glove' ? 'field' : touchMode === 'precision' ? 'compact' : 'standard'}
+            size={
+              touchMode === 'glove' ? 'field' : touchMode === 'precision' ? 'compact' : 'standard'
+            }
             className="flex items-center gap-2"
           >
             <PlusCircle className="w-4 h-4" />
@@ -104,10 +117,22 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
         <Card className={touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'}>
           <div className="flex items-start justify-between">
             <div>
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>현재 재고량</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.totalStock.toLocaleString()} 말</p>
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
+                현재 재고량
+              </p>
+              <p
+                className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}
+              >
+                {stats.totalStock.toLocaleString()} 말
+              </p>
               <div className={cn('flex items-center gap-1 mt-2', stockStatus.color)}>
-                <Badge className={cn(getFullTypographyClass('caption', 'xs', isLargeFont), stockStatus.bg, stockStatus.color)}>
+                <Badge
+                  className={cn(
+                    getFullTypographyClass('caption', 'xs', isLargeFont),
+                    stockStatus.bg,
+                    stockStatus.color
+                  )}
+                >
                   {stockStatus.label}
                 </Badge>
                 <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
@@ -124,11 +149,19 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
         <Card className={touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'}>
           <div className="flex items-start justify-between">
             <div>
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>월간 사용량</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.monthlyUsage.toLocaleString()} 말</p>
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
+                월간 사용량
+              </p>
+              <p
+                className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}
+              >
+                {stats.monthlyUsage.toLocaleString()} 말
+              </p>
               <div className="flex items-center gap-1 mt-2 text-blue-600">
                 <Activity className="w-4 h-4" />
-                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>일평균 {stats.averageDailyUsage} 말</span>
+                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
+                  일평균 {stats.averageDailyUsage} 말
+                </span>
               </div>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">
@@ -140,11 +173,19 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
         <Card className={touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'}>
           <div className="flex items-start justify-between">
             <div>
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>대기중인 요청</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.pendingRequests}건</p>
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
+                대기중인 요청
+              </p>
+              <p
+                className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}
+              >
+                {stats.pendingRequests}건
+              </p>
               <div className="flex items-center gap-1 mt-2 text-orange-600">
                 <Clock className="w-4 h-4" />
-                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>승인 대기 중</span>
+                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
+                  승인 대기 중
+                </span>
               </div>
             </div>
             <div className="p-3 bg-orange-50 rounded-lg">
@@ -156,11 +197,19 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
         <Card className={touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'}>
           <div className="flex items-start justify-between">
             <div>
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>재고 부족 경고</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.lowStockAlerts}개</p>
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
+                재고 부족 경고
+              </p>
+              <p
+                className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}
+              >
+                {stats.lowStockAlerts}개
+              </p>
               <div className="flex items-center gap-1 mt-2 text-red-600">
                 <AlertTriangle className="w-4 h-4" />
-                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>즉시 확인 필요</span>
+                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
+                  즉시 확인 필요
+                </span>
               </div>
             </div>
             <div className="p-3 bg-red-50 rounded-lg">
@@ -172,7 +221,7 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-4 max-w-2xl">
+        <TabsList className="max-w-2xl w-full" fill>
           <TabsTrigger value="overview">재고 현황</TabsTrigger>
           <TabsTrigger value="transactions">입출고 내역</TabsTrigger>
           <TabsTrigger value="analytics">사용 분석</TabsTrigger>
@@ -180,28 +229,29 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
-          <NPC1000InventoryManagement 
-            siteId={selectedSite} 
-            currentUser={currentUser}
-          />
+          <NPC1000InventoryManagement siteId={selectedSite} currentUser={currentUser} />
         </TabsContent>
 
         <TabsContent value="transactions" className="space-y-4">
-          <NPC1000TransactionHistory 
-            siteId={selectedSite}
-          />
+          <NPC1000TransactionHistory siteId={selectedSite} />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <NPC1000Analytics 
-            siteId={selectedSite}
-          />
+          <NPC1000Analytics siteId={selectedSite} />
         </TabsContent>
 
         <TabsContent value="requests" className="space-y-4">
-          <Card className={touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'}>
-            <h3 className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-semibold mb-4`}>자재 요청 관리</h3>
-            <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600`}>요청 관리 기능은 준비 중입니다.</p>
+          <Card
+            className={touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'}
+          >
+            <h3
+              className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-semibold mb-4`}
+            >
+              자재 요청 관리
+            </h3>
+            <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600`}>
+              요청 관리 기능은 준비 중입니다.
+            </p>
           </Card>
         </TabsContent>
       </Tabs>
