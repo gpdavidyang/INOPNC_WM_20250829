@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { DataTable } from '@/components/admin/DataTable'
+import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
 export default function RequiredDocumentsTable({
@@ -54,13 +55,17 @@ export default function RequiredDocumentsTable({
           header: '동작',
           sortable: false,
           render: (d: any) => (
-            <button
-              className="underline text-blue-600"
+            <Button
+              type="button"
+              variant="outline"
+              size="compact"
+              className="px-2 py-1 text-sm"
               onClick={() => onOpen?.(d)}
               disabled={!onOpen}
+              title="문서 보기"
             >
               보기
-            </button>
+            </Button>
           ),
         },
       ]}
