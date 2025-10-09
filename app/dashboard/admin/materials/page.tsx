@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import StatsCard from '@/components/ui/stats-card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
@@ -219,22 +220,10 @@ export default async function AdminMaterialsPage({
               </a>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-lg border p-4 bg-white">
-                <div className="text-xs text-gray-500">현장 수</div>
-                <div className="text-2xl font-semibold">{npcSummary?.total_sites ?? '-'}</div>
-              </div>
-              <div className="rounded-lg border p-4 bg-white">
-                <div className="text-xs text-gray-500">입고</div>
-                <div className="text-2xl font-semibold">{npcSummary?.total_incoming ?? '-'}</div>
-              </div>
-              <div className="rounded-lg border p-4 bg-white">
-                <div className="text-xs text-gray-500">사용</div>
-                <div className="text-2xl font-semibold">{npcSummary?.total_used ?? '-'}</div>
-              </div>
-              <div className="rounded-lg border p-4 bg-white">
-                <div className="text-xs text-gray-500">잔여</div>
-                <div className="text-2xl font-semibold">{npcSummary?.total_remaining ?? '-'}</div>
-              </div>
+              <StatsCard label="현장 수" value={npcSummary?.total_sites ?? '-'} unit="개" />
+              <StatsCard label="입고" value={npcSummary?.total_incoming ?? '-'} unit="EA" />
+              <StatsCard label="사용" value={npcSummary?.total_used ?? '-'} unit="EA" />
+              <StatsCard label="잔여" value={npcSummary?.total_remaining ?? '-'} unit="EA" />
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
               <Table>

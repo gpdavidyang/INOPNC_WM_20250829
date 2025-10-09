@@ -1,11 +1,12 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
-import { FileText, RefreshCw, Search } from 'lucide-react'
+import { RefreshCw, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import StatsCard from '@/components/ui/stats-card'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import {
   Select,
@@ -213,33 +214,9 @@ export function DocumentsContent({
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">전체 문서</p>
-              <p className="text-2xl font-semibold text-foreground">{total.toLocaleString()}</p>
-            </div>
-            <FileText className="h-8 w-8 text-primary" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">승인 대기</p>
-              <p className="text-lg font-medium text-foreground">{approvalStats.pending ?? 0}</p>
-            </div>
-            <Badge variant="secondary">대기</Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">승인 완료</p>
-              <p className="text-lg font-medium text-foreground">{approvalStats.approved ?? 0}</p>
-            </div>
-            <Badge variant="default">승인</Badge>
-          </CardContent>
-        </Card>
+        <StatsCard label="전체 문서" value={total.toLocaleString()} />
+        <StatsCard label="승인 대기" value={approvalStats.pending ?? 0} unit="건" />
+        <StatsCard label="승인 완료" value={approvalStats.approved ?? 0} unit="건" />
       </section>
 
       <section className="rounded-lg border bg-card p-4 shadow-sm">

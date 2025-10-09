@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search, Users, RefreshCw, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import StatsCard from '@/components/ui/stats-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -215,35 +216,9 @@ export function UsersContent({
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('users.stats.total')}</p>
-              <p className="text-2xl font-semibold text-foreground">{total.toLocaleString()}</p>
-            </div>
-            <Users className="h-8 w-8 text-primary" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('users.filters.roleSelected')}</p>
-              <p className="text-lg font-medium text-foreground">
-                {ROLE_FILTER_LABELS[roleFilter]}
-              </p>
-            </div>
-            <Filter className="h-7 w-7 text-muted-foreground" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('users.filters.statusSelected')}</p>
-              <p className="text-lg font-medium text-foreground">{STATUS_LABELS[statusFilter]}</p>
-            </div>
-            <Filter className="h-7 w-7 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatsCard label={t('users.stats.total')} value={total.toLocaleString()} />
+        <StatsCard label={t('users.filters.roleSelected')} value={ROLE_FILTER_LABELS[roleFilter]} />
+        <StatsCard label={t('users.filters.statusSelected')} value={STATUS_LABELS[statusFilter]} />
       </section>
 
       <section className="rounded-lg border bg-card p-4 shadow-sm">

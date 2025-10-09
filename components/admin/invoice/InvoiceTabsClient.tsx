@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import StatsCard from '@/components/ui/stats-card'
 import {
   PillTabs as Tabs,
   PillTabsContent as TabsContent,
@@ -184,14 +185,8 @@ export default function InvoiceTabsClient() {
           ) : (
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border p-4 bg-white">
-                  <div className="text-xs text-gray-500">현장</div>
-                  <div className="text-2xl font-semibold">{summary.totals.sites}</div>
-                </div>
-                <div className="rounded-lg border p-4 bg-white">
-                  <div className="text-xs text-gray-500">업로드</div>
-                  <div className="text-2xl font-semibold">{summary.totals.documents}</div>
-                </div>
+                <StatsCard label="현장" value={summary.totals.sites} unit="개" />
+                <StatsCard label="업로드" value={summary.totals.documents} unit="건" />
               </div>
 
               <div className="overflow-x-auto border rounded-md bg-white">

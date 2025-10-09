@@ -167,21 +167,29 @@ export default function RequiredManagerClient({
         <TabsContent value="submissions" className="w-full">
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <div className="text-sm text-muted-foreground">총 제출</div>
-                <div className="text-2xl font-semibold">{stats.total}</div>
+              <div className="col-span-1">
+                <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+                  <div className="text-sm text-[#8DA0CD] mb-1">총 제출</div>
+                  <div className="text-2xl font-semibold">{stats.total}</div>
+                </div>
               </div>
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <div className="text-sm text-muted-foreground">승인</div>
-                <div className="text-2xl font-semibold">{stats.approved}</div>
+              <div className="col-span-1">
+                <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+                  <div className="text-sm text-[#8DA0CD] mb-1">승인</div>
+                  <div className="text-2xl font-semibold">{stats.approved}</div>
+                </div>
               </div>
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <div className="text-sm text-muted-foreground">대기</div>
-                <div className="text-2xl font-semibold">{stats.pending}</div>
+              <div className="col-span-1">
+                <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+                  <div className="text-sm text-[#8DA0CD] mb-1">대기</div>
+                  <div className="text-2xl font-semibold">{stats.pending}</div>
+                </div>
               </div>
-              <div className="rounded-lg border bg-card p-4 shadow-sm">
-                <div className="text-sm text-muted-foreground">반려</div>
-                <div className="text-2xl font-semibold">{stats.rejected}</div>
+              <div className="col-span-1">
+                <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
+                  <div className="text-sm text-[#8DA0CD] mb-1">반려</div>
+                  <div className="text-2xl font-semibold">{stats.rejected}</div>
+                </div>
               </div>
             </div>
 

@@ -6,6 +6,7 @@ import DataTable, { type Column, type SortDirection } from '@/components/admin/D
 import { Building2, MapPin, RefreshCw, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button, buttonVariants } from '@/components/ui/button'
+import StatsCard from '@/components/ui/stats-card'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -423,35 +424,9 @@ export function SitesContent({
       )}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('sites.stats.total')}</p>
-              <p className="text-2xl font-semibold text-foreground">{total.toLocaleString()}</p>
-            </div>
-            <Building2 className="h-8 w-8 text-primary" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('sites.stats.activeOnPage')}</p>
-              <p className="text-lg font-medium text-foreground">{activeCount}</p>
-            </div>
-            <Badge variant="default" className="h-fit">
-              진행 중
-            </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('users.filters.statusSelected')}</p>
-              <p className="text-lg font-medium text-foreground">{STATUS_LABELS[statusFilter]}</p>
-            </div>
-            <MapPin className="h-7 w-7 text-muted-foreground" />
-          </CardContent>
-        </Card>
+        <StatsCard label={t('sites.stats.total')} value={total.toLocaleString()} />
+        <StatsCard label={t('sites.stats.activeOnPage')} value={activeCount} unit="개" />
+        <StatsCard label={t('users.filters.statusSelected')} value={STATUS_LABELS[statusFilter]} />
       </section>
 
       <section className="rounded-lg border bg-card p-4 shadow-sm">
