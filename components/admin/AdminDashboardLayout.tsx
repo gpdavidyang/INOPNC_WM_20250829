@@ -160,6 +160,7 @@ const menuCategories = [
         label: '알림 관리',
         icon: Bell,
         href: '/dashboard/admin/notifications',
+        hidden: true,
       },
       {
         id: 'communication',

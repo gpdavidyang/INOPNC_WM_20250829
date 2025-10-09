@@ -15,7 +15,12 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BrandTabs as Tabs,
+  BrandTabsContent as TabsContent,
+  BrandTabsList as TabsList,
+  BrandTabsTrigger as TabsTrigger,
+} from '@/components/ui/brand-tabs'
 
 interface DashboardStats {
   totalUsers: number
@@ -221,7 +226,7 @@ export default function AssignmentDashboard() {
       </div>
 
       <Tabs value={activeTab} onValueChange={value => setActiveTab(value as typeof activeTab)}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="w-full" fill>
           <TabsTrigger value="overview">전체 현황</TabsTrigger>
           <TabsTrigger value="activity">최근 활동</TabsTrigger>
         </TabsList>

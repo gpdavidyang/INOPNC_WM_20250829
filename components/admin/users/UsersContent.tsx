@@ -198,11 +198,8 @@ export function UsersContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t('users.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('users.subtitle')}</p>
-        </div>
+      {/* Top actions only — remove duplicate page title/subtitle */}
+      <div className="flex items-center justify-end">
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => fetchUsers(page)} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />

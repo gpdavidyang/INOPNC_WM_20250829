@@ -1,17 +1,60 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import MultiSelectFilter from '@/components/admin/legacy/salary/components/MultiSelectFilter'
 
 export default function AnnouncementCreateForm() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium')
-  const [siteIds, setSiteIds] = useState('')
-  const [targetRoles, setTargetRoles] = useState('admin,site_manager,worker')
+  const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([])
+  const [availableSites, setAvailableSites] = useState<Array<{ value: string; label: string }>>([])
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+
+  // Load sites list for dropdown
+  useEffect(() => {
+    let mounted = true
+    const run = async () => {
+      try {
+        const r = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
+        const j = await r.json().catch(() => ({}))
+        const list = Array.isArray(j?.data) ? j.data : []
+        if (mounted)
+          setAvailableSites(
+            list.map((s: any) => ({ value: s.id as string, label: String(s.name || s.id) }))
+          )
+      } catch {
+        // ignore
+      }
+    }
+    run()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const roleOptions = useMemo(
+    () => [
+      { value: 'worker', label: '작업자' },
+      { value: 'site_manager', label: '현장관리자' },
+      // Optional future role; included per 요구사항. If 미존재, 선택해도 필터에만 반영됨.
+      { value: 'production_manager', label: '생산관리자' },
+      { value: 'admin', label: '본사관리자' },
+      { value: 'system_admin', label: '시스템관리자' },
+    ],
+    []
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,14 +65,9 @@ export default function AnnouncementCreateForm() {
         title,
         content,
         priority,
-        siteIds: siteIds
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean),
-        targetRoles: targetRoles
-          .split(',')
-          .map(s => s.trim())
-          .filter(Boolean),
+        // If 아무도 선택 안함 => 전체로 간주(필터 미적용)
+        siteIds: selectedSiteIds,
+        targetRoles: selectedRoles,
       }
       const res = await fetch('/api/announcements', {
         method: 'POST',
@@ -43,6 +81,8 @@ export default function AnnouncementCreateForm() {
       setMsg('공지가 생성되었습니다.')
       setTitle('')
       setContent('')
+      setSelectedSiteIds([])
+      setSelectedRoles([])
     } catch (err: any) {
       setMsg(err?.message || '공지 생성 실패')
     } finally {
@@ -68,33 +108,34 @@ export default function AnnouncementCreateForm() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-sm text-muted-foreground mb-1">우선순위</label>
-          <select
-            className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            value={priority}
-            onChange={e => setPriority(e.target.value as any)}
-          >
-            <option value="low">low</option>
-            <option value="medium">medium</option>
-            <option value="high">high</option>
-            <option value="urgent">urgent</option>
-          </select>
+          <CustomSelect value={priority} onValueChange={v => setPriority(v as any)}>
+            <CustomSelectTrigger>
+              <CustomSelectValue placeholder="우선순위" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="low">낮음</CustomSelectItem>
+              <CustomSelectItem value="medium">보통</CustomSelectItem>
+              <CustomSelectItem value="high">높음</CustomSelectItem>
+              <CustomSelectItem value="urgent">긴급</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
         <div>
-          <label className="block text-sm text-muted-foreground mb-1">
-            대상 현장 IDs(쉼표로 구분)
-          </label>
-          <Input
-            value={siteIds}
-            onChange={e => setSiteIds(e.target.value)}
-            placeholder="예: site-1,site-2"
+          <MultiSelectFilter
+            label="대상 현장"
+            options={availableSites}
+            selected={selectedSiteIds}
+            onChange={setSelectedSiteIds}
+            placeholder="전체 (미선택 시 전체)"
           />
         </div>
         <div>
-          <label className="block text-sm text-muted-foreground mb-1">대상 역할(쉼표)</label>
-          <Input
-            value={targetRoles}
-            onChange={e => setTargetRoles(e.target.value)}
-            placeholder="예: admin,site_manager,worker"
+          <MultiSelectFilter
+            label="대상 역할"
+            options={roleOptions}
+            selected={selectedRoles}
+            onChange={setSelectedRoles}
+            placeholder="전체 (미선택 시 전체)"
           />
         </div>
       </div>

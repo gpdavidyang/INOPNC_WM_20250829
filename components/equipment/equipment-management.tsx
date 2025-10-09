@@ -1,6 +1,11 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BrandTabs as Tabs,
+  BrandTabsContent as TabsContent,
+  BrandTabsList as TabsList,
+  BrandTabsTrigger as TabsTrigger,
+} from '@/components/ui/brand-tabs'
 import { EquipmentCheckoutDialog } from './equipment-checkout-dialog'
 import { EquipmentReturnDialog } from './equipment-return-dialog'
 import { ResourceAllocationComponent } from './resource-allocation'
@@ -16,7 +21,7 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
   const [activeTab, setActiveTab] = useState('equipment')
   const [isLoading, setIsLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  
+
   // Data states
   const [equipment, setEquipment] = useState<Equipment[]>([])
   const [categories, setCategories] = useState<any[]>([])
@@ -29,10 +34,10 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
     damagedEquipment: 0,
     activeCheckouts: 0,
     overdueReturns: 0,
-    upcomingMaintenance: 0
+    upcomingMaintenance: 0,
   })
   const [checkouts, setCheckouts] = useState<EquipmentCheckout[]>([])
-  
+
   // Dialog states
   const [showCheckoutDialog, setShowCheckoutDialog] = useState(false)
   const [showReturnDialog, setShowReturnDialog] = useState(false)
@@ -42,26 +47,28 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
   // Load data
   const loadData = async () => {
     try {
-      const [equipmentResult, categoriesResult, sitesResult, statsResult, checkoutsResult] = await Promise.all([
-        getEquipment(),
-        getEquipmentCategories(),
-        getAllSites(),
-        getEquipmentStats(),
-        getEquipmentCheckouts({ active_only: true })
-      ])
+      const [equipmentResult, categoriesResult, sitesResult, statsResult, checkoutsResult] =
+        await Promise.all([
+          getEquipment(),
+          getEquipmentCategories(),
+          getAllSites(),
+          getEquipmentStats(),
+          getEquipmentCheckouts({ active_only: true }),
+        ])
 
-      if (equipmentResult.success) setEquipment((equipmentResult.data as unknown as Equipment[]) || [])
+      if (equipmentResult.success)
+        setEquipment((equipmentResult.data as unknown as Equipment[]) || [])
       if (categoriesResult.success) setCategories((categoriesResult.data as any[]) || [])
       if (sitesResult.success) setSites((sitesResult.data as any[]) || [])
       if (statsResult.success) setStats((statsResult.data as EquipmentStats) || stats)
-      if (checkoutsResult.success) setCheckouts((checkoutsResult.data as unknown as EquipmentCheckout[]) || [])
-      
+      if (checkoutsResult.success)
+        setCheckouts((checkoutsResult.data as unknown as EquipmentCheckout[]) || [])
     } catch (error) {
       console.error('Error loading equipment data:', error)
       toast({
         title: '데이터 로드 실패',
         description: '장비 정보를 불러오는데 실패했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
@@ -92,7 +99,7 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
     // TODO: Implement maintenance scheduling
     toast({
       title: '개발 중',
-      description: '정비 일정 관리 기능은 개발 중입니다.'
+      description: '정비 일정 관리 기능은 개발 중입니다.',
     })
   }
 
@@ -100,7 +107,7 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
     // TODO: Implement equipment edit
     toast({
       title: '개발 중',
-      description: '장비 수정 기능은 개발 중입니다.'
+      description: '장비 수정 기능은 개발 중입니다.',
     })
   }
 
@@ -108,7 +115,7 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
     // TODO: Implement history view
     toast({
       title: '개발 중',
-      description: '사용 이력 조회 기능은 개발 중입니다.'
+      description: '사용 이력 조회 기능은 개발 중입니다.',
     })
   }
 
@@ -140,13 +147,15 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
           <h1 className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}>
             장비 & 자원 관리
           </h1>
-          <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600 mt-1`}>
+          <p
+            className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600 mt-1`}
+          >
             장비 현황, 반출/반납, 정비 관리
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size={getButtonSize()}
             onClick={handleRefresh}
             disabled={refreshing}
@@ -155,13 +164,13 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             새로고침
           </Button>
-          <Button 
+          <Button
             size={getButtonSize()}
             onClick={() => {
               // TODO: Add new equipment
               toast({
                 title: '개발 중',
-                description: '장비 추가 기능은 개발 중입니다.'
+                description: '장비 추가 기능은 개발 중입니다.',
               })
             }}
             className="gap-2"
@@ -180,7 +189,9 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 전체 장비
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}
+              >
                 {stats.totalEquipment}
               </p>
             </div>
@@ -194,7 +205,9 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 사용 가능
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)} text-green-600`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)} text-green-600`}
+              >
                 {stats.availableEquipment}
               </p>
             </div>
@@ -208,7 +221,9 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 사용 중
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)} text-blue-600`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)} text-blue-600`}
+              >
                 {stats.inUseEquipment}
               </p>
             </div>
@@ -222,7 +237,9 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 정비/파손
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)} text-amber-600`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)} text-amber-600`}
+              >
                 {stats.maintenanceEquipment + stats.damagedEquipment}
               </p>
             </div>
@@ -233,24 +250,24 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="equipment" className="gap-2">
+        <TabsList className="w-full" fill>
+          <TabsTrigger value="equipment">
             <Package className="h-4 w-4" />
             장비 목록
           </TabsTrigger>
-          <TabsTrigger value="checkouts" className="gap-2">
+          <TabsTrigger value="checkouts">
             <Clock className="h-4 w-4" />
             반출 현황
           </TabsTrigger>
-          <TabsTrigger value="calendar" className="gap-2">
+          <TabsTrigger value="calendar">
             <Calendar className="h-4 w-4" />
             일정 캘린더
           </TabsTrigger>
-          <TabsTrigger value="maintenance" className="gap-2">
+          <TabsTrigger value="maintenance">
             <Wrench className="h-4 w-4" />
             정비 관리
           </TabsTrigger>
-          <TabsTrigger value="resources" className="gap-2">
+          <TabsTrigger value="resources">
             <Users className="h-4 w-4" />
             자원 배치
           </TabsTrigger>
@@ -270,36 +287,40 @@ export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {
 
         <TabsContent value="checkouts" className="space-y-4">
           <Card className={getTouchPadding()}>
-            <h3 className={`font-medium ${getFullTypographyClass('heading', 'lg', isLargeFont)} mb-4`}>
+            <h3
+              className={`font-medium ${getFullTypographyClass('heading', 'lg', isLargeFont)} mb-4`}
+            >
               활성 반출 현황
             </h3>
             {checkouts.length > 0 ? (
               <div className="space-y-3">
                 {checkouts.map(checkout => (
-                  <div 
-                    key={checkout.id} 
+                  <div
+                    key={checkout.id}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                   >
                     <div>
-                      <p className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}>
+                      <p
+                        className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}
+                      >
                         {checkout.equipment?.name} ({checkout.equipment?.code})
                       </p>
-                      <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
-                        반출자: {checkout.checked_out_user?.full_name} | 
-                        현장: {checkout.site?.name}
+                      <p
+                        className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}
+                      >
+                        반출자: {checkout.checked_out_user?.full_name} | 현장: {checkout.site?.name}
                       </p>
                     </div>
-                    <Button
-                      size="compact"
-                      onClick={() => handleReturn(checkout)}
-                    >
+                    <Button size="compact" onClick={() => handleReturn(checkout)}>
                       반납
                     </Button>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className={`text-center ${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500`}>
+              <p
+                className={`text-center ${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500`}
+              >
                 현재 반출된 장비가 없습니다.
               </p>
             )}

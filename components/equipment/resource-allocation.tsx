@@ -1,7 +1,12 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  BrandTabs as Tabs,
+  BrandTabsContent as TabsContent,
+  BrandTabsList as TabsList,
+  BrandTabsTrigger as TabsTrigger,
+} from '@/components/ui/brand-tabs'
 import { WorkerAssignmentDialog } from './worker-assignment-dialog'
 import { SkillManagementDialog } from './skill-management-dialog'
 
@@ -39,29 +44,33 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
   // Load data
   const loadData = async () => {
     try {
-      const allocationsResult = await getResourceAllocations({ 
+      const allocationsResult = await getResourceAllocations({
         allocation_type: 'worker',
         date_from: dateFilter,
-        date_to: dateFilter
+        date_to: dateFilter,
       })
       const workersResult = await getProfiles()
       // @ts-ignore - TypeScript incorrectly reports parameter mismatch
-      const skillsResult = await getWorkerSkills() as unknown
-      const skillAssignmentsResult = await getWorkerSkillAssignments() as unknown
+      const skillsResult = (await getWorkerSkills()) as unknown
+      const skillAssignmentsResult = (await getWorkerSkillAssignments()) as unknown
       const sitesResult = await getAllSites()
 
-      if (allocationsResult.success) setAllocations((allocationsResult.data as unknown as ResourceAllocation[]) || [])
-      if (workersResult.success) setWorkers(workersResult.data?.filter((p: unknown) => p.role === 'worker') || [])
+      if (allocationsResult.success)
+        setAllocations((allocationsResult.data as unknown as ResourceAllocation[]) || [])
+      if (workersResult.success)
+        setWorkers(workersResult.data?.filter((p: unknown) => p.role === 'worker') || [])
       if (skillsResult.success) setSkills((skillsResult.data as unknown as WorkerSkill[]) || [])
-      if (skillAssignmentsResult.success) setSkillAssignments((skillAssignmentsResult.data as unknown as WorkerSkillAssignment[]) || [])
+      if (skillAssignmentsResult.success)
+        setSkillAssignments(
+          (skillAssignmentsResult.data as unknown as WorkerSkillAssignment[]) || []
+        )
       if (sitesResult.success) setSites(sitesResult.data || [])
-
     } catch (error) {
       console.error('Error loading resource data:', error)
       toast({
         title: '데이터 로드 실패',
         description: '자원 배치 정보를 불러오는데 실패했습니다.',
-        variant: 'destructive'
+        variant: 'destructive',
       })
     } finally {
       setIsLoading(false)
@@ -120,16 +129,24 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
     return true
   })
 
-  const totalDailyCost = todaysAllocations.reduce((total, allocation) => total + (allocation.total_cost || 0), 0)
+  const totalDailyCost = todaysAllocations.reduce(
+    (total, allocation) => total + (allocation.total_cost || 0),
+    0
+  )
   const totalWorkers = new Set(todaysAllocations.map(a => a.resource_id)).size
-  const totalHours = todaysAllocations.reduce((total, allocation) => total + (allocation.hours_worked || 0), 0)
+  const totalHours = todaysAllocations.reduce(
+    (total, allocation) => total + (allocation.hours_worked || 0),
+    0
+  )
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-          <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500 mt-2`}>
+          <p
+            className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500 mt-2`}
+          >
             데이터를 불러오는 중...
           </p>
         </div>
@@ -145,11 +162,13 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
           <h2 className={`font-semibold ${getFullTypographyClass('heading', 'xl', isLargeFont)}`}>
             작업자 자원 배치
           </h2>
-          <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600 mt-1`}>
+          <p
+            className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-600 mt-1`}
+          >
             작업자 배치, 기술 관리, 임금 계산
           </p>
         </div>
-        
+
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
           <div className="flex items-center gap-2">
@@ -157,7 +176,7 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
             <Input
               type="date"
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              onChange={e => setDateFilter(e.target.value)}
               className="w-40"
             />
           </div>
@@ -174,8 +193,8 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
               ))}
             </SelectContent>
           </Select>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size={getButtonSize()}
             onClick={handleRefresh}
             disabled={refreshing}
@@ -195,7 +214,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 배치된 작업자
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}
+              >
                 {totalWorkers}명
               </p>
             </div>
@@ -209,7 +230,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 총 작업시간
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}
+              >
                 {totalHours.toFixed(1)}시간
               </p>
             </div>
@@ -223,7 +246,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 일일 인건비
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}
+              >
                 ₩{totalDailyCost.toLocaleString()}
               </p>
             </div>
@@ -237,7 +262,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
                 평균 시급
               </p>
-              <p className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}>
+              <p
+                className={`font-semibold ${getFullTypographyClass('heading', '2xl', isLargeFont)}`}
+              >
                 ₩{totalHours > 0 ? (totalDailyCost / totalHours).toLocaleString() : '0'}
               </p>
             </div>
@@ -248,16 +275,16 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="allocations" className="gap-2">
+        <TabsList className="w-full" fill>
+          <TabsTrigger value="allocations">
             <Calendar className="h-4 w-4" />
             일별 배치현황
           </TabsTrigger>
-          <TabsTrigger value="workers" className="gap-2">
+          <TabsTrigger value="workers">
             <Users className="h-4 w-4" />
             작업자 관리
           </TabsTrigger>
-          <TabsTrigger value="skills" className="gap-2">
+          <TabsTrigger value="skills">
             <Settings className="h-4 w-4" />
             기술 관리
           </TabsTrigger>
@@ -265,42 +292,56 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
 
         <TabsContent value="allocations" className="space-y-4">
           <Card className={getTouchPadding()}>
-            <h3 className={`font-medium ${getFullTypographyClass('heading', 'lg', isLargeFont)} mb-4`}>
+            <h3
+              className={`font-medium ${getFullTypographyClass('heading', 'lg', isLargeFont)} mb-4`}
+            >
               {dateFilter} 작업자 배치 현황
             </h3>
             {todaysAllocations.length > 0 ? (
               <div className="space-y-3">
                 {todaysAllocations.map(allocation => (
-                  <div 
-                    key={allocation.id} 
+                  <div
+                    key={allocation.id}
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
                   >
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <p className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}>
+                        <p
+                          className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}
+                        >
                           {allocation.worker?.full_name}
                         </p>
-                        <Badge variant="outline" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
+                        <Badge
+                          variant="outline"
+                          className={getFullTypographyClass('body', 'sm', isLargeFont)}
+                        >
                           {allocation.site?.name}
                         </Badge>
                       </div>
-                      <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 mt-1`}>
-                        {allocation.start_time} ~ {allocation.end_time} | 
-                        {allocation.hours_worked}시간 | 
-                        시급: ₩{allocation.hourly_rate?.toLocaleString()}
+                      <p
+                        className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 mt-1`}
+                      >
+                        {allocation.start_time} ~ {allocation.end_time} |{allocation.hours_worked}
+                        시간 | 시급: ₩{allocation.hourly_rate?.toLocaleString()}
                       </p>
                       {allocation.task_description && (
-                        <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-1`}>
+                        <p
+                          className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-1`}
+                        >
                           작업: {allocation.task_description}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <p className={`font-semibold ${getFullTypographyClass('body', 'base', isLargeFont)}`}>
+                      <p
+                        className={`font-semibold ${getFullTypographyClass('body', 'base', isLargeFont)}`}
+                      >
                         ₩{allocation.total_cost?.toLocaleString()}
                       </p>
                       {allocation.overtime_hours && allocation.overtime_hours > 0 && (
-                        <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-amber-600`}>
+                        <p
+                          className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-amber-600`}
+                        >
                           연장: {allocation.overtime_hours}시간
                         </p>
                       )}
@@ -309,7 +350,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
                 ))}
               </div>
             ) : (
-              <p className={`text-center ${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500 py-8`}>
+              <p
+                className={`text-center ${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500 py-8`}
+              >
                 선택한 날짜에 배치된 작업자가 없습니다.
               </p>
             )}
@@ -319,7 +362,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
         <TabsContent value="workers" className="space-y-4">
           {/* Filter by skill */}
           <div className="flex items-center gap-2">
-            <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>기술별 필터:</Label>
+            <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>
+              기술별 필터:
+            </Label>
             <Select value={skillFilter} onValueChange={setSkillFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="기술 선택" />
@@ -339,32 +384,36 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
             {filteredWorkers.map(worker => {
               const workerSkills = getWorkerSkills(worker.id)
               const dailyCost = calculateDailyCost(worker.id)
-              
+
               return (
                 <Card key={worker.id} className={getTouchPadding()}>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}>
+                      <h4
+                        className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}
+                      >
                         {worker.full_name}
                       </h4>
                       <Badge variant={dailyCost > 0 ? 'default' : 'secondary'}>
                         {dailyCost > 0 ? '배치됨' : '대기'}
                       </Badge>
                     </div>
-                    
+
                     {/* Worker skills */}
                     {workerSkills.length > 0 && (
                       <div className="space-y-2">
-                        <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 font-medium`}>
+                        <p
+                          className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 font-medium`}
+                        >
                           보유 기술:
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {workerSkills.map(skillAssignment => {
                             const skill = skills.find(s => s.id === skillAssignment.skill_id)
                             return skill ? (
-                              <Badge 
-                                key={skillAssignment.id} 
-                                variant="outline" 
+                              <Badge
+                                key={skillAssignment.id}
+                                variant="outline"
                                 className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-xs`}
                               >
                                 {skill.name} ({skillAssignment.proficiency_level})
@@ -383,8 +432,10 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
                     {/* Daily cost */}
                     {dailyCost > 0 && (
                       <div>
-                        <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
-                          금일 인건비: 
+                        <p
+                          className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}
+                        >
+                          금일 인건비:
                           <span className="font-semibold text-green-600 ml-1">
                             ₩{dailyCost.toLocaleString()}
                           </span>
@@ -424,12 +475,12 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
               <h3 className={`font-medium ${getFullTypographyClass('heading', 'lg', isLargeFont)}`}>
                 등록된 기술 목록
               </h3>
-              <Button 
+              <Button
                 size={getButtonSize()}
                 onClick={() => {
                   toast({
                     title: '개발 중',
-                    description: '기술 추가 기능은 개발 중입니다.'
+                    description: '기술 추가 기능은 개발 중입니다.',
                   })
                 }}
                 className="gap-2"
@@ -438,34 +489,41 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
                 기술 추가
               </Button>
             </div>
-            
+
             {skills.length > 0 ? (
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {skills.map(skill => {
-                  const assignedWorkers = skillAssignments.filter(sa => sa.skill_id === skill.id).length
-                  
+                  const assignedWorkers = skillAssignments.filter(
+                    sa => sa.skill_id === skill.id
+                  ).length
+
                   return (
-                    <div 
-                      key={skill.id} 
-                      className="p-4 bg-gray-50 rounded-lg"
-                    >
+                    <div key={skill.id} className="p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h4 className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}>
+                          <h4
+                            className={`font-medium ${getFullTypographyClass('body', 'base', isLargeFont)}`}
+                          >
                             {skill.name}
                           </h4>
                           {skill.category && (
-                            <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>
+                            <p
+                              className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}
+                            >
                               분류: {skill.category}
                             </p>
                           )}
-                          <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-blue-600`}>
+                          <p
+                            className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-blue-600`}
+                          >
                             보유 작업자: {assignedWorkers}명
                           </p>
                         </div>
                       </div>
                       {skill.description && (
-                        <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-2`}>
+                        <p
+                          className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-2`}
+                        >
                           {skill.description}
                         </p>
                       )}
@@ -474,7 +532,9 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
                 })}
               </div>
             ) : (
-              <p className={`text-center ${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500 py-8`}>
+              <p
+                className={`text-center ${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500 py-8`}
+              >
                 등록된 기술이 없습니다.
               </p>
             )}
