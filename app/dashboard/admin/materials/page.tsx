@@ -147,6 +147,8 @@ export default async function AdminMaterialsPage({
               },
               { key: 'shipments', label: '출고배송 관리', href: buildQuery({ tab: 'shipments' }) },
             ]}
+            fill
+            className="w-full"
           />
         </div>
 

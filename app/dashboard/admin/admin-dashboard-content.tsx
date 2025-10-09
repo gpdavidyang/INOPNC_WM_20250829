@@ -83,6 +83,34 @@ export function AdminDashboardContent() {
     recentActivities: [],
   })
 
+  // 좌측 사이드바 메뉴 라벨과 맞춤 매핑
+  const SIDEBAR_LABELS: Record<string, string> = {
+    '/dashboard/admin': '홈',
+    '/dashboard/admin/sites': '현장 관리',
+    '/dashboard/admin/daily-reports': '작업일지 관리',
+    '/dashboard/admin/documents/invoice': '기성청구 관리',
+    '/dashboard/admin/materials': '자재 관리',
+    '/dashboard/admin/tools/photo-grid': '사진대지 관리',
+    '/dashboard/admin/tools/markup': '도면마킹 관리',
+    '/dashboard/admin/signup-requests': '가입 요청 관리',
+    '/dashboard/admin/users': '사용자 관리',
+    '/dashboard/admin/salary': '급여관리 도구',
+    '/dashboard/admin/documents/required': '필수서류 관리',
+    '/dashboard/admin/organizations': '소속(시공사) 관리',
+    '/dashboard/admin/communication': '커뮤니케이션',
+    '/dashboard/admin/notifications': '알림 관리',
+    '/dashboard/admin/documents/company': '이노피앤씨 설정',
+  }
+
+  const resolveQuickActionTitle = (url: string, fallback: string) => {
+    if (!url) return fallback
+    if (SIDEBAR_LABELS[url]) return SIDEBAR_LABELS[url]
+    const match = Object.keys(SIDEBAR_LABELS)
+      .filter(k => url.startsWith(k))
+      .sort((a, b) => b.length - a.length)[0]
+    return match ? SIDEBAR_LABELS[match] : fallback
+  }
+
   // 빠른 작업 불러오기
   const fetchQuickActions = async () => {
     try {
@@ -303,18 +331,18 @@ export function AdminDashboardContent() {
                   touchMode === 'glove' ? 'h-14' : touchMode === 'precision' ? 'h-10' : 'h-12'
                 } flex items-center justify-center gap-2 w-full border border-[--brand-400] hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md px-2 text-[--brand-700]`
 
+                const url = String(action.link_url || '#')
+                const resolvedTitle = resolveQuickActionTitle(url, action.title)
                 const content = (
                   <>
                     <IconComponent className="h-4 w-4 flex-shrink-0" />
                     <span
                       className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} truncate`}
                     >
-                      {action.title}
+                      {resolvedTitle}
                     </span>
                   </>
                 )
-
-                const url = String(action.link_url || '#')
                 const isExternal = /^https?:\/\//i.test(url)
                 return isExternal ? (
                   <a
