@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useFontSize } from '@/contexts/FontSizeContext'
 
 export function FontSizeToggle() {

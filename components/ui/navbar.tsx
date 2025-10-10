@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import Link from 'next/link'
 
 interface NavbarLink {
@@ -19,7 +20,7 @@ export function Navbar({ links = [] }: NavbarProps) {
           INOPNC
         </Link>
         <nav className="flex items-center gap-4 text-sm text-gray-600">
-          {links.map((link) => (
+          {links.map(link => (
             <Link key={link.href} href={link.href} className="hover:text-gray-900">
               {link.label}
             </Link>

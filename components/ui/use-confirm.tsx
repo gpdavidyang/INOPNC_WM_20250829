@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useEffect, useState } from 'react'
 
 type ConfirmVariant = 'default' | 'destructive' | 'warning' | 'info'
