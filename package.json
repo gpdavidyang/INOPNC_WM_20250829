@@ -30,7 +30,9 @@
     "migrate:documents:prod": "tsx scripts/migrate-documents.ts --env=production --backup",
     "cleanup:work-options:inactive": "tsx scripts/cleanup-inactive-work-options.ts",
     "cleanup:work-options:inactive:dry": "tsx scripts/cleanup-inactive-work-options.ts --dry-run",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -67,7 +69,7 @@
     "jspdf-autotable": "^5.0.2",
     "lodash": "^4.17.21",
     "lucide-react": "^0.534.0",
-    "next": "14.2.3",
+    "next": "14.2.33",
     "next-themes": "^0.4.6",
     "pdfkit": "^0.17.2",
     "postcss": "^8",
@@ -113,7 +115,19 @@
     "lint-staged": "^16.1.6",
     "node-fetch": "^3.3.2",
     "prettier": "^3.6.2",
-    "puppeteer": "^24.20.0"
+    "puppeteer": "^24.20.0",
+    "storybook": "^8.6.14",
+    "@storybook/react-vite": "^8.6.14",
+    "@storybook/addon-essentials": "^8.6.14",
+    "@storybook/addon-viewport": "^8.6.14",
+    "@storybook/addon-a11y": "^8.6.14",
+    "@storybook/addon-measure": "^8.6.14",
+    "@storybook/addon-outline": "^8.6.14",
+    "@storybook/addon-themes": "^8.6.14",
+    "vite": "^5.4.10"
+  },
+  "overrides": {
+    "esbuild": ">=0.24.3"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

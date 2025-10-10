@@ -1,6 +1,7 @@
 /* eslint-disable */
 'use client'
 
+import * as React from 'react'
 export function VoiceCommandButton({ active = false }: { active?: boolean }) {
   return (
     <button

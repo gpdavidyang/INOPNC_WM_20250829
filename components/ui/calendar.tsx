@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import type { HTMLAttributes } from 'react'
 
 export function Calendar(props: HTMLAttributes<HTMLDivElement>) {

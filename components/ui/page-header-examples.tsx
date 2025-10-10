@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 export function PageHeaderExamples() {
   return (
     <section className="space-y-4 rounded border border-gray-200 bg-white p-6 text-sm text-gray-600">
