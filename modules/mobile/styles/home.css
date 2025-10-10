@@ -12,7 +12,7 @@
 
 /* Section - main.html: mb-3.5 = 14px */
 .section {
-  margin-bottom: 14px !important; /* main.html: mb-3.5 = 14px consistent spacing */
+  margin-bottom: var(--space-sm) !important; /* compact */
   padding-bottom: 0px;
   padding-top: 0px;
 }
@@ -26,7 +26,7 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  margin-bottom: 20px; /* Increased spacing between title and icons */
+  margin-bottom: var(--space-sm);
 }
 
 /* Right-align header actions for specific sections that require it */
@@ -45,7 +45,7 @@
   gap: 8px;
   margin: 0;
   margin-left: -5px; /* Slight negative margin to align with edge */
-  margin-bottom: 20px; /* Increased spacing */
+  margin-bottom: var(--space-sm);
 }
 
 .section-title {
@@ -61,6 +61,11 @@
   color: #1a254f;
   margin: 0;
   line-height: 1.4;
+}
+
+/* Quick Menu section title override (Home only) */
+#home-quick .section-title {
+  font-size: 24px;
 }
 
 /* Card */

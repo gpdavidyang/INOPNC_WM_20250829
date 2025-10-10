@@ -58,7 +58,8 @@ const NAV_ITEMS: NavItem[] = [
 ]
 
 const getNavIcon = (iconType: string, isActive: boolean) => {
-  const iconClass = `w-5 h-5 ${isActive ? 'text-[#2563eb]' : 'text-[#6b7280]'}`
+  // Active and hover both use brand color #1a254f; inactive = gray
+  const iconClass = `w-5 h-5 ${isActive ? 'text-[#1a254f]' : 'text-[#6b7280]'} group-hover:text-[#1a254f]`
 
   switch (iconType) {
     case 'home':
@@ -168,9 +169,9 @@ export const MobileNav: React.FC<MobileNavProps> = ({ userRole }) => {
             <li key={item.id} className="flex-1">
               <Link
                 href={item.href}
-                className={`flex flex-col items-center justify-center h-full relative ${
-                  isActive ? 'text-[#2563eb] font-medium' : 'text-[#6b7280]'
-                }`}
+                className={`group flex flex-col items-center justify-center h-full relative ${
+                  isActive ? 'text-[#1a254f] font-medium' : 'text-[#6b7280]'
+                } group-hover:text-[#1a254f]`}
                 prefetch={false}
               >
                 <div className="relative mb-1">
@@ -179,7 +180,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ userRole }) => {
                     <NotificationBadge count={item.badge} className="absolute -top-1 -right-1" />
                   )}
                 </div>
-                <span className="text-xs">{item.label}</span>
+                <span className="text-xs group-hover:text-[#1a254f]">{item.label}</span>
               </Link>
             </li>
           )

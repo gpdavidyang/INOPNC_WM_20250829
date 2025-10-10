@@ -5,6 +5,8 @@ import React from 'react'
 
 // Import Tailwind and project globals
 import '../app/globals.css'
+// Mobile global CSS so layout/AppBar styles (app-header, header-content, etc.) match production
+import '../modules/mobile/styles/mobile-global.css'
 
 // Lightweight providers: reuse production providers safely in Storybook
 import { TouchModeProvider } from '../contexts/TouchModeContext'

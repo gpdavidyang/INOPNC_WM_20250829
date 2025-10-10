@@ -76,3 +76,36 @@ export const WithIcons: Story = {
     </div>
   ),
 }
+
+// Docs-friendly preview that shows the bar inside a phone frame by overriding
+// position: fixed -> absolute only within this story scope.
+export const InDeviceFrame: Story = {
+  name: 'In Device Frame (Docs-friendly)',
+  args: {
+    items: [
+      { label: '홈', href: '/mobile', active: true },
+      { label: '작업', href: '/mobile/work' },
+      { label: '문서함', href: '/mobile/documents' },
+      { label: '내 정보', href: '/mobile/profile' },
+    ],
+  },
+  parameters: { layout: 'centered' },
+  render: args => (
+    <div id="device-frame" className="p-4">
+      <style>{`
+        /* Scope override to this story only */
+        #device-frame .phone-shell { position: relative; width: 390px; height: 844px; border-radius: 24px; overflow: hidden; border: 1px solid #e5e7eb; background: #fff; }
+        #device-frame .phone-shell .scroll { height: 760px; margin: 16px; border-radius: 12px; background: #f5f7fb; border: 1px dashed #d1d5db; }
+        #device-frame .phone-shell nav.fixed { position: absolute !important; bottom: 0; left: 0; right: 0; }
+      `}</style>
+      <div className="phone-shell">
+        <div className="px-5 pt-5 text-sm text-gray-600">
+          <p className="font-semibold text-gray-900">모바일 하단 내비게이션</p>
+          <p>기기 프레임 안에서의 시각적 위치 미리보기</p>
+        </div>
+        <div className="scroll" />
+        <BottomNavigation {...args} />
+      </div>
+    </div>
+  ),
+}

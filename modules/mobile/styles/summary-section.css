@@ -1,7 +1,7 @@
 /* 작성 내용 요약 섹션 스타일 */
 .summary-section {
-  margin-bottom: 1rem;
-  padding-bottom: 60px; /* 하단 여백 추가 */
+  margin-bottom: var(--space-sm);
+  padding-bottom: 60px; /* footer safe space stays */
 }
 
 .summary-section .work-form-container {
@@ -16,13 +16,20 @@
 }
 
 .summary-section .section-header {
-  margin-bottom: 1.25rem;
-  padding-bottom: 0.75rem;
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-xs);
   border-bottom: 1px solid var(--border);
 }
 
 .summary-section .section-title {
-  font-size: 1.25rem;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 20px;
   font-weight: 600;
   color: var(--foreground);
   margin: 0;
