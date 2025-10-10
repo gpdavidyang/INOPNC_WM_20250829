@@ -129,20 +129,19 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   // 작업 옵션 (부재명/작업공정) - 관리자 화면에서 설정한 값 사용
   const { componentTypes, processTypes } = useWorkOptions()
-  const MEMBER_TYPE_OPTIONS = useMemo(
-    () => [
-      ...componentTypes.map(opt => ({ value: opt.option_label, label: opt.option_label })),
-      { value: 'other', label: '기타' },
-    ],
-    [componentTypes]
-  )
-  const WORK_PROCESS_OPTIONS = useMemo(
-    () => [
-      ...processTypes.map(opt => ({ value: opt.option_label, label: opt.option_label })),
-      { value: 'other', label: '기타' },
-    ],
-    [processTypes]
-  )
+  const MEMBER_TYPE_OPTIONS = useMemo(() => {
+    // Remove any existing "기타" from admin-provided options to avoid duplicate entries.
+    const base = componentTypes
+      .map(opt => ({ value: opt.option_label, label: opt.option_label }))
+      .filter(opt => opt.label?.trim() !== '기타')
+    return [...base, { value: 'other', label: '기타' }]
+  }, [componentTypes])
+  const WORK_PROCESS_OPTIONS = useMemo(() => {
+    const base = processTypes
+      .map(opt => ({ value: opt.option_label, label: opt.option_label }))
+      .filter(opt => opt.label?.trim() !== '기타')
+    return [...base, { value: 'other', label: '기타' }]
+  }, [processTypes])
   const MEMBER_TYPE_VALUES = useMemo(
     () => MEMBER_TYPE_OPTIONS.filter(o => o.value !== 'other').map(o => o.value),
     [MEMBER_TYPE_OPTIONS]

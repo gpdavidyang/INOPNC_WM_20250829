@@ -1,12 +1,13 @@
-import type { Config } from "tailwindcss";
+import type { Config } from 'tailwindcss'
 
 const config: Config = {
-  darkMode: ["class", '[data-theme="dark"]'],
+  darkMode: ['class', '[data-theme="dark"]'],
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./styles/**/*.css",
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './modules/**/*.{js,ts,jsx,tsx,mdx}',
+    './styles/**/*.css',
   ],
   safelist: [
     // Force Desktop UI classes - NEVER purge these
@@ -34,14 +35,14 @@ const config: Config = {
     extend: {
       screens: {
         // Custom screens for role-based UI
-        'force-mobile': { 'raw': '.force-mobile-ui' },
-        'force-desktop': { 'raw': '.force-desktop-ui' },
+        'force-mobile': { raw: '.force-mobile-ui' },
+        'force-desktop': { raw: '.force-desktop-ui' },
         // Standard breakpoints
-        'xs': '475px',
-        'sm': '640px',
-        'md': '768px',
-        'lg': '1024px',
-        'xl': '1280px',
+        xs: '475px',
+        sm: '640px',
+        md: '768px',
+        lg: '1024px',
+        xl: '1280px',
         '2xl': '1536px',
       },
       colors: {
@@ -51,7 +52,7 @@ const config: Config = {
         'accent-cyan': 'var(--accent-cyan)',
         warn: 'var(--warn)',
         success: 'var(--success)',
-        
+
         // Tag colors
         tag: {
           1: 'var(--tag1)',
@@ -59,7 +60,7 @@ const config: Config = {
           3: 'var(--tag3)',
           4: 'var(--tag4)',
         },
-        
+
         // INOPNC 디자인 시스템 색상 팔레트 (레거시 호환성)
         primary: {
           50: '#eff6ff',
@@ -72,7 +73,7 @@ const config: Config = {
           700: '#1d4ed8',
           800: '#1e40af',
           900: '#1e3a8a',
-          950: '#172554'
+          950: '#172554',
         },
         secondary: {
           50: '#f8fafc',
@@ -85,7 +86,7 @@ const config: Config = {
           700: '#334155',
           800: '#1e293b',
           900: '#0f172a',
-          950: '#020617'
+          950: '#020617',
         },
         success: {
           50: '#f0fdf4',
@@ -98,7 +99,7 @@ const config: Config = {
           700: '#15803d',
           800: '#166534',
           900: '#14532d',
-          950: '#052e16'
+          950: '#052e16',
         },
         warning: {
           50: '#fffbeb',
@@ -111,7 +112,7 @@ const config: Config = {
           700: '#b45309',
           800: '#92400e',
           900: '#78350f',
-          950: '#451a03'
+          950: '#451a03',
         },
         danger: {
           50: '#fef2f2',
@@ -124,7 +125,7 @@ const config: Config = {
           700: '#b91c1c',
           800: '#991b1b',
           900: '#7f1d1d',
-          950: '#450a0a'
+          950: '#450a0a',
         },
         // UI Guidelines 준수: Toss 디자인 시스템 색상
         'toss-blue': {
@@ -138,7 +139,7 @@ const config: Config = {
           600: '#2563EB',
           700: '#1D4ED8',
           800: '#1e40af',
-          900: '#001a4d'
+          900: '#001a4d',
         },
         'toss-gray': {
           DEFAULT: '#374151',
@@ -151,30 +152,30 @@ const config: Config = {
           600: '#4B5563',
           700: '#374151',
           800: '#1F2937',
-          900: '#111827'
+          900: '#111827',
         },
         // Enhanced Layout Structure Colors (High Contrast Version)
         layout: {
-          'main-bg': '#F1F5F9',        // Main container background (darker slate-100)
-          'section-bg': '#FFFFFF',     // Section/card backgrounds (pure white)
-          'elevated': '#FEFEFE',       // Elevated surfaces (off-white)
+          'main-bg': '#F1F5F9', // Main container background (darker slate-100)
+          'section-bg': '#FFFFFF', // Section/card backgrounds (pure white)
+          elevated: '#FEFEFE', // Elevated surfaces (off-white)
           'divider-subtle': '#D1D5DB', // Subtle dividers (stronger gray-300)
           'divider-prominent': '#9CA3AF', // Prominent dividers (gray-400)
           'section-border': '#E5E7EB', // Section borders (gray-200)
           'section-shadow': 'rgba(0, 0, 0, 0.08)', // Section shadow color
-          'elevated-shadow': 'rgba(0, 0, 0, 0.12)' // Elevated shadow color
+          'elevated-shadow': 'rgba(0, 0, 0, 0.12)', // Elevated shadow color
         },
         // Dark mode layout colors (Enhanced Contrast)
         'layout-dark': {
-          'main-bg': '#0F172A',        // Dark main background (slate-900)
-          'section-bg': '#1E293B',     // Dark section backgrounds (slate-800)
-          'elevated': '#334155',       // Dark elevated surfaces (slate-700)
+          'main-bg': '#0F172A', // Dark main background (slate-900)
+          'section-bg': '#1E293B', // Dark section backgrounds (slate-800)
+          elevated: '#334155', // Dark elevated surfaces (slate-700)
           'divider-subtle': '#475569', // Dark subtle dividers (slate-600)
           'divider-prominent': '#64748B', // Dark prominent dividers (slate-500)
           'section-border': '#374151', // Dark section borders (gray-700)
           'section-shadow': 'rgba(0, 0, 0, 0.25)', // Dark section shadow
-          'elevated-shadow': 'rgba(0, 0, 0, 0.35)' // Dark elevated shadow
-        }
+          'elevated-shadow': 'rgba(0, 0, 0, 0.35)', // Dark elevated shadow
+        },
       },
       fontFamily: {
         sans: [
@@ -190,28 +191,28 @@ const config: Config = {
           'Malgun Gothic',
           'Apple Color Emoji',
           'Segoe UI Emoji',
-          'sans-serif'
-        ]
+          'sans-serif',
+        ],
       },
       fontSize: {
         // 디자인 토큰 기반 타이포그래피
-        'cap': ['var(--fs-cap)', { lineHeight: 'var(--lh)' }],     // 12px - 캡션
-        'ctl': ['var(--fs-ctl)', { lineHeight: 'var(--lh)' }],     // 14px - 컨트롤/버튼
-        'body': ['var(--fs-body)', { lineHeight: 'var(--lh)' }],   // 15px - 본문
-        'h2': ['var(--fs-h2)', { lineHeight: 'var(--lh)' }],       // 18px - 섹션 제목
-        'title': ['var(--fs-title)', { lineHeight: 'var(--lh)' }], // 24px - 메인 타이틀
-        
+        cap: ['var(--fs-cap)', { lineHeight: 'var(--lh)' }], // 12px - 캡션
+        ctl: ['var(--fs-ctl)', { lineHeight: 'var(--lh)' }], // 14px - 컨트롤/버튼
+        body: ['var(--fs-body)', { lineHeight: 'var(--lh)' }], // 15px - 본문
+        h2: ['var(--fs-h2)', { lineHeight: 'var(--lh)' }], // 18px - 섹션 제목
+        title: ['var(--fs-title)', { lineHeight: 'var(--lh)' }], // 24px - 메인 타이틀
+
         // 기존 시스템 호환성
-        'xs': ['0.75rem', { lineHeight: '1rem' }],        // 12px
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],    // 14px
-        'base': ['0.9375rem', { lineHeight: '1.4' }],     // 15px
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],    // 18px
-        'xl': ['1.5rem', { lineHeight: '2rem' }],         // 24px
-        '2xl': ['1.875rem', { lineHeight: '2.25rem' }],   // 30px
-        '3xl': ['2.25rem', { lineHeight: '2.5rem' }],     // 36px
-        '4xl': ['3rem', { lineHeight: '1' }],             // 48px
-        '5xl': ['3.75rem', { lineHeight: '1' }],          // 60px
-        '6xl': ['4.5rem', { lineHeight: '1' }]            // 72px
+        xs: ['0.75rem', { lineHeight: '1rem' }], // 12px
+        sm: ['0.875rem', { lineHeight: '1.25rem' }], // 14px
+        base: ['0.9375rem', { lineHeight: '1.4' }], // 15px
+        lg: ['1.125rem', { lineHeight: '1.75rem' }], // 18px
+        xl: ['1.5rem', { lineHeight: '2rem' }], // 24px
+        '2xl': ['1.875rem', { lineHeight: '2.25rem' }], // 30px
+        '3xl': ['2.25rem', { lineHeight: '2.5rem' }], // 36px
+        '4xl': ['3rem', { lineHeight: '1' }], // 48px
+        '5xl': ['3.75rem', { lineHeight: '1' }], // 60px
+        '6xl': ['4.5rem', { lineHeight: '1' }], // 72px
       },
       spacing: {
         // INOPNC 디자인 시스템 스페이싱 확장
@@ -236,38 +237,38 @@ const config: Config = {
         '20': '80px',
         '24': '96px',
         '28': '112px',
-        '32': '128px'
+        '32': '128px',
       },
       height: {
-        'btn': 'var(--btn-h)',       // 44px
-        'input': 'var(--input-h)',   // 44px
-        'search': 'var(--search-h)',  // 52px
-        'chip': 'var(--chip-h)',     // 48px
-        'header': 'var(--header-h)',  // 80px
-        'nav': 'var(--nav-h)',        // 72px
+        btn: 'var(--btn-h)', // 44px
+        input: 'var(--input-h)', // 44px
+        search: 'var(--search-h)', // 52px
+        chip: 'var(--chip-h)', // 48px
+        header: 'var(--header-h)', // 80px
+        nav: 'var(--nav-h)', // 72px
       },
       minHeight: {
-        'btn': 'var(--btn-h)',       // 44px
-        'input': 'var(--input-h)',   // 44px
-        'touch': '44px',             // 최소 터치 타겟
+        btn: 'var(--btn-h)', // 44px
+        input: 'var(--input-h)', // 44px
+        touch: '44px', // 최소 터치 타겟
       },
       borderRadius: {
-        'sm': 'var(--r-sm)',     // 8px
-        'md': 'var(--r-md)',     // 12px
-        'lg': 'var(--r-lg)',     // 14px
-        'xl': 'var(--r-xl)',     // 24px
-        '2xl': '1rem',           // 16px
-        '3xl': '1.5rem',         // 24px
-        'full': 'var(--r-full)', // 9999px
+        sm: 'var(--r-sm)', // 8px
+        md: 'var(--r-md)', // 12px
+        lg: 'var(--r-lg)', // 14px
+        xl: 'var(--r-xl)', // 24px
+        '2xl': '1rem', // 16px
+        '3xl': '1.5rem', // 24px
+        full: 'var(--r-full)', // 9999px
       },
       boxShadow: {
-        'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
-        'md': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        'lg': '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
-        'xl': '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-        'card': '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
-        'elevated': '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-        'button': '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+        sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+        md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+        xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+        card: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
+        elevated: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+        button: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
       },
       animation: {
         // 기존 애니메이션 유지
@@ -280,12 +281,12 @@ const config: Config = {
         'scale-out': 'scaleOut 0.2s ease-in',
         'bounce-subtle': 'bounceSubtle 0.6s ease-out',
         // Quantum Holographic Effects (Iteration 9)
-        'shimmer': 'shimmer 2s ease-in-out infinite',
+        shimmer: 'shimmer 2s ease-in-out infinite',
         'shimmer-slow': 'shimmer 3s ease-in-out infinite',
         'spin-slow': 'spin 8s linear infinite',
         'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
         'quantum-field': 'quantumField 4s ease-in-out infinite',
-        'holographic-shift': 'holographicShift 6s ease-in-out infinite'
+        'holographic-shift': 'holographicShift 6s ease-in-out infinite',
       },
       keyframes: {
         // 기존 키프레임 유지
@@ -320,82 +321,81 @@ const config: Config = {
         },
         // Quantum Holographic Effects Keyframes (Iteration 9)
         shimmer: {
-          '0%': { 
+          '0%': {
             transform: 'translateX(-100%)',
-            opacity: '0'
+            opacity: '0',
           },
           '50%': {
             transform: 'translateX(0%)',
-            opacity: '0.8'
+            opacity: '0.8',
           },
-          '100%': { 
+          '100%': {
             transform: 'translateX(100%)',
-            opacity: '0'
-          }
+            opacity: '0',
+          },
         },
         pulseGlow: {
-          '0%, 100%': { 
+          '0%, 100%': {
             boxShadow: '0 0 5px rgba(59,130,246,0.3)',
-            opacity: '0.7'
+            opacity: '0.7',
           },
-          '50%': { 
+          '50%': {
             boxShadow: '0 0 20px rgba(59,130,246,0.6), 0 0 30px rgba(147,51,234,0.4)',
-            opacity: '1'
-          }
+            opacity: '1',
+          },
         },
         quantumField: {
-          '0%': { 
+          '0%': {
             backgroundPosition: '0% 50%',
-            opacity: '0.3'
+            opacity: '0.3',
           },
-          '50%': { 
+          '50%': {
             backgroundPosition: '100% 50%',
-            opacity: '0.6'
+            opacity: '0.6',
           },
-          '100%': { 
+          '100%': {
             backgroundPosition: '0% 50%',
-            opacity: '0.3'
-          }
+            opacity: '0.3',
+          },
         },
         holographicShift: {
-          '0%': { 
+          '0%': {
             filter: 'hue-rotate(0deg) saturate(100%)',
-            transform: 'translateX(0px)'
+            transform: 'translateX(0px)',
           },
-          '25%': { 
+          '25%': {
             filter: 'hue-rotate(90deg) saturate(120%)',
-            transform: 'translateX(1px)'
+            transform: 'translateX(1px)',
           },
-          '50%': { 
+          '50%': {
             filter: 'hue-rotate(180deg) saturate(110%)',
-            transform: 'translateX(0px)'
+            transform: 'translateX(0px)',
           },
-          '75%': { 
+          '75%': {
             filter: 'hue-rotate(270deg) saturate(120%)',
-            transform: 'translateX(-1px)'
+            transform: 'translateX(-1px)',
           },
-          '100%': { 
+          '100%': {
             filter: 'hue-rotate(360deg) saturate(100%)',
-            transform: 'translateX(0px)'
-          }
-        }
+            transform: 'translateX(0px)',
+          },
+        },
       },
       backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
         // INOPNC 그라데이션 추가
-        "gradient-primary": "linear-gradient(135deg, var(--tw-gradient-stops))",
-        "gradient-card": "linear-gradient(to right, var(--tw-gradient-stops))"
+        'gradient-primary': 'linear-gradient(135deg, var(--tw-gradient-stops))',
+        'gradient-card': 'linear-gradient(to right, var(--tw-gradient-stops))',
       },
       backdropBlur: {
-        'xs': '2px'
+        xs: '2px',
       },
       transitionDuration: {
-        '400': '400ms'
-      }
+        '400': '400ms',
+      },
     },
   },
   plugins: [],
-};
-export default config;
+}
+export default config

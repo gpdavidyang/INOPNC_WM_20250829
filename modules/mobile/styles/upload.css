@@ -1883,3 +1883,11 @@
 [data-theme='dark'] .form-group label {
   color: #ffffff;
 }
+/* Compact overrides for photo upload section spacing */
+.photo-upload-section .card {
+  margin-bottom: var(--space-sm) !important;
+}
+
+.photo-upload-section .section-header {
+  margin-bottom: var(--space-sm) !important;
+}

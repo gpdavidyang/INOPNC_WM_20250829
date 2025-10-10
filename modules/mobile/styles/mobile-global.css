@@ -20,11 +20,22 @@
   --nav-bg: #ffffff;
   --nav-border: #e5e7eb;
   --nav-text: #6b7280;
-  --nav-text-active: #2563eb;
+  --nav-text-active: #1a254f;
 
   /* Shadows & Effects */
   --shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
   --radius: 8px;
+
+  /* AppBar label controls */
+  --appbar-label-size: 9px; /* was 10px */
+  --appbar-label-weight: 200; /* was 300 */
+
+  /* Compact vertical rhythm tokens */
+  --space-xxs: 6px; /* ultra compact */
+  --space-xs: 8px; /* very tight */
+  --space-sm: 12px; /* compact default */
+  --space-md: 16px; /* relaxed */
+  --space-lg: 20px; /* grouped sections */
 }
 
 /* Dark Theme */
@@ -48,7 +59,7 @@
   --nav-bg: #11151b;
   --nav-border: #3a4048;
   --nav-text: #a8b0bb;
-  --nav-text-active: #2f6bff;
+  --nav-text-active: #1a254f;
 }
 
 /* Base Styles */
@@ -170,7 +181,7 @@ textarea {
 .brand-title,
 .header-title {
   font-family: var(--font-poppins, 'Poppins'), var(--font);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--brand);
   margin: 0;
@@ -230,8 +241,8 @@ textarea {
 }
 
 .header-icon-btn .icon-text {
-  font-size: 10px !important;
-  font-weight: 300;
+  font-size: var(--appbar-label-size) !important;
+  font-weight: var(--appbar-label-weight);
   line-height: 1;
   letter-spacing: -0.3px;
   color: #6b7280;
@@ -244,11 +255,11 @@ textarea {
 }
 
 .app-header .brand-title {
-  font-size: 20px !important;
+  font-size: 24px !important;
 }
 
 .app-header .header-icon-btn .icon-text {
-  font-size: 10px !important;
+  font-size: var(--appbar-label-size) !important;
 }
 
 /* Transform positioning for header buttons - Removed for mobile */

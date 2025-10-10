@@ -13,9 +13,19 @@ import { useFontSize } from '@/contexts/FontSizeContext'
 interface AppBarProps {
   onMenuClick?: () => void
   onSearchClick?: () => void
+  /** Storybook-only visual controls (safe defaults keep prod behavior) */
+  titleText?: string
+  showLabels?: boolean
+  notificationCountOverride?: number
 }
 
-export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) => {
+export const AppBar: React.FC<AppBarProps> = ({
+  onMenuClick,
+  onSearchClick,
+  titleText = 'INOPNC',
+  showLabels = true,
+  notificationCountOverride,
+}) => {
   // Centralized theme control (syncs data-theme + .dark class)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [notificationCount, setNotificationCount] = useState(0)
@@ -70,12 +80,15 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
 
   // Font size toggle is handled by FontSizeContext (applies .large-font-mode)
 
+  const displayCount =
+    typeof notificationCountOverride === 'number' ? notificationCountOverride : notificationCount
+
   return (
     <header className="app-header">
       <div className="header-content">
         <div className="header-left">
           <h1 className="brand-title" onClick={() => (window.location.href = '/mobile')}>
-            INOPNC
+            {titleText}
           </h1>
         </div>
 
@@ -98,7 +111,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             }}
           >
             <Search className="w-5 h-5" />
-            <span className="icon-text">검색</span>
+            {showLabels && <span className="icon-text">검색</span>}
           </Button>
 
           {/* Dark Mode */}
@@ -111,7 +124,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             onClick={toggleTheme}
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            <span className="icon-text">다크모드</span>
+            {showLabels && <span className="icon-text">다크모드</span>}
           </Button>
 
           {/* Font Size */}
@@ -124,9 +137,11 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             onClick={toggleFontSize}
           >
             <Type className="w-5 h-5" />
-            <span className="icon-text" id="fontSizeText">
-              {isLargeFont ? '큰글씨' : '작은글씨'}
-            </span>
+            {showLabels && (
+              <span className="icon-text" id="fontSizeText">
+                {isLargeFont ? '큰글씨' : '작은글씨'}
+              </span>
+            )}
           </Button>
 
           {/* Notifications */}
@@ -139,10 +154,10 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             onClick={() => setShowNotificationModal(true)}
           >
             <Bell className="w-5 h-5" />
-            <span className="icon-text">알림</span>
-            {notificationCount > 0 && (
+            {showLabels && <span className="icon-text">알림</span>}
+            {displayCount > 0 && (
               <span className="notification-badge" id="notificationBadge">
-                {notificationCount}
+                {displayCount}
               </span>
             )}
           </Button>
@@ -162,7 +177,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             }}
           >
             <Menu className="w-5 h-5" />
-            <span className="icon-text">메뉴</span>
+            {showLabels && <span className="icon-text">메뉴</span>}
           </Button>
         </div>
       </div>

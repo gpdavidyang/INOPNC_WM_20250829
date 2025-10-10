@@ -74,7 +74,7 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
   }, [])
 
   return (
-    <div className={`department-select-container ${className}`}>
+    <div className={`form-group department-select-container ${className}`}>
       <label className="form-label">소속 {required && <span className="required">*</span>}</label>
       <CustomSelect
         value={value}

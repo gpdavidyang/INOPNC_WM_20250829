@@ -7,8 +7,8 @@
   border-radius: 10px;
   padding: 18px;
   box-shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
-  margin-top: 16px;
-  margin-bottom: 16px;
+  margin-top: var(--space-sm);
+  margin-bottom: var(--space-sm);
   box-sizing: border-box;
 }
 
@@ -18,13 +18,20 @@
 
 /* 작업일지 작성 제목 */
 .work-form-title {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: var(--space-xxs);
+  padding-bottom: var(--space-xxs);
   border-bottom: 2px solid #e6ecf4;
 }
 
 .work-form-main-title {
-  font-size: 18px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text, #1a1a1a);
   margin: 0;
@@ -40,12 +47,17 @@
 
 /* Form Layout */
 .form-section {
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: var(--space-xxs);
+  padding-bottom: var(--space-xxs);
   border-bottom: 1px solid #f3f4f6;
   overflow: visible;
   position: relative;
   z-index: 1;
+}
+
+/* Tighten gap between section title and first field group */
+.work-form-container .section-header {
+  margin-bottom: var(--space-xxs) !important;
 }
 
 /* Date Input with Calendar Icon */
@@ -207,8 +219,15 @@
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 900; /* Increased from 800 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--text, #1a1a1a);
 }
 
@@ -219,18 +238,32 @@
 }
 
 .form-note {
-  font-size: 14px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
   font-weight: 600;
-  color: #00bcd4;
+  color: #31a3fa;
   text-align: right;
   margin-left: auto;
 }
 
 .author-info {
-  /* Match .form-note ("필수입력값 작성 후 저장") style */
-  font-size: 14px;
+  /* same style as form-note */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
   font-weight: 600;
-  color: #00bcd4;
+  color: #31a3fa;
   text-align: right;
   margin-left: auto;
 }
@@ -243,14 +276,14 @@
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 1rem;
+  gap: var(--space-xxs);
+  margin-bottom: var(--space-xxs);
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .form-label {
@@ -262,12 +295,22 @@
 .form-input,
 .form-select {
   height: 44px;
-  padding: 0 14px;
+  padding: 0 14px; /* normalize: remove vertical padding from radix trigger */
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 44px; /* ensure text sits on same baseline across states */
   border: 1px solid #e6ecf4;
   border-radius: 12px;
   background: #f8fafc;
-  font-size: 15px;
-  font-weight: 800; /* Increased from 600 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
   color: #1a1a1a;
   width: 100%;
   box-sizing: border-box;
