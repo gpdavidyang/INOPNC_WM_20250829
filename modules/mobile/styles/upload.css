@@ -741,10 +741,16 @@
   color: var(--muted);
 }
 
+/* Reduce placeholder icon size to 70% (from 36px → ~25px) */
+.upload-placeholder .upload-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
 .upload-text {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* Photo thumbnails container */
