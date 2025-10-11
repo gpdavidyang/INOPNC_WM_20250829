@@ -214,7 +214,7 @@ textarea {
 }
 
 [data-theme='dark'] .header-icon-btn {
-  color: #33e6f6;
+  color: var(--text);
 }
 
 .header-icon-btn:hover {
@@ -246,6 +246,10 @@ textarea {
   line-height: 1;
   letter-spacing: -0.3px;
   color: #6b7280;
+}
+
+[data-theme='dark'] .header-icon-btn .icon-text {
+  color: var(--text);
 }
 
 /* 큰글씨 모드에서도 헤더는 영향받지 않도록 */
@@ -622,13 +626,16 @@ textarea {
   top: 0;
   left: -320px;
   width: 320px;
-  max-width: calc(100vw - 40px);
+  max-width: 100vw; /* remove 40px viewport margin to avoid right gutter */
   min-width: 280px;
   height: 100vh;
   background: var(--card);
   color: var(--text);
-  border-right: 1px solid var(--line);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  border-right: none; /* draw border on inner scale for perfect flush */
+  /* outer shadow + inner right border */
+  box-shadow:
+    inset -1px 0 0 var(--line),
+    4px 0 24px rgba(0, 0, 0, 0.18);
   z-index: 1500;
   transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   font-family:
@@ -638,9 +645,10 @@ textarea {
     'Segoe UI',
     Roboto,
     sans-serif;
-  overflow: hidden; /* Hide overflow at drawer level */
-  contain: layout paint;
-  isolation: isolate;
+  overflow: visible; /* allow slight overlap for flush alignment */
+  contain: layout; /* relax paint containment for edge overlap */
+  /* Expand clip region to allow a few pixels beyond the right edge without visual cut */
+  clip-path: inset(0 -128px 0 0); /* expand right clip margin to -128px */
 }
 
 /* New container for proper scrolling */
@@ -648,39 +656,63 @@ textarea {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow-y: auto;
+  overflow-y: hidden; /* no vertical scrolling at container level */
+  overflow-x: visible; /* allow edge-aligned children to render fully */
   -webkit-overflow-scrolling: touch;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px
-    calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 0; /* match reference: use aside padding instead */
+  /* Hide native scrollbars to avoid shrinking content width on Windows */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.drawer-container::-webkit-scrollbar {
+  width: 0 !important; /* Chrome/Safari */
+  height: 0 !important;
 }
 
 .drawer.show {
   display: flex;
   left: 0;
+  padding: 16px 0 0 16px; /* top 16, right 0, bottom 0, left 16 */
 }
 
 .drawer-body {
-  padding: 0;
-  flex: 1 1 auto; /* Changed to allow shrinking */
-  overflow-y: visible; /* Changed from auto to visible to prevent double scrolling */
+  padding: 0; /* padding handled by .drawer/.drawer-scale */
+  flex: 1 1 auto;
+  overflow-y: hidden; /* disable scrolling entirely as requested */
   -webkit-overflow-scrolling: touch;
   color: var(--text);
+  /* Hide native scrollbars so content width is not reduced */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.drawer-body::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .drawer-scale {
   transform-origin: top center;
   will-change: transform;
-  padding: 20px 16px;
+  padding: 0 0 0 16px; /* right 0 for flush */
   min-height: 100%;
   width: 100%;
   box-sizing: border-box;
-  overflow-x: hidden;
+  overflow: visible; /* allow edge-aligned content (buttons) to render cleanly */
+  position: relative; /* anchor inner border */
 }
+
+/* Draw the right vertical line at drawer level so it spans header+body */
+/* Use inset box-shadow on drawer to draw inner right border */
+
+/* Overlay scrollbar visuals aligned over the scroll area (visual only) */
+/* Overlay scrollbar removed (no scrolling needed) */
 
 .profile-sec {
   display: flex;
   flex-direction: column;
-  margin: 10px 0 16px;
+  margin: 10px 0 8px; /* tighten bottom spacing above divider */
   gap: 8px;
   width: 100%;
   box-sizing: border-box;
@@ -690,12 +722,39 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  width: 100%; /* rely on drawer/scale padding */
+  position: relative; /* anchor close button absolutely */
+  padding-right: 12px; /* reserve 12px so right:-12 lands at visual edge without clipping */
+  overflow: visible; /* ensure absolute button is not clipped */
+}
+/* Ensure '닫기' button sticks to the right */
+.profile-header .close-btn {
+  position: absolute;
+  right: 0; /* keep inside, flush with inner border */
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  z-index: 2000;
+}
+/* Allow name block to shrink so button never overflows */
+.profile-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0; /* critical for flex shrink */
+  overflow: hidden; /* enable ellipsis */
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding-right: 92px; /* adjusted: account for row padding-right 12px */
+}
+.profile-name .important-tag {
+  flex: 0 0 auto;
 }
 
 .profile-name {
   font:
-    600 18px/1.2 'Noto Sans KR',
+    600 20px/1.2 'Noto Sans KR',
     system-ui,
     -apple-system,
     'Segoe UI',
@@ -707,20 +766,21 @@ textarea {
 
 .important-tag {
   display: inline-block;
-  background: rgba(0, 104, 254, 0.1);
-  color: #0068fe;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
+  background: rgba(49, 163, 250, 0.1) !important;
+  color: #31a3fa !important;
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: 14px !important;
   font-weight: 600;
   font-family: 'Noto Sans KR', sans-serif;
   line-height: 1.2;
+  margin: 0;
   white-space: nowrap;
 }
 
 [data-theme='dark'] .important-tag {
-  background: rgba(0, 104, 254, 0.2);
-  color: #0068fe;
+  background: rgba(49, 163, 250, 0.2) !important;
+  color: #31a3fa !important;
 }
 
 .profile-email {
@@ -740,7 +800,7 @@ textarea {
   background-color: var(--card);
   color: var(--text);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 10px;
   padding: 8px 16px;
   font-family:
     'Noto Sans KR',
@@ -749,7 +809,7 @@ textarea {
     'Segoe UI',
     Roboto,
     sans-serif;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -762,13 +822,13 @@ textarea {
 }
 
 [data-theme='dark'] .close-btn:hover {
-  background-color: rgba(0, 188, 212, 0.1);
-  border-color: #00bcd4;
-  color: #00bcd4;
+  background-color: rgba(49, 163, 250, 0.2);
+  border-color: #31a3fa;
+  color: #31a3fa;
 }
 
 .menu-list {
-  margin: 8px 0 0;
+  margin: 4px 0 0; /* tighten spacing to email */
   padding: 0;
   list-style: none;
   border-top: 1px solid var(--line);
@@ -778,8 +838,13 @@ textarea {
 }
 
 .menu-item {
-  display: block;
-  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0;
+  height: 40px;
+  min-height: 40px;
+  margin-bottom: 0;
   color: var(--text);
   text-decoration: none;
   width: 100%;
@@ -787,6 +852,10 @@ textarea {
   word-wrap: break-word;
   overflow-wrap: break-word;
   transition: color 0.3s ease;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
 .menu-item:hover {
@@ -795,7 +864,7 @@ textarea {
 
 .menu-label {
   font:
-    500 16px/1.2 'Noto Sans KR',
+    600 16px/1.2 'Noto Sans KR',
     system-ui,
     -apple-system,
     'Segoe UI',
@@ -810,55 +879,141 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--line);
+  padding: 0 12px 0 0; /* reserve 12px so right:-12 lands at visual edge */
+  width: 100%;
+  box-sizing: border-box;
+  position: relative; /* anchor account button absolutely */
+  overflow: visible; /* ensure absolute button is not clipped */
+  margin-bottom: 12px; /* add breathing room below the button row */
+}
+/* Left label grows, right button sticks right */
+.menu-item-with-btn .menu-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+  padding-right: 128px;
+}
+.menu-item-with-btn .account-manage-btn {
+  position: absolute;
+  right: 0; /* keep inside, flush with inner border */
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  z-index: 2000;
+}
+.menu-item-with-btn .menu-item .menu-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Ensure list items don't add hidden right padding/margins */
+.menu-list li {
+  padding: 0;
+  margin: 0;
+}
+
+/* Ensure comfortable spacing between the account button row and info containers */
+.menu-list li.menu-item-with-btn {
+  margin-bottom: 16px;
+}
+.menu-list li.account-info {
+  margin-top: 16px;
+}
+.menu-list li.password-change-form {
+  margin-top: 24px;
 }
 
 .account-manage-btn {
-  background: transparent;
-  color: #0068fe;
-  border: 1px solid #0068fe;
-  border-radius: 6px;
-  padding: 6px 12px;
+  background: rgba(49, 163, 250, 0.1);
+  border: 1px solid rgba(0, 104, 254, 0.3);
+  border-radius: 10px;
+  padding: 8px 16px;
   font-family: 'Noto Sans KR', sans-serif;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 500;
+  color: #31a3fa;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   white-space: nowrap;
-  min-width: 70px;
+  z-index: 2;
 }
 
 .account-manage-btn:hover {
-  background: #0068fe;
-  color: white;
+  background: rgba(49, 163, 250, 0.15);
+  border-color: #31a3fa;
+}
+
+.account-manage-btn:active {
+  background: rgba(49, 163, 250, 0.2);
+  transform: scale(0.95);
+}
+
+[data-theme='dark'] .account-manage-btn {
+  background: rgba(49, 163, 250, 0.2);
+  border-color: rgba(49, 163, 250, 0.3);
+  color: #31a3fa;
+}
+
+[data-theme='dark'] .account-manage-btn:hover {
+  background: rgba(49, 163, 250, 0.3);
+  border-color: #31a3fa;
+}
+
+[data-theme='dark'] .account-manage-btn:active {
+  background: rgba(0, 104, 254, 0.4);
 }
 
 /* 계정 정보 스타일 */
 .account-info {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--line);
+  margin-top: 24px;
+  padding: 20px 16px; /* more breathing room top/bottom while keeping consistent side padding */
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  width: 100%;
+  box-sizing: border-box;
+  margin-right: 16px; /* add right-side breathing room to match left padding of drawer */
+}
+
+[data-theme='dark'] .account-info {
+  background: rgba(255, 255, 255, 0.03);
+  border-color: #374151;
 }
 
 .account-info-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 12px 8px; /* increase vertical and horizontal padding */
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.account-info-item:last-child {
+  border-bottom: none;
+}
+
+[data-theme='dark'] .account-info-item {
+  border-bottom: 1px solid #374151;
 }
 
 .account-label {
   font:
-    500 14px/1.2 'Noto Sans KR',
+    600 16px/1.2 'Noto Sans KR',
     sans-serif;
-  color: var(--text);
+  color: var(--muted);
+  transition: color 0.3s ease;
 }
 
 .account-value {
   font:
-    400 14px/1.2 'Noto Sans KR',
+    600 16px/1.2 'Noto Sans KR',
     sans-serif;
-  color: var(--muted);
+  color: var(--text);
+  transition: color 0.3s ease;
 }
 
 .change-password-btn {
@@ -875,6 +1030,7 @@ textarea {
 /* 비밀번호 변경 폼 스타일 */
 .password-change-form {
   padding: 16px 0;
+  margin-top: 24px; /* consistent spacing when toggled instead of account-info */
   border-bottom: 1px solid var(--line);
 }
 
@@ -911,6 +1067,14 @@ textarea {
 .form-input::placeholder {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Password change placeholders: enforce Noto Sans KR, 12px */
+#drawer-currentPassword::placeholder,
+#drawer-newPassword::placeholder,
+#drawer-confirmPassword::placeholder {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 14px !important;
 }
 
 .form-actions {
@@ -963,21 +1127,23 @@ textarea {
   margin-top: auto;
   padding: 16px;
   border-top: 1px solid #e5e7eb;
-  padding-bottom: max(
-    24px,
-    env(safe-area-inset-bottom, 16px)
-  ); /* More padding for better visibility */
-  flex-shrink: 0; /* Ensure footer doesn't shrink */
-  background: var(--card); /* Same as drawer background */
-  min-height: 80px; /* Ensure minimum height for visibility */
+  padding-bottom: max(50px, env(safe-area-inset-bottom, 0px));
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  z-index: 1600;
 }
 
 .logout-btn {
-  width: 100%;
+  width: 90%;
+  display: block;
+  margin: 0 auto; /* center horizontally */
   height: 48px;
-  border-radius: 12px;
-  border: 1px solid #dc2626;
-  background: #dc2626;
+  border-radius: 10px;
+  border: 1px solid var(--brand);
+  background: var(--brand);
   font-family:
     'Noto Sans KR',
     system-ui,
@@ -987,15 +1153,17 @@ textarea {
     sans-serif;
   font-size: 16px;
   font-weight: 600;
-  line-height: 1.2;
   color: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
-  background: #b91c1c;
-  border-color: #b91c1c;
+  opacity: 0.9;
+}
+
+[data-theme='dark'] .logout-btn {
+  color: #0f172a;
 }
 
 /* 큰글씨 모드 대응 */
@@ -1066,19 +1234,30 @@ body:not(.modal-open) .drawer {
 @supports (padding: max(0px)) {
   .drawer {
     padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
+    /* keep right padding 0 to maintain flush layout */
+    padding-right: 0 !important;
   }
 }
 
 .drawer-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 0;
+  padding: 0 !important;
+  flex: 1 1 auto;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch;
+  color: var(--text);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .drawer-foot {
-  padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid var(--line);
+  padding: 16px 12px calc(50px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e5e7eb;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card);
+  z-index: 1600;
 }
 
 /* Search Page Overlay */
@@ -1091,7 +1270,8 @@ body:not(.modal-open) .drawer {
   overflow: auto;
 }
 
-.search-page.show {
+.search-page.show,
+.search-page.active {
   display: block;
 }
 
@@ -1544,25 +1724,44 @@ body.fs-150 .expandable.expanded::after {
 }
 
 .sp-head {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   background: var(--card);
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
   display: flex;
   align-items: center;
   gap: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 80px;
+  z-index: 10;
+  box-sizing: border-box;
 }
 
 .sp-back {
   background: transparent;
   border: 0;
-  padding: 8px;
+  padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
-  color: #6b7280;
-  font-size: 18px;
-  font-weight: 600;
+  color: #6b7280; /* muted */
+  font-size: 16px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+}
+
+.sp-back:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.sp-back:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .sp-input-wrap {
@@ -1572,13 +1771,12 @@ body.fs-150 .expandable.expanded::after {
 
 .sp-input {
   width: 100%;
-  height: 48px;
-  border-radius: 24px !important;
-  background: #fafafa;
-  border: 1px solid #e5e5e5;
-  padding: 0 50px 0 20px;
-  font:
-    400 16px 'Noto Sans KR',
+  height: 40px;
+  padding: 0 18px 0 50px; /* left room for icon */
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  font-family:
+    'Noto Sans KR',
     system-ui,
     -apple-system,
     Segoe UI,
@@ -1586,22 +1784,34 @@ body.fs-150 .expandable.expanded::after {
     Apple SD Gothic Neo,
     Malgun Gothic,
     sans-serif;
-  color: #333;
+  font-size: 16px;
+  font-weight: 500;
+  background: var(--card);
+  color: var(--text);
   outline: none;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+  -webkit-box-shadow: 0 0 0 1000px var(--card) inset;
+  box-shadow: 0 0 0 1000px var(--card) inset;
+  -webkit-text-fill-color: var(--text);
+  box-sizing: border-box;
 }
 
 .sp-input::placeholder {
-  color: #8a8a8a;
+  color: #31a3fa; /* match reference */
+  font-size: 16px;
   font-weight: 400;
 }
 
 .sp-icon {
   position: absolute;
-  right: 16px;
+  left: 18px;
   top: 50%;
   transform: translateY(-50%);
-  opacity: 0.7;
-  color: #8a8a8a;
+  color: #6b7280;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
 }
 
 /* Dark mode search page */
@@ -1609,6 +1819,22 @@ body.fs-150 .expandable.expanded::after {
   background: #2a2a2a;
   border-color: #404040;
   color: #e6e9f1;
+}
+
+.sp-input:focus {
+  border-color: #31a3fa;
+  box-shadow:
+    0 0 0 2px rgba(49, 163, 250, 0.2),
+    0 0 0 1000px var(--card) inset;
+}
+
+/* 다크모드 포커스 스타일 - 레퍼런스와 일치 */
+[data-theme='dark'] .sp-input:focus {
+  border-color: #31a3fa !important;
+  box-shadow: 0 0 0 2px rgba(0, 188, 212, 0.2) !important;
+  -webkit-box-shadow:
+    0 0 0 2px rgba(0, 188, 212, 0.2),
+    0 0 0 1000px var(--card) inset !important;
 }
 
 [data-theme='dark'] .sp-input::placeholder {
@@ -1620,8 +1846,8 @@ body.fs-150 .expandable.expanded::after {
 }
 
 [data-theme='dark'] .sp-icon {
-  color: #ffffff;
-  opacity: 0.8;
+  color: #31a3fa !important;
+  opacity: 1;
 }
 
 /* Root shell keeps header/footer fixed while the content area scrolls */
@@ -1651,4 +1877,10 @@ body.fs-150 .expandable.expanded::after {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
   position: relative;
+}
+.drawer-head {
+  padding: 0; /* internal scale handles sides */
+  border-bottom: none; /* remove top separator to avoid double lines */
+  position: relative;
+  z-index: 1500;
 }

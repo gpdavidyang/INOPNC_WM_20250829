@@ -47,6 +47,11 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       document.body.classList.add('modal-open')
       // Auto-scale drawer content for mobile
       setTimeout(fitDrawer, 50)
+
+      // No dynamic right-align hacks needed with reference-consistent padding
+      return () => {
+        // noop
+      }
     } else {
       document.body.classList.remove('modal-open')
     }
@@ -56,31 +61,14 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen])
 
-  // Drawer scaling function - 100% base.html match
+  // Drawer scaling function disabled to avoid horizontal misalignment
   const fitDrawer = () => {
-    const drawer = document.getElementById('drawer')
-    const drawerScale = document.querySelector('.drawer-scale')
-
-    if (!drawer || !drawerScale) return
-
-    // 모바일에서는 스케일링 비활성화
-    if (window.innerWidth <= 768) {
-      ;(drawerScale as HTMLElement).style.transform = 'none'
-      return
+    const drawerScale = document.querySelector('.drawer-scale') as HTMLElement | null
+    if (drawerScale) {
+      drawerScale.style.transform = 'none'
+      drawerScale.style.transformOrigin = 'top left'
+      drawerScale.style.width = '100%'
     }
-
-    // 가용 높이(패널 패딩/안전영역 감안)
-    const style = getComputedStyle(drawer)
-    const padTop = parseFloat(style.paddingTop)
-    const padBottom = parseFloat(style.paddingBottom)
-    const avail = window.innerHeight - padTop - padBottom
-
-    // 실제 콘텐츠 전체 높이
-    const contentH = (drawerScale as HTMLElement).scrollHeight
-
-    // 축소 비율 계산 (최소 0.85 유지)
-    const s = Math.max(0.85, Math.min(1, avail / contentH))
-    ;(drawerScale as HTMLElement).style.transform = `scale(${s})`
   }
 
   // Mobile keyboard handling
@@ -234,6 +222,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     { label: '문서함', href: '/mobile/documents' },
   ]
 
+  // No overlay scrollbar: menu count is small, scrolling disabled
+
   return (
     <>
       {/* Scrim (Background Overlay) */}
@@ -251,12 +241,11 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-hidden={(!isOpen).toString()}
-        {...(!isOpen ? { inert: '' } : {})}
       >
         <div className="drawer-container">
-          <div className="drawer-body">
+          {/* Fixed Header (outside scroll) */}
+          <div className="drawer-head">
             <div className="drawer-scale">
-              {/* Profile Section */}
               <div className="profile-sec">
                 <div className="profile-header">
                   <div className="profile-name" id="profileUserName">
@@ -280,7 +269,12 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   {profileLoading ? '로딩 중...' : profile?.email || user?.email || ''}
                 </div>
               </div>
+            </div>
+          </div>
 
+          {/* Scrollable Body */}
+          <div className="drawer-body">
+            <div className="drawer-scale">
               {/* Menu List - 100% base.html match */}
               <ul className="menu-list">
                 {menuItems.map((item, index) => (

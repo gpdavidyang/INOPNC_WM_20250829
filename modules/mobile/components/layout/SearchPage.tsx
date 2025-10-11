@@ -18,10 +18,22 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
 
   // 검색 키워드 목록 (데모용)
   const keywords = [
-    "INOPNC 프로젝트", "현장 관리", "작업 일지", "출력 현황",
-    "문서 관리", "사용자 설정", "알림 설정", "데이터 분석",
-    "일일 보고서", "작업자 관리", "자재 관리", "안전 관리",
-    "품질 관리", "공정 관리", "예산 관리", "일정 관리"
+    'INOPNC 프로젝트',
+    '현장 관리',
+    '작업 일지',
+    '출력 현황',
+    '문서 관리',
+    '사용자 설정',
+    '알림 설정',
+    '데이터 분석',
+    '일일 보고서',
+    '작업자 관리',
+    '자재 관리',
+    '안전 관리',
+    '품질 관리',
+    '공정 관리',
+    '예산 관리',
+    '일정 관리',
   ]
 
   // 최근 검색어 불러오기
@@ -43,9 +55,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
     if (!query.trim()) return
 
     // 검색 결과 필터링
-    const results = keywords.filter(keyword =>
-      keyword.toLowerCase().includes(query.toLowerCase())
-    )
+    const results = keywords.filter(keyword => keyword.toLowerCase().includes(query.toLowerCase()))
     setSearchResults(results)
 
     // 최근 검색어 저장
@@ -95,7 +105,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
             placeholder="검색어를 입력하세요"
             value={searchQuery}
             onChange={handleInputChange}
-            onKeyDown={(e) => {
+            onKeyDown={e => {
               if (e.key === 'Enter') {
                 handleSearch(searchQuery)
               }
@@ -279,6 +289,10 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           color: var(--text);
         }
 
+        [data-theme='dark'] .section-header h3 {
+          color: #e6e9f1;
+        }
+
         .section-header button {
           background: transparent;
           border: none;
@@ -290,6 +304,10 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         .section-header span {
           color: var(--muted-ink);
           font-size: 14px;
+        }
+
+        [data-theme='dark'] .section-header span {
+          color: #a8b0bb;
         }
 
         .recent-list,
@@ -315,10 +333,23 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           font-size: 15px;
         }
 
+        [data-theme='dark'] .recent-item,
+        [data-theme='dark'] .result-item {
+          background: var(--card);
+          border-color: #3a4048;
+          color: #e6e9f1;
+        }
+
         .recent-item:hover,
         .result-item:hover {
           background: var(--surface-2);
           border-color: var(--tag-blue);
+        }
+
+        [data-theme='dark'] .recent-item:hover,
+        [data-theme='dark'] .result-item:hover {
+          background: rgba(255, 255, 255, 0.05);
+          border-color: #31a3fa;
         }
 
         .no-results {
@@ -334,6 +365,14 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         .no-results p {
           margin-top: 16px;
           font-size: 15px;
+        }
+
+        [data-theme='dark'] .no-results {
+          color: #a8b0bb;
+        }
+
+        [data-theme='dark'] .no-results p {
+          color: #e6e9f1;
         }
 
         @keyframes slideIn {
