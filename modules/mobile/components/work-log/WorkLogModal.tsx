@@ -10,6 +10,14 @@ import type {
 } from '../../types/work-log.types'
 import { cn } from '@/lib/utils'
 import { useWorkOptions } from '@/hooks/use-work-options'
+import { createClient } from '@/lib/supabase/client'
+import {
+  CustomSelect,
+  CustomSelectTrigger,
+  CustomSelectValue,
+  CustomSelectContent,
+  CustomSelectItem,
+} from '@/components/ui/custom-select'
 
 interface WorkLogModalProps {
   isOpen: boolean
@@ -72,6 +80,9 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   >([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
+  const [userOptions, setUserOptions] = useState<
+    Array<{ id: string; name: string; role?: string }>
+  >([])
 
   const isViewMode = mode === 'view'
 
@@ -88,6 +99,36 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     const total = formData.workers?.reduce((sum, worker) => sum + worker.hours, 0) || 0
     setFormData(prev => ({ ...prev, totalHours: total }))
   }, [formData.workers])
+
+  // Load selectable users (profiles) for 작성자 선택
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('role', ['worker', 'site_manager'])
+          .order('full_name', { ascending: true })
+
+        if (error) {
+          console.warn('[WorkLogModal] Failed to fetch user list:', error.message)
+          return
+        }
+
+        const options = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.full_name || '이름없음',
+          role: p.role || undefined,
+        }))
+        setUserOptions(options)
+      } catch (e: any) {
+        console.warn('[WorkLogModal] Unexpected error while fetching users:', e?.message)
+      }
+    }
+
+    if (isOpen) fetchUsers()
+  }, [isOpen])
 
   const hasWorkerError = Boolean(errors.workers)
 
@@ -573,14 +614,33 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
               <div>
                 <label className="block text-xs font-medium text-[#475467]">작업자 *</label>
                 <div className="mt-2 flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="이름"
-                    value={newWorker.name}
-                    disabled={isViewMode}
-                    onChange={e => setNewWorker(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                  />
+                  <div className="w-full">
+                    <CustomSelect
+                      value={newWorker.id}
+                      onValueChange={val => {
+                        const opt = userOptions.find(u => u.id === val)
+                        setNewWorker(prev => ({ ...prev, id: val, name: opt?.name || '' }))
+                      }}
+                      disabled={isViewMode}
+                    >
+                      <CustomSelectTrigger className="h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm font-medium shadow-sm focus:outline-none focus:ring-1 focus:ring-[#1A254F]">
+                        <CustomSelectValue placeholder="작성자 선택" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent className="max-h-64 overflow-auto">
+                        {userOptions.length === 0 ? (
+                          <CustomSelectItem value="__empty__" disabled>
+                            불러올 사용자가 없습니다
+                          </CustomSelectItem>
+                        ) : (
+                          userOptions.map(u => (
+                            <CustomSelectItem key={u.id} value={u.id}>
+                              {u.name}
+                            </CustomSelectItem>
+                          ))
+                        )}
+                      </CustomSelectContent>
+                    </CustomSelect>
+                  </div>
                   <input
                     type="number"
                     placeholder="시간"
@@ -591,7 +651,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                     onChange={e =>
                       setNewWorker(prev => ({ ...prev, hours: parseFloat(e.target.value) || 0 }))
                     }
-                    className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
+                    className="w-28 h-10 rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
                   />
                   <button
                     type="button"

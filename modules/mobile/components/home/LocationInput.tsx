@@ -15,17 +15,17 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   className = '',
 }) => {
   const handleBlockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.toUpperCase().slice(0, 2)
+    const value = e.target.value.toUpperCase()
     onChange({ ...location, block: value })
   }
 
   const handleDongChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.slice(0, 2)
+    const value = e.target.value
     onChange({ ...location, dong: value })
   }
 
   const handleUnitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.slice(0, 4)
+    const value = e.target.value
     onChange({ ...location, unit: value })
   }
 
@@ -40,7 +40,6 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             placeholder="블럭"
             value={location.block}
             onChange={handleBlockChange}
-            maxLength={2}
             style={{ textAlign: 'center' }}
           />
         </div>
@@ -51,7 +50,6 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             placeholder="동"
             value={location.dong}
             onChange={handleDongChange}
-            maxLength={2}
             style={{ textAlign: 'center' }}
           />
         </div>
@@ -62,7 +60,6 @@ export const LocationInput: React.FC<LocationInputProps> = ({
             placeholder="층"
             value={location.unit}
             onChange={handleUnitChange}
-            maxLength={4}
             style={{ textAlign: 'center' }}
           />
         </div>
