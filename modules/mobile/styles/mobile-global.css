@@ -924,8 +924,14 @@ textarea {
   flex: 1;
   padding: 10px 16px;
   border-radius: 8px;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-size: 14px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -979,8 +985,8 @@ textarea {
     'Segoe UI',
     Roboto,
     sans-serif;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   line-height: 1.2;
   color: #ffffff;
   cursor: pointer;

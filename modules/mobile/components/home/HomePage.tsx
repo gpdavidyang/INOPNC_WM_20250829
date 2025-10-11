@@ -32,6 +32,7 @@ import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/summary-section.css'
 import '@/modules/mobile/styles/drawing-quick.css'
 import { useWorkOptions } from '@/hooks/use-work-options'
+import { createClient } from '@/lib/supabase/client'
 
 const WORK_TYPE_OPTIONS = [
   { value: '지하', label: '지하' },
@@ -103,6 +104,9 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [selectedSite, setSelectedSite] = useState('')
   const [workDate, setWorkDate] = useState('')
   const [workCards, setWorkCards] = useState([{ id: 1 }])
+  // 사용자 프로필 상태 - Use auth context profile or initial profile
+  const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   // v2.0 새로운 상태들
   const [department, setDepartment] = useState('')
@@ -126,6 +130,17 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     type: 'success' | 'error'
     message: string
   } | null>(null)
+
+  // 사용자(작성자/작업자) 선택용 옵션 - 관리자에서 등록된 사용자 중 작업자/현장관리자만
+  const [userOptions, setUserOptions] = useState<
+    Array<{ id: string; name: string; role?: string }>
+  >([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [selectedAuthorId, setSelectedAuthorId] = useState<string>('')
+  const selectedAuthorName = useMemo(() => {
+    const found = userOptions.find(u => u.id === selectedAuthorId)?.name
+    return found || userProfile?.full_name || ''
+  }, [selectedAuthorId, userOptions, userProfile?.full_name])
 
   // 작업 옵션 (부재명/작업공정) - 관리자 화면에서 설정한 값 사용
   const { componentTypes, processTypes } = useWorkOptions()
@@ -169,10 +184,6 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [sites, setSites] = useState<Site[]>([])
   const [sitesLoading, setSitesLoading] = useState(false)
   const [sitesError, setSitesError] = useState<string | null>(null)
-
-  // 사용자 프로필 상태 - Use auth context profile or initial profile
-  const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
-  const [profileLoading, setProfileLoading] = useState(false)
 
   // Prefill from localStorage (draft redirect)
   useEffect(() => {
@@ -227,6 +238,136 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       console.log('Using initial profile:', initialProfile.full_name)
     }
   }, [authProfile, initialProfile])
+
+  // 사용자 목록 불러오기 (작업자/현장관리자)
+  useEffect(() => {
+    let active = true
+    const fetchUsers = async () => {
+      setUsersLoading(true)
+      try {
+        const supabase = createClient()
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('role', ['worker', 'site_manager'])
+          .order('full_name', { ascending: true })
+
+        if (error) {
+          console.warn('[HomePage] Failed to fetch user list:', error.message)
+        }
+
+        const options = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.full_name || '이름없음',
+          role: p.role || undefined,
+        }))
+        if (active) setUserOptions(options)
+      } catch (e: any) {
+        console.warn('[HomePage] Unexpected error while fetching users:', e?.message)
+      } finally {
+        // Always clear loading state even if unmounted soon
+        if (active) setUsersLoading(false)
+      }
+    }
+
+    fetchUsers()
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // 현재 로그인 사용자가 목록에 있으면 자동 선택 (없으면 첫 번째로 세팅)
+  useEffect(() => {
+    if (!userOptions.length) return
+    const currentId = authProfile?.id || initialProfile?.id || ''
+    if (currentId && userOptions.some(u => u.id === currentId)) {
+      setSelectedAuthorId(prev => (prev ? prev : currentId))
+    } else if (!selectedAuthorId) {
+      setSelectedAuthorId(userOptions[0].id)
+    }
+  }, [userOptions, authProfile?.id, initialProfile?.id, selectedAuthorId])
+
+  // Ensure at least current user is selectable immediately (fallback)
+  useEffect(() => {
+    if (!userProfile?.id) return
+    setUserOptions(prev => {
+      if (prev.some(u => u.id === userProfile.id)) return prev
+      return [{ id: userProfile.id, name: userProfile.full_name || '사용자' }, ...prev]
+    })
+    setSelectedAuthorId(prev => (prev ? prev : userProfile.id))
+  }, [userProfile?.id, userProfile?.full_name])
+
+  // Fetch site-assigned users when a site is selected
+  useEffect(() => {
+    if (!selectedSite) return
+    let active = true
+    const controller = new AbortController()
+    const loadAssigned = async () => {
+      setUsersLoading(true)
+      try {
+        const res = await fetch(
+          `/api/partner/sites/${encodeURIComponent(selectedSite)}/assignments`,
+          {
+            method: 'GET',
+            signal: controller.signal,
+            headers: { Accept: 'application/json' },
+            cache: 'no-store',
+          }
+        )
+        if (!res.ok) {
+          // Keep fallback list if API is forbidden or fails
+          console.warn('[HomePage] assignments api failed:', res.status)
+          return
+        }
+        const payload = await res.json()
+        if (!payload?.success) return
+        const rows: Array<any> = payload.data || []
+        const assignedUsers = rows
+          .map(a => a?.profile)
+          .filter(Boolean)
+          .filter((p: any) => ['worker', 'site_manager'].includes(p.role))
+          .map((p: any) => ({ id: p.id, name: p.full_name || '이름없음', role: p.role }))
+          .sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'))
+
+        if (active) {
+          // Ensure current user exists in the list if applicable
+          const withSelf = (() => {
+            const meId = userProfile?.id
+            if (meId && !assignedUsers.some(u => u.id === meId)) {
+              return [{ id: meId, name: userProfile?.full_name || '사용자' }, ...assignedUsers]
+            }
+            return assignedUsers
+          })()
+
+          setUserOptions(withSelf)
+
+          // If current selection is not in new list, reset to self or first
+          const exists = withSelf.some(u => u.id === selectedAuthorId)
+          if (!exists) {
+            if (userProfile?.id && withSelf.some(u => u.id === userProfile.id)) {
+              setSelectedAuthorId(userProfile.id)
+            } else if (withSelf.length > 0) {
+              setSelectedAuthorId(withSelf[0].id)
+            } else {
+              setSelectedAuthorId('')
+            }
+          }
+        }
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') {
+          console.warn('[HomePage] assignments fetch error:', e?.message)
+        }
+      } finally {
+        if (active) setUsersLoading(false)
+      }
+    }
+
+    loadAssigned()
+    return () => {
+      active = false
+      controller.abort()
+    }
+  }, [selectedSite, userProfile?.id, userProfile?.full_name, selectedAuthorId])
 
   // Simplified user check - rely on AuthProvider for session management
   useEffect(() => {
@@ -490,7 +631,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             </h3>
             <span className="form-note">필수입력값(*)작성 후 저장</span>
           </div>
-          <div className="form-row">
+          <div className="form-row" style={{ marginBottom: 1 }}>
             <div className="form-group">
               <DepartmentSelect value={department} onChange={setDepartment} required />
             </div>
@@ -536,7 +677,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
           {/* 선택된 현장 확인 표시 */}
           {selectedSite && (
-            <div className="form-row mt-3">
+            <div className="form-row mt-0" style={{ gridTemplateColumns: '1fr', marginTop: -8 }}>
               <div className="form-group">
                 <label className="form-label">선택된 현장</label>
                 <input
@@ -780,14 +921,31 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           <div className="form-row author-manpower-row">
             <div className="form-group">
               <label className="form-label">작성자</label>
-              <input
-                type="text"
-                className="form-input"
-                value={
-                  authLoading || profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'
-                }
-                readOnly
-              />
+              <CustomSelect
+                value={selectedAuthorId}
+                onValueChange={val => setSelectedAuthorId(val)}
+              >
+                <CustomSelectTrigger className="form-select author-select">
+                  <CustomSelectValue placeholder={'작성자 선택'} />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  {usersLoading && userOptions.length === 0 ? (
+                    <CustomSelectItem value="__loading__" disabled>
+                      사용자 불러오는 중...
+                    </CustomSelectItem>
+                  ) : userOptions.length === 0 ? (
+                    <CustomSelectItem value="__empty__" disabled>
+                      표시할 사용자가 없습니다
+                    </CustomSelectItem>
+                  ) : (
+                    userOptions.map(u => (
+                      <CustomSelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </CustomSelectItem>
+                    ))
+                  )}
+                </CustomSelectContent>
+              </CustomSelect>
             </div>
             <div className="form-group">
               <NumberInput
@@ -819,18 +977,37 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             <div className="form-row author-manpower-row">
               <div className="form-group">
                 <label className="form-label">작성자</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={item.workerName}
-                  onChange={e => {
+                <CustomSelect
+                  value={item.workerId || ''}
+                  onValueChange={val => {
+                    const opt = userOptions.find(u => u.id === val)
                     const updated = additionalManpower.map(m =>
-                      m.id === item.id ? { ...m, workerName: e.target.value } : m
+                      m.id === item.id ? { ...m, workerId: val, workerName: opt?.name || '' } : m
                     )
                     setAdditionalManpower(updated)
                   }}
-                  placeholder="이름 입력"
-                />
+                >
+                  <CustomSelectTrigger className="form-select author-select">
+                    <CustomSelectValue placeholder={'작성자 선택'} />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {usersLoading && userOptions.length === 0 ? (
+                      <CustomSelectItem value="__loading__" disabled>
+                        사용자 불러오는 중...
+                      </CustomSelectItem>
+                    ) : userOptions.length === 0 ? (
+                      <CustomSelectItem value="__empty__" disabled>
+                        표시할 사용자가 없습니다
+                      </CustomSelectItem>
+                    ) : (
+                      userOptions.map(u => (
+                        <CustomSelectItem key={u.id} value={u.id}>
+                          {u.name}
+                        </CustomSelectItem>
+                      ))
+                    )}
+                  </CustomSelectContent>
+                </CustomSelect>
               </div>
               <div className="form-group">
                 <NumberInput
@@ -893,7 +1070,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       <SummarySection
         site={sites.find(s => s.id === selectedSite)?.name || ''}
         workDate={workDate}
-        author={userProfile?.full_name || ''}
+        author={selectedAuthorName}
         memberTypes={normalizedMemberTypes}
         workContents={normalizedWorkProcesses}
         workTypes={normalizedWorkTypes}

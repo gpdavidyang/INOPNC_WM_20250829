@@ -144,7 +144,7 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
         <div className="form-section">
           <div className="section-header">
             <h3 className="section-title">사진업로드</h3>
-            <span className="upload-hint">↔ 전/후 업로드</span>
+            <span className="form-note">↔ 전/후 업로드</span>
           </div>
 
           <div className="photo-upload-grid">

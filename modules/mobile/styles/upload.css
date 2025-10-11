@@ -634,7 +634,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .upload-area {
@@ -655,36 +655,36 @@
 
 .upload-area:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .before-area {
-  border-color: #7c3aed;
-  background: #f3f0ff;
+  background: #f3f4f6; /* Gray */
+  border-color: #d1d5db; /* darker than background */
 }
 
 .before-area:hover {
-  border-color: #7c3aed;
-  background: #f3f0ff;
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .after-area {
-  border-color: #00a8b5;
-  background: #e6f9ff;
+  background: #f3f7fa; /* #F3F7FA */
+  border-color: #cbd5e1; /* darker than background */
 }
 
 .after-area:hover {
-  border-color: #00a8b5;
-  background: #e6f9ff;
+  background: #f3f7fa;
+  border-color: #cbd5e1;
 }
 
 .upload-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--line);
+  padding: 8px 16px;
+  background: transparent;
+  border-bottom: none;
 }
 
 .upload-label {
@@ -730,7 +730,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 120px;
+  min-height: 56px; /* fit to content, reduced from 120px */
   text-align: center;
 }
 
@@ -969,7 +969,7 @@
 }
 
 [data-theme='dark'] .upload-header {
-  background: rgba(255, 255, 255, 0.02);
+  background: transparent;
 }
 
 [data-theme='dark'] .uploaded-file-item {
@@ -997,9 +997,9 @@
 .upload-actions {
   display: flex;
   gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: none;
   justify-content: flex-end;
 }
 
@@ -1009,8 +1009,14 @@
   height: 44px;
   padding: 12px 24px;
   border-radius: 10px;
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
-  font-size: 14px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1070,8 +1076,14 @@
   height: 40px;
   padding: 10px 20px;
   border-radius: 10px;
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
-  font-size: 14px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1283,7 +1295,7 @@
 .photo-upload-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .upload-title {

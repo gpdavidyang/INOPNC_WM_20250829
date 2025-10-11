@@ -139,8 +139,8 @@
 
 /* Primary Action Button */
 .drawing-quick-section .primary-action-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
+  background: var(--brand, #1a254f);
+  color: #ffffff;
   border: none;
   border-radius: 12px;
   padding: 1rem 1.5rem;
@@ -152,16 +152,23 @@
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(26, 37, 79, 0.3);
 }
 
 .drawing-quick-section .primary-action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 6px 20px rgba(26, 37, 79, 0.45);
 }
 
 .drawing-quick-section .primary-action-btn:active {
   transform: translateY(0);
+}
+
+/* Disabled state kept gray for clarity */
+.drawing-quick-section .primary-action-btn[disabled] {
+  background: #e5e7eb;
+  color: #9ca3af;
+  box-shadow: none;
 }
 
 .drawing-quick-section .btn-icon {

@@ -1,7 +1,7 @@
 /* 작성 내용 요약 섹션 스타일 */
 .summary-section {
-  margin-bottom: var(--space-sm);
-  padding-bottom: 60px; /* footer safe space stays */
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .summary-section .work-form-container {
@@ -56,8 +56,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.875rem 0.5rem;
-  min-height: 48px;
+  padding: 0.75rem 0.5rem; /* slightly tighter vertical padding */
+  min-height: 40px; /* reduce reserved vertical space */
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);
 }
 
@@ -71,7 +71,8 @@
   color: #6b7280;
   font-weight: 500;
   flex-shrink: 0;
-  margin-right: 1rem;
+  margin-right: 8px; /* tighter gap to minimize hidden space */
+  white-space: nowrap; /* prevent label wrapping */
   font-family: 'Noto Sans KR', sans-serif !important;
 }
 
@@ -80,8 +81,12 @@
   color: var(--foreground);
   font-weight: 500;
   text-align: right;
-  word-break: break-word;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0; /* allow flex child to shrink for ellipsis */
+  white-space: nowrap; /* keep on one line */
+  overflow: hidden; /* enable ellipsis */
+  text-overflow: ellipsis; /* trim long values */
+  word-break: keep-all; /* avoid breaking words arbitrarily */
   font-family: 'Noto Sans KR', sans-serif !important;
 }
 

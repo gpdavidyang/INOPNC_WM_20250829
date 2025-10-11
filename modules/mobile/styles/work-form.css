@@ -218,6 +218,20 @@
   justify-content: space-between !important;
 }
 
+/* Materials usage empty-state hint */
+.materials-hint {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280; /* gray */
+}
+
 .section-title {
   font-family:
     'Noto Sans KR',
@@ -376,8 +390,15 @@ textarea.form-input {
   border: none;
   background: transparent;
   text-align: center;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 16px;
-  font-weight: 900; /* Increased from 700 for elderly users */
+  font-weight: 600; /* Semi-Bold per spec */
   color: #1a1a1a;
   outline: none;
 }
@@ -401,7 +422,25 @@ textarea.form-input {
 
 .location-field {
   text-align: center;
-  font-weight: 800; /* Increased from 600 for elderly users */
+  font-weight: 600;
+}
+
+/* Match location inputs' background to surrounding area */
+.form-input.location-field {
+  background: transparent;
+}
+
+/* Ensure placeholder text for 블럭/동/층 uses requested typography */
+.form-input.location-field::placeholder {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 /* Member Type Buttons */
@@ -416,10 +455,17 @@ textarea.form-input {
   padding: 10px 12px;
   border: 1px solid #e6ecf4;
   border-radius: 12px;
-  background: #f8fafc;
+  background: transparent;
   color: #6b7280;
-  font-size: 14px;
-  font-weight: 800; /* Increased from 600 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   width: 100%;
@@ -455,8 +501,15 @@ textarea.form-input {
   border-radius: 999px;
   background: rgba(255, 51, 153, 0.1);
   color: #ff3399;
-  font-size: 14px;
-  font-weight: 900; /* Increased from 700 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600; /* unified button typography */
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -473,8 +526,15 @@ textarea.form-input {
   border-radius: 999px;
   background: rgba(0, 104, 254, 0.1);
   color: #0068fe;
-  font-size: 14px;
-  font-weight: 900; /* Increased from 700 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600; /* unified button typography */
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -556,7 +616,7 @@ textarea.form-input {
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--line);
+  border-top: none;
   width: 100%;
 }
 
@@ -564,10 +624,16 @@ textarea.form-input {
   flex: 1;
   min-width: 0;
   height: 44px;
-  padding: 12px 24px;
+  padding: 12px 8px; /* tighter horizontal padding to prevent wrapping */
   border-radius: 10px;
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
-  font-size: 14px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px; /* match requested typography */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -575,6 +641,7 @@ textarea.form-input {
   display: flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap; /* keep label on one line */
 }
 
 .form-actions .btn-secondary {
