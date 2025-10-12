@@ -32,7 +32,7 @@ export const Default: Story = {
           name: '철근 (12mm)',
           category: 'steel',
           currentStock: 45,
-          unit: '개',
+          unit: '말',
           status: 'low',
         },
         {

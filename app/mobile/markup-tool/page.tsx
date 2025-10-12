@@ -1,8 +1,9 @@
-'use client'
+"use client"
 
 import { useState, useEffect, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
@@ -145,7 +146,7 @@ export default function MarkupToolPage() {
           }
         }
 
-        // 2) 공도면(블루프린트)로 시도
+        // 2) 공도면(블루프린트)로 시도 (unified_documents)
         const res2 = await fetch(`/api/unified-documents/v2/${docIdParam}`, { cache: 'no-store' })
         if (res2.ok) {
           const json2 = await res2.json()
@@ -185,6 +186,52 @@ export default function MarkupToolPage() {
             setShowBrowser(false)
             toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
             return true
+          }
+        }
+
+        // 3) 파트너 문서 목록에서 조회하여 매칭 (site_documents/legacy 포함)
+        if (siteIdParam) {
+          const res3 = await fetch(
+            `/api/partner/sites/${encodeURIComponent(siteIdParam)}/documents?type=drawing`,
+            { cache: 'no-store' }
+          )
+          if (res3.ok) {
+            const json3 = await res3.json()
+            const list: any[] = json3?.data?.documents || []
+            const match = list.find((d: any) => d.id === docIdParam)
+            if (match) {
+              const drawing = {
+                id: match.id,
+                name: match.title || match.name || '도면',
+                title: match.title || match.name || '도면',
+                url: match.fileUrl,
+                size: match.fileSize || 0,
+                type: 'blueprint',
+                uploadDate: new Date(match.uploadDate || Date.now()),
+                isMarked: false,
+                source: 'blueprint',
+                siteId: siteIdParam,
+                siteName: selectedSite?.name,
+              }
+
+              setDrawingFile(drawing as any)
+              setMarkupDocument({
+                id: match.id,
+                title: drawing.title,
+                original_blueprint_url: match.fileUrl,
+                markup_data: [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+
+              try {
+                localStorage.setItem('selected_drawing', JSON.stringify(drawing))
+              } catch {}
+
+              setShowBrowser(false)
+              toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
+              return true
+            }
           }
         }
       } catch (error) {
@@ -385,168 +432,169 @@ export default function MarkupToolPage() {
   // 사용자 정보가 없거나 도면이 없는 경우
   if (loading && !resolvedProfile) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-gray-600 mb-4">사용자 정보를 불러오는 중...</p>
+      <MobileLayoutShell>
+        <div className="flex items-center justify-center py-10 bg-gray-50 rounded-lg">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">사용자 정보를 불러오는 중...</p>
+          </div>
         </div>
-      </div>
+      </MobileLayoutShell>
     )
   }
 
   if (!resolvedProfile) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50 px-6">
-        <div className="text-center max-w-sm">
-          <h1 className="text-xl font-semibold text-gray-900 mb-3">
-            접근 권한을 확인할 수 없습니다
-          </h1>
-          <p className="text-sm text-gray-600 mb-4">
-            로그인 정보가 만료되었거나 프로필을 불러오지 못했습니다. 다시 로그인하거나 홈 화면으로
-            돌아가 주세요.
-          </p>
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={() => router.replace('/mobile')}
-              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
-            >
-              홈으로 이동
-            </button>
-            <button
-              onClick={() => router.replace('/auth/sign-in')}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
-            >
-              다시 로그인
-            </button>
+      <MobileLayoutShell>
+        <div className="flex items-center justify-center bg-gray-50 px-6 py-10 rounded-lg">
+          <div className="text-center max-w-sm">
+            <h1 className="text-xl font-semibold text-gray-900 mb-3">
+              접근 권한을 확인할 수 없습니다
+            </h1>
+            <p className="text-sm text-gray-600 mb-4">
+              로그인 정보가 만료되었거나 프로필을 불러오지 못했습니다. 다시 로그인하거나 홈 화면으로 돌아가 주세요.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => router.replace('/mobile')}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
+              >
+                홈으로 이동
+              </button>
+              <button
+                onClick={() => router.replace('/auth/sign-in')}
+                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+              >
+                다시 로그인
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </MobileLayoutShell>
     )
   }
 
   // DrawingBrowser 표시
   if (showBrowser) {
     return (
-      <div className="h-screen flex flex-col bg-gray-50">
-        <header className="flex items-center justify-between p-4 bg-white border-b">
-          <button
-            onClick={handleClose}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-          >
-            <ArrowLeft size={20} />
-            뒤로
-          </button>
-          <h1 className="text-lg font-semibold">도면 선택</h1>
-          <button
-            onClick={() => setShowBrowser(false)}
-            className="text-sm text-blue-600 hover:text-blue-700"
-            disabled={!drawingFile}
-          >
-            {drawingFile ? '마킹하기' : ''}
-          </button>
-        </header>
-
-        <div className="flex-1 overflow-y-auto">
-          <DrawingBrowser
-            selectedSite={selectedSite?.id}
-            siteName={selectedSite?.name}
-            userId={resolvedProfile.id}
-            onDrawingSelect={handleDrawingSelect}
-            initialMode={mode === 'upload' ? 'upload' : 'browse'}
-          />
+      <MobileLayoutShell>
+        <div className="bg-white rounded-lg border">
+          <div className="flex items-center justify-between p-3 border-b">
+            <button
+              onClick={handleClose}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft size={20} />
+              뒤로
+            </button>
+            <h1 className="text-base font-semibold">도면 선택</h1>
+            <button
+              onClick={() => setShowBrowser(false)}
+              className="text-sm text-blue-600 hover:text-blue-700"
+              disabled={!drawingFile}
+            >
+              {drawingFile ? '마킹하기' : ''}
+            </button>
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto">
+            <DrawingBrowser
+              selectedSite={selectedSite?.id}
+              siteName={selectedSite?.name}
+              userId={resolvedProfile.id}
+              onDrawingSelect={handleDrawingSelect}
+              initialMode={mode === 'upload' ? 'upload' : 'browse'}
+            />
+          </div>
         </div>
-      </div>
+      </MobileLayoutShell>
     )
   }
 
   // 도면이 없는 경우
   if (!drawingFile || !markupDocument) {
     return (
-      <div className="h-screen flex flex-col bg-gray-50">
-        <header className="flex items-center justify-between p-4 bg-white border-b">
+      <MobileLayoutShell>
+        <div className="bg-white rounded-lg border">
+          <div className="flex items-center justify-between p-3 border-b">
+            <button
+              onClick={handleClose}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft size={20} />
+              뒤로
+            </button>
+            <h1 className="text-base font-semibold">도면 마킹</h1>
+            <button
+              onClick={() => setShowBrowser(true)}
+              className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
+            >
+              <FolderOpen size={18} />
+              도면 선택
+            </button>
+          </div>
+          <div className="flex items-center justify-center py-10">
+            <div className="text-center">
+              <div className="text-6xl mb-4">📐</div>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">도면을 선택해주세요</h2>
+              <p className="text-gray-600 mb-6">도면을 선택하여 마킹을 시작하세요</p>
+              <button
+                onClick={() => setShowBrowser(true)}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              >
+                도면 선택하기
+              </button>
+            </div>
+          </div>
+        </div>
+      </MobileLayoutShell>
+    )
+  }
+
+  return (
+    <MobileLayoutShell>
+      <div className="bg-white rounded-lg border overflow-hidden">
+        <div className="flex items-center justify-between p-3 border-b">
           <button
             onClick={handleClose}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
           >
             <ArrowLeft size={20} />
-            뒤로
+            <span className="text-sm font-medium">뒤로</span>
           </button>
-          <h1 className="text-lg font-semibold">도면 마킹</h1>
-          <button
-            onClick={() => setShowBrowser(true)}
-            className="flex items-center gap-1 text-blue-600 hover:text-blue-700"
-          >
-            <FolderOpen size={18} />
-            도면 선택
-          </button>
-        </header>
-
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">📐</div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">도면을 선택해주세요</h2>
-            <p className="text-gray-600 mb-6">도면을 선택하여 마킹을 시작하세요</p>
+          <h1 className="text-base font-semibold">도면 마킹</h1>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setShowBrowser(true)}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+              className="p-2 text-gray-600 hover:text-gray-900"
+              title="도면 변경"
             >
-              도면 선택하기
+              <FolderOpen size={20} />
+            </button>
+            <button
+              onClick={() => handleSave(markupDocument, false)}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+            >
+              저장
+            </button>
+            <button
+              onClick={() => handleSave(markupDocument, true)}
+              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+            >
+              게시
             </button>
           </div>
         </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      {/* 상단 헤더 - 네비게이션과 저장 버튼 - 고정 위치 */}
-      <header className="flex-shrink-0 flex items-center justify-between p-3 bg-white border-b">
-        <button
-          onClick={handleClose}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft size={20} />
-          <span className="text-sm font-medium">뒤로</span>
-        </button>
-
-        <h1 className="text-base font-semibold flex-1 text-center">도면 마킹</h1>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowBrowser(true)}
-            className="p-2 text-gray-600 hover:text-gray-900"
-            title="도면 변경"
-          >
-            <FolderOpen size={20} />
-          </button>
-          <button
-          onClick={() => handleSave(markupDocument, false)}
-            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
-          >
-            저장
-          </button>
-          <button
-            onClick={() => handleSave(markupDocument, true)}
-            className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
-          >
-            게시
-          </button>
+        <div className="max-h-[70vh] overflow-hidden">
+          <SharedMarkupEditor
+            profile={resolvedProfile}
+            mode="worker"
+            onSave={handleSave}
+            onClose={handleClose}
+            initialDocument={markupDocument}
+            embedded={true}
+          />
         </div>
-      </header>
-
-      {/* 마킹 에디터 - 스크롤 가능한 컨테이너 */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <SharedMarkupEditor
-          profile={resolvedProfile}
-          mode="worker"
-          onSave={handleSave}
-          onClose={handleClose}
-          initialDocument={markupDocument}
-          embedded={true}
-        />
       </div>
-      {/* Local toaster to ensure stamp quick panel/toasts display reliably on this page */}
       <Toaster position="bottom-center" richColors />
-    </div>
+    </MobileLayoutShell>
   )
 }

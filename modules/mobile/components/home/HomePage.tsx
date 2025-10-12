@@ -510,7 +510,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       .map(material => ({
         material_name: material.material_name,
         quantity: Number(material.quantity) || 0,
-        unit: material.unit || '개',
+        unit: material.unit || '말',
         notes: material.notes,
       }))
 
@@ -562,9 +562,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      await createWorklogMutation.mutateAsync({ ...buildPayload('draft'), tasks })
-      toast.success('임시저장되었습니다.')
-      setActionStatus({ type: 'success', message: '임시저장을 완료했습니다.' })
+      const res: any = await createWorklogMutation.mutateAsync({ ...buildPayload('draft'), tasks })
+      const msg = res?.message || '임시저장되었습니다.'
+      toast.success(msg)
+      setActionStatus({ type: 'success', message: msg })
     } catch (error) {
       console.error('Temporary save error:', error)
       toast.error(error instanceof Error ? error.message : '임시저장에 실패했습니다.')
@@ -594,9 +595,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      await createWorklogMutation.mutateAsync({ ...buildPayload('submitted'), tasks })
-      toast.success('작업일지가 저장되었습니다.')
-      setActionStatus({ type: 'success', message: '작업일지를 저장했습니다.' })
+      const res: any = await createWorklogMutation.mutateAsync({ ...buildPayload('submitted'), tasks })
+      const msg = res?.message || '작업일지가 저장되었습니다.'
+      toast.success(msg)
+      setActionStatus({ type: 'success', message: msg })
     } catch (error) {
       console.error('Save error:', error)
       toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
@@ -1057,7 +1059,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       </div>
 
       {/* 사진 업로드 - 별도 카드 */}
-      <PhotoUploadCard />
+      <PhotoUploadCard selectedSite={selectedSite} workDate={workDate} />
 
       {/* 도면마킹 - 간소화된 Quick Action */}
       <DrawingQuickAction

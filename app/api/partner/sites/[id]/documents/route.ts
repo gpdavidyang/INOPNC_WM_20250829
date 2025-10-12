@@ -39,7 +39,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .eq('is_active', true)
       .single()
 
-    if (!sitePartner && !['admin', 'system_admin'].includes(role)) {
+    // Restrict only for partner-facing roles; allow site workers/managers
+    if (role === 'customer_manager' && !sitePartner && !['admin', 'system_admin'].includes(role)) {
       return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
     }
 

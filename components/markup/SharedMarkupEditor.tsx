@@ -384,7 +384,8 @@ export function SharedMarkupEditor({
         tool === 'text' || tool === 'pen' || (typeof tool === 'string' && tool.startsWith('box-'))
       // For 'stamp', restore legacy behavior: show quick-select toast instead of sheet
       if (tool === 'stamp') {
-        setShowMobileSheet(false)
+        // Show legacy quick toast and also open the sheet as a reliable fallback
+        setShowMobileSheet(true)
         showStampQuickToast()
       } else {
         setShowMobileSheet(hasSubOptions)

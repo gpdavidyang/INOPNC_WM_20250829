@@ -318,7 +318,7 @@ export const DrawingBrowser: React.FC<DrawingBrowserProps> = ({
   }
 
   return (
-    <div className="drawing-browser">
+    <div className="drawing-browser" style={{ width: '100%' }}>
       <div className="browser-header">
         <h2 className="browser-title">도면 관리</h2>
         <div className="browser-actions">
@@ -327,56 +327,54 @@ export const DrawingBrowser: React.FC<DrawingBrowserProps> = ({
             onClick={handlePreview}
             disabled={!selectedBlueprint && !selectedMarkupDoc}
           >
-            👁️ 미리보기
+            미리보기
           </button>
           <button
             className="share-btn"
             onClick={() => setShowShareModal(true)}
             disabled={!selectedBlueprint && !selectedMarkupDoc}
           >
-            🔗 공유
+            공유
           </button>
         </div>
       </div>
 
-      {/* 탭 네비게이션 */}
-      <div className="browser-tabs">
-        <button
-          className={`tab-btn ${activeTab === 'blueprints' ? 'active' : ''}`}
-          onClick={() => setActiveTab('blueprints')}
+      {/* 탭 네비게이션 - 2행 2열 그리드 */}
+      <div className="browser-tabs" style={{ width: '100%', display: 'block' }}>
+        <div
+          className="tab-grid"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}
         >
-          📐 공도면
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'markups' ? 'active' : ''}`}
-          onClick={() => setActiveTab('markups')}
-        >
-          🎨 마킹도면
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'gallery' ? 'active' : ''}`}
-          onClick={() => setActiveTab('gallery')}
-        >
-          📱 갤러리
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}
-          onClick={() => setActiveTab('local')}
-        >
-          📁 로컬폴더
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
-          onClick={() => setActiveTab('upload')}
-        >
-          ⬆️ 새 업로드
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'shared' ? 'active' : ''}`}
-          onClick={() => setActiveTab('shared')}
-        >
-          🗂️ 공유문서함
-        </button>
+          <button
+            className={`tab-btn ${activeTab === 'blueprints' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+            onClick={() => setActiveTab('blueprints')}
+          >
+            공도면
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'markups' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+            onClick={() => setActiveTab('markups')}
+          >
+            마킹도면
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'gallery' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+            onClick={() => setActiveTab('gallery')}
+          >
+            갤러리
+          </button>
+          <button
+            className={`tab-btn ${activeTab === 'local' ? 'active' : ''}`}
+            style={{ width: '100%' }}
+            onClick={() => setActiveTab('local')}
+          >
+            로컬폴더
+          </button>
+        </div>
+        {/* '새 업로드'와 '공유문서함' 버튼 제거 */}
       </div>
 
       {/* 로딩 상태 */}

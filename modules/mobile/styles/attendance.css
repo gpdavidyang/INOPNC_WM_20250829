@@ -291,6 +291,15 @@
 .cal-cell:active,
 .cal-cell *:focus {
   outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Extend tap-highlight and selection suppression to all descendants to avoid thin vertical tap flash */
+.cal-cell * {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .cal-cell:hover {

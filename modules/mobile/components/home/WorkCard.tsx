@@ -189,7 +189,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
       </div>
 
       <div className="mb-4">
-        <div className="text-sm text-gray-600 mb-2">블럭 / 동 / 호수</div>
+        <div className="text-sm text-gray-600 mb-2">블럭 / 동 / 층</div>
         <div className="flex items-center gap-2 w-full overflow-hidden">
           <input
             className="ctl flex-1 min-w-0 block-input"
@@ -207,7 +207,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({
           />
           <input
             className="ctl flex-1 min-w-0 ho-input"
-            placeholder="호수"
+            placeholder="층"
             type="number"
             min="0"
             value={ho}

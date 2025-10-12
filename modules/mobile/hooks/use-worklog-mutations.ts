@@ -56,7 +56,7 @@ async function postWorklog(payload: SaveWorklogPayload) {
     throw new Error(result?.error || '작업일지 저장에 실패했습니다.')
   }
 
-  return result.data
+  return result
 }
 
 export function useCreateWorklog() {

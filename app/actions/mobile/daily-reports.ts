@@ -323,6 +323,31 @@ export async function submitDailyReport(id: string) {
 
     validateSupabaseResponse(report, error)
 
+    // Aggregate additional photos into JSON arrays if columns are available
+    try {
+      const { data: rows } = await supabase
+        .from('daily_report_additional_photos')
+        .select('photo_type, file_url, description, upload_order')
+        .eq('daily_report_id', id)
+        .order('upload_order', { ascending: true })
+
+      const before = [] as Array<{ url: string; description?: string; order: number }>
+      const after = [] as Array<{ url: string; description?: string; order: number }>
+      ;(rows || []).forEach((r: any) => {
+        const item = { url: r.file_url, description: r.description || undefined, order: r.upload_order || 0 }
+        if (r.photo_type === 'before') before.push(item)
+        else if (r.photo_type === 'after') after.push(item)
+      })
+
+      // Try update; ignore if columns not present in this schema
+      await supabase
+        .from('daily_reports')
+        .update({ additional_before_photos: before, additional_after_photos: after })
+        .eq('id', id)
+    } catch (e) {
+      // ignore aggregation failure to not block submission
+    }
+
     // Send notification to site managers
     await notifyDailyReportSubmitted(report as unknown as DailyReport, auth.userId)
 

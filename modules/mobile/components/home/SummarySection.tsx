@@ -37,9 +37,9 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
 }) => {
   const formatLocation = () => {
     const parts = []
-    if (location.block) parts.push(`${location.block}`)
+    if (location.block) parts.push(`${location.block}블럭`)
     if (location.dong) parts.push(`${location.dong}동`)
-    if (location.unit) parts.push(`${location.unit}호`)
+    if (location.unit) parts.push(`${location.unit}층`)
     return parts.length > 0 ? parts.join(' / ') : '없음'
   }
 
@@ -111,9 +111,9 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
               </div>
             </div>
 
-            {/* 블럭/동/호수 (전체 너비) */}
+            {/* 블럭/동/층 (전체 너비) */}
             <div className="summary-item summary-full-width">
-              <span className="summary-label">블럭 / 동 / 호수:</span>
+              <span className="summary-label">블럭 / 동 / 층:</span>
               <span className="summary-value">{formatLocation()}</span>
             </div>
 
