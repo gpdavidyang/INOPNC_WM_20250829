@@ -279,6 +279,18 @@
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
+  /* Prevent vertical caret/outline on tap */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  caret-color: transparent;
+}
+
+/* Remove focus/active outlines that can appear as vertical lines on some devices */
+.cal-cell:focus,
+.cal-cell:active,
+.cal-cell *:focus {
+  outline: none !important;
 }
 
 .cal-cell:hover {
