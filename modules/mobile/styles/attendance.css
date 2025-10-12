@@ -334,7 +334,8 @@
 }
 
 .cal-cell:hover {
-  background: rgba(47, 107, 255, 0.04);
+  /* Keep background identical to base to avoid vertical seam lines */
+  background: #fff !important;
 }
 
 .cal-cell.out {
@@ -402,7 +403,7 @@
 }
 
 [data-theme='dark'] .cal-cell:hover {
-  background: rgba(49, 163, 250, 0.12);
+  background: rgba(15, 23, 42, 0.92) !important;
 }
 
 [data-theme='dark'] .cal-cell.out {
