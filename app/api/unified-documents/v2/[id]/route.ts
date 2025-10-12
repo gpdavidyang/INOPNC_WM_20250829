@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // 사용자 프로필 확인
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, role, customer_company_id')
+      .select('id, role, organization_id')
       .eq('id', authResult.userId)
       .single()
     const role = profile.role || authResult.role || ''
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     if (role === 'customer_manager') {
       // 공개 문서는 모든 사용자 열람 허용
       const isPublic = (document as any).is_public === true
-      if (!isPublic && document.customer_company_id !== profile.customer_company_id) {
+      if (!isPublic && document.customer_company_id !== profile.organization_id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
       }
     }

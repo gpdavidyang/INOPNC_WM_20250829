@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { AuthProvider } from '@/modules/mobile/providers/AuthProvider'
 import { mockProfile, mockSession } from '@/lib/dev-auth'
+import { Toaster } from 'sonner'
 import type { Session } from '@supabase/supabase-js'
 import '@/modules/mobile/styles/mobile-global.css'
 import '@/modules/mobile/styles/home.css'
@@ -81,6 +82,8 @@ export default async function MobileRootLayout({ children }: MobileLayoutProps) 
   return (
     <AuthProvider initialSession={initialSession} initialProfile={initialProfile}>
       {children}
+      {/* Global toaster for all mobile pages (success/error feedback) */}
+      <Toaster position="bottom-center" richColors />
     </AuthProvider>
   )
 }

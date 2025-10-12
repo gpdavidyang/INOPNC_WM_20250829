@@ -10,16 +10,21 @@ interface UploadedFile {
   type: string
   url: string
   uploadDate: Date
+  raw?: File
 }
 
 interface PhotoUploadCardProps {
   className?: string
 }
 
-export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = '' }) => {
+export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: string; workDate?: string }>
+  = ({ className = '', selectedSite, workDate }) => {
   const [beforeFiles, setBeforeFiles] = useState<UploadedFile[]>([])
   const [afterFiles, setAfterFiles] = useState<UploadedFile[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null)
+  const [lastSaveInfo, setLastSaveInfo] = useState<{ before: number; after: number } | null>(null)
+  const [lastError, setLastError] = useState<string | null>(null)
 
   const beforeInputRef = useRef<HTMLInputElement>(null)
   const afterInputRef = useRef<HTMLInputElement>(null)
@@ -44,6 +49,7 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
       type: file.type,
       url: URL.createObjectURL(file),
       uploadDate: new Date(),
+      raw: file,
     }))
 
     const updatedFiles = [...currentFiles, ...newFiles]
@@ -90,6 +96,9 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
   const handleReset = () => {
     setBeforeFiles([])
     setAfterFiles([])
+    setLastSavedAt(null)
+    setLastSaveInfo(null)
+    setLastError(null)
     toast.info('사진이 모두 초기화되었습니다.')
   }
 
@@ -101,7 +110,50 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
 
     setIsSaving(true)
     try {
-      // 로컬 스토리지에 임시 저장 (실제 업로드 API 구현 전)
+      // Ensure we have site/date
+      if (!selectedSite || !workDate) {
+        toast.error('현장/작업일자를 먼저 선택해주세요.')
+        setIsSaving(false)
+        return
+      }
+
+      // 1) Ensure draft daily report exists (or update if exists)
+      const ensureRes = await fetch('/api/mobile/daily-reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          site_id: selectedSite,
+          work_date: workDate,
+          status: 'draft',
+          work_description: '사진 업로드',
+          total_workers: 0,
+        }),
+      })
+      const ensureJson = await ensureRes.json()
+      if (!ensureRes.ok) {
+        throw new Error(
+          ensureJson?.error || ensureJson?.details || '작업일지 생성에 실패했습니다.'
+        )
+      }
+      const reportId = ensureJson?.data?.id
+      if (!reportId) throw new Error('작업일지 ID를 확인할 수 없습니다.')
+
+      // 2) Upload additional photos directly
+      const form = new FormData()
+      beforeFiles.forEach(f => f.raw && form.append('before_photos', f.raw!, f.name))
+      afterFiles.forEach(f => f.raw && form.append('after_photos', f.raw!, f.name))
+
+      const upRes = await fetch(`/api/mobile/daily-reports/${encodeURIComponent(reportId)}/additional-photos`, {
+        method: 'POST',
+        body: form,
+      })
+      const upJson = await upRes.json()
+      if (!upRes.ok || upJson?.error) {
+        const msg = upJson?.error || (Array.isArray(upJson?.errors) && upJson.errors[0])
+        throw new Error(msg || '추가 사진 업로드에 실패했습니다.')
+      }
+
+      // 3) Local fallback save for UX continuity
       const photoData = {
         beforePhotos: beforeFiles.map(f => ({
           id: f.id,
@@ -128,11 +180,15 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
       console.log(`보수 전: ${beforeFiles.length}장, 보수 후: ${afterFiles.length}장`)
 
       toast.success(
-        `사진이 저장되었습니다. (보수 전: ${beforeFiles.length}장, 보수 후: ${afterFiles.length}장)`
+        `사진이 업로드되었습니다. (보수 전: ${beforeFiles.length}장, 보수 후: ${afterFiles.length}장)`
       )
+      setLastSavedAt(photoData.savedAt)
+      setLastSaveInfo({ before: beforeFiles.length, after: afterFiles.length })
+      setLastError(null)
     } catch (error) {
       console.error('사진 저장 실패:', error)
       toast.error('사진 저장에 실패했습니다.')
+      setLastError('사진 저장에 실패했습니다. 네트워크 또는 저장공간을 확인해주세요.')
     } finally {
       setIsSaving(false)
     }
@@ -301,6 +357,25 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
             <button className="btn btn-primary" onClick={handleSave} disabled={isSaving}>
               {isSaving ? '저장 중...' : '저장하기'}
             </button>
+          </div>
+
+          {/* 저장 상태 안내 영역 */}
+          <div className="upload-status" style={{ marginTop: 8 }}>
+            {lastSavedAt && lastSaveInfo && (
+              <p className="text-sm" style={{ color: '#065f46' }}>
+                저장 완료: {new Date(lastSavedAt).toLocaleString('ko-KR')} • 보수 전 {lastSaveInfo.before}장 / 보수 후 {lastSaveInfo.after}장
+              </p>
+            )}
+            {lastError && (
+              <p className="text-sm" style={{ color: '#b91c1c' }}>
+                {lastError}
+              </p>
+            )}
+            {!lastSavedAt && !lastError && (
+              <p className="text-xs" style={{ color: '#6b7280' }}>
+                저장하기를 누르면 선택한 사진 목록이 기기에 임시 저장됩니다. 작업일지 제출 시 서버로 함께 업로드됩니다.
+              </p>
+            )}
           </div>
         </div>
       </div>

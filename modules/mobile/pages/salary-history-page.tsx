@@ -99,24 +99,10 @@ function SalaryHistoryContent() {
         <div className="line-tabs" role="tablist" aria-label="급여 내역 필터">
           <button
             type="button"
-            className={clsx('line-tab', statusFilter === 'all' && 'active')}
+            className={clsx('line-tab', 'active')}
             onClick={() => setStatusFilter('all')}
           >
             전체
-          </button>
-          <button
-            type="button"
-            className={clsx('line-tab', statusFilter === 'snapshot' && 'active')}
-            onClick={() => setStatusFilter('snapshot')}
-          >
-            스냅샷
-          </button>
-          <button
-            type="button"
-            className={clsx('line-tab', statusFilter === 'calculated' && 'active')}
-            onClick={() => setStatusFilter('calculated')}
-          >
-            예상치
           </button>
         </div>
 

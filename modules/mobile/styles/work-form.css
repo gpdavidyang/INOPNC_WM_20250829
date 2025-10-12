@@ -443,6 +443,25 @@ textarea.form-input {
   font-weight: 600;
 }
 
+/* Materials: make '비고' placeholder match input typography */
+.materials-section .notes-input::placeholder {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 1; /* ensure consistent appearance across browsers */
+}
+
+[data-theme='dark'] .materials-section .notes-input::placeholder {
+  color: var(--text);
+}
+
 /* Member Type Buttons */
 .button-group {
   display: grid;
@@ -704,8 +723,12 @@ textarea.form-input {
 
 .material-row .material-remove {
   display: flex;
-  align-items: flex-end;
-  padding-bottom: 8px;
+  flex-direction: row; /* ensure horizontal layout */
+  align-items: center; /* vertical centering */
+  justify-content: flex-end; /* right align like header '추가' */
+  grid-column: 1 / -1; /* span full row to reach right edge in 2-col grid */
+  justify-self: end; /* align grid item to the right within full span */
+  padding-bottom: 0;
 }
 
 [data-theme='dark'] .form-actions {

@@ -28,20 +28,23 @@
 }
 
 .drawing-quick-section .link-btn {
-  font-size: 0.875rem;
-  color: #3b82f6;
   background: none;
   border: none;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  transition: color 0.2s;
+  margin-left: auto; /* push to the right like form-note */
+  text-align: right;
+  /* Match typography with form-note / author-info */
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #31a3fa; /* same accent color */
 }
 
 .drawing-quick-section .link-btn:hover {
-  color: var(--hover-color);
-  text-decoration: underline;
+  color: #1d99f5; /* subtle hover, no underline to match spec */
 }
 
 /* Empty State */

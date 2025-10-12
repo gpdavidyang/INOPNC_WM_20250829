@@ -9,9 +9,9 @@ interface MaterialsInputProps {
 }
 
 const defaultMaterial: MaterialEntry = {
-  material_name: '',
+  material_name: 'NPC-1000',
   quantity: 0,
-  unit: '개',
+  unit: '말',
 }
 
 export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onChange }) => {
@@ -58,10 +58,17 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
             <input
               type="number"
               className="form-input"
-              value={material.quantity}
+              value={material.quantity === 0 ? '' : material.quantity}
               onChange={event => handleUpdate(index, { quantity: Number(event.target.value) })}
               min={0}
               step={0.5}
+              onFocus={e => {
+                // UX: clear default 0 when user focuses the field
+                if (material.quantity === 0) {
+                  // let controlled value render as empty; no state write needed here
+                  e.currentTarget.select()
+                }
+              }}
             />
           </div>
           <div className="form-group">
@@ -78,13 +85,24 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
             <label className="form-label">비고</label>
             <input
               type="text"
-              className="form-input"
+              className="form-input notes-input"
               value={material.notes ?? ''}
               onChange={event => handleUpdate(index, { notes: event.target.value })}
               placeholder="선택 입력"
             />
           </div>
-          <div className="form-group material-remove">
+          <div
+            className="form-group material-remove"
+            style={{
+              gridColumn: '1 / -1',
+              display: 'flex',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              // let CSS grid handle width so the item can align to the right edge
+              width: 'auto',
+            }}
+          >
             <button className="delete-tag-btn" type="button" onClick={() => handleRemove(index)}>
               삭제
             </button>
