@@ -5,9 +5,9 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
-import { useUser } from '@/hooks/use-user'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { ArrowLeft, FolderOpen } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast, Toaster } from 'sonner'
 
 interface DrawingFile {
   id: string
@@ -21,7 +21,7 @@ interface DrawingFile {
 export default function MarkupToolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, profile, isLoading } = useUser()
+  const { user, profile, loading } = useUnifiedAuth()
   const queryClient = useQueryClient()
   const [drawingFile, setDrawingFile] = useState<DrawingFile | null>(null)
   const [markupDocument, setMarkupDocument] = useState<any>(null)
@@ -49,6 +49,8 @@ export default function MarkupToolPage() {
   // URL 파라미터로 모드 확인
   const mode = searchParams.get('mode')
   const linkWorklogId = searchParams.get('worklogId')
+  const siteIdParam = searchParams.get('siteId')
+  const docIdParam = searchParams.get('docId')
 
   useEffect(() => {
     // 모드에 따라 초기 화면 설정
@@ -56,50 +58,154 @@ export default function MarkupToolPage() {
       setShowBrowser(true)
     }
 
-    // localStorage에서 선택된 현장 정보 불러오기
-    const savedSite = localStorage.getItem('selected_site')
-    if (savedSite) {
+    // URL 파라미터 기반 선택 현장 적용
+    if (siteIdParam) {
+      setSelectedSite(prev => (prev?.id ? prev : { id: siteIdParam, name: '' }))
       try {
-        const site = JSON.parse(savedSite)
-        setSelectedSite(site)
-      } catch (error) {
-        console.error('Error parsing site data:', error)
-      }
+        localStorage.setItem('selected_site', JSON.stringify({ id: siteIdParam, name: '' }))
+      } catch {}
     }
 
-    // localStorage에서 선택된 도면 불러오기
-    const savedDrawing = localStorage.getItem('selected_drawing')
-    if (savedDrawing) {
+    // localStorage에서 선택된 도면 불러오기 (파라미터가 없을 때만)
+    const tryLoadFromLocal = () => {
+      const savedDrawing = localStorage.getItem('selected_drawing')
+      if (savedDrawing) {
+        try {
+          const drawing = JSON.parse(savedDrawing)
+          setDrawingFile(drawing)
+
+          const markupData = drawing.markupData || drawing.markup_data || []
+          setMarkupDocument({
+            id: drawing.id,
+            title: drawing.name || drawing.title,
+            original_blueprint_url: drawing.url,
+            markup_data: markupData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+
+          if (mode === 'continue' && markupData.length > 0) {
+            toast.info(`이전 작업을 계속합니다. (${markupData.length}개 마킹)`)
+          }
+          return true
+        } catch (error) {
+          console.error('Error parsing drawing data:', error)
+          toast.error('도면 데이터를 불러올 수 없습니다.')
+        }
+      }
+      return false
+    }
+
+    // mode=start + docId일 때, 서버에서 문서 프리로드 시도
+    const tryPreloadFromParams = async () => {
+      if (mode !== 'start' || !docIdParam) return false
       try {
-        const drawing = JSON.parse(savedDrawing)
-        setDrawingFile(drawing)
+        // 1) 마킹 문서로 시도 (기존 문서 열기)
+        const res1 = await fetch(`/api/markup-documents/${docIdParam}`, { cache: 'no-store' })
+        if (res1.ok) {
+          const json = await res1.json()
+          const doc = json?.data
+          if (doc) {
+            const url = doc.file_url || doc.original_blueprint_url
+            const title = doc.title || '마킹 문서'
 
-        // 마킹 데이터가 있는지 확인
-        const markupData = drawing.markupData || drawing.markup_data || []
+            const drawing = {
+              id: doc.id,
+              name: title,
+              title,
+              url,
+              size: 0,
+              type: 'markup',
+              uploadDate: new Date(doc.updated_at || doc.created_at || Date.now()),
+              isMarked: true,
+              markupData: doc.markup_data || [],
+              markupCount: Array.isArray(doc.markup_data) ? doc.markup_data.length : 0,
+              source: 'markup',
+              siteId: siteIdParam || undefined,
+              siteName: selectedSite?.name,
+            }
 
-        // MarkupDocument 형식으로 변환
-        setMarkupDocument({
-          id: drawing.id,
-          title: drawing.name || drawing.title,
-          original_blueprint_url: drawing.url,
-          markup_data: markupData,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+            setDrawingFile(drawing as any)
+            setMarkupDocument({
+              id: doc.id,
+              title,
+              original_blueprint_url: url,
+              markup_data: doc.markup_data || [],
+              created_at: doc.created_at || new Date().toISOString(),
+              updated_at: doc.updated_at || new Date().toISOString(),
+            })
 
-        // 계속 작업 모드인 경우 메시지 표시
-        if (mode === 'continue' && markupData.length > 0) {
-          toast.info(`이전 작업을 계속합니다. (${markupData.length}개 마킹)`)
+            try {
+              localStorage.setItem('selected_drawing', JSON.stringify(drawing))
+            } catch {}
+
+            setShowBrowser(false)
+            toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
+            return true
+          }
+        }
+
+        // 2) 공도면(블루프린트)로 시도
+        const res2 = await fetch(`/api/unified-documents/v2/${docIdParam}`, { cache: 'no-store' })
+        if (res2.ok) {
+          const json2 = await res2.json()
+          const doc = json2?.data
+          if (doc) {
+            const url = doc.file_url || doc.fileUrl
+            const title = doc.title || doc.name || '도면'
+
+            const drawing = {
+              id: doc.id,
+              name: title,
+              title,
+              url,
+              size: doc.file_size || 0,
+              type: 'blueprint',
+              uploadDate: new Date(doc.updated_at || doc.created_at || Date.now()),
+              isMarked: false,
+              source: 'blueprint',
+              siteId: siteIdParam || undefined,
+              siteName: selectedSite?.name,
+            }
+
+            setDrawingFile(drawing as any)
+            setMarkupDocument({
+              id: doc.id,
+              title,
+              original_blueprint_url: url,
+              markup_data: [],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+
+            try {
+              localStorage.setItem('selected_drawing', JSON.stringify(drawing))
+            } catch {}
+
+            setShowBrowser(false)
+            toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
+            return true
+          }
         }
       } catch (error) {
-        console.error('Error parsing drawing data:', error)
-        toast.error('도면 데이터를 불러올 수 없습니다.')
+        console.warn('문서 프리로드 실패:', error)
       }
-    } else if (!mode) {
-      // 도면이 없고 모드도 지정되지 않은 경우 브라우저 표시
-      setShowBrowser(true)
+      return false
     }
-  }, [mode])
+
+    ;(async () => {
+      // 우선 파라미터로 프리로드 시도
+      const preloaded = await tryPreloadFromParams()
+      if (preloaded) return
+
+      // 파라미터가 없거나 실패 시, 로컬스토리지 시도
+      const loadedLocal = tryLoadFromLocal()
+      if (loadedLocal) return
+
+      // 도면이 없고 모드도 지정되지 않은 경우 브라우저 표시
+      if (!mode) setShowBrowser(true)
+    })()
+  }, [mode, siteIdParam, docIdParam, selectedSite?.name])
 
   const handleSave = async (document: any, publish = false) => {
     try {
@@ -159,9 +265,9 @@ export default function MarkupToolPage() {
       }
 
       // 2-1) 작업일지 링크(있다면)
-      if (linkWorklogId && json?.data?.id) {
+      if (linkWorklogId && savedId) {
         try {
-          await fetch(`/api/markup-documents/${json.data.id}`, {
+          await fetch(`/api/markup-documents/${savedId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ linked_worklog_id: linkWorklogId }),
@@ -277,7 +383,7 @@ export default function MarkupToolPage() {
   }
 
   // 사용자 정보가 없거나 도면이 없는 경우
-  if (isLoading && !resolvedProfile) {
+  if (loading && !resolvedProfile) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -414,7 +520,7 @@ export default function MarkupToolPage() {
             <FolderOpen size={20} />
           </button>
           <button
-            onClick={() => handleSave(markupDocument, false)}
+          onClick={() => handleSave(markupDocument, false)}
             className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
           >
             저장
@@ -439,6 +545,8 @@ export default function MarkupToolPage() {
           embedded={true}
         />
       </div>
+      {/* Local toaster to ensure stamp quick panel/toasts display reliably on this page */}
+      <Toaster position="bottom-center" richColors />
     </div>
   )
 }
