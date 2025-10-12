@@ -12,6 +12,15 @@
   background: #fff;
 }
 
+/* Centered single tab variant (salary history '전체' 단일 탭) */
+.line-tabs.single-center {
+  grid-template-columns: 1fr;
+  justify-items: center; /* center the single tab */
+}
+.line-tabs.single-center .line-tab {
+  width: auto;
+}
+
 .line-tab {
   position: relative;
   padding: 12px 8px;
@@ -239,11 +248,11 @@
 .cal-grid-body {
   background: #ffffff;
   /* Prevent any iOS tap/selection artifacts inside calendar grid */
-  -webkit-tap-highlight-color: transparent;
-  caret-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
+  caret-color: transparent !important;
   /* Disable text selection highlight entirely */
-  -webkit-user-select: none;
-  user-select: none;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 [data-theme='dark'] .cal-grid-body {
@@ -286,10 +295,10 @@
     background-color 0.2s ease,
     color 0.2s ease;
   /* Prevent vertical caret/outline on tap */
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  caret-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  caret-color: transparent !important;
   position: relative;
   overflow: hidden; /* clip any transient tap highlight */
   touch-action: manipulation; /* hint to browser: no double-tap zoom */
@@ -305,11 +314,11 @@
 
 /* Extend tap-highlight and selection suppression to all descendants to avoid thin vertical tap flash */
 .cal-cell * {
-  -webkit-tap-highlight-color: transparent;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-  caret-color: transparent;
+  -webkit-tap-highlight-color: transparent !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  caret-color: transparent !important;
 }
 
 /* Inner content should not capture hit testing to avoid transient insertion caret */
