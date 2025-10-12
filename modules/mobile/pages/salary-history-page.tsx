@@ -96,7 +96,7 @@ function SalaryHistoryContent() {
   return (
     <MobileLayoutShell>
       <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pt-3 pb-6 space-y-4">
-        <div className="line-tabs" role="tablist" aria-label="급여 내역 필터">
+        <div className="line-tabs single-center" role="tablist" aria-label="급여 내역 필터">
           <button
             type="button"
             className={clsx('line-tab', 'active')}
@@ -121,9 +121,7 @@ function SalaryHistoryContent() {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="t-body font-medium">{m.label}</div>
-                    <div className="t-cap text-muted-foreground mt-0.5">
-                      {m.source === 'snapshot' ? '스냅샷' : '예상치(계산)'}
-                    </div>
+                    {/* 보조 라벨(스냅샷/예상치) 제거 */}
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="t-body font-semibold">₩{m.netPay.toLocaleString()}</div>
