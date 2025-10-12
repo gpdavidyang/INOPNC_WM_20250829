@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { toast } from 'sonner'
 import {
   MousePointer,
   Hand,
@@ -8,6 +9,7 @@ import {
   Type as TypeIcon,
   Pencil,
   Square,
+  Trash2,
 } from 'lucide-react'
 import type { MarkupEditorState, MarkupObject, StampMarkup, ToolType } from '@/types/markup'
 import { TopToolbar } from './toolbar/top-toolbar'
@@ -107,6 +109,7 @@ export function SharedMarkupEditor({
   const [penWidth, setPenWidth] = React.useState<1 | 3 | 5>(3)
 
   const [showMobileSheet, setShowMobileSheet] = React.useState(false)
+  const stampToastRef = React.useRef<string | number | null>(null)
 
   const bgUrl = (initialDocument?.original_blueprint_url || '') as string
 
@@ -373,8 +376,137 @@ export function SharedMarkupEditor({
     ]
   )
 
-  const setTool = (tool: ToolType) =>
+  const setTool = (tool: ToolType) => {
     setEditorState(prev => ({ ...prev, toolState: { ...prev.toolState, activeTool: tool } }))
+    // Mobile UX: open tool settings automatically for tools that have sub options
+    if (isMobile) {
+      const hasSubOptions =
+        tool === 'text' || tool === 'pen' || (typeof tool === 'string' && tool.startsWith('box-'))
+      // For 'stamp', restore legacy behavior: show quick-select toast instead of sheet
+      if (tool === 'stamp') {
+        setShowMobileSheet(false)
+        showStampQuickToast()
+      } else {
+        setShowMobileSheet(hasSubOptions)
+      }
+    }
+  }
+
+  function showStampQuickToast() {
+    try {
+      if (stampToastRef.current) {
+        toast.dismiss(stampToastRef.current)
+      }
+
+      const selectStamp = (
+        updates: Partial<NonNullable<MarkupEditorState['toolState']['stampSettings']>>
+      ) => {
+        setStamp(updates)
+        // Re-open to reflect active state immediately
+        showStampQuickToast()
+      }
+
+      const id = toast.custom(t => (
+        <div className="pointer-events-auto w-[min(92vw,380px)] rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+          <div className="mb-2 text-sm font-medium text-gray-800">스탬프 설정</div>
+          <div className="grid gap-3">
+            <div>
+              <div className="mb-1 text-xs text-gray-500">색상</div>
+              <div className="flex items-center gap-2">
+                <StampColor
+                  color="red"
+                  active={(editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'red'}
+                  onClick={() => selectStamp({ color: 'red' })}
+                />
+                <StampColor
+                  color="blue"
+                  active={(editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'blue'}
+                  onClick={() => selectStamp({ color: 'blue' })}
+                />
+                <StampColor
+                  color="gray"
+                  active={(editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'gray'}
+                  onClick={() => selectStamp({ color: 'gray' })}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-gray-500">모양</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <ShapeChip
+                  shape="circle"
+                  active={
+                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'circle'
+                  }
+                  onClick={() => selectStamp({ shape: 'circle' })}
+                />
+                <ShapeChip
+                  shape="triangle"
+                  active={
+                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'triangle'
+                  }
+                  onClick={() => selectStamp({ shape: 'triangle' })}
+                />
+                <ShapeChip
+                  shape="square"
+                  active={
+                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'square'
+                  }
+                  onClick={() => selectStamp({ shape: 'square' })}
+                />
+                <ShapeChip
+                  shape="star"
+                  active={
+                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'star'
+                  }
+                  onClick={() => selectStamp({ shape: 'star' })}
+                />
+              </div>
+            </div>
+            <div>
+              <div className="mb-1 text-xs text-gray-500">크기</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <SizeChip
+                  size="small"
+                  active={
+                    (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'small'
+                  }
+                  onClick={() => selectStamp({ size: 'small' })}
+                />
+                <SizeChip
+                  size="medium"
+                  active={
+                    (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'medium'
+                  }
+                  onClick={() => selectStamp({ size: 'medium' })}
+                />
+                <SizeChip
+                  size="large"
+                  active={
+                    (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'large'
+                  }
+                  onClick={() => selectStamp({ size: 'large' })}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <button
+              className="rounded border px-2 py-1 text-xs"
+              onClick={() => toast.dismiss(t)}
+            >
+              닫기
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: 4000,
+        position: 'bottom-center',
+      })
+
+      stampToastRef.current = id
+    } catch {}
+  }
 
   const setStamp = (
     updates: Partial<NonNullable<MarkupEditorState['toolState']['stampSettings']>>
@@ -736,6 +868,14 @@ export function SharedMarkupEditor({
           <div className="flex items-center gap-2">
             <button
               className="px-2 py-1 rounded border"
+              onClick={() => deleteSelected()}
+              disabled={editorState.selectedObjects.length === 0}
+              title="선택 삭제"
+            >
+              삭제
+            </button>
+            <button
+              className="px-2 py-1 rounded border"
               onClick={undo}
               disabled={editorState.undoStack.length === 0}
             >
@@ -912,6 +1052,15 @@ export function SharedMarkupEditor({
                 >
                   <StampIcon className="w-5 h-5" />
                 </IconToggle>
+                {editorState.selectedObjects.length > 0 && (
+                  <IconToggle
+                    active={false}
+                    label="삭제"
+                    onClick={() => deleteSelected()}
+                  >
+                    <Trash2 className="w-5 h-5 text-red-600" />
+                  </IconToggle>
+                )}
               </div>
               <button
                 type="button"
