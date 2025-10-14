@@ -15,36 +15,19 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const prettyDate = useMemo(() => date, [date])
+  const prettyDate = useMemo(() => {
+    if (!date) return ''
+    const d = new Date(date)
+    if (Number.isNaN(d.getTime())) return date
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'] as const
+    const w = weekdays[d.getDay()]
+    return `${y}.${m}.${day}(${w})`
+  }, [date])
 
-  const extractRegionLabel = (input?: string | null) => {
-    if (!input) return ''
-    const s = String(input)
-    const regions = [
-      '서울',
-      '부산',
-      '대구',
-      '인천',
-      '광주',
-      '대전',
-      '울산',
-      '세종',
-      '경기',
-      '강원',
-      '충북',
-      '충남',
-      '전북',
-      '전남',
-      '경북',
-      '경남',
-      '제주',
-    ]
-    for (const r of regions) {
-      if (s.includes(r)) return r
-    }
-    const first = s.trim().split(/\s+/)[0] || ''
-    return first.slice(0, Math.min(3, first.length))
-  }
+  // Weather display removed per spec
 
   useEffect(() => {
     let alive = true
@@ -125,17 +108,12 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
       <div className="ph-card p-3">
         <div className="flex items-center justify-between mb-2">
           <h3 className="ph-section-title">현장 정보</h3>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600">
-              {extractRegionLabel(site?.name) || '기온'} <strong>--°C</strong> 맑음
-            </span>
-            <a
-              className="ph-link"
-              href={site ? `/mobile/sites?site_id=${encodeURIComponent(site.id)}` : '/mobile/sites'}
-            >
-              상세
-            </a>
-          </div>
+          <a
+            className="ph-site-detail-btn"
+            href={site ? `/mobile/sites?site_id=${encodeURIComponent(site.id)}` : '/mobile/sites'}
+          >
+            상세
+          </a>
         </div>
         <div className="space-y-1 text-sm">
           <div className="flex items-center justify-between">

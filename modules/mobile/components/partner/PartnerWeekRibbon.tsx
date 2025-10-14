@@ -196,16 +196,15 @@ export const PartnerWeekRibbon: React.FC<Props> = ({
           const isActive = iso === selectedDate
           const cls = `date-item ${isToday ? 'today' : ''} ${isActive ? 'active' : ''}`
           const data = dayData[iso] || { sites: 0, hours: 0 }
-          // Spec match: non-selected cells show dashes; selected shows city + 인원 수만
-          const siteLabel = isActive ? selTopLabel || '—' : '—'
-          const hourLabel = isActive ? `${selWorkers}명` : '—'
-          const selLabel1 = siteLabel
-          const selLabel2 = hourLabel
+          // When selected date has no data, hide labels entirely (no region, no 0명)
+          const hasSelectedData = selWorkers > 0
+          const siteLabel = isActive ? (hasSelectedData ? selTopLabel : '') : '—'
+          const hourLabel = isActive ? (hasSelectedData ? `${selWorkers}명` : '') : '—'
           return (
             <button key={iso} className={cls} onClick={() => onChange(iso)}>
               <span className="date-number">{d.getDate()}</span>
-              <span className="site-name">{isActive ? selLabel1 : siteLabel}</span>
-              <span className="work-days">{isActive ? selLabel2 : hourLabel}</span>
+              <span className="site-name">{siteLabel}</span>
+              <span className="work-days">{hourLabel}</span>
             </button>
           )
         })}

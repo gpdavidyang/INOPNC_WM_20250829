@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     // Fetch work records in range and aggregate client-side per date
     const { data: rows, error } = await supabase
       .from('work_records')
-      .select('work_date, labor_hours, work_hours, site_id')
+      .select('work_date, labor_hours, work_hours, site_id, user_id')
       .in('site_id', siteFilter)
       .gte('work_date', startDate)
       .lte('work_date', endDate)
@@ -95,10 +95,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch work records' }, { status: 500 })
     }
 
-    const daily: Record<string, { manDays: number; hours: number }> = {}
-    const perDateSiteTotals: Map<string, Map<string, number>> = new Map()
+    const daily: Record<string, { manDays: number; hours: number; workers?: number }> = {}
+    const perDateSiteTotals: Map<string, Map<string, number>> = new Map() // manDays per date-site
+    const perDateSiteWorkers: Map<string, Map<string, number>> = new Map() // count per date-site
+    const perDateSiteManDays: Map<string, Map<string, number>> = new Map() // explicit manDays per date-site
     let totalManDays = 0
     let totalHours = 0
+    let totalWorkers = 0
     for (const r of rows || []) {
       const d = (r as any).work_date
       if (!d) continue
@@ -108,9 +111,11 @@ export async function GET(request: NextRequest) {
       if (!(manDays > 0) && workHours > 0) manDays = workHours / 8
       const hours = workHours > 0 ? workHours : manDays * 8
 
-      if (!daily[d]) daily[d] = { manDays: 0, hours: 0 }
+      if (!daily[d]) daily[d] = { manDays: 0, hours: 0, workers: 0 }
       daily[d].manDays += manDays
       daily[d].hours += hours
+      // Count each record as one person-entry for the date
+      daily[d].workers = (daily[d].workers || 0) + 1
       totalManDays += manDays
       totalHours += hours
 
@@ -120,50 +125,73 @@ export async function GET(request: NextRequest) {
         if (!perDateSiteTotals.has(d)) perDateSiteTotals.set(d, new Map())
         const m = perDateSiteTotals.get(d)!
         m.set(sid, (m.get(sid) || 0) + manDays)
+        if (!perDateSiteWorkers.has(d)) perDateSiteWorkers.set(d, new Map())
+        const w = perDateSiteWorkers.get(d)!
+        w.set(sid, (w.get(sid) || 0) + 1)
+        if (!perDateSiteManDays.has(d)) perDateSiteManDays.set(d, new Map())
+        const md = perDateSiteManDays.get(d)!
+        md.set(sid, (md.get(sid) || 0) + manDays)
       }
+
+      // Note: do not de-duplicate same user on same date — each record counts
     }
 
     // Fallback: if no work_records data, estimate via daily_reports.worker_assignments count
-    if ((!rows || rows.length === 0) && Object.keys(daily).length === 0) {
-      try {
-        const { createServiceRoleClient } = await import('@/lib/supabase/service-role')
-        const service = createServiceRoleClient()
-        const { data: reports, error: drErr } = await service
-          .from('daily_reports')
-          .select('work_date, site_id, worker_assignments(id, labor_hours)')
-          .in('site_id', siteFilter)
-          .gte('work_date', startDate)
-          .lte('work_date', endDate)
-        if (!drErr) {
-          for (const rep of reports || []) {
-            const d = (rep as any).work_date
-            if (!d) continue
-            const wa = Array.isArray((rep as any).worker_assignments)
-              ? (rep as any).worker_assignments
-              : []
-            // Sum labor_hours if present, else assume 1 man-day per assignment
-            let manDays = 0
-            for (const a of wa) {
-              const md = Number((a as any).labor_hours || 0)
-              manDays += md > 0 ? md : 1
-            }
-            if (!daily[d]) daily[d] = { manDays: 0, hours: 0 }
-            daily[d].manDays += manDays
-            daily[d].hours += manDays * 8
-            totalManDays += manDays
-            totalHours += manDays * 8
+    // Per-date fallback via daily_reports.worker_assignments when a date-site has 0 records
+    try {
+      const { createServiceRoleClient } = await import('@/lib/supabase/service-role')
+      const service = createServiceRoleClient()
+      const { data: reports } = await service
+        .from('daily_reports')
+        .select('work_date, site_id, worker_assignments(id, labor_hours)')
+        .in('site_id', siteFilter)
+        .gte('work_date', startDate)
+        .lte('work_date', endDate)
 
-            const sid = (rep as any).site_id
-            if (sid) {
-              if (!perDateSiteTotals.has(d)) perDateSiteTotals.set(d, new Map())
-              const m = perDateSiteTotals.get(d)!
-              m.set(sid, (m.get(sid) || 0) + manDays)
-            }
-          }
+      for (const rep of reports || []) {
+        const d = (rep as any).work_date
+        const sid = (rep as any).site_id
+        if (!d || !sid) continue
+        const wa = Array.isArray((rep as any).worker_assignments)
+          ? (rep as any).worker_assignments
+          : []
+        // Sum labor_hours if present, else assume 1 man-day per assignment
+        let manDaysWA = 0
+        for (const a of wa) {
+          const md = Number((a as any).labor_hours || 0)
+          manDaysWA += md > 0 ? md : 1
         }
-      } catch (e) {
-        // ignore
+        if (!daily[d]) daily[d] = { manDays: 0, hours: 0, workers: 0 }
+
+        // Use max logic per date-site between work_records and worker_assignments
+        const prevCount = perDateSiteWorkers.get(d)?.get(sid) || 0
+        const prevManDays = perDateSiteManDays.get(d)?.get(sid) || 0
+        const nextCount = Math.max(prevCount, wa.length)
+        const nextManDays = Math.max(prevManDays, manDaysWA)
+
+        const deltaCount = nextCount - prevCount
+        const deltaManDays = nextManDays - prevManDays
+
+        if (deltaCount > 0) {
+          daily[d].workers = (daily[d].workers || 0) + deltaCount
+          if (!perDateSiteWorkers.has(d)) perDateSiteWorkers.set(d, new Map())
+          perDateSiteWorkers.get(d)!.set(sid, nextCount)
+        }
+        if (deltaManDays > 0) {
+          daily[d].manDays += deltaManDays
+          daily[d].hours += deltaManDays * 8
+          totalManDays += deltaManDays
+          totalHours += deltaManDays * 8
+          if (!perDateSiteTotals.has(d)) perDateSiteTotals.set(d, new Map())
+          perDateSiteTotals
+            .get(d)!
+            .set(sid, (perDateSiteTotals.get(d)!.get(sid) || 0) + deltaManDays)
+          if (!perDateSiteManDays.has(d)) perDateSiteManDays.set(d, new Map())
+          perDateSiteManDays.get(d)!.set(sid, nextManDays)
+        }
       }
+    } catch (e) {
+      // ignore fallback errors
     }
 
     // Determine top site per date by manDays
@@ -182,10 +210,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Round to one decimal for manDays
+    // Finalize workers and round manDays/hours
     Object.keys(daily).forEach(k => {
       daily[k].manDays = Number(daily[k].manDays.toFixed(1))
       daily[k].hours = Number(daily[k].hours.toFixed(1))
+      daily[k].workers = daily[k].workers || 0
+      totalWorkers += daily[k].workers as number
     })
 
     return NextResponse.json({
@@ -195,6 +225,7 @@ export async function GET(request: NextRequest) {
         topSites,
         totalManDays: Number(totalManDays.toFixed(1)),
         totalHours: Number(totalHours.toFixed(1)),
+        totalWorkers,
       },
     })
   } catch (e) {

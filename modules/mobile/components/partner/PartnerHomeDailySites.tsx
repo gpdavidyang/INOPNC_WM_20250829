@@ -23,6 +23,18 @@ export const PartnerHomeDailySites: React.FC<Props> = ({ date, hideHeader }) => 
   const [expanded, setExpanded] = useState<string | null>(null)
   const [details, setDetails] = useState<Record<string, any>>({})
 
+  const formatDateWithWeekday = (value?: string | null) => {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    const weekdays = ['일', '월', '화', '수', '목', '금', '토'] as const
+    const w = weekdays[d.getDay()]
+    return `${y}.${m}.${day}(${w})`
+  }
+
   useEffect(() => {
     let alive = true
     const controller = new AbortController()
@@ -66,7 +78,7 @@ export const PartnerHomeDailySites: React.FC<Props> = ({ date, hideHeader }) => 
       {!hideHeader && (
         <div className="flex items-center justify-between mb-2">
           <h3 className="ph-section-title">오늘의 현장</h3>
-          <a className="ph-link" href="/mobile/sites">
+          <a className="view-all-link" href="/mobile/sites">
             전체보기
           </a>
         </div>
@@ -81,7 +93,7 @@ export const PartnerHomeDailySites: React.FC<Props> = ({ date, hideHeader }) => 
             <Card key={item.id} className="p-3 ph-card">
               <div className="flex items-center justify-between">
                 <div className="text-sm font-medium truncate">{item.name}</div>
-                <div className="ph-meta">{item.recentWorkDate || date}</div>
+                <div className="ph-meta">{formatDateWithWeekday(item.recentWorkDate || date)}</div>
               </div>
               <div className="mt-1 flex items-center gap-2">
                 <span className={`ph-badge ${item.status || ''}`}>{item.status || 'active'}</span>

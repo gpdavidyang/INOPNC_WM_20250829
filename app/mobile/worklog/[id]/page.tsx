@@ -3,6 +3,7 @@ import type { WorklogDetail, WorklogAttachment } from '@/types/worklog'
 import { Suspense } from 'react'
 import TaskDetailPageClient from './TaskDetailPageClient'
 import Link from 'next/link'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { headers } from 'next/headers'
 
 export const metadata: Metadata = { title: '작업일지 상세' }
@@ -238,38 +239,40 @@ export default async function MobileDailyReportDetailPage({
     }
     return (
       <Suspense>
-        <div style={{ padding: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1f2937', marginBottom: 8 }}>
-            작업일지 상세를 표시할 수 없습니다.
-          </h2>
-          <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6 }}>
-            다음 중 하나의 이유로 상세 정보를 불러오지 못했습니다.
-          </p>
-          <ul
-            style={{
-              marginTop: 8,
-              marginBottom: 12,
-              paddingLeft: 16,
-              color: '#6b7280',
-              fontSize: 13,
-            }}
-          >
-            <li>작업내용이 아직 입력되지 않았습니다(‘작업내용 미입력’ 상태).</li>
-            <li>접근 권한이 없거나, 현재 시공업체에 매핑되지 않은 현장입니다.</li>
-            <li>해당 작업일지가 삭제되었거나 존재하지 않습니다.</li>
-          </ul>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Link href="/mobile/worklog" className="viewer-action-btn secondary">
-              목록으로 돌아가기
-            </Link>
-            <Link
-              href={`/mobile/worklog/${encodeURIComponent(params.id)}`}
-              className="viewer-action-btn primary"
+        <MobileLayoutShell>
+          <div style={{ padding: 16 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1f2937', marginBottom: 8 }}>
+              작업일지 상세를 표시할 수 없습니다.
+            </h2>
+            <p style={{ fontSize: 14, color: '#6b7280', lineHeight: 1.6 }}>
+              다음 중 하나의 이유로 상세 정보를 불러오지 못했습니다.
+            </p>
+            <ul
+              style={{
+                marginTop: 8,
+                marginBottom: 12,
+                paddingLeft: 16,
+                color: '#6b7280',
+                fontSize: 13,
+              }}
             >
-              다시 시도
-            </Link>
+              <li>작업내용이 아직 입력되지 않았습니다(‘작업내용 미입력’ 상태).</li>
+              <li>접근 권한이 없거나, 현재 시공업체에 매핑되지 않은 현장입니다.</li>
+              <li>해당 작업일지가 삭제되었거나 존재하지 않습니다.</li>
+            </ul>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Link href="/mobile/worklog" className="viewer-action-btn secondary">
+                목록으로 돌아가기
+              </Link>
+              <Link
+                href={`/mobile/worklog/${encodeURIComponent(params.id)}`}
+                className="viewer-action-btn primary"
+              >
+                다시 시도
+              </Link>
+            </div>
           </div>
-        </div>
+        </MobileLayoutShell>
       </Suspense>
     )
   }

@@ -21,9 +21,16 @@
 }
 
 .ph-section-title {
-  font-size: 16px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 20px;
   font-weight: 600;
-  color: var(--ph-ink);
+  color: #1a254f;
 }
 
 /* Calendar ribbon */
@@ -183,6 +190,10 @@
   border-top: 1px solid var(--ph-line);
   background: var(--ph-surface);
 }
+/* Avoid double line under weekday header: remove top border for first week row */
+.ph-month-grid > .ph-month-cell:nth-child(n + 8):nth-child(-n + 14) {
+  border-top: none;
+}
 .ph-month-cell:hover {
   background: #f8faff;
 }
@@ -290,6 +301,50 @@
   display: none !important;
 }
 
+/* Shared select trigger styling for mobile partner UI */
+.ph-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px; /* match search field height */
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid #e5eaf3;
+  background: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 14px !important; /* consistent left/right padding */
+}
+.ph-select-trigger:hover,
+.ph-select-trigger:active,
+.ph-select-trigger:focus,
+.ph-select-trigger[data-state='open'] {
+  border-color: #e5eaf3 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+[data-theme='dark'] .ph-select-trigger {
+  background: #ffffff;
+}
+.ph-select-trigger > span {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ph-select-trigger svg {
+  flex-shrink: 0;
+  margin-left: 8px;
+  margin-right: 0; /* appropriate right padding, not flush */
+}
+[data-theme='dark'] .ph-select-trigger,
+[data-theme='dark'] .ph-select-trigger:hover,
+[data-theme='dark'] .ph-select-trigger:active,
+[data-theme='dark'] .ph-select-trigger:focus,
+[data-theme='dark'] .ph-select-trigger[data-state='open'] {
+  background: #ffffff; /* match output page dark behavior */
+}
+
 /* Search + recent list */
 .ph-search-wrap {
   position: relative;
@@ -338,8 +393,10 @@
   color: var(--ph-ink);
 }
 .ph-recent-abbr {
-  font-weight: 700;
-  color: var(--ph-brand);
+  /* 주변 현장명 스타일과 동일하게 정렬 */
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ph-ink);
   margin-right: 4px;
 }
 .ph-recent-date {
@@ -355,6 +412,47 @@
   text-decoration: none;
 }
 
+/* 현장 정보 섹션 '상세' 버튼 - p-main.html의 .site-status 스타일 매칭 */
+.ph-site-detail-btn {
+  font-size: 16px;
+  font-weight: 500;
+  color: #31a3fa;
+  text-decoration: none;
+  padding: 0 12px;
+  border: 1px solid #31a3fa;
+  border-radius: 16px;
+  background: rgba(49, 163, 250, 0.1);
+  transition: all 0.2s ease;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+}
+
+.ph-site-detail-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(49, 163, 250, 0.3);
+  background: rgba(49, 163, 250, 0.15);
+}
+
+.ph-site-detail-btn:active,
+.ph-site-detail-btn.active,
+.ph-site-detail-btn:focus {
+  background: rgba(33, 150, 243, 0.05) !important;
+  color: #31a3fa !important;
+  transform: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 /* ===== p-main weekly ribbon classes ===== */
 .calendar-header {
   display: flex;
@@ -364,6 +462,13 @@
   padding: 0;
 }
 .calendar-title {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 20px;
   font-weight: 600;
   color: #1a254f;

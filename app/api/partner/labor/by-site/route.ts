@@ -41,23 +41,29 @@ export async function GET(request: NextRequest) {
     let endDate: string
 
     const now = new Date()
+    const fmt = (d: Date) => {
+      const yy = d.getFullYear()
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      return `${yy}-${mm}-${dd}`
+    }
     switch (period) {
       case 'daily': {
-        startDate = now.toISOString().split('T')[0]
+        startDate = fmt(now)
         endDate = startDate
         break
       }
       case 'weekly': {
         const weekStart = new Date(now)
         weekStart.setDate(now.getDate() - now.getDay())
-        startDate = weekStart.toISOString().split('T')[0]
-        endDate = now.toISOString().split('T')[0]
+        startDate = fmt(weekStart)
+        endDate = fmt(now)
         break
       }
       case 'monthly':
       default: {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-        endDate = now.toISOString().split('T')[0]
+        startDate = fmt(new Date(now.getFullYear(), now.getMonth(), 1))
+        endDate = fmt(now)
         break
       }
     }
@@ -208,7 +214,7 @@ export async function GET(request: NextRequest) {
       // Get labor hours for this site
       const { data: laborData, error: laborError } = await supabase
         .from('work_records')
-        .select('work_date, work_hours, labor_hours, overtime_hours')
+        .select('work_date, work_hours, labor_hours, overtime_hours, user_id')
         .eq('site_id', site.id)
         .gte('work_date', startDate)
         .lte('work_date', endDate)
@@ -219,31 +225,75 @@ export async function GET(request: NextRequest) {
         return null
       }
 
-      // Calculate totals
-      const totalWorkHours =
-        laborData?.reduce(
-          (sum: number, record: unknown) => sum + (Number(record.work_hours) || 0),
-          0
-        ) || 0
-      const totalLaborHours =
-        laborData?.reduce(
-          (sum: number, record: unknown) => sum + (Number(record.labor_hours) || 0),
-          0
-        ) || 0
+      // Calculate totals from work_records
+      let totalWorkHours = 0
+      let totalLaborHoursRaw = 0
+      let sumManDaysRecords = 0
+      for (const rec of laborData || []) {
+        const wh = Number((rec as any).work_hours) || 0
+        const lh = Number((rec as any).labor_hours) || 0
+        totalWorkHours += wh
+        totalLaborHoursRaw += lh
+        sumManDaysRecords += lh > 0 ? lh : wh > 0 ? wh / 8 : 0
+      }
 
-      // Get unique work dates for calculating working days
-      const uniqueDates = new Set(laborData?.map((record: unknown) => record.work_date) || [])
-      const workingDays = uniqueDates.size
+      // Sum of daily worker counts across the range (count each record; do not de-duplicate)
+      const perDateCounts = new Map<string, number>()
+      const perDateManDays = new Map<string, number>()
+      for (const rec of laborData || []) {
+        const d = (rec as any).work_date
+        if (!d) continue
+        perDateCounts.set(d, (perDateCounts.get(d) || 0) + 1)
+        const wh = Number((rec as any).work_hours) || 0
+        const lh = Number((rec as any).labor_hours) || 0
+        const md = lh > 0 ? lh : wh > 0 ? wh / 8 : 0
+        perDateManDays.set(d, (perDateManDays.get(d) || 0) + md)
+      }
+      // Per-date fallback to daily_reports; use max logic per date to avoid undercount
+      try {
+        const { createServiceRoleClient } = await import('@/lib/supabase/service-role')
+        const service = createServiceRoleClient()
+        const { data: reports } = await service
+          .from('daily_reports')
+          .select('work_date, worker_assignments(id, labor_hours)')
+          .eq('site_id', site.id)
+          .gte('work_date', startDate)
+          .lte('work_date', endDate)
+        for (const rep of reports || []) {
+          const d = (rep as any).work_date
+          const existing = perDateCounts.get(d) || 0
+          const wa = Array.isArray((rep as any).worker_assignments)
+            ? (rep as any).worker_assignments
+            : []
+          // Workers: take max between work_records count and assignment count
+          if (wa.length > existing) perDateCounts.set(d, wa.length)
+          let md = 0
+          for (const a of wa) {
+            const v = Number((a as any).labor_hours || 0)
+            md += v > 0 ? v : 1
+          }
+          const existingMd = perDateManDays.get(d) || 0
+          if (md > existingMd) perDateManDays.set(d, md)
+        }
+      } catch (e) {
+        // ignore fallback errors
+      }
+      let workerDays = 0
+      let totalManDays = 0
+      for (const n of perDateCounts.values()) workerDays += n
+      for (const md of perDateManDays.values()) totalManDays += md
+
+      // Working days = number of dates with any records (after fallback)
+      const workingDays = perDateCounts.size
 
       // Calculate average daily hours
-      const averageDailyHours =
-        workingDays > 0 ? (totalLaborHours || totalWorkHours) / workingDays : 0
+      const averageDailyHours = workingDays > 0 ? totalManDays / workingDays : 0
 
       // Get most recent work data
       const recentWork = laborData?.[0]
       const recentWorkDate = recentWork?.work_date || startDate
       const recentDailyHours = recentWork
-        ? Number(recentWork.labor_hours) || Number(recentWork.work_hours) || 0
+        ? Number(recentWork.labor_hours) || (Number(recentWork.work_hours) || 0) / 8
         : 0
 
       const contractStatus = entry.contractStatus
@@ -254,7 +304,10 @@ export async function GET(request: NextRequest) {
         address: site.address,
         status: contractStatus === 'completed' ? 'completed' : site.status || 'active',
         contractStatus,
-        totalLaborHours: totalLaborHours || totalWorkHours,
+        // For compatibility, keep totalLaborHours but return man-days value
+        totalLaborHours: totalManDays,
+        totalManDays,
+        workerDays,
         averageDailyHours,
         recentWorkDate,
         recentDailyHours,
@@ -265,7 +318,10 @@ export async function GET(request: NextRequest) {
     })
 
     const siteLabor = await Promise.all(siteLaborPromises)
-    const validSiteLabor = siteLabor.filter((site: unknown) => site !== null)
+    // Filter out sites with zero totals (both man-days and worker counts are 0)
+    const validSiteLabor = (siteLabor.filter((site: any) => site !== null) as any[]).filter(
+      s => Number(s?.totalManDays || 0) > 0 || Number(s?.workerDays || 0) > 0
+    )
 
     // Sort by total labor hours descending
     validSiteLabor.sort((a, b) => (b?.totalLaborHours || 0) - (a?.totalLaborHours || 0))

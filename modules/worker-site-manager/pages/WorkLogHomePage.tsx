@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
+import { PartnerMobileLayout } from '@/modules/mobile/components/layout/PartnerMobileLayout'
 import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
 import { useRouter } from 'next/navigation'
 import { DiaryDetailViewer } from '@/modules/mobile/components/worklogs'
@@ -13,13 +14,14 @@ import { dismissAlert, formatDate } from '@/modules/mobile/utils/work-log-utils'
 import { Plus, Search as SearchIcon, ChevronDown } from 'lucide-react'
 import {
   CustomSelect,
-  CustomSelectTrigger,
+  PhSelectTrigger,
   CustomSelectValue,
   CustomSelectContent,
   CustomSelectItem,
 } from '@/components/ui/custom-select'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import '@/modules/mobile/styles/attendance.css'
+import '@/modules/mobile/styles/partner.css'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -83,7 +85,7 @@ export const WorkLogHomePage: React.FC = () => {
     if (/^[A-Za-z]+$/.test(abbr)) return abbr.toUpperCase()
     return abbr
   }
-  const [activeTab, setActiveTab] = useState<WorkLogTabStatus>('draft')
+  const [activeTab, setActiveTab] = useState<WorkLogTabStatus>(readOnly ? 'approved' : 'draft')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingWorkLog, setEditingWorkLog] = useState<WorkLog | null>(null)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
@@ -153,15 +155,25 @@ export const WorkLogHomePage: React.FC = () => {
     setVisibleUncompleted(prev => prev.filter(item => item.month !== month))
   }, [])
 
-  const handleNavigateToMonth = useCallback((_month: string) => {
-    setActiveTab('draft')
-    setUncompletedSheetOpen(false)
-  }, [])
+  const handleNavigateToMonth = useCallback(
+    (_month: string) => {
+      setActiveTab(readOnly ? 'approved' : 'draft')
+      setUncompletedSheetOpen(false)
+    },
+    [readOnly]
+  )
 
   const filterStatus = filter.status
   const filterSiteId = filter.siteId
   const filterDateFrom = filter.dateFrom
   const filterDateTo = filter.dateTo
+
+  // Partner/customer: force approved tab (hide draft entirely)
+  useEffect(() => {
+    if (readOnly && activeTab !== 'approved') {
+      setActiveTab('approved')
+    }
+  }, [readOnly, activeTab])
 
   useEffect(() => {
     if (filterStatus !== activeTab) {
@@ -557,20 +569,36 @@ export const WorkLogHomePage: React.FC = () => {
             )
           })}
         </div>
-        {hasMore && (
+        {(hasMore || visibleCount > 10) && (
           <div className="more-button-container">
-            <button
-              type="button"
-              className="more-btn"
-              onClick={() =>
-                setVisibleCounts(prev => ({
-                  ...prev,
-                  [tab]: prev[tab] + 10,
-                }))
-              }
-            >
-              더보기
-            </button>
+            {visibleCount > 10 && (
+              <button
+                type="button"
+                className="view-all-link more-collapse"
+                onClick={() =>
+                  setVisibleCounts(prev => ({
+                    ...prev,
+                    [tab]: 10,
+                  }))
+                }
+              >
+                간단히
+              </button>
+            )}
+            {hasMore && (
+              <button
+                type="button"
+                className="more-btn"
+                onClick={() =>
+                  setVisibleCounts(prev => ({
+                    ...prev,
+                    [tab]: prev[tab] + 10,
+                  }))
+                }
+              >
+                더보기
+              </button>
+            )}
           </div>
         )}
       </>
@@ -613,8 +641,9 @@ export const WorkLogHomePage: React.FC = () => {
     }
   }, [monthlyLogs])
 
+  const LayoutShell = readOnly ? PartnerMobileLayout : MobileLayoutShell
   return (
-    <MobileLayoutShell>
+    <LayoutShell>
       <div className="worklog-page">
         <style jsx global>{`
           :root {
@@ -643,13 +672,15 @@ export const WorkLogHomePage: React.FC = () => {
               -apple-system,
               sans-serif;
             background: var(--bg);
-            min-height: 100vh;
+            min-height: auto; /* avoid overlapping with fixed bottom nav */
           }
 
           .worklog-body {
             background: var(--bg);
             padding: 0 16px 20px; /* 헤더와 간격 제거: 상단 0, 좌우 16 유지 */
             max-width: 100%;
+            /* ensure content can scroll behind bottom nav by reserving extra space */
+            padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
           }
 
           /* 탭을 좌우 풀블리드로 확장 (컨텐츠 좌우 패딩 상쇄) */
@@ -673,53 +704,37 @@ export const WorkLogHomePage: React.FC = () => {
             align-items: center;
             gap: 12px;
             margin-top: 18px;
+            margin-bottom: 12px; /* tighter spacing above selects */
           }
           /* Hide inline labels to match left (spec) style */
           .filter-label {
             display: none;
           }
 
-          /* CustomSelect trigger style alignment */
-          .custom-select-trigger {
-            height: 40px;
-            border-radius: 10px;
-            background: transparent; /* 뒤 배경과 동일하게 보이도록 */
-            border-color: transparent; /* 테두리 제거 */
-            border-width: 1px;
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text);
-            box-shadow: none;
-          }
-          /* 포커스/오픈 시에도 테두리와 포커스링 제거 */
-          .custom-select-trigger:focus,
-          .custom-select-trigger[data-state='open'] {
-            border-color: transparent !important;
-            box-shadow: none !important;
-            background: transparent !important;
-          }
-          /* 요청: 트리거의 하단 화살표 제거 */
-          .custom-select-trigger svg {
-            display: none !important;
-          }
-
-          /* 드롭다운 패널도 동일한 모서리 반경 적용 */
+          /* CustomSelect content radius (match output page rounded) */
           .custom-select-content {
-            border-radius: 10px !important;
+            border-radius: 14px !important;
           }
 
-          /* 포커스 상태에서도 일체감 유지 (보더/쉐도우 제거) */
+          /* Keep trigger border consistent on all interaction states (match output page) */
+          .custom-select-trigger,
+          .custom-select-trigger:hover,
+          .custom-select-trigger:active,
           .custom-select-trigger:focus,
           .custom-select-trigger[data-state='open'] {
-            border-color: transparent;
-            box-shadow: none;
+            border-color: #e5eaf3 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            background: var(--card);
+            width: 100% !important;
+            justify-content: space-between !important;
           }
-
-          /* 다크모드에서도 동일한 효과 유지 */
-          [data-theme='dark'] .custom-select-trigger {
-            background: transparent;
-            border-color: transparent;
-            color: var(--text);
+          [data-theme='dark'] .custom-select-trigger,
+          [data-theme='dark'] .custom-select-trigger:hover,
+          [data-theme='dark'] .custom-select-trigger:active,
+          [data-theme='dark'] .custom-select-trigger:focus,
+          [data-theme='dark'] .custom-select-trigger[data-state='open'] {
+            background: var(--card);
           }
 
           /* Work list container per spec */
@@ -729,7 +744,7 @@ export const WorkLogHomePage: React.FC = () => {
             border-radius: 10px;
             padding: 0 16px;
             box-shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
-            margin-top: 16px;
+            margin-top: 0; /* separation handled by selects block */
           }
 
           .worklog-search-section .search-input-wrapper {
@@ -809,10 +824,55 @@ export const WorkLogHomePage: React.FC = () => {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
+          .filter-row-wrap {
+            width: auto; /* remove full-bleed to avoid overlap illusion */
+            margin: 0;
+            padding: 0;
+            margin-bottom: 20px;
+          }
+
+          /* Two-column row without extra container */
+          .select-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); /* 1:1 ratio */
+            gap: 8px;
+            width: 100%;
+            margin-left: 0;
+            margin-right: 0;
+            margin-bottom: 12px;
+          }
+
+          /* Compact block spacing for selects (no separator) */
+          .filter-compact-block {
+            margin-bottom: 12px;
+          }
+
+          /* Worklog-specific: make site select wider than period select */
+          .ph-select-grid.worklog-selects-block {
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) !important;
+          }
+
+          /* Local spacing under select grid to prevent visual overlap with card below */
+          .worklog-selects-block {
+            margin-bottom: 12px; /* tighter spacing below selects */
+          }
+
+          /* Thin separator to avoid white-on-white overlap illusion */
+          .ph-separator {
+            height: 1px;
+            background: var(--ph-line);
+            opacity: 1;
+            margin: 8px 0 10px;
+          }
+
+          /* Use global .ph-select-trigger from partner.css for standard size/settings */
+
           .filter-select {
             display: flex;
             flex-direction: column;
             gap: 6px;
+            width: 100%;
+            min-width: 0;
           }
 
           .filter-label {
@@ -961,10 +1021,19 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           .more-button-container {
+            position: relative;
             display: flex;
             justify-content: center;
+            align-items: center;
             margin-top: 12px; /* 리스트 하단 라인과 여백 확보 */
             margin-bottom: 16px; /* 다음 섹션 상단 라인과 간격 확보 */
+          }
+
+          .more-collapse {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
           }
 
           .more-btn {
@@ -975,17 +1044,12 @@ export const WorkLogHomePage: React.FC = () => {
             font-size: 14px;
             font-weight: 600;
             color: var(--text);
-            box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
+            box-shadow: none; /* 그림자 제거 */
             cursor: pointer;
-            transition:
-              transform 0.2s ease,
-              box-shadow 0.2s ease,
-              background 0.2s ease;
+            transition: background 0.2s ease; /* 단순 배경 변화만 */
           }
 
           .more-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 24px rgba(16, 24, 40, 0.12);
             background: #f8faff;
           }
 
@@ -1056,26 +1120,28 @@ export const WorkLogHomePage: React.FC = () => {
         <div className="main-container worklog-body">
           {/* Title removed per spec */}
 
-          <nav className="line-tabs" role="tablist" aria-label="작업일지 상태 탭">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'draft'}
-              className={`line-tab ${activeTab === 'draft' ? 'active' : ''}`}
-              onClick={() => setActiveTab('draft')}
-            >
-              임시저장 ({draftCount})
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === 'approved'}
-              className={`line-tab ${activeTab === 'approved' ? 'active' : ''}`}
-              onClick={() => setActiveTab('approved')}
-            >
-              작성완료 ({approvedCount})
-            </button>
-          </nav>
+          {!readOnly && (
+            <nav className="line-tabs" role="tablist" aria-label="작업일지 상태 탭">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'draft'}
+                className={`line-tab ${activeTab === 'draft' ? 'active' : ''}`}
+                onClick={() => setActiveTab('draft')}
+              >
+                임시저장 ({draftCount})
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === 'approved'}
+                className={`line-tab ${activeTab === 'approved' ? 'active' : ''}`}
+                onClick={() => setActiveTab('approved')}
+              >
+                작성완료 ({approvedCount})
+              </button>
+            </nav>
+          )}
 
           <section className="worklog-search-section">
             <div className="search-input-wrapper">
@@ -1103,46 +1169,46 @@ export const WorkLogHomePage: React.FC = () => {
             </button>
           </section>
 
-          <section className="filter-row">
-            {/* Site Select - CustomSelect */}
-            <div className="filter-select">
-              <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
-                <CustomSelectTrigger className="custom-select-trigger">
-                  <CustomSelectValue>
-                    {siteOptions.find(o => o.value === selectedSite)?.label || '전체 현장'}
-                  </CustomSelectValue>
-                </CustomSelectTrigger>
-                <CustomSelectContent align="start" className="custom-select-content">
-                  {siteOptions.map(option => (
+          {/* 작업일지 필터 (컨테이너 최소화: 바로 행 배치) */}
+          <section aria-label="작업일지 필터" className="select-row">
+            {/* 현장 선택 */}
+            <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
+              <PhSelectTrigger>
+                <CustomSelectValue className="text-left">
+                  {siteOptions.find(o => o.value === selectedSite)?.label || '현장 선택'}
+                </CustomSelectValue>
+              </PhSelectTrigger>
+              <CustomSelectContent align="start" className="custom-select-content">
+                <CustomSelectItem value="all">전체 현장</CustomSelectItem>
+                {siteOptions
+                  .filter(o => o.value !== 'all')
+                  .map(option => (
                     <CustomSelectItem key={option.value} value={option.value}>
                       {option.label}
                     </CustomSelectItem>
                   ))}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
+              </CustomSelectContent>
+            </CustomSelect>
 
-            {/* Period Select - 전체 기간 포함 */}
-            <div className="filter-select">
-              <CustomSelect value={selectedPeriod} onValueChange={setSelectedPeriod}>
-                <CustomSelectTrigger className="custom-select-trigger">
-                  <CustomSelectValue>
-                    {{
-                      all: '전체 기간',
-                      '3m': '최근 3개월',
-                      '6m': '최근 6개월',
-                      '12m': '최근 12개월',
-                    }[selectedPeriod] || '전체 기간'}
-                  </CustomSelectValue>
-                </CustomSelectTrigger>
-                <CustomSelectContent align="start" className="custom-select-content">
-                  <CustomSelectItem value="all">전체 기간</CustomSelectItem>
-                  <CustomSelectItem value="3m">최근 3개월</CustomSelectItem>
-                  <CustomSelectItem value="6m">최근 6개월</CustomSelectItem>
-                  <CustomSelectItem value="12m">최근 12개월</CustomSelectItem>
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
+            {/* 기간 선택 */}
+            <CustomSelect value={selectedPeriod} onValueChange={setSelectedPeriod}>
+              <PhSelectTrigger>
+                <CustomSelectValue className="text-left">
+                  {{
+                    all: '전체 기간',
+                    '3m': '최근 3개월',
+                    '6m': '최근 6개월',
+                    '12m': '최근 12개월',
+                  }[selectedPeriod] || '기간 선택'}
+                </CustomSelectValue>
+              </PhSelectTrigger>
+              <CustomSelectContent align="start" className="custom-select-content">
+                <CustomSelectItem value="all">전체 기간</CustomSelectItem>
+                <CustomSelectItem value="3m">최근 3개월</CustomSelectItem>
+                <CustomSelectItem value="6m">최근 6개월</CustomSelectItem>
+                <CustomSelectItem value="12m">최근 12개월</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
           </section>
 
           <section className="worklog-list-section work-form-container">
@@ -1223,7 +1289,7 @@ export const WorkLogHomePage: React.FC = () => {
           onNavigate={handleNavigateToMonth}
         />
       </div>
-    </MobileLayoutShell>
+    </LayoutShell>
   )
 }
 
