@@ -2,24 +2,21 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+// import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import '@/modules/mobile/styles/attendance.css'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   CustomSelect,
-  CustomSelectTrigger,
+  PhSelectTrigger,
   CustomSelectValue,
   CustomSelectContent,
   CustomSelectItem,
 } from '@/components/ui/custom-select'
 
-type PeriodTab = 'output' | 'payroll'
-
 type PartnerSite = { id: string; name: string; status?: string | null }
 
 export const PartnerOutputPage: React.FC = () => {
-  const { profile } = useUnifiedAuth()
-  const [tab, setTab] = useState<PeriodTab>('output')
+  // Auth hook not needed for this view (salary removed)
   const [sites, setSites] = useState<PartnerSite[]>([])
   const [selectedSite, setSelectedSite] = useState<string>('all')
 
@@ -29,26 +26,43 @@ export const PartnerOutputPage: React.FC = () => {
   const m = monthDate.getMonth() + 1
   const firstDay = new Date(y, m - 1, 1)
   const lastDay = new Date(y, m, 0)
-  const startDate = firstDay.toISOString().split('T')[0]
-  const endDate = lastDay.toISOString().split('T')[0]
+  const fmt = (d: Date) => {
+    const yy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    return `${yy}-${mm}-${dd}`
+  }
+  const startDate = fmt(firstDay)
+  const endDate = fmt(lastDay)
 
-  // Daily labor map { yyyy-mm-dd: { manDays, hours } }
-  const [daily, setDaily] = useState<Record<string, { manDays: number; hours: number }>>({})
+  // Daily labor map { yyyy-mm-dd: { manDays, hours, workers } }
+  const [daily, setDaily] = useState<
+    Record<string, { manDays: number; hours: number; workers?: number }>
+  >({})
   const [topSiteByDate, setTopSiteByDate] = useState<
     Record<string, { site_id: string; site_name?: string | null }>
   >({})
   const [loadingDaily, setLoadingDaily] = useState(false)
   const [siteBreakdown, setSiteBreakdown] = useState<
-    Array<{ id: string; name: string; manDays: number; hours: number }>
+    Array<{ id: string; name: string; manDays: number; workers: number }>
   >([])
 
-  // Payroll summary
-  const [payroll, setPayroll] = useState<{
-    totalWorkers: number
-    totalManDays: number
-    totalGrossPay?: number
-  } | null>(null)
-  const [loadingPayroll, setLoadingPayroll] = useState(false)
+  // Detailed per-date breakdown (for audit section)
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailRows, setDetailRows] = useState<
+    Array<{
+      date: string
+      sites: Array<{
+        site_id: string
+        site_name: string
+        combined_count: number
+        combined_manDays: number
+      }>
+    }>
+  >([])
+
+  // Removed payroll summary state per requirement (hide salary info)
 
   // Load partner sites for filter
   useEffect(() => {
@@ -101,28 +115,39 @@ export const PartnerOutputPage: React.FC = () => {
     }
   }
 
-  // Load payroll summary
-  const loadPayroll = async () => {
-    setLoadingPayroll(true)
-    try {
-      const p = new URLSearchParams({ year: String(y), month: String(m) })
-      if (selectedSite !== 'all') p.set('site_id', selectedSite)
-      const res = await fetch(`/api/partner/payroll/summary?${p.toString()}`, { cache: 'no-store' })
-      const j = await res.json().catch(() => ({}))
-      if (res.ok) setPayroll(j?.data || null)
-      else setPayroll(null)
-    } catch (e) {
-      console.warn('[PartnerOutput] loadPayroll error:', e)
-      setPayroll(null)
-    } finally {
-      setLoadingPayroll(false)
-    }
-  }
+  // Removed payroll summary loader per requirement
 
   useEffect(() => {
     loadDaily()
-    loadPayroll()
     loadSiteBreakdown()
+    ;(async () => {
+      setDetailLoading(true)
+      try {
+        const p = new URLSearchParams({ year: String(y), month: String(m) })
+        if (selectedSite !== 'all') p.set('site_id', selectedSite)
+        const res = await fetch(`/api/partner/labor/debug-breakdown?${p.toString()}`, {
+          cache: 'no-store',
+        })
+        const j = await res.json().catch(() => ({}))
+        const perDate = Array.isArray(j?.perDate) ? j.perDate : []
+        const mapped = perDate.map((row: any) => ({
+          date: row?.date,
+          sites: Array.isArray(row?.sites)
+            ? row.sites.map((s: any) => ({
+                site_id: s?.site_id,
+                site_name: s?.site_name,
+                combined_count: Number(s?.combined_count || 0),
+                combined_manDays: Number(s?.combined_manDays || 0),
+              }))
+            : [],
+        }))
+        setDetailRows(mapped)
+      } catch (e) {
+        setDetailRows([])
+      } finally {
+        setDetailLoading(false)
+      }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSite, y, m])
 
@@ -140,7 +165,7 @@ export const PartnerOutputPage: React.FC = () => {
   }, [y, m])
 
   const inMonth = (d: Date) => d.getMonth() === m - 1
-  const iso = (d: Date) => d.toISOString().split('T')[0]
+  const iso = (d: Date) => fmt(d)
 
   // Site abbreviation (2 chars) similar to site manager calendar
   const getSiteAbbr2 = (name?: string | null): string => {
@@ -163,12 +188,14 @@ export const PartnerOutputPage: React.FC = () => {
       const res = await fetch(`/api/partner/labor/by-site?${p.toString()}`, { cache: 'no-store' })
       const j = await res.json().catch(() => ({}))
       const arr = Array.isArray(j?.sites) ? j.sites : []
-      let list = arr.map((s: any) => ({
-        id: s.id,
-        name: s.name,
-        manDays: Number(s.totalLaborHours || 0),
-        hours: Number(s.totalLaborHours || 0) * 8,
-      }))
+      let list = arr
+        .map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          manDays: Number(s.totalManDays ?? s.totalLaborHours ?? 0),
+          workers: Number(s.workerDays || s.totalWorkers || 0),
+        }))
+        .filter(x => x.manDays > 0 || x.workers > 0)
       if (selectedSite !== 'all') {
         list = list.filter(x => x.id === selectedSite)
       }
@@ -197,36 +224,15 @@ export const PartnerOutputPage: React.FC = () => {
 
   return (
     <div className="p-3 pb-24">
-      {/* Tabs (match manager: line-tabs) */}
-      <nav className="line-tabs" role="tablist" aria-label="출력정보 탭">
-        {(
-          [
-            { id: 'output', label: '출력현황' },
-            { id: 'payroll', label: '급여현황' },
-          ] as { id: PeriodTab; label: string }[]
-        ).map(t => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            className={`line-tab ${tab === t.id ? 'active' : ''}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      {/* Tabs removed: only output view remains (hide tab title) */}
 
       {/* Filters: 1행 2열, 독립 CustomSelect (둥근 사각형) */}
       <div className="ph-select-grid mb-3">
         <div>
           <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
-            <CustomSelectTrigger
-              style={{ borderRadius: 14 }}
-              className="no-arrow w-full h-10 text-[16px] font-semibold rounded-[14px] border border-[#E5EAF3] bg-white dark:bg-white justify-center"
-            >
-              <CustomSelectValue placeholder="현장 선택" />
-            </CustomSelectTrigger>
+            <PhSelectTrigger>
+              <CustomSelectValue className="text-left" placeholder="전체 현장" />
+            </PhSelectTrigger>
             <CustomSelectContent className="max-h-64 overflow-auto">
               <CustomSelectItem value="all">전체 현장</CustomSelectItem>
               {sites.map(s => (
@@ -247,12 +253,9 @@ export const PartnerOutputPage: React.FC = () => {
               }
             }}
           >
-            <CustomSelectTrigger
-              style={{ borderRadius: 14 }}
-              className="no-arrow w-full h-10 text-[16px] font-semibold rounded-[14px] border border-[#E5EAF3] bg-white dark:bg-white justify-center"
-            >
-              <CustomSelectValue placeholder="YYYY-MM" />
-            </CustomSelectTrigger>
+            <PhSelectTrigger>
+              <CustomSelectValue className="text-left" placeholder="년월" />
+            </PhSelectTrigger>
             <CustomSelectContent className="max-h-64 overflow-auto">
               {monthOptions.map(opt => (
                 <CustomSelectItem key={opt.value} value={opt.value}>
@@ -264,127 +267,149 @@ export const PartnerOutputPage: React.FC = () => {
         </div>
       </div>
 
-      {tab === 'output' ? (
-        <>
-          <div className="ph-card p-2 mb-2">
-            <div className="ph-month-head">
-              <button
-                type="button"
-                aria-label="이전달"
-                className="ph-month-nav"
-                onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
-              >
-                <ChevronLeft className="ph-month-ico" />
-              </button>
-              <div className="ph-month-title">
-                {y}년 {m}월
-              </div>
-              <button
-                type="button"
-                aria-label="다음달"
-                className="ph-month-nav"
-                onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
-              >
-                <ChevronRight className="ph-month-ico" />
-              </button>
+      {/* Output view (only tab) */}
+      <>
+        <div className="ph-card p-2 mb-2">
+          <div className="ph-month-head">
+            <button
+              type="button"
+              aria-label="이전달"
+              className="ph-month-nav"
+              onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
+            >
+              <ChevronLeft className="ph-month-ico" />
+            </button>
+            <div className="ph-month-title">
+              {y}년 {m}월
             </div>
-            <div className="ph-month-grid">
-              {['일', '월', '화', '수', '목', '금', '토'].map(dow => (
-                <div key={dow} className="ph-month-dow">
-                  {dow}
-                </div>
-              ))}
-              {days.map((d, idx) => {
-                const key = iso(d)
-                const out = !inMonth(d)
-                const entry = daily[key]
-                const isSun = d.getDay() === 0
-                const isSat = d.getDay() === 6
-                const isToday = key === new Date().toISOString().split('T')[0]
-                return (
-                  <button
-                    key={key + idx}
-                    type="button"
-                    onClick={() => {
-                      if (!inMonth(d)) return
-                      const url = new URL(
-                        '/mobile/worklog',
-                        typeof window !== 'undefined' ? window.location.origin : 'http://x'
-                      )
-                      url.searchParams.set('period', 'daily')
-                      url.searchParams.set('date', key)
-                      if (selectedSite !== 'all') url.searchParams.set('site_id', selectedSite)
-                      router.push(url.pathname + '?' + url.searchParams.toString())
-                    }}
-                    className={`ph-month-cell ${out ? 'out' : ''} ${isToday ? 'today' : ''}`}
-                  >
-                    <div className={`ph-month-date ${isSun ? 'sun' : isSat ? 'sat' : ''}`}>
-                      {d.getDate()}
-                    </div>
-                    {/* Site abbreviation first, then man-days (no '공수' label) */}
+            <button
+              type="button"
+              aria-label="다음달"
+              className="ph-month-nav"
+              onClick={() => setMonthDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}
+            >
+              <ChevronRight className="ph-month-ico" />
+            </button>
+          </div>
+          <div className="ph-month-grid">
+            {['일', '월', '화', '수', '목', '금', '토'].map(dow => (
+              <div key={dow} className="ph-month-dow">
+                {dow}
+              </div>
+            ))}
+            {days.map((d, idx) => {
+              const key = iso(d)
+              const out = !inMonth(d)
+              const entry = daily[key]
+              const isSun = d.getDay() === 0
+              const isSat = d.getDay() === 6
+              const isToday = key === new Date().toISOString().split('T')[0]
+              return (
+                <button
+                  key={key + idx}
+                  type="button"
+                  onClick={() => {
+                    if (!inMonth(d)) return
+                    const url = new URL(
+                      '/mobile/worklog',
+                      typeof window !== 'undefined' ? window.location.origin : 'http://x'
+                    )
+                    url.searchParams.set('period', 'daily')
+                    url.searchParams.set('date', key)
+                    if (selectedSite !== 'all') url.searchParams.set('site_id', selectedSite)
+                    router.push(url.pathname + '?' + url.searchParams.toString())
+                  }}
+                  className={`ph-month-cell ${out ? 'out' : ''} ${isToday ? 'today' : ''}`}
+                >
+                  <div className={`ph-month-date ${isSun ? 'sun' : isSat ? 'sat' : ''}`}>
+                    {d.getDate()}
+                  </div>
+                  {/* Hide site abbreviation when viewing all sites to avoid confusion */}
+                  {selectedSite !== 'all' && (
                     <div className="ph-month-abbr">
                       {(() => {
                         const top = topSiteByDate[key]
                         return top?.site_name ? getSiteAbbr2(top.site_name) : ''
                       })()}
                     </div>
-                    <div className="ph-month-man">
-                      {loadingDaily ? '' : entry ? `${entry.manDays}` : ''}
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-          {/* Site breakdown (separate card for consistency) */}
-          <div className="ph-card p-2 mb-2">
-            <h3 className="ph-section-title">현장별 합계</h3>
-            {siteBreakdown.length === 0 ? (
-              <div className="ph-meta">표시할 데이터가 없습니다.</div>
-            ) : (
-              <div className="ph-table mt-2">
-                <div className="ph-table-row ph-table-head">
-                  <div>현장</div>
-                  <div className="text-right">공수</div>
-                  <div className="text-right">시간</div>
-                </div>
-                {siteBreakdown.map(s => (
-                  <div key={s.id} className="ph-table-row">
-                    <div className="truncate">{s.name}</div>
-                    <div className="text-right">{s.manDays.toFixed(1)}</div>
-                    <div className="text-right">{s.hours.toFixed(1)}</div>
+                  )}
+                  <div className="ph-month-man">
+                    {loadingDaily ? '' : entry && entry.workers != null ? `${entry.workers}명` : ''}
                   </div>
-                ))}
-              </div>
-            )}
+                </button>
+              )
+            })}
           </div>
-        </>
-      ) : (
-        <div className="ph-card p-3 mb-2 text-sm">
-          {loadingPayroll ? (
-            <div className="text-gray-500">불러오는 중...</div>
-          ) : payroll ? (
-            <div className="ph-kpi-list">
-              <div className="ph-kpi-line">
-                <div className="label">투입 인원</div>
-                <div className="value">{payroll.totalWorkers}명</div>
-              </div>
-              <div className="ph-kpi-line">
-                <div className="label">총 공수</div>
-                <div className="value">{payroll.totalManDays}</div>
-              </div>
-              {typeof payroll.totalGrossPay === 'number' && (
-                <div className="ph-kpi-line">
-                  <div className="label">총 금액(세전)</div>
-                  <div className="value">{payroll.totalGrossPay.toLocaleString()}원</div>
-                </div>
-              )}
-            </div>
+        </div>
+        {/* Site breakdown (separate card for consistency) */}
+        <div className="ph-card p-2 mb-2">
+          <h3 className="ph-section-title">현장별 합계</h3>
+          {siteBreakdown.length === 0 ? (
+            <div className="ph-meta">표시할 데이터가 없습니다.</div>
           ) : (
-            <div className="text-gray-500">표시할 데이터가 없습니다.</div>
+            <div className="ph-table mt-2">
+              <div className="ph-table-row ph-table-head">
+                <div>현장</div>
+                <div className="text-right">공수</div>
+                <div className="text-right">인원</div>
+              </div>
+              {siteBreakdown.map(s => (
+                <div key={s.id} className="ph-table-row">
+                  <div className="truncate">{s.name}</div>
+                  <div className="text-right">{s.manDays.toFixed(1)}</div>
+                  <div className="text-right">{s.workers}</div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      )}
+
+        {/* Detailed audit breakdown (collapsible) */}
+        <div className="ph-card p-2 mb-2">
+          <div className="flex items-center justify-between">
+            <h3 className="ph-section-title">현장별 합계 세부내역</h3>
+            <button
+              type="button"
+              aria-expanded={detailOpen}
+              onClick={() => setDetailOpen(v => !v)}
+              className="view-all-link"
+            >
+              {detailOpen ? '간단히' : '전체보기'}
+            </button>
+          </div>
+          {detailOpen && (
+            <>
+              {detailLoading ? (
+                <div className="ph-meta">불러오는 중...</div>
+              ) : detailRows.length === 0 ? (
+                <div className="ph-meta">표시할 데이터가 없습니다.</div>
+              ) : (
+                <div className="space-y-2 mt-2">
+                  {detailRows.map(row => (
+                    <div key={row.date}>
+                      <div className="text-[11px] text-gray-500 mb-1">{row.date}</div>
+                      <div className="ph-table">
+                        <div className="ph-table-row ph-table-head">
+                          <div>현장</div>
+                          <div className="text-right">공수</div>
+                          <div className="text-right">인원</div>
+                        </div>
+                        {row.sites.map(site => (
+                          <div key={row.date + '-' + site.site_id} className="ph-table-row">
+                            <div className="truncate">{site.site_name}</div>
+                            <div className="text-right">{site.combined_manDays.toFixed(2)}</div>
+                            <div className="text-right">{site.combined_count}명</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </>
     </div>
   )
 }

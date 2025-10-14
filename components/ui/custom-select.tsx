@@ -40,6 +40,24 @@ const CustomSelectTrigger = React.forwardRef<
 ))
 CustomSelectTrigger.displayName = 'CustomSelectTrigger'
 
+// Partner/mobile unified select trigger wrapper
+export const PhSelectTrigger = React.forwardRef<
+  React.ElementRef<typeof SelectPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
+>(({ className, children, ...props }, ref) => (
+  <CustomSelectTrigger
+    ref={ref}
+    className={cn(
+      'ph-select-trigger w-full h-10 text-[16px] font-semibold rounded-[14px] border border-[#E5EAF3] bg-white dark:bg-white justify-between text-left',
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </CustomSelectTrigger>
+))
+PhSelectTrigger.displayName = 'PhSelectTrigger'
+
 const CustomSelectScrollUpButton = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>

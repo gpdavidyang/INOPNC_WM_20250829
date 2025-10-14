@@ -15,6 +15,7 @@ import {
   CustomSelectItem,
   CustomSelectTrigger,
   CustomSelectValue,
+  PhSelectTrigger,
 } from '@/components/ui/custom-select'
 
 type ManagerRole = 'construction_manager' | 'assistant_manager' | 'safety_manager'
@@ -169,6 +170,19 @@ const formatDateDisplay = (value?: string | null) => {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}.${month}.${day}`
+}
+
+// Home search style: include weekday like 2025.09.21(토)
+const formatDateDisplayWithWeekday = (value?: string | null) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const weekdays = ['일', '월', '화', '수', '목', '금', '토'] as const
+  const w = weekdays[date.getDay()]
+  return `${year}.${month}.${day}(${w})`
 }
 
 const todayISO = () => new Date().toISOString().split('T')[0]
@@ -478,7 +492,7 @@ export default function SiteInfoPage() {
     totalManDays: 0,
   })
   const [todayHeadcount, setTodayHeadcount] = useState(0)
-  const [todayWeather, setTodayWeather] = useState('')
+  const [, setTodayWeather] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [siteResults, setSiteResults] = useState<SiteSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -1291,6 +1305,11 @@ export default function SiteInfoPage() {
           --hover: rgba(16, 24, 40, 0.04);
         }
 
+        /* Ensure content is scrollable above fixed BottomNav */
+        :global(.mobile-container) {
+          padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 12px) !important;
+        }
+
         /* Dark mode variable mapping for this page */
         :global([data-theme='dark']) .site-container {
           --bg: #0f172a;
@@ -1343,7 +1362,7 @@ export default function SiteInfoPage() {
           background: var(--card);
           border-radius: 20px;
           border: 1px solid rgba(26, 37, 79, 0.08);
-          padding: 20px 20px 24px;
+          padding: 12px; /* match home card padding (p-3 = 12px) */
           box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
         }
 
@@ -1351,7 +1370,7 @@ export default function SiteInfoPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 18px;
+          margin-bottom: 8px; /* match home: compact header spacing */
         }
 
         .site-card .site-title {
@@ -1367,11 +1386,7 @@ export default function SiteInfoPage() {
           gap: 12px;
         }
 
-        .weather-info {
-          font-size: 13px;
-          font-weight: 500;
-          color: #6b7280;
-        }
+        /* .weather-info removed */
 
         .site-status {
           display: inline-flex;
@@ -1403,7 +1418,7 @@ export default function SiteInfoPage() {
         .site-details {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 4px; /* match home: dense rows (space-y-1) */
         }
 
         .site-info-item {
@@ -1411,29 +1426,36 @@ export default function SiteInfoPage() {
           justify-content: space-between;
           align-items: center;
           background: transparent;
+          padding: 2px 0; /* per-row vertical trim like home */
         }
 
         .info-label {
-          font-size: 16px;
-          font-weight: 500;
+          font-size: 14px; /* match home: text-sm */
+          line-height: 1.25rem; /* match Tailwind text-sm line-height (20px) */
+          font-weight: 400; /* home label default weight */
           color: #6b7280;
           background: transparent;
         }
 
         .info-value {
-          font-size: 16px;
-          font-weight: 600;
+          font-size: 14px; /* match home: text-sm */
+          line-height: 1.25rem; /* match Tailwind text-sm line-height (20px) */
+          font-weight: 500; /* home value default weight */
           color: #1a1a1a;
           background: transparent;
         }
 
+        .info-value-strong {
+          font-weight: 600; /* for 현장명 row to match home font-semibold */
+        }
+
         .site-detail-content {
-          margin-top: 18px;
-          padding-top: 18px;
+          margin-top: 12px; /* tighter spacing */
+          padding-top: 12px; /* tighter spacing */
           border-top: 1px solid #e5e7eb;
           display: flex;
           flex-direction: column;
-          gap: 18px;
+          gap: 12px; /* tighter spacing */
         }
 
         .site-detail-header {
@@ -1452,7 +1474,7 @@ export default function SiteInfoPage() {
         .detail-date-section {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
 
         .detail-date {
@@ -1479,13 +1501,13 @@ export default function SiteInfoPage() {
         .contact-section {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px; /* minimize vertical gaps */
         }
 
         .contact-item {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 8px; /* tighter spacing between label/value/buttons */
         }
 
         .contact-label {
@@ -1500,17 +1522,19 @@ export default function SiteInfoPage() {
           display: flex;
           justify-content: flex-start;
           align-items: center;
-          gap: 12px;
+          gap: 6px; /* tighter spacing */
         }
 
         .contact-name {
           font-size: 16px;
           font-weight: 600;
           color: #1a1a1a;
-          max-width: 160px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+          /* allow wrap to avoid truncation on small screens */
+          max-width: none;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          white-space: normal;
+          line-height: 1.35;
           text-align: left;
         }
 
@@ -1519,18 +1543,19 @@ export default function SiteInfoPage() {
           font-weight: 600;
           color: #1a1a1a;
           text-align: left;
+          white-space: nowrap;
         }
 
         .call-btn {
-          width: 60px;
-          min-width: 60px;
-          font-size: 16px;
+          width: 52px;
+          min-width: 52px;
+          font-size: 14px;
           font-weight: 500;
           color: #1a254f;
           background: #f3f4f6;
           border: 1px solid #d1d5db;
           border-radius: 8px;
-          padding: 4px 8px;
+          padding: 2px 6px; /* minimal padding */
           cursor: pointer;
         }
 
@@ -1546,12 +1571,12 @@ export default function SiteInfoPage() {
         .address-section {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 6px; /* tighter spacing */
         }
 
         .address-item {
           display: flex;
-          gap: 12px;
+          gap: 6px; /* tighter spacing */
           align-items: flex-start;
         }
 
@@ -1567,7 +1592,7 @@ export default function SiteInfoPage() {
           display: flex;
           align-items: flex-start;
           justify-content: flex-end;
-          gap: 10px;
+          gap: 6px; /* tighter spacing */
         }
 
         .address-text {
@@ -1575,26 +1600,30 @@ export default function SiteInfoPage() {
           font-size: 16px;
           font-weight: 600;
           color: #1a1a1a;
-          line-height: 1.5;
+          line-height: 1.4;
+          /* allow line wrapping for long addresses */
+          white-space: normal;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         .address-buttons {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px; /* tighter button stack gap */
         }
 
         .copy-btn,
         .tmap-btn {
-          width: 60px;
-          min-width: 60px;
-          font-size: 16px;
+          width: 52px;
+          min-width: 52px;
+          font-size: 14px;
           font-weight: 500;
           color: #1a254f;
           background: #f3f4f6;
           border: 1px solid #d1d5db;
           border-radius: 8px;
-          padding: 4px 8px;
+          padding: 2px 6px; /* minimal padding */
           cursor: pointer;
         }
 
@@ -1712,9 +1741,7 @@ export default function SiteInfoPage() {
           color: #f8fafc;
         }
 
-        :global([data-theme='dark'] .weather-info) {
-          color: #94a3b8;
-        }
+        /* dark .weather-info removed */
 
         :global([data-theme='dark'] .site-status) {
           border-color: rgba(59, 130, 246, 0.55);
@@ -1964,47 +1991,54 @@ export default function SiteInfoPage() {
           color: #f8fafc;
         }
 
-        .participation-stats {
+        /* Match WorkLog stat cards exactly */
+        .stat-grid {
           display: grid;
-          width: 100%;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 8px;
+          gap: 12px;
+          margin-top: 0;
         }
-
-        .participation-stat {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 10px 6px;
-          gap: 4px;
+        .stat {
+          padding: 16px 0;
+          border-radius: 14px;
           text-align: center;
-          border-radius: 10px;
-          background: #f3f4f6;
-          border: 1px solid #e5e7eb;
-          min-height: 52px;
+          border: 1px solid currentColor;
         }
-        :global([data-theme='dark']) .site-container .participation-stat {
-          background: #0f172a;
-          border-color: var(--border);
-        }
-
-        .participation-stat .label {
-          font-size: 12px;
-          color: #6b7280;
-        }
-        :global([data-theme='dark']) .site-container .participation-stat .label {
-          color: #e2e8f0;
-        }
-
-        .participation-stat .value {
-          font-size: 18px;
+        .stat .num {
+          font-size: 22px;
           font-weight: 700;
-          color: #1a254f;
-          line-height: 1.2;
+          line-height: 1.4;
         }
-        :global([data-theme='dark']) .site-container .participation-stat .value {
-          color: #f8fafc;
+        .stat .label {
+          font-size: 16px;
+          font-weight: 600;
+          line-height: 1.4;
+        }
+        .stat-workdays {
+          color: #99a4be;
+          background-color: rgba(153, 164, 190, 0.05);
+          border-color: rgba(153, 164, 190, 0.2);
+        }
+        .stat-sites {
+          color: #31a3fa;
+          background-color: rgba(49, 163, 250, 0.05);
+          border-color: rgba(49, 163, 250, 0.2);
+        }
+        .stat-hours {
+          color: #1a254f;
+          background-color: rgba(26, 37, 79, 0.05);
+          border-color: rgba(26, 37, 79, 0.2);
+        }
+        :global([data-theme='dark']) .stat {
+          background: rgba(15, 23, 42, 0.9);
+          border-color: rgba(58, 64, 72, 1);
+          color: #e9eef5;
+        }
+        :global([data-theme='dark']) .stat .num {
+          color: #f3f4f6;
+        }
+        :global([data-theme='dark']) .stat .label {
+          color: #e5e7eb;
         }
 
         .card-header .work-date {
@@ -2032,49 +2066,41 @@ export default function SiteInfoPage() {
           flex: 1;
           display: flex;
           align-items: center;
-          background: #f5f8fd;
-          border-radius: 24px;
+          background: transparent; /* match partner home */
+          border-radius: 0;
           padding: 0;
-          min-height: 48px;
-        }
-        :global([data-theme='dark']) .site-container .search-input-wrapper {
-          background: #0f172a;
-          border: 1px solid var(--border);
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #1a254f;
-          pointer-events: none;
-        }
-        :global([data-theme='dark']) .site-container .search-icon {
-          color: #f8fafc;
+          min-height: initial;
         }
 
         .search-input-new {
           flex: 1;
           width: 100%;
-          border: none;
-          background: transparent;
+          height: 40px; /* partner home height */
+          padding: 0 12px 0 36px; /* partner home padding (with icon) */
+          border: 1px solid var(--line);
+          border-radius: 10px;
+          background: var(--card);
           outline: none;
-          padding: 12px 42px 12px 44px;
           font:
-            400 16px 'Noto Sans KR',
+            400 14px 'Noto Sans KR',
             system-ui,
             -apple-system,
             'Segoe UI',
             Roboto,
             sans-serif;
-          color: #333;
+          color: var(--text);
+          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
+          background-repeat: no-repeat;
+          background-position: 10px 50%;
+          background-size: 18px 18px;
         }
         :global([data-theme='dark']) .site-container .search-input-new {
-          color: #ffffff;
+          background: var(--card);
+          border-color: var(--line);
+          color: var(--text);
         }
         :global([data-theme='dark']) .site-container .search-input-new::placeholder {
-          color: #e2e8f0;
+          color: var(--text-muted, #a8b0bb);
         }
 
         .clear-btn {
@@ -2108,39 +2134,41 @@ export default function SiteInfoPage() {
         .site-summary-list {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 0; /* match home: no vertical gap, use divider lines */
         }
 
         .site-summary-item {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 14px;
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 12px;
+          padding: 10px 4px; /* match home spacing */
+          background: transparent; /* match home: no container fill */
+          border: none; /* remove container border */
+          border-radius: 0; /* square edges */
+          border-bottom: 1px solid var(--line); /* optional divider like home */
           cursor: pointer;
-          transition:
-            border-color 0.2s ease,
-            box-shadow 0.2s ease;
+          transition: background-color 0.2s ease;
         }
         :global([data-theme='dark']) .site-container .site-summary-item {
-          background: var(--card);
-          border-color: var(--border);
+          background: transparent;
+          border-bottom-color: var(--line);
         }
 
         .site-summary-item:hover {
-          border-color: #cbd5f5;
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+          background: transparent;
         }
 
         .site-summary-item.selected {
-          border-color: #1a56db;
-          box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.12);
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid var(--line);
+          box-shadow: none;
         }
         :global([data-theme='dark']) .site-container .site-summary-item.selected {
-          border-color: #2f6bff;
-          box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.25);
+          background: transparent;
+          border: none;
+          border-bottom: 1px solid var(--line);
+          box-shadow: none;
         }
 
         .site-summary-header {
@@ -2270,19 +2298,15 @@ export default function SiteInfoPage() {
 
         .site-info-bottomsheet-close {
           border: 1px solid #d8ddef;
-          background: #ffffff;
+          background: #f5f7fb; /* match phone button */
           color: #1a254f;
           font-size: 14px;
           font-weight: 700;
-          padding: 6px 18px;
-          border-radius: 14px;
+          padding: 6px 14px; /* match phone button */
+          border-radius: 12px; /* match phone button */
           cursor: pointer;
           line-height: 1.2;
           transition: all 0.2s ease;
-        }
-
-        .site-info-bottomsheet-close:hover {
-          background: #f5f7fb;
         }
 
         .site-info-sheet-summary {
@@ -2407,14 +2431,14 @@ export default function SiteInfoPage() {
         }
 
         .site-info-sheet-address-actions button {
-          min-width: 72px;
           border: 1px solid #d8ddef;
-          background: #ffffff;
+          background: #f5f7fb; /* match phone button */
           color: #1a254f;
           font-weight: 700;
-          padding: 7px 14px;
-          border-radius: 12px;
+          padding: 6px 14px; /* match phone button */
+          border-radius: 12px; /* match phone button */
           cursor: pointer;
+          min-width: 0; /* align with phone button width behavior */
         }
 
         .site-info-sheet-address-actions button:disabled {
@@ -2494,18 +2518,7 @@ export default function SiteInfoPage() {
         }
 
         .npc-site-trigger {
-          width: min(100%, 320px);
-          height: 48px;
-          padding: 0 16px;
-          border-radius: 16px;
-          border: 1px solid #d1d5db;
-          background: #f5f7fb;
-          font-size: 15px;
-          font-weight: 600;
-          color: #1f2937;
-          display: inline-flex;
-          align-items: center;
-          justify-content: space-between;
+          width: min(100%, 320px); /* let PhSelectTrigger provide visuals */
         }
 
         .npc-site-trigger[data-disabled='true'] {
@@ -2685,6 +2698,17 @@ export default function SiteInfoPage() {
           background: #1a254f;
           color: #fff;
           border-color: #1a254f;
+        }
+
+        /* White variant specifically for '로그 보기' */
+        .npc-btn-white {
+          background: #ffffff;
+          color: #1a254f;
+          border-color: #d1d5db;
+        }
+        .npc-btn-white:hover {
+          background: #f5f7fb;
+          border-color: #9ca3af;
         }
 
         :global([data-theme='dark'] .npc-card .npc-btn-ghost) {
@@ -3680,7 +3704,6 @@ export default function SiteInfoPage() {
             <div className="site-header">
               <h3 className="site-title">현장 정보</h3>
               <div className="site-header-right">
-                <span className="weather-info">{todayWeather || '실시간 오늘의 날씨'}</span>
                 <button
                   type="button"
                   className={`site-status${showDetail ? ' active' : ''}`}
@@ -3702,7 +3725,7 @@ export default function SiteInfoPage() {
               </div>
               <div className="site-info-item">
                 <span className="info-label">현장명</span>
-                <span className="info-value" title={currentSite.name}>
+                <span className="info-value info-value-strong" title={currentSite.name}>
                   {currentSite.name}
                 </span>
               </div>
@@ -3730,7 +3753,7 @@ export default function SiteInfoPage() {
                   <div className="detail-date-section">
                     <span className="detail-date">{formatDateDisplay(todayISO())}</span>
                     <button type="button" className="update-btn" onClick={() => loadAll()}>
-                      최신
+                      새로고침
                     </button>
                   </div>
                 </div>
@@ -3884,31 +3907,30 @@ export default function SiteInfoPage() {
         <div className="card-header">
           <div className="q">참여 현장</div>
           {!isLoading && monthlyStats && (
-            <div className="participation-stats" role="group" aria-label="이번 달 참여 현황">
-              <div className="participation-stat">
-                <span className="label">현장수</span>
-                <span className="value">{monthlyStats.siteCount}</span>
+            <section className="stat-grid" role="group" aria-label="이번 달 참여 현황">
+              <div className="stat stat-sites">
+                <div className="num">{monthlyStats.siteCount}</div>
+                <div className="label">현장수</div>
               </div>
-              <div className="participation-stat">
-                <span className="label">공수</span>
-                <span className="value">
+              <div className="stat stat-hours">
+                <div className="num">
                   {Number.isInteger(monthlyStats.totalManDays)
                     ? monthlyStats.totalManDays
                     : monthlyStats.totalManDays.toFixed(1)}
-                </span>
+                </div>
+                <div className="label">공수</div>
               </div>
-              <div className="participation-stat">
-                <span className="label">근무일</span>
-                <span className="value">{monthlyStats.workDays}</span>
+              <div className="stat stat-workdays">
+                <div className="num">{monthlyStats.workDays}</div>
+                <div className="label">근무일</div>
               </div>
-            </div>
+            </section>
           )}
         </div>
         <div className="divider" />
 
         <div className="search-bar-container">
           <div className="search-input-wrapper">
-            <Search className="search-icon" width={16} height={16} />
             <input
               type="text"
               value={searchQuery}
@@ -3938,7 +3960,9 @@ export default function SiteInfoPage() {
             displayedSiteResults.map(site => {
               const isSelected = currentSite?.id === site.id
               const companyBadge = getCompanyAbbreviation(site.customer_company_name, site.name)
-              const lastWorkDateText = formatDateDisplay(getLastWorkDateValue(site) || undefined)
+              const lastWorkDateText = formatDateDisplayWithWeekday(
+                getLastWorkDateValue(site) || undefined
+              )
 
               return (
                 <div
@@ -4003,13 +4027,13 @@ export default function SiteInfoPage() {
                   void handleSiteSelection(value)
                 }}
               >
-                <CustomSelectTrigger
+                <PhSelectTrigger
                   id="npc-site-select"
                   className="npc-site-trigger"
                   aria-label="현장 선택"
                 >
                   <CustomSelectValue placeholder="현장을 선택하세요" />
-                </CustomSelectTrigger>
+                </PhSelectTrigger>
                 <CustomSelectContent className="npc-site-content" align="start">
                   {npcSiteOptions.map(option => (
                     <CustomSelectItem key={option.id} value={option.id} className="npc-site-item">
@@ -4041,7 +4065,7 @@ export default function SiteInfoPage() {
           </div>
 
           <div className="npc-buttons">
-            <button type="button" className="npc-btn npc-btn-ghost" onClick={handleOpenNpcLogs}>
+            <button type="button" className="npc-btn npc-btn-white" onClick={handleOpenNpcLogs}>
               로그 보기
             </button>
             <button type="button" className="npc-btn npc-btn-ghost" onClick={handleOpenNpcRequest}>
