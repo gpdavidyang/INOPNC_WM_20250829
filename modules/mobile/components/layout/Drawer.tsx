@@ -165,6 +165,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       worker: '작업자',
       site_manager: '현장관리자',
       customer_manager: '고객관리자',
+      production_manager: '생산관리자',
       admin: '관리자',
       system_admin: '시스템관리자',
     }
@@ -214,13 +215,21 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     handlePasswordCancel()
   }
 
-  const menuItems = [
-    { label: '홈', href: '/mobile' },
-    { label: '출력정보', href: '/mobile/attendance' },
-    { label: '작업일지', href: '/mobile/worklog' },
-    { label: '현장정보', href: '/mobile/sites' },
-    { label: '문서함', href: '/mobile/documents' },
-  ]
+  const isProductionManager = profile?.role === 'production_manager'
+  const menuItems = isProductionManager
+    ? [
+        { label: '입고요청', href: '/mobile/production/requests' },
+        { label: '생산정보', href: '/mobile/production/production' },
+        { label: '출고배송', href: '/mobile/production/shipping-payment' },
+        { label: '결제등록', href: '/mobile/production/payments/new' },
+      ]
+    : [
+        { label: '홈', href: '/mobile' },
+        { label: '출력정보', href: '/mobile/attendance' },
+        { label: '작업일지', href: '/mobile/worklog' },
+        { label: '현장정보', href: '/mobile/sites' },
+        { label: '문서함', href: '/mobile/documents' },
+      ]
 
   // No overlay scrollbar: menu count is small, scrolling disabled
 
@@ -257,7 +266,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                         className="important-tag"
                         style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
                       >
-                        {getRoleDisplay(profile?.role || 'site_manager')}
+                        {getRoleDisplay(profile?.role || '')}
                       </span>
                     )}
                   </div>

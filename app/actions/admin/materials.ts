@@ -1027,7 +1027,8 @@ export async function getMaterialShipments(
             unit_price,
             total_price,
             materials(name, code, unit)
-          )
+          ),
+          payments:material_payments(amount)
         `,
           { count: 'exact' }
         )

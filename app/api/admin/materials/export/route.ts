@@ -53,16 +53,58 @@ export async function GET(request: NextRequest) {
     if (tab === 'shipments') {
       const res = await getMaterialShipments(1, 10000)
       const rows = (res.success && res.data ? (res.data as any).shipments : []) as any[]
-      const data = rows.map(r => ({
-        출고번호: r.shipment_number || r.id,
-        현장: r.sites?.name || '-',
-        상태: r.status || '-',
-        출고일: r.shipment_date || '-',
-        배송방식: r.carrier || '-',
-        항목수: (r.shipment_items || []).length,
-      }))
-      const ws = XLSX.utils.json_to_sheet(data)
-      XLSX.utils.book_append_sheet(wb, ws, '출고배송')
+
+      // Detail sheet
+      const detail = rows.map(r => {
+        const total = Number(r.total_amount || 0)
+        const paid = (r.payments || []).reduce(
+          (acc: number, p: any) => acc + (Number(p?.amount) || 0),
+          0
+        )
+        const outstanding = Math.max(0, total - paid)
+        return {
+          출고번호: r.shipment_number || r.id,
+          현장: r.sites?.name || '-',
+          상태: r.status || '-',
+          출고일: r.shipment_date || '-',
+          배송방식: r.carrier || '-',
+          금액KRW: total || '',
+          수금KRW: paid || '',
+          미수KRW: outstanding || '',
+          항목수: (r.shipment_items || []).length,
+        }
+      })
+      const wsDetail = XLSX.utils.json_to_sheet(detail)
+      XLSX.utils.book_append_sheet(wb, wsDetail, '출고배송')
+
+      // Per-site summary sheet
+      const bySite = new Map<string, { count: number; total: number; paid: number }>()
+      rows.forEach(r => {
+        const site = (r.sites?.name as string) || '-'
+        const total = Number(r.total_amount || 0)
+        const paid = (r.payments || []).reduce(
+          (acc: number, p: any) => acc + (Number(p?.amount) || 0),
+          0
+        )
+        const agg = bySite.get(site) || { count: 0, total: 0, paid: 0 }
+        agg.count += 1
+        agg.total += total
+        agg.paid += paid
+        bySite.set(site, agg)
+      })
+
+      const summary = Array.from(bySite.entries())
+        .map(([site, v]) => ({
+          현장: site,
+          출고건수: v.count,
+          총액KRW: Math.round(v.total),
+          수금KRW: Math.round(v.paid),
+          미수KRW: Math.max(0, Math.round(v.total - v.paid)),
+        }))
+        .sort((a, b) => a.현장.localeCompare(b.현장))
+
+      const wsSummary = XLSX.utils.json_to_sheet(summary)
+      XLSX.utils.book_append_sheet(wb, wsSummary, '출고결제요약')
     }
 
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer
