@@ -19,6 +19,44 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
     .eq('id', params.id)
     .maybeSingle()
 
+  const { data: paymentMethods } = await supabase
+    .from('payment_methods')
+    .select('id, name, tax_rate, is_active')
+    .eq('is_active', true)
+    .order('name')
+
+  const { data: payments } = await supabase
+    .from('material_payments')
+    .select('id, amount, currency, paid_at, memo, tax_rate, payment_methods(name)')
+    .eq('shipment_id', params.id)
+    .order('paid_at', { ascending: false })
+
+  const paidSum = (payments || []).reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0)
+  const totalAmount = Number((shipment as any)?.total_amount || 0)
+  const outstanding = Math.max(0, totalAmount - paidSum)
+
+  async function addPayment(formData: FormData) {
+    'use server'
+    const supabase = (await import('@/lib/supabase/server')).createClient()
+    const amount = Number(formData.get('amount') || 0)
+    const currency = (formData.get('currency') as string) || 'KRW'
+    const payment_method_id = ((formData.get('payment_method_id') as string) || '').trim() || null
+    const paid_at = (formData.get('paid_at') as string) || null
+    const tax_rate = Number(formData.get('tax_rate') || 10)
+    const memo = ((formData.get('memo') as string) || '').trim() || null
+    if (amount <= 0) return
+    await supabase.from('material_payments').insert({
+      shipment_id: params.id,
+      amount,
+      currency,
+      payment_method_id,
+      paid_at,
+      tax_rate,
+      memo,
+    } as any)
+    ;(await import('next/cache')).revalidatePath('/dashboard/admin/materials')
+  }
+
   return (
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
@@ -58,6 +96,14 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
             <div>
               <div className="text-xs">운송장번호</div>
               <div className="text-foreground">{shipment?.tracking_number || '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs">총 금액(KRW)</div>
+              <div className="text-foreground">
+                {typeof (shipment as any)?.total_amount === 'number'
+                  ? ((shipment as any).total_amount as number).toLocaleString('ko-KR')
+                  : '-'}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -106,6 +152,103 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
                 ] as Column<any>[]
               }
             />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>결제 내역</CardTitle>
+            <CardDescription>
+              합계: {paidSum.toLocaleString('ko-KR')} / 총액: {totalAmount.toLocaleString('ko-KR')}{' '}
+              · 미수: {outstanding.toLocaleString('ko-KR')} KRW
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left">
+                    <th className="py-2">일자</th>
+                    <th className="py-2">금액</th>
+                    <th className="py-2">통화</th>
+                    <th className="py-2">방식</th>
+                    <th className="py-2">세율(%)</th>
+                    <th className="py-2">메모</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(!payments || payments.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-muted-foreground">
+                        결제 내역이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {(payments || []).map((p: any) => (
+                    <tr key={p.id} className="border-t">
+                      <td className="py-2">
+                        {p.paid_at ? new Date(p.paid_at).toLocaleDateString('ko-KR') : '-'}
+                      </td>
+                      <td className="py-2">{Number(p.amount || 0).toLocaleString('ko-KR')}</td>
+                      <td className="py-2">{p.currency || 'KRW'}</td>
+                      <td className="py-2">{p.payment_methods?.name || '-'}</td>
+                      <td className="py-2">{p.tax_rate ?? 10}</td>
+                      <td className="py-2">{p.memo || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <form action={addPayment} className="grid md:grid-cols-6 gap-3 items-end">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">일자</label>
+                <input type="date" name="paid_at" className="w-full rounded border px-3 py-2" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">금액(KRW)</label>
+                <input
+                  type="number"
+                  name="amount"
+                  min="0"
+                  step="1"
+                  className="w-full rounded border px-3 py-2"
+                  required
+                />
+                <input type="hidden" name="currency" value="KRW" />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">세율(%)</label>
+                <input
+                  type="number"
+                  name="tax_rate"
+                  min="0"
+                  step="0.1"
+                  defaultValue={(paymentMethods?.[0]?.tax_rate as any) ?? 10}
+                  className="w-full rounded border px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">결제방식</label>
+                <select name="payment_method_id" className="w-full rounded border px-3 py-2">
+                  <option value="">선택 안 함</option>
+                  {(paymentMethods || []).map((m: any) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-xs text-muted-foreground mb-1">메모</label>
+                <input type="text" name="memo" className="w-full rounded border px-3 py-2" />
+              </div>
+              <div className="md:col-span-6">
+                <button type="submit" className="rounded border px-3 py-2 bg-black text-white">
+                  결제 추가
+                </button>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>

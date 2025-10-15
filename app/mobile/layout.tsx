@@ -62,7 +62,13 @@ export default async function MobileRootLayout({ children }: MobileLayoutProps) 
         redirect('/auth/login')
       }
 
-      const allowedMobileRoles = ['worker', 'site_manager', 'customer_manager', 'partner']
+      const allowedMobileRoles = [
+        'worker',
+        'site_manager',
+        'customer_manager',
+        'partner',
+        'production_manager',
+      ]
       if (!profile.role || !allowedMobileRoles.includes(profile.role)) {
         redirect(
           profile.role === 'admin' || profile.role === 'system_admin'

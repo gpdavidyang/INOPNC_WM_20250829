@@ -115,6 +115,25 @@ export async function middleware(request: NextRequest) {
       response.cookies.delete(UI_TRACK_COOKIE_NAME)
     }
 
+    // Production manager hard redirect to production mobile track
+    if (
+      auth?.role === 'production_manager' &&
+      pathname.startsWith('/mobile') &&
+      !pathname.startsWith('/mobile/production')
+    ) {
+      const redirectResponse = NextResponse.redirect(new URL('/mobile/production', request.url))
+      redirectResponse.cookies.set({
+        name: UI_TRACK_COOKIE_NAME,
+        value: '/mobile/production',
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: UI_TRACK_COOKIE_MAX_AGE,
+      })
+      return redirectResponse
+    }
+
     // Public routes that don't require authentication
     const publicRoutes = ['/auth/login', '/auth/reset-password', '/auth/signup-request', '/']
     const isPublicRoute = publicRoutes.includes(pathname)

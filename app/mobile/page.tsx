@@ -11,6 +11,11 @@ export default function MobileHomePage() {
 
   useEffect(() => {
     const role = profile?.role
+    // 생산관리자는 전용 홈으로 강제 이동
+    if (role === 'production_manager') {
+      window.location.replace('/mobile/production')
+      return
+    }
     if (role === 'customer_manager' || role === 'partner') {
       // 파트너 역할은 홈을 /mobile/partner로 강제 이동
       window.location.replace('/mobile/partner')

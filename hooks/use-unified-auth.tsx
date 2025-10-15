@@ -448,7 +448,8 @@ export function useUnifiedAuth() {
   const isSiteManager = role === 'site_manager' || isAdmin
   const isWorker = role === 'worker'
   const canAccessMobile = !!(
-    role && ['worker', 'site_manager', 'customer_manager', 'partner'].includes(role)
+    role &&
+    ['worker', 'site_manager', 'customer_manager', 'partner', 'production_manager'].includes(role)
   )
   const canAccessAdmin = !!(role && ['admin', 'system_admin'].includes(role))
 

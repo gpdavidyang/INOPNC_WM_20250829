@@ -8,6 +8,7 @@ import { NotificationModal } from '../notifications/NotificationModal'
 import { SearchPage } from './SearchPage'
 // Switched to server API for unread count to align with notification_logs
 import { useUser } from '@/hooks/use-user'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { useFontSize } from '@/contexts/FontSizeContext'
 
 interface AppBarProps {
@@ -33,6 +34,7 @@ export const AppBar: React.FC<AppBarProps> = ({
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user } = useUser()
+  const { profile } = useUnifiedAuth()
   const { isLargeFont, toggleFontSize } = useFontSize()
 
   // Fetch notification count function
@@ -87,7 +89,17 @@ export const AppBar: React.FC<AppBarProps> = ({
     <header className="app-header">
       <div className="header-content">
         <div className="header-left">
-          <h1 className="brand-title" onClick={() => (window.location.href = '/mobile')}>
+          <h1
+            className="brand-title"
+            onClick={() =>
+              (window.location.href =
+                profile?.role === 'production_manager'
+                  ? '/mobile/production'
+                  : profile?.role === 'customer_manager' || profile?.role === 'partner'
+                    ? '/mobile/partner'
+                    : '/mobile')
+            }
+          >
             {titleText}
           </h1>
         </div>

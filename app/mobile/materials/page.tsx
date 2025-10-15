@@ -20,7 +20,7 @@ export const dynamic = 'force-dynamic'
 
 export default function MobileMaterialsPage() {
   return (
-    <MobileAuthGuard>
+    <MobileAuthGuard requiredRoles={['worker', 'site_manager']}>
       <MaterialsContent />
     </MobileAuthGuard>
   )
@@ -164,13 +164,12 @@ const MaterialsContent: React.FC = () => {
               >
                 재고 현황
               </Button>
-              <Button
-                variant={activeTab === 'requests' ? 'primary' : 'outline'}
-                onClick={() => setActiveTab('requests')}
-                className="flex-1"
+              <a
+                href="/mobile/materials/requests"
+                className={`flex-1 inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm ${activeTab === 'requests' ? 'bg-black text-white' : ''}`}
               >
                 요청 내역
-              </Button>
+              </a>
               <Button
                 variant={activeTab === 'history' ? 'primary' : 'outline'}
                 onClick={() => setActiveTab('history')}
@@ -283,9 +282,12 @@ const MaterialsContent: React.FC = () => {
                       </div>
 
                       <Row gap="sm">
-                        <Button variant="primary" className="flex-1 text-sm">
+                        <a
+                          href="/mobile/materials/requests/new"
+                          className="flex-1 inline-flex items-center justify-center rounded-md border px-3 py-2 text-sm bg-black text-white"
+                        >
                           요청하기
-                        </Button>
+                        </a>
                         <Button variant="outline" className="flex-1 text-sm">
                           사용 기록
                         </Button>
@@ -308,9 +310,12 @@ const MaterialsContent: React.FC = () => {
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <h3 className="t-h2">자재 요청 내역</h3>
-              <Button variant="primary" className="text-sm px-3 py-1 h-auto">
+              <a
+                href="/mobile/materials/requests/new"
+                className="inline-flex items-center rounded-md border px-3 py-1.5 text-sm hover:bg-accent"
+              >
                 + 새 요청
-              </Button>
+              </a>
             </div>
 
             {requests.map(request => {
