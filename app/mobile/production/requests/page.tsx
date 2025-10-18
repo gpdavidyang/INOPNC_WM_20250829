@@ -7,14 +7,7 @@ import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/Pr
 // Avoid importing client-only types in this server file
 type OptionItem = { value: string; label: string }
 import { SelectField } from '@/modules/mobile/components/production/SelectField'
-import dynamic from 'next/dynamic'
-const RequestDetailFromQuery = dynamic(
-  () => import('@/modules/mobile/components/production/RequestDetailFromQuery'),
-  { ssr: false }
-)
-const ScrollUnlock = dynamic(() => import('@/modules/mobile/components/util/ScrollUnlock'), {
-  ssr: false,
-})
+// no dynamic imports needed on this page
 
 export const metadata: Metadata = { title: '주문요청 조회' }
 
@@ -279,7 +272,6 @@ export default async function ProductionRequestsPage({
   if (materialIdRaw) baseParams.set('material_id', materialIdRaw)
   if (keyword) baseParams.set('q', keyword)
   const baseQuery = baseParams.toString()
-  const requestIdOpen = (searchParams?.request_id || '').trim?.() || ''
   const nextParams = new URLSearchParams(baseQuery)
   nextParams.set('page', String(page + 1))
   nextParams.set('page_size', String(pageSize))
@@ -335,7 +327,6 @@ export default async function ProductionRequestsPage({
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="requests" />}>
       <div className="p-5 space-y-4">
-        <ScrollUnlock />
         {/* 이번달 주문 요약 */}
         <div className="rounded-lg border p-4 bg-white">
           {/* Dashboard cards (this month only) */}
@@ -455,11 +446,9 @@ export default async function ProductionRequestsPage({
                     : matNames.length === 1
                       ? matNames[0]
                       : `${matNames[0]} 외 ${matNames.length - 1}건`
-
-                const href = `/mobile/production/requests?${baseQuery}${baseQuery ? '&' : ''}request_id=${rq.id}`
                 const partnerName = userPartnerNameMap[rq.requested_by as string] || '-'
                 return (
-                  <a key={rq.id} href={href} className="block rounded-lg border p-4 bg-white">
+                  <div key={rq.id} className="block rounded-lg border p-4 bg-white">
                     {/* Top row: Site and Quantity */}
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 pr-3">
@@ -489,7 +478,7 @@ export default async function ProductionRequestsPage({
                     {rq.notes && (
                       <div className="mt-2 text-sm text-muted-foreground">메모: {rq.notes}</div>
                     )}
-                  </a>
+                  </div>
                 )
               })}
             </div>
@@ -502,7 +491,6 @@ export default async function ProductionRequestsPage({
             </div>
           )}
         </div>
-        <RequestDetailFromQuery />
       </div>
     </MobileLayoutWithAuth>
   )
