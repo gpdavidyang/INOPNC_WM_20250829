@@ -386,7 +386,7 @@ export const WorkLogHomePage: React.FC = () => {
         workTypes: formData.workTypes || [],
         location: formData.location!,
         workers: formData.workers || [],
-        npcUsage: formData.npcUsage,
+        materials: formData.materials || [],
         progress: formData.progress ?? 0,
         notes: formData.notes,
         tasks: (formData as any).tasks || undefined,

@@ -9,9 +9,11 @@ interface MaterialsInputProps {
 }
 
 const defaultMaterial: MaterialEntry = {
-  material_name: 'NPC-1000',
+  material_name: '',
+  material_code: null,
   quantity: 0,
-  unit: '말',
+  unit: '',
+  notes: '',
 }
 
 export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onChange }) => {
@@ -51,6 +53,16 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
               value={material.material_name}
               onChange={event => handleUpdate(index, { material_name: event.target.value })}
               placeholder="예: 몰탈"
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">코드</label>
+            <input
+              type="text"
+              className="form-input"
+              value={material.material_code ?? ''}
+              onChange={event => handleUpdate(index, { material_code: event.target.value || null })}
+              placeholder="선택 입력"
             />
           </div>
           <div className="form-group">

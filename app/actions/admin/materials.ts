@@ -227,6 +227,19 @@ export interface MaterialWithStats extends MaterialInventoryItem {
   cost_trend?: 'up' | 'down' | 'stable'
 }
 
+export interface MaterialInventorySummary {
+  total_materials: number
+  tracked_sites: number
+  low_stock_items: number
+  out_of_stock_items: number
+  total_stock_quantity: number
+}
+
+export interface AdminInventoryRecord extends MaterialInventoryItem {
+  site_name?: string
+  updated_at?: string | null
+}
+
 export interface NPC1000Summary {
   total_sites: number
   total_incoming: number
@@ -396,6 +409,242 @@ export async function getMaterials(
       }
     } catch (error) {
       console.error('Materials fetch error:', error)
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
+    }
+  })
+}
+
+/**
+ * Summarize material inventory across all accessible sites/materials
+ */
+export async function getMaterialInventorySummary(): Promise<
+  AdminActionResult<MaterialInventorySummary>
+> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const auth = profile.auth
+
+      let restrictedSiteIds: string[] | null = null
+      if (auth.isRestricted) {
+        restrictedSiteIds = await getAccessibleSiteIds(supabase, auth)
+
+        if (restrictedSiteIds.length === 0) {
+          return {
+            success: true,
+            data: {
+              total_materials: 0,
+              tracked_sites: 0,
+              low_stock_items: 0,
+              out_of_stock_items: 0,
+              total_stock_quantity: 0,
+            },
+          }
+        }
+      }
+
+      let query = supabase
+        .from('material_inventory')
+        .select('id, site_id, material_id, current_stock, minimum_stock', { count: 'exact' })
+
+      if (restrictedSiteIds) {
+        query = query.in('site_id', restrictedSiteIds)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching material inventory summary:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      const records = data || []
+
+      const materialIds = new Set<string>()
+      const siteIds = new Set<string>()
+      let lowStock = 0
+      let outOfStock = 0
+      let totalStock = 0
+
+      records.forEach(record => {
+        if (record.material_id) {
+          materialIds.add(record.material_id as unknown as string)
+        }
+        if (record.site_id) {
+          siteIds.add(record.site_id as unknown as string)
+        }
+        const stock = Number(record.current_stock ?? 0)
+        const minimum = record.minimum_stock !== null ? Number(record.minimum_stock) : null
+
+        totalStock += stock
+        if (stock <= 0) {
+          outOfStock += 1
+        } else if (minimum !== null && stock <= minimum) {
+          lowStock += 1
+        }
+      })
+
+      return {
+        success: true,
+        data: {
+          total_materials: materialIds.size,
+          tracked_sites: siteIds.size,
+          low_stock_items: lowStock,
+          out_of_stock_items: outOfStock,
+          total_stock_quantity: totalStock,
+        },
+      }
+    } catch (error) {
+      console.error('Material inventory summary fetch error:', error)
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
+    }
+  })
+}
+
+/**
+ * List material inventory records with optional filtering
+ */
+export async function getMaterialInventoryList(
+  page = 1,
+  limit = 10,
+  search = '',
+  site_id?: string,
+  material_id?: string
+): Promise<AdminActionResult<{ items: AdminInventoryRecord[]; total: number; pages: number }>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const auth = profile.auth
+
+      await ensureSiteAccess(supabase, auth, site_id)
+
+      let query = supabase
+        .from('material_inventory')
+        .select(
+          `
+          *,
+          materials(id, name, code, unit, specification),
+          sites(id, name, organization_id)
+        `,
+          { count: 'exact' }
+        )
+        .order('updated_at', { ascending: false })
+
+      const trimmedSearch = search.trim()
+
+      if (trimmedSearch) {
+        const term = `%${trimmedSearch}%`
+        query = query.or(
+          `material_code.ilike.${term},materials.name.ilike.${term},materials.code.ilike.${term},sites.name.ilike.${term}`
+        )
+      }
+
+      if (site_id) {
+        query = query.eq('site_id', site_id)
+      }
+
+      if (material_id) {
+        query = query.eq('material_id', material_id)
+      }
+
+      let restrictedSiteIds: string[] | null = null
+      if (auth.isRestricted && !site_id) {
+        restrictedSiteIds = await getAccessibleSiteIds(supabase, auth)
+
+        if (restrictedSiteIds.length === 0) {
+          return {
+            success: true,
+            data: {
+              items: [],
+              total: 0,
+              pages: 0,
+            },
+          }
+        }
+      }
+
+      const offset = (page - 1) * limit
+      query = query.range(offset, offset + limit - 1)
+
+      if (restrictedSiteIds) {
+        query = query.in('site_id', restrictedSiteIds)
+      }
+
+      const { data, error, count } = await query
+
+      if (error) {
+        console.error('Error fetching material inventory list:', error)
+        return {
+          success: false,
+          error: AdminErrors.DATABASE_ERROR,
+        }
+      }
+
+      const mapped: AdminInventoryRecord[] = (data || []).map((record: any) => {
+        const currentStock = Number(record.current_stock ?? 0)
+        const minimumStock =
+          record.minimum_stock !== null && record.minimum_stock !== undefined
+            ? Number(record.minimum_stock)
+            : null
+        const status =
+          currentStock <= 0
+            ? 'out_of_stock'
+            : minimumStock !== null && currentStock <= minimumStock
+              ? 'low'
+              : 'normal'
+
+        return {
+          id: record.id,
+          site_id: record.site_id,
+          material_id: record.material_id,
+          material_name:
+            record.material_name || record.materials?.name || record.material_code || '',
+          material_code: record.material_code || record.materials?.code || '',
+          specification: record.specification || record.materials?.specification || null,
+          unit: record.unit || record.materials?.unit || '',
+          current_stock: currentStock,
+          minimum_stock: minimumStock,
+          maximum_stock:
+            record.maximum_stock !== null && record.maximum_stock !== undefined
+              ? Number(record.maximum_stock)
+              : null,
+          last_purchase_date: record.last_purchase_date || null,
+          last_purchase_price:
+            record.last_purchase_price !== null && record.last_purchase_price !== undefined
+              ? Number(record.last_purchase_price)
+              : null,
+          storage_location: record.storage_location || null,
+          reserved_stock:
+            record.reserved_stock !== null && record.reserved_stock !== undefined
+              ? Number(record.reserved_stock)
+              : undefined,
+          available_stock:
+            record.available_stock !== null && record.available_stock !== undefined
+              ? Number(record.available_stock)
+              : undefined,
+          status,
+          site_name: record.sites?.name || '',
+          updated_at: record.updated_at || null,
+        }
+      })
+
+      const total = count || 0
+      const pages = Math.ceil(total / limit)
+
+      return {
+        success: true,
+        data: {
+          items: mapped,
+          total,
+          pages,
+        },
+      }
+    } catch (error) {
+      console.error('Material inventory list fetch error:', error)
       return {
         success: false,
         error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,

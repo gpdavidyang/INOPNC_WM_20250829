@@ -72,12 +72,12 @@ export interface WorkTaskGroup {
   location: WorkLocation
 }
 
-/**
- * NPC-1000 자재 사용량
- */
-export interface NPCUsage {
-  amount: number
-  unit: string
+export interface MaterialUsageEntry {
+  material_name: string
+  material_code?: string | null
+  quantity: number
+  unit?: string | null
+  notes?: string | null
 }
 
 /**
@@ -115,7 +115,7 @@ export interface WorkLog {
   totalHours: number // 전체 공수 (자동계산)
 
   // 자재 정보
-  npcUsage?: NPCUsage
+  materials?: MaterialUsageEntry[]
 
   // 첨부파일
   attachments: WorkLogAttachments
@@ -206,7 +206,7 @@ export interface WorkLogFormData {
   workTypes: WorkType[]
   location: WorkLocation
   workers: WorkerHours[]
-  npcUsage?: NPCUsage
+  materials?: MaterialUsageEntry[]
   progress: number
   notes?: string
 }

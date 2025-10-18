@@ -189,15 +189,31 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                 </div>
               </div>
 
-              {/* NPC-1000 사용량 */}
-              {workLog.npcUsage && (
+              {Array.isArray(workLog.materials) && workLog.materials.length > 0 && (
                 <div className="mb-6 p-4 bg-[var(--accent)] bg-opacity-15 rounded-xl">
-                  <h3 className="font-semibold text-[var(--text)] mb-3">NPC-1000 사용량</h3>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[var(--muted)]">사용량</span>
-                    <span className="text-lg font-bold text-[var(--accent)]">
-                      {workLog.npcUsage.amount} {workLog.npcUsage.unit}
-                    </span>
+                  <h3 className="font-semibold text-[var(--text)] mb-3">자재 사용량</h3>
+                  <div className="space-y-2">
+                    {workLog.materials.map((material, index) => {
+                      const quantity = Number(material.quantity ?? 0)
+                      const quantityText = Number.isFinite(quantity)
+                        ? quantity.toLocaleString('ko-KR')
+                        : String(material.quantity || '')
+                      const unitText = material.unit ? ` ${material.unit}` : ''
+                      return (
+                        <div
+                          key={`${material.material_name}-${index}`}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-sm text-[var(--muted)]">
+                            {material.material_name || material.material_code || '자재'}
+                          </span>
+                          <span className="text-lg font-bold text-[var(--accent)]">
+                            {quantityText}
+                            {unitText}
+                          </span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}

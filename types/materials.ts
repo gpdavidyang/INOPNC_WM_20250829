@@ -9,6 +9,8 @@ export interface MaterialInventoryItem {
   specification?: string | null
   unit: string
   current_stock: number
+  reserved_stock?: number | null
+  available_stock?: number | null
   minimum_stock?: number | null
   maximum_stock?: number | null
   last_purchase_date?: string | null

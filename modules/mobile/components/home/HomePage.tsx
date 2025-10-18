@@ -509,8 +509,9 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       .filter(material => material.material_name.trim())
       .map(material => ({
         material_name: material.material_name,
+        material_code: material.material_code || null,
         quantity: Number(material.quantity) || 0,
-        unit: material.unit || '말',
+        unit: material.unit || null,
         notes: material.notes,
       }))
 
@@ -595,7 +596,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      const res: any = await createWorklogMutation.mutateAsync({ ...buildPayload('submitted'), tasks })
+      const res: any = await createWorklogMutation.mutateAsync({
+        ...buildPayload('submitted'),
+        tasks,
+      })
       const msg = res?.message || '작업일지가 저장되었습니다.'
       toast.success(msg)
       setActionStatus({ type: 'success', message: msg })

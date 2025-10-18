@@ -58,23 +58,15 @@ export const UncompletedAlert: React.FC<UncompletedAlertProps> = ({
             <line x1="12" y1="17" x2="12.01" y2="17" />
           </svg>
         </div>
-        
+
         <h3>{title}</h3>
         <p>{message}</p>
-        
+
         <div className="alert-actions">
-          <button
-            type="button"
-            onClick={handleSaveIncomplete}
-            className="save-incomplete-btn"
-          >
+          <button type="button" onClick={handleSaveIncomplete} className="save-incomplete-btn">
             {saveIncompleteLabel}
           </button>
-          <button
-            type="button"
-            onClick={handleComplete}
-            className="complete-btn"
-          >
+          <button type="button" onClick={handleComplete} className="complete-btn">
             {completeLabel}
           </button>
         </div>
@@ -104,7 +96,7 @@ export const MissingFieldsAlert: React.FC<MissingFieldsAlertProps> = ({
     memberType: '부재명',
     workType: '작업 구간',
     laborHours: '공수',
-    materials: 'NPC-1000 자재',
+    materials: '자재 사용량',
   }
 
   const missingLabels = missingFields.map(field => fieldLabels[field] || field)
@@ -148,11 +140,7 @@ export const WorkCompleteAlert: React.FC<WorkCompleteAlertProps> = ({
   }
 
   return (
-    <BottomSheet
-      isOpen={isOpen}
-      onClose={onClose}
-      className="work-complete-alert"
-    >
+    <BottomSheet isOpen={isOpen} onClose={onClose} className="work-complete-alert">
       <div className="alert-content">
         <div className="flex items-center justify-center w-12 h-12 mx-auto mb-4 bg-[var(--ok-bg)] rounded-full">
           <svg
@@ -167,9 +155,9 @@ export const WorkCompleteAlert: React.FC<WorkCompleteAlertProps> = ({
             <polyline points="20,6 9,17 4,12" />
           </svg>
         </div>
-        
+
         <h3>작업일지 제출 확인</h3>
-        
+
         <div className="bg-[var(--bg)] rounded-[var(--radius)] p-4 mb-6 text-left">
           <div className="space-y-2">
             <div className="flex justify-between">
@@ -190,24 +178,14 @@ export const WorkCompleteAlert: React.FC<WorkCompleteAlertProps> = ({
             </div>
           </div>
         </div>
-        
-        <p className="text-sm text-[var(--muted)] mb-6">
-          작성된 내용을 최종 제출하시겠습니까?
-        </p>
-        
+
+        <p className="text-sm text-[var(--muted)] mb-6">작성된 내용을 최종 제출하시겠습니까?</p>
+
         <div className="alert-actions">
-          <button
-            type="button"
-            onClick={onClose}
-            className="cancel-btn"
-          >
+          <button type="button" onClick={onClose} className="cancel-btn">
             취소
           </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            className="confirm-btn"
-          >
+          <button type="button" onClick={handleConfirm} className="confirm-btn">
             제출하기
           </button>
         </div>

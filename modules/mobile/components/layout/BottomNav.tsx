@@ -3,16 +3,7 @@
 import React from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import {
-  Home,
-  Calculator,
-  ClipboardList,
-  Map,
-  Folder,
-  Factory,
-  Truck,
-  CreditCard,
-} from 'lucide-react'
+import { Home, Calculator, ClipboardList, Map, Folder, Factory, Truck } from 'lucide-react'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 
 export const BottomNav: React.FC = () => {
@@ -41,12 +32,6 @@ export const BottomNav: React.FC = () => {
             label: '출고배송',
             href: '/mobile/production/shipping-payment',
             icon: Truck,
-          },
-          {
-            route: 'pm-payment',
-            label: '결제등록',
-            href: '/mobile/production/payments/new',
-            icon: CreditCard,
           },
         ]
       : [

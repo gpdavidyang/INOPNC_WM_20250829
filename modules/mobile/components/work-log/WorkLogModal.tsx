@@ -1,7 +1,14 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { WorkLog, MemberType, WorkProcess, WorkType, WorkerHours } from '../../types/work-log.types'
+import {
+  WorkLog,
+  MemberType,
+  WorkProcess,
+  WorkType,
+  WorkerHours,
+  MaterialUsageEntry,
+} from '../../types/work-log.types'
 import { FileUploadSection } from './FileUploadSection'
 import type {
   MemberType as MType,
@@ -44,7 +51,7 @@ const createInitialFormData = (source?: WorkLog): Partial<WorkLog> => ({
   location: source?.location || { block: '', dong: '', unit: '' },
   workers: source?.workers || [],
   totalHours: source?.totalHours || 0,
-  npcUsage: source?.npcUsage,
+  materials: source?.materials ? [...source.materials] : [],
   attachments:
     source?.attachments ||
     ({ photos: [], drawings: [], confirmations: [] } as WorkLog['attachments']),
@@ -131,6 +138,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   }, [isOpen])
 
   const hasWorkerError = Boolean(errors.workers)
+  const materialEntries = formData.materials || []
 
   const handleAddTaskSet = () => {
     if (isViewMode) return
@@ -238,6 +246,58 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     }))
   }
 
+  const handleAddMaterial = () => {
+    if (isViewMode) return
+    setFormData(prev => ({
+      ...prev,
+      materials: [
+        ...(prev.materials || []),
+        { material_name: '', material_code: null, quantity: 0, unit: '', notes: '' },
+      ],
+    }))
+  }
+
+  const handleMaterialChange = (index: number, field: keyof MaterialUsageEntry, value: string) => {
+    if (isViewMode) return
+    setFormData(prev => {
+      const current = [...(prev.materials || [])]
+      if (!current[index]) {
+        current[index] = {
+          material_name: '',
+          material_code: null,
+          quantity: 0,
+          unit: '',
+          notes: '',
+        }
+      }
+      const entry = { ...current[index] }
+
+      if (field === 'quantity') {
+        const numeric = Number(value)
+        entry.quantity = Number.isFinite(numeric) ? numeric : 0
+      } else if (field === 'material_code') {
+        entry.material_code = value || null
+      } else if (field === 'material_name') {
+        entry.material_name = value
+      } else if (field === 'unit') {
+        entry.unit = value
+      } else if (field === 'notes') {
+        entry.notes = value
+      }
+
+      current[index] = entry
+      return { ...prev, materials: current }
+    })
+  }
+
+  const handleRemoveMaterialEntry = (index: number) => {
+    if (isViewMode) return
+    setFormData(prev => ({
+      ...prev,
+      materials: (prev.materials || []).filter((_, i) => i !== index),
+    }))
+  }
+
   const handleSave = async (targetStatus: 'draft' | 'approved') => {
     if (isViewMode) {
       onClose()
@@ -258,7 +318,22 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
         location: formData.location || { block: '', dong: '', unit: '' },
       }
       const combinedTasks = [baseTask, ...tasks]
-      await onSave({ ...formData, status: targetStatus, tasks: combinedTasks as any })
+      const sanitizedMaterials = materialEntries
+        .filter(entry => entry.material_name && entry.material_name.trim())
+        .map(entry => ({
+          ...entry,
+          quantity: Number(entry.quantity) || 0,
+          unit: entry.unit || null,
+          notes: entry.notes || undefined,
+          material_code: entry.material_code || null,
+        }))
+
+      await onSave({
+        ...formData,
+        status: targetStatus,
+        tasks: combinedTasks as any,
+        materials: sanitizedMaterials,
+      })
       onClose()
     } catch (error) {
       console.error('Failed to save work log:', error)
@@ -688,43 +763,108 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#475467]">NPC-1000 사용량</label>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="수량"
-                    disabled={isViewMode}
-                    value={formData.npcUsage?.amount || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        npcUsage: {
-                          amount: parseFloat(e.target.value) || 0,
-                          unit: prev.npcUsage?.unit || 'kg',
-                        },
-                      }))
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                  />
-                  <select
-                    value={formData.npcUsage?.unit || 'kg'}
-                    disabled={isViewMode}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        npcUsage: {
-                          amount: prev.npcUsage?.amount || 0,
-                          unit: e.target.value as 'kg' | 'L' | 'ea',
-                        },
-                      }))
-                    }
-                    className="w-24 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                  >
-                    <option value="kg">kg</option>
-                    <option value="L">L</option>
-                    <option value="ea">ea</option>
-                  </select>
-                </div>
+                <label className="block text-xs font-medium text-[#475467]">자재 사용량</label>
+                {isViewMode ? (
+                  <div className="mt-3 space-y-2 text-sm text-[#1A254F]">
+                    {materialEntries.length === 0 ? (
+                      <p className="text-xs text-[#98a2b3]">자재 사용이 기록되지 않았습니다.</p>
+                    ) : (
+                      materialEntries.map((material, index) => {
+                        const quantity = Number(material.quantity ?? 0)
+                        const quantityText = Number.isFinite(quantity)
+                          ? quantity.toLocaleString('ko-KR')
+                          : String(material.quantity || '')
+                        const unitText = material.unit ? ` ${material.unit}` : ''
+                        return (
+                          <div
+                            key={`material-view-${index}`}
+                            className="flex items-center justify-between rounded-lg bg-[#f8f9fb] px-3 py-2"
+                          >
+                            <span>
+                              {material.material_name || material.material_code || '자재'}
+                            </span>
+                            <span className="font-semibold text-[#1A254F]">
+                              {quantityText}
+                              {unitText}
+                            </span>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    {materialEntries.map((material, index) => (
+                      <div
+                        key={`material-edit-${index}`}
+                        className="rounded-lg border border-gray-200 p-3"
+                      >
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            type="text"
+                            placeholder="자재명"
+                            value={material.material_name}
+                            onChange={e =>
+                              handleMaterialChange(index, 'material_name', e.target.value)
+                            }
+                            className="flex-1 min-w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
+                          />
+                          <input
+                            type="text"
+                            placeholder="코드"
+                            value={material.material_code || ''}
+                            onChange={e =>
+                              handleMaterialChange(index, 'material_code', e.target.value)
+                            }
+                            className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
+                          />
+                          <input
+                            type="number"
+                            placeholder="수량"
+                            value={material.quantity ?? ''}
+                            onChange={e => handleMaterialChange(index, 'quantity', e.target.value)}
+                            className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
+                          />
+                          <select
+                            value={material.unit || ''}
+                            onChange={e => handleMaterialChange(index, 'unit', e.target.value)}
+                            className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
+                          >
+                            <option value="">단위</option>
+                            <option value="ea">ea</option>
+                            <option value="kg">kg</option>
+                            <option value="L">L</option>
+                            <option value="m">m</option>
+                            <option value="m²">m²</option>
+                            <option value="m³">m³</option>
+                            <option value="ton">ton</option>
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMaterialEntry(index)}
+                            className="px-3 py-2 text-xs font-semibold text-[#dc2626] transition-colors hover:underline"
+                          >
+                            삭제
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="비고 (선택)"
+                          value={material.notes || ''}
+                          onChange={e => handleMaterialChange(index, 'notes', e.target.value)}
+                          className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={handleAddMaterial}
+                      className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-[#1A254F] hover:border-[#1A254F]"
+                    >
+                      + 자재 추가
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

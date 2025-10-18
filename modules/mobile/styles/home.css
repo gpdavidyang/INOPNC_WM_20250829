@@ -11,10 +11,8 @@
   padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 2px);
 }
 
-/* Home page override: prevent double bottom spacing from shell */
-.mobile-container {
-  padding-bottom: 0 !important;
-}
+/* NOTE: Do not globally override .mobile-container spacing.
+   Keep default bottom padding (72px) for scroll safety under BottomNav. */
 
 /* Section - main.html: mb-3.5 = 14px */
 .section {

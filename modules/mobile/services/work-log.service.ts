@@ -19,10 +19,13 @@ export interface CreateWorkLogData {
     name: string
     hours: number
   }>
-  npcUsage?: {
-    amount: number
-    unit: string
-  }
+  materials?: Array<{
+    material_name: string
+    material_code?: string | null
+    quantity: number
+    unit?: string | null
+    notes?: string | null
+  }>
   progress: number
   notes?: string
   // 확장: 작업 세트 묶음(옵션). work_content.tasks로 저장
@@ -119,7 +122,7 @@ export class WorkLogService {
         location: { block: '', dong: '', unit: '' },
         workers: [],
         totalHours: 0,
-        npcUsage: undefined,
+        materials: [],
         attachments: { photos: [], drawings: [], confirmations: [] },
         progress: 0,
         notes: undefined,
@@ -183,27 +186,38 @@ export class WorkLogService {
         }
       }
 
-      // 3. NPC 사용량 기록
-      if (data.npcUsage) {
-        const { error: materialError } = await supabase.from('material_usage').insert({
-          daily_report_id: reportId,
-          material_type: 'NPC-1000',
-          quantity: data.npcUsage.amount,
-          unit: data.npcUsage.unit,
-        })
+      // 3. 자재 사용량 기록
+      if (Array.isArray(data.materials) && data.materials.length > 0) {
+        const materialRows = data.materials
+          .filter(material => material.material_name && Number(material.quantity) > 0)
+          .map(material => ({
+            daily_report_id: reportId,
+            material_name: material.material_name,
+            material_type: (material.material_code || material.material_name || '')
+              .toString()
+              .toUpperCase(),
+            quantity: Number(material.quantity) || 0,
+            unit: material.unit || null,
+            notes: material.notes || null,
+          }))
 
-        if (materialError) {
-          console.error('자재 사용량 기록 오류:', materialError)
-        }
+        if (materialRows.length > 0) {
+          const { error: materialError } = await supabase
+            .from('material_usage')
+            .insert(materialRows)
 
-        // Apply usage to inventory/transactions (idempotent server-side)
-        try {
-          await fetch(`/api/mobile/daily-reports/${reportId}/materials/apply-usage`, {
-            method: 'POST',
-            credentials: 'include',
-          })
-        } catch (e) {
-          console.warn('자재 사용량 반영 호출 실패(무시):', e)
+          if (materialError) {
+            console.error('자재 사용량 기록 오류:', materialError)
+          } else {
+            try {
+              await fetch(`/api/mobile/daily-reports/${reportId}/materials/apply-usage`, {
+                method: 'POST',
+                credentials: 'include',
+              })
+            } catch (e) {
+              console.warn('자재 사용량 반영 호출 실패(무시):', e)
+            }
+          }
         }
       }
 
@@ -275,16 +289,27 @@ export class WorkLogService {
         }
       }
 
-      // NPC 사용량 업데이트
-      if (data.npcUsage) {
-        await supabase.from('material_usage').upsert({
-          daily_report_id: id,
-          material_type: 'NPC-1000',
-          quantity: data.npcUsage.amount,
-          unit: data.npcUsage.unit,
-        })
+      // 자재 사용량 업데이트
+      if (data.materials) {
+        await supabase.from('material_usage').delete().eq('daily_report_id', id)
 
-        // Apply updated usage to inventory/transactions
+        const materialRows = data.materials
+          .filter(material => material.material_name && Number(material.quantity) > 0)
+          .map(material => ({
+            daily_report_id: id,
+            material_name: material.material_name,
+            material_type: (material.material_code || material.material_name || '')
+              .toString()
+              .toUpperCase(),
+            quantity: Number(material.quantity) || 0,
+            unit: material.unit || null,
+            notes: material.notes || null,
+          }))
+
+        if (materialRows.length > 0) {
+          await supabase.from('material_usage').insert(materialRows)
+        }
+
         try {
           await fetch(`/api/mobile/daily-reports/${id}/materials/apply-usage`, {
             method: 'POST',
@@ -396,7 +421,7 @@ function mapReportToWorkLog(item: any): WorkLog {
   const location = parseLocationInfo(item?.location_info)
   const workers = mapWorkerAssignments(item?.worker_assignments)
   const attachments = mapAttachments(item?.document_attachments)
-  const npcUsage = extractNpcUsage(item?.material_usage)
+  const materials = mapMaterialUsages(item?.material_usage)
   const totalHours = workers.reduce((sum, worker) => sum + worker.hours, 0)
 
   const status = resolveStatus(item?.status)
@@ -433,7 +458,7 @@ function mapReportToWorkLog(item: any): WorkLog {
     location,
     workers,
     totalHours,
-    npcUsage,
+    materials: materials.length > 0 ? materials : undefined,
     attachments,
     progress: item?.progress_rate ?? item?.progress ?? 0,
     notes: item?.additional_notes ?? item?.special_notes ?? item?.notes ?? undefined,
@@ -563,29 +588,49 @@ function mapAttachments(attachments: any[]): {
   return initial
 }
 
-function extractNpcUsage(materials: any[]):
-  | {
-      amount: number
-      unit: string
-    }
-  | undefined {
+function mapMaterialUsages(materials: any[]): Array<{
+  material_name: string
+  material_code?: string | null
+  quantity: number
+  unit?: string | null
+  notes?: string | null
+}> {
   if (!Array.isArray(materials)) {
-    return undefined
+    return []
   }
 
-  const npcMaterial = materials.find(material => {
-    const type = String(material?.material_type || '').toUpperCase()
-    return type === 'NPC-1000'
-  })
+  return materials
+    .map(material => {
+      const name = toSafeString(material?.material_name || material?.material_type || '')
+      if (!name) {
+        return null
+      }
 
-  if (!npcMaterial) {
-    return undefined
-  }
+      const quantity = Number(material?.quantity ?? 0)
+      const unit = toSafeString(material?.unit || '')
+      const notes = toSafeString(material?.notes || '')
+      const codeRaw =
+        material?.material_code || material?.material_type || material?.materialName || null
 
-  return {
-    amount: Number(npcMaterial?.quantity ?? 0),
-    unit: npcMaterial?.unit || '',
-  }
+      return {
+        material_name: name,
+        material_code: codeRaw ? String(codeRaw) : null,
+        quantity: Number.isFinite(quantity) ? quantity : 0,
+        unit: unit || null,
+        notes: notes || null,
+      }
+    })
+    .filter(
+      (
+        entry
+      ): entry is {
+        material_name: string
+        material_code?: string | null
+        quantity: number
+        unit?: string | null
+        notes?: string | null
+      } => Boolean(entry)
+    )
 }
 
 function resolveStatus(rawStatus: string | null | undefined): 'draft' | 'approved' {

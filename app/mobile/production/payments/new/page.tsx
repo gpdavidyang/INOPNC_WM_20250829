@@ -20,16 +20,21 @@ async function submit(formData: FormData) {
   const currency = (formData.get('currency') as string) || 'KRW'
   const payment_method_id = ((formData.get('payment_method_id') as string) || '').trim() || null
   const paid_at = (formData.get('paid_at') as string) || null
-  const tax_rate = Number(formData.get('tax_rate') || 10)
   const memo = ((formData.get('memo') as string) || '').trim() || null
 
   if (!shipment_id || amount <= 0) {
     redirect('/mobile/production/payments/new')
   }
 
-  await supabase
-    .from('material_payments')
-    .insert({ shipment_id, amount, currency, payment_method_id, tax_rate, paid_at, memo } as any)
+  await supabase.from('material_payments').insert({
+    shipment_id,
+    amount,
+    currency,
+    payment_method_id,
+    tax_rate: null,
+    paid_at,
+    memo,
+  } as any)
 
   revalidatePath('/dashboard/admin/materials?tab=shipments')
   redirect('/mobile/production')
@@ -47,8 +52,10 @@ export default async function NewPaymentPage() {
 
   const { data: methods } = await supabase
     .from('payment_methods')
-    .select('id, name, tax_rate')
+    .select('id, name')
     .eq('is_active', true)
+    .eq('category', 'billing')
+    .order('sort_order', { ascending: true })
     .order('name')
 
   return (
@@ -90,19 +97,7 @@ export default async function NewPaymentPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">세율(%)</label>
-              <input
-                type="number"
-                name="tax_rate"
-                min="0"
-                step="0.1"
-                defaultValue={10}
-                className="w-full rounded border px-3 py-2"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">결제방식</label>
+              <label className="block text-sm text-muted-foreground mb-1">청구방식</label>
               <select name="payment_method_id" className="w-full rounded border px-3 py-2">
                 <option value="">선택 안 함</option>
                 {(methods || []).map((m: any) => (

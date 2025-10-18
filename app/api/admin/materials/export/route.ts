@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { getMaterialRequests, getMaterialShipments } from '@/app/actions/admin/materials'
-import { getNPC1000BySite } from '@/app/actions/admin/materials'
+import {
+  getMaterialRequests,
+  getMaterialShipments,
+  getMaterialInventoryList,
+} from '@/app/actions/admin/materials'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
@@ -21,18 +24,26 @@ export async function GET(request: NextRequest) {
     const wb = XLSX.utils.book_new()
 
     if (tab === 'inventory') {
-      const res = await getNPC1000BySite(1, 10000, (searchParams.get('search') || undefined) as any)
-      const rows = (res.success && res.data ? (res.data as any).sites : []) as any[]
+      const res = await getMaterialInventoryList(
+        1,
+        10000,
+        (searchParams.get('search') || '') as any,
+        undefined,
+        undefined
+      )
+      const rows = (res.success && res.data ? (res.data as any).items : []) as any[]
       const data = rows.map(r => ({
-        현장: r.site_name || '-',
-        최근일: r.latest_date || '-',
-        입고: r.incoming ?? 0,
-        사용: r.used ?? 0,
-        잔여: r.remaining ?? 0,
+        자재: r.material_name || r.material_code || '-',
+        코드: r.material_code || '',
+        현장: r.site_name || r.site_id || '-',
+        '현재 재고': r.current_stock ?? 0,
+        '최소 재고': r.minimum_stock ?? '',
+        단위: r.unit || '',
         상태: r.status || '-',
+        업데이트: r.updated_at ? new Date(r.updated_at).toLocaleString('ko-KR') : '',
       }))
       const ws = XLSX.utils.json_to_sheet(data)
-      XLSX.utils.book_append_sheet(wb, ws, '현장별재고')
+      XLSX.utils.book_append_sheet(wb, ws, '재고현황')
     }
 
     if (tab === 'requests') {

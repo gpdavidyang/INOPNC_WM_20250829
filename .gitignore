@@ -261,3 +261,5 @@ images_worklog/
 *.jpeg
 *.gif
 .vercel
+## Large local memo zips
+dy_memo/**/*.zip

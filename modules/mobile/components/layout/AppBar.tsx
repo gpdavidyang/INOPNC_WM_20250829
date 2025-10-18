@@ -94,7 +94,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             onClick={() =>
               (window.location.href =
                 profile?.role === 'production_manager'
-                  ? '/mobile/production'
+                  ? '/mobile/production/production'
                   : profile?.role === 'customer_manager' || profile?.role === 'partner'
                     ? '/mobile/partner'
                     : '/mobile')
