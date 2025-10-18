@@ -513,8 +513,8 @@ export default async function AdminMaterialsPage({
                   const count = (shipments as any[]).length
                   return (
                     <>
-                      <StatsCard label="총 출고건수" value={count} unit="건" />
-                      <StatsCard label="총액" value={total} unit="KRW" />
+                      <StatsCard label="출고건수" value={count} unit="건" />
+                      <StatsCard label="금액" value={total} unit="KRW" />
                       <StatsCard label="수금" value={paid} unit="KRW" />
                       <StatsCard label="미수" value={outstanding} unit="KRW" />
                     </>

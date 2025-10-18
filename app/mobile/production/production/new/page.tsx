@@ -100,7 +100,7 @@ export default async function ProductionCreatePage() {
 
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="production" />}>
-      <div className="p-5 space-y-5">
+      <div className="p-5 space-y-5 pb-safe min-h-screen-safe">
         <div className="rounded-lg border p-4 bg-white">
           <div className="flex items-center justify-between mb-3">
             <div className="pm-section-title">생산 정보 입력</div>

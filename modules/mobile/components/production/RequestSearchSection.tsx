@@ -94,14 +94,11 @@ export const RequestSearchSection: React.FC<RequestSearchSectionProps> = ({
               className="w-full rounded border px-3 py-2"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <a href={resetHref} className="rounded-md border px-3 py-3 text-sm text-center w-full">
+          <div className="pm-form-actions">
+            <a href={resetHref} className="pm-btn pm-btn-secondary">
               초기화
             </a>
-            <button
-              type="submit"
-              className="rounded-md border px-3 py-3 text-sm bg-black text-white w-full"
-            >
+            <button type="submit" className="pm-btn pm-btn-primary">
               검색
             </button>
           </div>
