@@ -18,6 +18,7 @@ export default async function ProductionManagePage({
     site_id?: string
     partner_company_id?: string
     material_id?: string
+    take?: string
   }
 }) {
   await requireAuth('/mobile/production')
@@ -42,32 +43,6 @@ export default async function ProductionManagePage({
     .gte('shipment_date', startISO)
     .limit(5000)
 
-  const byMaterial: Record<
-    string,
-    { name: string; produced: number; shipped: number; stock: number }
-  > = {}
-  ;(monthlyProd || []).forEach((row: any) => {
-    const mid = row.material_id
-    const name = row.materials?.name || '자재'
-    if (!byMaterial[mid]) byMaterial[mid] = { name, produced: 0, shipped: 0, stock: 0 }
-    byMaterial[mid].produced += Number(row.produced_quantity || 0)
-  })
-  ;(monthlyShipments || []).forEach((ship: any) => {
-    const items = ship.shipment_items || []
-    items.forEach((it: any) => {
-      const mid = it.material_id
-      if (!byMaterial[mid]) byMaterial[mid] = { name: '자재', produced: 0, shipped: 0, stock: 0 }
-      byMaterial[mid].shipped += Number(it.quantity || 0)
-    })
-  })
-  Object.keys(byMaterial).forEach(mid => {
-    byMaterial[mid].stock = byMaterial[mid].produced - byMaterial[mid].shipped
-  })
-  const monthlyStats = Object.entries(byMaterial)
-    .map(([mid, v]) => ({ id: mid, ...v }))
-    .sort((a, b) => b.produced - a.produced)
-    .slice(0, 5)
-
   // 요약 통계 (이번 달)
   const totalProducedThisMonth = (monthlyProd || []).reduce(
     (sum: number, row: any) => sum + Number(row.produced_quantity || 0),
@@ -83,10 +58,10 @@ export default async function ProductionManagePage({
   const { data: productionsRaw } = await supabase
     .from('material_productions')
     .select(
-      'id, site_id, material_id, production_date, produced_quantity, quality_status, sites(name), materials(name, code)'
+      'id, site_id, material_id, production_date, produced_quantity, quality_status, quality_notes, sites(name), materials(name, code)'
     )
     .order('production_date', { ascending: false })
-    .limit(100)
+    .limit(200)
 
   // Search filters (mirroring 요청 검색)
   const q = (searchParams?.q || '').trim()
@@ -99,6 +74,11 @@ export default async function ProductionManagePage({
   const selectedPartnerCompanyId =
     partnerCompanyIdRaw && partnerCompanyIdRaw !== 'all' ? partnerCompanyIdRaw : ''
   const selectedMaterialId = materialIdRaw && materialIdRaw !== 'all' ? materialIdRaw : ''
+  const takeParam = (searchParams?.take || '').trim()
+  const take = Math.max(
+    20,
+    Math.min(200, Number.isFinite(Number(takeParam)) && takeParam ? parseInt(takeParam, 10) : 20)
+  )
 
   // Load filter options
   const { data: materialRows } = await supabase
@@ -159,6 +139,37 @@ export default async function ProductionManagePage({
     return true
   })
 
+  const visibleProductions = productions.slice(0, take)
+
+  // Build next link (preserve filters)
+  const baseParams = new URLSearchParams()
+  if (q) baseParams.set('q', q)
+  if (filterPeriod) baseParams.set('period', filterPeriod)
+  if (siteIdRaw) baseParams.set('site_id', siteIdRaw)
+  if (partnerCompanyIdRaw) baseParams.set('partner_company_id', partnerCompanyIdRaw)
+  if (materialIdRaw) baseParams.set('material_id', materialIdRaw)
+  const baseQuery = baseParams.toString()
+  const nextTake = Math.min(take + 20, 200)
+
+  // Build partner name map by site (first active mapping)
+  const siteIdsForPartner = Array.from(
+    new Set((productions || []).map((p: any) => p.site_id).filter(Boolean))
+  ) as string[]
+  const partnerBySite = new Map<string, string>()
+  if (siteIdsForPartner.length > 0) {
+    const { data: mappings } = await supabase
+      .from('partner_site_mappings')
+      .select('site_id, partner_companies(company_name)')
+      .in('site_id', siteIdsForPartner)
+      .eq('is_active', true)
+    ;(mappings || []).forEach((m: any) => {
+      const name = m.partner_companies?.company_name || ''
+      if (m.site_id && name && !partnerBySite.has(String(m.site_id))) {
+        partnerBySite.set(String(m.site_id), name)
+      }
+    })
+  }
+
   // Build Select options
   const materialOptions: OptionItem[] = [
     { value: 'all', label: '전체 자재' },
@@ -216,7 +227,7 @@ export default async function ProductionManagePage({
               <div className="pm-kpi-value">{totalProducedThisMonth.toLocaleString()}</div>
             </div>
             <div className="pm-kpi pm-kpi--sales">
-              <div className="pm-kpi-label">판매량</div>
+              <div className="pm-kpi-label">출고량</div>
               <div className="pm-kpi-value">{totalShippedThisMonth.toLocaleString()}</div>
             </div>
             <div className="pm-kpi pm-kpi--stock">
@@ -224,34 +235,6 @@ export default async function ProductionManagePage({
               <div className="pm-kpi-value">{netChangeThisMonth.toLocaleString()}</div>
             </div>
           </div>
-          {!monthlyStats.length ? (
-            <div className="text-sm text-muted-foreground">이번 달 데이터가 없습니다.</div>
-          ) : (
-            <div className="grid grid-cols-1 gap-3">
-              {monthlyStats.map(stat => (
-                <div key={stat.id} className="rounded border p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="font-semibold">{stat.name}</div>
-                    <div className="text-xs text-muted-foreground">이번 달</div>
-                  </div>
-                  <div className="mt-2 grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <div className="text-xs text-muted-foreground">생산량</div>
-                      <div className="font-semibold">{stat.produced?.toLocaleString?.() || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">판매량</div>
-                      <div className="font-semibold">{stat.shipped?.toLocaleString?.() || 0}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-muted-foreground">재고량</div>
-                      <div className="font-semibold">{stat.stock?.toLocaleString?.() || 0}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* 1.2 생산 검색 (요청 검색과 동일한 구성, 접기 기본) */}
@@ -268,32 +251,80 @@ export default async function ProductionManagePage({
 
         {/* 1.2 생산등록 이력 리스트 */}
 
-        {/* 1.3 생산 이력 조회 */}
+        {/* 1.3 생산 리스트 조회 */}
         <div className="rounded-lg border p-4 bg-white">
           <div className="flex items-center justify-between mb-3">
-            <div className="pm-section-title">생산 이력</div>
+            <div className="pm-section-title">생산 리스트</div>
             {/* 생산 검색 섹션에서 이미 검색 폼을 제공하므로 여기서는 제거 */}
           </div>
           {(!productions || productions.length === 0) && (
-            <div className="text-sm text-muted-foreground">생산 이력이 없습니다.</div>
+            <div className="text-sm text-muted-foreground">생산 리스트가 없습니다.</div>
           )}
-          <div className="space-y-2">
-            {(productions || []).map((p: any) => (
-              <div key={p.id} className="rounded border p-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">{p.materials?.name || '-'}</div>
-                  <span className="text-xs rounded px-2 py-0.5 border">
-                    {p.quality_status || 'pending'}
-                  </span>
+          <div className="space-y-3">
+            {(visibleProductions || []).map((p: any) => {
+              const siteText = p.sites?.name || '-'
+              const partnerName = partnerBySite.get(String(p.site_id)) || '-'
+              const dateText = p.production_date
+                ? new Date(p.production_date).toLocaleDateString('ko-KR')
+                : '-'
+              const qty = p.produced_quantity ?? 0
+              const materialText = `${p.materials?.name || '-'}${p.materials?.code ? ` (${p.materials.code})` : ''}`
+              let memo: string | null = null
+              if (p.quality_notes) {
+                const qn = String(p.quality_notes)
+                // Try to extract memo from JSON if present; else show raw
+                try {
+                  const obj = JSON.parse(qn)
+                  memo = obj?.memo || null
+                } catch {
+                  // If quality_notes contains a combined note + JSON, show the first line as memo
+                  memo = qn.split('\n')[0] || null
+                }
+              }
+              return (
+                <div key={p.id} className="block rounded-lg border p-4 bg-white">
+                  {/* Top row: Site and Quantity (match 요청 리스트 style) */}
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 pr-3">
+                      <div className="text-lg font-bold truncate">{siteText}</div>
+                      <div className="mt-0.5 text-sm text-muted-foreground truncate">
+                        거래처 {partnerName}
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-base text-muted-foreground">
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700">
+                          {dateText}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-sm text-muted-foreground">생산수량</div>
+                      <div className="text-2xl font-bold leading-none">{qty}</div>
+                    </div>
+                  </div>
+
+                  {/* Material */}
+                  <div className="mt-2 text-base">
+                    <span className="text-muted-foreground">자재</span>:{' '}
+                    <span className="font-semibold">{materialText}</span>
+                  </div>
+
+                  {/* Memo */}
+                  {memo && (
+                    <div className="mt-2 text-sm text-muted-foreground truncate">메모: {memo}</div>
+                  )}
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  현장: {p.sites?.name || '-'} · 수량: {p.produced_quantity ?? 0} · 일자:{' '}
-                  {p.production_date
-                    ? new Date(p.production_date).toLocaleDateString('ko-KR')
-                    : '-'}
-                </div>
+              )
+            })}
+            {productions.length > take && (
+              <div className="mt-4 flex justify-center">
+                <a
+                  href={`/mobile/production/production?${baseQuery}${baseQuery ? '&' : ''}take=${nextTake}`}
+                  className="close-btn"
+                >
+                  더보기
+                </a>
               </div>
-            ))}
+            )}
           </div>
         </div>
 

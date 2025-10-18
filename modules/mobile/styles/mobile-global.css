@@ -1980,6 +1980,17 @@ details[open] > summary .toggle-closed {
   height: 40px !important;
   font-size: 16px !important;
 }
+.pm-form.pm-form--dense input,
+.pm-form.pm-form--dense select {
+  height: 36px !important;
+  padding-top: 6px !important;
+  padding-bottom: 6px !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+.pm-form.pm-form--dense .ph-select-trigger {
+  height: 36px !important;
+}
 .pm-form label {
   font-size: 16px !important;
 }
@@ -2023,6 +2034,10 @@ details > summary::-webkit-details-marker {
 }
 .pm-pill-btn:hover {
   background: rgba(49, 163, 250, 0.15) !important;
+  border-color: #31a3fa !important;
+}
+.pm-pill-btn--active {
+  background: rgba(49, 163, 250, 0.2) !important;
   border-color: #31a3fa !important;
 }
 .pm-pill-btn:focus {
@@ -2103,7 +2118,7 @@ details > summary::-webkit-details-marker {
     'Segoe UI',
     Roboto,
     sans-serif;
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 600;
   color: inherit;
   line-height: 1.2;
@@ -2117,7 +2132,7 @@ details > summary::-webkit-details-marker {
     'Segoe UI',
     Roboto,
     sans-serif;
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 600;
   color: inherit;
   line-height: 1.2;

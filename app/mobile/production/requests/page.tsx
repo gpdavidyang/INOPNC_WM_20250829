@@ -12,8 +12,11 @@ const RequestDetailFromQuery = dynamic(
   () => import('@/modules/mobile/components/production/RequestDetailFromQuery'),
   { ssr: false }
 )
+const ScrollUnlock = dynamic(() => import('@/modules/mobile/components/util/ScrollUnlock'), {
+  ssr: false,
+})
 
-export const metadata: Metadata = { title: '입고요청 조회' }
+export const metadata: Metadata = { title: '주문요청 조회' }
 
 export default async function ProductionRequestsPage({
   searchParams,
@@ -26,6 +29,8 @@ export default async function ProductionRequestsPage({
     partner_company_id?: string
     q?: string
     material_id?: string
+    page?: string
+    page_size?: string
   }
 }) {
   await requireAuth('/mobile/production')
@@ -41,6 +46,8 @@ export default async function ProductionRequestsPage({
   const partnerCompanyIdFilterRaw = (searchParams?.partner_company_id || '').trim()
   const keyword = (searchParams?.q || '').trim()
   const materialIdRaw = (searchParams?.material_id || '').trim()
+  const pageParam = (searchParams?.page || '').trim()
+  const pageSizeParam = (searchParams?.page_size || '').trim()
 
   // Normalize 'all' sentinel from CustomSelect to empty string for filtering
   const selectedSiteId = siteIdFilterRaw && siteIdFilterRaw !== 'all' ? siteIdFilterRaw : ''
@@ -49,6 +56,10 @@ export default async function ProductionRequestsPage({
       ? partnerCompanyIdFilterRaw
       : ''
   const selectedMaterialId = materialIdRaw && materialIdRaw !== 'all' ? materialIdRaw : ''
+  const page = Math.max(1, Number.parseInt(pageParam || '1') || 1)
+  const pageSize = Math.min(50, Math.max(10, Number.parseInt(pageSizeParam || '20') || 20))
+  const from = (page - 1) * pageSize
+  const to = from + pageSize // inclusive to fetch pageSize+1 rows for hasMore check
 
   // This month range (UTC)
   const now = new Date()
@@ -84,6 +95,7 @@ export default async function ProductionRequestsPage({
       `
       id,
       site_id,
+      requested_by,
       request_number,
       status,
       created_at,
@@ -105,8 +117,8 @@ export default async function ProductionRequestsPage({
   if (selectedSiteId) {
     query = query.eq('site_id', selectedSiteId)
   }
-  // Limit to reasonable window
-  query = query.limit(100)
+  // Pagination window
+  query = query.range(from, to)
 
   // Execute
   const { data: rawRequests, error: reqError } = await query
@@ -114,7 +126,9 @@ export default async function ProductionRequestsPage({
     console.error('[production/requests] primary query error:', reqError)
   }
 
-  const requests = (rawRequests || []) as Array<any>
+  const requestsAll = (rawRequests || []) as Array<any>
+  const hasMore = requestsAll.length > pageSize
+  const requests = hasMore ? requestsAll.slice(0, pageSize) : requestsAll
 
   // Load site names for display (avoid join to prevent embed failures)
   const siteIdSet = Array.from(
@@ -131,6 +145,37 @@ export default async function ProductionRequestsPage({
         (siteRows2 || []).map((s: any) => [s.id as string, (s.name as string) || '-'])
       )
     }
+  }
+
+  // Load partner(company) name via requested_by -> profiles.partner_company_id -> partner_companies.company_name
+  const userIds = Array.from(
+    new Set((requests || []).map(r => r.requested_by).filter(Boolean))
+  ) as string[]
+  let userPartnerNameMap: Record<string, string> = {}
+  if (userIds.length > 0) {
+    const { data: profRows } = await supabase
+      .from('profiles')
+      .select('id, partner_company_id')
+      .in('id', userIds)
+    const partnerIds = Array.from(
+      new Set((profRows || []).map((p: any) => p.partner_company_id).filter(Boolean))
+    ) as string[]
+    let partnerNameById: Record<string, string> = {}
+    if (partnerIds.length > 0) {
+      const { data: pcRows } = await supabase
+        .from('partner_companies')
+        .select('id, company_name')
+        .in('id', partnerIds)
+      partnerNameById = Object.fromEntries(
+        (pcRows || []).map((p: any) => [p.id as string, (p.company_name as string) || '-'])
+      )
+    }
+    userPartnerNameMap = Object.fromEntries(
+      (profRows || []).map((p: any) => [
+        p.id as string,
+        partnerNameById[p.partner_company_id as string] || '-',
+      ])
+    )
   }
 
   // Load items to compute quantities per request and support keyword match on material names
@@ -235,6 +280,10 @@ export default async function ProductionRequestsPage({
   if (keyword) baseParams.set('q', keyword)
   const baseQuery = baseParams.toString()
   const requestIdOpen = (searchParams?.request_id || '').trim?.() || ''
+  const nextParams = new URLSearchParams(baseQuery)
+  nextParams.set('page', String(page + 1))
+  nextParams.set('page_size', String(pageSize))
+  const nextHref = `/mobile/production/requests?${nextParams.toString()}`
 
   // Build next page link preserving filters
 
@@ -286,31 +335,32 @@ export default async function ProductionRequestsPage({
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="requests" />}>
       <div className="p-5 space-y-4">
-        {/* 이번달 요청 요약 */}
+        <ScrollUnlock />
+        {/* 이번달 주문 요약 */}
         <div className="rounded-lg border p-4 bg-white">
           {/* Dashboard cards (this month only) */}
-          <div className="pm-section-title mb-3">이번달 요청</div>
+          <div className="pm-section-title mb-3">이번달 주문</div>
           <div className="grid grid-cols-3 gap-3">
             <div className="pm-kpi">
-              <div className="pm-kpi-label">요청 건수</div>
+              <div className="pm-kpi-label">주문 건수</div>
               <div className="pm-kpi-value">{monthRequestCount ?? 0}</div>
             </div>
             <div className="pm-kpi pm-kpi--sales">
-              <div className="pm-kpi-label">요청현장 수</div>
+              <div className="pm-kpi-label">주문현장 수</div>
               <div className="pm-kpi-value">{monthUniqueSiteCount}</div>
             </div>
             <div className="pm-kpi pm-kpi--stock">
-              <div className="pm-kpi-label">총 요청수량</div>
+              <div className="pm-kpi-label">주문수량</div>
               <div className="pm-kpi-value">{monthTotalRequestedQty}</div>
             </div>
           </div>
         </div>
 
-        {/* 요청 검색 (접기/펼치기) */}
+        {/* 주문 검색 (접기/펼치기) */}
         <div className="rounded-lg border bg-white">
           <details>
             <summary className="flex items-center justify-between p-4 cursor-pointer select-none">
-              <span className="pm-section-title">요청 검색</span>
+              <span className="pm-section-title">주문 검색</span>
               <span className="pm-toggle-link">
                 <span className="toggle-closed">펼치기</span>
                 <span className="toggle-open">접기</span>
@@ -318,6 +368,8 @@ export default async function ProductionRequestsPage({
             </summary>
             <div className="px-4 pb-4">
               <form className="pm-form space-y-3" method="get">
+                <input type="hidden" name="page" value="1" />
+                <input type="hidden" name="page_size" value={String(pageSize)} />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs text-muted-foreground mb-1">기간 (년월)</label>
@@ -368,17 +420,11 @@ export default async function ProductionRequestsPage({
                     className="w-full rounded border px-3 py-2"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <a
-                    href="/mobile/production/requests"
-                    className="rounded-md border px-3 py-3 text-sm text-center w-full"
-                  >
+                <div className="pm-form-actions">
+                  <a href="/mobile/production/requests" className="pm-btn pm-btn-secondary">
                     초기화
                   </a>
-                  <button
-                    type="submit"
-                    className="rounded-md border px-3 py-3 text-sm bg-black text-white w-full"
-                  >
+                  <button type="submit" className="pm-btn pm-btn-primary">
                     검색
                   </button>
                 </div>
@@ -387,9 +433,9 @@ export default async function ProductionRequestsPage({
           </details>
         </div>
 
-        {/* 요청 리스트 */}
+        {/* 주문 리스트 */}
         <div className="rounded-lg border p-4 bg-white">
-          <div className="pm-section-title mb-3">요청 리스트</div>
+          <div className="pm-section-title mb-3">주문 리스트</div>
           {finalList.length === 0 ? (
             <div className="text-sm text-muted-foreground">요청이 없습니다.</div>
           ) : (
@@ -411,23 +457,24 @@ export default async function ProductionRequestsPage({
                       : `${matNames[0]} 외 ${matNames.length - 1}건`
 
                 const href = `/mobile/production/requests?${baseQuery}${baseQuery ? '&' : ''}request_id=${rq.id}`
+                const partnerName = userPartnerNameMap[rq.requested_by as string] || '-'
                 return (
                   <a key={rq.id} href={href} className="block rounded-lg border p-4 bg-white">
                     {/* Top row: Site and Quantity */}
                     <div className="flex items-start justify-between">
                       <div className="min-w-0 pr-3">
                         <div className="text-lg font-bold truncate">{siteText}</div>
+                        <div className="mt-0.5 text-sm text-muted-foreground truncate">
+                          거래처 {partnerName}
+                        </div>
                         <div className="mt-1 flex items-center gap-2 text-base text-muted-foreground">
                           <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700">
                             {dateText}
                           </span>
-                          <span className="truncate">
-                            요청번호 {rq.request_number || rq.id.slice(-6)}
-                          </span>
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0">
-                        <div className="text-sm text-muted-foreground">총 수량</div>
+                        <div className="text-sm text-muted-foreground">총 주문수량</div>
                         <div className="text-2xl font-bold leading-none">{qty}</div>
                       </div>
                     </div>
@@ -445,6 +492,13 @@ export default async function ProductionRequestsPage({
                   </a>
                 )
               })}
+            </div>
+          )}
+          {finalList.length > 0 && hasMore && (
+            <div className="mt-3 flex justify-center">
+              <a href={nextHref} className="close-btn">
+                더 보기
+              </a>
             </div>
           )}
         </div>

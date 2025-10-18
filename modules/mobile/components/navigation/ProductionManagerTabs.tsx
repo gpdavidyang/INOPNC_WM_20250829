@@ -8,7 +8,7 @@ interface ProductionManagerTabsProps {
 }
 
 const tabs: Array<{ key: ProductionManagerTabKey; label: string; href: string }> = [
-  { key: 'requests', label: '입고요청', href: '/mobile/production/requests' },
+  { key: 'requests', label: '주문요청', href: '/mobile/production/requests' },
   { key: 'production', label: '생산정보', href: '/mobile/production/production' },
   { key: 'shipping', label: '출고배송', href: '/mobile/production/shipping-payment' },
 ]

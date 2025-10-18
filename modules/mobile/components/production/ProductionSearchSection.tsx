@@ -12,6 +12,13 @@ interface ProductionSearchSectionProps {
   defaultSiteId?: string
   defaultPartnerCompanyId?: string
   defaultKeyword?: string
+  title?: string
+  resetHref?: string
+  includeStatusSelect?: boolean
+  statusOptions?: OptionItem[]
+  defaultStatus?: string
+  statusLabel?: string
+  statusName?: string
 }
 
 export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = ({
@@ -23,13 +30,24 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
   defaultSiteId = 'all',
   defaultPartnerCompanyId = 'all',
   defaultKeyword = '',
+  title = '생산 검색',
+  resetHref = '/mobile/production/production',
+  includeStatusSelect = false,
+  statusOptions = [
+    { value: 'all', label: '전체' },
+    { value: 'completed', label: '완료' },
+    { value: 'pending', label: '대기' },
+  ],
+  defaultStatus = 'all',
+  statusLabel = '상태',
+  statusName = 'status',
 }) => {
   const [collapsed, setCollapsed] = useState(true)
 
   return (
     <div className="rounded-lg border p-4 bg-white">
       <div className="flex items-center justify-between mb-3">
-        <div className="pm-section-title">생산 검색</div>
+        <div className="pm-section-title">{title}</div>
         <button
           type="button"
           className="pm-toggle-link"
@@ -62,6 +80,17 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
               />
             </div>
           </div>
+          {includeStatusSelect && (
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1">{statusLabel}</label>
+              <SelectField
+                name={statusName}
+                options={statusOptions}
+                defaultValue={defaultStatus || 'all'}
+                placeholder="상태 선택"
+              />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-muted-foreground mb-1">현장 선택</label>
@@ -92,17 +121,11 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
               className="w-full rounded border px-3 py-2"
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href="/mobile/production/production"
-              className="rounded-md border px-3 py-3 text-sm text-center w-full"
-            >
+          <div className="pm-form-actions">
+            <a href={resetHref} className="pm-btn pm-btn-secondary">
               초기화
             </a>
-            <button
-              type="submit"
-              className="rounded-md border px-3 py-3 text-sm bg-black text-white w-full"
-            >
+            <button type="submit" className="pm-btn pm-btn-primary">
               검색
             </button>
           </div>
