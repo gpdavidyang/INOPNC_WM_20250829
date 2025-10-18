@@ -1,13 +1,9 @@
 'use client'
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import type { MaterialUsageEntry } from '../types/work-log.types'
 
-export interface MaterialEntry {
-  material_name: string
-  quantity: number
-  unit: string
-  notes?: string
-}
+export type MaterialEntry = MaterialUsageEntry
 
 export interface SaveWorklogPayload {
   site_id: string

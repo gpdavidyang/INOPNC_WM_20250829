@@ -20,7 +20,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const supabase = createClient()
     const svc = createServiceRoleClient()
-    const SINGLE_CODE = (process.env.NEXT_PUBLIC_SINGLE_MATERIAL_CODE || 'INC-1000').toUpperCase()
 
     // Resolve role/profile
     const { data: profile } = await supabase
@@ -90,7 +89,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const [{ data: txnIn }, { data: txnOut }] = await Promise.all([
       svc
         .from('material_transactions')
-        .select('id, material_id, transaction_type, quantity, transaction_date, reference_type')
+        .select(
+          'id, material_id, transaction_type, quantity, transaction_date, reference_type, materials(id, code, name, unit)'
+        )
         .eq('site_id', siteId)
         .eq('transaction_type', 'in')
         .gte('transaction_date', fromDate)
@@ -100,7 +101,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       svc
         .from('material_transactions')
         .select(
-          'id, material_id, transaction_type, quantity, transaction_date, reference_type, reference_id'
+          'id, material_id, transaction_type, quantity, transaction_date, reference_type, reference_id, materials(id, code, name, unit)'
         )
         .eq('site_id', siteId)
         .in('transaction_type', ['out', 'usage'])
@@ -114,103 +115,164 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const txOut = txnOut || []
 
     // Hydrate materials for name/code/unit
-    const matIds = Array.from(
-      new Set(
-        [...txIn, ...txOut]
-          .map((t: any) => t.material_id)
-          .filter((id: any): id is string => Boolean(id))
-      )
-    )
-    let materialMap = new Map<string, { code: string; name: string; unit: string }>()
-    if (matIds.length > 0) {
-      const { data: mats } = await svc
-        .from('materials')
-        .select('id, code, name, unit')
-        .in('id', matIds)
-      for (const m of mats || []) {
-        materialMap.set(String(m.id), {
-          code: m.code || '',
-          name: m.name || '',
-          unit: m.unit || '',
-        })
+    type MaterialSummary = {
+      material_id: string
+      material_code: string
+      material_name: string
+      unit: string
+      inbound: {
+        total: number
+        items: Array<{ date: string; quantity: number; source: string }>
+      }
+      usage: {
+        total: number
+        items: Array<{
+          date: string
+          quantity: number
+          reference_type: string | null
+          reference_id: string | null
+        }>
+      }
+      inventory: {
+        current_stock: number
+        minimum_stock: number | null
+        status: 'normal' | 'low' | 'critical'
+        updated_at: string | null
       }
     }
 
-    const inboundItemsAll = txIn.map((t: any) => ({
-      material_code: materialMap.get(String(t.material_id))?.code || '',
-      material_name: materialMap.get(String(t.material_id))?.name || '',
-      unit: materialMap.get(String(t.material_id))?.unit || '',
-      quantity: Number(t.quantity || 0),
-      date: t.transaction_date,
-      source: t.reference_type === 'shipment' ? 'shipment' : 'transaction',
-    }))
+    const summaryByMaterial = new Map<string, MaterialSummary>()
 
-    const inboundItems = inboundItemsAll.filter(
-      it => String(it.material_code || '').toUpperCase() === SINGLE_CODE
-    )
+    const normalizeMeta = (meta?: any) => ({
+      code: meta?.code || '',
+      name: meta?.name || '',
+      unit: meta?.unit || '',
+    })
 
-    const usageItemsAll = txOut.map((t: any) => ({
-      material_code: materialMap.get(String(t.material_id))?.code || '',
-      material_name: materialMap.get(String(t.material_id))?.name || '',
-      unit: materialMap.get(String(t.material_id))?.unit || '',
-      quantity: Number(t.quantity || 0),
-      date: t.transaction_date,
-      daily_report_id: t.reference_type === 'daily_report' ? t.reference_id : null,
-    }))
+    const ensureEntry = (
+      materialId: string | null | undefined,
+      meta?: any
+    ): MaterialSummary | null => {
+      const key = materialId ? String(materialId) : ''
+      if (!key) {
+        return null
+      }
 
-    const usageItems = usageItemsAll.filter(
-      it => String(it.material_code || '').toUpperCase() === SINGLE_CODE
-    )
+      let entry = summaryByMaterial.get(key)
+      const normalized = normalizeMeta(meta)
 
-    const inboundTotal = inboundItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
-    const usageTotal = usageItems.reduce((s, it) => s + (Number(it.quantity) || 0), 0)
+      if (!entry) {
+        entry = {
+          material_id: key,
+          material_code: normalized.code || '',
+          material_name: normalized.name || normalized.code || '자재',
+          unit: normalized.unit || '',
+          inbound: { total: 0, items: [] },
+          usage: { total: 0, items: [] },
+          inventory: {
+            current_stock: 0,
+            minimum_stock: null,
+            status: 'normal',
+            updated_at: null,
+          },
+        }
+        summaryByMaterial.set(key, entry)
+      } else {
+        if (!entry.material_code && normalized.code) {
+          entry.material_code = normalized.code
+        }
+        if (
+          (!entry.material_name || entry.material_name === '자재') &&
+          (normalized.name || normalized.code)
+        ) {
+          entry.material_name = normalized.name || normalized.code
+        }
+        if (!entry.unit && normalized.unit) {
+          entry.unit = normalized.unit
+        }
+      }
 
-    // Inventory snapshot
+      return entry
+    }
+
+    for (const tx of txIn) {
+      const entry = ensureEntry(tx.material_id, tx.materials)
+      if (!entry) continue
+      const quantity = Number(tx.quantity || 0)
+      entry.inbound.total += quantity
+      entry.inbound.items.push({
+        date: tx.transaction_date,
+        quantity,
+        source: tx.reference_type === 'shipment' ? 'shipment' : 'transaction',
+      })
+    }
+
+    for (const tx of txOut) {
+      const entry = ensureEntry(tx.material_id, tx.materials)
+      if (!entry) continue
+      const quantity = Number(tx.quantity || 0)
+      entry.usage.total += quantity
+      entry.usage.items.push({
+        date: tx.transaction_date,
+        quantity,
+        reference_type: tx.reference_type || null,
+        reference_id: tx.reference_type === 'daily_report' ? tx.reference_id : null,
+      })
+    }
+
     const { data: invRows } = await svc
       .from('material_inventory')
-      .select('id, material_id, current_stock')
+      .select(
+        'id, material_id, current_stock, minimum_stock, updated_at, materials(id, code, name, unit)'
+      )
       .eq('site_id', siteId)
       .order('updated_at', { ascending: false })
       .limit(limit)
 
-    const invMatIds = Array.from(
-      new Set(
-        (invRows || [])
-          .map((r: any) => r.material_id)
-          .filter((id: any): id is string => Boolean(id))
-      )
-    )
-    if (invMatIds.length > 0) {
-      const { data: invMats } = await svc
-        .from('materials')
-        .select('id, code, name, unit')
-        .in('id', invMatIds)
-      for (const m of invMats || []) {
-        materialMap.set(String(m.id), {
-          code: m.code || '',
-          name: m.name || '',
-          unit: m.unit || '',
-        })
+    for (const row of invRows || []) {
+      const entry = ensureEntry(row.material_id, row.materials)
+      if (!entry) continue
+      const currentStock = Number(row.current_stock ?? 0)
+      const minimumStock =
+        row.minimum_stock !== null && row.minimum_stock !== undefined
+          ? Number(row.minimum_stock)
+          : null
+
+      entry.inventory.current_stock = currentStock
+      entry.inventory.minimum_stock = minimumStock
+      entry.inventory.updated_at = row.updated_at || null
+
+      if (minimumStock !== null) {
+        entry.inventory.status =
+          currentStock <= 0 ? 'critical' : currentStock < minimumStock ? 'low' : 'normal'
+      } else {
+        entry.inventory.status = currentStock <= 0 ? 'critical' : 'normal'
+      }
+
+      if (!entry.material_code && row.materials?.code) {
+        entry.material_code = row.materials.code
+      }
+      if (
+        (!entry.material_name || entry.material_name === '자재') &&
+        (row.materials?.name || row.materials?.code)
+      ) {
+        entry.material_name = row.materials?.name || row.materials?.code
+      }
+      if (!entry.unit && row.materials?.unit) {
+        entry.unit = row.materials.unit
       }
     }
 
-    const inventoryItems = (invRows || [])
-      .map((r: any) => ({
-        material_code: materialMap.get(String(r.material_id))?.code || '',
-        material_name: materialMap.get(String(r.material_id))?.name || '',
-        unit: materialMap.get(String(r.material_id))?.unit || '',
-        current_stock: Number(r.current_stock || 0),
-      }))
-      .filter(it => String(it.material_code || '').toUpperCase() === SINGLE_CODE)
+    const materialsSummary = Array.from(summaryByMaterial.values()).sort((a, b) =>
+      a.material_name.localeCompare(b.material_name, 'ko', { numeric: true })
+    )
 
     return NextResponse.json({
       success: true,
       data: {
         site_id: siteId,
         period: { from: fromDate, to: toDate },
-        inbound: { total: inboundTotal, items: inboundItems },
-        usage: { total: usageTotal, items: usageItems },
-        inventory: { count: inventoryItems.length, items: inventoryItems },
+        materials: materialsSummary,
       },
     })
   } catch (e) {

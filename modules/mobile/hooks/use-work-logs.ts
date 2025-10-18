@@ -79,6 +79,9 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
           log.siteName.toLowerCase().includes(query) ||
           log.memberTypes.some(type => type.toLowerCase().includes(query)) ||
           log.workProcesses.some(process => process.toLowerCase().includes(query)) ||
+          (log.materials || []).some(material =>
+            (material.material_name || '').toString().toLowerCase().includes(query)
+          ) ||
           log.workers.some(worker => worker.name.toLowerCase().includes(query)) ||
           log.notes?.toLowerCase().includes(query)
       )

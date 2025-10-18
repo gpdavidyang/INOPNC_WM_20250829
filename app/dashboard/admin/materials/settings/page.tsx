@@ -36,8 +36,10 @@ export default async function AdminMaterialsSettingsPage() {
 
         <a href="/dashboard/admin/materials/settings/payment-methods">
           <Card className="p-6 hover:bg-accent/50 transition-colors">
-            <div className="font-semibold mb-1">결제방식 관리</div>
-            <div className="text-sm text-muted-foreground">결제 수단과 기본 세율을 관리합니다.</div>
+            <div className="font-semibold mb-1">배송결제방식 관리</div>
+            <div className="text-sm text-muted-foreground">
+              청구·배송·선불/착불 방식을 등록하고 관리합니다.
+            </div>
           </Card>
         </a>
       </div>

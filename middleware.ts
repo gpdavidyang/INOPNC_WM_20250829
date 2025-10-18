@@ -115,16 +115,18 @@ export async function middleware(request: NextRequest) {
       response.cookies.delete(UI_TRACK_COOKIE_NAME)
     }
 
-    // Production manager hard redirect to production mobile track
+    // Production manager hard redirect to production mobile track (landing at production info)
     if (
       auth?.role === 'production_manager' &&
       pathname.startsWith('/mobile') &&
       !pathname.startsWith('/mobile/production')
     ) {
-      const redirectResponse = NextResponse.redirect(new URL('/mobile/production', request.url))
+      const redirectResponse = NextResponse.redirect(
+        new URL('/mobile/production/production', request.url)
+      )
       redirectResponse.cookies.set({
         name: UI_TRACK_COOKIE_NAME,
-        value: '/mobile/production',
+        value: '/mobile/production/production',
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',

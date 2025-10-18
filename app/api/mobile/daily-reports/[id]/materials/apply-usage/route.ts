@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { notifyLowNPC1000Stock } from '@/lib/notifications/triggers'
+import { notifyLowMaterialStock } from '@/lib/notifications/triggers'
 import { logInventoryChange } from '@/lib/utils/logging'
 
 export const dynamic = 'force-dynamic'
@@ -116,8 +116,15 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
           })
 
           // Low-stock notification (NPC-1000 only)
-          if ((material.code || '').toUpperCase() === 'NPC-1000' && newStock < minimumStock) {
-            await notifyLowNPC1000Stock(String(report.site_id), newStock, minimumStock)
+          if (minimumStock > 0 && newStock < minimumStock) {
+            const materialLabel = material.name || material.code || matType
+            await notifyLowMaterialStock(
+              String(report.site_id),
+              materialLabel || '자재',
+              newStock,
+              minimumStock,
+              material.unit || null
+            )
           }
         }
       } else {
@@ -153,8 +160,15 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
           recordId: String(invRow?.id || ''),
         })
 
-        if ((material.code || '').toUpperCase() === 'NPC-1000' && newStock < minimumStock) {
-          await notifyLowNPC1000Stock(String(report.site_id), newStock, minimumStock)
+        if (minimumStock > 0 && newStock < minimumStock) {
+          const materialLabel = material.name || material.code || matType
+          await notifyLowMaterialStock(
+            String(report.site_id),
+            materialLabel || '자재',
+            newStock,
+            minimumStock,
+            material.unit || null
+          )
         }
       }
 

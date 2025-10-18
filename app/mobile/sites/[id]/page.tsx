@@ -337,138 +337,158 @@ export default async function PartnerSiteDetailPage({ params, searchParams }: Si
                 </a>
               </div>
             </form>
-            {/* Totals */}
-            <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-              <div className="rounded border px-3 py-2">
-                <div className="text-xs text-muted-foreground">입고 합계</div>
-                <div className="text-foreground font-medium">
-                  {Number(summary?.inbound?.total ?? 0)}{' '}
-                  {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
-                </div>
-              </div>
-              <div className="rounded border px-3 py-2">
-                <div className="text-xs text-muted-foreground">사용 합계</div>
-                <div className="text-foreground font-medium">
-                  {Number(summary?.usage?.total ?? 0)}{' '}
-                  {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
-                </div>
-              </div>
-            </div>
-
-            {/* Inbound */}
-            <div className="mb-4">
-              <div className="text-sm font-semibold mb-2">최근 입고</div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead className="text-right">수량</TableHead>
-                    <TableHead>일자</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!Array.isArray(summary?.inbound?.items) || summary.inbound.items.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center text-sm text-muted-foreground py-6"
-                      >
-                        입고 내역이 없습니다.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    summary.inbound.items.map((it: any, idx: number) => (
-                      <TableRow key={idx}>
-                        <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          {Number(it.quantity ?? 0)} {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
-                        </TableCell>
-                        <TableCell>
-                          {it.date ? new Date(it.date).toLocaleDateString('ko-KR') : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Usage */}
-            <div className="mb-4">
-              <div className="text-sm font-semibold mb-2">최근 사용</div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead className="text-right">수량</TableHead>
-                    <TableHead>일자</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!Array.isArray(summary?.usage?.items) || summary.usage.items.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center text-sm text-muted-foreground py-6"
-                      >
-                        사용 내역이 없습니다.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    summary.usage.items.map((it: any, idx: number) => (
-                      <TableRow key={idx}>
-                        <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          {Number(it.quantity ?? 0)} {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
-                        </TableCell>
-                        <TableCell>
-                          {it.date ? new Date(it.date).toLocaleDateString('ko-KR') : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Inventory - hidden by default unless explicitly enabled */}
-            {process.env.NEXT_PUBLIC_SHOW_INVENTORY_SNAPSHOT === 'true' && (
-              <div>
-                <div className="text-sm font-semibold mb-2">재고 스냅샷</div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>자재</TableHead>
-                      <TableHead>단위</TableHead>
-                      <TableHead className="text-right">재고</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {!Array.isArray(summary?.inventory?.items) ||
-                    summary.inventory.items.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={3}
-                          className="text-center text-sm text-muted-foreground py-6"
-                        >
-                          재고 데이터가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      summary.inventory.items.map((it: any, idx: number) => (
-                        <TableRow key={idx}>
-                          <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
-                          <TableCell>{it.unit || '-'}</TableCell>
-                          <TableCell className="text-right">
-                            {Number(it.current_stock ?? 0)}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+            {(!Array.isArray(summary?.materials) || summary.materials.length === 0) && (
+              <div className="text-sm text-muted-foreground">자재 데이터가 없습니다.</div>
             )}
+
+            {Array.isArray(summary?.materials) &&
+              summary.materials.map((material: any) => {
+                const unitLabel = material.unit || process.env.NEXT_PUBLIC_MATERIAL_UNIT || ''
+                const status = material.inventory?.status || 'normal'
+                const statusLabel =
+                  status === 'critical' ? '재고 없음' : status === 'low' ? '재고 부족' : '정상'
+                const statusClass =
+                  status === 'critical'
+                    ? 'text-red-600'
+                    : status === 'low'
+                      ? 'text-amber-600'
+                      : 'text-emerald-600'
+
+                return (
+                  <div key={material.material_id} className="mb-6 rounded border px-3 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">
+                          {material.material_name || material.material_code || '자재'}
+                        </div>
+                        {material.material_code && (
+                          <div className="text-xs text-muted-foreground">
+                            코드: {material.material_code}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right text-sm text-muted-foreground space-y-1">
+                        <div>
+                          입고{' '}
+                          <span className="text-foreground font-medium">
+                            {Number(material.inbound?.total ?? 0).toLocaleString('ko-KR')}{' '}
+                            {unitLabel}
+                          </span>
+                        </div>
+                        <div>
+                          사용{' '}
+                          <span className="text-foreground font-medium">
+                            {Number(material.usage?.total ?? 0).toLocaleString('ko-KR')} {unitLabel}
+                          </span>
+                        </div>
+                        <div>
+                          재고{' '}
+                          <span className={`font-semibold ${statusClass}`}>
+                            {Number(material.inventory?.current_stock ?? 0).toLocaleString('ko-KR')}{' '}
+                            {unitLabel} ({statusLabel})
+                          </span>
+                        </div>
+                        {material.inventory?.minimum_stock !== null &&
+                          material.inventory?.minimum_stock !== undefined && (
+                            <div className="text-xs">
+                              최소 재고{' '}
+                              {Number(material.inventory.minimum_stock).toLocaleString('ko-KR')}{' '}
+                              {unitLabel}
+                            </div>
+                          )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-4 md:grid-cols-2">
+                      <div>
+                        <div className="text-xs font-semibold mb-2">입고 내역</div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>일자</TableHead>
+                              <TableHead className="text-right">수량</TableHead>
+                              <TableHead>출처</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {!Array.isArray(material.inbound?.items) ||
+                            material.inbound.items.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={3}
+                                  className="text-center text-xs text-muted-foreground py-4"
+                                >
+                                  입고 기록이 없습니다.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              material.inbound.items.map((item: any, idx: number) => (
+                                <TableRow key={idx}>
+                                  <TableCell>
+                                    {item.date
+                                      ? new Date(item.date).toLocaleDateString('ko-KR')
+                                      : '-'}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {Number(item.quantity ?? 0).toLocaleString('ko-KR')} {unitLabel}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {item.source === 'shipment' ? '출고배송' : '거래'}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      <div>
+                        <div className="text-xs font-semibold mb-2">사용 내역</div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>일자</TableHead>
+                              <TableHead className="text-right">수량</TableHead>
+                              <TableHead>참조</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {!Array.isArray(material.usage?.items) ||
+                            material.usage.items.length === 0 ? (
+                              <TableRow>
+                                <TableCell
+                                  colSpan={3}
+                                  className="text-center text-xs text-muted-foreground py-4"
+                                >
+                                  사용 기록이 없습니다.
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              material.usage.items.map((item: any, idx: number) => (
+                                <TableRow key={idx}>
+                                  <TableCell>
+                                    {item.date
+                                      ? new Date(item.date).toLocaleDateString('ko-KR')
+                                      : '-'}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    {Number(item.quantity ?? 0).toLocaleString('ko-KR')} {unitLabel}
+                                  </TableCell>
+                                  <TableCell className="text-xs text-muted-foreground">
+                                    {item.reference_type === 'daily_report'
+                                      ? `일일보고서 ${item.reference_id?.slice(-6) || ''}`
+                                      : item.reference_type || '-'}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
           </div>
         </CardContent>
       </Card>

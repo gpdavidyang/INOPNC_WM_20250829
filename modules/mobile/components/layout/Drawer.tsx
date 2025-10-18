@@ -221,7 +221,6 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
         { label: '입고요청', href: '/mobile/production/requests' },
         { label: '생산정보', href: '/mobile/production/production' },
         { label: '출고배송', href: '/mobile/production/shipping-payment' },
-        { label: '결제등록', href: '/mobile/production/payments/new' },
       ]
     : [
         { label: '홈', href: '/mobile' },

@@ -10,9 +10,10 @@ import { TouchModeProvider } from '@/contexts/TouchModeContext'
 
 interface MobileLayoutProps {
   children: ReactNode
+  topTabs?: ReactNode
 }
 
-export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
+export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -41,12 +42,16 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
     setIsSearchOpen(false)
   }
 
+  const mainClassName = topTabs ? 'mobile-container has-top-tabs' : 'mobile-container'
+
   return (
     <FontSizeProvider>
       <TouchModeProvider>
         <div className="mobile-root">
           {/* Top App Bar */}
           <AppBar onMenuClick={handleMenuClick} onSearchClick={handleSearchClick} />
+
+          {topTabs ? <div className="mobile-top-tabs">{topTabs}</div> : null}
 
           {/* Side Drawer */}
           <Drawer isOpen={isDrawerOpen} onClose={handleDrawerClose} />
@@ -55,7 +60,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           <SearchOverlay isOpen={isSearchOpen} onClose={handleSearchClose} />
 
           {/* Main Content Area */}
-          <main className="mobile-container">{children}</main>
+          <main className={mainClassName}>{children}</main>
 
           {/* Bottom Navigation */}
           <BottomNav />

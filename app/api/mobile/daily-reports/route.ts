@@ -465,9 +465,11 @@ export async function POST(request: NextRequest) {
         const msg = String(res.error?.message || '')
         const m1 = msg.match(/'([^']+)' column of 'daily_reports'/i)
         const m2 = msg.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i)
-        const m3 = msg.match(/null value in column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?daily_reports"?/i)
+        const m3 = msg.match(
+          /null value in column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?daily_reports"?/i
+        )
         const missing = (m1?.[1] || m2?.[1]) as string | undefined
-        const notNullCol = (m3?.[1]) as string | undefined
+        const notNullCol = m3?.[1] as string | undefined
 
         if (missing && (removableForUpdate.has(missing) || updatePayload[missing] !== undefined)) {
           delete updatePayload[missing]
@@ -527,18 +529,28 @@ export async function POST(request: NextRequest) {
 
       // Optionally add materials as additional usage entries
       if (materials && materials.length > 0) {
-        const materialRecords = materials.map((material: any) => ({
-          daily_report_id: updatedReport.id,
-          material_name: material.material_name,
-          quantity: material.quantity,
-          unit: material.unit,
-          unit_price: material.unit_price || null,
-          notes: material.notes || null,
-        }))
-        try {
-          await serviceClient.from('material_usage').insert(materialRecords)
-        } catch (e) {
-          console.warn('material_usage insert warning (update path):', e)
+        const materialRecords = materials
+          .filter(
+            (material: any) =>
+              typeof material?.material_name === 'string' && material.material_name.trim()
+          )
+          .map((material: any) => ({
+            daily_report_id: updatedReport.id,
+            material_name: material.material_name,
+            material_type: (material.material_code || material.material_name || '')
+              .toString()
+              .toUpperCase(),
+            quantity: Number(material.quantity) || 0,
+            unit: material.unit || null,
+            unit_price: material.unit_price || null,
+            notes: material.notes || null,
+          }))
+        if (materialRecords.length > 0) {
+          try {
+            await serviceClient.from('material_usage').insert(materialRecords)
+          } catch (e) {
+            console.warn('material_usage insert warning (update path):', e)
+          }
         }
       }
 
@@ -619,11 +631,7 @@ export async function POST(request: NextRequest) {
     let report: any = null
     let lastError: any = null
     for (let attempt = 0; attempt < 8; attempt++) {
-      const res = await serviceClient
-        .from('daily_reports')
-        .insert(payload)
-        .select('*')
-        .single()
+      const res = await serviceClient.from('daily_reports').insert(payload).select('*').single()
       if (!res.error && res.data) {
         report = res.data
         break
@@ -632,9 +640,11 @@ export async function POST(request: NextRequest) {
       const msg = String(res.error?.message || '')
       const m1 = msg.match(/'([^']+)' column of 'daily_reports'/i)
       const m2 = msg.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i)
-      const m3 = msg.match(/null value in column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?daily_reports"?/i)
+      const m3 = msg.match(
+        /null value in column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?daily_reports"?/i
+      )
       const missing = (m1?.[1] || m2?.[1]) as string | undefined
-      const notNullCol = (m3?.[1]) as string | undefined
+      const notNullCol = m3?.[1] as string | undefined
       // Unique violation fallback: update existing record
       if (/duplicate key value|unique constraint/i.test(msg)) {
         if (existingReport?.id) {
@@ -674,7 +684,9 @@ export async function POST(request: NextRequest) {
             payload.status = payload.status || 'draft'
             break
           case 'total_workers':
-            payload.total_workers = Number.isFinite(payload.total_workers) ? payload.total_workers : 0
+            payload.total_workers = Number.isFinite(payload.total_workers)
+              ? payload.total_workers
+              : 0
             break
           default:
             // Generic fallback: empty string for unknown text, else 0
@@ -712,20 +724,30 @@ export async function POST(request: NextRequest) {
 
     // If materials provided, insert material usage records
     if (materials && materials.length > 0) {
-      const materialRecords = materials.map((material: any) => ({
-        daily_report_id: report.id,
-        material_name: material.material_name,
-        quantity: material.quantity,
-        unit: material.unit,
-        unit_price: material.unit_price || null,
-        notes: material.notes || null,
-      }))
+      const materialRecords = materials
+        .filter(
+          (material: any) =>
+            typeof material?.material_name === 'string' && material.material_name.trim()
+        )
+        .map((material: any) => ({
+          daily_report_id: report.id,
+          material_name: material.material_name,
+          material_type: (material.material_code || material.material_name || '')
+            .toString()
+            .toUpperCase(),
+          quantity: Number(material.quantity) || 0,
+          unit: material.unit || null,
+          unit_price: material.unit_price || null,
+          notes: material.notes || null,
+        }))
 
-      try {
-        await serviceClient.from('material_usage').insert(materialRecords)
-      } catch (e) {
-        // Ignore if table or columns are not present in this environment
-        console.warn('material_usage insert warning:', e)
+      if (materialRecords.length > 0) {
+        try {
+          await serviceClient.from('material_usage').insert(materialRecords)
+        } catch (e) {
+          // Ignore if table or columns are not present in this environment
+          console.warn('material_usage insert warning:', e)
+        }
       }
     }
 
@@ -751,10 +773,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper to aggregate additional photos into daily_reports JSON fields if columns exist
-async function aggregateAdditionalPhotos(
-  db: any,
-  reportId: string
-): Promise<void> {
+async function aggregateAdditionalPhotos(db: any, reportId: string): Promise<void> {
   try {
     const { data: rows, error } = await db
       .from('daily_report_additional_photos')
@@ -766,7 +785,11 @@ async function aggregateAdditionalPhotos(
     const before = [] as Array<{ url: string; description?: string; order: number }>
     const after = [] as Array<{ url: string; description?: string; order: number }>
     ;(rows || []).forEach((r: any) => {
-      const item = { url: r.file_url, description: r.description || undefined, order: r.upload_order || 0 }
+      const item = {
+        url: r.file_url,
+        description: r.description || undefined,
+        order: r.upload_order || 0,
+      }
       if (r.photo_type === 'before') before.push(item)
       else if (r.photo_type === 'after') after.push(item)
     })

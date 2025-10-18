@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
@@ -15,6 +16,14 @@ import {
 import EmptyState from '@/components/ui/empty-state'
 
 export const metadata: Metadata = { title: '품목 관리' }
+
+async function deleteMaterial(id: string) {
+  'use server'
+  const supabase = createClient()
+
+  await supabase.from('materials').delete().eq('id', id)
+  revalidatePath('/dashboard/admin/materials/settings/materials')
+}
 
 type MaterialRow = {
   id: string
@@ -75,7 +84,7 @@ export default async function MaterialsSettingsListPage() {
                 <TableHead className="w-[120px]">단위</TableHead>
                 <TableHead>규격</TableHead>
                 <TableHead className="w-[100px]">사용</TableHead>
-                <TableHead className="w-[100px]"></TableHead>
+                <TableHead className="w-[160px]">동작</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,12 +105,22 @@ export default async function MaterialsSettingsListPage() {
                   </TableCell>
                   <TableCell>{m.is_active ? 'Y' : 'N'}</TableCell>
                   <TableCell>
-                    <Link
-                      href={`/dashboard/admin/materials/settings/materials/${m.id}/edit`}
-                      className="underline"
-                    >
-                      수정
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/dashboard/admin/materials/settings/materials/${m.id}/edit`}
+                        className={buttonVariants({ variant: 'secondary', size: 'compact' })}
+                      >
+                        수정
+                      </Link>
+                      <form action={deleteMaterial.bind(null, m.id)} className="inline-flex">
+                        <button
+                          type="submit"
+                          className={buttonVariants({ variant: 'destructive', size: 'compact' })}
+                        >
+                          삭제
+                        </button>
+                      </form>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -106,11 +106,12 @@ export async function notifyDailyReportRejected(
   }
 }
 
-// NPC-1000 재고 부족 알림
-export async function notifyLowNPC1000Stock(
+export async function notifyLowMaterialStock(
   siteId: string,
+  materialLabel: string,
   currentStock: number,
-  threshold: number = 1000
+  threshold: number = 0,
+  unit?: string | null
 ) {
   try {
     const supabase = createClient()
@@ -123,28 +124,43 @@ export async function notifyLowNPC1000Stock(
       .contains('site_ids', [siteId])
 
     if (siteManagers && siteManagers.length > 0) {
+      const unitSuffix = unit ? ` ${unit}` : ''
       const notifications = siteManagers.map((manager: unknown) => ({
         user_id: manager.id,
         type: 'warning' as const,
-        title: 'NPC-1000 재고 부족',
-        message: `현재 재고가 ${currentStock}kg으로 최소 재고량(${threshold}kg) 이하입니다.`,
+        title: `${materialLabel} 재고 부족`,
+        message:
+          threshold > 0
+            ? `현재 재고가 ${currentStock}${unitSuffix}로 최소 재고량(${threshold}${unitSuffix}) 이하입니다.`
+            : `현재 재고가 ${currentStock}${unitSuffix}로 설정된 임계값을 하회했습니다.`,
         data: {
           site_id: siteId,
           current_stock: currentStock,
           threshold,
+          material: materialLabel,
+          unit,
         },
-        action_url: `/dashboard/materials/npc1000`,
+        action_url: `/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(materialLabel)}`,
       }))
 
       const { error } = await supabase.from('notifications').insert(notifications)
 
       if (error) {
-        logError(error, 'notifyLowNPC1000Stock')
+        logError(error, 'notifyLowMaterialStock')
       }
     }
   } catch (error) {
-    logError(error, 'notifyLowNPC1000Stock')
+    logError(error, 'notifyLowMaterialStock')
   }
+}
+
+// Backward compatibility wrapper for legacy NPC notifications
+export async function notifyLowNPC1000Stock(
+  siteId: string,
+  currentStock: number,
+  threshold: number = 1000
+) {
+  return notifyLowMaterialStock(siteId, 'NPC-1000', currentStock, threshold)
 }
 
 // 시스템 공지사항 알림

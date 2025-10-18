@@ -16,14 +16,15 @@ import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import ShipmentsTable from '@/components/admin/materials/ShipmentsTable'
 import EmptyState from '@/components/ui/empty-state'
 import {
   getMaterialRequests,
   getMaterialShipments,
   getMaterialProductions,
-  getNPC1000Summary,
-  getNPC1000BySite,
+  getMaterialInventorySummary,
+  getMaterialInventoryList,
 } from '@/app/actions/admin/materials'
 
 export const metadata: Metadata = {
@@ -38,7 +39,7 @@ export default async function AdminMaterialsPage({
   await requireAdminProfile()
 
   const tab = ((searchParams?.tab as string) || 'inventory') as
-    | 'inventory' // 현장별 재고현황 (NPC-1000)
+    | 'inventory' // 현장별 재고/요약
     | 'requests' // 입고요청 관리
     | 'productions' // 생산정보 관리
     | 'shipments' // 출고배송 관리
@@ -61,20 +62,22 @@ export default async function AdminMaterialsPage({
   let requests: any[] = []
   let shipments: any[] = []
   let productions: any[] = []
-  let npcSummary: any | null = null
-  let npcSites: any[] = []
+  let inventorySummary: any | null = null
+  let inventoryItems: any[] = []
   let total = 0
   let pages = 1
 
   if (tab === 'inventory') {
-    const [sumRes, siteRes] = await Promise.all([
-      getNPC1000Summary(),
-      getNPC1000BySite(page, limit, search || undefined),
+    const [summaryRes, listRes] = await Promise.all([
+      getMaterialInventorySummary(),
+      getMaterialInventoryList(page, limit, search, site_id || undefined),
     ])
-    npcSummary = sumRes.success ? (sumRes.data as any) : null
-    npcSites = siteRes.success && siteRes.data ? (siteRes.data as any).sites : []
-    total = siteRes.success && siteRes.data ? (siteRes.data as any).total : 0
-    pages = siteRes.success && siteRes.data ? (siteRes.data as any).pages : 1
+    inventorySummary = summaryRes.success ? (summaryRes.data as any) : null
+    if (listRes.success && listRes.data) {
+      inventoryItems = (listRes.data as any).items || []
+      total = (listRes.data as any).total || 0
+      pages = (listRes.data as any).pages || 1
+    }
   } else if (tab === 'requests') {
     const res = await getMaterialRequests(
       page,
@@ -110,15 +113,6 @@ export default async function AdminMaterialsPage({
     shipments = res.success && res.data ? (res.data as any).shipments : []
     total = res.success && res.data ? (res.data as any).total : 0
     pages = res.success && res.data ? (res.data as any).pages : 1
-  } else if (tab === 'npc1000') {
-    const [sumRes, siteRes] = await Promise.all([
-      getNPC1000Summary(),
-      getNPC1000BySite(page, limit, search || undefined),
-    ])
-    npcSummary = sumRes.success ? (sumRes.data as any) : null
-    npcSites = siteRes.success && siteRes.data ? (siteRes.data as any).sites : []
-    total = siteRes.success && siteRes.data ? (siteRes.data as any).total : 0
-    pages = siteRes.success && siteRes.data ? (siteRes.data as any).pages : 1
   }
 
   const buildQuery = (overrides: Record<string, string>) => {
@@ -195,7 +189,7 @@ export default async function AdminMaterialsPage({
                 defaultValue={search}
                 placeholder={
                   tab === 'inventory'
-                    ? '현장명'
+                    ? '자재명/코드/현장'
                     : tab === 'requests'
                       ? '요청번호/메모'
                       : tab === 'productions'
@@ -262,46 +256,103 @@ export default async function AdminMaterialsPage({
                 엑셀 다운로드
               </a>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <StatsCard label="현장 수" value={Number(npcSummary?.total_sites ?? 0)} unit="site" />
-              <StatsCard label="입고" value={Number(npcSummary?.total_incoming ?? 0)} unit="ea" />
-              <StatsCard label="사용" value={Number(npcSummary?.total_used ?? 0)} unit="ea" />
-              <StatsCard label="잔여" value={Number(npcSummary?.total_remaining ?? 0)} unit="ea" />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <StatsCard
+                label="관리 품목"
+                value={Number(inventorySummary?.total_materials ?? 0)}
+                unit="종"
+              />
+              <StatsCard
+                label="현장 수"
+                value={Number(inventorySummary?.tracked_sites ?? 0)}
+                unit="곳"
+              />
+              <StatsCard
+                label="총 재고"
+                value={Number(inventorySummary?.total_stock_quantity ?? 0)}
+                unit="ea"
+              />
+              <StatsCard
+                label="재고 부족"
+                value={Number(inventorySummary?.low_stock_items ?? 0)}
+                unit="건"
+              />
+              <StatsCard
+                label="재고 없음"
+                value={Number(inventorySummary?.out_of_stock_items ?? 0)}
+                unit="건"
+              />
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>자재</TableHead>
                     <TableHead>현장</TableHead>
-                    <TableHead>최근일</TableHead>
-                    <TableHead className="text-right">입고</TableHead>
-                    <TableHead className="text-right">사용</TableHead>
-                    <TableHead className="text-right">잔여</TableHead>
+                    <TableHead className="text-right">현재 재고</TableHead>
+                    <TableHead className="text-right">최소 재고</TableHead>
+                    <TableHead className="text-right">예약</TableHead>
+                    <TableHead className="text-right">가용</TableHead>
                     <TableHead>상태</TableHead>
+                    <TableHead>업데이트</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {npcSites.length === 0 ? (
+                  {inventoryItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10">
-                        <EmptyState description="표시할 데이터가 없습니다." />
+                      <TableCell colSpan={8} className="py-10">
+                        <EmptyState description="표시할 재고 항목이 없습니다." />
                       </TableCell>
                     </TableRow>
                   ) : (
-                    npcSites.map((s: any) => (
-                      <TableRow key={s.site_id}>
+                    inventoryItems.map((item: any) => (
+                      <TableRow key={item.id}>
                         <TableCell className="font-medium text-foreground">
-                          {s.site_name || '-'}
+                          <div className="flex flex-col">
+                            <span>{item.material_name || '-'}</span>
+                            {item.material_code && (
+                              <span className="text-xs text-muted-foreground">
+                                {item.material_code}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell>
-                          {s.latest_date
-                            ? new Date(s.latest_date).toLocaleDateString('ko-KR')
+                        <TableCell>{item.site_name || item.site_id || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          {Number(item.current_stock ?? 0).toLocaleString('ko-KR')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.minimum_stock !== null && item.minimum_stock !== undefined
+                            ? Number(item.minimum_stock).toLocaleString('ko-KR')
                             : '-'}
                         </TableCell>
-                        <TableCell className="text-right">{s.incoming ?? 0}</TableCell>
-                        <TableCell className="text-right">{s.used ?? 0}</TableCell>
-                        <TableCell className="text-right">{s.remaining ?? 0}</TableCell>
-                        <TableCell>{s.status || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          {item.reserved_stock !== null && item.reserved_stock !== undefined
+                            ? Number(item.reserved_stock).toLocaleString('ko-KR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {item.available_stock !== null && item.available_stock !== undefined
+                            ? Number(item.available_stock).toLocaleString('ko-KR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {(() => {
+                            switch (item.status) {
+                              case 'out_of_stock':
+                                return <Badge variant="error">재고 없음</Badge>
+                              case 'low':
+                                return <Badge variant="warning">재고 부족</Badge>
+                              default:
+                                return <Badge variant="success">정상</Badge>
+                            }
+                          })()}
+                        </TableCell>
+                        <TableCell>
+                          {item.updated_at
+                            ? new Date(item.updated_at).toLocaleString('ko-KR')
+                            : '-'}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -541,8 +592,6 @@ export default async function AdminMaterialsPage({
             </div>
           </div>
         )}
-
-        {/* NPC-1000 탭은 현장별 재고현황에 통합되어 제거됨 */}
 
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between">

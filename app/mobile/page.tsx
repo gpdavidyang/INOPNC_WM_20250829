@@ -13,7 +13,7 @@ export default function MobileHomePage() {
     const role = profile?.role
     // 생산관리자는 전용 홈으로 강제 이동
     if (role === 'production_manager') {
-      window.location.replace('/mobile/production')
+      window.location.replace('/mobile/production/production')
       return
     }
     if (role === 'customer_manager' || role === 'partner') {

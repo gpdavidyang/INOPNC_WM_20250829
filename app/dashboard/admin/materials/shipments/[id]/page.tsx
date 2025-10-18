@@ -14,20 +14,30 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
   const { data: shipment } = await supabase
     .from('material_shipments')
     .select(
-      `*, sites!site_id(name, address), creator:profiles!created_by(name), shipment_items(*, materials(name, code, unit))`
+      `
+        *,
+        sites!site_id(name, address),
+        creator:profiles!created_by(name),
+        billing_method:payment_methods!material_shipments_billing_method_id_fkey(id, name),
+        shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(id, name),
+        freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(id, name),
+        shipment_items(*, materials(name, code, unit))
+      `
     )
     .eq('id', params.id)
     .maybeSingle()
 
   const { data: paymentMethods } = await supabase
     .from('payment_methods')
-    .select('id, name, tax_rate, is_active')
+    .select('id, name')
     .eq('is_active', true)
+    .eq('category', 'billing')
+    .order('sort_order', { ascending: true })
     .order('name')
 
   const { data: payments } = await supabase
     .from('material_payments')
-    .select('id, amount, currency, paid_at, memo, tax_rate, payment_methods(name)')
+    .select('id, amount, currency, paid_at, memo, payment_methods(name)')
     .eq('shipment_id', params.id)
     .order('paid_at', { ascending: false })
 
@@ -42,7 +52,6 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
     const currency = (formData.get('currency') as string) || 'KRW'
     const payment_method_id = ((formData.get('payment_method_id') as string) || '').trim() || null
     const paid_at = (formData.get('paid_at') as string) || null
-    const tax_rate = Number(formData.get('tax_rate') || 10)
     const memo = ((formData.get('memo') as string) || '').trim() || null
     if (amount <= 0) return
     await supabase.from('material_payments').insert({
@@ -51,7 +60,6 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
       currency,
       payment_method_id,
       paid_at,
-      tax_rate,
       memo,
     } as any)
     ;(await import('next/cache')).revalidatePath('/dashboard/admin/materials')
@@ -91,11 +99,21 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
             </div>
             <div>
               <div className="text-xs">배송방식</div>
-              <div className="text-foreground">{shipment?.carrier || '-'}</div>
+              <div className="text-foreground">
+                {shipment?.shipping_method?.name || shipment?.carrier || '-'}
+              </div>
             </div>
             <div>
               <div className="text-xs">운송장번호</div>
               <div className="text-foreground">{shipment?.tracking_number || '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs">청구방식</div>
+              <div className="text-foreground">{shipment?.billing_method?.name || '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs">선불/착불</div>
+              <div className="text-foreground">{shipment?.freight_method?.name || '-'}</div>
             </div>
             <div>
               <div className="text-xs">총 금액(KRW)</div>
@@ -171,8 +189,7 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
                     <th className="py-2">일자</th>
                     <th className="py-2">금액</th>
                     <th className="py-2">통화</th>
-                    <th className="py-2">방식</th>
-                    <th className="py-2">세율(%)</th>
+                    <th className="py-2">청구방식</th>
                     <th className="py-2">메모</th>
                   </tr>
                 </thead>
@@ -192,7 +209,6 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
                       <td className="py-2">{Number(p.amount || 0).toLocaleString('ko-KR')}</td>
                       <td className="py-2">{p.currency || 'KRW'}</td>
                       <td className="py-2">{p.payment_methods?.name || '-'}</td>
-                      <td className="py-2">{p.tax_rate ?? 10}</td>
                       <td className="py-2">{p.memo || '-'}</td>
                     </tr>
                   ))}
@@ -218,18 +234,7 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
                 <input type="hidden" name="currency" value="KRW" />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">세율(%)</label>
-                <input
-                  type="number"
-                  name="tax_rate"
-                  min="0"
-                  step="0.1"
-                  defaultValue={(paymentMethods?.[0]?.tax_rate as any) ?? 10}
-                  className="w-full rounded border px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">결제방식</label>
+                <label className="block text-xs text-muted-foreground mb-1">청구방식</label>
                 <select name="payment_method_id" className="w-full rounded border px-3 py-2">
                   <option value="">선택 안 함</option>
                   {(paymentMethods || []).map((m: any) => (

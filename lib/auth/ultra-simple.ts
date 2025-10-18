@@ -11,7 +11,7 @@ export { UI_TRACK_COOKIE_MAX_AGE, UI_TRACK_COOKIE_NAME } from './constants'
 const UI_TRACKS: Record<string, string> = {
   worker: '/mobile',
   site_manager: '/mobile',
-  production_manager: '/mobile/production', // 생산관리 UI
+  production_manager: '/mobile/production/production', // 생산정보 페이지로 랜딩
   customer_manager: '/mobile/partner',
   partner: '/mobile/partner',
   admin: '/dashboard/admin',

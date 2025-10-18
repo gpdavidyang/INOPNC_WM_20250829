@@ -28,6 +28,26 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
     const photoCount = workLog.attachments.photos.length
     const drawingCount = workLog.attachments.drawings.length
     const confirmationCount = workLog.attachments.confirmations.length
+    const renderMaterialSummary = () => {
+      const list = Array.isArray(workLog.materials) ? workLog.materials : []
+      if (list.length === 0) {
+        return '미입력'
+      }
+
+      const [first, ...rest] = list
+      const quantity = Number(first.quantity ?? 0)
+      const quantityText = Number.isFinite(quantity)
+        ? quantity.toLocaleString('ko-KR')
+        : String(first.quantity || '')
+      const unitText = first.unit ? ` ${first.unit}` : ''
+      const label = first.material_name || first.material_code || '자재'
+
+      if (rest.length > 0) {
+        return `${label} ${quantityText}${unitText} 외 ${rest.length}건`
+      }
+
+      return `${label} ${quantityText}${unitText}`
+    }
 
     return (
       <article className="rounded-2xl border border-[#e6eaf2] bg-white p-5 shadow-[0_6px_20px_rgba(16,24,40,0.06)]">
@@ -35,20 +55,24 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
           <div className="min-w-0 space-y-1">
             <p className="truncate text-sm font-semibold text-[#1A254F]">{workLog.siteName}</p>
             {(workLog.title || workLog.notes) && (
-              <p className="truncate text-xs text-[#475467]">
-                {workLog.title || workLog.notes}
-              </p>
+              <p className="truncate text-xs text-[#475467]">{workLog.title || workLog.notes}</p>
             )}
             <div className="flex flex-wrap gap-3 text-xs text-[#667085]">
               <span>작성자: {workLog.author || workLog.createdBy || '미지정'}</span>
               <span>작성일: {formatDate(workLog.date)}</span>
               <span>
-                위치: {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}호
+                위치: {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}
+                호
               </span>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">
-            <span className={cn('inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold', statusClasses)}>
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold',
+                statusClasses
+              )}
+            >
               {getStatusText(workLog.status)}
             </span>
             <button
@@ -81,16 +105,12 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
           {workLog.workTypes.length > 0 && (
             <div>
               <dt className="text-[#667085]">작업공간</dt>
-              <dd className="mt-1 font-semibold text-[#1A254F]">
-                {workLog.workTypes.join(', ')}
-              </dd>
+              <dd className="mt-1 font-semibold text-[#1A254F]">{workLog.workTypes.join(', ')}</dd>
             </div>
           )}
           <div>
             <dt className="text-[#667085]">총 공수</dt>
-            <dd className="mt-1 font-semibold text-[#1A254F]">
-              {workLog.totalHours}시간
-            </dd>
+            <dd className="mt-1 font-semibold text-[#1A254F]">{workLog.totalHours}시간</dd>
           </div>
         </dl>
 
@@ -101,7 +121,10 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
           </div>
           <div className="mt-2 h-2 rounded-full bg-[#f2f4f7]">
             <div
-              className={cn('h-full rounded-full transition-all duration-300 ease-out', getProgressColor(workLog.progress))}
+              className={cn(
+                'h-full rounded-full transition-all duration-300 ease-out',
+                getProgressColor(workLog.progress)
+              )}
               style={{ width: `${workLog.progress}%` }}
             />
           </div>
@@ -124,10 +147,8 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
             <span className="ml-auto font-semibold text-[#1A254F]">{confirmationCount}개</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[#667085]">NPC-1000</span>
-            <span className="ml-auto font-semibold text-[#1A254F]">
-              {workLog.npcUsage ? `${workLog.npcUsage.amount}${workLog.npcUsage.unit}` : '미입력'}
-            </span>
+            <span className="text-[#667085]">자재 사용</span>
+            <span className="ml-auto font-semibold text-[#1A254F]">{renderMaterialSummary()}</span>
           </div>
         </div>
 
