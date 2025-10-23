@@ -12,30 +12,20 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [rejectId, setRejectId] = useState<string | null>(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [rows, setRows] = useState<any[]>(requests || [])
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set())
+
+  // Keep local rows in sync when server data changes
+  React.useEffect(() => {
+    const next = (requests || []).filter(r => !hiddenIds.has(String(r.id)))
+    setRows(next)
+  }, [requests, hiddenIds])
 
   const approve = async (id: string) => {
-    setBusyId(id)
-    try {
-      const res = await fetch(`/api/admin/signup-requests/${id}/approve`, { method: 'POST' })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok || !j?.success) throw new Error(j?.error || '승인 처리에 실패했습니다.')
-      toast({
-        title: '승인 완료',
-        description: '사용자가 생성되었습니다.',
-        action: j?.created_user_id
-          ? {
-              label: '사용자 상세로 이동',
-              onClick: () => router.push(`/dashboard/admin/users/${j.created_user_id}`),
-            }
-          : undefined,
-        variant: 'success',
-      })
-      router.refresh()
-    } catch (e: any) {
-      toast({ title: '오류', description: e?.message, variant: 'destructive' })
-    } finally {
-      setBusyId(null)
-    }
+    // 일부 요청은 승인 전에 소속사/현장 선택이 필요합니다.
+    // 테이블에서 즉시 승인 시도 대신 상세 화면으로 이동해 필수 값을 받습니다.
+    router.push(`/dashboard/admin/signup-requests/${id}`)
   }
 
   const submitReject = async () => {
@@ -52,7 +42,36 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
       toast({ title: '거절 완료', description: '요청이 거절되었습니다.', variant: 'success' })
       setRejectId(null)
       setRejectReason('')
+      // Optimistic UI update
+      setRows(prev => prev.map(r => (r.id === rejectId ? { ...r, status: 'rejected' } : r)))
       router.refresh()
+    } catch (e: any) {
+      toast({ title: '오류', description: e?.message, variant: 'destructive' })
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  const remove = async (id: string) => {
+    if (!confirm('해당 가입 요청을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
+    setBusyId(id)
+    try {
+      const res = await fetch(`/api/admin/signup-requests/${id}`, { method: 'DELETE' })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || '삭제에 실패했습니다.')
+      toast({ title: '삭제 완료', description: '요청이 삭제되었습니다.', variant: 'success' })
+      // Optimistic UI removal + keep it hidden across refresh until server data reflects
+      setHiddenIds(prev => new Set([...Array.from(prev), String(id)]))
+      setRows(prev => prev.filter(r => r.id !== id))
+      router.refresh()
+      // Fallback in case the router cache doesn't refresh immediately
+      setTimeout(() => {
+        try {
+          if (typeof window !== 'undefined') window.location.reload()
+        } catch (err) {
+          console.warn('Force reload fallback failed:', err)
+        }
+      }, 600)
     } catch (e: any) {
       toast({ title: '오류', description: e?.message, variant: 'destructive' })
     } finally {
@@ -123,7 +142,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
             >
               상세
             </a>
-            {r?.status === 'pending' ? (
+            {['pending', 'rejected'].includes(String(r?.status || '').toLowerCase()) ? (
               <>
                 <Button
                   size="sm"
@@ -141,6 +160,14 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
                 >
                   거절
                 </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={busyId === r.id}
+                  onClick={() => remove(r.id)}
+                >
+                  삭제
+                </Button>
               </>
             ) : (
               <span className="text-xs text-muted-foreground">-</span>
@@ -155,7 +182,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
   return (
     <div className="relative">
       <DataTable
-        data={requests}
+        data={rows}
         rowKey="id"
         emptyMessage="표시할 요청이 없습니다."
         stickyHeader

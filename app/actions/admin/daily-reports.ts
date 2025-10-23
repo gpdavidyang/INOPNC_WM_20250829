@@ -29,6 +29,21 @@ async function ensureSiteAccess(supabase: AdminSupabaseClient, auth: SimpleAuth,
     return
   }
 
+  // For restricted users, validate the site belongs to their partner company via mapping
+  if (auth.isRestricted && auth.restrictedOrgId) {
+    const { data: mapping } = await supabase
+      .from('partner_site_mappings')
+      .select('site_id')
+      .eq('partner_company_id', auth.restrictedOrgId)
+      .eq('site_id', siteId)
+      .maybeSingle()
+
+    if (!mapping) {
+      throw new AppError('현장 접근 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
+    }
+    return
+  }
+
   const { data, error } = await supabase
     .from('sites')
     .select('organization_id')
@@ -159,7 +174,19 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       if (!auth.restrictedOrgId) {
         throw new AppError('조직 정보가 필요합니다.', ErrorType.AUTHORIZATION, 403)
       }
-      query = query.eq('sites.organization_id', auth.restrictedOrgId).eq('created_by', auth.userId)
+      // Restrict by sites mapped to the partner company
+      const { data: mappings } = await supabase
+        .from('partner_site_mappings')
+        .select('site_id')
+        .eq('partner_company_id', auth.restrictedOrgId)
+      const allowedSiteIds = (mappings || []).map(m => (m as any).site_id)
+      if (allowedSiteIds.length === 0) {
+        return {
+          success: true,
+          data: { reports: [], totalCount: 0, totalPages: 0, currentPage: page },
+        }
+      }
+      query = query.in('site_id', allowedSiteIds).eq('created_by', auth.userId)
     } else if (created_by) {
       // Admin view: allow filtering by creator
       query = query.eq('created_by', created_by)
@@ -482,20 +509,35 @@ export async function getSites() {
   return withAdminAuth(async (supabase, profile) => {
     const auth = profile.auth
 
-    let query = supabase
-      .from('sites')
-      .select('id, name, organization_id')
-      .eq('status', 'active')
-      .order('name')
+    if (auth.isRestricted && auth.restrictedOrgId) {
+      // Map partner -> sites, then fetch those sites
+      const { data: mappings } = await supabase
+        .from('partner_site_mappings')
+        .select('site_id')
+        .eq('partner_company_id', auth.restrictedOrgId)
 
-    if (auth.isRestricted) {
-      if (!auth.restrictedOrgId) {
-        throw new AppError('조직 정보가 필요합니다.', ErrorType.AUTHORIZATION, 403)
+      const allowedSiteIds = (mappings || []).map(m => (m as any).site_id)
+      if (allowedSiteIds.length === 0) {
+        return { success: true, data: [] }
       }
-      query = query.eq('organization_id', auth.restrictedOrgId)
+      const { data, error } = await supabase
+        .from('sites')
+        .select('id, name')
+        .eq('status', 'active')
+        .in('id', allowedSiteIds)
+        .order('name')
+      if (error) throw error
+      return {
+        success: true,
+        data: (data || []).map(siteRecord => ({ id: siteRecord.id, name: siteRecord.name })),
+      }
     }
 
-    const { data, error } = await query
+    const { data, error } = await supabase
+      .from('sites')
+      .select('id, name')
+      .eq('status', 'active')
+      .order('name')
 
     if (error) throw error
 

@@ -35,6 +35,8 @@ export default function SignupRequestDetailClient({ request }: { request: any })
     company: request?.company || request?.company_name || '',
     job_title: request?.job_title || '',
     phone: request?.phone || '',
+    // Ensure job_type is available for conditional UI (e.g., site selection)
+    job_type: (request?.job_type as string) || 'construction',
   })
   const [busy, setBusy] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
@@ -130,6 +132,12 @@ export default function SignupRequestDetailClient({ request }: { request: any })
       return
     }
 
+    const isOverride = String(request?.status || '').toLowerCase() === 'rejected'
+    if (isOverride) {
+      const ok = confirm('현재 상태는 "거절"입니다. 승인으로 전환하시겠습니까?')
+      if (!ok) return
+    }
+
     setBusy(true)
     try {
       const res = await fetch(`/api/admin/signup-requests/${request.id}/approve`, {
@@ -138,6 +146,7 @@ export default function SignupRequestDetailClient({ request }: { request: any })
         body: JSON.stringify({
           organizationId: selectedOrgId || undefined,
           siteIds: selectedSiteIds.length ? selectedSiteIds : undefined,
+          allowOverride: isOverride,
         }),
       })
       const j = await res.json().catch(() => ({}))
@@ -188,7 +197,7 @@ export default function SignupRequestDetailClient({ request }: { request: any })
           <Button variant="outline" onClick={save} disabled={busy}>
             저장
           </Button>
-          <Button onClick={approve} disabled={busy || request?.status !== 'pending'}>
+          <Button onClick={approve} disabled={busy}>
             승인
           </Button>
           <Button
@@ -230,7 +239,7 @@ export default function SignupRequestDetailClient({ request }: { request: any })
           className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           value={selectedOrgId}
           onChange={e => setSelectedOrgId(e.target.value)}
-          disabled={orgLoading || request?.status !== 'pending'}
+          disabled={orgLoading || String(request?.status || '').toLowerCase() === 'approved'}
         >
           <option value="">미지정</option>
           {organizations
@@ -247,7 +256,7 @@ export default function SignupRequestDetailClient({ request }: { request: any })
       </div>
 
       {/* Site selection when construction */}
-      {form.job_type === 'construction' && (
+      {(form.job_type as string) === 'construction' && (
         <Row label="배정 현장">
           <select
             multiple
@@ -256,7 +265,11 @@ export default function SignupRequestDetailClient({ request }: { request: any })
             onChange={e =>
               setSelectedSiteIds(Array.from(e.target.selectedOptions).map(o => o.value))
             }
-            disabled={!selectedOrgId || siteLoading || request?.status !== 'pending'}
+            disabled={
+              !selectedOrgId ||
+              siteLoading ||
+              String(request?.status || '').toLowerCase() === 'approved'
+            }
           >
             {!selectedOrgId ? (
               <option value="" disabled>

@@ -23,6 +23,8 @@ export default function SignupRequestPage() {
     email: '',
   })
   const [partnerCompanies, setPartnerCompanies] = useState<PartnerCompany[]>([])
+  // NOTE: use non-empty sentinel for '미지정' to satisfy Select.Item constraints
+  const UNASSIGNED_VALUE = '__unassigned__'
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [loadingCompanies, setLoadingCompanies] = useState(false)
   // Email split states
@@ -98,7 +100,11 @@ export default function SignupRequestPage() {
           jobTitle: formData.jobTitle,
           phone: formData.phone,
           email: emailComposed,
-          partnerCompanyId: selectedCompanyId,
+          // send undefined when '미지정' sentinel is selected
+          partnerCompanyId:
+            selectedCompanyId && selectedCompanyId !== UNASSIGNED_VALUE
+              ? selectedCompanyId
+              : undefined,
         }),
       })
       const payload = await res.json().catch(() => ({}))
@@ -129,7 +135,8 @@ export default function SignupRequestPage() {
             align-items: center;
             justify-content: center;
             background: #ffffff;
-            padding: 0 20px;
+            /* Compact but consistent outer horizontal padding */
+            padding: 0 16px;
           }
           .content {
             width: 100%;
@@ -190,53 +197,6 @@ export default function SignupRequestPage() {
               <Link href="/auth/login" className="btn">
                 로그인 화면으로
               </Link>
-              <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-                <button
-                  className="btn"
-                  style={{ background: '#15347C' }}
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(
-                        `/api/auth/signup-request/status?email=${encodeURIComponent(formData.email)}`,
-                        { cache: 'no-store' }
-                      )
-                      const j = await res.json().catch(() => ({}))
-                      alert(
-                        j?.status === 'pending'
-                          ? '현재 승인 대기 중입니다.'
-                          : j?.status === 'approved'
-                            ? '승인 완료되었습니다. 로그인 해주세요.'
-                            : j?.status === 'rejected'
-                              ? '요청이 반려되었습니다. 관리자에게 문의하세요.'
-                              : '요청 내역을 확인했습니다.'
-                      )
-                    } catch {
-                      alert('상태 확인 중 오류가 발생했습니다.')
-                    }
-                  }}
-                >
-                  승인 상태 확인
-                </button>
-                <button
-                  className="btn"
-                  style={{ background: '#5F7AB9' }}
-                  onClick={async () => {
-                    try {
-                      const res = await fetch('/api/auth/signup-request/resend', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: formData.email }),
-                      })
-                      if (res.ok) alert('승인 안내를 재전송했습니다.')
-                      else alert('재전송에 실패했습니다.')
-                    } catch {
-                      alert('재전송 중 오류가 발생했습니다.')
-                    }
-                  }}
-                >
-                  승인 안내 다시 받기
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -483,8 +443,8 @@ export default function SignupRequestPage() {
                     />
                   </CustomSelectTrigger>
                   <CustomSelectContent sideOffset={6}>
-                    {/* 미지정 옵션 */}
-                    <CustomSelectItem value="">
+                    {/* 미지정 옵션: use non-empty sentinel to avoid Select.Item empty value error */}
+                    <CustomSelectItem value={UNASSIGNED_VALUE}>
                       <span>미지정</span>
                       <span className={`status-badge status-pending`}>unassigned</span>
                     </CustomSelectItem>

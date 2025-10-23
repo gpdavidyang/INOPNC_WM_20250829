@@ -8,6 +8,7 @@ export async function getSignupRequests(search?: string) {
   let query = supabase
     .from('signup_requests')
     .select('*')
+    .neq('status', 'deleted' as any)
     .order('requested_at', { ascending: false })
 
   if (search && search.trim()) {
@@ -52,6 +53,7 @@ export async function getSignupRequestById(requestId: string) {
     .from('signup_requests')
     .select('*')
     .eq('id', requestId)
+    .neq('status', 'deleted' as any)
     .single()
 
   if (error) {
@@ -65,7 +67,10 @@ export async function getSignupRequestById(requestId: string) {
 export async function getSignupRequestStats() {
   const supabase = createClient()
 
-  const { data: stats, error } = await supabase.from('signup_requests').select('status')
+  const { data: stats, error } = await supabase
+    .from('signup_requests')
+    .select('status')
+    .neq('status', 'deleted' as any)
 
   if (error) {
     console.error('Error fetching signup request stats:', error)

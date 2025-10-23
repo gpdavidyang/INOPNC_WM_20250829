@@ -464,6 +464,33 @@ export default function UserManagement({ profile }: UserManagementProps) {
       label: '생성일',
       render: (value: string) => new Date(value).toLocaleDateString('ko-KR'),
     },
+    {
+      key: 'actions_detail',
+      label: '상세',
+      render: (_: unknown, user: UserWithSites) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleViewUser(user)}
+            className="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            상세
+          </button>
+          <button
+            onClick={() => handleEditUser(user)}
+            className="px-2 py-1 text-xs rounded border border-blue-200 text-blue-700 hover:bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:hover:bg-blue-900/20"
+          >
+            수정
+          </button>
+          <button
+            onClick={() => handleDeleteUser(user)}
+            className="px-2 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"
+          >
+            삭제
+          </button>
+        </div>
+      ),
+      align: 'left' as const,
+    },
   ]
 
   // Define bulk actions
@@ -601,9 +628,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         getRowId={(user: UserWithSites) => user.id}
-        onView={handleViewUser}
-        onDelete={handleDeleteUser}
-        customActions={customActions}
+        // 상세/수정/삭제 버튼은 전용 컬럼에서 제공
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
