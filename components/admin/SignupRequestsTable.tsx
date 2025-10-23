@@ -111,7 +111,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
       },
       {
         key: 'company',
-        header: '회사',
+        header: '소속사',
         sortable: true,
         accessor: (r: any) => r?.company || r?.company_name || '',
         render: (r: any) => r?.company || r?.company_name || '-',
