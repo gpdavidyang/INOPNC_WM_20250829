@@ -654,6 +654,14 @@ textarea {
   clip-path: inset(0 -128px 0 0); /* expand right clip margin to -128px */
 }
 
+/* Ensure the drawer uses the dynamic viewport height on mobile browsers
+   so the fixed footer (logout button) is not pushed below the visible area. */
+@supports (height: 100dvh) {
+  .drawer {
+    height: 100dvh;
+  }
+}
+
 /* New container for proper scrolling */
 .drawer-container {
   display: flex;
