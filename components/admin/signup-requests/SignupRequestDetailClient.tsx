@@ -219,7 +219,7 @@ export default function SignupRequestDetailClient({ request }: { request: any })
       <Row label="이메일">
         <Input value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
       </Row>
-      <Row label="회사">
+      <Row label="소속사">
         <Input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
       </Row>
       <Row label="직함">

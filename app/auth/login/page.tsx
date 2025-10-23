@@ -48,6 +48,54 @@ export default function LoginPage() {
     }
   }, [])
 
+  // Persist rememberMe immediately when toggled and keep savedEmail in sync
+  useEffect(() => {
+    try {
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true')
+        if (email) localStorage.setItem('savedEmail', email)
+      } else {
+        localStorage.setItem('rememberMe', 'false')
+      }
+    } catch (e) {
+      console.debug('rememberMe persist failed', e)
+    }
+  }, [rememberMe])
+
+  // Keep savedEmail updated while typing when rememberMe is enabled
+  useEffect(() => {
+    try {
+      if (rememberMe) {
+        localStorage.setItem('savedEmail', email || '')
+      }
+    } catch (e) {
+      console.debug('savedEmail sync failed', e)
+    }
+  }, [email, rememberMe])
+
+  // Auto-login (redirect) when a valid session exists and rememberMe is true
+  useEffect(() => {
+    let cancelled = false
+    const autoRedirect = async () => {
+      try {
+        const savedRemember = localStorage.getItem('rememberMe') === 'true'
+        if (!savedRemember) return
+        const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
+        if (!meRes.ok) return
+        const me = await meRes.json().catch(() => null)
+        if (!cancelled && me?.uiTrack) {
+          window.location.replace(me.uiTrack)
+        }
+      } catch (e) {
+        console.debug('autoRedirect check failed', e)
+      }
+    }
+    autoRedirect()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
@@ -198,7 +246,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <style jsx>{`
+      <style jsx global>{`
         /* 로그인 페이지 - 레거시 디자인 반영 */
         .login-container {
           min-height: 100vh;
@@ -212,6 +260,7 @@ export default function LoginPage() {
           background: #ffffff;
           /* Force light UI for form controls regardless of system theme */
           color-scheme: light;
+          overflow-x: hidden;
           font-family:
             'Noto Sans KR',
             -apple-system,
@@ -258,7 +307,7 @@ export default function LoginPage() {
           height: 35px;
           display: flex;
           align-items: center;
-          white-space: nowrap; /* 줄바꿈 방지 */
+          white-space: nowrap; /* 모바일에서는 해제 */
         }
         /* 헤더(로고+텍스트) 한 줄 유지 */
         .login-header {
@@ -354,20 +403,19 @@ export default function LoginPage() {
           cursor: pointer;
         }
         .checkbox-input {
-          /* Match input field style */
+          /* Use native checkbox rendering to avoid double ticks */
           width: 18px;
           height: 18px;
           cursor: pointer;
-          appearance: none;
-          -webkit-appearance: none;
-          -moz-appearance: none;
+          appearance: auto;
+          -webkit-appearance: checkbox;
+          -moz-appearance: checkbox;
           background: #ffffff;
           border: 1px solid #d1d5db;
           border-radius: 4px;
-          position: relative;
-          display: inline-block;
           vertical-align: middle;
           transition: all 0.2s ease;
+          accent-color: #31a3fa;
         }
         .checkbox-input:hover {
           border-color: #31a3fa;
@@ -377,21 +425,7 @@ export default function LoginPage() {
           border-color: #31a3fa;
           box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
         }
-        .checkbox-input:checked {
-          background-color: #31a3fa;
-          border-color: #31a3fa;
-        }
-        .checkbox-input:checked::after {
-          content: '';
-          position: absolute;
-          top: 2px;
-          left: 6px;
-          width: 4px;
-          height: 8px;
-          border: solid #ffffff;
-          border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
-        }
+        /* Remove custom tick rendering to prevent double checkmarks */
         .checkbox-input:disabled {
           opacity: 0.6;
           cursor: not-allowed;
@@ -414,8 +448,18 @@ export default function LoginPage() {
           text-decoration: none;
           transition: color 0.2s ease;
           font-weight: 500;
+          /* Ensure button and anchor look identical */
+          background: transparent;
+          border: none;
+          appearance: none;
+          -webkit-appearance: none;
+          display: inline;
+          line-height: inherit;
+          font-family: inherit;
+          cursor: pointer;
           /* Remove horizontal padding to minimize wrapping */
           padding: 0;
+          margin: 0;
         }
         .forgot-password:hover {
           color: #31a3fa;
@@ -610,18 +654,21 @@ export default function LoginPage() {
         /* Responsive */
         @media (max-width: 480px) {
           .login-content {
-            padding: 0;
+            padding: 0 8px;
           }
           .login-container {
             padding: 0 16px;
           }
           .login-header {
             margin: 16px auto;
+            flex-wrap: wrap;
+            gap: 8px;
           }
           .login-title {
-            font-size: 24px;
-            line-height: 35px;
-            height: 35px;
+            font-size: 22px;
+            line-height: 32px;
+            height: auto;
+            white-space: normal;
           }
           .form-group {
             margin: 16px 0;
