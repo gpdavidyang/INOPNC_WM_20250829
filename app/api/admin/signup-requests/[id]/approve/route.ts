@@ -12,7 +12,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = await req.json().catch(() => ({}))
     const organizationId = body?.organizationId as string | undefined
     const siteIds = Array.isArray(body?.siteIds) ? (body.siteIds as string[]) : undefined
-    const result = await approveSignupRequest(id, auth.userId, organizationId, siteIds)
+    const allowOverride = body?.allowOverride === true
+    const result = await approveSignupRequest(
+      id,
+      auth.userId,
+      organizationId,
+      siteIds,
+      allowOverride
+    )
     if (!result || (result as any).error) {
       return NextResponse.json(
         { success: false, error: (result as any)?.error || '승인 처리에 실패했습니다.' },

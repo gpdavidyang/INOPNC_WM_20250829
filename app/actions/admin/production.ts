@@ -10,12 +10,7 @@ import {
   validateNumber,
   withRetry,
 } from '@/lib/utils/error-handling'
-import {
-  logAuditTrail,
-  recordMetric,
-  PerformanceTimer,
-  MetricNames,
-} from '@/lib/utils/logging'
+import { logAuditTrail, recordMetric, PerformanceTimer, MetricNames } from '@/lib/utils/logging'
 import type { ProductionRecord } from '@/types/materials'
 import type { Database } from '@/types/database'
 import {
@@ -39,7 +34,7 @@ type SupabaseProductionRow = {
   created_at: string | null
   updated_at: string | null
   creator?: {
-    organization_id?: string | null
+    partner_company_id?: string | null
     full_name?: string | null
   } | null
 }
@@ -47,7 +42,7 @@ type SupabaseProductionRow = {
 type ProductionRecordWithMeta = ProductionRecord & {
   creator_name?: string | null
   creator?: {
-    organization_id?: string | null
+    partner_company_id?: string | null
     full_name?: string | null
   } | null
 }
@@ -82,9 +77,10 @@ function roundToTwo(value: number): number {
 function mapProductionRecord(row: SupabaseProductionRow): ProductionRecordWithMeta {
   const quantity = roundToTwo(toNumber(row.quantity_produced))
   const unitCost = roundToTwo(toNumber(row.unit_cost))
-  const totalCostValue = row.total_cost !== null && row.total_cost !== undefined
-    ? toNumber(row.total_cost)
-    : quantity * unitCost
+  const totalCostValue =
+    row.total_cost !== null && row.total_cost !== undefined
+      ? toNumber(row.total_cost)
+      : quantity * unitCost
 
   return {
     id: row.id,
@@ -111,7 +107,7 @@ async function ensureProductionAccessible(
     .select(
       `
       *,
-      creator:profiles!production_records_created_by_fkey(organization_id, full_name)
+      creator:profiles!production_records_created_by_fkey(partner_company_id, full_name)
     `
     )
     .eq('id', id)
@@ -122,7 +118,7 @@ async function ensureProductionAccessible(
     throw new AppError('생산 기록을 찾을 수 없습니다.', ErrorType.NOT_FOUND, 404)
   }
 
-  const organizationId = (data as SupabaseProductionRow).creator?.organization_id ?? undefined
+  const organizationId = (data as SupabaseProductionRow).creator?.partner_company_id ?? undefined
   await assertOrgAccess(auth, organizationId)
 
   return mapProductionRecord(data as SupabaseProductionRow)
@@ -170,9 +166,10 @@ function buildProductionAnalytics(
 
     const key = buildAnalyticsKey(row.production_date, period)
     const quantity = toNumber(row.quantity_produced)
-    const totalCost = row.total_cost !== null && row.total_cost !== undefined
-      ? toNumber(row.total_cost)
-      : quantity * toNumber(row.unit_cost)
+    const totalCost =
+      row.total_cost !== null && row.total_cost !== undefined
+        ? toNumber(row.total_cost)
+        : quantity * toNumber(row.unit_cost)
 
     const bucket = buckets.get(key) ?? { totalQuantity: 0, totalCost: 0, days: new Set<string>() }
     bucket.totalQuantity += quantity
@@ -234,31 +231,37 @@ export async function createProductionRecord(data: {
       const unitCost = roundToTwo(data.unit_cost ?? 0)
       const totalCost = roundToTwo(data.quantity_produced * unitCost)
 
-      const inserted = await withRetry(async () => {
-        const { data: insertedRow, error } = await supabase
-          .from('production_records')
-          .insert({
-            production_date: data.production_date,
-            quantity_produced: data.quantity_produced,
-            unit_cost: unitCost,
-            total_cost: totalCost,
-            notes: data.notes,
-            created_by: auth.userId,
-          })
-          .select(
-            `
+      const inserted = await withRetry(
+        async () => {
+          const { data: insertedRow, error } = await supabase
+            .from('production_records')
+            .insert({
+              production_date: data.production_date,
+              quantity_produced: data.quantity_produced,
+              unit_cost: unitCost,
+              total_cost: totalCost,
+              notes: data.notes,
+              created_by: auth.userId,
+            })
+            .select(
+              `
             *,
-            creator:profiles!production_records_created_by_fkey(organization_id, full_name)
+            creator:profiles!production_records_created_by_fkey(partner_company_id, full_name)
           `
-          )
-          .single()
+            )
+            .single()
 
-        if (error || !insertedRow) {
-          throw error ?? new AppError('생산 기록을 추가할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
-        }
+          if (error || !insertedRow) {
+            throw (
+              error ?? new AppError('생산 기록을 추가할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
+            )
+          }
 
-        return insertedRow as SupabaseProductionRow
-      }, 2, 1000)
+          return insertedRow as SupabaseProductionRow
+        },
+        2,
+        1000
+      )
 
       const record = mapProductionRecord(inserted)
 
@@ -322,7 +325,9 @@ export async function updateProductionRecord(
       }
 
       if (updates.quantity_produced !== undefined) {
-        const quantityValidation = validateNumber(updates.quantity_produced, '생산량', { min: 0.01 })
+        const quantityValidation = validateNumber(updates.quantity_produced, '생산량', {
+          min: 0.01,
+        })
         if (quantityValidation) {
           return { success: false, error: quantityValidation.error }
         }
@@ -352,16 +357,15 @@ export async function updateProductionRecord(
         updateData.notes = updates.notes
       }
 
-      if (
-        updateData.quantity_produced !== undefined ||
-        updateData.unit_cost !== undefined
-      ) {
-        const quantity = updateData.quantity_produced !== undefined
-          ? toNumber(updateData.quantity_produced as number)
-          : existing.quantity_produced
-        const unitCost = updateData.unit_cost !== undefined
-          ? toNumber(updateData.unit_cost as number)
-          : existing.unit_cost
+      if (updateData.quantity_produced !== undefined || updateData.unit_cost !== undefined) {
+        const quantity =
+          updateData.quantity_produced !== undefined
+            ? toNumber(updateData.quantity_produced as number)
+            : existing.quantity_produced
+        const unitCost =
+          updateData.unit_cost !== undefined
+            ? toNumber(updateData.unit_cost as number)
+            : existing.unit_cost
         updateData.total_cost = roundToTwo(quantity * unitCost)
       }
 
@@ -416,10 +420,7 @@ export async function deleteProductionRecord(id: string): Promise<AdminActionRes
     try {
       const existing = await ensureProductionAccessible(supabase, auth, id)
 
-      const { error } = await supabase
-        .from('production_records')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('production_records').delete().eq('id', id)
 
       if (error) {
         console.error('Error deleting production record:', error)
@@ -497,15 +498,17 @@ export async function getProductionHistory(
   })
 }
 
-export async function getProductionAnalytics(
-  period: 'week' | 'month' | 'year' = 'month'
-): Promise<AdminActionResult<Array<{
-  month: string
-  total_produced: number
-  avg_unit_cost: number
-  total_cost: number
-  production_days: number
-}>>> {
+export async function getProductionAnalytics(period: 'week' | 'month' | 'year' = 'month'): Promise<
+  AdminActionResult<
+    Array<{
+      month: string
+      total_produced: number
+      avg_unit_cost: number
+      total_cost: number
+      production_days: number
+    }>
+  >
+> {
   return withAdminAuth(async (supabase, profile) => {
     const auth = profile.auth
 
@@ -520,20 +523,24 @@ export async function getProductionAnalytics(
           quantity_produced,
           unit_cost,
           total_cost,
-          creator:profiles!production_records_created_by_fkey(organization_id)
+          creator:profiles!production_records_created_by_fkey(partner_company_id)
         `
         )
         .gte('production_date', startDate)
 
       if (auth.isRestricted) {
         const restrictedOrgId = requireRestrictedOrgId(auth)
-        query = query.eq('creator.organization_id', restrictedOrgId)
+        query = query.eq('creator.partner_company_id', restrictedOrgId)
       }
 
       const { data, error } = await query
 
       if (error) {
-        throw new AppError('생산 분석 데이터를 불러오는데 실패했습니다.', ErrorType.SERVER_ERROR, 500)
+        throw new AppError(
+          '생산 분석 데이터를 불러오는데 실패했습니다.',
+          ErrorType.SERVER_ERROR,
+          500
+        )
       }
 
       const analytics = buildProductionAnalytics((data || []) as SupabaseProductionRow[], period)
@@ -552,14 +559,14 @@ export async function getDailyProductionStatus(
     const auth = profile.auth
 
     try {
-      const targetDate = (date || new Date().toISOString().split('T')[0]!)
+      const targetDate = date || new Date().toISOString().split('T')[0]!
 
       let query = supabase
         .from('production_records')
         .select(
           `
           *,
-          creator:profiles!production_records_created_by_fkey(organization_id, full_name)
+          creator:profiles!production_records_created_by_fkey(partner_company_id, full_name)
         `
         )
         .eq('production_date', targetDate)
@@ -567,7 +574,7 @@ export async function getDailyProductionStatus(
 
       if (auth.isRestricted) {
         const restrictedOrgId = requireRestrictedOrgId(auth)
-        query = query.eq('creator.organization_id', restrictedOrgId)
+        query = query.eq('creator.partner_company_id', restrictedOrgId)
       }
 
       const { data: dailyRows, error } = await query
@@ -576,7 +583,9 @@ export async function getDailyProductionStatus(
         throw new AppError('일일 생산 현황을 불러오는데 실패했습니다.', ErrorType.SERVER_ERROR, 500)
       }
 
-      const records = (dailyRows || []).map(row => mapProductionRecord(row as SupabaseProductionRow))
+      const records = (dailyRows || []).map(row =>
+        mapProductionRecord(row as SupabaseProductionRow)
+      )
 
       let headquartersInventory: Record<string, unknown> | null = null
       const { data: inventoryData, error: inventoryError } = await supabase
@@ -587,16 +596,18 @@ export async function getDailyProductionStatus(
         console.error('Error fetching headquarters inventory:', inventoryError)
       } else if (Array.isArray(inventoryData)) {
         const restrictedOrgId = auth.isRestricted ? requireRestrictedOrgId(auth) : null
-        headquartersInventory = inventoryData.find(item => {
-          const locationMatches = (item as { location?: string }).location === '본사'
+        headquartersInventory =
+          inventoryData.find(item => {
+            const locationMatches = (item as { location?: string }).location === '본사'
 
-          if (!restrictedOrgId) {
-            return locationMatches
-          }
+            if (!restrictedOrgId) {
+              return locationMatches
+            }
 
-          const organizationId = (item as { organization_id?: string | null }).organization_id ?? null
-          return locationMatches && organizationId === restrictedOrgId
-        }) ?? null
+            const organizationId =
+              (item as { organization_id?: string | null }).organization_id ?? null
+            return locationMatches && organizationId === restrictedOrgId
+          }) ?? null
       }
 
       const totalProduced = records.reduce((sum, record) => sum + record.quantity_produced, 0)

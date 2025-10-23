@@ -448,17 +448,20 @@ export async function approveSignupRequest(
   requestId: string,
   adminUserId: string,
   organizationId?: string,
-  siteIds?: string[]
+  siteIds?: string[],
+  allowOverride?: boolean
 ) {
   const supabase = createClient()
   const { createServiceRoleClient } = await import('@/lib/supabase/service-role')
+  // Use service role client for ALL DB writes/reads in this flow to avoid RLS issues
   const serviceClient = createServiceRoleClient()
+  const db = serviceClient
 
   try {
     // console.log('Starting approval process for request:', requestId)
 
     // Get signup request details
-    const { data: request, error: fetchError } = await supabase
+    const { data: request, error: fetchError } = await db
       .from('signup_requests')
       .select('*')
       .eq('id', requestId)
@@ -469,9 +472,11 @@ export async function approveSignupRequest(
       return { error: '승인 요청을 찾을 수 없습니다.' }
     }
 
-    // Check if already processed
+    // Check status: allow override from 'rejected' when explicitly requested
     if (request.status !== 'pending') {
-      return { error: '이미 처리된 요청입니다.' }
+      if (!(allowOverride && request.status === 'rejected')) {
+        return { error: '이미 처리된 요청입니다.' }
+      }
     }
 
     // Generate temporary password
@@ -520,7 +525,7 @@ export async function approveSignupRequest(
 
     if (organizationId) {
       // Try to get partner company name first
-      const { data: partner } = await supabase
+      const { data: partner } = await db
         .from('partner_companies')
         .select('company_name')
         .eq('id', organizationId)
@@ -530,7 +535,7 @@ export async function approveSignupRequest(
         partnerCompanyName = partner.company_name
       } else {
         // Fallback to organizations table if not found in partner_companies
-        const { data: org } = await supabase
+        const { data: org } = await db
           .from('organizations')
           .select('name')
           .eq('id', organizationId)
@@ -540,11 +545,11 @@ export async function approveSignupRequest(
     }
 
     if (siteIds && siteIds.length > 0) {
-      const { data: sites } = await supabase.from('sites').select('name').in('id', siteIds)
+      const { data: sites } = await db.from('sites').select('name').in('id', siteIds)
       siteNames = sites?.map((s: any) => s.name) || []
     }
 
-    // Create profile with proper partner_company_id for customer_manager
+    // Create profile with proper partner_company_id / organization_id
     // console.log('Creating user profile...')
     const profileData: any = {
       id: authData.user.id,
@@ -559,33 +564,52 @@ export async function approveSignupRequest(
       updated_at: new Date().toISOString(),
     }
 
-    // Set partner_company_id for customer_manager role
-    if (role === 'customer_manager' && organizationId) {
+    // Always set partner_company_id when organizationId is provided
+    if (organizationId) {
       profileData.partner_company_id = organizationId
-      // Don't set organization_id for customer_manager
-    } else {
-      // For other roles, organization_id is optional
-      profileData.organization_id = organizationId
-      // Set site_id only for single-site assignments
-      if (siteIds && siteIds.length === 1) {
-        profileData.site_id = siteIds[0]
-      }
+    }
+    // Do not set organization_id here unless explicitly resolved elsewhere
+    // Set site_id only for single-site assignments
+    if (siteIds && siteIds.length === 1) {
+      profileData.site_id = siteIds[0]
     }
 
-    const { error: profileError } = await supabase.from('profiles').insert(profileData)
+    // Robust profile creation: if full payload fails, retry with minimal required fields
+    let profileError: any | null = null
+    {
+      const { error } = await db.from('profiles').upsert(profileData, { onConflict: 'id' })
+      profileError = error || null
+    }
 
     if (profileError) {
-      console.error('Profile creation error:', profileError)
-      // Try to delete the auth user if profile creation fails
-      await serviceClient.auth.admin.deleteUser(authData.user.id)
-      return { error: '사용자 프로필 생성에 실패했습니다.' }
+      console.warn(
+        'Profile creation failed with full payload, retrying minimal fields:',
+        profileError
+      )
+      const minimalProfile: any = {
+        id: authData.user.id,
+        email: request.email,
+        full_name: request.full_name,
+        role: role,
+        status: 'active',
+      }
+      if (organizationId) minimalProfile.partner_company_id = organizationId
+      const { error: retryError } = await db
+        .from('profiles')
+        .upsert(minimalProfile, { onConflict: 'id' })
+      if (retryError) {
+        console.error('Profile creation error (minimal):', retryError)
+        // Try to delete the auth user if profile creation fails
+        await serviceClient.auth.admin.deleteUser(authData.user.id)
+        return { error: '사용자 프로필 생성에 실패했습니다.' }
+      }
     }
     // console.log('Profile created successfully')
 
     // Create user_organizations entry
     if (organizationId) {
       // console.log('Assigning to organization...')
-      await supabase.from('user_organizations').insert({
+      await db.from('user_organizations').insert({
         user_id: authData.user.id,
         organization_id: organizationId,
         is_primary: true,
@@ -602,18 +626,22 @@ export async function approveSignupRequest(
         is_active: true,
       }))
 
-      await supabase.from('site_assignments').insert(assignments)
+      await db.from('site_assignments').insert(assignments)
     }
 
     // Update signup request status
     // console.log('Updating request status to approved...')
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from('signup_requests')
       .update({
         status: 'approved',
         approved_by: adminUserId,
         approved_at: new Date().toISOString(),
         temporary_password: tempPassword,
+        // clear rejection fields when overriding from rejected
+        rejected_by: null,
+        rejected_at: null,
+        rejection_reason: null,
       })
       .eq('id', requestId)
 
@@ -624,7 +652,7 @@ export async function approveSignupRequest(
 
     // Try to set created_user_id if the column exists (non-blocking)
     try {
-      await supabase
+      await db
         .from('signup_requests')
         .update({ created_user_id: authData.user.id })
         .eq('id', requestId)

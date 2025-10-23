@@ -49,7 +49,7 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, organization_id, full_name, site_id, status')
+    .select('role, organization_id, partner_company_id, full_name, site_id, status')
     .eq('id', user.id)
     .single()
 
@@ -57,7 +57,9 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
     userId: user.id,
     email: user.email!,
     isRestricted: ['customer_manager', 'partner'].includes(profile?.role || ''),
-    restrictedOrgId: profile?.organization_id,
+    // Prefer partner_company_id for restricted organization, fallback to legacy organization_id
+    restrictedOrgId:
+      (profile as any)?.partner_company_id || (profile as any)?.organization_id || undefined,
     uiTrack: getUITrack(profile?.role),
     role: profile?.role,
   }

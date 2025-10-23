@@ -303,7 +303,7 @@ export function UsersContent({
                     <TableHead>{t('users.table.organization')}</TableHead>
                     <TableHead>{t('users.table.status')}</TableHead>
                     <TableHead>{t('users.table.lastActivity')}</TableHead>
-                    <TableHead className="text-right">{t('users.table.details')}</TableHead>
+                    <TableHead className="text-right">상세</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -336,16 +336,54 @@ export function UsersContent({
                       </TableCell>
                       <TableCell>{formatDate(user.work_log_stats?.last_report_date)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={event => {
-                            event.stopPropagation()
-                            handleOpenDetail(user.id)
-                          }}
-                        >
-                          {t('common.details')}
-                        </Button>
+                        <div className="inline-flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={event => {
+                              event.stopPropagation()
+                              handleOpenDetail(user.id)
+                            }}
+                          >
+                            상세
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={event => {
+                              event.stopPropagation()
+                              router.push(`/dashboard/admin/users/${user.id}`)
+                            }}
+                          >
+                            수정
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={async event => {
+                              event.stopPropagation()
+                              if (
+                                !confirm(
+                                  `${user.full_name || user.email} 사용자를 삭제하시겠습니까?`
+                                )
+                              )
+                                return
+                              try {
+                                const res = await fetch(`/api/admin/users/${user.id}`, {
+                                  method: 'DELETE',
+                                })
+                                const j = await res.json().catch(() => ({}))
+                                if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
+                                setUsers(prev => prev.filter(u => u.id !== user.id))
+                                setTotal(prev => Math.max(prev - 1, 0))
+                              } catch (e: any) {
+                                alert(e?.message || '삭제 중 오류가 발생했습니다.')
+                              }
+                            }}
+                          >
+                            삭제
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

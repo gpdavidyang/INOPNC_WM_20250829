@@ -207,8 +207,11 @@ export default function LoginPage() {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 0 20px;
+          /* Compact but consistent outer horizontal padding */
+          padding: 0 16px;
           background: #ffffff;
+          /* Force light UI for form controls regardless of system theme */
+          color-scheme: light;
           font-family:
             'Noto Sans KR',
             -apple-system,
@@ -223,7 +226,8 @@ export default function LoginPage() {
         .login-content {
           width: 100%;
           max-width: 400px;
-          padding: 0 25px;
+          /* Remove inner horizontal padding to keep compact width */
+          padding: 0;
           box-sizing: border-box;
         }
 
@@ -272,22 +276,39 @@ export default function LoginPage() {
           padding-right: 45px;
           border: 1px solid #d1d5db;
           border-radius: 8px;
-          background: #ffffff;
+          background: #ffffff !important; /* prevent gray background on focus/typing */
           color: #6b7280;
           font-size: 16px;
           font-weight: 500;
           transition: all 0.2s ease;
           box-sizing: border-box;
+          -webkit-appearance: none;
+          appearance: none;
+          -webkit-text-fill-color: #6b7280; /* keep text visible in iOS dark */
+          background-clip: padding-box; /* avoid UA theming bleed */
         }
 
         .form-input:focus {
           outline: none;
           border-color: #31a3fa;
           box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+          background: #ffffff !important;
         }
 
         .form-input::placeholder {
           color: #6b7280;
+        }
+
+        /* Ensure autofill doesn't turn field gray/yellow */
+        .form-input:-webkit-autofill,
+        .form-input:-webkit-autofill:hover,
+        .form-input:-webkit-autofill:focus,
+        .form-input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #ffffff inset !important;
+          box-shadow: 0 0 0 30px #ffffff inset !important;
+          -webkit-text-fill-color: #6b7280 !important;
+          caret-color: #1f2937 !important; /* gray-800 */
+          background: #ffffff !important;
         }
 
         .input-wrapper {
@@ -384,7 +405,7 @@ export default function LoginPage() {
         .forgot-links {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 4px;
           justify-content: flex-end;
         }
         .forgot-password {
@@ -393,6 +414,8 @@ export default function LoginPage() {
           text-decoration: none;
           transition: color 0.2s ease;
           font-weight: 500;
+          /* Remove horizontal padding to minimize wrapping */
+          padding: 0;
         }
         .forgot-password:hover {
           color: #31a3fa;
@@ -406,6 +429,13 @@ export default function LoginPage() {
           font-size: 16px;
           color: #6b7280;
           font-weight: 500;
+          /* Make the clickable label text compact horizontally */
+          padding: 0;
+        }
+
+        /* Ensure the overall label itself stays compact horizontally */
+        .checkbox {
+          padding: 0;
         }
 
         .login-button {
@@ -541,7 +571,7 @@ export default function LoginPage() {
           height: 45px;
           border-radius: 8px;
           border: 1px solid #d1d5db;
-          background: #fff;
+          background: #fff !important;
           color: #6b7280;
           padding: 0 14px;
           font-size: 16px;
@@ -549,6 +579,11 @@ export default function LoginPage() {
           outline: none;
           transition: all 0.2s ease;
           box-sizing: border-box;
+        }
+        .modal-body .form-group input:focus {
+          background: #ffffff !important;
+          border-color: #31a3fa;
+          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
         }
         .modal-button {
           width: 100%;
@@ -575,7 +610,10 @@ export default function LoginPage() {
         /* Responsive */
         @media (max-width: 480px) {
           .login-content {
-            padding: 0 20px;
+            padding: 0;
+          }
+          .login-container {
+            padding: 0 16px;
           }
           .login-header {
             margin: 16px auto;

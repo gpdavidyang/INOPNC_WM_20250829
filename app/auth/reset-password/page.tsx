@@ -21,18 +21,21 @@ export default function ResetPasswordPage() {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 0 20px;
+          /* Compact but consistent outer horizontal padding */
+          padding: 0 16px;
           background: #ffffff;
           font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
         }
-        .reset-content { width: 100%; max-width: 400px; padding: 0 20px; box-sizing: border-box; }
-        .reset-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 0 auto 20px; width: 100%; }
-        .reset-logo { height: 38px; width: auto; object-fit: contain; display: flex; align-items: center; }
-        .reset-title { font-size: 24px; font-weight: 600; color: #1A254F; margin: 0; line-height: 1.2; height: 35px; display: flex; align-items: center; }
+        .reset-content { width: 100%; max-width: 400px; padding: 0; box-sizing: border-box; }
+        .reset-header { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 0 auto 20px; width: 100%; flex-wrap: nowrap; }
+        .reset-logo { height: 38px; width: auto; object-fit: contain; display: flex; align-items: center; flex-shrink: 0; }
+        .reset-title { font-size: clamp(16px, 5vw, 24px); font-weight: 600; color: #1A254F; margin: 0; line-height: 1.2; height: 35px; display: flex; align-items: center; white-space: nowrap; }
         .card { background: #fff; border-radius: 8px; box-shadow: 0 12px 40px rgba(0,0,0,0.08); padding: 18px; border: 1px solid #EEF2F7; }
         @media (max-width: 480px) {
-          .reset-content { padding: 0 20px; }
-          .reset-title { font-size: 24px; height: 35px; }
+          .reset-content { padding: 0; }
+          .reset-header { gap: 8px; }
+          .reset-logo { height: 32px; }
+          .reset-title { font-size: clamp(15px, 5.2vw, 22px); height: 35px; }
         }
       `}</style>
 
