@@ -7,8 +7,8 @@ import { Download, Search, X } from 'lucide-react'
 import {
   createMaterialRequest as createNpcMaterialRequest,
   recordInventoryTransaction,
-  getNPCMaterialsData,
-} from '@/app/actions/npc-materials'
+  getMaterialsData as getNPCMaterialsData,
+} from '@/app/actions/materials-inventory'
 import { useToast } from '@/components/ui/use-toast'
 import {
   CustomSelect,
@@ -560,7 +560,7 @@ export default function SiteInfoPage() {
     setNpcTransactions([])
 
     try {
-      const result = await getNPCMaterialsData(siteId)
+      const result = await getNPCMaterialsData({ siteId, codeLike: 'NPC-%', limit: 100 })
 
       if (!result?.success) {
         setNpcTransactions([])
@@ -1200,7 +1200,7 @@ export default function SiteInfoPage() {
       const result = await createNpcMaterialRequest({
         siteId: currentSite.id,
         materialCode: 'NPC-1000',
-        requestedQuantity: quantityValue,
+        qty: quantityValue,
         requestDate: new Date().toISOString(),
         notes: combinedNotes || undefined,
       })
