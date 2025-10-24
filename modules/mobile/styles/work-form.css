@@ -608,6 +608,16 @@ textarea.form-input {
   align-items: center;
 }
 
+/* Ensure delete button in additional manpower header aligns to the right */
+.additional-manpower-section .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between !important;
+}
+.additional-manpower-section .header-actions {
+  margin-left: auto;
+}
+
 /* Author Manpower Row */
 .author-manpower-row {
   height: auto;
