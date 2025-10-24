@@ -376,7 +376,7 @@ export const PhotoUploadCard: React.FC<
           {/* 저장 상태 안내 영역 */}
           <div className="upload-status" style={{ marginTop: 8 }}>
             {lastSavedAt && lastSaveInfo && (
-              <p className="text-sm" style={{ color: '#065f46' }}>
+              <p className="upload-status-ok">
                 저장 완료: {new Date(lastSavedAt).toLocaleString('ko-KR')} • 보수 전{' '}
                 {lastSaveInfo.before}장 / 보수 후 {lastSaveInfo.after}장
               </p>
