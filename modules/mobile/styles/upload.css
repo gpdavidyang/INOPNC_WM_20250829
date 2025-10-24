@@ -838,8 +838,8 @@
   width: 20px !important;
   height: 20px !important;
   border-radius: 50% !important;
-  background: #ffffff !important;
-  color: #31a3fa !important; /* icon (arrow) color */
+  background: #31a3fa !important; /* fill with button color */
+  color: #ffffff !important; /* white icon */
   border: 2px solid #31a3fa !important;
   font-size: 10px !important;
   font-weight: bold !important;
@@ -855,9 +855,9 @@
 }
 
 .move-photo-btn:hover {
-  background: rgba(49, 163, 250, 0.08) !important;
-  color: #31a3fa !important;
-  border-color: #31a3fa !important;
+  background: #0d8af5 !important; /* darker hover */
+  color: #ffffff !important;
+  border-color: #0d8af5 !important;
   transform: scale(1.1) !important;
 }
 
