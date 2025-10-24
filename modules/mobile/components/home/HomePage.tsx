@@ -305,26 +305,22 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     const loadAssigned = async () => {
       setUsersLoading(true)
       try {
-        const res = await fetch(
-          `/api/partner/sites/${encodeURIComponent(selectedSite)}/assignments`,
-          {
-            method: 'GET',
-            signal: controller.signal,
-            headers: { Accept: 'application/json' },
-            cache: 'no-store',
-          }
-        )
+        // Use admin workers API which allows worker/site_manager with site assignment
+        const res = await fetch(`/api/admin/sites/${encodeURIComponent(selectedSite)}/workers`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        })
         if (!res.ok) {
           // Keep fallback list if API is forbidden or fails
           console.warn('[HomePage] assignments api failed:', res.status)
           return
         }
         const payload = await res.json()
-        if (!payload?.success) return
+        if (payload?.error) return
         const rows: Array<any> = payload.data || []
         const assignedUsers = rows
-          .map(a => a?.profile)
-          .filter(Boolean)
           .filter((p: any) => ['worker', 'site_manager'].includes(p.role))
           .map((p: any) => ({ id: p.id, name: p.full_name || '이름없음', role: p.role }))
           .sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'))
