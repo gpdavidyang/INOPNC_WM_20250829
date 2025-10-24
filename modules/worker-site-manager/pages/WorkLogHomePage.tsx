@@ -1294,11 +1294,11 @@ export const WorkLogHomePage: React.FC = () => {
         {isDraftSheetOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black bg-opacity-40 z-40"
+              className="fixed inset-0 bg-black bg-opacity-40 z-[2000]"
               onClick={() => setDraftSheetOpen(false)}
             />
-            <div className="fixed bottom-0 left-0 right-0 z-50">
-              <div className="bg-white rounded-t-3xl shadow-xl p-5">
+            <div className="fixed bottom-0 left-0 right-0 z-[2001]">
+              <div className="bg-white rounded-t-3xl shadow-xl p-5 pb-7">
                 <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">임시저장 안내</h3>
                 <p className="text-sm text-gray-600 mb-3">
