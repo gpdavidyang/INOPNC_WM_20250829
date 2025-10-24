@@ -414,26 +414,16 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
             {!primaryBlueprint && (
               <div className="no-blueprint">
                 <div className="no-blueprint-icon" aria-hidden="true">
-                  <svg
-                    width="40"
-                    height="40"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
-                    <path d="M13 2v6h6" />
-                  </svg>
+                  <img
+                    src="/images/empty_blueprint_512.png"
+                    alt=""
+                    width={40}
+                    height={40}
+                    style={{ display: 'block', objectFit: 'contain' }}
+                  />
                 </div>
                 <p className="no-blueprint-title">공도면이 등록되어 있지 않습니다</p>
-                <p className="no-blueprint-desc">
-                  본사 관리자가 해당 현장 공도면 등록 후,
-                  <br />
-                  사용 가능합니다.
-                </p>
+                <p className="no-blueprint-desc">본사 관리자가 해당 현장 공도면 등록 후 사용 가능합니다.</p>
                 {error && (
                   <div className="text-sm" style={{ color: '#b91c1c', marginTop: 6 }}>
                     {error}
@@ -465,30 +455,15 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                   </a>
                 </div>
                 <div className="divider"></div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <div className="no-blueprint-actions">
                   <button
-                    className="upload-btn"
+                    className="grid-action-btn"
                     onClick={() => router.push('/mobile/markup-tool?mode=upload&source=photo')}
                   >
-                    <span className="upload-icon" aria-hidden="true">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                      </svg>
-                    </span>
                     사진으로 마킹하기
                   </button>
                   <button
-                    className="upload-btn"
+                    className="grid-action-btn"
                     onClick={() => fetchPrimaryBlueprint(selectedSite!)}
                   >
                     재시도

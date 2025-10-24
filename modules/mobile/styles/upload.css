@@ -1316,6 +1316,17 @@
   font-weight: 500;
 }
 
+/* Stronger visibility for photo upload status helper text */
+.upload-status .upload-hint-strong {
+  color: #1a254f !important; /* dark brand-like color */
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+[data-theme='dark'] .upload-status .upload-hint-strong {
+  color: #e9eef5 !important;
+}
+
 [data-theme='dark'] .drawing-file-item {
   background: rgba(255, 255, 255, 0.05);
 }
@@ -1801,12 +1812,12 @@
   margin-bottom: 8px;
 }
 
-/* Form Controls in Modal */
-.form-group {
+/* Form Controls in Modal (scoped to drawing upload modal only) */
+.drawing-upload-modal .form-group {
   margin-bottom: 16px;
 }
 
-.form-group label {
+.drawing-upload-modal .form-group label {
   display: block;
   font-size: 14px;
   font-weight: 500;
@@ -1814,8 +1825,8 @@
   margin-bottom: 6px;
 }
 
-.form-input,
-.form-textarea {
+.drawing-upload-modal .form-input,
+.drawing-upload-modal .form-textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #e5e5e7;
@@ -1824,18 +1835,18 @@
   transition: border-color 0.2s ease;
 }
 
-.form-input:focus,
-.form-textarea:focus {
+.drawing-upload-modal .form-input:focus,
+.drawing-upload-modal .form-textarea:focus {
   outline: none;
   border-color: #007aff;
 }
 
-.form-textarea {
+.drawing-upload-modal .form-textarea {
   resize: vertical;
   min-height: 60px;
 }
 
-.checkbox-label {
+.drawing-upload-modal .checkbox-label {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1843,13 +1854,13 @@
   cursor: pointer;
 }
 
-.checkbox-label input[type='checkbox'] {
+.drawing-upload-modal .checkbox-label input[type='checkbox'] {
   width: 18px;
   height: 18px;
   cursor: pointer;
 }
 
-.form-hint {
+.drawing-upload-modal .form-hint {
   font-size: 12px;
   color: #8e8e93;
   margin-top: 4px;
@@ -1892,7 +1903,7 @@
 }
 
 [data-theme='dark'] .form-input,
-[data-theme='dark'] .form-textarea {
+[data-theme='dark'] .drawing-upload-modal .form-textarea {
   background: #2c2c2e;
   border-color: #38383a;
   color: #ffffff;

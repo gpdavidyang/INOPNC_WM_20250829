@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 interface Announcement {
   id: string
@@ -43,6 +44,7 @@ export const NoticeSection: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>(defaultAnnouncements)
   const [activeIndex, setActiveIndex] = useState(0)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   // Fetch announcements from backend
   useEffect(() => {
@@ -129,7 +131,9 @@ export const NoticeSection: React.FC = () => {
           <div className="notice-content">
             <div className="notice-item active">
               <span className="notice-text" style={{ color: '#101828', opacity: 1 }}>
-                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>[로딩중]</strong>
+                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>
+                  [로딩중]
+                </strong>
                 공지사항을 불러오는 중입니다...
               </span>
             </div>
@@ -146,7 +150,9 @@ export const NoticeSection: React.FC = () => {
           <div className="notice-content">
             <div className="notice-item active">
               <span className="notice-text" style={{ color: '#101828', opacity: 1 }}>
-                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>[알림]</strong>
+                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>
+                  [알림]
+                </strong>
                 현재 등록된 공지사항이 없습니다.
               </span>
             </div>
@@ -159,14 +165,30 @@ export const NoticeSection: React.FC = () => {
   return (
     <section id="home-notice" className="section">
       <div className="card notice-card">
-        <div className="notice-content">
+        <div
+          className="notice-content cursor-pointer"
+          role="button"
+          aria-label="공지사항 목록 보기"
+          tabIndex={0}
+          onClick={() => {
+            router.push('/mobile/announcements')
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              router.push('/mobile/announcements')
+            }
+          }}
+        >
           {announcements.map((announcement, index) => (
             <div
               key={announcement.id}
               className={`notice-item ${index === activeIndex ? 'active' : ''}`}
             >
               <span className="notice-text" style={{ color: '#101828', opacity: 1 }}>
-                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>[{getNoticeType(announcement)}]</strong>
+                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>
+                  [{getNoticeType(announcement)}]
+                </strong>
                 {announcement.content}
               </span>
             </div>

@@ -37,7 +37,13 @@
   margin-left: auto; /* push to the right like form-note */
   text-align: right;
   /* Match typography with form-note / author-info */
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 16px;
   font-weight: 600;
   color: #31a3fa; /* same accent color */
@@ -70,8 +76,9 @@
 }
 
 .drawing-quick-section .empty-text {
-  color: var(--text-muted, #6b7280);
-  font-size: 0.875rem;
+  color: #1a254f; /* stronger contrast */
+  font-size: 0.938rem; /* slightly larger */
+  font-weight: 700; /* bold for readability */
 }
 
 /* Loading State */
@@ -125,10 +132,11 @@
 }
 
 .drawing-quick-section .preview-label {
-  font-size: 0.75rem;
-  color: #1e40af;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  /* Improve readability of the field caption */
+  font-size: 0.875rem; /* 14px */
+  font-weight: 600; /* Semi-bold */
+  color: var(--brand, #1a254f); /* higher contrast */
+  letter-spacing: 0.2px; /* reduce spacing for Hangul */
 }
 
 .drawing-quick-section .preview-title {
@@ -275,10 +283,11 @@
 }
 
 .drawing-quick-section .no-blueprint-desc {
-  color: var(--text-muted, #6b7280);
-  font-size: 0.875rem;
+  color: #1a254f; /* stronger for readability */
+  font-size: 0.938rem;
+  font-weight: 600;
   line-height: 1.5;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 /* Support Section */
@@ -286,16 +295,17 @@
   background: var(--bg-secondary, #f9fafb);
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.875rem;
   margin-bottom: 1rem;
 }
 
 .drawing-quick-section .support-label {
-  font-size: 0.75rem;
-  color: var(--text-muted, #6b7280);
-  margin-bottom: 0.5rem;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-size: 0.875rem;
+  color: #1a254f;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  text-transform: none; /* keep sentence case for readability */
+  letter-spacing: 0;
 }
 
 .drawing-quick-section .kakao-link {
@@ -334,6 +344,33 @@
   background: #e5e7eb;
   margin: 1rem 0;
   opacity: 0.5;
+}
+
+/* No blueprint action grid */
+.drawing-quick-section .no-blueprint-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.drawing-quick-section .grid-action-btn {
+  background: var(--card, #ffffff);
+  color: var(--text, #1f2937);
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-size: 0.938rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+  text-align: center;
+}
+
+.drawing-quick-section .grid-action-btn:hover {
+  background: var(--bg-secondary, #f3f4f6);
+  border-color: var(--hover-color);
+  color: var(--hover-color);
 }
 
 /* Upload Button */
@@ -616,7 +653,8 @@
 
 [data-theme='dark'] .drawing-quick-section .empty-text,
 [data-theme='dark'] .drawing-quick-section .loading-text {
-  color: #9ca3af;
+  color: #e9eef5;
+  font-weight: 700;
 }
 
 [data-theme='dark'] .drawing-quick-section .blueprint-preview {
@@ -625,7 +663,8 @@
 }
 
 [data-theme='dark'] .drawing-quick-section .preview-label {
-  color: #93c5fd;
+  font-weight: 700; /* extra contrast in dark mode */
+  color: #bfdbfe; /* slightly brighter for visibility */
 }
 
 [data-theme='dark'] .drawing-quick-section .preview-title {
@@ -664,7 +703,7 @@
 }
 
 [data-theme='dark'] .drawing-quick-section .no-blueprint-desc {
-  color: #9ca3af;
+  color: #e9eef5;
 }
 
 [data-theme='dark'] .drawing-quick-section .support-section {
@@ -673,7 +712,7 @@
 }
 
 [data-theme='dark'] .drawing-quick-section .support-label {
-  color: #9ca3af;
+  color: #e9eef5;
 }
 
 [data-theme='dark'] .drawing-quick-section .upload-btn {
@@ -683,6 +722,18 @@
 }
 
 [data-theme='dark'] .drawing-quick-section .upload-btn:hover {
+  background: #4b5563;
+  border-color: #60a5fa;
+}
+
+/* Dark mode for action grid buttons */
+[data-theme='dark'] .drawing-quick-section .grid-action-btn {
+  background: #374151;
+  color: #f3f4f6;
+  border-color: #4b5563;
+}
+
+[data-theme='dark'] .drawing-quick-section .grid-action-btn:hover {
   background: #4b5563;
   border-color: #60a5fa;
 }

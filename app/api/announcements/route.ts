@@ -116,6 +116,7 @@ export async function GET(request: NextRequest) {
     const supabase = createClient()
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('siteId')
+    const id = searchParams.get('id')
     const priority = searchParams.get('priority')
     const search = (searchParams.get('search') || '').trim()
 
@@ -162,6 +163,52 @@ export async function GET(request: NextRequest) {
       if (siteId && !accessibleSiteIds.includes(siteId)) {
         return NextResponse.json({ success: true, announcements: [] })
       }
+    }
+
+    // If id is provided, fetch specific announcement first (then validate access)
+    if (id) {
+      let query = supabase.from('announcements').select('*').eq('id', id).eq('is_active', true)
+      const { data: items, error: fetchError } = await query.limit(1)
+      if (fetchError) {
+        console.error('Error fetching announcement by id:', fetchError)
+        return NextResponse.json({ success: true, announcements: [] })
+      }
+      const announcement = (items || [])[0]
+      if (!announcement) {
+        return NextResponse.json({ success: true, announcements: [] })
+      }
+      // Role filter for non-admins
+      const roleAllowed =
+        !announcement?.target_roles ||
+        announcement.target_roles.length === 0 ||
+        ['admin', 'system_admin'].includes(profile.role || '') ||
+        announcement.target_roles.includes(profile.role ?? '')
+      if (!roleAllowed) {
+        return NextResponse.json({ success: true, announcements: [] })
+      }
+      // Site access filter: if announcement targets specific sites, ensure user has access
+      if (Array.isArray(announcement?.target_sites) && announcement.target_sites.length > 0) {
+        const targeted: string[] = announcement.target_sites
+        let hasAccess = false
+        if (profile.role === 'worker' || profile.role === 'site_manager') {
+          hasAccess = !!profile.site_id && targeted.includes(profile.site_id)
+        } else if (authResult.isRestricted) {
+          // restricted org: check if any of the org sites overlap
+          const { data: orgSites } = await supabase
+            .from('sites')
+            .select('id')
+            .eq('organization_id', authResult.restrictedOrgId)
+          const orgSiteIds = (orgSites || []).map(s => (s as { id: string }).id)
+          hasAccess = orgSiteIds.some(sid => targeted.includes(sid))
+        } else {
+          // admins can access
+          hasAccess = true
+        }
+        if (!hasAccess) {
+          return NextResponse.json({ success: true, announcements: [] })
+        }
+      }
+      return NextResponse.json({ success: true, announcements: [announcement] })
     }
 
     let query = supabase.from('announcements').select('*').eq('is_active', true)

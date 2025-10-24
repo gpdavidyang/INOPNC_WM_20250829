@@ -30,6 +30,12 @@
     "migrate:documents:prod": "tsx scripts/migrate-documents.ts --env=production --backup",
     "cleanup:work-options:inactive": "tsx scripts/cleanup-inactive-work-options.ts",
     "cleanup:work-options:inactive:dry": "tsx scripts/cleanup-inactive-work-options.ts --dry-run",
+    "import:org-sites": "tsx scripts/import-org-sites.ts",
+    "import:users": "tsx scripts/import-users.ts",
+    "import:salary": "tsx scripts/import-salary-csv.ts",
+    "import:worklogs": "tsx scripts/import-worklogs-from-salary.ts",
+    "sync:org-to-partner": "tsx scripts/sync-organizations-to-partner-companies.ts",
+    "sync:partner-sites": "tsx scripts/sync-partner-site-mappings.ts",
     "prepare": "husky || true",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

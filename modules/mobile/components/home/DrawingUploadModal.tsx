@@ -69,8 +69,16 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
   }
 
   const handleUpload = async () => {
-    if (!selectedFile || !title || !siteId) {
-      toast.error('파일과 제목을 입력해주세요.')
+    if (!selectedFile) {
+      toast.error('업로드할 파일을 선택해주세요.')
+      return
+    }
+    if (!title || !title.trim()) {
+      toast.error('제목을 입력해주세요.')
+      return
+    }
+    if (!siteId) {
+      toast.error('현장을 먼저 선택해주세요.')
       return
     }
 
@@ -139,6 +147,8 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
 
   if (!isOpen) return null
 
+  const canUpload = Boolean(selectedFile && title.trim() && siteId)
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content drawing-upload-modal" onClick={e => e.stopPropagation()}>
@@ -150,6 +160,11 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
         </div>
 
         <div className="modal-body">
+          {!siteId && (
+            <div className="upload-hint" style={{ marginBottom: 8, color: '#b45309', fontWeight: 700 }}>
+              현장을 먼저 선택하신 후 업로드할 수 있습니다.
+            </div>
+          )}
           {/* 파일 선택 영역 */}
           <div className="upload-area">
             <input
@@ -235,7 +250,7 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
           <button
             className="btn btn-primary"
             onClick={handleUpload}
-            disabled={!selectedFile || !title || uploading}
+            disabled={!canUpload || uploading}
           >
             {uploading ? '업로드 중...' : '업로드'}
           </button>
