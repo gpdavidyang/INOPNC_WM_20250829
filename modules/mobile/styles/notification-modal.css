@@ -38,7 +38,7 @@
 
 .notification-popup-header h3 {
   font-size: 18px;
-  font-weight: 900; /* Increased from 700 for elderly users */
+  font-weight: 600;
   color: var(--text);
   margin: 0;
 }
