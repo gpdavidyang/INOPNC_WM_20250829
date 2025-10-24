@@ -1291,10 +1291,27 @@
   opacity: 0.5;
 }
 
+/* Match camera icon styling used in photo upload for drawing placeholder */
+.drawing-placeholder .placeholder-icon {
+  color: var(--muted);
+}
+
+.drawing-placeholder .placeholder-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
 .placeholder-text {
   font-size: 14px;
   color: var(--muted);
   font-weight: 500;
+}
+
+/* In drawing selection placeholders, align typography with photo upload primary text */
+.drawing-placeholder .placeholder-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937; /* same as .upload-content .upload-text */
 }
 
 /* Photo upload specific styles for separate card */
