@@ -1963,10 +1963,12 @@ export default function SiteInfoPage() {
           margin-bottom: 12px;
         }
 
+        /* 참여 현장 섹션 상하간격을 다른 섹션과 동일 수준으로 정렬 */
         .site-search-card .card-header {
           flex-direction: column;
           align-items: stretch;
-          gap: 12px;
+          gap: 8px; /* was 12px */
+          margin-bottom: 8px; /* tighten spacing below header */
         }
 
         .npc-card-section {
@@ -2067,7 +2069,7 @@ export default function SiteInfoPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin-bottom: 16px;
+          margin-bottom: 8px; /* was 16px */
         }
 
         .search-input-wrapper {
