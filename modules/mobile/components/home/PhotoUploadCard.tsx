@@ -17,8 +17,9 @@ interface PhotoUploadCardProps {
   className?: string
 }
 
-export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: string; workDate?: string }>
-  = ({ className = '', selectedSite, workDate }) => {
+export const PhotoUploadCard: React.FC<
+  PhotoUploadCardProps & { selectedSite?: string; workDate?: string }
+> = ({ className = '', selectedSite, workDate }) => {
   const [beforeFiles, setBeforeFiles] = useState<UploadedFile[]>([])
   const [afterFiles, setAfterFiles] = useState<UploadedFile[]>([])
   const [isSaving, setIsSaving] = useState(false)
@@ -131,9 +132,7 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: s
       })
       const ensureJson = await ensureRes.json()
       if (!ensureRes.ok) {
-        throw new Error(
-          ensureJson?.error || ensureJson?.details || '작업일지 생성에 실패했습니다.'
-        )
+        throw new Error(ensureJson?.error || ensureJson?.details || '작업일지 생성에 실패했습니다.')
       }
       const reportId = ensureJson?.data?.id
       if (!reportId) throw new Error('작업일지 ID를 확인할 수 없습니다.')
@@ -143,10 +142,13 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: s
       beforeFiles.forEach(f => f.raw && form.append('before_photos', f.raw!, f.name))
       afterFiles.forEach(f => f.raw && form.append('after_photos', f.raw!, f.name))
 
-      const upRes = await fetch(`/api/mobile/daily-reports/${encodeURIComponent(reportId)}/additional-photos`, {
-        method: 'POST',
-        body: form,
-      })
+      const upRes = await fetch(
+        `/api/mobile/daily-reports/${encodeURIComponent(reportId)}/additional-photos`,
+        {
+          method: 'POST',
+          body: form,
+        }
+      )
       const upJson = await upRes.json()
       if (!upRes.ok || upJson?.error) {
         const msg = upJson?.error || (Array.isArray(upJson?.errors) && upJson.errors[0])
@@ -363,7 +365,8 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: s
           <div className="upload-status" style={{ marginTop: 8 }}>
             {lastSavedAt && lastSaveInfo && (
               <p className="text-sm" style={{ color: '#065f46' }}>
-                저장 완료: {new Date(lastSavedAt).toLocaleString('ko-KR')} • 보수 전 {lastSaveInfo.before}장 / 보수 후 {lastSaveInfo.after}장
+                저장 완료: {new Date(lastSavedAt).toLocaleString('ko-KR')} • 보수 전{' '}
+                {lastSaveInfo.before}장 / 보수 후 {lastSaveInfo.after}장
               </p>
             )}
             {lastError && (
@@ -372,8 +375,9 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: s
               </p>
             )}
             {!lastSavedAt && !lastError && (
-              <p className="text-sm upload-hint-strong">
-                저장하기를 누르면 선택한 사진 목록이 기기에 임시 저장됩니다. 작업일지 제출 시 서버로 함께 업로드됩니다.
+              <p className="materials-hint mt-2">
+                저장하기를 누르면 선택한 사진 목록이 기기에 임시 저장 됨. 작업일지 제출 시 서버로
+                함께 업로드 됨.
               </p>
             )}
           </div>
