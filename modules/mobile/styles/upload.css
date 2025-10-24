@@ -669,13 +669,13 @@
 }
 
 .after-area {
-  background: #f3f7fa; /* #F3F7FA */
-  border-color: #cbd5e1; /* darker than background */
+  background: rgba(49, 163, 250, 0.05) !important;
+  border-color: #31a3fa !important;
 }
 
 .after-area:hover {
-  background: #f3f7fa;
-  border-color: #cbd5e1;
+  background: rgba(49, 163, 250, 0.05) !important;
+  border-color: #31a3fa !important;
 }
 
 .upload-header {
