@@ -1129,7 +1129,7 @@ export const WorkLogHomePage: React.FC = () => {
                 className={`line-tab ${activeTab === 'draft' ? 'active' : ''}`}
                 onClick={() => setActiveTab('draft')}
               >
-                임시저장 ({draftCount})
+                임시저장
               </button>
               <button
                 type="button"
@@ -1138,7 +1138,7 @@ export const WorkLogHomePage: React.FC = () => {
                 className={`line-tab ${activeTab === 'approved' ? 'active' : ''}`}
                 onClick={() => setActiveTab('approved')}
               >
-                작성완료 ({approvedCount})
+                작성완료
               </button>
             </nav>
           )}

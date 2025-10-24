@@ -250,7 +250,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
 
   const handleQuickMarkup = () => {
     if (!selectedSite) {
-      toast.error('현장을 먼저 선택해주세요')
+      toast.error('현장을 먼저 선택해 주세요')
       return
     }
 
@@ -327,7 +327,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                 <path d="M9 21v-6h6v6" />
               </svg>
             </div>
-            <p className="empty-text">현장을 먼저 선택해주세요</p>
+            <p className="empty-text">현장을 먼저 선택해 주세요</p>
           </div>
         )}
 
@@ -423,7 +423,9 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                   />
                 </div>
                 <p className="no-blueprint-title">공도면이 등록되어 있지 않습니다</p>
-                <p className="no-blueprint-desc">본사 관리자가 해당 현장 공도면 등록 후 사용 가능합니다.</p>
+                <p className="no-blueprint-desc">
+                  본사 관리자가 해당 현장 공도면 등록 후 사용 가능합니다.
+                </p>
                 {error && (
                   <div className="text-sm" style={{ color: '#b91c1c', marginTop: 6 }}>
                     {error}
