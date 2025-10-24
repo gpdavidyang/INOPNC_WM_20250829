@@ -573,14 +573,14 @@ const DailyReportsContent: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  className="flex-1 h-11 border border-gray-300 rounded-xl text-gray-800 font-medium"
+                  className="flex-1 h-11 border border-gray-300 rounded-[10px] text-gray-800 font-medium"
                   onClick={() => setIsDraftSheetOpen(false)}
                 >
                   취소
                 </button>
                 <button
                   type="button"
-                  className="flex-1 h-11 rounded-xl text-white font-semibold"
+                  className="flex-1 h-11 rounded-[10px] text-white font-semibold"
                   style={{ background: '#1a254f' }}
                   onClick={() => {
                     if (draftCandidate) openDraftInEditor(draftCandidate)
