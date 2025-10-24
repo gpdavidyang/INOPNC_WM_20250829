@@ -256,11 +256,13 @@ export const AppBar: React.FC<AppBarProps> = ({
           color: var(--text);
         }
 
+        /* Use global AppBar label tokens for consistent thickness with icon stroke */
         .icon-text {
-          font-size: 18px;
-          font-weight: 900;
-          color: var(--text);
+          font-size: var(--appbar-label-size);
+          font-weight: var(--appbar-label-weight);
+          color: inherit; /* match icon color */
           line-height: 1;
+          letter-spacing: -0.2px;
         }
 
         .icon-label {
