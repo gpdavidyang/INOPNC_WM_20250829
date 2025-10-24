@@ -608,7 +608,23 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
               />
               <label htmlFor="gallery-input" className="upload-label">
                 <div className="upload-content">
-                  <span className="upload-icon">📱</span>
+                  <span className="upload-icon" aria-hidden="true">
+                    {/* Line icon: photo/image */}
+                    <svg
+                      width="36"
+                      height="36"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="4" width="18" height="16" rx="2" ry="2"></rect>
+                      <circle cx="8.5" cy="9.5" r="1.5"></circle>
+                      <path d="M21 17l-5-5-4 4-3-3-6 6"></path>
+                    </svg>
+                  </span>
                   <p className="upload-text">갤러리에서 이미지 선택</p>
                   <p className="upload-hint">사진첩의 도면 이미지를 선택하세요</p>
                 </div>
@@ -628,7 +644,21 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
               />
               <label htmlFor="local-input" className="upload-label">
                 <div className="upload-content">
-                  <span className="upload-icon">📁</span>
+                  <span className="upload-icon" aria-hidden="true">
+                    {/* Line icon: folder */}
+                    <svg
+                      width="36"
+                      height="36"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+                    </svg>
+                  </span>
                   <p className="upload-text">로컬 파일 선택</p>
                   <p className="upload-hint">PDF, JPG, PNG, DWG 파일 지원</p>
                 </div>

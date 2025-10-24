@@ -40,7 +40,7 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
       </div>
 
       {materials.length === 0 ? (
-        <p className="materials-hint mt-2">사용한 자재가 있다면 추가 버튼을 눌러 입력해주세요.</p>
+        <p className="materials-hint mt-2">사용한 자재가 있다면 추가 버튼으로 입력</p>
       ) : null}
 
       {materials.map((material, index) => (
