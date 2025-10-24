@@ -22,6 +22,7 @@ import {
   Grid,
   Badge,
 } from '@/modules/shared/ui'
+import { useRouter } from 'next/navigation'
 
 export const DailyReportsPage: React.FC = () => {
   return (
@@ -33,6 +34,7 @@ export const DailyReportsPage: React.FC = () => {
 
 const DailyReportsContent: React.FC = () => {
   const { profile } = useUnifiedAuth()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'today' | 'recent' | 'templates'>('today')
 
   // Fetch real data using our hooks
@@ -112,6 +114,30 @@ const DailyReportsContent: React.FC = () => {
         return { color: 'danger', text: '수정요청', bgColor: 'bg-red-50' }
       default:
         return { color: 'default', text: '미확인', bgColor: 'bg-gray-50' }
+    }
+  }
+
+  // Draft prefill helper: store minimal fields for HomePage to consume
+  const openDraftInEditor = (report: DailyReportItem) => {
+    try {
+      const prefill = {
+        siteId: report.site_id || report.sites?.id || '',
+        workDate: report.work_date || '',
+        department: '',
+        location: { block: '', dong: '', unit: '' },
+        memberTypes: [],
+        workProcesses: [],
+        workTypes: [],
+        mainManpower: Number(report.total_workers) || 1,
+        materials: [],
+        additionalManpower: [],
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
+      }
+      router.push('/mobile')
+    } catch (_) {
+      router.push('/mobile')
     }
   }
 
@@ -373,7 +399,14 @@ const DailyReportsContent: React.FC = () => {
 
                 return (
                   <Card key={report.id}>
-                    <CardContent className="p-4">
+                    <CardContent
+                      className="p-4 cursor-pointer"
+                      onClick={() => {
+                        if (report.status === 'draft') {
+                          openDraftInEditor(report)
+                        }
+                      }}
+                    >
                       <Stack gap="sm">
                         <Row justify="between" align="start">
                           <div className="flex-1">
@@ -391,14 +424,30 @@ const DailyReportsContent: React.FC = () => {
                         </Row>
 
                         <Row gap="sm">
-                          <Button variant="outline" className="flex-1 text-sm">
+                          <Button
+                            variant="outline"
+                            className="flex-1 text-sm"
+                            onClick={e => {
+                              e.stopPropagation()
+                              if (report.status === 'draft') {
+                                openDraftInEditor(report)
+                              }
+                            }}
+                          >
                             보기
                           </Button>
                           <Button variant="ghost" className="text-sm px-3">
                             공유
                           </Button>
                           {(report.status === 'draft' || report.status === 'rejected') && (
-                            <Button variant="primary" className="text-sm px-3">
+                            <Button
+                              variant="primary"
+                              className="text-sm px-3"
+                              onClick={e => {
+                                e.stopPropagation()
+                                openDraftInEditor(report)
+                              }}
+                            >
                               수정
                             </Button>
                           )}
