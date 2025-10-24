@@ -825,7 +825,7 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                     }
                     toast.success('목록을 새로고침했습니다.')
                   } else {
-                    toast.error('현장을 먼저 선택해주세요.')
+                    toast.error('현장을 먼저 선택해 주세요.')
                   }
                 }}
                 disabled={isLoading || !selectedSite}

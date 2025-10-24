@@ -78,7 +78,7 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
       return
     }
     if (!siteId) {
-      toast.error('현장을 먼저 선택해주세요.')
+      toast.error('현장을 먼저 선택해 주세요.')
       return
     }
 
@@ -161,7 +161,10 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
 
         <div className="modal-body">
           {!siteId && (
-            <div className="upload-hint" style={{ marginBottom: 8, color: '#b45309', fontWeight: 700 }}>
+            <div
+              className="upload-hint"
+              style={{ marginBottom: 8, color: '#b45309', fontWeight: 700 }}
+            >
               현장을 먼저 선택하신 후 업로드할 수 있습니다.
             </div>
           )}
