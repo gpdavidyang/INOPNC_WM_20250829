@@ -1137,7 +1137,7 @@ export default function SiteInfoPage() {
     if (!currentSite) {
       toast({
         title: '현장 정보가 필요합니다.',
-        description: 'NPC-1000 기록을 등록하려면 먼저 현장을 선택해주세요.',
+        description: '입고/사용 기록을 등록하려면 먼저 현장을 선택해주세요.',
         variant: 'warning',
       })
       return
@@ -1204,7 +1204,7 @@ export default function SiteInfoPage() {
     try {
       const result = await recordInventoryTransaction({
         siteId: currentSite.id,
-        materialCode: 'NPC-1000',
+        materialCode: recordMaterialCode,
         transactionType: recordTransactionType,
         quantity: quantityValue,
         transactionDate: recordDate,
@@ -1267,7 +1267,7 @@ export default function SiteInfoPage() {
 
       const result = await createNpcMaterialRequest({
         siteId: currentSite.id,
-        materialCode: 'NPC-1000',
+        materialCode: requestMaterialCode,
         qty: quantityValue,
         requestDate: new Date().toISOString(),
         notes: combinedNotes || undefined,
@@ -1279,7 +1279,7 @@ export default function SiteInfoPage() {
 
       toast({
         title: '자재 요청이 등록되었습니다.',
-        description: `${currentSite.name}에 NPC-1000 ${quantityValue.toLocaleString()}말 요청이 본사로 전달되었습니다.`,
+        description: `${currentSite.name}에 ${requestMaterialCode} ${quantityValue.toLocaleString()}말 요청이 본사로 전달되었습니다.`,
         variant: 'success',
       })
 
@@ -4719,6 +4719,40 @@ export default function SiteInfoPage() {
 
               <div className="npc-record-grid">
                 <div className="npc-modal-field">
+                  <label htmlFor="npc-record-material" className="modal-label">
+                    자재
+                  </label>
+                  <CustomSelect
+                    value={recordMaterialCode}
+                    onValueChange={value => setRecordMaterialCode(value)}
+                  >
+                    <CustomSelectTrigger
+                      id="npc-record-material"
+                      className="modal-select-trigger npc-record-trigger"
+                      aria-label="자재 선택"
+                    >
+                      <CustomSelectValue placeholder="자재를 선택하세요" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent className="modal-select-content" align="start">
+                      {materialsOptions.length === 0 ? (
+                        <CustomSelectItem className="modal-select-item" value={recordMaterialCode}>
+                          {recordMaterialCode || '자재 없음'}
+                        </CustomSelectItem>
+                      ) : (
+                        materialsOptions.map(m => (
+                          <CustomSelectItem
+                            key={m.code}
+                            className="modal-select-item"
+                            value={m.code}
+                          >
+                            {m.name || m.code}
+                          </CustomSelectItem>
+                        ))
+                      )}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+                <div className="npc-modal-field">
                   <label htmlFor="npc-record-transaction" className="modal-label">
                     유형
                   </label>
@@ -4835,6 +4869,40 @@ export default function SiteInfoPage() {
 
               <div className="npc-request-grid">
                 <div className="npc-modal-field">
+                  <label htmlFor="npc-request-material" className="modal-label">
+                    자재
+                  </label>
+                  <CustomSelect
+                    value={requestMaterialCode}
+                    onValueChange={value => setRequestMaterialCode(value)}
+                  >
+                    <CustomSelectTrigger
+                      id="npc-request-material"
+                      className="modal-select-trigger npc-request-trigger"
+                      aria-label="자재 선택"
+                    >
+                      <CustomSelectValue placeholder="자재를 선택하세요" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent className="modal-select-content" align="start">
+                      {materialsOptions.length === 0 ? (
+                        <CustomSelectItem className="modal-select-item" value={requestMaterialCode}>
+                          {requestMaterialCode || '자재 없음'}
+                        </CustomSelectItem>
+                      ) : (
+                        materialsOptions.map(m => (
+                          <CustomSelectItem
+                            key={m.code}
+                            className="modal-select-item"
+                            value={m.code}
+                          >
+                            {m.name || m.code}
+                          </CustomSelectItem>
+                        ))
+                      )}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+                <div className="npc-modal-field">
                   <label htmlFor="npc-request-quantity" className="modal-label">
                     수량 (말)
                   </label>
@@ -4919,6 +4987,32 @@ export default function SiteInfoPage() {
               <div className="npc-log-title-group">
                 <h3>입고/사용 로그</h3>
                 <span className="npc-log-site">{currentSite?.name ?? '-'}</span>
+              </div>
+              <div
+                className="npc-log-filter"
+                style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+              >
+                <span className="npc-log-filter-label" style={{ fontSize: 13, color: '#6b7280' }}>
+                  자재
+                </span>
+                <CustomSelect
+                  value={selectedLogMaterialCode}
+                  onValueChange={value => setSelectedLogMaterialCode(value)}
+                >
+                  <CustomSelectTrigger className="modal-select-trigger" aria-label="자재 선택">
+                    <CustomSelectValue placeholder="전체" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent className="modal-select-content" align="end">
+                    <CustomSelectItem className="modal-select-item" value="ALL">
+                      전체
+                    </CustomSelectItem>
+                    {materialsOptions.map(m => (
+                      <CustomSelectItem key={m.code} className="modal-select-item" value={m.code}>
+                        {m.name || m.code}
+                      </CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
               </div>
               <div className="npc-log-summary">
                 <span className="npc-log-summary-item" aria-label="총 입고">
