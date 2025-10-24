@@ -39,6 +39,26 @@ export interface DailyReportItem {
   created_by: string
   created_at: string
   updated_at: string
+  // Optional JSON columns for richer prefill
+  work_content?: {
+    memberTypes?: string[]
+    workProcesses?: string[]
+    workTypes?: string[]
+    tasks?: Array<{
+      memberTypes?: string[]
+      workProcesses?: string[]
+      workTypes?: string[]
+      location?: { block?: string; dong?: string; unit?: string }
+    }>
+    totalManpower?: number
+    mainManpower?: number
+    additionalManpower?: Array<{ name?: string; manpower?: number }>
+  } | null
+  location_info?: {
+    block?: string
+    dong?: string
+    unit?: string
+  } | null
   sites?: {
     id: string
     name: string

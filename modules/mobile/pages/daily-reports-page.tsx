@@ -120,17 +120,35 @@ const DailyReportsContent: React.FC = () => {
   // Draft prefill helper: store minimal fields for HomePage to consume
   const openDraftInEditor = (report: DailyReportItem) => {
     try {
+      const wc = report.work_content || {}
+      const loc = report.location_info || {}
+      const firstTask = Array.isArray(wc.tasks) && wc.tasks.length > 0 ? wc.tasks[0] : undefined
       const prefill = {
         siteId: report.site_id || report.sites?.id || '',
         workDate: report.work_date || '',
         department: '',
-        location: { block: '', dong: '', unit: '' },
-        memberTypes: [],
-        workProcesses: [],
-        workTypes: [],
-        mainManpower: Number(report.total_workers) || 1,
+        location: {
+          block: String(loc.block || firstTask?.location?.block || ''),
+          dong: String(loc.dong || firstTask?.location?.dong || ''),
+          unit: String(loc.unit || firstTask?.location?.unit || ''),
+        },
+        memberTypes: (wc.memberTypes || firstTask?.memberTypes || []) as string[],
+        workProcesses: (wc.workProcesses || firstTask?.workProcesses || []) as string[],
+        workTypes: (wc.workTypes || firstTask?.workTypes || []) as string[],
+        mainManpower:
+          Number(
+            (typeof wc.totalManpower === 'number' && wc.totalManpower) ||
+              wc.mainManpower ||
+              report.total_workers
+          ) || 1,
         materials: [],
-        additionalManpower: [],
+        additionalManpower: Array.isArray(wc.additionalManpower)
+          ? wc.additionalManpower.map(m => ({
+              workerName: String(m?.name || ''),
+              manpower: Number(m?.manpower) || 0,
+              id: Math.random().toString(36).slice(2),
+            }))
+          : [],
       }
       if (typeof window !== 'undefined') {
         localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
