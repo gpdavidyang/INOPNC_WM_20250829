@@ -8,6 +8,7 @@ import {
   createMaterialRequest as createNpcMaterialRequest,
   recordInventoryTransaction,
   getMaterialsData as getNPCMaterialsData,
+  getActiveMaterials,
 } from '@/app/actions/materials-inventory'
 import { useToast } from '@/components/ui/use-toast'
 import {
@@ -527,6 +528,31 @@ export default function SiteInfoPage() {
     used: number
     stock: number
   }>({ incoming: 0, used: 0, stock: 0 })
+  // KPI 기준 자재 메타 정보
+  const selectedMaterialInfo = useMemo(() => {
+    if (selectedLogMaterialCode === 'ALL') {
+      return {
+        kind: 'all' as const,
+        name: '전체',
+        code: 'ALL',
+        unit: null as string | null,
+        count: materialsOptions.length,
+        label: `전체 (${materialsOptions.length}종)`,
+      }
+    }
+    const opt = materialsOptions.find(o => o.code === selectedLogMaterialCode)
+    const inv = inventoryItems.find(i => i.materials?.code === selectedLogMaterialCode)
+    const name = opt?.name || inv?.materials?.name || selectedLogMaterialCode
+    const unit = (inv?.materials as any)?.unit || null
+    return {
+      kind: 'single' as const,
+      name,
+      code: selectedLogMaterialCode,
+      unit,
+      count: 1,
+      label: name,
+    }
+  }, [selectedLogMaterialCode, materialsOptions, inventoryItems])
   const [recordTransactionType, setRecordTransactionType] = useState<'in' | 'out'>('in')
   const [recordQuantity, setRecordQuantity] = useState('')
   const [recordDate, setRecordDate] = useState(todayISO())
@@ -587,20 +613,28 @@ export default function SiteInfoPage() {
       const inventory = (result.data?.inventory ?? []) as Array<{
         materials?: { code?: string | null; name?: string | null }
       }>
+      // Fetch catalog materials to include items without inventory rows
+      const catalogRes = await getActiveMaterials()
+      const catalog = ((catalogRes?.success ? catalogRes.data : []) as any[]).map(m => ({
+        code: m.code || '',
+        name: m.name || '',
+      }))
 
-      const options = Array.from(
-        new Map(
-          inventory
-            .map(i => ({ code: i.materials?.code || '', name: i.materials?.name || '' }))
-            .filter(m => !!m.code)
-            .map(m => [m.code as string, { code: m.code as string, name: m.name as string }])
-        ).values()
+      const mergedMap = new Map<string, { code: string; name: string }>()
+      for (const m of catalog) if (m.code) mergedMap.set(m.code, { code: m.code, name: m.name })
+      for (const i of inventory) {
+        const code = i.materials?.code || ''
+        const name = i.materials?.name || ''
+        if (code && !mergedMap.has(code)) mergedMap.set(code, { code, name })
+      }
+      const options = Array.from(mergedMap.values()).sort((a, b) =>
+        (a.name || a.code).localeCompare(b.name || b.code, 'ko')
       )
 
       setMaterialsOptions(options)
       // Prefer NPC-1000 if present, otherwise first option, otherwise ALL
       const defaultCode = options.find(o => o.code === 'NPC-1000')?.code || options[0]?.code
-      setSelectedLogMaterialCode(defaultCode || 'ALL')
+      setSelectedLogMaterialCode(prev => (prev === 'ALL' ? defaultCode || 'ALL' : prev))
       setRecordMaterialCode(defaultCode || 'NPC-1000')
       setRequestMaterialCode(defaultCode || 'NPC-1000')
 
@@ -709,10 +743,13 @@ export default function SiteInfoPage() {
       const city = extractCityFromAddress(site.address.full_address)
       setTodayWeather(label ? `${city ? city + ' ' : ''}${label}` : city || '')
 
-      // Load inventory + transactions for KPI/list/options
+      // Load inventory + transactions for KPI/list/options + include catalog materials
       try {
         setIsLoadingInventory(true)
-        const res = await getNPCMaterialsData({ siteId: site.id, limit: 100 })
+        const [res, cat] = await Promise.all([
+          getNPCMaterialsData({ siteId: site.id, limit: 100 }),
+          getActiveMaterials(),
+        ])
         if (res?.success) {
           const inventory = (res.data?.inventory ?? []) as Array<{
             materials?: { code?: string | null; name?: string | null }
@@ -721,13 +758,19 @@ export default function SiteInfoPage() {
 
           setInventoryItems(inventory)
 
-          const options = Array.from(
-            new Map(
-              inventory
-                .map(i => ({ code: i.materials?.code || '', name: i.materials?.name || '' }))
-                .filter(m => !!m.code)
-                .map(m => [m.code as string, { code: m.code as string, name: m.name as string }])
-            ).values()
+          const catalog = ((cat?.success ? cat.data : []) as any[]).map(m => ({
+            code: m.code || '',
+            name: m.name || '',
+          }))
+          const mergedMap = new Map<string, { code: string; name: string }>()
+          for (const m of catalog) if (m.code) mergedMap.set(m.code, { code: m.code, name: m.name })
+          for (const i of inventory) {
+            const code = i.materials?.code || ''
+            const name = i.materials?.name || ''
+            if (code && !mergedMap.has(code)) mergedMap.set(code, { code, name })
+          }
+          const options = Array.from(mergedMap.values()).sort((a, b) =>
+            (a.name || a.code).localeCompare(b.name || b.code, 'ko')
           )
           setMaterialsOptions(options)
           const defaultCode = options.find(o => o.code === 'NPC-1000')?.code || options[0]?.code
@@ -1850,6 +1893,30 @@ export default function SiteInfoPage() {
         }
 
         /* Materials inventory list */
+        .npc-selected-material {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+          margin-bottom: 12px;
+        }
+        .npc-selected-label {
+          font-size: 12px;
+          color: #6b7280;
+          letter-spacing: -0.2px;
+        }
+        .npc-selected-value {
+          font-size: 12px;
+          color: #1f2937;
+          background: #f3f4f6;
+          border: 1px solid #e5e7eb;
+          border-radius: 999px;
+          padding: 2px 8px;
+          max-width: 60vw;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
         .npc-inventory-list {
           margin-top: 12px;
           display: flex;
@@ -2822,6 +2889,12 @@ export default function SiteInfoPage() {
           flex-wrap: wrap;
         }
 
+        /* 자재 드롭다운 행 */
+        .npc-material-filter {
+          margin-top: 10px;
+          margin-bottom: 12px;
+        }
+
         .npc-site-trigger {
           width: min(100%, 320px); /* let PhSelectTrigger provide visuals */
         }
@@ -2851,11 +2924,57 @@ export default function SiteInfoPage() {
           color: #6b7280;
         }
 
+        /* 자재 선택 드롭다운(섹션 상단) — 다른 필드와 동일한 Radius/스타일 적용 */
+        .npc-material-trigger {
+          background: #f8fafc;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          color: var(--text);
+          font-size: 15px;
+          font-weight: 600;
+          height: 48px;
+          padding: 12px 14px;
+          transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+          width: min(100%, 320px);
+        }
+        :global(.npc-material-trigger) {
+          border-radius: 12px !important;
+          height: 48px !important;
+          overflow: hidden;
+        }
+        .npc-material-trigger:hover {
+          border-color: rgba(16, 24, 40, 0.2);
+        }
+        .npc-material-trigger:focus-visible,
+        .npc-material-trigger[data-state='open'] {
+          outline: none;
+          border-color: var(--blue);
+          box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.15);
+        }
+        .npc-material-content {
+          min-width: 200px;
+          max-height: 280px;
+        }
+
+        :global([data-theme='dark']) .npc-material-trigger {
+          background: rgba(30, 41, 59, 0.65);
+          border-color: rgba(148, 163, 184, 0.25);
+          color: #e2e8f0;
+        }
+        :global([data-theme='dark']) .npc-material-trigger:focus-visible,
+        :global([data-theme='dark']) .npc-material-trigger[data-state='open'] {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
         /* NPC-1000 KPI — 이전 그리드형 카드 복원 */
         .npc-kpi {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
           gap: 12px;
+          margin-top: 12px;
           margin-bottom: 16px;
         }
 
@@ -3596,6 +3715,90 @@ export default function SiteInfoPage() {
           text-align: center;
           font-size: 14px;
           color: #98a2b3;
+        }
+
+        /* Log sheet header simplification */
+        .npc-log-header {
+          display: block;
+          padding-bottom: 8px;
+          border-bottom: 1px solid #e5e7eb; /* lighter gray to reduce visual weight */
+        }
+        .npc-log-titlebar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .npc-log-titlebar h3 {
+          font-size: 18px;
+          font-weight: 800;
+          margin: 0;
+          color: #374151; /* gray-700 for softer header tone */
+        }
+        .npc-log-subbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          flex-wrap: nowrap;
+        }
+        .npc-log-chips {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          white-space: nowrap;
+        }
+        .npc-log-chip {
+          display: inline-flex;
+          align-items: baseline;
+          gap: 4px;
+          font-size: 13px;
+          font-weight: 700;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #f3f4f6;
+          color: #374151;
+        }
+        .npc-log-chip.in {
+          background: #f3f4f6;
+          color: #374151;
+        }
+        .npc-log-chip.out {
+          background: #f3f4f6;
+          color: #374151;
+        }
+        .npc-log-chip .u {
+          font-size: 11px;
+          font-weight: 600;
+          opacity: 0.8;
+          margin-left: 2px;
+        }
+        .npc-log-filter-compact {
+          flex: 0 0 auto;
+        }
+        .npc-log-site.subtle {
+          margin-top: 8px;
+          font-size: 13px;
+          color: #6b7280;
+        }
+        :global([data-theme='dark']) .npc-log-titlebar h3 {
+          color: #e5e7eb;
+        }
+        :global([data-theme='dark']) .npc-log-header {
+          border-bottom-color: rgba(148, 163, 184, 0.25);
+        }
+        :global([data-theme='dark']) .npc-log-chip {
+          background: rgba(148, 163, 184, 0.15);
+          color: #e5e7eb;
+        }
+        :global([data-theme='dark']) .npc-log-chip.in {
+          background: rgba(148, 163, 184, 0.15);
+          color: #e5e7eb;
+        }
+        :global([data-theme='dark']) .npc-log-chip.out {
+          background: rgba(148, 163, 184, 0.15);
+          color: #e5e7eb;
         }
 
         :global([data-theme='dark'] .npc-modal) {
@@ -4544,18 +4747,53 @@ export default function SiteInfoPage() {
             )}
           </div>
 
+          {/* 자재 선택(섹션 상단) - KPI와 연동 */}
+          <div className="npc-material-filter" role="group" aria-label="자재 선택">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+              <CustomSelect
+                value={selectedLogMaterialCode}
+                onValueChange={value => setSelectedLogMaterialCode(value)}
+              >
+                <CustomSelectTrigger className="npc-material-trigger" aria-label="자재 선택">
+                  <CustomSelectValue placeholder="전체" />
+                </CustomSelectTrigger>
+                <CustomSelectContent className="npc-material-content" align="start">
+                  <CustomSelectItem className="modal-select-item" value="ALL">
+                    전체
+                  </CustomSelectItem>
+                  {materialsOptions.map(m => (
+                    <CustomSelectItem key={m.code} className="modal-select-item" value={m.code}>
+                      {m.name || m.code}
+                    </CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+          </div>
+
+          {/* 선택 배지(라벨 제거, 배지 유지) */}
+          <div className="npc-selected-material" aria-live="polite">
+            <span className="npc-selected-value">{selectedMaterialInfo.label}</span>
+          </div>
+
           <div className="npc-kpi" role="group" aria-label="재고 지표">
             <div className="npc-kpi-item npc-kpi-item--incoming" role="group">
-              <p className="npc-kpi-value">{materialsKPI.incoming}</p>
-              <p className="npc-kpi-label">입고</p>
+              <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.incoming)}</p>
+              <p className="npc-kpi-label">
+                {selectedMaterialInfo.unit ? `입고 (${selectedMaterialInfo.unit})` : '입고'}
+              </p>
             </div>
             <div className="npc-kpi-item npc-kpi-item--usage" role="group">
-              <p className="npc-kpi-value">{materialsKPI.used}</p>
-              <p className="npc-kpi-label">사용</p>
+              <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.used)}</p>
+              <p className="npc-kpi-label">
+                {selectedMaterialInfo.unit ? `사용 (${selectedMaterialInfo.unit})` : '사용'}
+              </p>
             </div>
             <div className="npc-kpi-item npc-kpi-item--stock" role="group">
-              <p className="npc-kpi-value">{materialsKPI.stock}</p>
-              <p className="npc-kpi-label">재고</p>
+              <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.stock)}</p>
+              <p className="npc-kpi-label">
+                {selectedMaterialInfo.unit ? `재고 (${selectedMaterialInfo.unit})` : '재고'}
+              </p>
             </div>
           </div>
 
@@ -5143,60 +5381,54 @@ export default function SiteInfoPage() {
         >
           <div className="npc-modal npc-log-modal" onClick={event => event.stopPropagation()}>
             <div className="npc-modal-header npc-log-header">
-              <div className="npc-log-title-group">
+              <div className="npc-log-titlebar">
                 <h3>입고/사용 로그</h3>
-                <span className="npc-log-site">{currentSite?.name ?? '-'}</span>
-              </div>
-              <div
-                className="npc-log-filter"
-                style={{ display: 'flex', gap: 8, alignItems: 'center' }}
-              >
-                <span className="npc-log-filter-label" style={{ fontSize: 13, color: '#6b7280' }}>
-                  자재
-                </span>
-                <CustomSelect
-                  value={selectedLogMaterialCode}
-                  onValueChange={value => setSelectedLogMaterialCode(value)}
+                <button
+                  type="button"
+                  className="npc-modal-close"
+                  onClick={() => setShowNpcLogSheet(false)}
+                  aria-label="닫기"
                 >
-                  <CustomSelectTrigger className="modal-select-trigger" aria-label="자재 선택">
-                    <CustomSelectValue placeholder="전체" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent className="modal-select-content" align="end">
-                    <CustomSelectItem className="modal-select-item" value="ALL">
-                      전체
-                    </CustomSelectItem>
-                    {materialsOptions.map(m => (
-                      <CustomSelectItem key={m.code} className="modal-select-item" value={m.code}>
-                        {m.name || m.code}
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="npc-log-subbar">
+                <div className="npc-log-chips" aria-label="요약">
+                  <span className="npc-log-chip in">
+                    입고 {formatQuantityValue(npcLogSummary.incoming)}
+                    <span className="u">말</span>
+                  </span>
+                  <span className="npc-log-chip out">
+                    사용 {formatQuantityValue(npcLogSummary.usage)}
+                    <span className="u">말</span>
+                  </span>
+                </div>
+                <div className="npc-log-filter-compact">
+                  <CustomSelect
+                    value={selectedLogMaterialCode}
+                    onValueChange={value => setSelectedLogMaterialCode(value)}
+                  >
+                    <CustomSelectTrigger
+                      className="modal-select-trigger"
+                      aria-label="자재 선택"
+                      style={{ minWidth: 132 }}
+                    >
+                      <CustomSelectValue placeholder="전체" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent className="modal-select-content" align="end">
+                      <CustomSelectItem className="modal-select-item" value="ALL">
+                        전체
                       </CustomSelectItem>
-                    ))}
-                  </CustomSelectContent>
-                </CustomSelect>
+                      {materialsOptions.map(m => (
+                        <CustomSelectItem key={m.code} className="modal-select-item" value={m.code}>
+                          {m.name || m.code}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
               </div>
-              <div className="npc-log-summary">
-                <span className="npc-log-summary-item" aria-label="총 입고">
-                  <span className="npc-log-summary-label">입고</span>
-                  <span className="npc-log-summary-value">
-                    {formatQuantityValue(npcLogSummary.incoming)}
-                    <span className="npc-log-summary-unit">말</span>
-                  </span>
-                </span>
-                <span className="npc-log-summary-item" aria-label="총 사용">
-                  <span className="npc-log-summary-label">사용</span>
-                  <span className="npc-log-summary-value">
-                    {formatQuantityValue(npcLogSummary.usage)}
-                    <span className="npc-log-summary-unit">말</span>
-                  </span>
-                </span>
-              </div>
-              <button
-                type="button"
-                className="npc-modal-close"
-                onClick={() => setShowNpcLogSheet(false)}
-                aria-label="닫기"
-              >
-                <X size={18} />
-              </button>
+              <div className="npc-log-site subtle">{currentSite?.name ?? '-'}</div>
             </div>
 
             <div className="npc-log-body">

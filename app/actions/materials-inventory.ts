@@ -143,6 +143,32 @@ export async function getSitesForMaterials() {
   }
 }
 
+// Get active materials catalog for dropdowns (all managed materials)
+export async function getActiveMaterials(params?: { codeLike?: string }) {
+  try {
+    const supabase = await createClient()
+    let query = supabase
+      .from('materials')
+      .select('id, code, name, unit, min_stock_level, is_active')
+      .eq('is_active', true)
+      .order('name', { ascending: true })
+
+    if (params?.codeLike) {
+      query = query.like('code', params.codeLike)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.error('[getActiveMaterials] query error:', error)
+      return { success: false, error: error.message, data: [] }
+    }
+    return { success: true, data: data || [] }
+  } catch (error) {
+    console.error('[getActiveMaterials] Server error:', error)
+    return { success: false, error: 'Server error', data: [] }
+  }
+}
+
 export async function createMaterialRequest(params: {
   siteId: string
   materialId?: string
