@@ -223,7 +223,11 @@ export const PhotoUploadCard: React.FC<
               >
                 {beforeFiles.length === 0 ? (
                   <div className="upload-placeholder">
-                    <div className="upload-icon" aria-hidden="true">
+                    <div
+                      className="upload-icon"
+                      aria-hidden="true"
+                      style={{ transform: 'scale(0.8)' }}
+                    >
                       <svg
                         width="36"
                         height="36"
@@ -238,7 +242,9 @@ export const PhotoUploadCard: React.FC<
                         <circle cx="12" cy="13" r="4" />
                       </svg>
                     </div>
-                    <p className="upload-text">사진을 추가하세요</p>
+                    <p className="upload-text" style={{ fontSize: 12 }}>
+                      사진을 추가하세요
+                    </p>
                   </div>
                 ) : (
                   <div className="photo-thumbnails-container">
@@ -295,7 +301,11 @@ export const PhotoUploadCard: React.FC<
               >
                 {afterFiles.length === 0 ? (
                   <div className="upload-placeholder">
-                    <div className="upload-icon" aria-hidden="true">
+                    <div
+                      className="upload-icon"
+                      aria-hidden="true"
+                      style={{ transform: 'scale(0.8)' }}
+                    >
                       <svg
                         width="36"
                         height="36"
@@ -310,7 +320,9 @@ export const PhotoUploadCard: React.FC<
                         <circle cx="12" cy="13" r="4" />
                       </svg>
                     </div>
-                    <p className="upload-text">사진을 추가하세요</p>
+                    <p className="upload-text" style={{ fontSize: 12 }}>
+                      사진을 추가하세요
+                    </p>
                   </div>
                 ) : (
                   <div className="photo-thumbnails-container">
