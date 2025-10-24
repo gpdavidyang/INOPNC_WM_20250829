@@ -111,7 +111,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       description: '정말 로그아웃하시겠습니까?',
       confirmText: '로그아웃',
       cancelText: '취소',
-      variant: 'destructive',
+      variant: 'default',
     })
     if (!ok) return
 
