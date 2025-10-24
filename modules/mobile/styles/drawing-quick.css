@@ -63,16 +63,20 @@
 }
 
 .drawing-quick-section .empty-icon {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-  opacity: 0.7;
+  /* Align icon visuals with photo upload placeholder icon */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  margin-left: auto;
-  margin-right: auto;
+  width: 25px;
+  height: 25px;
+  margin: 0 auto 8px auto;
+  opacity: 0.5;
+  color: var(--muted);
+}
+.drawing-quick-section .empty-icon svg {
+  width: 25px !important;
+  height: 25px !important;
+  stroke-width: 1.5 !important;
 }
 
 .drawing-quick-section .empty-text {

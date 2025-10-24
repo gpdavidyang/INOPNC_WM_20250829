@@ -30,7 +30,8 @@ export async function getMaterialsData(params: {
           code,
           name,
           unit,
-          unit_price
+          unit_price,
+          min_stock_level
         )
       `
       )

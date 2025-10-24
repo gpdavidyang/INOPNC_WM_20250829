@@ -520,6 +520,13 @@ export default function SiteInfoPage() {
   const [requestMaterialCode, setRequestMaterialCode] = useState<string>('NPC-1000')
   const [isLoadingNpcLogs, setIsLoadingNpcLogs] = useState(false)
   const [npcLogError, setNpcLogError] = useState<string | null>(null)
+  const [inventoryItems, setInventoryItems] = useState<any[]>([])
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false)
+  const [materialsKPI, setMaterialsKPI] = useState<{
+    incoming: number
+    used: number
+    stock: number
+  }>({ incoming: 0, used: 0, stock: 0 })
   const [recordTransactionType, setRecordTransactionType] = useState<'in' | 'out'>('in')
   const [recordQuantity, setRecordQuantity] = useState('')
   const [recordDate, setRecordDate] = useState(todayISO())
@@ -608,6 +615,7 @@ export default function SiteInfoPage() {
           materials: tx.materials ?? null,
         }))
       )
+      setInventoryItems(inventory)
     } catch (error) {
       console.error('[SiteInfo] Failed to load NPC logs', error)
       setNpcTransactions([])
@@ -621,6 +629,8 @@ export default function SiteInfoPage() {
   useEffect(() => {
     if (!allTransactions.length) {
       setNpcTransactions([])
+      // Also reset KPI
+      setMaterialsKPI({ incoming: 0, used: 0, stock: 0 })
       return
     }
     if (selectedLogMaterialCode === 'ALL') {
@@ -630,7 +640,26 @@ export default function SiteInfoPage() {
         allTransactions.filter(tx => tx.materials?.code === selectedLogMaterialCode)
       )
     }
-  }, [allTransactions, selectedLogMaterialCode])
+    // Compute KPI from inventory+transactions
+    const tx =
+      selectedLogMaterialCode === 'ALL'
+        ? allTransactions
+        : allTransactions.filter(t => t.materials?.code === selectedLogMaterialCode)
+    const incoming = tx.reduce(
+      (sum, t) => sum + (t.transaction_type === 'in' ? Number(t.quantity) || 0 : 0),
+      0
+    )
+    const used = tx.reduce(
+      (sum, t) => sum + (t.transaction_type === 'out' ? Number(t.quantity) || 0 : 0),
+      0
+    )
+    const stock = (
+      selectedLogMaterialCode === 'ALL'
+        ? inventoryItems
+        : inventoryItems.filter(i => i.materials?.code === selectedLogMaterialCode)
+    ).reduce((sum: number, i: any) => sum + (Number(i.current_stock) || 0), 0)
+    setMaterialsKPI({ incoming, used, stock })
+  }, [allTransactions, selectedLogMaterialCode, inventoryItems])
 
   const loadAll = async (options?: { openSheet?: boolean }) => {
     setIsLoading(true)
@@ -680,13 +709,18 @@ export default function SiteInfoPage() {
       const city = extractCityFromAddress(site.address.full_address)
       setTodayWeather(label ? `${city ? city + ' ' : ''}${label}` : city || '')
 
-      // Preload materials options (light query)
+      // Load inventory + transactions for KPI/list/options
       try {
-        const preload = await getNPCMaterialsData({ siteId: site.id, limit: 1 })
-        if (preload?.success) {
-          const inventory = (preload.data?.inventory ?? []) as Array<{
+        setIsLoadingInventory(true)
+        const res = await getNPCMaterialsData({ siteId: site.id, limit: 100 })
+        if (res?.success) {
+          const inventory = (res.data?.inventory ?? []) as Array<{
             materials?: { code?: string | null; name?: string | null }
           }>
+          const transactions = (res.data?.transactions ?? []) as NpcTransaction[]
+
+          setInventoryItems(inventory)
+
           const options = Array.from(
             new Map(
               inventory
@@ -700,10 +734,24 @@ export default function SiteInfoPage() {
           if (defaultCode) {
             setRecordMaterialCode(defaultCode)
             setRequestMaterialCode(defaultCode)
+            setSelectedLogMaterialCode(defaultCode)
           }
+
+          setAllTransactions(
+            transactions.map(tx => ({
+              transaction_type: tx.transaction_type === 'out' ? 'out' : 'in',
+              quantity: Number(tx.quantity) || 0,
+              transaction_date: tx.transaction_date ?? tx.created_at ?? null,
+              created_at: tx.created_at ?? null,
+              notes: tx.notes ?? '',
+              materials: tx.materials ?? null,
+            }))
+          )
         }
       } catch {
-        // ignore preload errors
+        // ignore
+      } finally {
+        setIsLoadingInventory(false)
       }
     } catch (error) {
       if (error instanceof HttpError && error.status === 401) {
@@ -1799,6 +1847,79 @@ export default function SiteInfoPage() {
 
         .btn.btn-primary:hover {
           background: #142047;
+        }
+
+        /* Materials inventory list */
+        .npc-inventory-list {
+          margin-top: 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .npc-inventory-empty {
+          font-size: 14px;
+          color: #6b7280;
+          padding: 10px 2px;
+        }
+        .npc-inventory-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 12px;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          background: #fff;
+        }
+        .npc-inv-left {
+          display: flex;
+          flex-direction: column;
+        }
+        .npc-inv-name {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text);
+        }
+        .npc-inv-sub {
+          font-size: 12px;
+          color: #6b7280;
+          margin-top: 2px;
+        }
+        .npc-inv-right {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .npc-inv-badge {
+          font-size: 12px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          color: #374151;
+        }
+        .npc-inv-badge--low {
+          background: #fff7ed;
+          color: #b45309;
+          border-color: #fed7aa;
+        }
+        .npc-inv-badge--none {
+          background: #fef2f2;
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+        .npc-inv-stock {
+          display: flex;
+          align-items: baseline;
+          gap: 4px;
+        }
+        .npc-inv-stock-value {
+          font-size: 16px;
+          font-weight: 700;
+          color: var(--text);
+        }
+        .npc-inv-stock-unit {
+          font-size: 12px;
+          color: #6b7280;
         }
 
         :global([data-theme='dark'] .site-card) {
@@ -4425,19 +4546,57 @@ export default function SiteInfoPage() {
 
           <div className="npc-kpi" role="group" aria-label="재고 지표">
             <div className="npc-kpi-item npc-kpi-item--incoming" role="group">
-              <p className="npc-kpi-value">{npcSummary?.today.incoming ?? 0}</p>
+              <p className="npc-kpi-value">{materialsKPI.incoming}</p>
               <p className="npc-kpi-label">입고</p>
             </div>
             <div className="npc-kpi-item npc-kpi-item--usage" role="group">
-              <p className="npc-kpi-value">{npcSummary?.today.used ?? 0}</p>
+              <p className="npc-kpi-value">{materialsKPI.used}</p>
               <p className="npc-kpi-label">사용</p>
             </div>
             <div className="npc-kpi-item npc-kpi-item--stock" role="group">
-              <p className="npc-kpi-value">
-                {npcSummary?.today.stock ?? npcSummary?.cumulative.currentStock ?? 0}
-              </p>
+              <p className="npc-kpi-value">{materialsKPI.stock}</p>
               <p className="npc-kpi-label">재고</p>
             </div>
+          </div>
+
+          {/* 재고 리스트 (간단 카드) */}
+          <div className="npc-inventory-list" role="list" aria-label="자재 재고 목록">
+            {isLoadingInventory ? (
+              <div className="npc-inventory-empty" role="listitem">
+                재고를 불러오는 중입니다...
+              </div>
+            ) : inventoryItems.length === 0 ? (
+              <div className="npc-inventory-empty" role="listitem">
+                등록된 재고가 없습니다.
+              </div>
+            ) : (
+              inventoryItems.slice(0, 5).map((item: any, idx: number) => {
+                const name = item.materials?.name || item.materials?.code || '자재'
+                const unit = item.materials?.unit || ''
+                const current = Number(item.current_stock) || 0
+                const min = Number((item.materials as any)?.min_stock_level ?? 0) || 0
+                const status = current === 0 ? 'none' : current < min && min > 0 ? 'low' : 'ok'
+                return (
+                  <div key={idx} className="npc-inventory-row" role="listitem">
+                    <div className="npc-inv-left">
+                      <div className="npc-inv-name">{name}</div>
+                      <div className="npc-inv-sub">
+                        최소 재고 {min.toLocaleString()} {unit}
+                      </div>
+                    </div>
+                    <div className="npc-inv-right">
+                      <span className={`npc-inv-badge npc-inv-badge--${status}`}>
+                        {status === 'none' ? '재고 없음' : status === 'low' ? '재고 부족' : '정상'}
+                      </span>
+                      <div className="npc-inv-stock">
+                        <span className="npc-inv-stock-value">{current.toLocaleString()}</span>
+                        <span className="npc-inv-stock-unit">{unit}</span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
           </div>
 
           <div className="npc-buttons">
