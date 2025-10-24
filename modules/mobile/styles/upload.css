@@ -701,6 +701,24 @@
   font-weight: 800;
 }
 
+/* Saved status message (home > photo upload) — improve readability to match home fonts */
+.upload-status-ok {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: #065f46; /* success green */
+  letter-spacing: -0.2px;
+}
+[data-theme='dark'] .upload-status-ok {
+  color: #34d399; /* emerald-400 for dark */
+}
+
 .counter-number {
   color: var(--brand);
   font-weight: 900;
