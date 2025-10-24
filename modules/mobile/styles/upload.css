@@ -838,9 +838,9 @@
   width: 20px !important;
   height: 20px !important;
   border-radius: 50% !important;
-  background: #00bcd4 !important;
-  color: #ffffff !important;
-  border: 2px solid white !important;
+  background: #ffffff !important;
+  color: #31a3fa !important; /* icon (arrow) color */
+  border: 2px solid #31a3fa !important;
   font-size: 10px !important;
   font-weight: bold !important;
   cursor: pointer !important;
@@ -855,7 +855,9 @@
 }
 
 .move-photo-btn:hover {
-  background: #00acc1 !important;
+  background: rgba(49, 163, 250, 0.08) !important;
+  color: #31a3fa !important;
+  border-color: #31a3fa !important;
   transform: scale(1.1) !important;
 }
 
