@@ -1315,8 +1315,8 @@
 }
 
 .drawing-placeholder .placeholder-icon svg {
-  width: 25px;
-  height: 25px;
+  width: 25px !important;
+  height: 25px !important;
 }
 
 .placeholder-text {
@@ -1327,9 +1327,9 @@
 
 /* In drawing selection placeholders, align typography with photo upload primary text */
 .drawing-placeholder .placeholder-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937; /* same as .upload-content .upload-text */
+  font-size: 12px !important; /* match photo upload placeholder text size */
+  font-weight: 500 !important; /* match .upload-text weight */
+  color: var(--muted) !important;
 }
 
 /* Photo upload specific styles for separate card */
