@@ -1298,9 +1298,9 @@
   justify-content: center;
   min-height: 120px;
   padding: 24px;
-  border: 2px dashed var(--line);
+  border: 1px dashed var(--line); /* match photo upload */
   border-radius: 12px;
-  background: rgba(0, 104, 254, 0.01);
+  background: #f9fafb; /* match photo upload upload-area */
 }
 
 .placeholder-icon {
@@ -1312,6 +1312,7 @@
 /* Match camera icon styling used in photo upload for drawing placeholder */
 .drawing-placeholder .placeholder-icon {
   color: var(--muted);
+  opacity: 0.5; /* match camera icon tone */
 }
 
 .drawing-placeholder .placeholder-icon svg {
@@ -1367,7 +1368,8 @@
 }
 
 [data-theme='dark'] .drawing-placeholder {
-  background: rgba(0, 188, 212, 0.02);
+  background: #374151; /* match dark upload-area */
+  border-color: #4b5563;
 }
 
 /* Tab Buttons Grid */

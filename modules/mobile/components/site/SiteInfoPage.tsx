@@ -511,6 +511,13 @@ export default function SiteInfoPage() {
   const [showNpcRequestSheet, setShowNpcRequestSheet] = useState(false)
   const [showNpcLogSheet, setShowNpcLogSheet] = useState(false)
   const [npcTransactions, setNpcTransactions] = useState<NpcTransaction[]>([])
+  const [allTransactions, setAllTransactions] = useState<NpcTransaction[]>([])
+  const [materialsOptions, setMaterialsOptions] = useState<Array<{ code: string; name: string }>>(
+    []
+  )
+  const [selectedLogMaterialCode, setSelectedLogMaterialCode] = useState<string>('ALL')
+  const [recordMaterialCode, setRecordMaterialCode] = useState<string>('NPC-1000')
+  const [requestMaterialCode, setRequestMaterialCode] = useState<string>('NPC-1000')
   const [isLoadingNpcLogs, setIsLoadingNpcLogs] = useState(false)
   const [npcLogError, setNpcLogError] = useState<string | null>(null)
   const [recordTransactionType, setRecordTransactionType] = useState<'in' | 'out'>('in')
@@ -558,9 +565,10 @@ export default function SiteInfoPage() {
     setIsLoadingNpcLogs(true)
     setNpcLogError(null)
     setNpcTransactions([])
+    setAllTransactions([])
 
     try {
-      const result = await getNPCMaterialsData({ siteId, codeLike: 'NPC-%', limit: 100 })
+      const result = await getNPCMaterialsData({ siteId, limit: 100 })
 
       if (!result?.success) {
         setNpcTransactions([])
@@ -569,10 +577,29 @@ export default function SiteInfoPage() {
       }
 
       const transactions = (result.data?.transactions ?? []) as NpcTransaction[]
-      const filtered = transactions.filter(tx => tx.materials?.code === 'NPC-1000')
+      const inventory = (result.data?.inventory ?? []) as Array<{
+        materials?: { code?: string | null; name?: string | null }
+      }>
 
-      setNpcTransactions(
-        filtered.map(tx => ({
+      const options = Array.from(
+        new Map(
+          inventory
+            .map(i => ({ code: i.materials?.code || '', name: i.materials?.name || '' }))
+            .filter(m => !!m.code)
+            .map(m => [m.code as string, { code: m.code as string, name: m.name as string }])
+        ).values()
+      )
+
+      setMaterialsOptions(options)
+      // Prefer NPC-1000 if present, otherwise first option, otherwise ALL
+      const defaultCode = options.find(o => o.code === 'NPC-1000')?.code || options[0]?.code
+      setSelectedLogMaterialCode(defaultCode || 'ALL')
+      setRecordMaterialCode(defaultCode || 'NPC-1000')
+      setRequestMaterialCode(defaultCode || 'NPC-1000')
+
+      // keep raw
+      setAllTransactions(
+        transactions.map(tx => ({
           transaction_type: tx.transaction_type === 'out' ? 'out' : 'in',
           quantity: Number(tx.quantity) || 0,
           transaction_date: tx.transaction_date ?? tx.created_at ?? null,
@@ -589,6 +616,21 @@ export default function SiteInfoPage() {
       setIsLoadingNpcLogs(false)
     }
   }, [])
+
+  // Re-filter transactions for logs when selection changes
+  useEffect(() => {
+    if (!allTransactions.length) {
+      setNpcTransactions([])
+      return
+    }
+    if (selectedLogMaterialCode === 'ALL') {
+      setNpcTransactions(allTransactions)
+    } else {
+      setNpcTransactions(
+        allTransactions.filter(tx => tx.materials?.code === selectedLogMaterialCode)
+      )
+    }
+  }, [allTransactions, selectedLogMaterialCode])
 
   const loadAll = async (options?: { openSheet?: boolean }) => {
     setIsLoading(true)
@@ -637,6 +679,32 @@ export default function SiteInfoPage() {
       const label = formatWeatherLabel(todaySummary.weather)
       const city = extractCityFromAddress(site.address.full_address)
       setTodayWeather(label ? `${city ? city + ' ' : ''}${label}` : city || '')
+
+      // Preload materials options (light query)
+      try {
+        const preload = await getNPCMaterialsData({ siteId: site.id, limit: 1 })
+        if (preload?.success) {
+          const inventory = (preload.data?.inventory ?? []) as Array<{
+            materials?: { code?: string | null; name?: string | null }
+          }>
+          const options = Array.from(
+            new Map(
+              inventory
+                .map(i => ({ code: i.materials?.code || '', name: i.materials?.name || '' }))
+                .filter(m => !!m.code)
+                .map(m => [m.code as string, { code: m.code as string, name: m.name as string }])
+            ).values()
+          )
+          setMaterialsOptions(options)
+          const defaultCode = options.find(o => o.code === 'NPC-1000')?.code || options[0]?.code
+          if (defaultCode) {
+            setRecordMaterialCode(defaultCode)
+            setRequestMaterialCode(defaultCode)
+          }
+        }
+      } catch {
+        // ignore preload errors
+      }
     } catch (error) {
       if (error instanceof HttpError && error.status === 401) {
         setErrorMessage('세션이 만료되었습니다. 다시 로그인해주세요.')
@@ -979,14 +1047,14 @@ export default function SiteInfoPage() {
     window.location.href = '/mobile/worklog'
   }
 
-  // If navigated with #npc-inventory-section, ensure section is focused/visible after mount
+  // If navigated with #materials-inventory-section, ensure section is focused/visible after mount
   useEffect(() => {
     if (typeof window === 'undefined') return
     const hash = window.location.hash
-    if (hash === '#npc-inventory-section') {
+    if (hash === '#materials-inventory-section') {
       // Defer to allow content render
       setTimeout(() => {
-        const el = document.getElementById('npc-inventory-section')
+        const el = document.getElementById('materials-inventory-section')
         el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 50)
     }
@@ -4315,7 +4383,7 @@ export default function SiteInfoPage() {
       </section>
 
       <section
-        id="npc-inventory-section"
+        id="materials-inventory-section"
         className="card npc-card-section"
         role="region"
         aria-label="자재 재고관리"
