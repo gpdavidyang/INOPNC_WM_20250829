@@ -491,11 +491,11 @@
 }
 
 .browser-tabs .tab-btn.active {
-  background: #3b82f6;
+  background: #31a3fa;
   color: white;
-  border-color: #3b82f6;
+  border-color: #31a3fa;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 4px rgba(49, 163, 250, 0.3);
 }
 
 /* Browser Content */
@@ -752,9 +752,9 @@
 }
 
 [data-theme='dark'] .browser-tabs .tab-btn.active {
-  background: #3b82f6;
+  background: #31a3fa;
   color: white;
-  border-color: #3b82f6;
+  border-color: #31a3fa;
 }
 
 @keyframes spin {
