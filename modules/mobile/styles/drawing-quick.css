@@ -76,10 +76,10 @@
 }
 
 .drawing-quick-section .empty-text {
-  /* Match photo upload primary text ("사진을 추가하세요") */
-  color: #1f2937;
-  font-size: 16px;
-  font-weight: 600;
+  /* Align exactly with photo upload placeholder */
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
   font-family:
     'Noto Sans KR',
     system-ui,

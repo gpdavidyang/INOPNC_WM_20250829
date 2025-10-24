@@ -31,7 +31,7 @@ const quickMenuItemsBase = [
     external: true,
   },
   {
-    href: '/mobile/sites#npc-inventory-section',
+    href: '/mobile/sites#materials-inventory-section',
     icon: '/icons/stock_inventory.png',
     label: '재고관리',
   },
