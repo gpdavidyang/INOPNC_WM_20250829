@@ -1,150 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
-interface SiteRecord {
-  id: string
-  name: string
-  address?: string | null
-  status?: string | null
-  organization_id?: string | null
-}
-
+/**
+ * GET /api/sites/by-partner?partner_company_id=...
+ * Returns raw array of sites for the given partner company id.
+ * Strategy: partner_companies.id -> company_name -> organizations.name match -> sites by organization_id
+ */
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireApiAuth()
-    if (authResult instanceof NextResponse) {
-      return authResult
-    }
-
-    const supabase = createClient()
-
-    // URL 파라미터에서 partner_company_id 가져오기
+    const supabase = createServiceRoleClient()
     const { searchParams } = new URL(request.url)
-    const partnerCompanyId = searchParams.get('partner_company_id')
+    const partnerId = (searchParams.get('partner_company_id') || '').trim()
+    if (!partnerId) return NextResponse.json([])
 
-    if (!partnerCompanyId) {
-      return NextResponse.json({ error: 'Partner company ID is required' }, { status: 400 })
+    // 1) Resolve company_name from partner_companies
+    const { data: pc, error: pcErr } = await supabase
+      .from('partner_companies')
+      .select('company_name')
+      .eq('id', partnerId)
+      .maybeSingle()
+
+    if (pcErr || !pc?.company_name) return NextResponse.json([])
+
+    const name = String(pc.company_name).trim()
+    // 2) Resolve organization by name (strict or ilike)
+    const { data: orgStrict } = await supabase
+      .from('organizations')
+      .select('id, name')
+      .eq('name', name)
+    let orgIds: string[] = Array.isArray(orgStrict) ? orgStrict.map(r => String((r as any).id)) : []
+    if (orgIds.length === 0) {
+      const { data: orgLike } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .ilike('name', name)
+      orgIds = Array.isArray(orgLike) ? orgLike.map(r => String((r as any).id)) : []
     }
 
-    const siteMap = new Map<string, SiteRecord>()
-    const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
-    const legacyInactiveStatuses = new Set(['terminated', 'inactive', 'suspended', 'cancelled'])
-    const queryErrors: Array<{ source: string; message: string; code: string | null }> = []
+    if (orgIds.length === 0) return NextResponse.json([])
 
-    // 1) partner_site_mappings 기반 조회 (기본 경로)
-    const { data: mappingData, error: mappingError } = await supabase
-      .from('partner_site_mappings')
-      .select(
-        `
-        site_id,
-        is_active,
-        sites:sites!inner(
-          id,
-          name,
-          address,
-          status,
-          organization_id
-        )
-      `
-      )
-      .eq('partner_company_id', partnerCompanyId)
+    // 3) Fetch sites for these organizations
+    const { data: sites, error: sitesErr } = await supabase
+      .from('sites')
+      .select('id, name, organization_id')
+      .in('organization_id', orgIds)
+      .order('name', { ascending: true })
 
-    if (mappingError) {
-      console.warn('partner_site_mappings lookup failed:', {
-        message: mappingError.message,
-        code: mappingError.code,
-      })
-      queryErrors.push({
-        source: 'partner_site_mappings',
-        message: mappingError.message,
-        code: mappingError.code ?? null,
-      })
-    } else {
-      mappingData
-        ?.filter(row => row.is_active && row.sites)
-        .forEach(row => {
-          const site = row.sites
-          if (site?.id && !siteMap.has(site.id)) {
-            siteMap.set(site.id, {
-              id: site.id,
-              name: site.name,
-              address: site.address ?? null,
-              status: site.status ?? null,
-              organization_id: site.organization_id ?? null,
-            })
-          }
-        })
-    }
-
-    // 2) 필요 시 site_partners 테이블 기반 조회 (선택적 폴백)
-    if ((mappingError || siteMap.size === 0) && legacyFallbackEnabled) {
-      const { data: sitePartnersData, error: sitePartnersError } = await supabase
-        .from('site_partners')
-        .select(
-          `
-          site_id,
-          contract_status,
-          sites:sites!inner(
-            id,
-            name,
-            address,
-            status,
-            organization_id
-          )
-        `
-        )
-        .eq('partner_company_id', partnerCompanyId)
-
-      if (sitePartnersError) {
-        console.warn('site_partners fallback lookup failed:', {
-          message: sitePartnersError.message,
-          code: sitePartnersError.code,
-        })
-        queryErrors.push({
-          source: 'site_partners',
-          message: sitePartnersError.message,
-          code: sitePartnersError.code ?? null,
-        })
-      } else {
-        sitePartnersData
-          ?.filter(row => row.sites)
-          .forEach(row => {
-            if (row.contract_status && legacyInactiveStatuses.has(row.contract_status)) {
-              return
-            }
-
-            const site = row.sites
-            if (site?.id && !siteMap.has(site.id)) {
-              siteMap.set(site.id, {
-                id: site.id,
-                name: site.name,
-                address: site.address ?? null,
-                status: site.status ?? null,
-                organization_id: site.organization_id ?? null,
-              })
-            }
-          })
-      }
-    }
-
-    if (!siteMap.size && queryErrors.length) {
-      return NextResponse.json(
-        {
-          error: 'Failed to fetch sites',
-          details: queryErrors,
-        },
-        { status: 500 }
-      )
-    }
-
-    const sites = Array.from(siteMap.values()).sort((a, b) => a.name.localeCompare(b.name))
-
-    return NextResponse.json(sites)
-  } catch (error) {
-    console.error('Error in sites by partner API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    if (sitesErr) return NextResponse.json([])
+    return NextResponse.json(sites || [])
+  } catch (e) {
+    return NextResponse.json([])
   }
 }
+

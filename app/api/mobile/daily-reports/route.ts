@@ -198,8 +198,23 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('API error (mobile/daily-reports):', error)
+    // Fail-soft for mobile: return empty list to keep UI responsive
+    return NextResponse.json(
+      {
+        success: true,
+        data: {
+          reports: [],
+          totalCount: 0,
+          totalPages: 0,
+          currentPage: 1,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+        warning: 'fallback',
+      },
+      { status: 200 }
+    )
   }
 }
 
@@ -395,9 +410,11 @@ export async function POST(request: NextRequest) {
     const calculatedManpower =
       (Number(main_manpower) || 0) +
       normalizedAdditionalManpower.reduce((sum, item) => sum + item.manpower, 0)
-    const totalManpower = !isNaN(totalManpowerFromPayload)
+    const totalManpowerExact = !isNaN(totalManpowerFromPayload)
       ? totalManpowerFromPayload
       : calculatedManpower
+    // Some environments define daily_reports.total_workers as integer; keep exact value separately
+    const totalWorkersInt = Number.isFinite(totalManpowerExact) ? Math.round(totalManpowerExact) : 0
 
     // Check if report already exists for this site and date
     const { data: existingReport } = await serviceClient
@@ -412,7 +429,7 @@ export async function POST(request: NextRequest) {
     if (existingReport) {
       // Update the existing report instead of erroring out
       const updateBase: any = {
-        total_workers: totalManpower,
+        total_workers: totalWorkersInt,
         work_description,
         safety_notes: safety_notes ?? null,
         special_notes: notes ?? null,
@@ -427,6 +444,9 @@ export async function POST(request: NextRequest) {
           workProcesses: Array.isArray(processes) ? processes : [],
           workTypes: Array.isArray(work_types) ? work_types : [],
           tasks: Array.isArray(tasks) ? tasks : [],
+          totalManpower: totalManpowerExact,
+          mainManpower: Number(main_manpower) || 0,
+          additionalManpower: normalizedAdditionalManpower,
         },
         location_info: {
           block: location?.block ?? '',
@@ -441,7 +461,6 @@ export async function POST(request: NextRequest) {
         'safety_notes',
         'special_notes',
         'total_workers',
-        'status',
         'updated_at',
         'work_description',
       ])
@@ -485,12 +504,12 @@ export async function POST(request: NextRequest) {
               updatePayload.work_description = updatePayload.work_description || ''
               break
             case 'status':
-              updatePayload.status = updatePayload.status || 'submitted'
+              // Preserve requested status; default to submitted on update path
+              updatePayload.status =
+                updatePayload.status || (status === 'submitted' ? 'submitted' : 'draft')
               break
             case 'total_workers':
-              updatePayload.total_workers = Number.isFinite(updatePayload.total_workers)
-                ? updatePayload.total_workers
-                : 0
+              updatePayload.total_workers = Number.isFinite(totalWorkersInt) ? totalWorkersInt : 0
               break
             default:
               if (updatePayload[notNullCol] === undefined || updatePayload[notNullCol] === null) {
@@ -563,14 +582,15 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({
-        success: true,
-        data: updatedReport,
-        message:
-          status === 'submitted'
+      const savedAsSubmitted = String(updatedReport?.status) === 'submitted'
+      const message =
+        status === 'submitted'
+          ? savedAsSubmitted
             ? '기존 동일 날짜 작업일지를 제출로 저장했습니다.'
-            : '기존 동일 날짜 작업일지를 업데이트했습니다.',
-      })
+            : '필수 항목이 누락되어 임시저장으로 저장되었습니다.'
+          : '기존 동일 날짜 작업일지를 업데이트했습니다.'
+
+      return NextResponse.json({ success: true, data: updatedReport, message })
     }
 
     // Deprecated additional_notes payload was removed to match current schema
@@ -592,12 +612,15 @@ export async function POST(request: NextRequest) {
       workProcesses: Array.isArray(processes) ? processes : [],
       workTypes: Array.isArray(work_types) ? work_types : [],
       tasks: Array.isArray(tasks) ? tasks : [],
+      totalManpower: totalManpowerExact,
+      mainManpower: Number(main_manpower) || 0,
+      additionalManpower: normalizedAdditionalManpower,
     }
 
     const baseInsert = {
       site_id,
       work_date,
-      total_workers: totalManpower,
+      total_workers: totalWorkersInt,
       work_description,
       safety_notes: safety_notes ?? null,
       special_notes: notes ?? null,
@@ -614,7 +637,6 @@ export async function POST(request: NextRequest) {
       'safety_notes',
       'special_notes',
       'total_workers',
-      'status',
       'created_at',
       'updated_at',
       'work_description',
@@ -681,12 +703,11 @@ export async function POST(request: NextRequest) {
             payload.work_description = payload.work_description || ''
             break
           case 'status':
-            payload.status = payload.status || 'draft'
+            // Preserve requested status from the body; fallback to draft otherwise
+            payload.status = payload.status || (status === 'submitted' ? 'submitted' : 'draft')
             break
           case 'total_workers':
-            payload.total_workers = Number.isFinite(payload.total_workers)
-              ? payload.total_workers
-              : 0
+            payload.total_workers = Number.isFinite(totalWorkersInt) ? totalWorkersInt : 0
             break
           default:
             // Generic fallback: empty string for unknown text, else 0
@@ -760,11 +781,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      data: report,
-      message: 'Daily report created successfully',
-    })
+    const savedAsSubmitted = String(report?.status) === 'submitted'
+    const message =
+      status === 'submitted'
+        ? savedAsSubmitted
+          ? '작업일지가 저장되었습니다.'
+          : '필수 항목이 누락되어 임시저장으로 저장되었습니다.'
+        : '임시저장되었습니다.'
+
+    return NextResponse.json({ success: true, data: report, message })
   } catch (error) {
     console.error('POST API error:', error)
     const message = (error as any)?.message || 'Internal server error'

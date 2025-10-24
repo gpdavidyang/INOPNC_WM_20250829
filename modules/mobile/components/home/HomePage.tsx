@@ -637,7 +637,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             </h3>
             <span className="form-note">필수입력값(*)작성 후 저장</span>
           </div>
-          <div className="form-row" style={{ marginBottom: 1 }}>
+          <div className="form-row" style={{ marginBottom: 12 }}>
             <div className="form-group">
               <DepartmentSelect value={department} onChange={setDepartment} required />
             </div>
@@ -683,7 +683,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
           {/* 선택된 현장 확인 표시 */}
           {selectedSite && (
-            <div className="form-row mt-0" style={{ gridTemplateColumns: '1fr', marginTop: -8 }}>
+            <div className="form-row mt-0" style={{ gridTemplateColumns: '1fr', marginTop: 12 }}>
               <div className="form-group">
                 <label className="form-label">선택된 현장</label>
                 <input
@@ -1055,11 +1055,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           </button>
         </div>
 
-        {actionStatus && (
-          <div className={`action-feedback ${actionStatus.type}`} role="status" aria-live="polite">
-            {actionStatus.message}
-          </div>
-        )}
+        {/* Inline action feedback is intentionally hidden to avoid duplicate messaging with toasts */}
       </div>
 
       {/* 사진 업로드 - 별도 카드 */}

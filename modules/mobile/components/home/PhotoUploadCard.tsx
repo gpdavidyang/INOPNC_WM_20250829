@@ -372,7 +372,7 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps & { selectedSite?: s
               </p>
             )}
             {!lastSavedAt && !lastError && (
-              <p className="text-xs" style={{ color: '#6b7280' }}>
+              <p className="text-sm upload-hint-strong">
                 저장하기를 누르면 선택한 사진 목록이 기기에 임시 저장됩니다. 작업일지 제출 시 서버로 함께 업로드됩니다.
               </p>
             )}
