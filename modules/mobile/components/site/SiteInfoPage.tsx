@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import '@/modules/mobile/styles/attendance.css'
 import { TMap } from '@/lib/external-apps'
 import { Download, Search, X } from 'lucide-react'
 import {
@@ -1971,6 +1972,13 @@ export default function SiteInfoPage() {
           margin-top: 24px;
         }
 
+        /* NPC 섹션 타이틀을 다른 섹션과 동일한 헤더 스타일로 */
+        .npc-card-section .card-header .q {
+          font-size: 20px;
+          color: #1a254f;
+          font-weight: 700;
+        }
+
         .divider {
           width: 100%;
           height: 1px;
@@ -1991,12 +1999,12 @@ export default function SiteInfoPage() {
           color: #f8fafc;
         }
 
-        /* Match WorkLog stat cards exactly */
+        /* WorkLog(작업일지) 페이지의 통계 카드 스타일과 100% 일치 */
         .stat-grid {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 12px;
-          margin-top: 0;
+          margin-top: 12px;
         }
         .stat {
           padding: 16px 0;
@@ -2031,7 +2039,7 @@ export default function SiteInfoPage() {
         }
         :global([data-theme='dark']) .stat {
           background: rgba(15, 23, 42, 0.9);
-          border-color: rgba(58, 64, 72, 1);
+          border-color: var(--attendance-border-dark);
           color: #e9eef5;
         }
         :global([data-theme='dark']) .stat .num {
@@ -2131,31 +2139,121 @@ export default function SiteInfoPage() {
           cursor: pointer;
         }
 
+        /* 참여 현장 리스트 — 이전 카드형 레이아웃 복원 */
         .site-summary-list {
           display: flex;
           flex-direction: column;
-          gap: 0; /* match home: no vertical gap, use divider lines */
+          background: #f8f9fa;
+          border-radius: 12px;
+          overflow: hidden;
         }
 
         .site-summary-item {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 10px 4px; /* match home spacing */
-          background: transparent; /* match home: no container fill */
-          border: none; /* remove container border */
-          border-radius: 0; /* square edges */
-          border-bottom: 1px solid var(--line); /* optional divider like home */
+          justify-content: space-between;
+          padding: 16px 20px;
+          background: #fff;
+          border-bottom: 1px solid #e9ecef;
           cursor: pointer;
-          transition: background-color 0.2s ease;
+          transition: background 0.2s ease;
         }
-        :global([data-theme='dark']) .site-container .site-summary-item {
-          background: transparent;
-          border-bottom-color: var(--line);
+
+        .site-summary-item:last-child {
+          border-bottom: none;
         }
 
         .site-summary-item:hover {
-          background: transparent;
+          background: #f8f9fa;
+        }
+
+        .site-summary-item.selected {
+          background: rgba(0, 104, 254, 0.1);
+          border-color: rgba(0, 104, 254, 0.2);
+        }
+
+        /* 항목 헤더 행: 좌측 제목, 우측 날짜/상태 배치 */
+        .site-summary-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
+        }
+        .site-summary-main {
+          min-width: 0;
+          flex: 1 1 auto;
+        }
+        .site-summary-title {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+        .site-summary-name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .site-summary-tag {
+          color: #6b7280;
+          font-weight: 700;
+          flex: 0 0 auto;
+        }
+        .site-summary-right {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 0 0 auto;
+        }
+        .site-summary-status {
+          padding: 2px 8px;
+          border-radius: 9999px;
+          background: rgba(0, 104, 254, 0.08);
+          color: #0068fe;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .site-summary-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: #1a56db;
+        }
+
+        .site-summary-date {
+          font-size: 13px;
+          color: #6b7280;
+        }
+
+        /* 더보기 버튼 - 작업일지 페이지와 동일 스타일 */
+        /* 더보기 버튼 — 작업일지 스타일과 100% 동일 + 중앙정렬 보장 */
+        .site-search-card .more-button-container {
+          position: relative;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100%;
+          text-align: center;
+          margin-top: 12px;
+          margin-bottom: 16px;
+        }
+        .site-search-card .more-btn {
+          padding: 10px 28px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: var(--card);
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text);
+          box-shadow: none;
+          cursor: pointer;
+          transition: background 0.2s ease;
+        }
+        .site-search-card .more-btn:hover {
+          background: #f8faff;
         }
 
         .site-summary-item.selected {
@@ -2544,26 +2642,19 @@ export default function SiteInfoPage() {
           color: #6b7280;
         }
 
+        /* NPC-1000 KPI — 이전 그리드형 카드 복원 */
         .npc-kpi {
-          display: flex;
-          align-items: stretch;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
           gap: 12px;
           margin-bottom: 16px;
         }
 
         .npc-kpi-item {
-          border-radius: 16px;
-          padding: 18px 14px;
+          background: var(--brand-ghost);
+          border-radius: 12px;
+          padding: 14px;
           text-align: center;
-          flex: 1 1 0;
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          align-items: center;
-          justify-content: center;
-          border: 1.5px solid transparent;
-          background: #f8f9fb;
         }
         /* Dark mode KPI base */
         :global([data-theme='dark']) .site-container .npc-kpi-item {
@@ -2572,10 +2663,9 @@ export default function SiteInfoPage() {
         }
 
         .npc-kpi-value {
-          font-size: 22px;
+          font-size: 18px;
           font-weight: 700;
-          margin: 0;
-          line-height: 1.1;
+          margin-top: 6px;
         }
         :global([data-theme='dark']) .site-container .npc-kpi-value {
           color: #f1f5f9;
@@ -2661,22 +2751,75 @@ export default function SiteInfoPage() {
         }
 
         .npc-buttons {
-          display: flex;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
-          flex-wrap: nowrap;
+          width: 100%;
         }
 
         .npc-btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           border-radius: 12px;
           height: 48px;
-          font-weight: 600;
+          font-weight: 700;
           border: 1px solid var(--border);
           background: var(--card);
           cursor: pointer;
-          transition: background 0.2s ease;
-          flex: 1 1 0;
+          transition:
+            background-color 0.2s ease,
+            border-color 0.2s ease,
+            color 0.2s ease;
+          width: 100%;
           min-width: 0;
           white-space: nowrap;
+        }
+
+        /* Variants */
+        .npc-btn-primary {
+          background: #0068fe;
+          border-color: #0068fe;
+          color: #fff;
+        }
+        .npc-btn-primary:hover {
+          background: #0057d6;
+          border-color: #0057d6;
+        }
+
+        .npc-btn-ghost {
+          background: rgba(49, 163, 250, 0.1);
+          border-color: rgba(49, 163, 250, 0.3);
+          color: #0068fe;
+        }
+        .npc-btn-ghost:hover {
+          background: rgba(49, 163, 250, 0.15);
+        }
+
+        .npc-btn-white {
+          background: #fff;
+          border-color: var(--border);
+          color: var(--text);
+        }
+        .npc-btn-white:hover {
+          background: #f8fafc;
+        }
+
+        /* Dark theme variants */
+        :global([data-theme='dark']) .site-container .npc-btn {
+          border-color: var(--line);
+          background: var(--card);
+          color: var(--text);
+        }
+        :global([data-theme='dark']) .site-container .npc-btn-primary {
+          background: #2f6bff;
+          border-color: #2f6bff;
+          color: #fff;
+        }
+        :global([data-theme='dark']) .site-container .npc-btn-ghost {
+          background: rgba(49, 163, 250, 0.2);
+          border-color: rgba(49, 163, 250, 0.35);
+          color: #8fb3ff;
         }
 
         .npc-btn:hover {
@@ -3671,6 +3814,129 @@ export default function SiteInfoPage() {
           border-color: #0f172a;
         }
       `}</style>
+      {/* 전역 강제 오버라이드: 빌드/캐시 상황에서도 확실히 반영되도록 높은 특이성과 !important 사용 */}
+      <style jsx global>{`
+        /* 참여 현장 리스트 - 카드형 컨테이너/아이템 복원 */
+        .site-container .site-search-card .site-summary-list {
+          display: flex !important;
+          flex-direction: column !important;
+          background: #f8f9fa !important;
+          border-radius: 12px !important;
+          overflow: hidden !important;
+        }
+        .site-container .site-search-card .site-summary-item {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          padding: 16px 20px !important;
+          background: #fff !important;
+          border-bottom: 1px solid #e9ecef !important;
+          cursor: pointer !important;
+          transition: background 0.2s ease !important;
+        }
+        .site-container .site-search-card .site-summary-item:last-child {
+          border-bottom: none !important;
+        }
+        .site-container .site-search-card .site-summary-item:hover {
+          background: #f8f9fa !important;
+        }
+        .site-container .site-search-card .site-summary-item.selected {
+          background: rgba(0, 104, 254, 0.1) !important;
+          border-color: rgba(0, 104, 254, 0.2) !important;
+        }
+        .site-container .site-search-card .site-summary-header {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: space-between !important;
+          gap: 8px !important;
+          width: 100% !important;
+        }
+        .site-container .site-search-card .site-summary-main {
+          min-width: 0 !important;
+          flex: 1 1 auto !important;
+        }
+        .site-container .site-search-card .site-summary-title {
+          display: flex !important;
+          align-items: center !important;
+          gap: 6px !important;
+          overflow: hidden !important;
+          white-space: nowrap !important;
+          text-overflow: ellipsis !important;
+        }
+        .site-container .site-search-card .site-summary-name {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+        .site-container .site-search-card .site-summary-right {
+          display: flex !important;
+          align-items: center !important;
+          gap: 8px !important;
+        }
+        .site-container .site-search-card .site-summary-date {
+          font-size: 13px !important;
+          color: #6b7280 !important;
+        }
+        .site-container .site-search-card .site-summary-status {
+          padding: 2px 8px !important;
+          border-radius: 9999px !important;
+          background: rgba(0, 104, 254, 0.08) !important;
+          color: #0068fe !important;
+          font-size: 12px !important;
+          font-weight: 700 !important;
+        }
+
+        /* NPC-1000 KPI - 3등분 그리드 카드 복원 */
+        .site-container .npc-card .npc-kpi {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 12px !important;
+          margin-bottom: 16px !important;
+        }
+        /* NPC 섹션 컨테이너를 카드와 동일하게 보이도록 보강 */
+        .site-container .npc-card-section {
+          background: var(--card) !important;
+          border: 1px solid var(--border) !important;
+          border-radius: 16px !important;
+        }
+        .site-container .npc-card-section .card-header {
+          margin-bottom: 12px !important;
+        }
+        .site-container .npc-card .npc-kpi-item {
+          background: rgba(26, 37, 79, 0.06) !important;
+          border-radius: 12px !important;
+          padding: 14px !important;
+          text-align: center !important;
+        }
+        .site-container .npc-card .npc-kpi-label {
+          font-size: 12px !important;
+          color: var(--muted) !important;
+        }
+        .site-container .npc-card .npc-kpi-value {
+          font-size: 18px !important;
+          font-weight: 700 !important;
+          margin-top: 6px !important;
+        }
+
+        /* 자재 재고관리 하단 버튼 — 텍스트로 보이지 않도록 확실한 버튼 스타일 강제 */
+        .site-container .npc-card .npc-buttons .npc-btn {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          height: 48px !important;
+          border-radius: 12px !important;
+          border: 1px solid var(--border) !important;
+          background: var(--card) !important;
+          font-weight: 700 !important;
+          color: var(--text) !important;
+          padding: 0 10px !important;
+          text-decoration: none !important;
+          cursor: pointer !important;
+        }
+        .site-container .npc-card .npc-buttons .npc-btn:hover {
+          background: #f8faff !important;
+        }
+      `}</style>
 
       {/* 상단 페이지 제목 제거 요청으로 비노출 */}
 
@@ -3994,10 +4260,10 @@ export default function SiteInfoPage() {
         </div>
 
         {!searchQuery.trim() && siteResults.length > DEFAULT_SITE_DISPLAY_COUNT && (
-          <div className="site-summary-actions">
+          <div className="more-button-container">
             <button
               type="button"
-              className="site-summary-toggle"
+              className="more-btn"
               onClick={() => setShowAllSites(prev => !prev)}
             >
               {showAllSites ? '접기' : '더보기'}
@@ -4008,13 +4274,13 @@ export default function SiteInfoPage() {
 
       <section
         id="npc-inventory-section"
-        className="npc-card-section"
+        className="card npc-card-section"
         role="region"
-        aria-label="NPC-1000 재고관리"
+        aria-label="자재 재고관리"
       >
         <div className="npc-card">
-          <div className="npc-header">
-            <div className="npc-title">NPC-1000 재고관리</div>
+          <div className="card-header">
+            <div className="q">자재 재고관리</div>
             {isRefreshing && <span style={{ fontSize: 13, color: '#6b7280' }}>업데이트 중...</span>}
           </div>
 

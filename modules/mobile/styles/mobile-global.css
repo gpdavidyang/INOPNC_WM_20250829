@@ -30,7 +30,7 @@
 
   /* AppBar label controls */
   --appbar-label-size: 9px; /* was 10px */
-  --appbar-label-weight: 200; /* was 300 */
+  --appbar-label-weight: 300; /* bumped from 200 for clarity */
 
   /* Compact vertical rhythm tokens */
   --space-xxs: 6px; /* ultra compact */
@@ -212,7 +212,8 @@ textarea {
   position: relative;
   min-width: 32px;
   min-height: 36px;
-  color: #374151;
+  /* Light theme: force solid black so label matches icon stroke */
+  color: #000;
   gap: 2px;
 }
 
@@ -248,11 +249,18 @@ textarea {
   font-weight: var(--appbar-label-weight);
   line-height: 1;
   letter-spacing: -0.3px;
-  color: #6b7280;
+  color: inherit;
 }
 
-[data-theme='dark'] .header-icon-btn .icon-text {
-  color: var(--text);
+/* Force header icon + label to true black in light theme to match icon stroke */
+.app-header .header-icon-btn {
+  color: #000 !important;
+}
+.app-header .header-icon-btn .icon-text {
+  color: inherit !important;
+}
+[data-theme='dark'] .app-header .header-icon-btn {
+  color: var(--text) !important;
 }
 
 /* 큰글씨 모드에서도 헤더는 영향받지 않도록 */

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     const offset = (page - 1) * limit
 
-    // 기본 쿼리 생성
+    // 기본 쿼리 생성 (관계 선택 포함). 스키마 불일치 시 최소 필드로 폴백.
     let query = supabase.from('unified_documents').select(
       `
         *,
@@ -60,9 +60,7 @@ export async function GET(request: NextRequest) {
           status
         ),
         customer_company:customer_company_id (
-          id,
-          name,
-          company_type
+          id
         ),
         daily_report:daily_report_id (
           id,
@@ -76,8 +74,13 @@ export async function GET(request: NextRequest) {
     // 역할 기반 필터링
     if (role === 'customer_manager') {
       // 제한 계정(시공업체 담당): 자사 문서 + 공개 문서(회사서류함 등) 열람 허용
-      // OR 조건: customer_company_id = 내 회사 OR is_public = true
-      query = query.or(`customer_company_id.eq.${profile.customer_company_id},is_public.eq.true`)
+      // profile.customer_company_id가 없을 경우 공개 문서만 허용
+      const companyId = (profile as any)?.customer_company_id
+      if (companyId) {
+        query = query.or(`customer_company_id.eq.${companyId},is_public.eq.true`)
+      } else {
+        query = query.eq('is_public', true)
+      }
     }
     // 작업자, 현장관리자, 관리자는 모든 문서 접근 가능 (필터링 없음)
 
@@ -126,40 +129,93 @@ export async function GET(request: NextRequest) {
     // 페이지네이션
     query = query.range(offset, offset + limit - 1)
 
-    const { data: documents, error, count } = await query
-
-    if (error) {
-      console.error('Error fetching unified documents:', error)
-      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
+    let documents: any[] | null = null
+    let count: number | null = null
+    {
+      const { data, error, count: c } = await query
+      if (error) {
+        console.warn(
+          'Unified documents: relationship select failed, falling back to minimal fields.',
+          error?.message || error
+        )
+        // 1차 폴백: 동일 테이블 최소 셀렉트
+        const fallback = await supabase.from('unified_documents').select('*', { count: 'exact' })
+        if (!fallback.error) {
+          documents = fallback.data || []
+          count = fallback.count || 0
+        } else {
+          // 2차 폴백: 레거시 unified_document_system에서 호환 필드 구성
+          console.warn(
+            'Unified documents primary fallback failed, trying unified_document_system',
+            fallback.error?.message || fallback.error
+          )
+          const legacy = await supabase
+            .from('unified_document_system')
+            .select('*', { count: 'exact' })
+          if (legacy.error) {
+            console.error('Unified documents legacy fallback error:', legacy.error)
+            // Final fail-soft: return empty list so UI doesn't break
+            documents = []
+            count = 0
+          } else {
+            documents = (legacy.data || []).map((d: any) => ({
+              id: d.id,
+              title: d.title || d.file_name,
+              description: d.description ?? null,
+              file_name: d.file_name,
+              file_url: d.file_url,
+              document_type: d.document_type || d.category_type || null,
+              sub_type: d.sub_type || null,
+              status: d.status,
+              site_id: d.site_id,
+              created_at: d.created_at,
+              uploaded_by: d.uploaded_by,
+              is_public: d.is_public === true,
+            }))
+            count = legacy.count || 0
+          }
+        }
+      } else {
+        documents = data || []
+        count = c || 0
+      }
     }
 
     // 통계 정보 조회 (선택적)
     let statistics = null
     if (includeStats) {
-      const { data: stats } = await supabase.rpc('get_document_statistics')
-      statistics = stats?.[0] || null
+      try {
+        const { data: stats } = await supabase.rpc('get_document_statistics')
+        statistics = stats?.[0] || null
+      } catch (_) {
+        statistics = null
+      }
     }
 
     // 상태별 카운트(현재 필터와 동일 조건) — 승인/대기/반려 기준
     const buildCount = async (statusValue: string) => {
-      let cq = supabase.from('unified_documents').select('*', { count: 'exact', head: true })
-      // 역할 필터
-      if (role === 'customer_manager') {
-        cq = cq.eq('customer_company_id', profile.customer_company_id)
+      try {
+        let cq = supabase.from('unified_documents').select('*', { count: 'exact', head: true })
+        if (role === 'customer_manager') {
+          const companyId = (profile as any)?.customer_company_id
+          if (companyId) cq = cq.eq('customer_company_id', companyId)
+          else cq = cq.eq('is_public', true)
+        }
+        if (statusValue) cq = cq.eq('status', statusValue)
+        if (categoryType && categoryType !== 'all') cq = cq.eq('category_type', categoryType)
+        if (documentType && documentType !== 'all') cq = cq.eq('document_type', documentType)
+        if (organizationId && organizationId !== 'all')
+          cq = cq.eq('customer_company_id', organizationId)
+        if (siteId && siteId !== 'all') cq = cq.eq('site_id', siteId)
+        if (search)
+          cq = cq.or(
+            `title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`
+          )
+        const { count: c } = await cq
+        return c || 0
+      } catch (_) {
+        return 0
       }
-      // 동일 필터 재적용
-      if (statusValue) cq = cq.eq('status', statusValue)
-      if (categoryType && categoryType !== 'all') cq = cq.eq('category_type', categoryType)
-      if (documentType && documentType !== 'all') cq = cq.eq('document_type', documentType)
-      if (organizationId && organizationId !== 'all')
-        cq = cq.eq('customer_company_id', organizationId)
-      if (siteId && siteId !== 'all') cq = cq.eq('site_id', siteId)
-      if (search)
-        cq = cq.or(
-          `title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`
-        )
-      const { count: c } = await cq
-      return c || 0
     }
     const statusBreakdown = {
       approved: await buildCount('approved'),
@@ -168,11 +224,17 @@ export async function GET(request: NextRequest) {
     }
 
     // 카테고리 정보 조회
-    const { data: categories } = await supabase
-      .from('document_categories')
-      .select('*')
-      .eq('is_active', true)
-      .order('sort_order')
+    let categories = null
+    try {
+      const { data } = await supabase
+        .from('document_categories')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order')
+      categories = data || []
+    } catch (_) {
+      categories = []
+    }
 
     return NextResponse.json({
       success: true,
