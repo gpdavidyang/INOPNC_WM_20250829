@@ -91,6 +91,8 @@ export const WorkLogHomePage: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
   const [isDetailOpen, setDetailOpen] = useState(false)
   const [detailData, setDetailData] = useState<WorklogDetail | null>(null)
+  const [pendingDraft, setPendingDraft] = useState<WorkLog | null>(null)
+  const [isDraftSheetOpen, setDraftSheetOpen] = useState(false)
 
   const {
     draftWorkLogs,
@@ -275,28 +277,10 @@ export const WorkLogHomePage: React.FC = () => {
   }, [])
 
   const handleViewWorkLog = useCallback((workLog: WorkLog) => {
-    // Draft → 홈 화면으로 이동(작성폼 프리필)
+    // Draft → 안내 바텀시트 먼저 표시
     if (workLog.status === 'draft') {
-      try {
-        const prefill = {
-          siteId: workLog.siteId,
-          workDate: workLog.date,
-          department: '',
-          location: workLog.location || { block: '', dong: '', unit: '' },
-          memberTypes: workLog.memberTypes || [],
-          workProcesses: workLog.workProcesses || [],
-          workTypes: workLog.workTypes || [],
-          mainManpower: Number(workLog.totalHours || 0) / 8,
-          materials: [],
-          additionalManpower: [],
-        }
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
-        }
-      } catch (e) {
-        void e
-      }
-      router.push('/mobile')
+      setPendingDraft(workLog)
+      setDraftSheetOpen(true)
       return
     }
     // 새 상세 뷰어로 표시 (시안 일치)
@@ -365,6 +349,32 @@ export const WorkLogHomePage: React.FC = () => {
     setDetailData(detail)
     setDetailOpen(true)
   }, [])
+
+  const proceedOpenDraft = useCallback(() => {
+    const workLog = pendingDraft
+    if (!workLog) return
+    try {
+      const prefill = {
+        siteId: workLog.siteId,
+        workDate: workLog.date,
+        department: '',
+        location: workLog.location || { block: '', dong: '', unit: '' },
+        memberTypes: workLog.memberTypes || [],
+        workProcesses: workLog.workProcesses || [],
+        workTypes: workLog.workTypes || [],
+        mainManpower: Number(workLog.totalHours || 0) / 8,
+        materials: [],
+        additionalManpower: [],
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
+      }
+    } catch (e) {
+      void e
+    }
+    setDraftSheetOpen(false)
+    router.push('/mobile')
+  }, [pendingDraft, router])
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false)
@@ -1279,6 +1289,43 @@ export const WorkLogHomePage: React.FC = () => {
           onDismiss={handleDismissMonth}
           onNavigate={handleNavigateToMonth}
         />
+
+        {/* Draft Open Confirm Bottom Sheet */}
+        {isDraftSheetOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-40 z-40"
+              onClick={() => setDraftSheetOpen(false)}
+            />
+            <div className="fixed bottom-0 left-0 right-0 z-50">
+              <div className="bg-white rounded-t-3xl shadow-xl p-5">
+                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">임시저장 안내</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  선택한 임시저장 항목의 내용을 작업일지 작성 페이지로 불러옵니다. 사진/도면은 자동
+                  업로드되지 않으며, 작성 페이지에서 추가하실 수 있습니다.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="flex-1 h-11 border border-gray-300 rounded-xl text-gray-800 font-medium"
+                    onClick={() => setDraftSheetOpen(false)}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    className="flex-1 h-11 rounded-xl text-white font-semibold"
+                    style={{ background: '#1a254f' }}
+                    onClick={proceedOpenDraft}
+                  >
+                    계속 작성
+                  </button>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </LayoutShell>
   )
