@@ -349,7 +349,8 @@ async function loadNpcSummary(siteId: string): Promise<NpcSummary | null> {
 
 async function loadSiteSearch(siteName: string): Promise<SiteSearchResult[]> {
   try {
-    const params = new URLSearchParams({ limit: '6' })
+    // NPC 섹션의 현장 선택은 전체 리스트가 필요하므로 넉넉한 상한(백엔드 cap 100)에 맞춰 요청
+    const params = new URLSearchParams({ limit: '100' })
     if (siteName.trim()) {
       params.set('siteName', siteName.trim())
     }
@@ -2080,6 +2081,24 @@ export default function SiteInfoPage() {
           min-height: initial;
         }
 
+        /* 검색 아이콘(돋보기) - 입력필드 좌측에 고정 표시 */
+        .search-ico {
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 18px;
+          height: 18px;
+          color: #9ca3af;
+          pointer-events: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        :global([data-theme='dark']) .site-container .search-ico {
+          color: #a8b0bb;
+        }
+
         .search-input-new {
           flex: 1;
           width: 100%;
@@ -2097,10 +2116,6 @@ export default function SiteInfoPage() {
             Roboto,
             sans-serif;
           color: var(--text);
-          background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'><circle cx='11' cy='11' r='8'/><line x1='21' y1='21' x2='16.65' y2='16.65'/></svg>");
-          background-repeat: no-repeat;
-          background-position: 10px 50%;
-          background-size: 18px 18px;
         }
         :global([data-theme='dark']) .site-container .search-input-new {
           background: var(--card);
@@ -2585,11 +2600,12 @@ export default function SiteInfoPage() {
           text-decoration: underline;
         }
 
+        /* 내부 래퍼(.npc-card)의 테두리/배경 제거 — 외부 섹션(card)만 유지 */
         .npc-card {
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          padding: 20px;
+          background: transparent;
+          border: none;
+          border-radius: 0;
+          padding: 0;
         }
 
         .npc-header {
@@ -2626,6 +2642,8 @@ export default function SiteInfoPage() {
 
         .npc-site-content {
           min-width: 220px;
+          max-height: 280px; /* 긴 목록도 스크롤로 모두 접근 가능 */
+          overflow-y: auto;
         }
 
         .npc-site-item {
@@ -2663,19 +2681,20 @@ export default function SiteInfoPage() {
         }
 
         .npc-kpi-value {
-          font-size: 18px;
+          font-size: 22px;
           font-weight: 700;
-          margin-top: 6px;
+          line-height: 1.4;
+          margin: 0;
         }
         :global([data-theme='dark']) .site-container .npc-kpi-value {
           color: #f1f5f9;
         }
 
         .npc-kpi-label {
-          font-size: 13px;
+          font-size: 16px;
           font-weight: 600;
           margin: 0;
-          letter-spacing: -0.01em;
+          line-height: 1.4;
         }
         :global([data-theme='dark']) .site-container .npc-kpi-label {
           color: #cbd5e1;
@@ -3909,13 +3928,16 @@ export default function SiteInfoPage() {
           text-align: center !important;
         }
         .site-container .npc-card .npc-kpi-label {
-          font-size: 12px !important;
+          font-size: 16px !important;
+          font-weight: 600 !important;
+          line-height: 1.4 !important;
           color: var(--muted) !important;
         }
         .site-container .npc-card .npc-kpi-value {
-          font-size: 18px !important;
+          font-size: 22px !important;
           font-weight: 700 !important;
-          margin-top: 6px !important;
+          line-height: 1.4 !important;
+          margin: 0 !important;
         }
 
         /* 자재 재고관리 하단 버튼 — 텍스트로 보이지 않도록 확실한 버튼 스타일 강제 */
@@ -3935,6 +3957,13 @@ export default function SiteInfoPage() {
         }
         .site-container .npc-card .npc-buttons .npc-btn:hover {
           background: #f8faff !important;
+        }
+        /* 1행 3열 레이아웃 강제 */
+        .site-container .npc-card .npc-buttons {
+          display: grid !important;
+          grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+          gap: 8px !important;
+          width: 100% !important;
         }
       `}</style>
 
@@ -4193,10 +4222,21 @@ export default function SiteInfoPage() {
             </section>
           )}
         </div>
-        <div className="divider" />
 
         <div className="search-bar-container">
           <div className="search-input-wrapper">
+            <span className="search-ico" aria-hidden="true">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            </span>
             <input
               type="text"
               value={searchQuery}
@@ -4331,13 +4371,28 @@ export default function SiteInfoPage() {
           </div>
 
           <div className="npc-buttons">
-            <button type="button" className="npc-btn npc-btn-white" onClick={handleOpenNpcLogs}>
+            <button
+              type="button"
+              className="btn btn--outline"
+              style={{ width: '100%' }}
+              onClick={handleOpenNpcLogs}
+            >
               로그 보기
             </button>
-            <button type="button" className="npc-btn npc-btn-ghost" onClick={handleOpenNpcRequest}>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              style={{ width: '100%' }}
+              onClick={handleOpenNpcRequest}
+            >
               자재 요청
             </button>
-            <button type="button" className="npc-btn npc-btn-primary" onClick={handleOpenNpcRecord}>
+            <button
+              type="button"
+              className="btn btn--primary"
+              style={{ width: '100%' }}
+              onClick={handleOpenNpcRecord}
+            >
               입고 기록
             </button>
           </div>
