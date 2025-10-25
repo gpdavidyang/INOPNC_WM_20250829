@@ -176,31 +176,31 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   .print-root, .print-root * { visibility: visible; }
   .print-root { position: static; }
 }
-.page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 10mm; display: flex; flex-direction: column; gap: 6mm; break-after: page; overflow: hidden; margin: 0 auto; }
-.page.landscape { width: 297mm; height: 210mm; }
-.header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 4mm; }
-.header .title.site-only { text-align: left; font-size: 15pt; margin-bottom: 8mm; }
-.site-row { display: grid; grid-template-columns: 35mm 1fr; align-items: center; gap: 3mm; }
-.site-row .label { border: 1px solid #000; padding: 2mm 3mm; font-weight: 600; text-align: center; }
-.site-row .value { border: 1px solid #000; padding: 2mm 3mm; min-height: 10mm; }
-.grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
-.page.template .grid { gap: 0; }
-.cell { border: 1px solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; }
-.img { width: 100%; height: 100%; object-fit: cover; }
-.page.template .img { object-fit: contain; }
-.placeholder { color: #888; font-size: 12px; }
-.meta-table { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
-.meta-table th, .meta-table td { border: 1px solid #000; padding: 2mm 3mm; font-size: 10pt; }
-.meta-table td.content { text-align: left; }
-.meta-table td.stage { text-align: center; }
+.print-root .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 10mm; display: flex; flex-direction: column; gap: 6mm; break-after: page; overflow: hidden; margin: 0 auto; }
+.print-root .page.landscape { width: 297mm; height: 210mm; }
+.print-root .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 4mm; }
+.print-root .header .title.site-only { text-align: left; font-size: 15pt; margin-bottom: 8mm; }
+.print-root .site-row { display: grid; grid-template-columns: 35mm 1fr; align-items: center; gap: 3mm; }
+.print-root .site-row .label { border: 1px solid #000; padding: 2mm 3mm; font-weight: 600; text-align: center; }
+.print-root .site-row .value { border: 1px solid #000; padding: 2mm 3mm; min-height: 10mm; }
+.print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
+.print-root .page.template .grid { gap: 0; }
+.print-root .cell { border: 1px solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; }
+.print-root .img { width: 100%; height: 100%; object-fit: cover; }
+.print-root .page.template .img { object-fit: contain; }
+.print-root .placeholder { color: #888; font-size: 12px; }
+.print-root .meta-table { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
+.print-root .meta-table th, .print-root .meta-table td { border: 1px solid #000; padding: 2mm 3mm; font-size: 10pt; }
+.print-root .meta-table td.content { text-align: left; }
+.print-root .meta-table td.stage { text-align: center; }
 tr, td, th { break-inside: avoid; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
 /* Template-mode per-cell info tables */
-.info-grid { display: grid; gap: 0; margin-top: 2mm; }
-.info-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #000; font-size: 10pt; }
-.info-table th, .info-table td { border: 1px solid #000; padding: 1.2mm 1.6mm; text-align: left; }
-.info-table th { width: 20mm; text-align: center; font-weight: 700; background: #f5f5f5; }
+.print-root .info-grid { display: grid; gap: 0; margin-top: 2mm; }
+.print-root .info-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #000; font-size: 10pt; }
+.print-root .info-table th, .print-root .info-table td { border: 1px solid #000; padding: 1.2mm 1.6mm; text-align: left; }
+.print-root .info-table th { width: 20mm; text-align: center; font-weight: 700; background: #f5f5f5; }
 
 `
 }
