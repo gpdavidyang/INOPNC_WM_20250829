@@ -138,6 +138,11 @@ export default function PhotoSheetPrint({
       const vGaps = (rows - 1) * gapMm
       cellH = (gridHeightMm - vGaps) / rows
     }
+    // For 2x1, aggressively shrink the cell height to create ample whitespace
+    if (perCellCaption && ((rows === 1 && cols === 2) || (rows === 2 && cols === 1))) {
+      const targetCellH = rows === 1 ? 90 : 80 // mm: hard cap for 2x1 cells
+      cellH = Math.min(cellH, targetCellH)
+    }
     const cellImgMm = Math.max(8, cellH - cellCapMm)
     return {
       ['--grid-h' as any]: `${gridHeightMm}mm`,
