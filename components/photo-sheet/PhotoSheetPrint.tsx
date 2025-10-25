@@ -119,22 +119,30 @@ export default function PhotoSheetPrint({
   // Set CSS variables for fixed-layout sections
   const pageVars = useMemo(() => {
     // Per-cell caption heights per preset for a balanced look
-    let cellCap = '0mm'
+    let cellCapMm = 0
     if (perCellCaption) {
-      if (rows === 1 && cols === 1) cellCap = '30mm'
-      else if ((rows === 1 && cols === 2) || (rows === 2 && cols === 1)) cellCap = '26mm'
-      else if ((rows === 1 && cols === 3) || (rows === 3 && cols === 1)) cellCap = '24mm'
-      else if (rows === 2 && cols === 2) cellCap = '20mm'
+      if (rows === 1 && cols === 1) cellCapMm = 30
+      else if ((rows === 1 && cols === 2) || (rows === 2 && cols === 1)) cellCapMm = 26
+      else if ((rows === 1 && cols === 3) || (rows === 3 && cols === 1)) cellCapMm = 24
+      else if (rows === 2 && cols === 2) cellCapMm = 20
     }
+    let cellH = gridHeightMm / Math.max(1, rows)
+    if (rows > 1) {
+      const vGaps = (rows - 1) * gapMm
+      cellH = (gridHeightMm - vGaps) / rows
+    }
+    const cellImgMm = Math.max(8, cellH - cellCapMm)
     return {
       ['--grid-h' as any]: `${gridHeightMm}mm`,
       ['--meta-h' as any]: `${metaMm}mm`,
       ['--gap-mm' as any]: `${gapMm}mm`,
       ['--pad-mm' as any]: `${paddingMm}mm`,
       ['--page-gap-mm' as any]: `${pageGapMm}mm`,
-      ['--cell-cap-mm' as any]: cellCap,
+      ['--cell-cap-mm' as any]: `${cellCapMm}mm`,
+      ['--cell-h' as any]: `${cellH}mm`,
+      ['--cell-img-h' as any]: `${cellImgMm}mm`,
     }
-  }, [gridHeightMm, metaMm, gapMm, perCellCaption, rows, cols])
+  }, [gridHeightMm, metaMm, gapMm, perCellCaption, rows, cols, paddingMm, pageGapMm])
 
   return (
     <div className="print-root">
@@ -162,7 +170,17 @@ export default function PhotoSheetPrint({
               )}
             </div>
 
-            <div className="grid" style={{ ...gridTemplate }}>
+            <div
+              className="grid"
+              style={{
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gridTemplateRows: perCellCaption
+                  ? `repeat(${rows}, var(--cell-h))`
+                  : gridTemplate.gridTemplateRows,
+                height: `var(--grid-h)`,
+                gap: `var(--gap-mm, 3mm)`,
+              }}
+            >
               {Array.from({ length: perPage }).map((_, i) => {
                 const it = pageItems[i]
                 return (
@@ -306,13 +324,13 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 @media print {
   html, body { margin: 0 !important; padding: 0 !important; }
   .print-root { position: static; margin: 0 !important; }
-  .page { width: ${pageW}; height: ${pageH}; margin: 0 auto; border: none; padding: var(--pad-mm); overflow: visible; box-sizing: border-box; gap: var(--page-gap-mm, 4mm); }
+  .page { width: ${pageW}; height: ${pageH}; margin: 0 auto; border: none; padding: var(--pad-mm); overflow: hidden; box-sizing: border-box; gap: var(--page-gap-mm, 4mm); }
   .page-inner { width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
   .grid { gap: var(--gap-mm, 3mm); }
   .meta-row .m-label, .meta-row .m-value { padding: 0.8mm 1.2mm; }
   .meta-table th, .meta-table td { padding: 1.2mm 1.8mm; }
 }
- .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 0.3mm solid #D0D0D0; box-sizing: border-box; padding: var(--pad-mm); display: flex; flex-direction: column; gap: var(--page-gap-mm, 4mm); break-after: page; overflow: visible; margin: 0 auto; font-family: 'Noto Sans KR', system-ui, -apple-system, Segoe UI, Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
+ .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 0.3mm solid #D0D0D0; box-sizing: border-box; padding: var(--pad-mm); display: flex; flex-direction: column; gap: var(--page-gap-mm, 4mm); break-after: page; overflow: hidden; margin: 0 auto; font-family: 'Noto Sans KR', system-ui, -apple-system, Segoe UI, Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; }
  .page-inner { width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
 .page.landscape { width: 297mm; height: 210mm; }
 .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 3mm; letter-spacing: 0.2px; }
@@ -324,8 +342,8 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .page.template .grid { gap: 0; }
 .cell { border: 0.25mm solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; background: #fff; }
 .cell.cell-split { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; }
-.cell-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
-.cell-caption { flex: 0 0 var(--cell-cap-mm, 0mm); height: var(--cell-cap-mm, 0mm); width: 100%; border-top: 0.25mm solid #000; border-collapse: collapse; table-layout: fixed; }
+.cell-image { height: var(--cell-img-h, auto); display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+.cell-caption { height: var(--cell-cap-mm, 0mm); width: 100%; border-top: 0.25mm solid #000; border-collapse: collapse; table-layout: fixed; }
 .cell-caption th, .cell-caption td { border: 0.25mm solid #000; border-top: none; font-size: 9.5pt; line-height: 1.2; padding: 0.8mm 1.2mm; text-align: left; }
 .cell-caption th { width: 9mm; text-align: center; white-space: nowrap; }
 .img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
