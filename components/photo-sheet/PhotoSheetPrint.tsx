@@ -311,8 +311,8 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .page.template .grid { gap: 0; }
 .cell { border: 0.25mm solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; background: #fff; }
 .cell.cell-split { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; }
-.cell-image { height: calc(100% - var(--cell-cap-mm, 0mm)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.cell-caption { height: var(--cell-cap-mm, 0mm); width: 100%; border-top: 0.25mm solid #000; border-collapse: collapse; table-layout: fixed; }
+.cell-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+.cell-caption { flex: 0 0 var(--cell-cap-mm, 0mm); height: var(--cell-cap-mm, 0mm); width: 100%; border-top: 0.25mm solid #000; border-collapse: collapse; table-layout: fixed; }
 .cell-caption th, .cell-caption td { border: 0.25mm solid #000; border-top: none; font-size: 9.5pt; line-height: 1.2; padding: 0.8mm 1.2mm; text-align: left; }
 .cell-caption th { width: 9mm; text-align: center; white-space: nowrap; }
 .img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
