@@ -241,8 +241,8 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   table-layout: fixed;
   margin-top: 3mm;
 }
-.print-root .cell-caption .cap-cell { border: 1px solid #000; padding: 1mm 1.6mm; vertical-align: top; }
-.print-root .cell-caption .cap-content { border: 1px solid #000; padding: 1mm 1.6mm; }
+.print-root .cell-caption .cap-cell { border: 0; padding: 1mm 1.6mm; vertical-align: top; }
+.print-root .cell-caption .cap-content { border: 0; padding: 1mm 1.6mm; }
 .print-root .cell-caption .cap-label {
   font-size: 8pt;
   color: #333;
