@@ -16,9 +16,10 @@ export async function GET(request: NextRequest) {
 
     const siteId = request.nextUrl.searchParams.get('site_id')
 
+    // Use proper PostgREST embed syntax via the FK column name
     let query = supabase
       .from('photo_sheets')
-      .select('*, site:sites(id, name, organization_id)')
+      .select('*, site:sites!photo_sheets_site_id_fkey (id, name, organization_id)')
       .order('created_at', { ascending: false })
 
     if (siteId) {
@@ -29,11 +30,73 @@ export async function GET(request: NextRequest) {
     // do not support it reliably and may cause 500s. RLS should trim rows server-side,
     // and we also post-filter below for additional safety.
 
-    const { data: rows, error } = await query
+    let rows: any[] | null = null
+    let error: any = null
+    try {
+      const res = await query
+      rows = res.data as any[] | null
+      error = res.error
+    } catch (e) {
+      error = e
+    }
 
+    // Fallback: if relation embed fails, retry minimal select and enrich manually
     if (error) {
-      console.error('GET /api/photo-sheets error:', error)
-      return NextResponse.json({ error: error.message || 'Failed to fetch' }, { status: 500 })
+      console.warn(
+        'GET /api/photo-sheets relation select failed, falling back:',
+        error?.message || error
+      )
+      let fallbackRows: any[] = []
+      const baseSel = supabase
+        .from('photo_sheets')
+        .select('*')
+        .order('created_at', { ascending: false })
+      const baseQuery = siteId ? baseSel.eq('site_id', siteId) : baseSel
+      const { data: simpleRows, error: simpleErr } = await baseQuery
+      if (simpleErr) {
+        const msg = simpleErr.message || String(simpleErr)
+        console.error('GET /api/photo-sheets fallback select error:', msg)
+        // If table doesn't exist yet, return a 200 with a helpful code so UI can guide admin
+        if (/does not exist/i.test(msg) && /photo_sheets/i.test(msg)) {
+          return NextResponse.json({
+            success: false,
+            code: 'MISSING_TABLES',
+            error:
+              'photo_sheets (and items) tables not found. Apply migration migrations/2025-10-25_create_photo_sheets.sql.',
+          })
+        }
+        return NextResponse.json({ error: msg || 'Failed to fetch' }, { status: 500 })
+      }
+      fallbackRows = simpleRows || []
+
+      // If restricted, fetch sites to enforce org boundary and enrich site info
+      let enriched: any[] = fallbackRows
+      if (auth.isRestricted) {
+        const siteIds = Array.from(new Set(fallbackRows.map((r: any) => r.site_id).filter(Boolean)))
+        if (siteIds.length > 0) {
+          const { data: siteRows } = await supabase
+            .from('sites')
+            .select('id, name, organization_id')
+            .in('id', siteIds)
+          const siteMap = new Map((siteRows || []).map((s: any) => [s.id, s]))
+          enriched = fallbackRows
+            .map((r: any) => ({ ...r, site: siteMap.get(r.site_id) || null }))
+            .filter((r: any) => (r.site?.organization_id || null) === auth.restrictedOrgId)
+        }
+      } else {
+        // For admins/managers, enrich names for consistency
+        const siteIds = Array.from(new Set(fallbackRows.map((r: any) => r.site_id).filter(Boolean)))
+        if (siteIds.length > 0) {
+          const { data: siteRows } = await supabase
+            .from('sites')
+            .select('id, name, organization_id')
+            .in('id', siteIds)
+          const siteMap = new Map((siteRows || []).map((s: any) => [s.id, s]))
+          enriched = fallbackRows.map((r: any) => ({ ...r, site: siteMap.get(r.site_id) || null }))
+        }
+      }
+
+      return NextResponse.json({ success: true, data: enriched })
     }
 
     const scoped = auth.isRestricted
@@ -42,8 +105,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: scoped })
   } catch (e) {
-    console.error('GET /api/photo-sheets exception:', e)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('GET /api/photo-sheets exception:', msg)
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -158,8 +222,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: sheet })
   } catch (e) {
-    console.error('POST /api/photo-sheets exception:', e)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('POST /api/photo-sheets exception:', msg)
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }
 
