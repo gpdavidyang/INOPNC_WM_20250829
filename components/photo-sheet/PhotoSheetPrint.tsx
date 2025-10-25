@@ -86,7 +86,17 @@ export default function PhotoSheetPrint({
             )}
           </div>
 
-          <div className="grid" style={gridTemplate}>
+          <div
+            className="grid"
+            style={{
+              ...gridTemplate,
+              // For 3x2 (or 2x3) per-photo captions, reserve fixed caption height per cell
+              ['--cap-h' as any]:
+                usePerCellCaption && ((rows === 3 && cols === 2) || (rows === 2 && cols === 3))
+                  ? '18mm'
+                  : undefined,
+            }}
+          >
             {Array.from({ length: perPage }).map((_, i) => {
               const it = pageItems[i]
               return (
@@ -251,8 +261,10 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   border-top: 0;
   border-collapse: collapse;
   table-layout: fixed;
-  margin-top: 3mm;
+  margin-top: 1.5mm;
 }
+.print-root .cell.percap .cell-image { height: calc(100% - (var(--cap-h, 16mm) + 1.5mm)); }
+.print-root .cell.percap .cell-caption { height: var(--cap-h, 16mm); }
 .print-root .cell-caption .cap-cell { border: 0; padding: 1mm 1.6mm; vertical-align: top; }
 .print-root .cell-caption .cap-content { border: 0; padding: 1mm 1.6mm; }
 .print-root .cell-caption .cap-label {
