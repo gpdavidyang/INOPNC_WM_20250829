@@ -50,8 +50,8 @@ export default function PhotoSheetPrint({
   // Fixed A4 layout: allocate fixed millimeter heights per section and place images with object-fit: contain
   const headerMm = 24
   const footerMm = 8
-  // Slightly reduce padding for 2x2 to maximize photo cell height
-  const paddingMm = perCellCaption && rows === 2 && cols === 2 ? 8 : 10
+  // Further reduce padding for 2x2 to maximize photo cell height
+  const paddingMm = perCellCaption && rows === 2 && cols === 2 ? 6 : 10
   // Preset-specific table height and grid gap (mm) to keep layout consistent
   const { metaMm, gapMm } = useMemo(() => {
     // Integrated meta table layout (default)
@@ -61,7 +61,7 @@ export default function PhotoSheetPrint({
         if (rows === 1 && cols === 1) return { metaMm: 0, gapMm: 4 }
         if (rows === 1 && cols === 2) return { metaMm: 0, gapMm: 3 }
         if (rows === 1 && cols === 3) return { metaMm: 0, gapMm: 3 }
-        if (rows === 2 && cols === 2) return { metaMm: 0, gapMm: 2 }
+        if (rows === 2 && cols === 2) return { metaMm: 0, gapMm: 1.5 }
       }
       if (rows === 1 && cols === 1) return { metaMm: 60, gapMm: 4 }
       if (rows === 1 && cols === 2) return { metaMm: 50, gapMm: 3 } // 2x1
@@ -85,7 +85,7 @@ export default function PhotoSheetPrint({
   }, [rows, cols, templateMode])
   const pageHeightMm = orientation === 'landscape' ? 210 : 297
   // Reduce inter-section gaps for 2x2 to give more height to grid
-  const pageGapMm = perCellCaption && rows === 2 && cols === 2 ? 2 : 4
+  const pageGapMm = perCellCaption && rows === 2 && cols === 2 ? 1.5 : 4
   const sectionGapCount = 2 // header↔grid, grid↔footer
   const gridHeightMm = Math.max(
     40,
@@ -111,7 +111,7 @@ export default function PhotoSheetPrint({
       if (rows === 1 && cols === 1) cellCap = '30mm'
       else if (rows === 1 && cols === 2) cellCap = '26mm'
       else if (rows === 1 && cols === 3) cellCap = '24mm'
-      else if (rows === 2 && cols === 2) cellCap = '22mm'
+      else if (rows === 2 && cols === 2) cellCap = '20mm'
     }
     return {
       ['--grid-h' as any]: `${gridHeightMm}mm`,
