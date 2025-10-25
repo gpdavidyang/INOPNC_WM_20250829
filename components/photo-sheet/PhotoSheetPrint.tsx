@@ -189,7 +189,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 10mm; display: flex; flex-direction: column; gap: 6mm; break-after: page; overflow: hidden; margin: 0 auto; }
 .print-root .page.landscape { width: 297mm; height: 210mm; }
 .print-root .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 2mm; }
-.print-root .header-divider { border-top: 1px solid #000; margin: 2mm 0 3mm; }
+.print-root .header-divider { border-top: 2px solid #000; margin: 2mm 0 3mm; }
 .print-root .header .title.site-only { text-align: left; font-size: 15pt; margin-bottom: 8mm; }
 .print-root .site-row { display: grid; grid-template-columns: 35mm 1fr; align-items: center; gap: 3mm; }
 .print-root .site-row .label { border: none; padding: 2mm 3mm; font-weight: 600; text-align: center; }
@@ -207,10 +207,10 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .meta-table td.stage { text-align: center; }
 
 /* Footer with divider and two columns */
-.print-root .footer-divider { border-top: 1px solid #000; margin-top: 3mm; }
-.print-root .footer-row { display: flex; align-items: center; justify-content: space-between; padding-top: 2mm; }
-.print-root .foot-left { text-align: left; font-weight: 600; }
-.print-root .foot-right { text-align: right; font-weight: 600; }
+.print-root .footer-divider { border-top: 2px solid #000; margin-top: 3mm; }
+.print-root .footer-row { display: flex; align-items: center; justify-content: space-between; padding-top: 2mm; font-size: 8pt; }
+.print-root .foot-left { text-align: left; font-weight: 400; }
+.print-root .foot-right { text-align: right; font-weight: 400; }
 tr, td, th { break-inside: avoid; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
