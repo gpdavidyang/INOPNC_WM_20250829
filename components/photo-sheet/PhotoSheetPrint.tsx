@@ -100,9 +100,16 @@ export default function PhotoSheetPrint({
         : 4
     : 4
   const sectionGapCount = 2 // header↔grid, grid↔footer
+  const fudgeMm = perCellCaption ? 1 : 0
   const gridHeightMm = Math.max(
     40,
-    pageHeightMm - 2 * paddingMm - headerMm - footerMm - metaMm - pageGapMm * sectionGapCount
+    pageHeightMm -
+      2 * paddingMm -
+      headerMm -
+      footerMm -
+      metaMm -
+      pageGapMm * sectionGapCount -
+      fudgeMm
   )
   const pages: ItemMeta[][] = useMemo(() => {
     if (!items || items.length === 0) return [[]]
@@ -154,7 +161,7 @@ export default function PhotoSheetPrint({
         <div
           key={pageIndex}
           ref={pageIndex === 0 ? containerRef : undefined}
-          className={`page ${orientation} ${templateMode ? 'template' : ''}`}
+          className={`page ${orientation} ${perCellCaption ? 'percell' : ''} ${templateMode ? 'template' : ''}`}
           style={pageVars}
         >
           <div className="page-inner">
@@ -342,6 +349,11 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   .site-row { display: grid; grid-template-columns: 30mm 1fr; align-items: center; gap: 2mm; }
   .site-row .label { border: none; padding: 1.6mm 2.4mm; font-weight: 600; text-align: left; background: transparent; }
   .site-row .value { border: none; padding: 1.6mm 2.4mm; min-height: 9mm; }
+/* Per-cell compact header tweaks */
+.page.percell .header .title { margin-bottom: 1mm; }
+.page.percell .site-row { gap: 1mm; }
+.page.percell .site-row .label, .page.percell .site-row .value { padding: 1mm 1.6mm; }
+.page.percell .site-row .value { min-height: 6mm; }
 .grid { flex: 0 0 auto; height: var(--grid-h); display: grid; gap: var(--gap-mm, 3mm); }
 .page.template .grid { gap: 0; }
 .cell { outline: 0.25mm solid #000; border: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; background: #fff; }
