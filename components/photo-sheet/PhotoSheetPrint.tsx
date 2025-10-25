@@ -183,11 +183,7 @@ export default function PhotoSheetPrint({
               className="grid"
               style={{
                 gridTemplateColumns: `repeat(${cols}, 1fr)`,
-                gridTemplateRows: perCellCaption
-                  ? `repeat(${rows}, var(--cell-h))`
-                  : gridTemplate.gridTemplateRows,
-                height: `var(--grid-h)`,
-                gap: `var(--gap-mm, 3mm)`,
+                ['--rows' as any]: String(rows),
               }}
             >
               {Array.from({ length: perPage }).map((_, i) => {
@@ -334,9 +330,9 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   html, body { margin: 0 !important; padding: 0 !important; }
   .print-root { position: static; margin: 0 !important; }
   .page { width: ${pageW}; height: ${pageH}; margin: 0 auto; border: none; padding: var(--pad-mm); overflow: hidden; box-sizing: border-box; gap: var(--page-gap-mm, 4mm); }
-  .page-inner { width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
-  .header { flex: 0 0 var(--head-mm); height: var(--head-mm); overflow: hidden; }
-  .footer { flex: 0 0 var(--foot-mm); height: var(--foot-mm); overflow: hidden; }
+  .page-inner { width: 100%; margin: 0 auto; display: grid; grid-template-rows: var(--head-mm) calc(100% - (var(--head-mm) + var(--foot-mm) + 2*var(--page-gap-mm))) var(--foot-mm); row-gap: var(--page-gap-mm); }
+  .header { height: var(--head-mm); overflow: hidden; }
+  .footer { height: var(--foot-mm); overflow: hidden; }
   .grid { gap: var(--gap-mm, 3mm); }
   .meta-row .m-label, .meta-row .m-value { padding: 0.8mm 1.2mm; }
   .meta-table th, .meta-table td { padding: 1.2mm 1.8mm; }
@@ -354,15 +350,15 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .page.percell .site-row { gap: 1mm; }
 .page.percell .site-row .label, .page.percell .site-row .value { padding: 1mm 1.6mm; }
 .page.percell .site-row .value { min-height: 6mm; }
-.grid { flex: 0 0 auto; height: var(--grid-h); display: grid; gap: var(--gap-mm, 3mm); }
+.grid { height: 100%; display: grid; grid-template-rows: repeat(var(--rows, 1), 1fr); gap: var(--gap-mm, 3mm); }
 .page.template .grid { gap: 0; }
 .cell { outline: 0.25mm solid #000; border: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; background: #fff; }
 .cell.cell-split { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; }
-.cell-image { height: var(--cell-img-h, auto); display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
+.cell-image { height: var(--cell-img-h, auto); display: grid; place-items: center; overflow: hidden; min-height: 0; }
 .cell-caption { height: var(--cell-cap-mm, 0mm); width: 100%; border-top: 0.25mm solid #000; border-collapse: collapse; table-layout: fixed; }
 .cell-caption th, .cell-caption td { border: 0.25mm solid #000; border-top: none; font-size: 9.5pt; line-height: 1.2; padding: 0.8mm 1.2mm; text-align: left; }
 .cell-caption th { width: 9mm; text-align: center; white-space: nowrap; }
-.img { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.img { width: 100%; height: 100%; object-fit: contain; object-position: center center; }
 .page.template .img { object-fit: contain; }
 .placeholder { color: #888; font-size: 12px; }
 .meta-table { width: 100%; border-collapse: collapse; flex: 0 0 auto; min-height: var(--meta-h); }
