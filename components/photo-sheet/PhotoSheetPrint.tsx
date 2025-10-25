@@ -72,6 +72,7 @@ export default function PhotoSheetPrint({
                   <div className="label">현장명</div>
                   <div className="value site-value-strong">{siteName || '\u00A0'}</div>
                 </div>
+                <div className="header-sub-divider" />
               </>
             )}
           </div>
@@ -190,6 +191,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .page.landscape { width: 297mm; height: 210mm; }
 .print-root .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 2mm; }
 .print-root .header-divider { border-top: 2px solid #000; margin: 2mm 0 3mm; }
+.print-root .header-sub-divider { border-top: 2px solid #000; margin: 3mm 0 3mm; }
 .print-root .header .title.site-only { text-align: left; font-size: 15pt; margin-bottom: 8mm; }
 .print-root .site-row { display: grid; grid-template-columns: 35mm 1fr; align-items: center; gap: 3mm; }
 .print-root .site-row .label { border: none; padding: 2mm 3mm; font-weight: 600; text-align: center; }
