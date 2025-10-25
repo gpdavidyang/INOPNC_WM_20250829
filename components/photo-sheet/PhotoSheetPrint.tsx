@@ -240,7 +240,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   font-size: 8pt;
   color: #333;
   background: #f3f3f3;
-  border-bottom: 0.25mm solid #000;
+  border-bottom: 0;
   display: block;
   padding: 0;
   margin: 0 0 0.6mm 0;
