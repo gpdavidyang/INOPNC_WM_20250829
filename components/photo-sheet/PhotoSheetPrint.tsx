@@ -67,9 +67,10 @@ export default function PhotoSheetPrint({
             ) : (
               <>
                 <div className="title">{title || '사진대지'}</div>
+                <div className="header-divider" />
                 <div className="site-row">
                   <div className="label">현장명</div>
-                  <div className="value">{siteName || '\u00A0'}</div>
+                  <div className="value site-value-strong">{siteName || '\u00A0'}</div>
                 </div>
               </>
             )}
@@ -160,6 +161,15 @@ export default function PhotoSheetPrint({
               </tbody>
             </table>
           )}
+          <div className="footer">
+            <div className="footer-divider" />
+            <div className="footer-row">
+              <div className="foot-left">{siteName || ''}</div>
+              <div className="foot-right">
+                페이지 {pageIndex + 1} / {pages.length}
+              </div>
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -178,11 +188,13 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 }
 .print-root .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 10mm; display: flex; flex-direction: column; gap: 6mm; break-after: page; overflow: hidden; margin: 0 auto; }
 .print-root .page.landscape { width: 297mm; height: 210mm; }
-.print-root .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 4mm; }
+.print-root .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 2mm; }
+.print-root .header-divider { border-top: 1px solid #000; margin: 2mm 0 3mm; }
 .print-root .header .title.site-only { text-align: left; font-size: 15pt; margin-bottom: 8mm; }
 .print-root .site-row { display: grid; grid-template-columns: 35mm 1fr; align-items: center; gap: 3mm; }
-.print-root .site-row .label { border: 1px solid #000; padding: 2mm 3mm; font-weight: 600; text-align: center; }
-.print-root .site-row .value { border: 1px solid #000; padding: 2mm 3mm; min-height: 10mm; }
+.print-root .site-row .label { border: none; padding: 2mm 3mm; font-weight: 600; text-align: center; }
+.print-root .site-row .value { border: none; padding: 2mm 3mm; min-height: 10mm; }
+.print-root .site-value-strong { font-weight: 800; }
 .print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
 .print-root .page.template .grid { gap: 0; }
 .print-root .cell { border: 1px solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; }
@@ -193,6 +205,12 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .meta-table th, .print-root .meta-table td { border: 1px solid #000; padding: 2mm 3mm; font-size: 10pt; }
 .print-root .meta-table td.content { text-align: left; }
 .print-root .meta-table td.stage { text-align: center; }
+
+/* Footer with divider and two columns */
+.print-root .footer-divider { border-top: 1px solid #000; margin-top: 3mm; }
+.print-root .footer-row { display: flex; align-items: center; justify-content: space-between; padding-top: 2mm; }
+.print-root .foot-left { text-align: left; font-weight: 600; }
+.print-root .foot-right { text-align: right; font-weight: 600; }
 tr, td, th { break-inside: avoid; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
