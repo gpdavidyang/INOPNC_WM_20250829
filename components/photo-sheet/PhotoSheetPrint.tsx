@@ -232,10 +232,10 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .site-value-strong { font-weight: 800; }
 .print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
 .print-root .page.template .grid { gap: 0; }
-.print-root .cell { border: 1px solid #000; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
+.print-root .cell { border: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
 .print-root .cell-caption {
   width: 100%;
-  border: 1px solid transparent; /* wrapper border color set to transparent */
+  border: 0;
   border-top: 0;
   border-collapse: collapse;
   table-layout: fixed;
