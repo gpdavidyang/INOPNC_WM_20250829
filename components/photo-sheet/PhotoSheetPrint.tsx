@@ -344,7 +344,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   .site-row .value { border: none; padding: 1.6mm 2.4mm; min-height: 9mm; }
 .grid { flex: 0 0 auto; height: var(--grid-h); display: grid; gap: var(--gap-mm, 3mm); }
 .page.template .grid { gap: 0; }
-.cell { border: 0.25mm solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; background: #fff; }
+.cell { outline: 0.25mm solid #000; border: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; background: #fff; }
 .cell.cell-split { flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 0; }
 .cell-image { height: var(--cell-img-h, auto); display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; }
 .cell-caption { height: var(--cell-cap-mm, 0mm); width: 100%; border-top: 0.25mm solid #000; border-collapse: collapse; table-layout: fixed; }
