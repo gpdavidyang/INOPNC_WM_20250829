@@ -58,9 +58,9 @@ export default function PhotoSheetPrint({
     if (!templateMode) {
       if (perCellCaption) {
         // Per-cell caption uses no global meta table
-        if (rows === 1 && cols === 1) return { metaMm: 0, gapMm: 4 }
-        if (rows === 1 && cols === 2) return { metaMm: 0, gapMm: 3 }
-        if (rows === 1 && cols === 3) return { metaMm: 0, gapMm: 3 }
+        if ((rows === 1 && cols === 1) || (rows === 1 && cols === 1)) return { metaMm: 0, gapMm: 4 }
+        if ((rows === 1 && cols === 2) || (rows === 2 && cols === 1)) return { metaMm: 0, gapMm: 3 }
+        if ((rows === 1 && cols === 3) || (rows === 3 && cols === 1)) return { metaMm: 0, gapMm: 3 }
         if (rows === 2 && cols === 2) return { metaMm: 0, gapMm: 1.5 }
       }
       if (rows === 1 && cols === 1) return { metaMm: 60, gapMm: 4 }
@@ -109,8 +109,8 @@ export default function PhotoSheetPrint({
     let cellCap = '0mm'
     if (perCellCaption) {
       if (rows === 1 && cols === 1) cellCap = '30mm'
-      else if (rows === 1 && cols === 2) cellCap = '26mm'
-      else if (rows === 1 && cols === 3) cellCap = '24mm'
+      else if ((rows === 1 && cols === 2) || (rows === 2 && cols === 1)) cellCap = '26mm'
+      else if ((rows === 1 && cols === 3) || (rows === 3 && cols === 1)) cellCap = '24mm'
       else if (rows === 2 && cols === 2) cellCap = '20mm'
     }
     return {
