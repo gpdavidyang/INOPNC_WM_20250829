@@ -90,17 +90,19 @@ export default function PhotoSheetPrint({
             {Array.from({ length: perPage }).map((_, i) => {
               const it = pageItems[i]
               return (
-                <div key={i} className="cell">
-                  {it?.previewUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      className="img"
-                      src={it.previewUrl}
-                      alt={`사진 ${pageIndex * perPage + i + 1}`}
-                    />
-                  ) : (
-                    <div className="placeholder">이미지</div>
-                  )}
+                <div key={i} className={`cell${usePerCellCaption ? ' percap' : ''}`}>
+                  <div className="cell-image">
+                    {it?.previewUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        className="img"
+                        src={it.previewUrl}
+                        alt={`사진 ${pageIndex * perPage + i + 1}`}
+                      />
+                    ) : (
+                      <div className="placeholder">이미지</div>
+                    )}
+                  </div>
                   {usePerCellCaption ? (
                     <table className="cell-caption">
                       <tbody>
@@ -241,6 +243,8 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
 .print-root .page.template .grid { gap: 0; }
 .print-root .cell { border: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
+.print-root .cell.percap .cell-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.print-root .cell.percap .img { object-fit: contain; }
 .print-root .cell-caption {
   width: 100%;
   border: 0;
