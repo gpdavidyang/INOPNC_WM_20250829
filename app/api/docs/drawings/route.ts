@@ -27,10 +27,10 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
     const q = (searchParams.get('q') || '').trim()
 
-    // Partner: build allowed site list; if siteId provided but not allowed -> 403
+    // Customer-manager (partner alias): build allowed site list; if siteId provided but not allowed -> 403
     // If no siteId, aggregate across allowed sites
     let partnerAllowedSiteIds: string[] | null = null
-    if (auth.role === 'partner') {
+    if (auth.role === 'customer_manager') {
       if (auth.organizationId) {
         const { data: maps } = await supabase
           .from('partner_site_mappings')
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
         .order('created_at', { ascending: false })
 
       if (siteId) query = query.eq('site_id', siteId)
-      else if (auth.role === 'partner' && partnerAllowedSiteIds)
+      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
         query = query.in('site_id', partnerAllowedSiteIds)
       if (category === 'plan') query = query.eq('document_type', 'blueprint')
       if (category === 'progress') query = query.eq('document_type', 'progress_drawing')
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
 
       let countQuery = db.from('site_documents').select('*', { count: 'exact', head: true })
       if (siteId) countQuery = countQuery.eq('site_id', siteId)
-      else if (auth.role === 'partner' && partnerAllowedSiteIds)
+      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
         countQuery = countQuery.in('site_id', partnerAllowedSiteIds)
       if (category === 'plan') countQuery = countQuery.eq('document_type', 'blueprint')
       if (category === 'progress') countQuery = countQuery.eq('document_type', 'progress_drawing')
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         .select('id, site_id, document_type, file_name, file_url, file_size, mime_type, created_at')
         .order('created_at', { ascending: false })
       if (siteId) query = query.eq('site_id', siteId)
-      else if (auth.role === 'partner' && partnerAllowedSiteIds)
+      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
         query = query.in('site_id', partnerAllowedSiteIds)
       if (category === 'plan') query = query.eq('document_type', 'blueprint')
       if (category === 'progress') query = query.eq('document_type', 'progress_drawing')

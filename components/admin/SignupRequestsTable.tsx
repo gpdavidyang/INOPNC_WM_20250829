@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from 'react'
 import { DataTable } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
+import AdminActionButtons from '@/components/admin/AdminActionButtons'
 import { useToast } from '@/components/ui/use-toast'
 import { useRouter } from 'next/navigation'
 
@@ -52,31 +53,19 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
     }
   }
 
-  const remove = async (id: string) => {
-    if (!confirm('해당 가입 요청을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
-    setBusyId(id)
-    try {
-      const res = await fetch(`/api/admin/signup-requests/${id}`, { method: 'DELETE' })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok || !j?.success) throw new Error(j?.error || '삭제에 실패했습니다.')
-      toast({ title: '삭제 완료', description: '요청이 삭제되었습니다.', variant: 'success' })
-      // Optimistic UI removal + keep it hidden across refresh until server data reflects
-      setHiddenIds(prev => new Set([...Array.from(prev), String(id)]))
-      setRows(prev => prev.filter(r => r.id !== id))
-      router.refresh()
-      // Fallback in case the router cache doesn't refresh immediately
-      setTimeout(() => {
-        try {
-          if (typeof window !== 'undefined') window.location.reload()
-        } catch (err) {
-          console.warn('Force reload fallback failed:', err)
-        }
-      }, 600)
-    } catch (e: any) {
-      toast({ title: '오류', description: e?.message, variant: 'destructive' })
-    } finally {
-      setBusyId(null)
-    }
+  // Deletion is now handled by AdminActionButtons; we keep a callback to update local UI optimistically
+  const onDeleted = (id: string) => {
+    toast({ title: '삭제 완료', description: '요청이 삭제되었습니다.', variant: 'success' })
+    setHiddenIds(prev => new Set([...Array.from(prev), String(id)]))
+    setRows(prev => prev.filter(r => r.id !== id))
+    router.refresh()
+    setTimeout(() => {
+      try {
+        if (typeof window !== 'undefined') window.location.reload()
+      } catch (err) {
+        console.warn('Force reload fallback failed:', err)
+      }
+    }, 600)
   }
 
   const STATUS_KO: Record<string, string> = {
@@ -136,12 +125,12 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
         sortable: false,
         render: (r: any) => (
           <div className="flex gap-1">
-            <a
-              href={`/dashboard/admin/signup-requests/${r.id}`}
-              className="inline-flex items-center px-2 py-1 text-xs border rounded-md hover:bg-gray-50"
-            >
-              상세
-            </a>
+            <AdminActionButtons
+              size="compact"
+              detailHref={`/dashboard/admin/signup-requests/${r.id}`}
+              // Only show delete for pending/rejected; guarded below with overall condition
+              className="shrink-0"
+            />
             {['pending', 'rejected'].includes(String(r?.status || '').toLowerCase()) ? (
               <>
                 <Button
@@ -160,14 +149,13 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
                 >
                   거절
                 </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={busyId === r.id}
-                  onClick={() => remove(r.id)}
-                >
-                  삭제
-                </Button>
+                <AdminActionButtons
+                  size="compact"
+                  deleteHref={`/api/admin/signup-requests/${r.id}`}
+                  deleteConfirmMessage="해당 가입 요청을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+                  className="shrink-0"
+                  onDeleted={() => onDeleted(r.id)}
+                />
               </>
             ) : (
               <span className="text-xs text-muted-foreground">-</span>

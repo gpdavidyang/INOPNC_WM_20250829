@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { normalizeUserRole } from '@/lib/auth/roles'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -43,9 +44,10 @@ export default async function DashboardPage() {
     }
 
     // Use centralized routing logic
-    const targetRoute = getRoleBasedRoute(profile.role)
+    const normalizedRole = normalizeUserRole(profile.role)
+    const targetRoute = getRoleBasedRoute(normalizedRole)
 
-    console.log(`[Dashboard] User ${profile.full_name} (${profile.role}) -> ${targetRoute}`)
+    console.log(`[Dashboard] User ${profile.full_name} (${normalizedRole}) -> ${targetRoute}`)
 
     // Only redirect if we're not already at the target route
     // This prevents redirect loops at the dashboard level

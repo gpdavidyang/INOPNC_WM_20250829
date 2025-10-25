@@ -1,6 +1,7 @@
 'use client'
 
 import DataTable, { type Column } from '@/components/admin/DataTable'
+import { getRoleLabel } from '@/lib/auth/role-labels'
 
 type Assignment = {
   site_id?: string
@@ -25,6 +26,7 @@ export function UserTablesClient({
   assignments: Assignment[]
   documents: RequiredDoc[]
 }) {
+  const label = (role?: string) => (role ? getRoleLabel(role) : '-')
   return (
     <div className="space-y-6">
       <section>
@@ -47,7 +49,7 @@ export function UserTablesClient({
                   key: 'role',
                   header: '역할',
                   sortable: true,
-                  render: (a: Assignment) => a.role || '-',
+                  render: (a: Assignment) => <span suppressHydrationWarning>{label(a.role)}</span>,
                 },
                 {
                   key: 'assigned_at',

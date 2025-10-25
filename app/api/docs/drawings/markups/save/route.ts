@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Drawing not found' }, { status: 404 })
     }
 
-    // Partner access check
-    if (auth.role === 'partner') {
+    // Customer-manager (partner alias) access check
+    if (auth.role === 'customer_manager') {
       const { data: mapping } = await supabase
         .from('partner_site_mappings')
         .select('id')

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { normalizeUserRole } from '@/lib/auth/roles'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { NextResponse } from 'next/server'
@@ -53,21 +54,24 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
     .eq('id', user.id)
     .single()
 
+  const normalizedRole = normalizeUserRole(profile?.role)
+
   return {
     userId: user.id,
     email: user.email!,
-    isRestricted: ['customer_manager', 'partner'].includes(profile?.role || ''),
+    isRestricted: normalizedRole === 'customer_manager',
     // Prefer partner_company_id for restricted organization, fallback to legacy organization_id
     restrictedOrgId:
       (profile as any)?.partner_company_id || (profile as any)?.organization_id || undefined,
-    uiTrack: getUITrack(profile?.role),
-    role: profile?.role,
+    uiTrack: getUITrack(normalizedRole),
+    role: normalizedRole,
   }
 }
 
 // 2. UI 트랙 결정 (5줄)
 function getUITrack(role?: string): string {
-  return UI_TRACKS[role || 'worker'] || '/mobile'
+  const r = normalizeUserRole(role)
+  return UI_TRACKS[r || 'worker'] || '/mobile'
 }
 
 // 3. 데이터 접근 체크 (10줄)

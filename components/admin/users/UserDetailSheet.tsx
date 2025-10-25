@@ -15,6 +15,7 @@ import DataTable, { type Column } from '@/components/admin/DataTable'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { UserWithSites } from '@/app/actions/admin/users'
 import type { UserRole } from '@/types'
+import { getRoleLabel } from '@/lib/auth/role-labels'
 
 type UserDetailSheetProps = {
   open: boolean
@@ -23,13 +24,7 @@ type UserDetailSheetProps = {
   loading?: boolean
 }
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  admin: '관리자',
-  system_admin: '시스템 관리자',
-  site_manager: '현장 관리자',
-  customer_manager: '고객 관리자',
-  worker: '작업자',
-}
+// Centralized label mapping
 
 const DOCUMENT_LABELS: Record<string, string> = {
   medical_checkup: '건강검진',
@@ -91,7 +86,7 @@ export const UserDetailSheet = memo(function UserDetailSheet({
                   {user.phone && <div className="text-muted-foreground">{user.phone}</div>}
                   <div className="flex flex-wrap items-center gap-2 pt-2">
                     <Badge variant="secondary">
-                      {ROLE_LABELS[user.role as UserRole] || user.role}
+                      <span suppressHydrationWarning>{getRoleLabel(user.role)}</span>
                     </Badge>
                     {user.status && (
                       <Badge variant={user.status === 'active' ? 'default' : 'outline'}>
@@ -155,7 +150,7 @@ export const UserDetailSheet = memo(function UserDetailSheet({
                         key: 'role',
                         header: '역할',
                         sortable: true,
-                        render: (a: any) => ROLE_LABELS[a.role as UserRole] || a.role,
+                        render: (a: any) => getRoleLabel(a.role),
                       },
                       {
                         key: 'assigned_at',

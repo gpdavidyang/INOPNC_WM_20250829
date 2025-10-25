@@ -4,8 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { DataTable } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
-import Link from 'next/link'
-import { buttonVariants } from '@/components/ui/button'
+import AdminActionButtons from '@/components/admin/AdminActionButtons'
 
 export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
   const router = useRouter()
@@ -34,6 +33,7 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           key: 'created_at',
           header: '생성일',
           sortable: true,
+          width: 160,
           accessor: (d: any) => (d?.created_at ? new Date(d.created_at).getTime() : 0),
           render: (d: any) =>
             d?.created_at ? new Date(d.created_at).toLocaleString('ko-KR') : '-',
@@ -42,15 +42,21 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           key: 'title',
           header: '제목',
           sortable: true,
+          width: 320,
+          className: 'max-w-[320px] truncate',
           accessor: (d: any) => d?.title || '',
           render: (d: any) => (
-            <span className="font-medium text-foreground">{d?.title || '-'}</span>
+            <span className="font-medium text-foreground truncate inline-block max-w-full">
+              {d?.title || '-'}
+            </span>
           ),
         },
         {
           key: 'site',
           header: '현장',
           sortable: true,
+          width: 220,
+          className: 'whitespace-nowrap',
           accessor: (d: any) => d?.site?.name || '',
           render: (d: any) => d?.site?.name || '-',
         },
@@ -58,6 +64,8 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           key: 'creator',
           header: '작성자',
           sortable: true,
+          width: 200,
+          className: 'whitespace-nowrap',
           accessor: (d: any) => d?.creator?.full_name || d?.creator?.email || '',
           render: (d: any) => d?.creator?.full_name || d?.creator?.email || '-',
         },
@@ -65,6 +73,7 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           key: 'status',
           header: '상태',
           sortable: true,
+          width: 100,
           accessor: (d: any) => d?.status || '',
           render: (d: any) => (
             <Badge variant={d?.status === 'approved' ? 'default' : 'outline'}>
@@ -75,29 +84,15 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
         {
           key: 'actions',
           header: '작업',
+          width: 220,
           render: (d: any) => (
-            <div className="flex items-center gap-1 whitespace-nowrap">
-              <Link
-                href={`/dashboard/admin/documents/markup/${d.id}`}
-                className={buttonVariants({ variant: 'outline', size: 'compact' })}
-                role="button"
-              >
-                상세
-              </Link>
-              <Link
-                href={`/dashboard/admin/documents/markup/${d.id}/edit`}
-                className={buttonVariants({ variant: 'secondary', size: 'compact' })}
-                role="button"
-              >
-                수정
-              </Link>
-              <button
-                className={buttonVariants({ variant: 'destructive', size: 'compact' })}
-                onClick={() => handleDelete(d.id)}
-              >
-                삭제
-              </button>
-            </div>
+            <AdminActionButtons
+              size="compact"
+              detailHref={`/dashboard/admin/documents/markup/${d.id}`}
+              editHref={`/dashboard/admin/documents/markup/${d.id}/edit`}
+              deleteHref={`/api/markup-documents/${d.id}`}
+              onDeleted={() => router.refresh()}
+            />
           ),
         },
       ]}

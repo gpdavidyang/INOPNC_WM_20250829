@@ -30,12 +30,14 @@ export default function ApiTestPage() {
       const res = await fetch('/api/test-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ test: 'data' })
+        body: JSON.stringify({ test: 'data' }),
       })
       const data = await res.json()
       addResult('POST /api/test-post (JSON)', { status: res.status, data })
     } catch (error) {
-      addResult('POST /api/test-post (JSON)', { error: error instanceof Error ? error.message : 'Failed' })
+      addResult('POST /api/test-post (JSON)', {
+        error: error instanceof Error ? error.message : 'Failed',
+      })
     }
 
     // Test 3: FormData POST to test-post
@@ -44,57 +46,17 @@ export default function ApiTestPage() {
       formData.append('test', 'value')
       const res = await fetch('/api/test-post', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
       const data = await res.json()
       addResult('POST /api/test-post (FormData)', { status: res.status, data })
     } catch (error) {
-      addResult('POST /api/test-post (FormData)', { error: error instanceof Error ? error.message : 'Failed' })
+      addResult('POST /api/test-post (FormData)', {
+        error: error instanceof Error ? error.message : 'Failed',
+      })
     }
 
-    // Test 4: GET to photo-grids
-    try {
-      const res = await fetch('/api/photo-grids')
-      const data = await res.json()
-      addResult('GET /api/photo-grids', { status: res.status, data: data.error || 'Success' })
-    } catch (error) {
-      addResult('GET /api/photo-grids', { error: error instanceof Error ? error.message : 'Failed' })
-    }
-
-    // Test 5: POST to photo-grids with minimal data
-    try {
-      const formData = new FormData()
-      formData.append('site_id', 'test')
-      formData.append('component_name', 'test')
-      formData.append('work_process', 'test')
-      formData.append('work_section', 'test')
-      formData.append('work_date', '2024-01-01')
-      
-      const res = await fetch('/api/photo-grids/create', {
-        method: 'POST',
-        body: formData
-      })
-      const data = await res.json()
-      addResult('POST /api/photo-grids/create', { status: res.status, data: data.error || 'Success' })
-    } catch (error) {
-      addResult('POST /api/photo-grids/create', { error: error instanceof Error ? error.message : 'Failed' })
-    }
-
-    // Test 6: OPTIONS to photo-grids
-    try {
-      const res = await fetch('/api/photo-grids', {
-        method: 'OPTIONS'
-      })
-      addResult('OPTIONS /api/photo-grids', { 
-        status: res.status, 
-        headers: {
-          'Access-Control-Allow-Origin': res.headers.get('Access-Control-Allow-Origin'),
-          'Access-Control-Allow-Methods': res.headers.get('Access-Control-Allow-Methods')
-        }
-      })
-    } catch (error) {
-      addResult('OPTIONS /api/photo-grids', { error: error instanceof Error ? error.message : 'Failed' })
-    }
+    // Removed legacy photo-grids tests (standardized to photo-sheets)
 
     setLoading(false)
   }
@@ -106,11 +68,7 @@ export default function ApiTestPage() {
           <CardTitle>API Endpoint Test</CardTitle>
         </CardHeader>
         <CardContent>
-          <Button 
-            onClick={runTests} 
-            disabled={loading}
-            className="mb-4"
-          >
+          <Button onClick={runTests} disabled={loading} className="mb-4">
             {loading ? 'Running Tests...' : 'Run All Tests'}
           </Button>
 
@@ -126,7 +84,9 @@ export default function ApiTestPage() {
           </div>
 
           {results.length === 0 && !loading && (
-            <p className="text-gray-500">Click &quot;Run All Tests&quot; to begin testing API endpoints</p>
+            <p className="text-gray-500">
+              Click &quot;Run All Tests&quot; to begin testing API endpoints
+            </p>
           )}
         </CardContent>
       </Card>

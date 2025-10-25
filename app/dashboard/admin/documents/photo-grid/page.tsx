@@ -80,6 +80,12 @@ export default async function AdminPhotoGridDocumentsPage({
         backButtonHref="/dashboard/admin/documents"
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="text-sm text-muted-foreground">사진대지 생성은 개선된 에디터에서 가능합니다.</div>
+        <Link href={`/dashboard/admin/tools/photo-grid${site_id ? `?site_id=${site_id}` : ''}`} className={buttonVariants({ variant: 'default', size: 'standard' })}>
+          새 사진대지 만들기(개선)
+        </Link>
+      </div>
 
       <div className="mb-6 rounded-lg border bg-card p-4 shadow-sm">
         <form

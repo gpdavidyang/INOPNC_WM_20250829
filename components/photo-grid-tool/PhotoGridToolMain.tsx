@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import PhotoGridCreator from './PhotoGridCreator'
+import PhotoSheetEditor from '@/components/photo-sheet/PhotoSheetEditor'
 import PhotoGridList from './PhotoGridList'
 import {
   PillTabs as Tabs,
@@ -14,7 +14,7 @@ import CreateFromDailyReport from './CreateFromDailyReport'
 export default function PhotoGridToolMain() {
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const handleCreated = () => {
+  const handleCreated = (_id?: string) => {
     setRefreshKey(k => k + 1)
   }
 
@@ -32,14 +32,9 @@ export default function PhotoGridToolMain() {
               </TabsTrigger>
             </TabsList>
             <TabsContent value="upload">
-              <div className="rounded-lg border bg-white">
-                <div className="border-b px-4 py-3">
-                  <h2 className="text-base font-semibold">사진대지 생성</h2>
-                  <p className="text-xs text-muted-foreground">현장/부재/공정 정보와 사진 업로드</p>
-                </div>
-                <div className="p-4">
-                  <PhotoGridCreator onCreated={handleCreated} />
-                </div>
+              {/* 개선된 직접 업로드 에디터 (내부 카드/제목 제거, 중복 컨테이너 축소) */}
+              <div className="py-4">
+                <PhotoSheetEditor onSaved={handleCreated} />
               </div>
             </TabsContent>
             <TabsContent value="from-daily">

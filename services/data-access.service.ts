@@ -1,9 +1,10 @@
-
 /**
  * Data Access Service
  * Centralizes data access logic with role-based filtering
  * Only customer_manager role has partner_company_id based filtering
  */
+import { normalizeUserRole } from '@/lib/auth/roles'
+
 export class DataAccessService {
   private supabase: ReturnType<typeof createClient>
   private profile: Profile | null = null
@@ -21,8 +22,13 @@ export class DataAccessService {
       .select('*')
       .eq('id', userId)
       .single()
-    
+
     this.profile = profile
+    if (this.profile) {
+      // Normalize alias roles to canonical ones
+      // @ts-ignore - allow mutation of role field for normalization
+      this.profile.role = normalizeUserRole(this.profile.role)
+    }
   }
 
   /**
@@ -37,19 +43,18 @@ export class DataAccessService {
     if (this.profile.role === 'customer_manager' && this.profile.partner_company_id) {
       return this.supabase
         .from('site_partners')
-        .select(`
+        .select(
+          `
           *,
           sites!inner(*),
           partner_companies(*)
-        `)
+        `
+        )
         .eq('partner_company_id', this.profile.partner_company_id)
     }
 
     // All other roles see sites without partner filtering
-    return this.supabase
-      .from('sites')
-      .select('*')
-      .order('created_at', { ascending: false })
+    return this.supabase.from('sites').select('*').order('created_at', { ascending: false })
   }
 
   /**
@@ -60,9 +65,7 @@ export class DataAccessService {
   async getDailyReports(siteId?: string) {
     if (!this.profile) throw new Error('Service not initialized')
 
-    let query = this.supabase
-      .from('daily_reports')
-      .select(`
+    let query = this.supabase.from('daily_reports').select(`
         *,
         sites(*),
         profiles!daily_reports_created_by_fkey(*)
@@ -75,7 +78,7 @@ export class DataAccessService {
         .from('site_partners')
         .select('site_id')
         .eq('partner_company_id', this.profile.partner_company_id)
-      
+
       const siteIds = partnerSites?.map(ps => ps.site_id) || []
       query = query.in('site_id', siteIds)
     }
@@ -96,10 +99,7 @@ export class DataAccessService {
   async getWorkers() {
     if (!this.profile) throw new Error('Service not initialized')
 
-    let query = this.supabase
-      .from('profiles')
-      .select('*')
-      .in('role', ['worker', 'site_manager'])
+    let query = this.supabase.from('profiles').select('*').in('role', ['worker', 'site_manager'])
 
     // Customer managers only see their company's workers
     if (this.profile.role === 'customer_manager' && this.profile.partner_company_id) {
@@ -117,9 +117,7 @@ export class DataAccessService {
   async getMaterials() {
     if (!this.profile) throw new Error('Service not initialized')
 
-    let query = this.supabase
-      .from('materials')
-      .select(`
+    let query = this.supabase.from('materials').select(`
         *,
         sites(*)
       `)
@@ -130,7 +128,7 @@ export class DataAccessService {
         .from('site_partners')
         .select('site_id')
         .eq('partner_company_id', this.profile.partner_company_id)
-      
+
       const siteIds = partnerSites?.map(ps => ps.site_id) || []
       query = query.in('site_id', siteIds)
     }
@@ -146,9 +144,7 @@ export class DataAccessService {
   async getDocuments() {
     if (!this.profile) throw new Error('Service not initialized')
 
-    let query = this.supabase
-      .from('documents')
-      .select(`
+    let query = this.supabase.from('documents').select(`
         *,
         profiles!documents_uploaded_by_fkey(*)
       `)
@@ -161,7 +157,7 @@ export class DataAccessService {
         .from('profiles')
         .select('id')
         .eq('partner_company_id', this.profile.partner_company_id)
-      
+
       const userIds = companyUsers?.map(u => u.id) || []
       query = query.in('uploaded_by', userIds)
     }
@@ -190,7 +186,7 @@ export class DataAccessService {
         .eq('site_id', siteId)
         .eq('partner_company_id', this.profile.partner_company_id)
         .single()
-      
+
       return !error && !!data
     }
 
@@ -209,26 +205,26 @@ export class DataAccessService {
         .from('site_partners')
         .select('*, sites(*)')
         .eq('partner_company_id', this.profile.partner_company_id)
-      
+
       const { data: workers } = await this.getWorkers()
-      
+
       return {
         totalSites: partnerships?.length || 0,
         activeSites: partnerships?.filter(p => p.sites?.status === 'active').length || 0,
         totalWorkers: workers?.length || 0,
-        isPartnerView: true
+        isPartnerView: true,
       }
     }
 
     // Get general stats for other roles
     const { data: sites } = await this.getSites()
     const { data: workers } = await this.getWorkers()
-    
+
     return {
       totalSites: sites?.length || 0,
       activeSites: sites?.filter(s => s.status === 'active').length || 0,
       totalWorkers: workers?.length || 0,
-      isPartnerView: false
+      isPartnerView: false,
     }
   }
 }
