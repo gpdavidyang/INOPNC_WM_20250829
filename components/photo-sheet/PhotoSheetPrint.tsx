@@ -51,7 +51,15 @@ export default function PhotoSheetPrint({
   }, [items, perPage])
 
   const dynamicPrintStyles = useMemo(() => makePrintStyles(orientation), [orientation])
-  const usePerCellCaption = !templateMode && rows === 2 && cols === 2
+  // Enable per-photo captions for 2x2 (already), and also 1x1, 2x1, 3x2 grids
+  const usePerCellCaption =
+    !templateMode &&
+    ((rows === 2 && cols === 2) ||
+      (rows === 1 && cols === 1) ||
+      (rows === 1 && cols === 2) ||
+      (rows === 2 && cols === 1) ||
+      (rows === 3 && cols === 2) ||
+      (rows === 2 && cols === 3))
 
   return (
     <div className="print-root">
