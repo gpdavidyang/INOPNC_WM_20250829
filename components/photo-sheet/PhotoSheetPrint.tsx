@@ -93,7 +93,7 @@ export default function PhotoSheetPrint({
               // For 3x2 (or 2x3) per-photo captions, reserve fixed caption height per cell
               ['--cap-h' as any]:
                 usePerCellCaption && ((rows === 3 && cols === 2) || (rows === 2 && cols === 3))
-                  ? '18mm'
+                  ? '24mm'
                   : undefined,
             }}
           >
@@ -253,7 +253,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
 .print-root .page.template .grid { gap: 0; }
 .print-root .cell { border: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
-.print-root .cell.percap .cell-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.print-root .cell.percap .cell-image { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; min-height: 0; height: calc(100% - (var(--cap-h, 24mm) + 1.5mm)); }
 .print-root .cell.percap .img { object-fit: contain; }
 .print-root .cell-caption {
   width: 100%;
