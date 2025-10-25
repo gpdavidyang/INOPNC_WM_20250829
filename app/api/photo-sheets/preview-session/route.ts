@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createSession } from '@/lib/photosheet/preview-session'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-export const maxDuration = 30
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireApiAuth()
-    if (auth instanceof NextResponse) return auth
-    const supabase = await createClient()
-    const payload = await request.json()
-    const { data, error } = await supabase
-      .from('photo_sheet_previews')
-      .insert({ created_by: auth.userId, payload })
-      .select('id')
-      .single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true, id: data.id })
+    const data = (await request.json()) as any
+    if (!data || typeof data !== 'object')
+      return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+    // Basic shape validation
+    if (!data.rows || !data.cols || !Array.isArray(data.items)) {
+      return NextResponse.json({ error: 'Invalid preview data' }, { status: 400 })
+    }
+    const id = createSession(data, 10 * 60 * 1000)
+    return NextResponse.json({ success: true, id })
   } catch (e) {
-    return NextResponse.json({ error: 'Failed to create preview' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: msg || 'Internal error' }, { status: 500 })
   }
-}
-
-export async function OPTIONS() {
-  return NextResponse.json({ ok: true })
 }

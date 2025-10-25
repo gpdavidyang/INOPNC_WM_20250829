@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest, ctx: { params: { id: string } }
     const id = ctx.params.id
     const { data: sheet, error } = await supabase
       .from('photo_sheets')
-      .select('*, site:sites(id, name, organization_id)')
+      .select('*, site:sites!photo_sheets_site_id_fkey (id, name, organization_id)')
       .eq('id', id)
       .single()
 
@@ -37,8 +37,9 @@ export async function GET(_request: NextRequest, ctx: { params: { id: string } }
 
     return NextResponse.json({ success: true, data: { ...sheet, items: items || [] } })
   } catch (e) {
-    console.error('GET /api/photo-sheets/[id] exception:', e)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('GET /api/photo-sheets/[id] exception:', msg)
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -54,7 +55,7 @@ export async function PUT(request: NextRequest, ctx: { params: { id: string } })
     // Load sheet to check access/site
     const { data: sheet, error: loadErr } = await supabase
       .from('photo_sheets')
-      .select('*, site:sites(id, organization_id)')
+      .select('*, site:sites!photo_sheets_site_id_fkey (id, organization_id)')
       .eq('id', id)
       .single()
     if (loadErr || !sheet) return NextResponse.json({ error: 'Not found' }, { status: 404 })
@@ -146,8 +147,9 @@ export async function PUT(request: NextRequest, ctx: { params: { id: string } })
 
     return NextResponse.json({ success: true, data: { id } })
   } catch (e) {
-    console.error('PUT /api/photo-sheets/[id] exception:', e)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('PUT /api/photo-sheets/[id] exception:', msg)
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }
 
@@ -175,7 +177,8 @@ export async function DELETE(_request: NextRequest, ctx: { params: { id: string 
     if (delErr) return NextResponse.json({ error: 'Failed to delete' }, { status: 500 })
     return NextResponse.json({ success: true })
   } catch (e) {
-    console.error('DELETE /api/photo-sheets/[id] exception:', e)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('DELETE /api/photo-sheets/[id] exception:', msg)
+    return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
 }

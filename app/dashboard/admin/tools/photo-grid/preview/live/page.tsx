@@ -242,7 +242,7 @@ export default function LivePreviewPage() {
             인쇄
           </Button>
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => {
               try {
                 if (window.history.length > 1) {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
 type PhotoSheetItem = {
@@ -28,18 +29,41 @@ export default function PhotoGridList() {
   const [items, setItems] = useState<PhotoSheetRow[]>([])
   const [loading, setLoading] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   // Fetch helper
   const fetchList = async () => {
     try {
       setLoading(true)
+      setError(null)
       const res = await fetch('/api/photo-sheets', { cache: 'no-store', credentials: 'include' })
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        console.error('Failed to fetch photo sheets:', res.status, text)
+        let msg = '사진대지 목록을 불러오지 못했습니다.'
+        try {
+          const j = JSON.parse(text)
+          if (j?.error) msg = j.error
+        } catch (_e) {
+          void 0
+        }
+        setError(msg)
+        return
+      }
       const json = await res.json().catch(() => null)
+      if (json && json.success === false) {
+        const msg = json.error || '사진대지 목록을 불러오지 못했습니다.'
+        setError(msg)
+        setItems([])
+        return
+      }
       const list = Array.isArray(json?.data) ? (json.data as PhotoSheetRow[]) : []
       setItems(list)
     } catch {
       // keep existing items if fetch fails
       // console.warn('Failed to fetch photo sheets list')
+      setError('네트워크 오류로 사진대지 목록을 불러오지 못했습니다.')
     } finally {
       setLoading(false)
     }
@@ -155,6 +179,7 @@ export default function PhotoGridList() {
         content: it.content || undefined,
         member: it.member_name || undefined,
         process: it.process_name || undefined,
+        stage: it.stage || undefined,
       })),
     }
     const key = `ps_${Date.now()}_${Math.random().toString(36).slice(2)}`
@@ -182,7 +207,7 @@ export default function PhotoGridList() {
       const j = await res.json().catch(() => null)
       if (res.ok && j?.success && j?.id) {
         const url = `/dashboard/admin/tools/photo-grid/preview/live?${autoPrint ? 'auto=print&' : ''}id=${encodeURIComponent(j.id as string)}`
-        window.open(url, '_blank')
+        router.push(url)
         return
       }
     } catch (_e) {
@@ -190,40 +215,17 @@ export default function PhotoGridList() {
     }
 
     const url = `/dashboard/admin/tools/photo-grid/preview/live${qs}`
-    const w = window.open('about:blank', '_blank')
-    try {
-      if (w) {
-        try {
-          const json = JSON.stringify(previewData)
-          const b64 = btoa(unescape(encodeURIComponent(json)))
-          ;(w as any).name = `psdata:${b64}`
-        } catch {
-          try {
-            ;(w as any).name = `psk:${key}`
-          } catch (_e) {
-            /* ignore */
-          }
-        }
-        try {
-          w.location.href = url
-        } catch {
-          w?.postMessage({ type: 'navigate', url }, '*')
-        }
-        setTimeout(() => {
-          try {
-            w.postMessage({ type: 'photosheet-preview', data: previewData }, window.location.origin)
-          } catch (_e) {
-            /* ignore */
-          }
-        }, 400)
-      }
-    } catch (_e) {
-      /* ignore */
-    }
+    // Same-tab fallback using localStorage key
+    router.push(url)
   }
 
   return (
     <div className="overflow-x-auto">
+      {error && (
+        <div className="mb-2 rounded border border-red-200 bg-red-50 text-red-700 px-3 py-2 text-sm">
+          {error}
+        </div>
+      )}
       <table className="min-w-full text-sm">
         <thead>
           <tr className="bg-gray-50 text-left">

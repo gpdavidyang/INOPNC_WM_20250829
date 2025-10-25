@@ -45,6 +45,8 @@ type ExistingSheet = {
 type EditorProps = { onSaved?: (id: string, status: 'draft' | 'final') => void }
 
 export default function PhotoSheetEditor({ onSaved }: EditorProps) {
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
   const [orientation, setOrientation] = useState<Orientation>('portrait')
   const [presetId, setPresetId] = useState<string>('2x2')
   const preset = useMemo<GridPreset>(
@@ -60,7 +62,9 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
   const [saving, setSaving] = useState(false)
   const [loadingSheet, setLoadingSheet] = useState(false)
   const [message, setMessage] = useState<string>('')
-  const [templateMode, setTemplateMode] = useState(true)
+  const [messageType, setMessageType] = useState<'info' | 'error'>('info')
+  // Use unified layout across editor preview and list preview
+  const templateMode = false
   const [existingSheets, setExistingSheets] = useState<ExistingSheet[]>([])
   const [loadingExisting, setLoadingExisting] = useState(false)
   const [sites, setSites] = useState<SiteOption[]>([])
@@ -167,7 +171,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
             rows: preset.rows,
             cols: preset.cols,
             orientation,
-            templateMode,
+            templateMode: false,
             items: itemsWithUrls,
           }
           ;(ev.source as WindowProxy | null)?.postMessage(
@@ -181,7 +185,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
     }
     window.addEventListener('message', onMessage)
     return () => window.removeEventListener('message', onMessage)
-  }, [title, siteName, preset.rows, preset.cols, orientation, templateMode, tiles])
+  }, [title, siteName, preset.rows, preset.cols, orientation, tiles])
 
   // Auto-load by query param (?sheet_id=...)
   useEffect(() => {
@@ -312,7 +316,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
         rows: preset.rows,
         cols: preset.cols,
         orientation,
-        templateMode,
+        templateMode: false,
         items: itemsWithUrls,
       }
       // Save to localStorage with ephemeral key so new tab can read
@@ -367,7 +371,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
         /* ignore */
       }
     },
-    [title, siteName, preset.rows, preset.cols, orientation, templateMode, tiles]
+    [title, siteName, preset.rows, preset.cols, orientation, tiles]
   )
 
   const buildItemsPayload = () => {
@@ -387,6 +391,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
   const saveSheet = async (status: 'draft' | 'final') => {
     setSaving(true)
     setMessage('')
+    setMessageType('info')
     try {
       const form = new FormData()
       form.append('title', title)
@@ -406,12 +411,20 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       } else {
         res = await fetch('/api/photo-sheets', { method: 'POST', body: form })
       }
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) throw new Error(json?.error || '저장에 실패했습니다')
+      const text = await res.text().catch(() => '')
+      let json: any = null
+      try {
+        json = text ? JSON.parse(text) : null
+      } catch (_e) {
+        void 0
+      }
+      if (!res.ok || !json?.success) {
+        const detail = json?.error || text || '저장에 실패했습니다'
+        throw new Error(detail)
+      }
       const id = json?.data?.id || sheetId
       if (id) setSheetId(id)
       try {
-        onSaved?.(id as string, status)
         if (typeof window !== 'undefined') {
           const eventDetail = {
             id,
@@ -429,12 +442,17 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
             /* ignore */
           }
         }
+        onSaved?.(id as string, status)
       } catch (_e) {
         /* ignore */
       }
       setMessage(status === 'final' ? '확정 저장되었습니다.' : '초안이 저장되었습니다.')
+      setMessageType('info')
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : '저장 중 오류가 발생했습니다.')
+      const msg = e instanceof Error ? e.message : '저장 중 오류가 발생했습니다.'
+      console.error('PhotoSheet save error:', msg)
+      setMessage(msg)
+      setMessageType('error')
     } finally {
       setSaving(false)
     }
@@ -623,8 +641,16 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       </div>
       <Separator className="my-4" />
 
-      {/* 상태/알림 문구: '새 문서' 문구 제거 */}
-      <div className="text-xs text-muted-foreground">
+      {/* 상태/알림 문구 */}
+      <div
+        className={
+          messageType === 'error'
+            ? 'text-xs rounded border border-red-200 bg-red-50 text-red-700 px-2 py-1'
+            : 'text-xs text-muted-foreground'
+        }
+        role="status"
+        aria-live="polite"
+      >
         {sheetId ? `문서 ID: ${sheetId}` : ''}
         {message ? `${sheetId ? ' • ' : ''}${message}` : ''}
       </div>
@@ -759,36 +785,38 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
         </Button>
       </div>
 
-      {/* Print Preview DOM (hidden). Kept so print CSS stays available if needed. */}
-      <div
-        ref={printRef}
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          left: '-10000px',
-          top: '-10000px',
-          width: 0,
-          height: 0,
-          overflow: 'hidden',
-        }}
-      >
-        <PhotoSheetPrint
-          title={title}
-          siteName={siteName}
-          rows={preset.rows}
-          cols={preset.cols}
-          orientation={orientation}
-          items={tiles.map(t => ({
-            id: t.id,
-            member: t.member,
-            process: t.process,
-            content: t.content,
-            stage: t.stage,
-            previewUrl: t.previewUrl,
-          }))}
-          templateMode={templateMode}
-        />
-      </div>
+      {/* Print Preview DOM (hidden). Render only after mount to avoid hydration mismatch. */}
+      {mounted && (
+        <div
+          ref={printRef}
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            left: '-10000px',
+            top: '-10000px',
+            width: 0,
+            height: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <PhotoSheetPrint
+            title={title}
+            siteName={siteName}
+            rows={preset.rows}
+            cols={preset.cols}
+            orientation={orientation}
+            items={tiles.map(t => ({
+              id: t.id,
+              member: t.member,
+              process: t.process,
+              content: t.content,
+              stage: t.stage,
+              previewUrl: t.previewUrl,
+            }))}
+            templateMode={false}
+          />
+        </div>
+      )}
     </div>
   )
 }

@@ -45,6 +45,9 @@ export default async function AdminPhotoGridDocumentsPage({
   }
   let reports: any[] = []
   let total = 0
+  // New: directly-uploaded photo sheets (새 사진대지)
+  let photoSheets: any[] = []
+  let photoSheetsTotal = 0
   try {
     const res = await fetch(`${getOrigin()}/api/photo-grid-reports?${qs.toString()}`, {
       cache: 'no-store',
@@ -56,6 +59,22 @@ export default async function AdminPhotoGridDocumentsPage({
     }
   } catch {
     // silent fallback to empty list
+  }
+  // Fetch photo sheets created via the new editor (직접업로드)
+  try {
+    const sheetQs = new URLSearchParams()
+    if (site_id) sheetQs.set('site_id', site_id)
+    const res2 = await fetch(`${getOrigin()}/api/photo-sheets?${sheetQs.toString()}`, {
+      cache: 'no-store',
+    })
+    if (res2.ok) {
+      const json2 = await res2.json().catch(() => ({}))
+      const list = Array.isArray(json2?.data) ? json2.data : []
+      photoSheets = list
+      photoSheetsTotal = list.length
+    }
+  } catch {
+    // ignore
   }
   const pages = Math.max(1, Math.ceil(total / limit))
 
@@ -141,12 +160,61 @@ export default async function AdminPhotoGridDocumentsPage({
         </form>
       </div>
 
+      {/* 최근 생성된 사진대지(직접업로드) */}
+      <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mb-6">
+        <div className="mb-3">
+          <div className="text-base font-semibold">최근 생성된 사진대지 (직접업로드)</div>
+          <div className="text-xs text-muted-foreground">새 에디터에서 저장된 사진대지 목록</div>
+        </div>
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="bg-muted text-left">
+              <th className="px-3 py-2">생성일</th>
+              <th className="px-3 py-2">현장</th>
+              <th className="px-3 py-2">제목/격자</th>
+              <th className="px-3 py-2">상태</th>
+              <th className="px-3 py-2">동작</th>
+            </tr>
+          </thead>
+          <tbody>
+            {photoSheetsTotal === 0 ? (
+              <tr>
+                <td className="px-3 py-6 text-center text-muted-foreground" colSpan={5}>
+                  생성된 사진대지가 없습니다.
+                </td>
+              </tr>
+            ) : (
+              photoSheets.map((s: any) => (
+                <tr key={s.id} className="border-t">
+                  <td className="px-3 py-2">{s.created_at ? new Date(s.created_at).toLocaleString('ko-KR') : '-'}</td>
+                  <td className="px-3 py-2">{s?.site?.name || '-'}</td>
+                  <td className="px-3 py-2">
+                    <div className="text-foreground">{s.title || '사진대지'}</div>
+                    <div className="text-xs text-muted-foreground">{(s.rows || 0) + '×' + (s.cols || 0)} · {s.orientation === 'landscape' ? '가로' : '세로'}</div>
+                  </td>
+                  <td className="px-3 py-2">{s.status === 'final' ? '확정' : '초안'}</td>
+                  <td className="px-3 py-2">
+                    <Link className="underline text-blue-600" href={`/dashboard/admin/tools/photo-grid?sheet_id=${encodeURIComponent(s.id)}`}>
+                      편집/미리보기
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* 레거시 PDF 보고서 */}
       <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+        <div className="mb-3">
+          <div className="text-base font-semibold">레거시 사진대지 PDF 보고서</div>
+          <div className="text-xs text-muted-foreground">기존 방식으로 생성된 PDF 리스트</div>
+        </div>
         <PhotoGridReportsTable reports={reports} />
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)}{' '}
-            표시
+            {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)} 표시
           </div>
           <div className="flex gap-2">
             <Link
