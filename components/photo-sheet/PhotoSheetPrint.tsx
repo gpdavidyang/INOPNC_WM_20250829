@@ -236,7 +236,15 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .cell-caption { width: 100%; border-top: 1px solid #000; border-collapse: collapse; table-layout: fixed; margin-top: 3mm; }
 .print-root .cell-caption .cap-cell { border: 1px solid #000; padding: 1mm 1.6mm; vertical-align: top; }
 .print-root .cell-caption .cap-content { border: 1px solid #000; padding: 1mm 1.6mm; }
-.print-root .cell-caption .cap-label { font-size: 8pt; color: #333; margin-bottom: 0.8mm; }
+.print-root .cell-caption .cap-label {
+  font-size: 8pt;
+  color: #333;
+  background: #f3f3f3;
+  border-bottom: 0.25mm solid #000;
+  display: block;
+  padding: 0.6mm 1mm;
+  margin: 0 0 0.6mm 0;
+}
 .print-root .cell-caption .cap-value { font-size: 10pt; line-height: 1.2; font-weight: 500; }
 .print-root .cell-caption .cap-ellipsis { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; word-break: break-word; }
 .print-root .img { width: 100%; height: 100%; object-fit: cover; }
