@@ -51,6 +51,7 @@ export default function PhotoSheetPrint({
   }, [items, perPage])
 
   const dynamicPrintStyles = useMemo(() => makePrintStyles(orientation), [orientation])
+  const usePerCellCaption = !templateMode && rows === 2 && cols === 2
 
   return (
     <div className="print-root">
@@ -92,12 +93,44 @@ export default function PhotoSheetPrint({
                   ) : (
                     <div className="placeholder">이미지</div>
                   )}
+                  {usePerCellCaption ? (
+                    <table className="cell-caption">
+                      <tbody>
+                        <tr>
+                          <td className="cap-cell">
+                            <div className="cap-label">보수 전/후</div>
+                            <div className="cap-value">
+                              {it?.stage === 'before'
+                                ? '보수 전'
+                                : it?.stage === 'after'
+                                  ? '보수 후'
+                                  : ''}
+                            </div>
+                          </td>
+                          <td className="cap-cell">
+                            <div className="cap-label">부재명</div>
+                            <div className="cap-value">{it?.member || ''}</div>
+                          </td>
+                          <td className="cap-cell">
+                            <div className="cap-label">공정</div>
+                            <div className="cap-value">{it?.process || ''}</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="cap-content" colSpan={3}>
+                            <div className="cap-label">내용</div>
+                            <div className="cap-value cap-ellipsis">{it?.content || ''}</div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  ) : null}
                 </div>
               )
             })}
           </div>
 
-          {templateMode ? (
+          {!usePerCellCaption && templateMode ? (
             <div className="info-grid" style={gridTemplate}>
               {Array.from({ length: perPage }).map((_, i) => {
                 const it = pageItems[i]
@@ -131,7 +164,7 @@ export default function PhotoSheetPrint({
                 )
               })}
             </div>
-          ) : (
+          ) : !usePerCellCaption ? (
             <table className="meta-table">
               <thead>
                 <tr>
@@ -161,7 +194,7 @@ export default function PhotoSheetPrint({
                 })}
               </tbody>
             </table>
-          )}
+          ) : null}
           <div className="footer">
             <div className="footer-divider" />
             <div className="footer-row">
@@ -199,7 +232,13 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .site-value-strong { font-weight: 800; }
 .print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
 .print-root .page.template .grid { gap: 0; }
-.print-root .cell { border: 1px solid #000; display: flex; align-items: center; justify-content: center; overflow: hidden; break-inside: avoid; }
+.print-root .cell { border: 1px solid #000; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
+.print-root .cell-caption { width: 100%; border-top: 1px solid #000; border-collapse: collapse; table-layout: fixed; margin-top: 3mm; }
+.print-root .cell-caption .cap-cell { border: 1px solid #000; padding: 1mm 1.6mm; vertical-align: top; }
+.print-root .cell-caption .cap-content { border: 1px solid #000; padding: 1mm 1.6mm; }
+.print-root .cell-caption .cap-label { font-size: 8pt; color: #333; margin-bottom: 0.8mm; }
+.print-root .cell-caption .cap-value { font-size: 10pt; line-height: 1.2; font-weight: 500; }
+.print-root .cell-caption .cap-ellipsis { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; word-break: break-word; }
 .print-root .img { width: 100%; height: 100%; object-fit: cover; }
 .print-root .page.template .img { object-fit: contain; }
 .print-root .placeholder { color: #888; font-size: 12px; }
