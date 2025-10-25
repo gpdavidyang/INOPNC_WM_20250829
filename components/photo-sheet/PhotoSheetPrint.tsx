@@ -141,6 +141,8 @@ export default function PhotoSheetPrint({
       ['--cell-cap-mm' as any]: `${cellCapMm}mm`,
       ['--cell-h' as any]: `${cellH}mm`,
       ['--cell-img-h' as any]: `${cellImgMm}mm`,
+      ['--head-mm' as any]: `${headerMm}mm`,
+      ['--foot-mm' as any]: `${footerMm}mm`,
     }
   }, [gridHeightMm, metaMm, gapMm, perCellCaption, rows, cols, paddingMm, pageGapMm])
 
@@ -326,6 +328,8 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   .print-root { position: static; margin: 0 !important; }
   .page { width: ${pageW}; height: ${pageH}; margin: 0 auto; border: none; padding: var(--pad-mm); overflow: hidden; box-sizing: border-box; gap: var(--page-gap-mm, 4mm); }
   .page-inner { width: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+  .header { flex: 0 0 var(--head-mm); height: var(--head-mm); overflow: hidden; }
+  .footer { flex: 0 0 var(--foot-mm); height: var(--foot-mm); overflow: hidden; }
   .grid { gap: var(--gap-mm, 3mm); }
   .meta-row .m-label, .meta-row .m-value { padding: 0.8mm 1.2mm; }
   .meta-table th, .meta-table td { padding: 1.2mm 1.8mm; }
