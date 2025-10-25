@@ -242,7 +242,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
   background: #f3f3f3;
   border-bottom: 0.25mm solid #000;
   display: block;
-  padding: 0.6mm 1mm;
+  padding: 0;
   margin: 0 0 0.6mm 0;
 }
 .print-root .cell-caption .cap-value { font-size: 10pt; line-height: 1.2; font-weight: 500; }
