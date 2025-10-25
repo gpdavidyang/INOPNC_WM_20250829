@@ -233,7 +233,14 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
 .print-root .page.template .grid { gap: 0; }
 .print-root .cell { border: 1px solid #000; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
-.print-root .cell-caption { width: 100%; border-top: 1px solid #000; border-collapse: collapse; table-layout: fixed; margin-top: 3mm; }
+.print-root .cell-caption {
+  width: 100%;
+  border: none;
+  border-top: 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin-top: 3mm;
+}
 .print-root .cell-caption .cap-cell { border: 1px solid #000; padding: 1mm 1.6mm; vertical-align: top; }
 .print-root .cell-caption .cap-content { border: 1px solid #000; padding: 1mm 1.6mm; }
 .print-root .cell-caption .cap-label {
