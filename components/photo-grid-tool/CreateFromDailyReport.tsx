@@ -82,7 +82,7 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
     let mounted = true
     ;(async () => {
       try {
-        const res = await fetch('/api/sites', { cache: 'no-store' })
+        const res = await fetch('/api/sites', { cache: 'no-store', credentials: 'include' })
         const json = await res.json().catch(() => null)
         if (mounted) setSites((json?.data || []) as SiteOption[])
       } catch (e) {
@@ -92,8 +92,14 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
     ;(async () => {
       try {
         const [compRes, procRes] = await Promise.all([
-          fetch('/api/admin/work-options?option_type=component_type', { cache: 'no-store' }),
-          fetch('/api/admin/work-options?option_type=process_type', { cache: 'no-store' }),
+          fetch('/api/admin/work-options?option_type=component_type', {
+            cache: 'no-store',
+            credentials: 'include',
+          }),
+          fetch('/api/admin/work-options?option_type=process_type', {
+            cache: 'no-store',
+            credentials: 'include',
+          }),
         ])
         const comp = (await compRes.json().catch(() => [])) as WorkOptionSetting[]
         const proc = (await procRes.json().catch(() => [])) as WorkOptionSetting[]
@@ -124,6 +130,7 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
       }
       const res = await fetch(`/api/admin/sites/${siteId}/daily-reports?${params.toString()}`, {
         cache: 'no-store',
+        credentials: 'include',
       })
       const json = await res.json().catch(() => ({}))
       const list = Array.isArray(json?.data) ? json.data : []
@@ -288,17 +295,56 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
       const finalComponentName = isOtherComponent ? componentNameOther.trim() : componentName
       const finalWorkProcess = isOtherProcess ? workProcessOther.trim() : workProcess
       const finalSiteId = siteId || reportDetail?.site?.id || reportDetail?.daily_report?.site_id
-      const form = new FormData()
-      form.append('site_id', finalSiteId)
-      form.append('component_name', finalComponentName)
-      form.append('work_process', finalWorkProcess)
-      form.append('work_section', workSection)
-      form.append('work_date', workDate)
-      if (selectedReportId) form.append('daily_report_id', selectedReportId)
-      selectedBefore.forEach((p, i) => form.append('before_photo_urls', p.url))
-      selectedAfter.forEach((p, i) => form.append('after_photo_urls', p.url))
 
-      const res = await fetch('/api/photo-grids', { method: 'POST', body: form })
+      const all = [
+        ...selectedBefore.map(p => ({ ...p, stage: 'before' as const })),
+        ...selectedAfter.map(p => ({ ...p, stage: 'after' as const })),
+      ]
+      const count = all.length
+      const bestFit = (n: number) => {
+        if (n <= 0) return { rows: 1, cols: 1 }
+        let cols = 2
+        let rows = Math.max(1, Math.ceil(n / cols))
+        if (n <= 4) {
+          cols = 2
+          rows = Math.ceil(n / 2)
+        } else if (n <= 6) {
+          cols = 3
+          rows = Math.ceil(n / 3)
+        } else if (n <= 9) {
+          cols = 3
+          rows = 3
+        } else {
+          cols = Math.min(5, Math.ceil(Math.sqrt(n)))
+          rows = Math.ceil(n / cols)
+        }
+        return { rows, cols }
+      }
+      const { rows, cols } = bestFit(count)
+
+      const items = all.map((p, idx) => ({
+        index: idx,
+        member: finalComponentName || null,
+        process: finalWorkProcess || null,
+        content: workSection || null,
+        stage: p.stage,
+        image_url: p.url,
+      }))
+
+      const form = new FormData()
+      form.append('title', finalComponentName || '사진대지')
+      form.append('site_id', finalSiteId)
+      form.append('orientation', 'portrait')
+      form.append('rows', String(rows))
+      form.append('cols', String(cols))
+      form.append('status', 'final')
+      form.append('items', JSON.stringify(items))
+
+      const res = await fetch('/api/photo-sheets', {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+      })
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.success) throw new Error(json?.error || '생성 실패')
       if (onCreated) onCreated()

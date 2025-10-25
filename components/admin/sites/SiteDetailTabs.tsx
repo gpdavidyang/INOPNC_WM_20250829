@@ -105,6 +105,8 @@ export default function SiteDetailTabs({
   const [photos, setPhotos] = useState<any[]>([])
   const [photosLoading, setPhotosLoading] = useState(false)
   const [photoDate, setPhotoDate] = useState<string | null>(null)
+  const [photoSheets, setPhotoSheets] = useState<any[]>([])
+  const [photoSheetsLoading, setPhotoSheetsLoading] = useState(false)
   const [stats, setStats] = useState<{ reports: number; labor: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [recentDocs, setRecentDocs] = useState<any[]>(initialDocs || [])
@@ -453,6 +455,27 @@ export default function SiteDetailTabs({
     })()
     return () => {
       active = false
+    }
+  }, [siteId])
+
+  // Load photo sheets for this site
+  useEffect(() => {
+    let ignore = false
+    ;(async () => {
+      setPhotoSheetsLoading(true)
+      try {
+        const res = await fetch(`/api/photo-sheets?site_id=${encodeURIComponent(siteId)}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!ignore && res.ok && j?.success) setPhotoSheets(Array.isArray(j.data) ? j.data : [])
+      } finally {
+        setPhotoSheetsLoading(false)
+      }
+    })()
+    return () => {
+      ignore = true
     }
   }, [siteId])
 
@@ -2661,6 +2684,69 @@ export default function SiteDetailTabs({
               </div>
             </>
           )}
+
+          {/* Photo Sheets (사진대지) */}
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">현장 사진대지</h3>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="ghost" size="sm">
+                  <a href={`/dashboard/admin/tools/photo-grid?site_id=${siteId}`}>사진대지 생성</a>
+                </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <a href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}>
+                    사진대지 리포트
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <div className="rounded-lg border bg-card p-3 shadow-sm overflow-x-auto">
+              {photoSheetsLoading ? (
+                <TableSkeleton rows={5} />
+              ) : photoSheets.length === 0 ? (
+                <div className="text-sm text-muted-foreground">이 현장의 사진대지가 없습니다.</div>
+              ) : (
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted text-left">
+                      <th className="px-3 py-2">제목</th>
+                      <th className="px-3 py-2">행×열</th>
+                      <th className="px-3 py-2">방향</th>
+                      <th className="px-3 py-2">상태</th>
+                      <th className="px-3 py-2">생성일</th>
+                      <th className="px-3 py-2">동작</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {photoSheets.map((s: any) => (
+                      <tr key={s.id} className="border-t">
+                        <td className="px-3 py-2">{s.title || '-'}</td>
+                        <td className="px-3 py-2">
+                          {s.rows || 0}×{s.cols || 0}
+                        </td>
+                        <td className="px-3 py-2">
+                          {s.orientation === 'landscape' ? '가로' : '세로'}
+                        </td>
+                        <td className="px-3 py-2">{s.status === 'final' ? '확정' : '초안'}</td>
+                        <td className="px-3 py-2">
+                          {s.created_at ? new Date(s.created_at).toLocaleString('ko-KR') : '-'}
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <Button asChild variant="outline" size="compact">
+                              <a href={`/dashboard/admin/tools/photo-grid?sheet_id=${s.id}`}>
+                                편집/인쇄
+                              </a>
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </TabsContent>
 
         {/* Edit Tab */}

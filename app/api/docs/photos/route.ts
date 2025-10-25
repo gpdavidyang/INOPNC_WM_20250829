@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
     const q = (searchParams.get('q') || '').trim()
 
-    // Partner site access
-    if (auth.role === 'partner') {
+    // Customer-manager (partner alias) site access restriction
+    if (auth.role === 'customer_manager') {
       if (!siteId) return NextResponse.json({ success: true, data: [] })
       const { data: mapping } = await supabase
         .from('partner_site_mappings')
@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
     if (!file || !siteId)
       return NextResponse.json({ success: false, error: 'file, siteId required' }, { status: 400 })
 
-    // Partner access check
-    if (auth.role === 'partner') {
+    // Customer-manager (partner alias) access check
+    if (auth.role === 'customer_manager') {
       const { data: mapping } = await supabase
         .from('partner_site_mappings')
         .select('id')

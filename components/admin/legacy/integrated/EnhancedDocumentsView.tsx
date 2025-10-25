@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Document {
   id: string
   category_type: string
@@ -64,7 +63,7 @@ export default function EnhancedDocumentsView() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch sites for filtering
       const sitesRes = await fetch('/api/sites')
       if (sitesRes.ok) {
@@ -73,7 +72,7 @@ export default function EnhancedDocumentsView() {
           setSites(sitesData.data.filter((s: Site) => s.id !== 'all'))
         }
       }
-      
+
       await fetchDocuments()
     } catch (error) {
       console.error('Error fetching data:', error)
@@ -85,43 +84,44 @@ export default function EnhancedDocumentsView() {
   const fetchDocuments = async () => {
     try {
       const params = new URLSearchParams()
-      
+
       // Use unified API with proper parameters
       if (selectedSite !== 'all') params.append('site_id', selectedSite)
       if (selectedType !== 'all') params.append('status', selectedType)
-      
+
       const url = '/api/unified-documents?' + params.toString()
       console.log('Fetching documents with URL:', url)
-      
+
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        
+
         // Use documents array from API response
         const documentsArray = data.data || data.documents || []
-        
+
         console.log('EnhancedDocumentsView - API Response:', data)
         console.log('EnhancedDocumentsView - Documents Array Length:', documentsArray.length)
         console.log('EnhancedDocumentsView - Documents Sample:', documentsArray.slice(0, 3))
         console.log('EnhancedDocumentsView - Statistics:', data.statistics)
         console.log('EnhancedDocumentsView - Active Category:', activeCategory)
-        console.log('EnhancedDocumentsView - Documents by category breakdown:', 
+        console.log(
+          'EnhancedDocumentsView - Documents by category breakdown:',
           documentsArray.reduce((acc, doc) => {
             const cat = doc.category_type || 'unknown'
             acc[cat] = (acc[cat] || 0) + 1
             return acc
           }, {})
         )
-        
+
         setDocuments(documentsArray)
-        
+
         // Use statistics from API response
         if (data.statistics) {
           setStatistics({
             total: data.statistics.total_documents || 0,
             by_category: data.statistics.by_category || {},
             by_type: data.statistics.by_status || {},
-            by_site: {}
+            by_site: {},
           })
         } else {
           // Calculate statistics if not provided
@@ -129,25 +129,25 @@ export default function EnhancedDocumentsView() {
             total: documentsArray.length,
             by_category: {},
             by_type: {},
-            by_site: {}
+            by_site: {},
           }
-          
+
           documentsArray.forEach((doc: Document) => {
             // By category
             const categoryType = doc.category_type || 'shared'
             stats.by_category[categoryType] = (stats.by_category[categoryType] || 0) + 1
-            
+
             // By status
             if (doc.status) {
               stats.by_type[doc.status] = (stats.by_type[doc.status] || 0) + 1
             }
-            
+
             // By site
             if (doc.site?.name) {
               stats.by_site[doc.site.name] = (stats.by_site[doc.site.name] || 0) + 1
             }
           })
-          
+
           setStatistics(stats)
         }
       }
@@ -161,7 +161,7 @@ export default function EnhancedDocumentsView() {
       shared: FileText,
       markup: Image,
       required: Shield,
-      invoice: Package
+      invoice: Package,
     }
     return icons[category as keyof typeof icons] || FileText
   }
@@ -174,7 +174,7 @@ export default function EnhancedDocumentsView() {
       required: { name: '필수제출서류함', color: 'green', icon: Shield },
       required_user_docs: { name: '필수제출서류함', color: 'green', icon: Shield },
       invoice: { name: '기성청구문서함', color: 'orange', icon: Package },
-      photo_grid: { name: '사진대지문서함', color: 'pink', icon: FileImage }
+      photo_grid: { name: '사진대지문서함', color: 'pink', icon: FileImage },
     }
     return configs[category as keyof typeof configs] || configs.all
   }
@@ -190,7 +190,7 @@ export default function EnhancedDocumentsView() {
       xls: FileSpreadsheet,
       xlsx: FileSpreadsheet,
       zip: FileArchive,
-      rar: FileArchive
+      rar: FileArchive,
     }
     return iconMap[ext || ''] || File
   }
@@ -204,18 +204,19 @@ export default function EnhancedDocumentsView() {
 
   const filteredDocuments = documents.filter(doc => {
     // Filter by category
-    const matchesCategory = activeCategory === 'all' || 
-      (doc.category_type || 'shared') === activeCategory
-    
+    const matchesCategory =
+      activeCategory === 'all' || (doc.category_type || 'shared') === activeCategory
+
     // Filter by search term
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch =
+      searchTerm === '' ||
       doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     return matchesCategory && matchesSearch
   })
-  
+
   // Log filtering results
   console.log('EnhancedDocumentsView - Filtering Results:', {
     totalDocuments: documents.length,
@@ -227,8 +228,8 @@ export default function EnhancedDocumentsView() {
       categoryType: doc.category_type,
       title: doc.title,
       siteId: doc.site_id,
-      siteName: doc.site?.name
-    }))
+      siteName: doc.site?.name,
+    })),
   })
 
   const categories = [
@@ -237,7 +238,7 @@ export default function EnhancedDocumentsView() {
     { id: 'markup', ...getCategoryConfig('markup') },
     { id: 'required', ...getCategoryConfig('required') },
     { id: 'invoice', ...getCategoryConfig('invoice') },
-    { id: 'photo_grid', ...getCategoryConfig('photo_grid') }
+    { id: 'photo_grid', ...getCategoryConfig('photo_grid') },
   ]
 
   if (loading) {
@@ -253,12 +254,11 @@ export default function EnhancedDocumentsView() {
       {/* Category Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-6">
-          {categories.map((category) => {
+          {categories.map(category => {
             const Icon = category.icon
-            const count = category.id === 'all' 
-              ? statistics?.total 
-              : statistics?.by_category[category.id] || 0
-            
+            const count =
+              category.id === 'all' ? statistics?.total : statistics?.by_category[category.id] || 0
+
             return (
               <button
                 key={category.id}
@@ -290,7 +290,7 @@ export default function EnhancedDocumentsView() {
               type="text"
               placeholder="문서 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-white text-gray-900 dark:text-gray-900"
             />
           </div>
@@ -302,7 +302,7 @@ export default function EnhancedDocumentsView() {
             </CustomSelectTrigger>
             <CustomSelectContent>
               <CustomSelectItem value="all">전체 현장</CustomSelectItem>
-              {sites.map((site) => (
+              {sites.map(site => (
                 <CustomSelectItem key={site.id} value={site.id}>
                   {site.name}
                 </CustomSelectItem>
@@ -366,7 +366,9 @@ export default function EnhancedDocumentsView() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">전체 문서</p>
-            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{statistics.total}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {statistics.total}
+            </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">문서 유형</p>
@@ -383,9 +385,10 @@ export default function EnhancedDocumentsView() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">이번 달 업로드</p>
             <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {documents.filter(d => 
-                new Date(d.created_at).getMonth() === new Date().getMonth()
-              ).length}
+              {
+                documents.filter(d => new Date(d.created_at).getMonth() === new Date().getMonth())
+                  .length
+              }
             </p>
           </div>
         </div>
@@ -396,8 +399,8 @@ export default function EnhancedDocumentsView() {
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500 dark:text-gray-400">
-            {searchTerm || selectedSite !== 'all' || selectedType !== 'all' 
-              ? '검색 결과가 없습니다' 
+            {searchTerm || selectedSite !== 'all' || selectedType !== 'all'
+              ? '검색 결과가 없습니다'
               : activeCategory === 'shared'
                 ? '공유문서함에 등록된 문서가 없습니다'
                 : activeCategory === 'markup'
@@ -414,10 +417,10 @@ export default function EnhancedDocumentsView() {
       ) : viewMode === 'grid' ? (
         /* Grid View */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredDocuments.map((doc) => {
+          {filteredDocuments.map(doc => {
             const FileIcon = getFileIcon(doc.file_name)
             const categoryConfig = getCategoryConfig(doc.category_type)
-            
+
             return (
               <div
                 key={doc.id}
@@ -428,21 +431,23 @@ export default function EnhancedDocumentsView() {
                     <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <FileIcon className="h-8 w-8 text-gray-600 dark:text-gray-400" />
                     </div>
-                    <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-${categoryConfig.color}-100 text-${categoryConfig.color}-800 dark:bg-${categoryConfig.color}-900/20 dark:text-${categoryConfig.color}-300`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-${categoryConfig.color}-100 text-${categoryConfig.color}-800 dark:bg-${categoryConfig.color}-900/20 dark:text-${categoryConfig.color}-300`}
+                    >
                       {categoryConfig.name}
                     </span>
                   </div>
-                  
+
                   <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
                     {doc.title}
                   </h4>
-                  
+
                   {doc.description && (
                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">
                       {doc.description}
                     </p>
                   )}
-                  
+
                   <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                     {doc.site?.name && (
                       <div className="flex items-center">
@@ -461,21 +466,37 @@ export default function EnhancedDocumentsView() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex justify-between">
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {doc.category_type === 'photo_grid' ? 'PDF 문서' : formatFileSize(doc.file_size)}
+                      {doc.category_type === 'photo_grid'
+                        ? 'PDF 문서'
+                        : formatFileSize(doc.file_size)}
                     </span>
                     <div className="flex gap-2">
                       {doc.category_type === 'photo_grid' ? (
-                        // Special handling for photo grid documents
+                        // Photo grid (legacy) → open photosheet live preview if mapping exists
                         <>
                           <button
                             onClick={() => {
-                              const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
-                              const photoGridId = metadata.photo_grid_id
-                              if (photoGridId) {
-                                window.open(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`, '_blank')
+                              let meta: any = doc.metadata
+                              if (typeof meta === 'string') {
+                                try {
+                                  meta = JSON.parse(meta)
+                                } catch {
+                                  meta = {}
+                                }
+                              }
+                              const sheetId = meta?.photosheet_id as string | undefined
+                              if (sheetId) {
+                                window.open(
+                                  `/dashboard/admin/tools/photo-grid/preview/live?sheet_id=${encodeURIComponent(sheetId)}`,
+                                  '_blank'
+                                )
+                              } else {
+                                alert(
+                                  '레거시 사진대지 문서는 새 미리보기를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.'
+                                )
                               }
                             }}
                             className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 rounded"
@@ -483,14 +504,33 @@ export default function EnhancedDocumentsView() {
                           >
                             보기
                           </button>
-                          <a
-                            href={doc.file_url}
-                            download
+                          <button
+                            onClick={() => {
+                              let meta: any = doc.metadata
+                              if (typeof meta === 'string') {
+                                try {
+                                  meta = JSON.parse(meta)
+                                } catch {
+                                  meta = {}
+                                }
+                              }
+                              const sheetId = meta?.photosheet_id as string | undefined
+                              if (sheetId) {
+                                window.open(
+                                  `/dashboard/admin/tools/photo-grid/preview/live?auto=print&sheet_id=${encodeURIComponent(sheetId)}`,
+                                  '_blank'
+                                )
+                              } else {
+                                alert(
+                                  '레거시 사진대지 문서는 직접 다운로드를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.'
+                                )
+                              }
+                            }}
                             className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 rounded inline-block ml-2"
-                            title="다운로드"
+                            title="인쇄"
                           >
-                            다운로드
-                          </a>
+                            인쇄
+                          </button>
                         </>
                       ) : (
                         // Default handling for other document types
@@ -556,10 +596,10 @@ export default function EnhancedDocumentsView() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredDocuments.map((doc) => {
+                {filteredDocuments.map(doc => {
                   const FileIcon = getFileIcon(doc.file_name)
                   const categoryConfig = getCategoryConfig(doc.category_type)
-                  
+
                   return (
                     <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -602,7 +642,9 @@ export default function EnhancedDocumentsView() {
                           {doc.file_name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {doc.category_type === 'photo_grid' ? 'PDF 문서' : formatFileSize(doc.file_size)}
+                          {doc.category_type === 'photo_grid'
+                            ? 'PDF 문서'
+                            : formatFileSize(doc.file_size)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -614,14 +656,28 @@ export default function EnhancedDocumentsView() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-1">
                           {doc.category_type === 'photo_grid' ? (
-                            // Special handling for photo grid documents
+                            // Photo grid (legacy) → open photosheet live preview if mapping exists
                             <>
                               <button
                                 onClick={() => {
-                                  const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
-                                  const photoGridId = metadata.photo_grid_id
-                                  if (photoGridId) {
-                                    window.open(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`, '_blank')
+                                  let meta: any = doc.metadata
+                                  if (typeof meta === 'string') {
+                                    try {
+                                      meta = JSON.parse(meta)
+                                    } catch {
+                                      meta = {}
+                                    }
+                                  }
+                                  const sheetId = meta?.photosheet_id as string | undefined
+                                  if (sheetId) {
+                                    window.open(
+                                      `/dashboard/admin/tools/photo-grid/preview/live?sheet_id=${encodeURIComponent(sheetId)}`,
+                                      '_blank'
+                                    )
+                                  } else {
+                                    alert(
+                                      '레거시 사진대지 문서는 새 미리보기를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.'
+                                    )
                                   }
                                 }}
                                 className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 rounded"
@@ -629,14 +685,33 @@ export default function EnhancedDocumentsView() {
                               >
                                 보기
                               </button>
-                              <a
-                                href={doc.file_url}
-                                download
+                              <button
+                                onClick={() => {
+                                  let meta: any = doc.metadata
+                                  if (typeof meta === 'string') {
+                                    try {
+                                      meta = JSON.parse(meta)
+                                    } catch {
+                                      meta = {}
+                                    }
+                                  }
+                                  const sheetId = meta?.photosheet_id as string | undefined
+                                  if (sheetId) {
+                                    window.open(
+                                      `/dashboard/admin/tools/photo-grid/preview/live?auto=print&sheet_id=${encodeURIComponent(sheetId)}`,
+                                      '_blank'
+                                    )
+                                  } else {
+                                    alert(
+                                      '레거시 사진대지 문서는 직접 다운로드를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.'
+                                    )
+                                  }
+                                }}
                                 className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 rounded inline-block ml-2"
-                                title="다운로드"
+                                title="인쇄"
                               >
-                                다운로드
-                              </a>
+                                인쇄
+                              </button>
                               <button
                                 className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 rounded ml-2"
                                 title="삭제"

@@ -171,7 +171,14 @@ export async function getUsers(
 
       // Apply role filter
       if (role) {
-        query = query.eq('role', role)
+        if (role === 'customer_manager') {
+          // Treat 'partner' as alias of 'customer_manager' for listing
+          // Ensure both show together under the same category in UI
+          // @ts-expect-error allow mixing string literals not in UserRole
+          query = query.in('role', ['customer_manager', 'partner'])
+        } else {
+          query = query.eq('role', role)
+        }
       }
 
       // Apply status filter

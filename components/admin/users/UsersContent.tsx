@@ -29,6 +29,8 @@ import type { UserWithSites } from '@/app/actions/admin/users'
 import type { UserRole, UserStatus } from '@/types'
 import { t } from '@/lib/ui/strings'
 import EmptyState from '@/components/ui/empty-state'
+import { getRoleLabel } from '@/lib/auth/role-labels'
+import AdminActionButtons from '@/components/admin/AdminActionButtons'
 
 interface UsersContentProps {
   initialUsers: UserWithSites[]
@@ -44,10 +46,10 @@ type StatusFilterOption = 'all' | UserStatus
 
 const ROLE_OPTIONS: { value: RoleFilterOption; label: string }[] = [
   { value: 'all', label: '전체 역할' },
-  { value: 'admin', label: '관리자' },
-  { value: 'system_admin', label: '시스템 관리자' },
-  { value: 'site_manager', label: '현장 관리자' },
-  { value: 'customer_manager', label: '고객 관리자' },
+  { value: 'admin', label: '본사관리자' },
+  { value: 'system_admin', label: '시스템관리자' },
+  { value: 'site_manager', label: '현장관리자' },
+  { value: 'customer_manager', label: '소속사' },
   { value: 'worker', label: '작업자' },
 ]
 
@@ -68,20 +70,14 @@ const ROLE_BADGE_VARIANT: Record<UserRole, 'default' | 'secondary' | 'outline'> 
 
 const ROLE_FILTER_LABELS: Record<RoleFilterOption, string> = {
   all: '전체',
-  admin: '관리자',
-  system_admin: '시스템 관리자',
-  site_manager: '현장 관리자',
-  customer_manager: '고객 관리자',
+  admin: '본사관리자',
+  system_admin: '시스템관리자',
+  site_manager: '현장관리자',
+  customer_manager: '소속사',
   worker: '작업자',
 }
 
-const ROLE_LABELS: Record<UserRole, string> = {
-  admin: '관리자',
-  system_admin: '시스템 관리자',
-  site_manager: '현장 관리자',
-  customer_manager: '고객 관리자',
-  worker: '작업자',
-}
+// Use shared role label helper for consistency (SSR/CSR)
 
 const STATUS_LABELS: Record<StatusFilterOption, string> = {
   all: '전체',
@@ -321,7 +317,7 @@ export function UsersContent({
                       </TableCell>
                       <TableCell>
                         <Badge variant={ROLE_BADGE_VARIANT[user.role as UserRole] ?? 'outline'}>
-                          {ROLE_LABELS[user.role as UserRole] || user.role}
+                          <span suppressHydrationWarning>{getRoleLabel(user.role)}</span>
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -337,52 +333,17 @@ export function UsersContent({
                       <TableCell>{formatDate(user.work_log_stats?.last_report_date)}</TableCell>
                       <TableCell className="text-right">
                         <div className="inline-flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={event => {
-                              event.stopPropagation()
-                              handleOpenDetail(user.id)
+                          <AdminActionButtons
+                            size="compact"
+                            stopPropagation
+                            detailHref={`/dashboard/admin/users/${user.id}`}
+                            editHref={`/dashboard/admin/users/${user.id}`}
+                            deleteHref={`/api/admin/users/${user.id}`}
+                            onDeleted={() => {
+                              setUsers(prev => prev.filter(u => u.id !== user.id))
+                              setTotal(prev => Math.max(prev - 1, 0))
                             }}
-                          >
-                            상세
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={event => {
-                              event.stopPropagation()
-                              router.push(`/dashboard/admin/users/${user.id}`)
-                            }}
-                          >
-                            수정
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={async event => {
-                              event.stopPropagation()
-                              if (
-                                !confirm(
-                                  `${user.full_name || user.email} 사용자를 삭제하시겠습니까?`
-                                )
-                              )
-                                return
-                              try {
-                                const res = await fetch(`/api/admin/users/${user.id}`, {
-                                  method: 'DELETE',
-                                })
-                                const j = await res.json().catch(() => ({}))
-                                if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
-                                setUsers(prev => prev.filter(u => u.id !== user.id))
-                                setTotal(prev => Math.max(prev - 1, 0))
-                              } catch (e: any) {
-                                alert(e?.message || '삭제 중 오류가 발생했습니다.')
-                              }
-                            }}
-                          >
-                            삭제
-                          </Button>
+                          />
                         </div>
                       </TableCell>
                     </TableRow>

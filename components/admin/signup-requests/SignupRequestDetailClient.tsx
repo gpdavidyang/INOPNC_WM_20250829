@@ -184,6 +184,22 @@ export default function SignupRequestDetailClient({ request }: { request: any })
     }
   }
 
+  const remove = async () => {
+    if (!confirm('해당 가입 요청을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/admin/signup-requests/${request.id}`, { method: 'DELETE' })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
+      alert('삭제되었습니다.')
+      router.push('/dashboard/admin/signup-requests')
+    } catch (e: any) {
+      alert(e?.message || '삭제 중 오류가 발생했습니다.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm space-y-4 max-w-3xl">
       <div className="flex items-center justify-between">
@@ -207,6 +223,11 @@ export default function SignupRequestDetailClient({ request }: { request: any })
           >
             거절
           </Button>
+          {['pending', 'rejected'].includes(String(request?.status || '').toLowerCase()) && (
+            <Button variant="destructive" onClick={remove} disabled={busy}>
+              삭제
+            </Button>
+          )}
         </div>
       </div>
 

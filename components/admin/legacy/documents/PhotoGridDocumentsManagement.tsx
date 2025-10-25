@@ -84,37 +84,50 @@ export default function PhotoGridDocumentsManagement() {
   }
 
   const handlePreview = (doc: PhotoGridDocument) => {
-    // Extract photo_grid_id from the document metadata (same logic as the dashboard tab)
-    const metadata = (doc as unknown).metadata || {}
-    const photoGridId = metadata.photo_grid_id
-    if (photoGridId) {
-      router.push(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`)
+    const raw = (doc as unknown as any).metadata
+    let meta: any = raw
+    if (typeof raw === 'string') {
+      try {
+        meta = JSON.parse(raw)
+      } catch {
+        meta = {}
+      }
     }
+    const sheetId = meta?.photosheet_id as string | undefined
+    if (sheetId) {
+      // Open live preview by sheet id
+      window.open(
+        `/dashboard/admin/tools/photo-grid/preview/live?sheet_id=${encodeURIComponent(sheetId)}`,
+        '_blank'
+      )
+      return
+    }
+    // Legacy photo_grid_id no longer supported
+    alert('레거시 사진대지 문서는 새 미리보기를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.')
   }
 
   const handleDownload = async (doc: PhotoGridDocument) => {
-    try {
-      // Extract photo_grid_id from the document metadata (same logic as the dashboard tab)
-      const metadata = (doc as unknown).metadata || {}
-      const photoGridId = metadata.photo_grid_id
-      if (photoGridId) {
-        const response = await fetch(`/api/photo-grids/${photoGridId}/download`)
-        if (response.ok) {
-          const blob = await response.blob()
-          const url = window.URL.createObjectURL(blob)
-
-          // Open in new window for printing/saving as PDF
-          const printWindow = window.open(url, '_blank')
-
-          // Clean up after a delay
-          setTimeout(() => {
-            window.URL.revokeObjectURL(url)
-          }, 10000)
-        }
+    const raw = (doc as unknown as any).metadata
+    let meta: any = raw
+    if (typeof raw === 'string') {
+      try {
+        meta = JSON.parse(raw)
+      } catch {
+        meta = {}
       }
-    } catch (error) {
-      console.error('Failed to download document:', error)
     }
+    const sheetId = meta?.photosheet_id as string | undefined
+    if (sheetId) {
+      // Open preview with print intent
+      window.open(
+        `/dashboard/admin/tools/photo-grid/preview/live?auto=print&sheet_id=${encodeURIComponent(sheetId)}`,
+        '_blank'
+      )
+      return
+    }
+    alert(
+      '레거시 사진대지 문서는 직접 다운로드를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.'
+    )
   }
 
   const filteredDocuments = documents.filter(

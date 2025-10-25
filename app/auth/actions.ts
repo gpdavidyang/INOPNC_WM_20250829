@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { UI_TRACK_COOKIE_MAX_AGE, UI_TRACK_COOKIE_NAME } from '@/lib/auth/constants'
 import { getAuth, getAuthForClient } from '@/lib/auth/ultra-simple'
+import { normalizeUserRole } from '@/lib/auth/roles'
 import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {
@@ -86,13 +87,14 @@ export async function signIn(email: string, password: string) {
 
           // Set role cookie for UI mode detection
           try {
+            const normalizedRole = normalizeUserRole(profile.role)
             console.log('[SIGN_IN] Setting role and UI track cookies:', {
-              role: profile.role,
+              role: normalizedRole,
               uiTrack: redirectPath,
             })
 
             const cookieStore = cookies()
-            cookieStore.set('user-role', profile.role, {
+            cookieStore.set('user-role', normalizedRole, {
               httpOnly: false, // Allow client-side access for UI detection
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',

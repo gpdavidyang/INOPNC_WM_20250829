@@ -59,7 +59,7 @@ export default function PhotoGridCreator({ onCreated }: PhotoGridCreatorProps) {
     ;(async () => {
       try {
         setLoadingSites(true)
-        const res = await fetch('/api/sites', { cache: 'no-store' })
+        const res = await fetch('/api/sites', { cache: 'no-store', credentials: 'include' })
         const json = await res.json().catch(() => null)
         const list = (json?.data || []) as Array<{ id: string; name: string }>
         if (mounted) setSites(list)
@@ -73,8 +73,14 @@ export default function PhotoGridCreator({ onCreated }: PhotoGridCreatorProps) {
       try {
         setLoadingOptions(true)
         const [compRes, procRes] = await Promise.all([
-          fetch('/api/admin/work-options?option_type=component_type', { cache: 'no-store' }),
-          fetch('/api/admin/work-options?option_type=process_type', { cache: 'no-store' }),
+          fetch('/api/admin/work-options?option_type=component_type', {
+            cache: 'no-store',
+            credentials: 'include',
+          }),
+          fetch('/api/admin/work-options?option_type=process_type', {
+            cache: 'no-store',
+            credentials: 'include',
+          }),
         ])
         const comp = (await compRes.json().catch(() => [])) as WorkOptionSetting[]
         const proc = (await procRes.json().catch(() => [])) as WorkOptionSetting[]
@@ -169,25 +175,62 @@ export default function PhotoGridCreator({ onCreated }: PhotoGridCreatorProps) {
     setError(null)
     setSuccess(null)
     try {
-      const form = new FormData()
-      form.append('site_id', siteId)
       const finalComponentName = isOtherComponent ? componentNameOther.trim() : componentName
       const finalWorkProcess = isOtherProcess ? workProcessOther.trim() : workProcess
-      form.append('component_name', finalComponentName)
-      form.append('work_process', finalWorkProcess)
-      form.append('work_section', workSection)
-      form.append('work_date', workDate)
 
-      beforeFiles.forEach((f, i) => {
-        form.append('before_photos', f.file)
-        form.append('before_photo_orders', String(i))
-      })
-      afterFiles.forEach((f, i) => {
-        form.append('after_photos', f.file)
-        form.append('after_photo_orders', String(i))
+      // Build sheet payload
+      const allFiles: Array<{ file: File; stage: 'before' | 'after' }> = [
+        ...beforeFiles.map(f => ({ file: f.file, stage: 'before' as const })),
+        ...afterFiles.map(f => ({ file: f.file, stage: 'after' as const })),
+      ]
+      const count = allFiles.length
+      const bestFit = (n: number) => {
+        if (n <= 0) return { rows: 1, cols: 1 }
+        let cols = 2
+        let rows = Math.max(1, Math.ceil(n / cols))
+        if (n <= 4) {
+          cols = 2
+          rows = Math.ceil(n / 2)
+        } else if (n <= 6) {
+          cols = 3
+          rows = Math.ceil(n / 3)
+        } else if (n <= 9) {
+          cols = 3
+          rows = 3
+        } else {
+          cols = Math.min(5, Math.ceil(Math.sqrt(n)))
+          rows = Math.ceil(n / cols)
+        }
+        return { rows, cols }
+      }
+      const { rows, cols } = bestFit(count)
+
+      const items = allFiles.map((f, idx) => ({
+        index: idx,
+        member: finalComponentName || null,
+        process: finalWorkProcess || null,
+        content: workSection || null,
+        stage: f.stage,
+        image_url: null,
+      }))
+
+      const form = new FormData()
+      form.append('title', finalComponentName || '사진대지')
+      form.append('site_id', siteId)
+      form.append('orientation', 'portrait')
+      form.append('rows', String(rows))
+      form.append('cols', String(cols))
+      form.append('status', 'final')
+      form.append('items', JSON.stringify(items))
+      allFiles.forEach((f, idx) => {
+        form.append(`file_${idx}`, f.file)
       })
 
-      const res = await fetch('/api/photo-grids', { method: 'POST', body: form })
+      const res = await fetch('/api/photo-sheets', {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+      })
       const json = await res.json().catch(() => null)
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || '사진대지 생성에 실패했습니다.')
