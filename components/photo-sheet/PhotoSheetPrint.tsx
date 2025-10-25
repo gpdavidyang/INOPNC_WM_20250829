@@ -50,8 +50,14 @@ export default function PhotoSheetPrint({
   // Fixed A4 layout: allocate fixed millimeter heights per section and place images with object-fit: contain
   const headerMm = 24
   const footerMm = 8
-  // Further reduce padding for 2x2 to maximize photo cell height
-  const paddingMm = perCellCaption && rows === 2 && cols === 2 ? 6 : 10
+  // Reduce padding for fixed layouts to maximize photo cell height
+  const paddingMm = perCellCaption
+    ? rows === 2 && cols === 2
+      ? 6 // 2x2
+      : (rows === 1 && cols === 2) || (rows === 2 && cols === 1)
+        ? 8 // 2x1
+        : 10
+    : 10
   // Preset-specific table height and grid gap (mm) to keep layout consistent
   const { metaMm, gapMm } = useMemo(() => {
     // Integrated meta table layout (default)
@@ -59,7 +65,8 @@ export default function PhotoSheetPrint({
       if (perCellCaption) {
         // Per-cell caption uses no global meta table
         if ((rows === 1 && cols === 1) || (rows === 1 && cols === 1)) return { metaMm: 0, gapMm: 4 }
-        if ((rows === 1 && cols === 2) || (rows === 2 && cols === 1)) return { metaMm: 0, gapMm: 3 }
+        if ((rows === 1 && cols === 2) || (rows === 2 && cols === 1))
+          return { metaMm: 0, gapMm: 2.5 }
         if ((rows === 1 && cols === 3) || (rows === 3 && cols === 1)) return { metaMm: 0, gapMm: 3 }
         if (rows === 2 && cols === 2) return { metaMm: 0, gapMm: 1.5 }
       }
@@ -84,8 +91,14 @@ export default function PhotoSheetPrint({
     return { metaMm: 44, gapMm: 2.5 }
   }, [rows, cols, templateMode])
   const pageHeightMm = orientation === 'landscape' ? 210 : 297
-  // Reduce inter-section gaps for 2x2 to give more height to grid
-  const pageGapMm = perCellCaption && rows === 2 && cols === 2 ? 1.5 : 4
+  // Reduce inter-section gaps for 2x2/2x1 to give more height to grid
+  const pageGapMm = perCellCaption
+    ? rows === 2 && cols === 2
+      ? 1.5 // 2x2
+      : (rows === 1 && cols === 2) || (rows === 2 && cols === 1)
+        ? 2.5 // 2x1
+        : 4
+    : 4
   const sectionGapCount = 2 // header↔grid, grid↔footer
   const gridHeightMm = Math.max(
     40,
