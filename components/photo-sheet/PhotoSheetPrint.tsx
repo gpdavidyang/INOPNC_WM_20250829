@@ -235,7 +235,7 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .cell { border: 1px solid #000; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
 .print-root .cell-caption {
   width: 100%;
-  border: none;
+  border: 1px solid transparent; /* wrapper border color set to transparent */
   border-top: 0;
   border-collapse: collapse;
   table-layout: fixed;
