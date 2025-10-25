@@ -469,7 +469,8 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       const s = json.data
       setSheetId(s.id)
       setTitle(s.title || '사진대지')
-      setOrientation((s.orientation as Orientation) || 'portrait')
+      // Direct upload tab requirement: orientation fixed to portrait
+      setOrientation('portrait')
       // Update preset via rows/cols; pick matching preset if available, else keep current and set pageCount appropriately
       const match = PHOTO_SHEET_PRESETS.find(p => p.rows === s.rows && p.cols === s.cols)
       if (match) setPresetId(match.id)
@@ -523,18 +524,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label>방향</Label>
-          <Select value={orientation} onValueChange={v => setOrientation(v as Orientation)}>
-            <SelectTrigger aria-label="방향 선택">
-              <SelectValue placeholder="세로/가로" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="portrait">세로</SelectItem>
-              <SelectItem value="landscape">가로</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* 방향 선택 제거: 세로 고정 */}
         <div className="space-y-1">
           <Label>사진수량 (행×열)</Label>
           <Select value={presetId} onValueChange={setPresetId}>
@@ -542,11 +532,13 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
               <SelectValue placeholder="프리셋" />
             </SelectTrigger>
             <SelectContent>
-              {PHOTO_SHEET_PRESETS.map(p => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.label}
-                </SelectItem>
-              ))}
+              {PHOTO_SHEET_PRESETS.filter(p => ['1x1', '2x1', '2x2', '3x2'].includes(p.id)).map(
+                p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                  </SelectItem>
+                )
+              )}
             </SelectContent>
           </Select>
         </div>
