@@ -356,6 +356,17 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
 
   const candidates = reportDetail?._candidates || { before: [], after: [] }
 
+  // Reset reports and selections to empty state while keeping filters
+  const handleReset = () => {
+    setReports([])
+    setSelectedReportId(null)
+    setReportDetail(null)
+    setSelectedBefore([])
+    setSelectedAfter([])
+    setError(null)
+    setLoadingReports(false)
+  }
+
   return (
     <div className="space-y-4">
       {/* Filters */}
@@ -391,6 +402,9 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
             disabled={!siteId || loadingReports}
           >
             불러오기
+          </Button>
+          <Button type="button" variant="outline" onClick={handleReset} disabled={loadingReports}>
+            초기화
           </Button>
         </div>
       </div>

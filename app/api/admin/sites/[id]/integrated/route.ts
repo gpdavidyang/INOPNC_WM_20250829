@@ -20,8 +20,11 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     const [docsRes, reportsRes, assignsRes, reqsRes] = await Promise.all([
       svc
         .from('unified_document_system')
-        .select('id, title, category_type, status, file_url, mime_type, created_at')
+        .select(
+          'id, title, category_type, status, file_url, file_name, mime_type, created_at, metadata, uploaded_by'
+        )
         .eq('site_id', siteId)
+        .eq('category_type', 'invoice')
         .eq('is_archived', false)
         .order('created_at', { ascending: false })
         .limit(10),

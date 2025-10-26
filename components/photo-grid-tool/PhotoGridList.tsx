@@ -275,13 +275,6 @@ export default function PhotoGridList() {
                         미리보기
                       </Button>
                       <Button
-                        variant="outline"
-                        size="compact"
-                        onClick={() => openHtmlPreview(item, true)}
-                      >
-                        인쇄
-                      </Button>
-                      <Button
                         variant="destructive"
                         size="compact"
                         onClick={() => void handleDelete(item.id)}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 type ItemMeta = {
   id: string
@@ -31,14 +31,13 @@ export default function PhotoSheetPrint({
   templateMode = false,
 }: PhotoSheetPrintProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-
-  const gridTemplate = useMemo(
-    () => ({
-      gridTemplateColumns: `repeat(${cols}, 1fr)`,
-      gridTemplateRows: `repeat(${rows}, 1fr)`,
-    }),
-    [rows, cols]
-  )
+  const headerRef = useRef<HTMLDivElement | null>(null)
+  const footerRef = useRef<HTMLDivElement | null>(null)
+  const [primaryGrid, setPrimaryGrid] = useState<HTMLDivElement | null>(null)
+  const [gridMetrics, setGridMetrics] = useState<{ maxHeight: number; rowHeight: number | null }>({
+    maxHeight: 0,
+    rowHeight: null,
+  })
 
   const perPage = rows * cols
   const pages: ItemMeta[][] = useMemo(() => {
@@ -50,7 +49,11 @@ export default function PhotoSheetPrint({
     return result.length > 0 ? result : [[]]
   }, [items, perPage])
 
-  const dynamicPrintStyles = useMemo(() => makePrintStyles(orientation), [orientation])
+  const dynamicPrintStyles = useMemo(
+    () => makePrintStyles({ orientation, rows, cols, title, siteName }),
+    [orientation, rows, cols, title, siteName]
+  )
+  const isThreeByTwo = (rows === 3 && cols === 2) || (rows === 2 && cols === 3)
   // Enable per-photo captions for 2x2 (already), and also 1x1, 2x1, 3x2 grids
   const usePerCellCaption =
     !templateMode &&
@@ -60,6 +63,101 @@ export default function PhotoSheetPrint({
       (rows === 2 && cols === 1) ||
       (rows === 3 && cols === 2) ||
       (rows === 2 && cols === 3))
+  const gridStyle = useMemo<CSSProperties>(() => {
+    const base: CSSProperties = {
+      display: 'grid',
+      gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+      gap: '2mm',
+      alignContent: 'start',
+      justifyItems: 'stretch',
+    }
+
+    if (isThreeByTwo) {
+      return {
+        ...base,
+        gap: '1.2mm',
+      }
+    }
+
+    return base
+  }, [cols, isThreeByTwo])
+
+  const measureLayout = useCallback(() => {
+    const pageEl = containerRef.current
+    const headerEl = headerRef.current
+    const footerEl = footerRef.current
+    const gridEl = primaryGrid
+    if (!pageEl || !headerEl || !footerEl || !gridEl) return
+
+    const pageStyles = getComputedStyle(pageEl)
+    const paddingTop = parseFloat(pageStyles.paddingTop) || 0
+    const paddingBottom = parseFloat(pageStyles.paddingBottom) || 0
+    const headerHeight = headerEl.getBoundingClientRect().height
+    const footerHeight = footerEl.getBoundingClientRect().height
+    const available = pageEl.clientHeight - paddingTop - paddingBottom - headerHeight - footerHeight
+    if (available <= 0) {
+      setGridMetrics({ maxHeight: 0, rowHeight: null })
+      return
+    }
+
+    let rowHeight: number | null = null
+    let usedHeight = available
+    if (isThreeByTwo) {
+      const gridStyles = getComputedStyle(gridEl)
+      const gap = parseFloat(gridStyles.rowGap) || 0
+      const cells = Array.from(gridEl.querySelectorAll<HTMLElement>('.cell'))
+      if (cells.length) {
+        const rowHeights = Array.from({ length: rows }, () => 0)
+        cells.forEach((cell, index) => {
+          const rowIndex = Math.floor(index / cols)
+          const cellHeight = cell.getBoundingClientRect().height
+          rowHeights[rowIndex] = Math.max(rowHeights[rowIndex], cellHeight)
+        })
+        const naturalMax = Math.max(...rowHeights)
+        const target = (available - gap * (rows - 1)) / rows
+        if (target > 0) {
+          rowHeight = Math.min(naturalMax, target)
+        } else {
+          rowHeight = naturalMax
+        }
+        if (rowHeight != null) {
+          usedHeight = Math.min(available, rowHeight * rows + gap * (rows - 1))
+        }
+      }
+    }
+
+    setGridMetrics({
+      maxHeight: usedHeight,
+      rowHeight: rowHeight && rowHeight > 0 ? rowHeight : null,
+    })
+  }, [isThreeByTwo, rows, primaryGrid])
+
+  useLayoutEffect(() => {
+    if (typeof ResizeObserver === 'undefined') {
+      const frame = requestAnimationFrame(measureLayout)
+      return () => cancelAnimationFrame(frame)
+    }
+
+    measureLayout()
+    const observer = new ResizeObserver(() => measureLayout())
+    const targets = [
+      containerRef.current,
+      headerRef.current,
+      footerRef.current,
+      primaryGrid,
+    ].filter((el): el is Element => !!el)
+    targets.forEach(el => observer.observe(el))
+    return () => observer.disconnect()
+  }, [measureLayout, items, rows, cols, orientation, title, siteName, templateMode, primaryGrid])
+
+  const registerGridRef = useCallback(
+    (index: number) => (el: HTMLDivElement | null) => {
+      if (index === 0) {
+        setPrimaryGrid(el)
+      }
+    },
+    []
+  )
 
   return (
     <div className="print-root">
@@ -70,7 +168,7 @@ export default function PhotoSheetPrint({
           ref={pageIndex === 0 ? containerRef : undefined}
           className={`page ${orientation} ${templateMode ? 'template' : ''}`}
         >
-          <div className="header">
+          <div className="header" ref={pageIndex === 0 ? headerRef : undefined}>
             {templateMode ? (
               <div className="title site-only">현장명: {siteName || '\u00A0'}</div>
             ) : (
@@ -87,20 +185,29 @@ export default function PhotoSheetPrint({
           </div>
 
           <div
-            className="grid"
+            className={`grid${isThreeByTwo ? ' grid-3x2' : ''}`}
+            ref={registerGridRef(pageIndex)}
             style={{
-              ...gridTemplate,
-              // For 3x2 (or 2x3) per-photo captions, reserve fixed caption height per cell
-              ['--cap-h' as any]:
-                usePerCellCaption && ((rows === 3 && cols === 2) || (rows === 2 && cols === 3))
-                  ? '36mm'
-                  : undefined,
+              ...gridStyle,
+              ...(gridMetrics.maxHeight > 0 ? { maxHeight: `${gridMetrics.maxHeight}px` } : {}),
+              ...(isThreeByTwo && gridMetrics.rowHeight
+                ? {
+                    height: `${gridMetrics.maxHeight}px`,
+                    gridTemplateRows: `repeat(${rows}, ${gridMetrics.rowHeight}px)`,
+                  }
+                : {}),
             }}
           >
             {Array.from({ length: perPage }).map((_, i) => {
               const it = pageItems[i]
+              const cellClasses = ['cell']
+              if (usePerCellCaption) {
+                if (isThreeByTwo) cellClasses.push('cap3x2')
+                else cellClasses.push('percap')
+              }
+
               return (
-                <div key={i} className={`cell${usePerCellCaption ? ' percap' : ''}`}>
+                <div key={i} className={cellClasses.join(' ')}>
                   <div className="cell-image">
                     {it?.previewUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -114,36 +221,53 @@ export default function PhotoSheetPrint({
                     )}
                   </div>
                   {usePerCellCaption ? (
-                    <table className="cell-caption">
-                      <tbody>
-                        <tr>
-                          <td className="cap-cell">
-                            <div className="cap-label">보수 전/후</div>
-                            <div className="cap-value">
+                    isThreeByTwo ? (
+                      <div className="cell-caption cap3x2">
+                        <div className="cap-grid">
+                          <div className="cap-row">
+                            <span className="cap-label">보수 전/후</span>
+                            <span className="cap-value">
                               {it?.stage === 'before'
                                 ? '보수 전'
                                 : it?.stage === 'after'
                                   ? '보수 후'
                                   : ''}
-                            </div>
-                          </td>
-                          <td className="cap-cell">
-                            <div className="cap-label">부재명</div>
-                            <div className="cap-value">{it?.member || ''}</div>
-                          </td>
-                          <td className="cap-cell">
-                            <div className="cap-label">공정</div>
-                            <div className="cap-value">{it?.process || ''}</div>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="cap-content" colSpan={3}>
-                            <div className="cap-label">내용</div>
-                            <div className="cap-value cap-ellipsis">{it?.content || ''}</div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                            </span>
+                            <span className="cap-label">부재명</span>
+                            <span className="cap-value">{it?.member || ''}</span>
+                            <span className="cap-label">공정</span>
+                            <span className="cap-value">{it?.process || ''}</span>
+                          </div>
+                          <div className="cap-row">
+                            <span className="cap-label">내용</span>
+                            <span className="cap-value cap-ellipsis">{it?.content || ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="cell-caption cap-percap">
+                        <div className="cap-grid">
+                          <div className="cap-row">
+                            <span className="cap-label">보수 전/후</span>
+                            <span className="cap-value">
+                              {it?.stage === 'before'
+                                ? '보수 전'
+                                : it?.stage === 'after'
+                                  ? '보수 후'
+                                  : ''}
+                            </span>
+                            <span className="cap-label">부재명</span>
+                            <span className="cap-value">{it?.member || ''}</span>
+                            <span className="cap-label">공정</span>
+                            <span className="cap-value">{it?.process || ''}</span>
+                          </div>
+                          <div className="cap-row">
+                            <span className="cap-label">내용</span>
+                            <span className="cap-value cap-ellipsis">{it?.content || ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
                   ) : null}
                 </div>
               )
@@ -151,7 +275,13 @@ export default function PhotoSheetPrint({
           </div>
 
           {!usePerCellCaption && templateMode ? (
-            <div className="info-grid" style={gridTemplate}>
+            <div
+              className="info-grid"
+              style={{
+                gridTemplateColumns: `repeat(${cols}, 1fr)`,
+                gridTemplateRows: `repeat(${rows}, 1fr)`,
+              }}
+            >
               {Array.from({ length: perPage }).map((_, i) => {
                 const it = pageItems[i]
                 return (
@@ -215,10 +345,10 @@ export default function PhotoSheetPrint({
               </tbody>
             </table>
           ) : null}
-          <div className="footer">
+          <div className="footer" ref={pageIndex === 0 ? footerRef : undefined}>
             <div className="footer-divider" />
             <div className="footer-row">
-              <div className="foot-left">{siteName || ''}</div>
+              <div className="foot-left">{siteName && siteName !== '-' ? siteName : ''}</div>
               <div className="foot-right">
                 페이지 {pageIndex + 1} / {pages.length}
               </div>
@@ -230,55 +360,131 @@ export default function PhotoSheetPrint({
   )
 }
 
-function makePrintStyles(orientation: 'portrait' | 'landscape') {
+type PrintStyleParams = {
+  orientation: 'portrait' | 'landscape'
+  rows: number
+  cols: number
+  title?: string
+  siteName?: string
+}
+
+function makePrintStyles({ orientation }: PrintStyleParams) {
   const pageSize = orientation === 'landscape' ? 'A4 landscape' : 'A4 portrait'
   return `
+.print-root {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 28px;
+  padding: 32px 0 72px;
+  overflow: visible;
+}
 @page { size: ${pageSize}; margin: 12mm; }
 @media print {
   html, body { margin: 0 !important; padding: 0 !important; }
   body * { visibility: hidden; }
   .print-root, .print-root * { visibility: visible; }
-  .print-root { position: static; }
+  .print-root {
+    position: static;
+    display: block;
+    padding: 0;
+    overflow: visible;
+  }
+  .print-root .page { box-shadow: none; }
 }
-.print-root .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 10mm; display: flex; flex-direction: column; gap: 6mm; break-after: page; overflow: hidden; margin: 0 auto; }
+.print-root .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 3.5mm 7mm 10mm; display: flex; flex-direction: column; gap: 2mm; break-after: page; overflow: visible; margin: 0 auto; box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08); }
 .print-root .page.landscape { width: 297mm; height: 210mm; }
-.print-root .header .title { font-weight: 700; font-size: 16pt; text-align: center; margin-bottom: 2mm; }
-.print-root .header-divider { border-top: 2px solid #000; margin: 2mm 0 3mm; }
-.print-root .header-sub-divider { border-top: 2px solid #000; margin: 3mm 0 3mm; }
-.print-root .header .title.site-only { text-align: left; font-size: 15pt; margin-bottom: 8mm; }
-.print-root .site-row { display: grid; grid-template-columns: 35mm 1fr; align-items: center; gap: 3mm; }
-.print-root .site-row .label { border: none; padding: 2mm 3mm; font-weight: 600; text-align: center; }
-.print-root .site-row .value { border: none; padding: 2mm 3mm; min-height: 10mm; }
+.print-root .header .title { font-weight: 700; font-size: 14pt; text-align: center; margin-bottom: 0.1mm; }
+.print-root .header-divider { border-top: 1.5px solid #000; margin: 0.2mm 0 0.5mm; }
+.print-root .header-sub-divider { border-top: 1.5px solid #000; margin: 0.5mm 0 0.5mm; }
+.print-root .header .title.site-only { text-align: left; font-size: 13pt; margin-bottom: 2mm; }
+.print-root .site-row { display: grid; grid-template-columns: 24mm 1fr; align-items: center; gap: 0.6mm; }
+.print-root .site-row .label { border: none; padding: 0.4mm 1mm; font-weight: 600; text-align: center; }
+.print-root .site-row .value { border: none; padding: 0.4mm 1mm; min-height: 4mm; }
 .print-root .site-value-strong { font-weight: 800; }
-.print-root .grid { flex: 1 1 0; min-height: 0; display: grid; gap: 3mm; }
+.print-root .grid { flex: 0 0 auto; min-height: 0; align-content: start; justify-items: stretch; }
 .print-root .page.template .grid { gap: 0; }
 .print-root .cell { border: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
+.print-root .cell.percap,
+.print-root .cell.cap3x2 {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6mm;
+  overflow: visible;
+  min-height: 0;
+  height: 100%;
+}
+.print-root .cell.percap .cell-image,
+.print-root .cell.cap3x2 .cell-image {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 12mm;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.5px solid #d4d4d4;
+  border-radius: 2mm;
+  background: transparent;
+  overflow: hidden;
+}
+.print-root .cell.percap .cell-image { min-height: 20mm; }
+.print-root .cell.cap3x2 .cell-image { min-height: 10mm; }
+.print-root .cell.percap .cell-caption,
+.print-root .cell.cap3x2 .cell-caption { flex: 0 0 auto; margin-top: 0; }
+.print-root .cell.percap .cap-grid,
+.print-root .cell.cap3x2 .cap-grid {
+  width: 100%;
+  display: grid;
+  row-gap: 0.4mm;
+}
+.print-root .cell.percap .cap-row,
+.print-root .cell.cap3x2 .cap-row {
+  display: grid;
+  column-gap: 0.8mm;
+  align-items: start;
+}
+.print-root .cell.percap .cap-row:first-child,
+.print-root .cell.cap3x2 .cap-row:first-child {
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+}
+.print-root .cell.percap .cap-row:last-child,
+.print-root .cell.cap3x2 .cap-row:last-child {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.print-root .cell.percap .cap-label,
+.print-root .cell.cap3x2 .cap-label {
+  font-size: 7pt;
+  font-weight: 600;
+  color: #333;
+  background: #f5f5f5;
+  padding: 0.25mm 0.45mm;
+  border-radius: 0.8mm;
+  white-space: nowrap;
+}
+.print-root .cell.percap .cap-value,
+.print-root .cell.cap3x2 .cap-value {
+  font-size: 9pt;
+  font-weight: 500;
+  padding: 0.25mm 0.2mm;
+  min-width: 0;
+}
+.print-root .cell.percap .cap-value.cap-ellipsis,
+.print-root .cell.cap3x2 .cap-value.cap-ellipsis {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+  word-break: break-word;
+}
 /* use single rule below with fallback; 3x2 sets --cap-h inline */
 .print-root .cell.percap .img { object-fit: contain; }
-.print-root .cell-caption {
-  width: 100%;
-  border: 0;
-  border-top: 0;
-  border-collapse: collapse;
-  table-layout: fixed;
-  margin-top: 1.5mm;
-}
-.print-root .cell.percap .cell-image { height: calc(100% - (var(--cap-h, 16mm) + 1.5mm)); }
-.print-root .cell.percap .cell-caption { height: var(--cap-h, 16mm); }
-.print-root .cell-caption .cap-cell { border: 0; padding: 1mm 1.6mm; vertical-align: top; }
-.print-root .cell-caption .cap-content { border: 0; padding: 1mm 1.6mm; }
-.print-root .cell-caption .cap-label {
-  font-size: 8pt;
-  color: #333;
-  background: #f3f3f3;
-  border-bottom: 0;
-  display: block;
-  padding: 0;
-  margin: 0 0 0.6mm 0;
-}
-.print-root .cell-caption .cap-value { font-size: 10pt; line-height: 1.2; font-weight: 500; }
-.print-root .cell-caption .cap-ellipsis { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; word-break: break-word; }
+
 .print-root .img { width: 100%; height: 100%; object-fit: cover; }
+.print-root .cell.cap3x2 .img { object-fit: contain; }
 .print-root .page.template .img { object-fit: contain; }
 .print-root .placeholder { color: #888; font-size: 12px; }
 .print-root .meta-table { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
@@ -287,15 +493,16 @@ function makePrintStyles(orientation: 'portrait' | 'landscape') {
 .print-root .meta-table td.stage { text-align: center; }
 
 /* Footer with divider and two columns */
-.print-root .footer-divider { border-top: 2px solid #000; margin-top: 3mm; }
-.print-root .footer-row { display: flex; align-items: center; justify-content: space-between; padding-top: 2mm; font-size: 8pt; }
+.print-root .footer-divider { border-top: 2px solid #000; margin-top: 1.5mm; }
+.print-root .footer { margin-top: auto; padding-top: 1mm; }
+.print-root .footer-row { display: flex; align-items: center; justify-content: space-between; padding-top: 0.5mm; font-size: 8.5pt; }
 .print-root .foot-left { text-align: left; font-weight: 400; }
 .print-root .foot-right { text-align: right; font-weight: 400; }
 tr, td, th { break-inside: avoid; }
 * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
 /* Template-mode per-cell info tables */
-.print-root .info-grid { display: grid; gap: 0; margin-top: 2mm; }
+.print-root .info-grid { display: grid; gap: 0; margin-top: 1mm; }
 .print-root .info-table { width: 100%; border-collapse: collapse; table-layout: fixed; border: 1px solid #000; font-size: 10pt; }
 .print-root .info-table th, .print-root .info-table td { border: 1px solid #000; padding: 1.2mm 1.6mm; text-align: left; }
 .print-root .info-table th { width: 20mm; text-align: center; font-weight: 700; background: #f5f5f5; }

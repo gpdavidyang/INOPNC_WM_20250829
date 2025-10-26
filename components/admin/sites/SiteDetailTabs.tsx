@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/brand-tabs'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
+import PhotoSheetActions from '@/components/admin/documents/PhotoSheetActions'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
@@ -20,11 +21,11 @@ import { useRouter, useSearchParams } from 'next/navigation'
 
 // 한글 표시용 매핑 테이블
 const CATEGORY_LABELS: Record<string, string> = {
-  shared: '공유',
+  shared: '공유자료',
   markup: '도면마킹',
   required: '필수서류',
   required_user_docs: '필수서류(개인)',
-  invoice: '기성청구 관리',
+  invoice: '기성청구',
   photo_grid: '사진대지',
   personal: '개인문서',
   certificate: '증명서류',
@@ -32,6 +33,27 @@ const CATEGORY_LABELS: Record<string, string> = {
   drawing: '도면',
   report: '보고서',
   other: '기타',
+  general: '일반',
+}
+
+const INVOICE_PHASE_OPTIONS = [
+  { key: 'all', label: '전체' },
+  { key: 'pre_contract', label: '계약 전' },
+  { key: 'in_progress', label: '진행 중' },
+  { key: 'completion', label: '준공' },
+  { key: 'closed', label: '종결' },
+] as const
+
+const SHARED_CATEGORY_LABELS: Record<string, string> = {
+  general: '일반',
+  notice: '공지',
+  safety: '안전',
+  inspection: '점검',
+  checklist: '체크리스트',
+  form: '양식',
+  reference: '자료',
+  drawing: '도면',
+  blueprint: '도면',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -83,10 +105,16 @@ export default function SiteDetailTabs({
   }
   const searchParams = useSearchParams()
   const router = useRouter()
-  const [tab, setTab] = useState<string>(searchParams.get('tab') || 'overview')
+  const normalizeTab = (value: string | null) => {
+    if (!value) return 'overview'
+    if (value === 'documents') return 'invoices'
+    if (value === 'drawings') return 'shared'
+    return value
+  }
+  const [tab, setTab] = useState<string>(normalizeTab(searchParams.get('tab')))
 
   useEffect(() => {
-    const t = searchParams.get('tab') || 'overview'
+    const t = normalizeTab(searchParams.get('tab'))
     setTab(t)
   }, [searchParams])
 
@@ -109,7 +137,8 @@ export default function SiteDetailTabs({
   const [photoSheetsLoading, setPhotoSheetsLoading] = useState(false)
   const [stats, setStats] = useState<{ reports: number; labor: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
-  const [recentDocs, setRecentDocs] = useState<any[]>(initialDocs || [])
+  const [invoiceDocs, setInvoiceDocs] = useState<any[]>(initialDocs || [])
+  const [sharedDocs, setSharedDocs] = useState<any[]>([])
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
   const [reportsQuery, setReportsQuery] = useState('')
@@ -124,8 +153,12 @@ export default function SiteDetailTabs({
   const [recentRequests, setRecentRequests] = useState<any[]>(initialRequests || [])
   const [laborByUser, setLaborByUser] = useState<Record<string, number>>({})
   const [globalLaborByUser, setGlobalLaborByUser] = useState<Record<string, number>>({})
-  const [docFilter, setDocFilter] = useState<'all' | 'ptw' | 'blueprint' | 'shared'>('all')
-  const [docsLoading, setDocsLoading] = useState(false)
+  const [invoicePhaseFilter, setInvoicePhaseFilter] = useState<
+    'all' | 'pre_contract' | 'in_progress' | 'completion' | 'closed' | 'other'
+  >('all')
+  const [invoiceDocsLoading, setInvoiceDocsLoading] = useState(false)
+  const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
+  const [sharedView, setSharedView] = useState<'drawings' | 'documents'>('drawings')
   const [reportsLoading, setReportsLoading] = useState(false)
   const [assignmentsLoading, setAssignmentsLoading] = useState(false)
   const [requestsLoading, setRequestsLoading] = useState(false)
@@ -483,28 +516,51 @@ export default function SiteDetailTabs({
   useEffect(() => {
     const supabase = createSupabaseClient()
 
-    // Recent docs: use server API that aggregates unified + legacy + site_documents
+    // Recent invoices: use admin API to load invoice documents for this site
     ;(async () => {
       try {
-        setDocsLoading(true)
-        const res = await fetch(`/api/partner/sites/${siteId}/documents?type=all`, {
+        setInvoiceDocsLoading(true)
+        const res = await fetch(`/api/admin/sites/${siteId}/documents?category=invoice&limit=20`, {
           cache: 'no-store',
           credentials: 'include',
         })
         const json = await res.json().catch(() => ({}))
-        if (res.ok && Array.isArray(json?.data?.documents)) {
-          // Normalize: take latest 10
-          const sorted = [...json.data.documents].sort((a: any, b: any) => {
-            const ad = new Date(a.uploadDate || a.created_at || a.createdAt || 0).getTime()
-            const bd = new Date(b.uploadDate || b.created_at || b.createdAt || 0).getTime()
+        if (res.ok && json?.success && Array.isArray(json.data)) {
+          const sorted = [...json.data].sort((a: any, b: any) => {
+            const ad = new Date(a.created_at || 0).getTime()
+            const bd = new Date(b.created_at || 0).getTime()
             return bd - ad
           })
-          setRecentDocs(sorted.slice(0, 10))
+          setInvoiceDocs(sorted.slice(0, 10))
         }
       } catch {
         void 0
       } finally {
-        setDocsLoading(false)
+        setInvoiceDocsLoading(false)
+      }
+    })()
+
+    // Shared documents: admin API (category=shared)
+    ;(async () => {
+      try {
+        setSharedDocsLoading(true)
+        const res = await fetch(`/api/admin/sites/${siteId}/documents?category=shared&limit=20`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.success && Array.isArray(json.data)) {
+          const sorted = [...json.data].sort((a: any, b: any) => {
+            const ad = new Date(a.created_at || 0).getTime()
+            const bd = new Date(b.created_at || 0).getTime()
+            return bd - ad
+          })
+          setSharedDocs(sorted.slice(0, 10))
+        }
+      } catch {
+        void 0
+      } finally {
+        setSharedDocsLoading(false)
       }
     })()
 
@@ -688,8 +744,8 @@ export default function SiteDetailTabs({
         <TabsList className="sticky top-0 z-10" fill>
           <TabsTrigger value="overview">개요</TabsTrigger>
           <TabsTrigger value="reports">작업일지</TabsTrigger>
-          <TabsTrigger value="documents">문서</TabsTrigger>
-          <TabsTrigger value="drawings">도면</TabsTrigger>
+          <TabsTrigger value="invoices">기성청구</TabsTrigger>
+          <TabsTrigger value="shared">공유자료</TabsTrigger>
           <TabsTrigger value="photos">사진</TabsTrigger>
           <TabsTrigger value="assignments">배정</TabsTrigger>
           <TabsTrigger value="materials">자재</TabsTrigger>
@@ -944,25 +1000,23 @@ export default function SiteDetailTabs({
             </div>
           </section>
 
-          {/* 최근 문서 */}
+          {/* 최근 기성 문서 */}
           <section>
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">최근 문서</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground">최근 기성 문서</h3>
               <Button asChild variant="ghost" size="sm">
                 <a href={`/dashboard/admin/sites/${siteId}/documents`}>더 보기</a>
               </Button>
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              {docsLoading && recentDocs.length === 0 ? (
+              {invoiceDocsLoading && invoiceDocs.length === 0 ? (
                 <TableSkeleton rows={5} />
               ) : (
                 <DataTable<any>
-                  data={recentDocs}
-                  rowKey={(d: any, idx?: number) =>
-                    d.id || d.document_id || d.file_id || d.url || idx || 'doc'
-                  }
+                  data={invoiceDocs.slice(0, 5)}
+                  rowKey={(d: any, idx?: number) => d.id || d.document_id || idx || 'invoice'}
                   stickyHeader
-                  emptyMessage="표시할 문서가 없습니다."
+                  emptyMessage="기성청구 문서가 없습니다."
                   columns={
                     [
                       {
@@ -982,39 +1036,49 @@ export default function SiteDetailTabs({
                       },
                       {
                         key: 'title',
-                        header: '제목',
+                        header: '문서명',
                         sortable: true,
                         accessor: (d: any) => d?.title || '',
                         render: (d: any) => (
-                          <a
-                            href={buildDocPreviewHref(d)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline text-blue-600 font-medium text-foreground"
-                          >
-                            {d?.title || '-'}
-                          </a>
+                          <div className="space-y-1">
+                            <a
+                              href={buildDocPreviewHref(d)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline text-blue-600 font-medium text-foreground"
+                            >
+                              {d?.title || '-'}
+                            </a>
+                            <div className="text-xs text-muted-foreground">
+                              {formatInvoicePeriod(d) || '기간 미지정'}
+                            </div>
+                          </div>
                         ),
+                        width: '34%',
                       },
                       {
-                        key: 'category',
-                        header: '유형',
+                        key: 'partner',
+                        header: '협력사',
                         sortable: true,
-                        accessor: (d: any) => d?.category_type || d?.categoryType || '',
-                        render: (d: any) =>
-                          d?.category_type || d?.categoryType
-                            ? CATEGORY_LABELS[String(d.category_type || d.categoryType)] ||
-                              String(d.category_type || d.categoryType)
-                            : '-',
+                        accessor: (d: any) => getInvoicePartner(d),
+                        render: (d: any) => getInvoicePartner(d) || '-',
                         width: '18%',
                       },
                       {
-                        key: 'status',
-                        header: '상태',
+                        key: 'phase',
+                        header: '기성 단계',
                         sortable: true,
-                        accessor: (d: any) => d?.status || '',
-                        render: (d: any) =>
-                          d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
+                        accessor: (d: any) => getInvoicePhaseLabel(d),
+                        render: (d: any) => getInvoicePhaseLabel(d),
+                        width: '16%',
+                      },
+                      {
+                        key: 'amount',
+                        header: '요청 금액',
+                        sortable: true,
+                        accessor: (d: any) => Number(getInvoiceAmountValue(d) ?? 0),
+                        render: (d: any) => formatInvoiceAmount(d),
+                        align: 'right',
                         width: '14%',
                       },
                     ] as Column<any>[]
@@ -1512,120 +1576,132 @@ export default function SiteDetailTabs({
           </div>
         </TabsContent>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="mt-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">필터:</span>
-              {(
-                [
-                  { key: 'all', label: '전체' },
-                  { key: 'ptw', label: 'PTW' },
-                  { key: 'blueprint', label: '공도면' },
-                  { key: 'shared', label: '공유' },
-                ] as const
-              ).map(opt => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() => setDocFilter(opt.key)}
-                  className={`px-2 py-1 text-xs rounded border ${docFilter === opt.key ? 'bg-gray-100 border-gray-400' : 'border-gray-300 hover:bg-gray-50'}`}
-                >
-                  {opt.label}
-                </button>
-              ))}
+        {/* Invoices Tab */}
+        <TabsContent value="invoices" className="mt-4 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground">현장 기성청구 문서</h3>
+              <p className="text-xs text-muted-foreground">
+                협력사와 공유되는 기성 요청·정산 문서를 확인합니다.
+              </p>
             </div>
-            <Button asChild variant="secondary" size="sm">
-              <a href={`/dashboard/admin/sites/${siteId}/documents`}>전체 보기</a>
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <a href="/dashboard/admin/documents/invoice">기성청구 관리로 이동</a>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <a href={`/dashboard/admin/sites/${siteId}/documents`}>현장 기성 문서 전체 보기</a>
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">기성 단계</span>
+            {INVOICE_PHASE_OPTIONS.map(opt => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setInvoicePhaseFilter(opt.key)}
+                className={`px-2 py-1 text-xs rounded border ${
+                  invoicePhaseFilter === opt.key
+                    ? 'bg-gray-100 border-gray-400'
+                    : 'border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <DataTable<any>
-              data={(recentDocs || []).filter((d: any) => {
-                if (docFilter === 'all') return true
-                const category = String(
-                  d?.category_type ?? d?.categoryType ?? d?.metadata?.category_type ?? ''
-                )
-                const docType = String(
-                  d?.document_type ?? d?.documentType ?? d?.metadata?.document_type ?? ''
-                )
-                const sub = String(d?.sub_category ?? d?.subType ?? d?.metadata?.sub_type ?? '')
-
-                if (docFilter === 'ptw') {
-                  return docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw'
+            {invoiceDocsLoading && invoiceDocs.length === 0 ? (
+              <TableSkeleton rows={5} />
+            ) : (
+              <DataTable<any>
+                data={(invoiceDocs || []).filter(d => {
+                  if (invoicePhaseFilter === 'all') return true
+                  return getInvoicePhaseKey(d) === invoicePhaseFilter
+                })}
+                rowKey={(d: any, idx?: number) =>
+                  d.id || d.document_id || d.file_id || d.url || idx || 'invoice-doc'
                 }
-                if (docFilter === 'blueprint') {
-                  // unified: category_type === 'blueprint'
-                  // partner transform: categoryType === 'drawing' && subType === 'blueprint'
-                  return (
-                    category === 'blueprint' ||
-                    (category === 'drawing' && sub === 'blueprint') ||
-                    docType === 'blueprint'
-                  )
+                stickyHeader
+                emptyMessage="기성청구 문서가 없습니다."
+                columns={
+                  [
+                    {
+                      key: 'created_at',
+                      header: '등록일',
+                      sortable: true,
+                      accessor: (d: any) => d?.created_at || d?.uploadDate || d?.createdAt || '',
+                      render: (d: any) => {
+                        const raw = d?.created_at || d?.uploadDate || d?.createdAt
+                        try {
+                          return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
+                        } catch {
+                          return '-'
+                        }
+                      },
+                      width: '14%',
+                    },
+                    {
+                      key: 'title',
+                      header: '문서명 / 기간',
+                      sortable: true,
+                      accessor: (d: any) => d?.title || '',
+                      render: (d: any) => (
+                        <div className="space-y-1">
+                          <a
+                            href={buildDocPreviewHref(d)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline text-blue-600 font-medium text-foreground"
+                          >
+                            {d?.title || '-'}
+                          </a>
+                          <div className="text-xs text-muted-foreground">
+                            {formatInvoicePeriod(d) || '기간 미지정'}
+                          </div>
+                        </div>
+                      ),
+                      width: '28%',
+                    },
+                    {
+                      key: 'partner',
+                      header: '협력사',
+                      sortable: true,
+                      accessor: (d: any) => getInvoicePartner(d),
+                      render: (d: any) => getInvoicePartner(d) || '-',
+                      width: '16%',
+                    },
+                    {
+                      key: 'phase',
+                      header: '기성 단계',
+                      sortable: true,
+                      accessor: (d: any) => getInvoicePhaseKey(d),
+                      render: (d: any) => getInvoicePhaseLabel(d),
+                      width: '12%',
+                    },
+                    {
+                      key: 'amount',
+                      header: '요청 금액',
+                      sortable: true,
+                      accessor: (d: any) => Number(getInvoiceAmountValue(d) ?? 0),
+                      render: (d: any) => formatInvoiceAmount(d),
+                      align: 'right',
+                      width: '14%',
+                    },
+                    {
+                      key: 'status',
+                      header: '상태',
+                      sortable: true,
+                      accessor: (d: any) => d?.status || '',
+                      render: (d: any) =>
+                        d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
+                      width: '12%',
+                    },
+                  ] as Column<any>[]
                 }
-                if (docFilter === 'shared') return category === 'shared'
-                return true
-              })}
-              rowKey={(d: any, idx?: number) =>
-                d.id || d.document_id || d.file_id || d.url || idx || 'doc'
-              }
-              stickyHeader
-              emptyMessage="표시할 문서가 없습니다."
-              columns={
-                [
-                  {
-                    key: 'created_at',
-                    header: '등록일',
-                    sortable: true,
-                    accessor: (d: any) => d?.created_at || d?.uploadDate || d?.createdAt || '',
-                    render: (d: any) => {
-                      const raw = d?.created_at || d?.uploadDate || d?.createdAt
-                      try {
-                        return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
-                      } catch {
-                        return '-'
-                      }
-                    },
-                    width: '18%',
-                  },
-                  {
-                    key: 'title',
-                    header: '문서명',
-                    sortable: true,
-                    accessor: (d: any) => d?.title || '',
-                    render: (d: any) => (
-                      <a
-                        href={buildDocPreviewHref(d)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline text-blue-600 font-medium text-foreground"
-                      >
-                        {d?.title || '-'}
-                      </a>
-                    ),
-                  },
-                  {
-                    key: 'category',
-                    header: '유형',
-                    sortable: true,
-                    accessor: (d: any) =>
-                      d?.category_type ?? d?.categoryType ?? d?.metadata?.category_type ?? '',
-                    render: (d: any) => {
-                      const cat = d?.category_type ?? d?.categoryType ?? d?.metadata?.category_type
-                      return cat ? CATEGORY_LABELS[String(cat)] || String(cat) : '-'
-                    },
-                  },
-                  {
-                    key: 'status',
-                    header: '상태',
-                    sortable: true,
-                    accessor: (d: any) => d?.status || '',
-                    render: (d: any) =>
-                      d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
-                  },
-                ] as Column<any>[]
-              }
-            />
+              />
+            )}
           </div>
         </TabsContent>
 
@@ -2549,61 +2625,180 @@ export default function SiteDetailTabs({
           </div>
         </TabsContent>
 
-        {/* Drawings Tab */}
-        <TabsContent value="drawings" className="mt-4">
-          {drawingsLoading ? (
-            <div className="text-sm text-muted-foreground">불러오는 중...</div>
-          ) : drawings.length === 0 ? (
-            <div className="text-sm text-muted-foreground">도면이 없습니다.</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {drawings.map((d: any, idx: number) => (
-                <div
-                  key={`${d?.id ?? d?.url ?? d?.title ?? 'drawing'}-${idx}`}
-                  className="rounded border p-3"
-                >
-                  <div className="font-medium text-foreground truncate">{d.title || '도면'}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {(d.category === 'plan' && '공도면') ||
-                      (d.category === 'progress' && '진행도면') ||
-                      '기타'}
-                    {d.created_at ? ` · ${new Date(d.created_at).toLocaleDateString('ko-KR')}` : ''}
-                  </div>
-                  <div className="mt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={async () => {
-                        let finalUrl = d.url
-                        try {
-                          const s = await fetch(
-                            `/api/files/signed-url?url=${encodeURIComponent(d.url)}`
-                          )
-                          const sj = await s.json()
-                          finalUrl = sj?.url || d.url
-                        } catch {
-                          void 0
-                        }
-                        try {
-                          const chk = await fetch(
-                            `/api/files/check?url=${encodeURIComponent(finalUrl)}`
-                          )
-                          const cj = await chk.json().catch(() => ({}))
-                          if (!cj?.exists) {
-                            alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
-                            return
+        {/* Shared Materials Tab */}
+        <TabsContent value="shared" className="mt-4 space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground">현장 공유자료</h3>
+              <p className="text-xs text-muted-foreground">
+                현장 작업자 및 관리자가 열람하는 공도면과 공지·점검 자료입니다.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button asChild variant="outline" size="sm">
+                <a href="/dashboard/admin/documents/shared">공유문서 관리로 이동</a>
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSharedView('drawings')}
+              className={`px-3 py-1 text-xs rounded border ${
+                sharedView === 'drawings'
+                  ? 'bg-gray-100 border-gray-400'
+                  : 'border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              도면
+            </button>
+            <button
+              type="button"
+              onClick={() => setSharedView('documents')}
+              className={`px-3 py-1 text-xs rounded border ${
+                sharedView === 'documents'
+                  ? 'bg-gray-100 border-gray-400'
+                  : 'border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              공유문서
+            </button>
+          </div>
+          {sharedView === 'drawings' ? (
+            drawingsLoading ? (
+              <div className="text-sm text-muted-foreground">도면을 불러오는 중입니다...</div>
+            ) : drawings.length === 0 ? (
+              <div className="text-sm text-muted-foreground">등록된 도면이 없습니다.</div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                {drawings.map((d: any, idx: number) => (
+                  <div
+                    key={`${d?.id ?? d?.url ?? d?.title ?? 'drawing'}-${idx}`}
+                    className="rounded border p-3"
+                  >
+                    <div className="font-medium text-foreground truncate">{d.title || '도면'}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {(d.category === 'plan' && '공도면') ||
+                        (d.category === 'progress' && '작업도면') ||
+                        '기타'}
+                      {d.created_at
+                        ? ` · ${new Date(d.created_at).toLocaleDateString('ko-KR')}`
+                        : ''}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          let finalUrl = d.url
+                          try {
+                            const s = await fetch(
+                              `/api/files/signed-url?url=${encodeURIComponent(d.url)}`
+                            )
+                            const sj = await s.json()
+                            finalUrl = sj?.url || d.url
+                          } catch {
+                            void 0
                           }
-                        } catch {
-                          void 0
-                        }
-                        window.open(finalUrl, '_blank')
-                      }}
-                    >
-                      보기
-                    </Button>
+                          try {
+                            const chk = await fetch(
+                              `/api/files/check?url=${encodeURIComponent(finalUrl)}`
+                            )
+                            const cj = await chk.json().catch(() => ({}))
+                            if (!cj?.exists) {
+                              alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
+                              return
+                            }
+                          } catch {
+                            void 0
+                          }
+                          window.open(finalUrl, '_blank')
+                        }}
+                      >
+                        보기
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+              {sharedDocsLoading && sharedDocs.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <DataTable<any>
+                  data={sharedDocs}
+                  rowKey={(d: any, idx?: number) =>
+                    d.id || d.document_id || d.file_id || idx || 'shared-doc'
+                  }
+                  stickyHeader
+                  emptyMessage="공유문서가 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'created_at',
+                        header: '등록일',
+                        sortable: true,
+                        accessor: (d: any) => d?.created_at || '',
+                        render: (d: any) =>
+                          d?.created_at ? new Date(d.created_at).toLocaleDateString('ko-KR') : '-',
+                        width: '16%',
+                      },
+                      {
+                        key: 'title',
+                        header: '문서명',
+                        sortable: true,
+                        accessor: (d: any) => d?.title || d?.file_name || '',
+                        render: (d: any) => (
+                          <a
+                            href={buildDocPreviewHref(d)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline text-blue-600 font-medium text-foreground"
+                          >
+                            {d?.title || d?.file_name || '-'}
+                          </a>
+                        ),
+                        width: '32%',
+                      },
+                      {
+                        key: 'category_type',
+                        header: '분류',
+                        sortable: true,
+                        accessor: (d: any) => getSharedCategoryLabel(d),
+                        render: (d: any) => getSharedCategoryLabel(d),
+                        width: '16%',
+                      },
+                      {
+                        key: 'uploader',
+                        header: '업로드',
+                        sortable: true,
+                        accessor: (d: any) =>
+                          d?.profiles?.full_name ||
+                          d?.uploaded_by_profile?.full_name ||
+                          d?.metadata?.uploader ||
+                          '',
+                        render: (d: any) =>
+                          d?.profiles?.full_name ||
+                          d?.uploaded_by_profile?.full_name ||
+                          d?.metadata?.uploader ||
+                          '-',
+                        width: '16%',
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        accessor: (d: any) => d?.status || '',
+                        render: (d: any) =>
+                          d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
+                        width: '12%',
+                      },
+                    ] as Column<any>[]
+                  }
+                />
+              )}
             </div>
           )}
         </TabsContent>
@@ -2637,11 +2832,7 @@ export default function SiteDetailTabs({
                   <Button asChild variant="ghost" size="sm">
                     <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>작업일지 목록</a>
                   </Button>
-                  <Button asChild variant="ghost" size="sm">
-                    <a href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}>
-                      사진대지 리포트
-                    </a>
-                  </Button>
+                  {/* 사진대지 리포트 버튼 제거 (요청에 따라 삭제) */}
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -2690,14 +2881,10 @@ export default function SiteDetailTabs({
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-muted-foreground">현장 사진대지</h3>
               <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="outline" size="sm">
                   <a href={`/dashboard/admin/tools/photo-grid?site_id=${siteId}`}>사진대지 생성</a>
                 </Button>
-                <Button asChild variant="ghost" size="sm">
-                  <a href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}>
-                    사진대지 리포트
-                  </a>
-                </Button>
+                {/* 사진대지 리포트 버튼 제거 (요청에 따라 삭제) */}
               </div>
             </div>
             <div className="rounded-lg border bg-card p-3 shadow-sm overflow-x-auto">
@@ -2732,13 +2919,7 @@ export default function SiteDetailTabs({
                           {s.created_at ? new Date(s.created_at).toLocaleString('ko-KR') : '-'}
                         </td>
                         <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <Button asChild variant="outline" size="compact">
-                              <a href={`/dashboard/admin/tools/photo-grid?sheet_id=${s.id}`}>
-                                편집/인쇄
-                              </a>
-                            </Button>
-                          </div>
+                          <PhotoSheetActions id={s.id} />
                         </td>
                       </tr>
                     ))}
@@ -2790,6 +2971,143 @@ function buildDocPreviewHref(d: any): string {
 
   // 기본: 통합 문서 뷰어 경로로 이동
   return `/dashboard/admin/documents/${d.id}`
+}
+
+function getInvoiceMetadata(d: any): Record<string, any> {
+  const meta = d?.metadata
+  if (meta && typeof meta === 'object') return meta as Record<string, any>
+  return {}
+}
+
+function getInvoicePartner(d: any): string {
+  const meta = getInvoiceMetadata(d)
+  return (
+    meta.partner_name ||
+    meta.partner ||
+    meta.partner_company ||
+    meta.partner_company_name ||
+    meta.company_name ||
+    meta.organization_name ||
+    ''
+  )
+}
+
+function getInvoicePhaseKey(
+  d: any
+): 'pre_contract' | 'in_progress' | 'completion' | 'closed' | 'other' {
+  const meta = getInvoiceMetadata(d)
+  const raw = String(
+    meta.contract_phase ||
+      meta.phase ||
+      meta.progress_stage ||
+      meta.workflow_stage ||
+      d?.status ||
+      ''
+  ).toLowerCase()
+  if (
+    raw.includes('pre') ||
+    raw.includes('준비') ||
+    raw.includes('initial') ||
+    raw.includes('pending') ||
+    raw.includes('대기') ||
+    raw.includes('draft')
+  )
+    return 'pre_contract'
+  if (
+    raw.includes('완료') ||
+    raw.includes('completion') ||
+    raw.includes('준공') ||
+    raw.includes('approved') ||
+    raw.includes('승인') ||
+    raw.includes('확정')
+  )
+    return 'completion'
+  if (
+    raw.includes('종결') ||
+    raw.includes('closed') ||
+    raw.includes('done') ||
+    raw.includes('정산')
+  )
+    return 'closed'
+  if (
+    raw.includes('progress') ||
+    raw.includes('진행') ||
+    raw.includes('중') ||
+    raw.includes('ongoing')
+  )
+    return 'in_progress'
+  return 'other'
+}
+
+function getInvoicePhaseLabel(d: any): string {
+  const key = getInvoicePhaseKey(d)
+  if (key === 'other') return '기타'
+  const found = INVOICE_PHASE_OPTIONS.find(opt => opt.key === key)
+  return found ? found.label : '기타'
+}
+
+function getInvoiceAmountValue(d: any): number | null {
+  const meta = getInvoiceMetadata(d)
+  const raw =
+    meta.request_amount ??
+    meta.amount ??
+    meta.total_amount ??
+    meta.invoice_amount ??
+    meta.expected_amount ??
+    d?.amount
+  if (raw === undefined || raw === null || raw === '') return null
+  const num = Number(raw)
+  return Number.isFinite(num) ? num : null
+}
+
+function formatInvoiceAmount(d: any): string {
+  const value = getInvoiceAmountValue(d)
+  if (value === null) return '-'
+  return `₩${new Intl.NumberFormat('ko-KR').format(value)}`
+}
+
+function formatInvoicePeriod(d: any): string {
+  const meta = getInvoiceMetadata(d)
+  const from =
+    meta.period_start ||
+    meta.start_date ||
+    meta.contract_start ||
+    meta.from ||
+    meta.billing_start ||
+    meta.period?.start
+  const to =
+    meta.period_end ||
+    meta.end_date ||
+    meta.contract_end ||
+    meta.to ||
+    meta.billing_end ||
+    meta.period?.end
+  if (from && to) {
+    return `${formatDate(String(from))} ~ ${formatDate(String(to))}`
+  }
+  const label =
+    meta.period || meta.billing_period || meta.statement_period || meta.summary_period || ''
+  return label ? String(label) : ''
+}
+
+function getSharedCategoryLabel(d: any): string {
+  const meta = d?.metadata && typeof d.metadata === 'object' ? d.metadata : {}
+  const subRaw =
+    d?.sub_category ||
+    d?.subCategory ||
+    meta?.sub_category ||
+    meta?.subcategory ||
+    meta?.category ||
+    ''
+  const catRaw = d?.category_type || meta?.category_type || ''
+  const sub = String(subRaw || '').toLowerCase()
+  const cat = String(catRaw || '').toLowerCase()
+
+  if (sub && SHARED_CATEGORY_LABELS[sub]) return SHARED_CATEGORY_LABELS[sub]
+  if (cat && SHARED_CATEGORY_LABELS[cat]) return SHARED_CATEGORY_LABELS[cat]
+  if (sub) return sub
+  if (cat && CATEGORY_LABELS[cat]) return CATEGORY_LABELS[cat]
+  return '기타'
 }
 
 // Helpers: filter/sort for assignments and requests
