@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { headers } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import PhotoGridReportsTable from '@/components/admin/PhotoGridReportsTable'
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
+const PhotoSheetActions = dynamic(() => import('@/components/admin/documents/PhotoSheetActions'), { ssr: false })
 import { formatBytes } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -194,9 +196,7 @@ export default async function AdminPhotoGridDocumentsPage({
                   </td>
                   <td className="px-3 py-2">{s.status === 'final' ? '확정' : '초안'}</td>
                   <td className="px-3 py-2">
-                    <Link className="underline text-blue-600" href={`/dashboard/admin/tools/photo-grid?sheet_id=${encodeURIComponent(s.id)}`}>
-                      편집/미리보기
-                    </Link>
+                    <PhotoSheetActions id={s.id} />
                   </td>
                 </tr>
               ))

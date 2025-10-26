@@ -14,17 +14,20 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Fetch all active sites
+    // Fetch all active, non-deleted sites
     const { data: sites, error } = await supabase
       .from('sites')
-      .select(`
+      .select(
+        `
         id,
         name,
         address,
         status,
         created_at
-      `)
+      `
+      )
       .eq('status', 'active')
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -38,19 +41,15 @@ export async function GET(request: NextRequest) {
       name: site.name,
       address: site.address,
       status: site.status,
-      created_at: site.created_at
+      created_at: site.created_at,
     }))
 
     return NextResponse.json({
       success: true,
-      data: formattedSites
+      data: formattedSites,
     })
-
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

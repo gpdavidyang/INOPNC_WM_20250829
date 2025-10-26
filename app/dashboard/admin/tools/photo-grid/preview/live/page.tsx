@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import PhotoSheetPrint from '@/components/photo-sheet/PhotoSheetPrint'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 
 type ItemMeta = {
   id: string
@@ -234,32 +235,45 @@ export default function LivePreviewPage() {
   }
 
   return (
-    <div className="p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">사진대지 미리보기</div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => window.print()}>
-            인쇄
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              try {
-                if (window.history.length > 1) {
-                  window.history.back()
-                } else {
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="사진대지 미리보기"
+        description="작업 전/후 사진과 부재명·공정·내용을 포함한 사진대지를 인쇄 전에 미리 확인하는 화면입니다."
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '현장작업 관리' },
+          { label: '사진대지 관리', href: '/dashboard/admin/tools/photo-grid' },
+          { label: '미리보기' },
+        ]}
+        actions={
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => window.print()}>
+              인쇄
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                try {
+                  if (window.history.length > 1) {
+                    window.history.back()
+                  } else {
+                    window.location.assign('/dashboard/admin/tools/photo-grid')
+                  }
+                } catch {
                   window.location.assign('/dashboard/admin/tools/photo-grid')
                 }
-              } catch {
-                window.location.assign('/dashboard/admin/tools/photo-grid')
-              }
-            }}
-          >
-            닫기
-          </Button>
+              }}
+            >
+              닫기
+            </Button>
+          </div>
+        }
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
+        <div className="w-full overflow-x-auto">
+          <div className="mx-auto min-w-max flex justify-center">{content}</div>
         </div>
       </div>
-      {content}
     </div>
   )
 }
