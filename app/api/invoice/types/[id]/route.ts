@@ -8,19 +8,45 @@ export async function PATCH(request: NextRequest, ctx: { params: { id: string } 
   try {
     const idOrCode = ctx.params.id
     const body = await request.json()
-    const update = {
-      label: body.label,
-      is_required_start: !!body?.stageRequired?.start,
-      is_required_progress: !!body?.stageRequired?.progress,
-      is_required_completion: !!body?.stageRequired?.completion,
-      allow_multiple_versions: body.allowMultipleVersions !== false,
-      allowed_mime_types: body.allowedMimeTypes || null,
-      sort_order: body.sortOrder !== undefined ? Number(body.sortOrder) : undefined,
-      is_active: body.isActive !== false,
+    const update: Record<string, any> = {}
+
+    if (body.label !== undefined) update.label = body.label
+
+    if (body.stageRequired && typeof body.stageRequired === 'object') {
+      if ('start' in body.stageRequired) {
+        update.is_required_start = !!body.stageRequired.start
+      }
+      if ('progress' in body.stageRequired) {
+        update.is_required_progress = !!body.stageRequired.progress
+      }
+      if ('completion' in body.stageRequired) {
+        update.is_required_completion = !!body.stageRequired.completion
+      }
     }
-    Object.keys(update).forEach(
-      k => update[k as keyof typeof update] === undefined && delete (update as any)[k]
-    )
+
+    if (body.allowMultipleVersions !== undefined) {
+      update.allow_multiple_versions = body.allowMultipleVersions !== false
+    }
+
+    if (body.allowedMimeTypes !== undefined) {
+      update.allowed_mime_types = body.allowedMimeTypes || null
+    }
+
+    if (body.sortOrder !== undefined) {
+      update.sort_order = Number(body.sortOrder)
+    }
+
+    if (body.isActive !== undefined) {
+      update.is_active = !!body.isActive
+    }
+
+    if (body.code !== undefined) {
+      update.code = body.code
+    }
+
+    if (Object.keys(update).length === 0) {
+      return NextResponse.json({ success: true })
+    }
 
     let q = supabase.from('invoice_document_types').update(update)
     // 지원: id(uuid) 또는 code로 업데이트

@@ -24,6 +24,7 @@ type DocType = {
   code: string
   label: string
   required: { start: boolean; progress: boolean; completion: boolean }
+  isActive?: boolean
 }
 
 export default function InvoiceTabsClient() {
@@ -41,6 +42,7 @@ export default function InvoiceTabsClient() {
   }>({ docTypes: [], sites: [], totals: { sites: 0, documents: 0 } })
   const [loading, setLoading] = useState(false)
   const [types, setTypes] = useState<DocType[]>([])
+  const activeTypes = useMemo(() => types.filter(t => t.isActive !== false), [types])
   const [orgs, setOrgs] = useState<Array<{ id: string; name: string }>>([])
   const [orgId, setOrgId] = useState<string>('')
   const [upDocType, setUpDocType] = useState<string>('')
@@ -75,7 +77,20 @@ export default function InvoiceTabsClient() {
         const og = await orgRes.json().catch(() => ({}))
         const sc = await siteRes.json().catch(() => ({}))
         if (sum?.data) setSummary(sum.data)
-        if (ty?.data) setTypes(ty.data)
+        if (Array.isArray(ty?.data)) {
+          setTypes(
+            ty.data.map((item: any) => ({
+              code: item.code,
+              label: item.label,
+              required: item.required || {
+                start: false,
+                progress: false,
+                completion: false,
+              },
+              isActive: item.isActive !== false,
+            }))
+          )
+        }
         if (Array.isArray(og?.data)) setOrgs(og.data)
         if (Array.isArray(sc?.sites)) setSitesCatalog(sc.sites)
       } finally {
@@ -87,8 +102,14 @@ export default function InvoiceTabsClient() {
 
   // Initialize upload doc type when types loaded
   useEffect(() => {
-    if (types.length > 0 && !upDocType) setUpDocType(types[0].code)
-  }, [types, upDocType])
+    if (activeTypes.length === 0) {
+      if (upDocType) setUpDocType('')
+      return
+    }
+    if (!activeTypes.some(t => t.code === upDocType)) {
+      setUpDocType(activeTypes[0].code)
+    }
+  }, [activeTypes, upDocType])
 
   // List tab state
   const [list, setList] = useState<any[]>([])
@@ -138,6 +159,78 @@ export default function InvoiceTabsClient() {
     if (tab === 'list') loadList()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
+
+  const handleCodeEdit = async (target: DocType) => {
+    const currentCode = target.code
+    const nextCode = window.prompt('새 코드 값을 입력하세요.', currentCode)?.trim()
+    if (!nextCode || nextCode === currentCode) return
+    if (!/^[a-zA-Z0-9_-]+$/.test(nextCode)) {
+      toast({
+        title: '형식 오류',
+        description: '코드는 영문/숫자/하이픈/언더스코어만 사용할 수 있습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (types.some(t => t.code === nextCode)) {
+      toast({
+        title: '중복 코드',
+        description: `'${nextCode}' 코드는 이미 사용 중입니다.`,
+        variant: 'destructive',
+      })
+      return
+    }
+    try {
+      const res = await fetch(`/api/invoice/types/${currentCode}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: nextCode }),
+      })
+      if (!res.ok) throw new Error('fail')
+      const nextTypes = types.map(it => (it.code === currentCode ? { ...it, code: nextCode } : it))
+      setTypes(nextTypes)
+      if (upDocType === currentCode) setUpDocType(nextCode)
+      toast({ title: '코드 변경됨', description: `${target.label} 코드가 업데이트되었습니다.` })
+    } catch {
+      toast({
+        title: '코드 변경 실패',
+        description: '코드 업데이트 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleToggleActive = async (target: DocType) => {
+    const nextActive = target.isActive === false
+    try {
+      const res = await fetch(`/api/invoice/types/${target.code}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ isActive: nextActive }),
+      })
+      if (!res.ok) throw new Error('fail')
+      const nextTypes = types.map(it =>
+        it.code === target.code ? { ...it, isActive: nextActive } : it
+      )
+      setTypes(nextTypes)
+      if (!nextActive && upDocType === target.code) {
+        const fallback = nextTypes.find(it => it.isActive !== false)
+        setUpDocType(fallback?.code || '')
+      } else if (nextActive && !upDocType) {
+        setUpDocType(target.code)
+      }
+      toast({
+        title: nextActive ? '활성화됨' : '비활성화됨',
+        description: target.label,
+      })
+    } catch {
+      toast({
+        title: '상태 변경 실패',
+        description: '문서유형 상태를 변경하지 못했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
 
   return (
     <div>
@@ -273,21 +366,29 @@ export default function InvoiceTabsClient() {
               <div>
                 <label className="block text-xs text-gray-500 mb-1">문서유형</label>
                 <div>
-                  <CustomSelect
-                    value={upDocType || types[0]?.code || 'all'}
-                    onValueChange={v => setUpDocType(v)}
-                  >
-                    <CustomSelectTrigger>
-                      <CustomSelectValue placeholder="선택" />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      {types.map(t => (
-                        <CustomSelectItem key={t.code} value={t.code}>
-                          {t.label}
-                        </CustomSelectItem>
-                      ))}
-                    </CustomSelectContent>
-                  </CustomSelect>
+                  {activeTypes.length === 0 ? (
+                    <div className="text-sm text-gray-500">활성 문서유형이 없습니다.</div>
+                  ) : (
+                    <CustomSelect
+                      value={
+                        upDocType && activeTypes.some(t => t.code === upDocType)
+                          ? upDocType
+                          : activeTypes[0]?.code || ''
+                      }
+                      onValueChange={v => setUpDocType(v)}
+                    >
+                      <CustomSelectTrigger>
+                        <CustomSelectValue placeholder="선택" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent>
+                        {activeTypes.map(t => (
+                          <CustomSelectItem key={t.code} value={t.code}>
+                            {t.label}
+                          </CustomSelectItem>
+                        ))}
+                      </CustomSelectContent>
+                    </CustomSelect>
+                  )}
                 </div>
               </div>
               <div>
@@ -432,8 +533,7 @@ export default function InvoiceTabsClient() {
         <TabsContent value="settings">
           <div className="rounded-lg border bg-white p-3">
             <div className="mb-2 text-sm text-muted-foreground">
-              문서유형 목록(코드는 고정, 라벨/정렬/필수단계 편집 가능 — 테이블 미프로비저닝 시
-              저장은 제한됩니다)
+              문서유형 목록(코드/라벨/필수단계 편집 가능 — 테이블 미프로비저닝 시 저장은 제한됩니다)
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
@@ -450,127 +550,159 @@ export default function InvoiceTabsClient() {
                   </tr>
                 </thead>
                 <tbody>
-                  {types.map((t, idx) => (
-                    <tr key={t.code} className="border-t">
-                      <td className="px-3 py-2">{idx + 1}</td>
-                      <td className="px-3 py-2 font-mono text-xs">{t.code}</td>
-                      <td className="px-3 py-2">
-                        <Input
-                          defaultValue={t.label}
-                          onBlur={async e => {
-                            const label = e.target.value
-                            if (label === t.label) return
-                            try {
-                              const res = await fetch(`/api/invoice/types/${t.code}`, {
-                                method: 'PATCH',
-                                headers: { 'content-type': 'application/json' },
-                                body: JSON.stringify({ label }),
-                              })
-                              if (!res.ok) throw new Error('fail')
-                              toast({ title: '저장됨', description: `${t.code} 라벨 업데이트` })
-                            } catch {
-                              toast({
-                                title: '저장 실패',
-                                description: '테이블 미프로비저닝 또는 서버 오류',
-                                variant: 'destructive',
-                              })
-                            }
-                          }}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="checkbox"
-                          defaultChecked={t.required.start}
-                          onChange={async e => {
-                            try {
-                              const res = await fetch(`/api/invoice/types/${t.code}`, {
-                                method: 'PATCH',
-                                headers: { 'content-type': 'application/json' },
-                                body: JSON.stringify({
-                                  stageRequired: { ...t.required, start: e.target.checked },
-                                }),
-                              })
-                              if (!res.ok) throw new Error('fail')
-                              toast({ title: '저장됨', description: '필수(착수) 업데이트' })
-                            } catch {
-                              toast({ title: '저장 실패', variant: 'destructive' })
-                            }
-                          }}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="checkbox"
-                          defaultChecked={t.required.progress}
-                          onChange={async e => {
-                            try {
-                              const res = await fetch(`/api/invoice/types/${t.code}`, {
-                                method: 'PATCH',
-                                headers: { 'content-type': 'application/json' },
-                                body: JSON.stringify({
-                                  stageRequired: { ...t.required, progress: e.target.checked },
-                                }),
-                              })
-                              if (!res.ok) throw new Error('fail')
-                              toast({ title: '저장됨', description: '필수(진행) 업데이트' })
-                            } catch {
-                              toast({ title: '저장 실패', variant: 'destructive' })
-                            }
-                          }}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="checkbox"
-                          defaultChecked={t.required.completion}
-                          onChange={async e => {
-                            try {
-                              const res = await fetch(`/api/invoice/types/${t.code}`, {
-                                method: 'PATCH',
-                                headers: { 'content-type': 'application/json' },
-                                body: JSON.stringify({
-                                  stageRequired: { ...t.required, completion: e.target.checked },
-                                }),
-                              })
-                              if (!res.ok) throw new Error('fail')
-                              toast({ title: '저장됨', description: '필수(완료) 업데이트' })
-                            } catch {
-                              toast({ title: '저장 실패', variant: 'destructive' })
-                            }
-                          }}
-                        />
-                      </td>
-                      <td className="px-3 py-2">●</td>
-                      <td className="px-3 py-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
-                            try {
-                              const res = await fetch(`/api/invoice/types/${t.code}`, {
-                                method: 'DELETE',
-                              })
-                              if (!res.ok) throw new Error('fail')
-                              setTypes(prev => prev.filter(x => x.code !== t.code))
-                              toast({ title: '비활성화됨', description: t.label })
-                            } catch {
-                              toast({
-                                title: '실패',
-                                description: '비활성화 실패',
-                                variant: 'destructive',
-                              })
-                            }
-                          }}
-                        >
-                          비활성화
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {types.map((t, idx) => {
+                    const isActive = t.isActive !== false
+                    return (
+                      <tr
+                        key={t.code}
+                        className={`border-t ${!isActive ? 'bg-gray-50 text-gray-500' : ''}`}
+                      >
+                        <td className="px-3 py-2">{idx + 1}</td>
+                        <td className="px-3 py-2 font-mono text-xs">{t.code}</td>
+                        <td className="px-3 py-2">
+                          <Input
+                            defaultValue={t.label}
+                            onBlur={async e => {
+                              const label = e.target.value.trim()
+                              if (!label) {
+                                toast({
+                                  title: '입력 필요',
+                                  description: '라벨은 비워둘 수 없습니다.',
+                                  variant: 'warning' as any,
+                                })
+                                e.target.value = t.label
+                                return
+                              }
+                              if (label === t.label) return
+                              try {
+                                const res = await fetch(`/api/invoice/types/${t.code}`, {
+                                  method: 'PATCH',
+                                  headers: { 'content-type': 'application/json' },
+                                  body: JSON.stringify({ label }),
+                                })
+                                if (!res.ok) throw new Error('fail')
+                                setTypes(prev =>
+                                  prev.map(x => (x.code === t.code ? { ...x, label } : x))
+                                )
+                                toast({ title: '저장됨', description: `${t.code} 라벨 업데이트` })
+                              } catch {
+                                toast({
+                                  title: '저장 실패',
+                                  description: '테이블 미프로비저닝 또는 서버 오류',
+                                  variant: 'destructive',
+                                })
+                                e.target.value = t.label
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            defaultChecked={t.required.start}
+                            onChange={async e => {
+                              const nextRequired = { ...t.required, start: e.target.checked }
+                              try {
+                                const res = await fetch(`/api/invoice/types/${t.code}`, {
+                                  method: 'PATCH',
+                                  headers: { 'content-type': 'application/json' },
+                                  body: JSON.stringify({ stageRequired: nextRequired }),
+                                })
+                                if (!res.ok) throw new Error('fail')
+                                setTypes(prev =>
+                                  prev.map(x =>
+                                    x.code === t.code ? { ...x, required: nextRequired } : x
+                                  )
+                                )
+                                toast({ title: '저장됨', description: '필수(착수) 업데이트' })
+                              } catch {
+                                toast({ title: '저장 실패', variant: 'destructive' })
+                                e.target.checked = t.required.start
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            defaultChecked={t.required.progress}
+                            onChange={async e => {
+                              const nextRequired = { ...t.required, progress: e.target.checked }
+                              try {
+                                const res = await fetch(`/api/invoice/types/${t.code}`, {
+                                  method: 'PATCH',
+                                  headers: { 'content-type': 'application/json' },
+                                  body: JSON.stringify({ stageRequired: nextRequired }),
+                                })
+                                if (!res.ok) throw new Error('fail')
+                                setTypes(prev =>
+                                  prev.map(x =>
+                                    x.code === t.code ? { ...x, required: nextRequired } : x
+                                  )
+                                )
+                                toast({ title: '저장됨', description: '필수(진행) 업데이트' })
+                              } catch {
+                                toast({ title: '저장 실패', variant: 'destructive' })
+                                e.target.checked = t.required.progress
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            defaultChecked={t.required.completion}
+                            onChange={async e => {
+                              const nextRequired = { ...t.required, completion: e.target.checked }
+                              try {
+                                const res = await fetch(`/api/invoice/types/${t.code}`, {
+                                  method: 'PATCH',
+                                  headers: { 'content-type': 'application/json' },
+                                  body: JSON.stringify({ stageRequired: nextRequired }),
+                                })
+                                if (!res.ok) throw new Error('fail')
+                                setTypes(prev =>
+                                  prev.map(x =>
+                                    x.code === t.code ? { ...x, required: nextRequired } : x
+                                  )
+                                )
+                                toast({ title: '저장됨', description: '필수(완료) 업데이트' })
+                              } catch {
+                                toast({ title: '저장 실패', variant: 'destructive' })
+                                e.target.checked = t.required.completion
+                              }
+                            }}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                              isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'
+                            }`}
+                          >
+                            {isActive ? '활성' : '비활성'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => handleCodeEdit(t)}>
+                              코드 수정
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={isActive ? 'outline' : 'secondary'}
+                              onClick={() => handleToggleActive(t)}
+                            >
+                              {isActive ? '비활성화' : '활성화'}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                   {types.length === 0 && (
                     <tr>
-                      <td className="px-3 py-6 text-center text-gray-500" colSpan={7}>
+                      <td className="px-3 py-6 text-center text-gray-500" colSpan={8}>
                         유형이 없습니다.
                       </td>
                     </tr>
@@ -606,6 +738,22 @@ export default function InvoiceTabsClient() {
                     })
                     return
                   }
+                  if (!/^[a-zA-Z0-9_-]+$/.test(code)) {
+                    toast({
+                      title: '형식 오류',
+                      description: '코드는 영문/숫자/하이픈/언더스코어만 사용할 수 있습니다.',
+                      variant: 'destructive',
+                    })
+                    return
+                  }
+                  if (types.some(t => t.code === code)) {
+                    toast({
+                      title: '중복 코드',
+                      description: `'${code}' 코드는 이미 존재합니다.`,
+                      variant: 'destructive',
+                    })
+                    return
+                  }
                   try {
                     const res = await fetch('/api/invoice/types', {
                       method: 'POST',
@@ -619,9 +767,12 @@ export default function InvoiceTabsClient() {
                         code,
                         label,
                         required: { start: false, progress: false, completion: false },
+                        isActive: true,
                       } as any,
                     ])
                     toast({ title: '추가됨', description: label })
+                    ;(document.getElementById('new_code') as HTMLInputElement).value = ''
+                    ;(document.getElementById('new_label') as HTMLInputElement).value = ''
                   } catch {
                     toast({
                       title: '추가 실패',

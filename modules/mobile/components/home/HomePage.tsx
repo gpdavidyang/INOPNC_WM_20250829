@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import {
   CustomSelect,
@@ -132,9 +132,42 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   } | null>(null)
 
   // 사용자(작성자/작업자) 선택용 옵션 - 관리자에서 등록된 사용자 중 작업자/현장관리자만
+  const [allUserOptions, setAllUserOptions] = useState<
+    Array<{ id: string; name: string; role?: string }>
+  >([])
   const [userOptions, setUserOptions] = useState<
     Array<{ id: string; name: string; role?: string }>
   >([])
+  const allUserOptionsRef = useRef(allUserOptions)
+  useEffect(() => {
+    allUserOptionsRef.current = allUserOptions
+  }, [allUserOptions])
+
+  const mergeUsers = useCallback(
+    (...lists: Array<Array<{ id: string; name: string; role?: string }> | undefined | null>) => {
+      const map = new Map<string, { id: string; name: string; role?: string }>()
+      lists.forEach(list => {
+        list?.forEach(user => {
+          if (!user?.id) return
+          const existing = map.get(user.id)
+          if (existing) {
+            if (!existing.name && user.name) existing.name = user.name
+            if (user.role && !existing.role) existing.role = user.role
+          } else {
+            map.set(user.id, {
+              id: user.id,
+              name: user.name || '이름없음',
+              role: user.role,
+            })
+          }
+        })
+      })
+      return Array.from(map.values()).sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', 'ko', { sensitivity: 'base' })
+      )
+    },
+    []
+  )
   const [usersLoading, setUsersLoading] = useState(false)
   const [selectedAuthorId, setSelectedAuthorId] = useState<string>('')
   const selectedAuthorName = useMemo(() => {
@@ -261,7 +294,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           name: p.full_name || '이름없음',
           role: p.role || undefined,
         }))
-        if (active) setUserOptions(options)
+        if (active) {
+          setAllUserOptions(prev => mergeUsers(prev, options))
+          setUserOptions(prev => mergeUsers(prev, options))
+        }
       } catch (e: any) {
         console.warn('[HomePage] Unexpected error while fetching users:', e?.message)
       } finally {
@@ -274,7 +310,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     return () => {
       active = false
     }
-  }, [])
+  }, [mergeUsers])
 
   // 현재 로그인 사용자가 목록에 있으면 자동 선택 (없으면 첫 번째로 세팅)
   useEffect(() => {
@@ -290,12 +326,15 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   // Ensure at least current user is selectable immediately (fallback)
   useEffect(() => {
     if (!userProfile?.id) return
-    setUserOptions(prev => {
-      if (prev.some(u => u.id === userProfile.id)) return prev
-      return [{ id: userProfile.id, name: userProfile.full_name || '사용자' }, ...prev]
-    })
+    const selfOption = {
+      id: userProfile.id,
+      name: userProfile.full_name || '사용자',
+      role: userProfile.role,
+    }
+    setAllUserOptions(prev => mergeUsers(prev, [selfOption]))
+    setUserOptions(prev => mergeUsers(prev, [selfOption]))
     setSelectedAuthorId(prev => (prev ? prev : userProfile.id))
-  }, [userProfile?.id, userProfile?.full_name])
+  }, [userProfile?.id, userProfile?.full_name, userProfile?.role, mergeUsers])
 
   // Fetch site-assigned users when a site is selected
   useEffect(() => {
@@ -305,53 +344,51 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     const loadAssigned = async () => {
       setUsersLoading(true)
       try {
-        // Use admin workers API which allows worker/site_manager with site assignment
-        const res = await fetch(`/api/admin/sites/${encodeURIComponent(selectedSite)}/workers`, {
+        const res = await fetch(`/api/mobile/sites/${encodeURIComponent(selectedSite)}/workers`, {
           method: 'GET',
           signal: controller.signal,
           headers: { Accept: 'application/json' },
           cache: 'no-store',
         })
+
         if (!res.ok) {
-          // Keep fallback list if API is forbidden or fails
-          console.warn('[HomePage] assignments api failed:', res.status)
+          console.warn('[HomePage] site workers api failed:', res.status)
           return
         }
+
         const payload = await res.json()
-        if (payload?.error) return
-        const rows: Array<any> = payload.data || []
-        const assignedUsers = rows
-          .filter((p: any) => ['worker', 'site_manager'].includes(p.role))
-          .map((p: any) => ({ id: p.id, name: p.full_name || '이름없음', role: p.role }))
-          .sort((a: any, b: any) => a.name.localeCompare(b.name, 'ko'))
+        if (payload?.error) {
+          console.warn('[HomePage] site workers payload error:', payload.error)
+          return
+        }
 
-        if (active) {
-          // Ensure current user exists in the list if applicable
-          const withSelf = (() => {
-            const meId = userProfile?.id
-            if (meId && !assignedUsers.some(u => u.id === meId)) {
-              return [{ id: meId, name: userProfile?.full_name || '사용자' }, ...assignedUsers]
-            }
-            return assignedUsers
-          })()
+        const workers: Array<{ id: string; name: string; role?: string }> = Array.isArray(
+          payload?.data
+        )
+          ? payload.data
+          : []
 
-          setUserOptions(withSelf)
+        if (!active) return
 
-          // If current selection is not in new list, reset to self or first
-          const exists = withSelf.some(u => u.id === selectedAuthorId)
-          if (!exists) {
-            if (userProfile?.id && withSelf.some(u => u.id === userProfile.id)) {
-              setSelectedAuthorId(userProfile.id)
-            } else if (withSelf.length > 0) {
-              setSelectedAuthorId(withSelf[0].id)
-            } else {
-              setSelectedAuthorId('')
-            }
+        const combined = mergeUsers(allUserOptionsRef.current, workers)
+        setAllUserOptions(combined)
+        setUserOptions(combined)
+
+        const exists = combined.some(u => u.id === selectedAuthorId)
+        if (!exists) {
+          if (userProfile?.id && combined.some(u => u.id === userProfile.id)) {
+            setSelectedAuthorId(userProfile.id)
+          } else if (workers.length > 0) {
+            setSelectedAuthorId(workers[0].id)
+          } else if (combined.length > 0) {
+            setSelectedAuthorId(combined[0].id)
+          } else {
+            setSelectedAuthorId('')
           }
         }
       } catch (e: any) {
         if (e?.name !== 'AbortError') {
-          console.warn('[HomePage] assignments fetch error:', e?.message)
+          console.warn('[HomePage] site workers fetch error:', e?.message)
         }
       } finally {
         if (active) setUsersLoading(false)
@@ -363,7 +400,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       active = false
       controller.abort()
     }
-  }, [selectedSite, userProfile?.id, userProfile?.full_name, selectedAuthorId])
+  }, [
+    selectedSite,
+    userProfile?.id,
+    userProfile?.full_name,
+    userProfile?.role,
+    selectedAuthorId,
+    mergeUsers,
+  ])
 
   // Simplified user check - rely on AuthProvider for session management
   useEffect(() => {
