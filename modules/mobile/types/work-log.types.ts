@@ -73,6 +73,7 @@ export interface WorkTaskGroup {
 }
 
 export interface MaterialUsageEntry {
+  material_id?: string | null
   material_name: string
   material_code?: string | null
   quantity: number

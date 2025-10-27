@@ -5,9 +5,68 @@ import { useToast } from '@/components/ui/use-toast'
 import EmptyState from '@/components/ui/empty-state'
 import { PageHeader } from '@/components/ui/page-header'
 
+const EMPLOYMENT_TYPES = ['freelancer', 'daily_worker', 'regular_employee'] as const
+
+type EmploymentType = (typeof EMPLOYMENT_TYPES)[number]
+type RateItem = {
+  employment_type: EmploymentType
+  income_tax_rate: number
+  pension_rate: number
+  health_insurance_rate: number
+  employment_insurance_rate: number
+}
+
+const toRateNumber = (value: unknown) => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const normalizeResponse = (payload: any): RateItem[] => {
+  if (Array.isArray(payload)) {
+    return payload
+      .filter(item => !!item && typeof item === 'object')
+      .map(item => {
+        const employmentType = item.employment_type as EmploymentType | undefined
+        if (!employmentType || !EMPLOYMENT_TYPES.includes(employmentType)) return null
+        return {
+          employment_type: employmentType,
+          income_tax_rate: toRateNumber(item.income_tax_rate ?? item.income_tax),
+          pension_rate: toRateNumber(item.pension_rate ?? item.national_pension),
+          health_insurance_rate: toRateNumber(
+            item.health_insurance_rate ?? item.health_insurance
+          ),
+          employment_insurance_rate: toRateNumber(
+            item.employment_insurance_rate ?? item.employment_insurance
+          ),
+        }
+      })
+      .filter((item): item is RateItem => item !== null)
+  }
+
+  const ratesObject = payload?.rates && typeof payload.rates === 'object' ? payload.rates : payload
+  if (ratesObject && typeof ratesObject === 'object') {
+    return EMPLOYMENT_TYPES.map(employment_type => {
+      const rate = ratesObject[employment_type] ?? {}
+      return {
+        employment_type,
+        income_tax_rate: toRateNumber(rate.income_tax_rate ?? rate.income_tax),
+        pension_rate: toRateNumber(rate.pension_rate ?? rate.national_pension),
+        health_insurance_rate: toRateNumber(
+          rate.health_insurance_rate ?? rate.health_insurance
+        ),
+        employment_insurance_rate: toRateNumber(
+          rate.employment_insurance_rate ?? rate.employment_insurance
+        ),
+      }
+    })
+  }
+
+  return []
+}
+
 export default function DefaultRatesPage() {
   const { toast } = useToast()
-  const [items, setItems] = useState<any[]>([])
+  const [items, setItems] = useState<RateItem[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -19,7 +78,7 @@ export default function DefaultRatesPage() {
         const res = await fetch('/api/admin/payroll/rates/defaults')
         const json = await res.json()
         if (!res.ok || json?.success === false) throw new Error(json?.error || '조회 실패')
-        setItems(json.data || [])
+        setItems(normalizeResponse(json.data))
       } catch (e: any) {
         setError(e?.message || '조회 실패')
       } finally {
@@ -78,8 +137,10 @@ export default function DefaultRatesPage() {
               <tbody>
                 {[...items]
                   .sort((a, b) => {
-                    const order = ['freelancer', 'daily_worker', 'regular_employee']
-                    return order.indexOf(a.employment_type) - order.indexOf(b.employment_type)
+                    return (
+                      EMPLOYMENT_TYPES.indexOf(a.employment_type) -
+                      EMPLOYMENT_TYPES.indexOf(b.employment_type)
+                    )
                   })
                   .map((it, idx) => (
                     <tr key={`${it.employment_type}-${idx}`} className="border-t">

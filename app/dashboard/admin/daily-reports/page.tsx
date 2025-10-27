@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReports } from '@/app/actions/admin/daily-reports'
+import { DailyReportFilters } from '@/components/admin/DailyReportFilters'
 // Badge used inside client table
 import DailyReportsTable from '@/components/admin/DailyReportsTable'
 
@@ -101,61 +100,14 @@ export default async function AdminDailyReportsPage({
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         {/* 필터 */}
         <div className="mb-4 rounded-lg border bg-card p-4 shadow-sm">
-          <form method="GET" className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-            <input type="hidden" name="page" value="1" />
-            {createdBy && <input type="hidden" name="created_by" value={createdBy} />}
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">현장명</label>
-              <Input
-                list="site-options"
-                name="site_name"
-                defaultValue={siteNameQuery}
-                placeholder={t('common.search')}
-              />
-              <datalist id="site-options">
-                {siteOptions.map(opt => (
-                  <option key={opt.id} value={opt.name} />
-                ))}
-              </datalist>
-            </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">검색어</label>
-              <Input name="search" defaultValue={search} placeholder="작성자/공종/특이사항 등" />
-            </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">상태</label>
-              <select
-                name="status"
-                defaultValue={status}
-                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="" disabled hidden>
-                  상태 선택
-                </option>
-                <option value="draft">임시저장</option>
-                <option value="submitted">작성완료</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">시작일</label>
-              <Input type="date" name="date_from" defaultValue={dateFrom} />
-            </div>
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">종료일</label>
-              <Input type="date" name="date_to" defaultValue={dateTo} />
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" variant="outline">
-                {t('common.apply')}
-              </Button>
-              <Link
-                href="/dashboard/admin/daily-reports"
-                className="inline-flex items-center rounded-md px-3 py-2 text-sm border"
-              >
-                {t('common.reset')}
-              </Link>
-            </div>
-          </form>
+          <DailyReportFilters
+            siteOptions={siteOptions}
+            initialSiteId={siteId || undefined}
+            initialSearch={search || ''}
+            initialStatus={status || ''}
+            initialDateFrom={dateFrom || ''}
+            initialDateTo={dateTo || ''}
+          />
         </div>
 
         <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">

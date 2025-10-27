@@ -20,24 +20,25 @@ export async function GET() {
       return NextResponse.json({ success: true, data: DEFAULT_INVOICE_DOC_TYPES })
     }
     // normalize
-    const normalized = rows
-      .filter((r: any) => r.is_active !== false)
-      .map((r: any) => ({
-        code: r.code,
-        label: r.label,
-        required: {
-          start: !!r.is_required_start,
-          progress: !!r.is_required_progress,
-          completion: !!r.is_required_completion,
-        },
-        allowMultipleVersions: r.allow_multiple_versions !== false,
-        sortOrder: Number(r.sort_order || 0),
-        isActive: r.is_active !== false,
-      }))
+    const normalized = rows.map((r: any) => ({
+      code: r.code,
+      label: r.label,
+      required: {
+        start: !!r.is_required_start,
+        progress: !!r.is_required_progress,
+        completion: !!r.is_required_completion,
+      },
+      allowMultipleVersions: r.allow_multiple_versions !== false,
+      sortOrder: Number(r.sort_order || 0),
+      isActive: r.is_active !== false,
+    }))
     return NextResponse.json({ success: true, data: normalized })
   } catch (e: any) {
     // relation does not exist 등
-    return NextResponse.json({ success: true, data: DEFAULT_INVOICE_DOC_TYPES })
+    return NextResponse.json({
+      success: true,
+      data: DEFAULT_INVOICE_DOC_TYPES.map(t => ({ ...t })),
+    })
   }
 }
 

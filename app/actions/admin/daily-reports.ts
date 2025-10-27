@@ -144,20 +144,31 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       query = query.lte('work_date', dateTo)
     }
     if (search) {
-      // Search in daily_reports fields and joined sites fields
+      const sanitized = search.replace(/'/g, "''")
+      const pattern = `%${sanitized}%`
+
       query = query.or(
-        `
-        member_name.ilike.%${search}%,
-        process_type.ilike.%${search}%,
-        issues.ilike.%${search}%,
-        component_name.ilike.%${search}%,
-        work_process.ilike.%${search}%,
-        work_section.ilike.%${search}%,
-        sites.name.ilike.%${search}%,
-        sites.address.ilike.%${search}%,
-        sites.manager_name.ilike.%${search}%,
-        sites.safety_manager_name.ilike.%${search}%
-      `.replace(/\s+/g, '')
+        [
+          `member_name.ilike.${pattern}`,
+          `process_type.ilike.${pattern}`,
+          `issues.ilike.${pattern}`,
+          `component_name.ilike.${pattern}`,
+          `work_process.ilike.${pattern}`,
+          `work_section.ilike.${pattern}`,
+          `work_description.ilike.${pattern}`,
+          `special_notes.ilike.${pattern}`,
+          `safety_notes.ilike.${pattern}`,
+        ].join(',')
+      )
+
+      query = query.or(
+        [
+          `name.ilike.${pattern}`,
+          `address.ilike.${pattern}`,
+          `manager_name.ilike.${pattern}`,
+          `safety_manager_name.ilike.${pattern}`,
+        ].join(','),
+        { foreignTable: 'sites' }
       )
     }
     if (component_name) {
@@ -501,6 +512,44 @@ export async function deleteDailyReport(id: string) {
     return {
       success: true,
       message: '작업일지가 삭제되었습니다.',
+    }
+  })
+}
+
+export async function deleteDailyReports(ids: string[]) {
+  return withAdminAuth(async (supabase, profile) => {
+    const auth = profile.auth
+
+    const uniqueIds = Array.from(
+      new Set(
+        (ids || [])
+          .map(id => (typeof id === 'number' || typeof id === 'string' ? String(id) : '').trim())
+          .filter(Boolean)
+      )
+    )
+
+    if (uniqueIds.length === 0) {
+      throw new AppError('삭제할 작업일지를 선택하세요.', ErrorType.VALIDATION, 400)
+    }
+
+    for (const id of uniqueIds) {
+      await fetchReportWithAccess(supabase, auth, id)
+    }
+
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .delete()
+      .in('id', uniqueIds)
+      .select('id')
+
+    if (error) throw error
+
+    const deletedCount = Array.isArray(data) ? data.length : uniqueIds.length
+
+    return {
+      success: true,
+      deletedCount,
+      message: `${deletedCount}건의 작업일지를 삭제했습니다.`,
     }
   })
 }
