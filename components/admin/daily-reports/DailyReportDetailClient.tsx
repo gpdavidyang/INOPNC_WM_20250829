@@ -3,32 +3,99 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import DataTable, { type Column } from '@/components/admin/DataTable'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import type { UnifiedAttachment, UnifiedDailyReport } from '@/types/daily-reports'
+import { integratedResponseToUnifiedReport } from '@/lib/daily-reports/unified-admin'
 
 type IntegratedResponse = {
   daily_report: any
   site: any
   worker_assignments: any[]
-  worker_statistics: {
-    total_workers: number
-    total_hours: number
-    total_overtime: number
-    absent_workers: number
-    by_trade: Record<string, number>
-    by_skill: Record<string, number>
+  worker_statistics?: {
+    total_workers?: number
+    total_hours?: number
   }
   documents: Record<string, any[]>
   document_counts: Record<string, number>
-  material_usage?: {
-    npc1000_incoming?: number
-    npc1000_used?: number
-    npc1000_remaining?: number
-    usage_rate?: string
-  }
   related_reports: any[]
   report_author?: any
 }
+
+interface WorkerRow {
+  id: string
+  name: string
+  hours: number
+  notes: string
+}
+
+interface MaterialRow {
+  id: string
+  name: string
+  code: string
+  quantity: number
+  unit: string
+  notes: string
+}
+
+const workerColumns: Column<WorkerRow>[] = [
+  {
+    key: 'name',
+    header: '이름',
+    sortable: true,
+    render: row => <span className="font-medium text-foreground">{row.name}</span>,
+  },
+  {
+    key: 'hours',
+    header: '공수',
+    sortable: true,
+    align: 'right',
+    render: row => row.hours.toFixed(1),
+  },
+  {
+    key: 'notes',
+    header: '비고',
+    sortable: false,
+    render: row => (
+      <span className="truncate inline-block max-w-[360px]" title={row.notes}>
+        {row.notes || '-'}
+      </span>
+    ),
+  },
+]
+
+const materialColumns: Column<MaterialRow>[] = [
+  {
+    key: 'name',
+    header: '자재명',
+    sortable: true,
+    render: row => row.name,
+  },
+  {
+    key: 'code',
+    header: '코드',
+    sortable: true,
+    render: row => row.code,
+  },
+  {
+    key: 'quantity',
+    header: '수량',
+    sortable: true,
+    align: 'right',
+    render: row => row.quantity.toLocaleString('ko-KR'),
+  },
+  {
+    key: 'unit',
+    header: '단위',
+    sortable: false,
+    render: row => row.unit,
+  },
+  {
+    key: 'notes',
+    header: '비고',
+    sortable: false,
+    render: row => row.notes,
+  },
+]
 
 export default function DailyReportDetailClient({
   reportId,
@@ -36,18 +103,28 @@ export default function DailyReportDetailClient({
   workDate,
   status,
   author,
+  initialReport,
 }: {
   reportId: string
   siteName?: string
   workDate?: string
   status?: string
   author?: string
+  initialReport?: UnifiedDailyReport
 }) {
-  const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<IntegratedResponse | null>(null)
+  const [loading, setLoading] = useState(!initialReport)
   const [error, setError] = useState<string | null>(null)
+  const [integratedData, setIntegratedData] = useState<IntegratedResponse | null>(null)
+  const [prefetchedReport, setPrefetchedReport] = useState<UnifiedDailyReport | null>(
+    initialReport ?? null
+  )
 
   useEffect(() => {
+    if (initialReport) {
+      setPrefetchedReport(initialReport)
+      return
+    }
+
     let ignore = false
     ;(async () => {
       setLoading(true)
@@ -59,23 +136,58 @@ export default function DailyReportDetailClient({
         })
         if (!res.ok) throw new Error('Failed to load daily report')
         const j = await res.json()
-        if (!ignore) setData(j as IntegratedResponse)
+        if (!ignore) setIntegratedData(j as IntegratedResponse)
       } catch (e: any) {
         if (!ignore) setError(e?.message || '로드 실패')
       } finally {
         if (!ignore) setLoading(false)
       }
     })()
+
     return () => {
       ignore = true
     }
-  }, [reportId])
+  }, [initialReport, reportId])
 
-  const docs = data?.documents || {}
-  const drawings = useMemo(() => docs['drawing'] || [], [docs])
-  const photos = useMemo(() => docs['photo'] || [], [docs])
-  const completionDocs = useMemo(() => docs['completion'] || [], [docs])
-  const others = useMemo(() => docs['other'] || [], [docs])
+  const unifiedReport = useMemo<UnifiedDailyReport | null>(() => {
+    if (prefetchedReport) return prefetchedReport
+    if (integratedData) return integratedResponseToUnifiedReport(integratedData)
+    return null
+  }, [prefetchedReport, integratedData])
+
+  const primaryWorkEntry = unifiedReport?.workEntries?.[0]
+
+  const workerRows: WorkerRow[] = useMemo(
+    () =>
+      (unifiedReport?.workers || []).map(worker => ({
+        id: worker.id,
+        name: worker.workerName || '이름없음',
+        hours: Number(worker.hours ?? 0),
+        notes: worker.notes || '-',
+      })),
+    [unifiedReport?.workers]
+  )
+
+  const materialRows: MaterialRow[] = useMemo(
+    () =>
+      (unifiedReport?.materials || []).map(material => ({
+        id: material.id,
+        name: material.materialName || '-',
+        code: material.materialCode || '-',
+        quantity: Number(material.quantity ?? 0),
+        unit: material.unit || '-',
+        notes: material.notes || '-',
+      })),
+    [unifiedReport?.materials]
+  )
+
+  const additionalPhotos = unifiedReport?.additionalPhotos || []
+
+  const totalWorkers =
+    unifiedReport?.workers?.length ?? integratedData?.worker_statistics?.total_workers ?? 0
+  const totalHours =
+    integratedData?.worker_statistics?.total_hours ??
+    workerRows.reduce((sum, row) => sum + row.hours, 0)
 
   const openFile = async (url: string) => {
     let finalUrl = url
@@ -86,16 +198,6 @@ export default function DailyReportDetailClient({
     } catch {
       void 0
     }
-    try {
-      const chk = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`)
-      const cj = await chk.json().catch(() => ({}))
-      if (!cj?.exists) {
-        alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
-        return
-      }
-    } catch {
-      void 0
-    }
     window.open(finalUrl, '_blank')
   }
 
@@ -103,290 +205,215 @@ export default function DailyReportDetailClient({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>{siteName || data?.site?.name || '-'}</CardTitle>
+          <CardTitle>{siteName || unifiedReport?.siteName || '-'}</CardTitle>
           <CardDescription>
-            {workDate || data?.daily_report?.work_date
-              ? new Date(workDate || data?.daily_report?.work_date).toLocaleDateString('ko-KR')
+            {workDate || unifiedReport?.workDate
+              ? new Date(workDate || unifiedReport?.workDate || '').toLocaleDateString('ko-KR')
               : '-'}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid md:grid-cols-4 gap-3 text-sm text-muted-foreground">
-          <div>
-            <div className="text-xs">상태</div>
-            <div className="text-foreground font-medium">
-              {status || data?.daily_report?.status || '-'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs">작성자</div>
-            <div className="text-foreground font-medium">
-              {author || data?.report_author?.full_name || '-'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs">총 인원</div>
-            <div className="text-foreground font-medium">
-              {data?.worker_statistics?.total_workers ?? '-'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs">총 공수</div>
-            <div className="text-foreground font-medium">
-              {data?.worker_statistics?.total_hours ?? '-'}
-            </div>
-          </div>
-          {data?.material_usage && (
+          <DetailStat label="상태" value={status || unifiedReport?.status || '-'} />
+          <DetailStat
+            label="작성자"
+            value={
+              author ||
+              (unifiedReport?.meta?.authorName as string | undefined) ||
+              integratedData?.report_author?.full_name ||
+              '-'
+            }
+          />
+          <DetailStat label="총 인원" value={totalWorkers} />
+          <DetailStat label="총 공수" value={totalHours.toFixed(1)} />
+          {unifiedReport?.npcUsage && (
             <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div>
-                <div className="text-xs">NPC-1000 입고</div>
-                <div className="text-foreground">{data.material_usage.npc1000_incoming ?? 0}</div>
-              </div>
-              <div>
-                <div className="text-xs">사용</div>
-                <div className="text-foreground">{data.material_usage.npc1000_used ?? 0}</div>
-              </div>
-              <div>
-                <div className="text-xs">잔량</div>
-                <div className="text-foreground">{data.material_usage.npc1000_remaining ?? 0}</div>
-              </div>
-              <div>
-                <div className="text-xs">사용률</div>
-                <div className="text-foreground">{data.material_usage.usage_rate || '0%'}</div>
-              </div>
+              <DetailStat label="NPC-1000 입고" value={unifiedReport.npcUsage.incoming ?? 0} />
+              <DetailStat label="사용" value={unifiedReport.npcUsage.used ?? 0} />
+              <DetailStat label="잔량" value={unifiedReport.npcUsage.remaining ?? 0} />
+              <DetailStat
+                label="사용률"
+                value={
+                  unifiedReport.npcUsage.incoming
+                    ? `${Math.round(
+                        ((unifiedReport.npcUsage.used ?? 0) /
+                          (unifiedReport.npcUsage.incoming || 1)) *
+                          100
+                      )}%`
+                    : '0%'
+                }
+              />
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 작업 내용 */}
       <Card>
         <CardHeader>
-          <CardTitle>작업 내용</CardTitle>
-          <CardDescription>부재명/공정/구간/요약</CardDescription>
+          <CardTitle>작업 내역</CardTitle>
+          <CardDescription>부재명 / 작업공정 / 작업구간 / 특이사항</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-2 gap-3 text-sm text-muted-foreground">
-            <DetailRow label="부재명" value={data?.daily_report?.component_name || '-'} />
-            <DetailRow label="공정" value={data?.daily_report?.process_type || '-'} />
-            <DetailRow label="작업공정" value={data?.daily_report?.work_process || '-'} />
-            <DetailRow label="작업구간" value={data?.daily_report?.work_section || '-'} />
-            <DetailRow
-              label="작업내용"
-              value={
-                data?.daily_report?.work_description ||
-                (Array.isArray(data?.daily_report?.additional_notes?.workContents)
-                  ? data?.daily_report?.additional_notes?.workContents.join(', ')
-                  : '-')
-              }
-            />
-            <DetailRow
-              label="작업유형"
-              value={
-                Array.isArray(data?.daily_report?.additional_notes?.workTypes)
-                  ? data?.daily_report?.additional_notes?.workTypes.join(', ')
-                  : '-'
-              }
-            />
-            <DetailRow
-              label="부재유형"
-              value={
-                Array.isArray(data?.daily_report?.additional_notes?.memberTypes)
-                  ? data?.daily_report?.additional_notes?.memberTypes.join(', ')
-                  : '-'
-              }
-            />
-          </div>
+          {unifiedReport?.workEntries?.length ? (
+            <div className="space-y-4 text-sm text-muted-foreground">
+              {unifiedReport.workEntries.map(entry => (
+                <div
+                  key={entry.id}
+                  className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                >
+                  <div className="flex flex-wrap gap-4 text-foreground">
+                    <span className="font-semibold">부재명</span>
+                    <span>{entry.memberName || '-'}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-4 mt-2">
+                    <span className="text-xs text-muted-foreground">작업공정</span>
+                    <span className="text-foreground">{entry.processType || '-'}</span>
+                    <span className="text-xs text-muted-foreground">작업구간</span>
+                    <span className="text-foreground">{entry.workSection || '-'}</span>
+                  </div>
+                  {entry.notes && (
+                    <p className="mt-2 text-foreground leading-relaxed">{entry.notes}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">등록된 작업 내역이 없습니다.</div>
+          )}
         </CardContent>
       </Card>
 
-      {/* 작업 위치 */}
       <Card>
         <CardHeader>
           <CardTitle>작업 위치</CardTitle>
-          <CardDescription>블럭/동/호(또는 층)</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-3 text-sm text-muted-foreground">
-            <DetailRow label="블럭" value={data?.daily_report?.location_info?.block || '-'} />
-            <DetailRow label="동" value={data?.daily_report?.location_info?.dong || '-'} />
-            <DetailRow label="호수/층" value={data?.daily_report?.location_info?.unit || '-'} />
-          </div>
+        <CardContent className="grid md:grid-cols-3 gap-3 text-sm text-muted-foreground">
+          <DetailStat label="블럭" value={unifiedReport?.location?.block || '-'} />
+          <DetailStat label="동" value={unifiedReport?.location?.dong || '-'} />
+          <DetailStat label="호수/층" value={unifiedReport?.location?.unit || '-'} />
         </CardContent>
       </Card>
 
-      {/* 안전/특이사항 */}
       <Card>
         <CardHeader>
-          <CardTitle>안전/특이사항</CardTitle>
+          <CardTitle>본사 요청사항</CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-3">
-          <div>
-            <div className="text-xs">특이사항</div>
-            <div className="text-foreground">{data?.daily_report?.issues || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">안전 메모</div>
-            <div className="text-foreground">
-              {data?.daily_report?.additional_notes?.safetyNotes || '-'}
-            </div>
-          </div>
+        <CardContent className="text-sm text-muted-foreground">
+          {unifiedReport?.hqRequest || '요청사항이 없습니다.'}
         </CardContent>
       </Card>
 
-      {/* 작업자 배정 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>특이사항 / 이슈</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          {unifiedReport?.issues || '입력된 특이사항이 없습니다.'}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>작업자 내역</CardTitle>
-          <CardDescription>배정/공수/근태</CardDescription>
+          <CardDescription>배정 인력 및 공수</CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-sm text-muted-foreground">불러오는 중...</div>
-          ) : (data?.worker_assignments?.length || 0) === 0 ? (
+          {workerRows.length === 0 ? (
             <div className="text-sm text-muted-foreground">작업자 내역이 없습니다.</div>
           ) : (
-            <DataTable
-              data={data?.worker_assignments || []}
-              rowKey={(a: any) => a.id}
-              stickyHeader
-              columns={
-                [
-                  {
-                    key: 'name',
-                    header: '이름',
-                    sortable: true,
-                    render: (a: any) => (
-                      <span className="font-medium text-foreground">
-                        {a?.profiles?.full_name || a?.worker_name || '이름없음'}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: 'trade',
-                    header: '직종/숙련',
-                    sortable: true,
-                    render: (a: any) => `${a?.trade_type || '기타'} / ${a?.skill_level || '견습'}`,
-                  },
-                  {
-                    key: 'labor_hours',
-                    header: '공수',
-                    sortable: true,
-                    align: 'right',
-                    render: (a: any) => a?.labor_hours ?? 0,
-                  },
-                  {
-                    key: 'overtime_hours',
-                    header: '연장',
-                    sortable: true,
-                    align: 'right',
-                    render: (a: any) => a?.overtime_hours ?? 0,
-                  },
-                  {
-                    key: 'attendance',
-                    header: '출결',
-                    sortable: true,
-                    render: (a: any) =>
-                      a?.is_present ? (
-                        <Badge variant="default">출근</Badge>
-                      ) : (
-                        <Badge variant="outline">결근</Badge>
-                      ),
-                  },
-                  {
-                    key: 'notes',
-                    header: '비고',
-                    sortable: false,
-                    render: (a: any) => (
-                      <span className="truncate inline-block max-w-[360px]" title={a?.notes || ''}>
-                        {a?.notes || '-'}
-                      </span>
-                    ),
-                  },
-                ] as Column<any>[]
-              }
-            />
+            <DataTable data={workerRows} rowKey="id" columns={workerColumns} stickyHeader />
           )}
         </CardContent>
       </Card>
 
-      {/* 첨부: 사진/도면/완료확인서/기타 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>자재 현황</CardTitle>
+          <CardDescription>기록된 자재 사용 이력</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {materialRows.length === 0 ? (
+            <div className="text-sm text-muted-foreground">자재 사용 내역이 없습니다.</div>
+          ) : (
+            <DataTable data={materialRows} rowKey="id" columns={materialColumns} stickyHeader />
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>추가 사진</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {additionalPhotos.length === 0 ? (
+            <div className="text-sm text-muted-foreground">등록된 사진이 없습니다.</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {additionalPhotos.map(photo => (
+                <button
+                  key={photo.id}
+                  type="button"
+                  className="group relative overflow-hidden rounded-lg border bg-gray-50"
+                  onClick={() => openFile(photo.preview || photo.url || '')}
+                >
+                  <img
+                    src={photo.preview || photo.url || ''}
+                    alt={photo.description || photo.filename}
+                    className="h-32 w-full object-cover transition-transform duration-200 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-black/50 px-2 py-1 text-left text-xs text-white">
+                    {photo.description || photo.filename}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>첨부</CardTitle>
-          <CardDescription>사진/도면/완료확인서/기타</CardDescription>
+          <CardDescription>사진 / 도면 / 완료확인서 / 기타</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
-            <AttachmentSection title="사진" items={photos} onOpen={openFile} />
-            <AttachmentSection title="도면" items={drawings} onOpen={openFile} />
-            <AttachmentSection title="완료확인서" items={completionDocs} onOpen={openFile} />
-            <AttachmentSection title="기타" items={others} onOpen={openFile} />
+            <AttachmentSection
+              title="사진"
+              items={unifiedReport?.attachments.photos || []}
+              onOpen={openFile}
+            />
+            <AttachmentSection
+              title="도면"
+              items={unifiedReport?.attachments.drawings || []}
+              onOpen={openFile}
+            />
+            <AttachmentSection
+              title="완료확인서"
+              items={unifiedReport?.attachments.confirmations || []}
+              onOpen={openFile}
+            />
+            <AttachmentSection
+              title="기타"
+              items={unifiedReport?.attachments.others || []}
+              onOpen={openFile}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* 비고 */}
       <Card>
         <CardHeader>
           <CardTitle>비고</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          {data?.daily_report?.notes || data?.daily_report?.issues || '입력된 비고가 없습니다.'}
-        </CardContent>
-      </Card>
-
-      {/* 관련 일지 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>관련 작업일지</CardTitle>
-          <CardDescription>같은 현장의 최근 일지</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {(data?.related_reports?.length || 0) === 0 ? (
-            <div className="text-sm text-muted-foreground">관련 일지가 없습니다.</div>
-          ) : (
-            <DataTable
-              data={data?.related_reports || []}
-              rowKey={(r: any) => r.id}
-              stickyHeader
-              columns={
-                [
-                  {
-                    key: 'work_date',
-                    header: '일자',
-                    sortable: true,
-                    render: (r: any) => new Date(r.work_date).toLocaleDateString('ko-KR'),
-                  },
-                  {
-                    key: 'member_process',
-                    header: '구성/공정',
-                    sortable: true,
-                    render: (r: any) => `${r?.member_name || '-'} / ${r?.process_type || '-'}`,
-                  },
-                  {
-                    key: 'status',
-                    header: '상태',
-                    sortable: true,
-                    render: (r: any) => r?.status || '-',
-                  },
-                  {
-                    key: 'open',
-                    header: '바로가기',
-                    sortable: false,
-                    render: (r: any) => (
-                      <a className="underline" href={`/dashboard/admin/daily-reports/${r.id}`}>
-                        열기
-                      </a>
-                    ),
-                  },
-                ] as Column<any>[]
-              }
-            />
-          )}
+          {unifiedReport?.notes || unifiedReport?.issues || '입력된 비고가 없습니다.'}
         </CardContent>
       </Card>
 
       {error && <div className="text-sm text-destructive">{error}</div>}
+      {loading && !unifiedReport && (
+        <div className="text-sm text-muted-foreground">작업일지를 불러오는 중입니다...</div>
+      )}
     </div>
   )
 }
@@ -397,7 +424,7 @@ function AttachmentSection({
   onOpen,
 }: {
   title: string
-  items: any[]
+  items: UnifiedAttachment[]
   onOpen: (url: string) => void
 }) {
   return (
@@ -407,27 +434,21 @@ function AttachmentSection({
         <div className="text-sm text-muted-foreground">첨부 없음</div>
       ) : (
         <div className="grid grid-cols-1 gap-2">
-          {items.map((d: any) => (
-            <div key={d.id} className="flex items-center justify-between rounded border p-2">
+          {items.map(file => (
+            <div key={file.id} className="flex items-center justify-between rounded border p-2">
               <div className="truncate">
                 <div
                   className="font-medium text-foreground truncate max-w-[340px]"
-                  title={d.title || d.file_name || ''}
+                  title={file.name}
                 >
-                  {d.title || d.file_name || '파일'}
+                  {file.name || '파일'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {new Date(d.created_at || d.uploaded_at || Date.now()).toLocaleDateString(
-                    'ko-KR'
-                  )}
+                  {file.uploadedAt ? new Date(file.uploadedAt).toLocaleDateString('ko-KR') : '-'}
                 </div>
               </div>
               <div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => d.file_url && onOpen(d.file_url)}
-                >
+                <Button size="sm" variant="outline" onClick={() => onOpen(file.url)}>
                   보기
                 </Button>
               </div>
@@ -439,19 +460,12 @@ function AttachmentSection({
   )
 }
 
-function formatManhours(v: unknown): string {
-  const n = Number(v)
-  if (!Number.isFinite(n)) return '0.0'
-  const floored = Math.floor(n * 10) / 10
-  return floored.toFixed(1)
-}
-
-function DetailRow({ label, value }: { label: string; value: any }) {
-  const text = value === undefined || value === null || value === '' ? '-' : String(value)
+function DetailStat({ label, value }: { label: string; value: string | number }) {
+  const display = value === undefined || value === null || value === '' ? '-' : value
   return (
-    <div>
+    <div className="text-sm text-muted-foreground">
       <div className="text-xs">{label}</div>
-      <div className="text-foreground font-medium">{text}</div>
+      <div className="text-foreground font-medium">{display}</div>
     </div>
   )
 }

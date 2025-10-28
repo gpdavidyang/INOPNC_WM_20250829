@@ -1,63 +1,69 @@
-import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/lib/supabase/server'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { getDailyReportById, updateDailyReport, getSites } from '@/app/actions/admin/daily-reports'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import { buttonVariants } from '@/components/ui/button'
-import dynamic from 'next/dynamic'
-import { Button } from '@/components/ui/button'
+import DailyReportForm from '@/components/daily-reports/daily-report-form'
+import { unifiedReportToLegacyPayload } from '@/lib/daily-reports/unified'
+import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
 
-export const metadata: Metadata = { title: '일일보고 수정' }
+async function fetchSites() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('sites')
+    .select('id, name')
+    .eq('status', 'active')
+    .order('name')
+  if (error) {
+    console.error('[AdminDailyReportEdit] failed to load sites:', error.message)
+    return []
+  }
+  return data ?? []
+}
 
-interface DailyReportEditPageProps {
+async function fetchWorkers() {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, role')
+    .in('role', ['worker', 'site_manager'])
+    .order('full_name')
+  if (error) {
+    console.error('[AdminDailyReportEdit] failed to load workers:', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+async function fetchMaterials() {
+  const supabase = createClient()
+  const { data, error } = await supabase.from('materials').select('*').order('name')
+  if (error) {
+    console.error('[AdminDailyReportEdit] failed to load materials:', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+export const dynamic = 'force-dynamic'
+
+interface PageProps {
   params: { id: string }
 }
 
-export default async function AdminDailyReportEditPage({ params }: DailyReportEditPageProps) {
-  await requireAdminProfile()
-  const result = await getDailyReportById(params.id)
-  const report = result.success && result.data ? (result.data as any) : null
-  const sitesRes = await getSites()
-  const siteOptions: Array<{ id: string; name: string }> = (
-    sitesRes.success ? (sitesRes.data as any[]) : []
-  ).map((s: any) => ({ id: s.id, name: s.name }))
+export default async function AdminDailyReportEditPage({ params }: PageProps) {
+  const profile = await requireAdminProfile()
+  const [sites, workers, materials, unifiedReport] = await Promise.all([
+    fetchSites(),
+    fetchWorkers(),
+    fetchMaterials(),
+    getUnifiedDailyReportForAdmin(params.id),
+  ])
 
-  async function save(formData: FormData) {
-    'use server'
-    const site_id = String(formData.get('site_id') || report?.site_id || '') || null
-    const work_date = String(formData.get('work_date') || report?.work_date || '') || null
-    const component_name = String(formData.get('component_name') || '') || null
-    const work_process = String(formData.get('work_process') || '') || null
-    const work_section = String(formData.get('work_section') || '') || null
-    const issues = String(formData.get('issues') || '') || null
-    const safetyNotes = String(formData.get('safety_notes') || '') || null
-    const notes = String(formData.get('notes') || '') || null
-    const block = String(formData.get('loc_block') || '')
-    const dong = String(formData.get('loc_dong') || '')
-    const unit = String(formData.get('loc_unit') || '')
-
-    await updateDailyReport(params.id, {
-      ...(site_id ? { site_id } : {}),
-      ...(work_date ? { work_date } : {}),
-      component_name: component_name || null,
-      work_process: work_process || null,
-      work_section: work_section || null,
-      issues,
-      notes,
-      additional_notes: safetyNotes ? { safetyNotes } : null,
-      location_info: block || dong || unit ? { block, dong, unit } : null,
-    })
-    revalidatePath(`/dashboard/admin/daily-reports/${params.id}`)
+  if (!unifiedReport) {
     redirect(`/dashboard/admin/daily-reports/${params.id}`)
   }
 
-  const currentIssues = report?.issues || report?.notes || ''
-  const WorkOptionFields = dynamic(
-    () => import('@/components/admin/daily-reports/WorkOptionFields'),
-    { ssr: false }
-  )
+  const legacyPayload = unifiedReportToLegacyPayload(unifiedReport, { includeWorkers: true })
 
   return (
     <div className="px-0 pb-8">
@@ -71,119 +77,16 @@ export default async function AdminDailyReportEditPage({ params }: DailyReportEd
         showBackButton
         backButtonHref={`/dashboard/admin/daily-reports/${params.id}`}
       />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>작업일지 수정</CardTitle>
-            <CardDescription>ID: {params.id}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form action={save} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">작업일</label>
-                  <input
-                    type="date"
-                    name="work_date"
-                    defaultValue={report?.work_date || ''}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">현장</label>
-                  <select
-                    name="site_id"
-                    defaultValue={report?.site_id || ''}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="">변경 안 함</option>
-                    {siteOptions.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Client-side work options (CustomSelect) */}
-              <WorkOptionFields
-                defaultComponentName={report?.component_name || ''}
-                defaultWorkProcess={report?.work_process || ''}
-                defaultWorkSection={report?.work_section || ''}
-              />
-
-              <div className="grid md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">블럭</label>
-                  <input
-                    type="text"
-                    name="loc_block"
-                    defaultValue={report?.location_info?.block || ''}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">동</label>
-                  <input
-                    type="text"
-                    name="loc_dong"
-                    defaultValue={report?.location_info?.dong || ''}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">호수/층</label>
-                  <input
-                    type="text"
-                    name="loc_unit"
-                    defaultValue={report?.location_info?.unit || ''}
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">메모/이슈</label>
-                <textarea
-                  name="issues"
-                  defaultValue={currentIssues}
-                  className="w-full h-32 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="현황 메모"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">안전 메모</label>
-                <textarea
-                  name="safety_notes"
-                  defaultValue={report?.additional_notes?.safetyNotes || ''}
-                  className="w-full h-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="안전 관련 메모"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">비고</label>
-                <textarea
-                  name="notes"
-                  defaultValue={report?.notes || ''}
-                  className="w-full h-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  placeholder="추가 비고"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Button type="submit" variant="outline">
-                  저장
-                </Button>
-                <a
-                  href={`/dashboard/admin/daily-reports/${params.id}`}
-                  className={buttonVariants({ variant: 'outline', size: 'standard' })}
-                  role="button"
-                >
-                  취소
-                </a>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+      <div className="px-0">
+        <DailyReportForm
+          mode="edit"
+          sites={(sites as any) || []}
+          currentUser={profile as any}
+          materials={(materials as any) || []}
+          workers={(workers as any) || []}
+          reportData={legacyPayload as any}
+          initialUnifiedReport={unifiedReport}
+        />
       </div>
     </div>
   )
