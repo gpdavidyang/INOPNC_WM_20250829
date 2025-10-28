@@ -40,8 +40,41 @@ export default async function AdminNewDailyReportPage() {
     .in('role', ['worker', 'site_manager'])
     .order('full_name')
 
+  const interpretMaterialFlag = (value: unknown): boolean | null => {
+    if (value === null || value === undefined) return null
+    if (typeof value === 'boolean') return value
+    const normalized = String(value).trim().toLowerCase()
+    if (['true', '1', 'y', 'yes', 'active', 'enabled'].includes(normalized)) return true
+    if (['false', '0', 'n', 'no', 'inactive', 'disabled'].includes(normalized)) return false
+    return null
+  }
+
+  const isMaterialSelectable = (material: any): boolean => {
+    const activeFlag = interpretMaterialFlag(material?.is_active)
+    if (activeFlag !== null) return activeFlag
+
+    const useFlag = interpretMaterialFlag(
+      material?.use_yn ??
+        material?.useYn ??
+        material?.use_flag ??
+        material?.useFlag ??
+        material?.is_use ??
+        material?.isUse
+    )
+    if (useFlag !== null) return useFlag
+
+    const statusFlag = interpretMaterialFlag(material?.status)
+    if (statusFlag !== null) return statusFlag
+
+    return true
+  }
+
   // Get materials (best-effort)
-  const { data: materials } = await supabase.from('materials').select('*').order('name')
+  const { data: materialsData } = await supabase
+    .from('materials')
+    .select('id, name, code, unit, is_active, use_yn, use_flag, status')
+    .order('name')
+  const materials = Array.isArray(materialsData) ? materialsData.filter(isMaterialSelectable) : []
 
   return (
     <div className="px-0 pb-8">
