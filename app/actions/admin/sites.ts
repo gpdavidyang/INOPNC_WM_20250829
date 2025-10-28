@@ -13,6 +13,7 @@ import {
   requireRestrictedOrgId,
   resolveAdminError,
 } from './common'
+import { computeSiteStats } from '@/lib/admin/site-stats'
 
 type AdminSupabaseClient = SupabaseClient<Database>
 
@@ -270,9 +271,26 @@ export async function getSites(
       }
 
       const totalPages = Math.ceil((count || 0) / limit)
-      const sanitizedSites = (sites || []).map(site => {
+      const rawSites = Array.isArray(sites) ? sites : []
+      const siteIds = rawSites
+        .map(site => (site as any)?.id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+      let statsMap: Record<string, { daily_reports_count: number; total_labor_hours: number }> = {}
+      try {
+        statsMap = await computeSiteStats(siteIds)
+      } catch (err) {
+        console.error('[getSites] failed to compute site stats:', err)
+      }
+
+      const sanitizedSites = rawSites.map(site => {
         const { organization_id: _organizationId, ...rest } = site as any
-        return rest as Site
+        const stats = statsMap[rest.id] || { daily_reports_count: 0, total_labor_hours: 0 }
+        return {
+          ...(rest as Site),
+          daily_reports_count: stats.daily_reports_count,
+          total_labor_hours: stats.total_labor_hours,
+        }
       })
 
       return {

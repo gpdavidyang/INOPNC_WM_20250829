@@ -37,6 +37,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         .from('work_records')
         .select('labor_hours, work_hours')
         .eq('site_id', siteId)
+        .not('daily_report_id', 'is', null)
         .range(from, from + PAGE_SIZE - 1)
       if (error) {
         console.error('[admin/sites/:id/stats] work_records error:', error)

@@ -37,8 +37,27 @@ export default function SiteDetailActions({ siteId }: Props) {
     setBusy(true)
     try {
       const res = await fetch(`/api/admin/sites/${siteId}`, { method: 'DELETE' })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
+      let payload: any = {}
+      try {
+        payload = await res.clone().json()
+      } catch (error) {
+        /* ignore */
+      }
+
+      if (res.status === 409) {
+        toast({
+          title: '삭제할 수 없습니다.',
+          description:
+            payload?.error ||
+            '현장에 연결된 작업일지나 자료가 있습니다. 관련 데이터를 정리하거나 상태를 완료로 변경한 뒤 다시 시도하세요.',
+          variant: 'warning',
+        })
+        return
+      }
+
+      if (!res.ok || payload?.success === false) {
+        throw new Error(payload?.error || `삭제 실패 (코드 ${res.status})`)
+      }
       toast({ title: '삭제 완료', description: '현장이 삭제되었습니다.', variant: 'success' })
       router.push('/dashboard/admin/sites')
     } catch (e: any) {

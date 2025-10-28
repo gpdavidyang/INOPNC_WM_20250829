@@ -57,6 +57,7 @@ const SHARED_CATEGORY_LABELS: Record<string, string> = {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  planning: '준비 중',
   active: '진행 중',
   inactive: '중단',
   completed: '완료',
@@ -69,6 +70,7 @@ const STATUS_LABELS: Record<string, string> = {
 }
 // 현장 상태 전용 라벨 (개요 탭)
 const SITE_STATUS_LABELS: Record<string, string> = {
+  planning: '준비 중',
   active: '진행 중',
   inactive: '중단',
   completed: '완료',
@@ -757,9 +759,7 @@ export default function SiteDetailTabs({
             <div>
               <div className="text-xs">상태</div>
               <div className="text-foreground font-medium">
-                {site?.status
-                  ? SITE_STATUS_LABELS[String(site.status)] || String(site.status)
-                  : '-'}
+                {site?.status ? SITE_STATUS_LABELS[String(site.status)] || '미정' : '-'}
               </div>
             </div>
             <div>

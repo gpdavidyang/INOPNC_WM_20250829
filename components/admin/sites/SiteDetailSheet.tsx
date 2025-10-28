@@ -43,6 +43,7 @@ type SiteDetailSheetProps = {
 }
 
 const STATUS_LABELS: Record<SiteStatus, string> = {
+  planning: '준비 중',
   active: '진행 중',
   inactive: '중단',
   completed: '완료',

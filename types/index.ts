@@ -130,7 +130,7 @@ export interface Organization {
 }
 
 // 현장 상태
-export type SiteStatus = 'active' | 'inactive' | 'completed'
+export type SiteStatus = 'planning' | 'active' | 'inactive' | 'completed'
 
 // 현장
 export interface Site {
@@ -159,6 +159,8 @@ export interface Site {
   created_at: string
   updated_at: string
   created_by?: string | null
+  daily_reports_count?: number
+  total_labor_hours?: number
 }
 
 // 현장 배정 역할
