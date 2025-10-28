@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReportById } from '@/app/actions/admin/daily-reports'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
 import EmptyState from '@/components/ui/empty-state'
 import DailyReportDetailClient from '@/components/admin/daily-reports/DailyReportDetailClient'
+import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
 
 export const metadata: Metadata = { title: '일일보고 상세' }
 
@@ -13,6 +13,7 @@ export default async function AdminDailyReportDetailPage({ params }: { params: {
   await requireAdminProfile()
   const result = await getDailyReportById(params.id)
   const report = result.success && result.data ? (result.data as any) : null
+  const unifiedReport = await getUnifiedDailyReportForAdmin(params.id)
 
   return (
     <div className="px-0 pb-8 space-y-6">
@@ -44,6 +45,7 @@ export default async function AdminDailyReportDetailPage({ params }: { params: {
           workDate={report?.work_date || ''}
           status={report?.status || ''}
           author={report?.profiles?.full_name || ''}
+          initialReport={unifiedReport || undefined}
         />
       ) : (
         <EmptyState title="오류" description="작업일지 정보를 불러오지 못했습니다." />
