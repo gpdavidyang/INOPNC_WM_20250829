@@ -30,14 +30,17 @@ import {
   ChevronUp,
   FileText,
   Package,
-  Receipt,
   Image as ImageIcon,
   Trash2,
   Save,
   Send,
 } from 'lucide-react'
 import type { Profile, Site, Material, DailyReport } from '@/types'
-import type { AdditionalPhotoData, UnifiedDailyReport } from '@/types/daily-reports'
+import type {
+  AdditionalPhotoData,
+  UnifiedDailyReport,
+  UnifiedMaterialEntry,
+} from '@/types/daily-reports'
 import { useWorkOptions } from '@/hooks/use-work-options'
 import AdditionalPhotoUploadSection from '@/components/daily-reports/additional-photo-upload-section'
 // Use REST endpoints to avoid importing server actions in client
@@ -55,7 +58,6 @@ interface DailyReportFormProps {
     weather_conditions?: unknown
     photo_groups?: unknown[]
     worker_entries?: unknown[]
-    receipts?: unknown[]
     additional_photos?: unknown[]
   }
   initialUnifiedReport?: UnifiedDailyReport
@@ -89,19 +91,43 @@ interface PhotoEntry {
   preview: string | null
 }
 
-interface ReceiptEntry {
+interface MaterialUsageFormEntry {
   id: string
-  category: string
-  amount: string
-  date: string
-  file: File | null
-  preview?: string | null
+  materialId?: string | null
+  materialCode?: string | null
+  materialName: string
+  unit?: string | null
+  quantity: string
+  notes?: string
 }
 
-interface MaterialEntry {
-  incoming: string
-  used: string
-  remaining: string
+const interpretMaterialActiveFlag = (value: unknown): boolean | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'boolean') return value
+  const normalized = String(value).trim().toLowerCase()
+  if (['true', '1', 'y', 'yes', 'active', 'enabled'].includes(normalized)) return true
+  if (['false', '0', 'n', 'no', 'inactive', 'disabled'].includes(normalized)) return false
+  return null
+}
+
+const isSelectableMaterial = (material: any): boolean => {
+  const activeFlag = interpretMaterialActiveFlag(material?.is_active)
+  if (activeFlag !== null) return activeFlag
+
+  const useFlag = interpretMaterialActiveFlag(
+    material?.use_yn ??
+      material?.useYn ??
+      material?.use_flag ??
+      material?.useFlag ??
+      material?.is_use ??
+      material?.isUse
+  )
+  if (useFlag !== null) return useFlag
+
+  const statusFlag = interpretMaterialActiveFlag(material?.status)
+  if (statusFlag !== null) return statusFlag
+
+  return true
 }
 
 // Role-based permissions helper
@@ -256,7 +282,6 @@ export default function DailyReportForm({
     workers: permissions.canManageWorkers, // 관리자/현장관리자만 기본 확장
     photos: false,
     additionalPhotos: false,
-    receipts: false,
     drawings: false,
     requests: false,
     materials: permissions.canViewAdvancedFeatures, // 고급 기능
@@ -422,58 +447,168 @@ export default function DailyReportForm({
       : []
   })
 
-  // Receipt entries
-  const [receiptEntries, setReceiptEntries] = useState<ReceiptEntry[]>(() => {
-    if (mode === 'edit' && reportData?.receipts?.length) {
-      return reportData.receipts.map((receipt: unknown) => ({
-        id: receipt.id || `receipt-${Date.now()}`,
-        category: receipt.category || '',
-        amount: receipt.amount || '',
-        date: receipt.receipt_date || new Date().toISOString().split('T')[0],
-        file: null,
-        preview: null,
+  // Material usage entries
+  const [materialUsageEntries, setMaterialUsageEntries] = useState<MaterialUsageFormEntry[]>(() => {
+    const fromReportData =
+      mode === 'edit' && Array.isArray((reportData as any)?.materials)
+        ? ((reportData as any)?.materials as UnifiedMaterialEntry[])
+        : Array.isArray((reportData as any)?.material_usage)
+          ? ((reportData as any)?.material_usage as UnifiedMaterialEntry[])
+          : []
+
+    if (fromReportData.length > 0) {
+      return fromReportData.map((entry, index) => ({
+        id: entry.id || `material-${index}`,
+        materialId: entry.materialId || null,
+        materialCode: entry.materialCode || null,
+        materialName: entry.materialName || entry.materialCode || `자재-${index + 1}`,
+        unit: entry.unit || null,
+        quantity:
+          entry.quantity !== undefined && entry.quantity !== null ? String(entry.quantity) : '',
+        notes: entry.notes || '',
       }))
     }
-    return [
-      {
-        id: `receipt-${Date.now()}`,
-        category: '',
-        amount: '',
-        date: new Date().toISOString().split('T')[0],
-        file: null,
-        preview: null,
-      },
-    ]
+
+    return []
   })
 
-  // NPC1000 Material tracking
-  const [npc1000Materials, setNpc1000Materials] = useState<MaterialEntry>(() => {
-    if (mode === 'edit' && reportData) {
-      return {
-        incoming: String(reportData.npc1000_incoming || ''),
-        used: String(reportData.npc1000_used || ''),
-        remaining: String(reportData.npc1000_remaining || ''),
-      }
-    }
-    return {
-      incoming: '',
-      used: '',
-      remaining: '',
-    }
-  })
+  const materialOptions = useMemo(() => {
+    const list = Array.isArray(materials) ? (materials as Array<any>) : []
+    return list.filter(isSelectableMaterial).map(material => ({
+      id: String(material.id),
+      name:
+        material.name ||
+        material.material_name ||
+        material.title ||
+        material.code ||
+        '이름 없는 자재',
+      code: material.code || material.material_code || null,
+      unit: material.unit || material.unit_name || material.unit_symbol || null,
+    }))
+  }, [materials])
+
+  const materialOptionMap = useMemo(() => {
+    const map = new Map<
+      string,
+      { id: string; name: string; code: string | null; unit: string | null }
+    >()
+    materialOptions.forEach(option => {
+      map.set(option.id, option)
+    })
+    return map
+  }, [materialOptions])
+
+  const addMaterialEntry = useCallback(() => {
+    setMaterialUsageEntries(prev => [
+      ...prev,
+      {
+        id: `material-${Date.now()}`,
+        materialId: null,
+        materialCode: null,
+        materialName: '',
+        unit: null,
+        quantity: '',
+        notes: '',
+      },
+    ])
+  }, [])
+
+  const handleRemoveMaterial = useCallback((entryId: string) => {
+    setMaterialUsageEntries(prev => prev.filter(entry => entry.id !== entryId))
+  }, [])
+
+  const handleMaterialSelect = useCallback(
+    (entryId: string, selectedValue: string) => {
+      setMaterialUsageEntries(prev =>
+        prev.map(entry => {
+          if (entry.id !== entryId) return entry
+          if (selectedValue === 'custom') {
+            return {
+              ...entry,
+              materialId: null,
+              materialCode: null,
+            }
+          }
+          const option = materialOptionMap.get(selectedValue)
+          return {
+            ...entry,
+            materialId: selectedValue,
+            materialCode: option?.code ?? null,
+            materialName: option?.name ?? entry.materialName,
+            unit: option?.unit ?? entry.unit ?? null,
+          }
+        })
+      )
+    },
+    [materialOptionMap]
+  )
+
+  const handleMaterialNameChange = useCallback((entryId: string, value: string) => {
+    setMaterialUsageEntries(prev =>
+      prev.map(entry => (entry.id === entryId ? { ...entry, materialName: value } : entry))
+    )
+  }, [])
+
+  const handleMaterialQuantityChange = useCallback((entryId: string, value: string) => {
+    setMaterialUsageEntries(prev =>
+      prev.map(entry => (entry.id === entryId ? { ...entry, quantity: value } : entry))
+    )
+  }, [])
+
+  const handleMaterialUnitChange = useCallback((entryId: string, value: string) => {
+    setMaterialUsageEntries(prev =>
+      prev.map(entry => (entry.id === entryId ? { ...entry, unit: value } : entry))
+    )
+  }, [])
+
+  const handleMaterialNoteChange = useCallback((entryId: string, value: string) => {
+    setMaterialUsageEntries(prev =>
+      prev.map(entry => (entry.id === entryId ? { ...entry, notes: value } : entry))
+    )
+  }, [])
+
+  const materialSummary = useMemo(() => {
+    const aggregate = new Map<string, { name: string; unit: string | null; quantity: number }>()
+    materialUsageEntries.forEach(entry => {
+      const option = entry.materialId ? materialOptionMap.get(entry.materialId) : null
+      const label = entry.materialName?.trim() || option?.name || ''
+      if (!label) return
+
+      const quantityValue = Number(entry.quantity)
+      if (!Number.isFinite(quantityValue) || quantityValue === 0) return
+
+      const unitValue = entry.unit || option?.unit || null
+      const key = `${label}|${unitValue || ''}`
+      const current = aggregate.get(key)
+      aggregate.set(key, {
+        name: label,
+        unit: unitValue,
+        quantity: Number(((current?.quantity || 0) + quantityValue).toFixed(3)),
+      })
+    })
+    return Array.from(aggregate.values())
+  }, [materialUsageEntries, materialOptionMap])
 
   // Additional photos
   const [additionalPhotos, setAdditionalPhotos] = useState<AdditionalPhotoData[]>(() => {
     if (mode === 'edit' && reportData?.additional_photos?.length) {
-      return reportData.additional_photos.map((photo: unknown) => ({
-        id: photo.id,
-        type: photo.photo_type,
-        category: photo.category,
-        description: photo.description,
-        file: null,
-        preview: photo.url || null,
-        isExisting: true,
-      }))
+      return (reportData.additional_photos as AdditionalPhotoData[]).map((photo, index) => {
+        const legacyPhoto = photo as AdditionalPhotoData & {
+          preview?: string | null
+          file_name?: string
+        }
+        return {
+          id: legacyPhoto.id ?? `existing-${index}`,
+          photo_type: legacyPhoto.photo_type === 'after' ? 'after' : 'before',
+          description: legacyPhoto.description || '',
+          file: null,
+          url: legacyPhoto.url || legacyPhoto.preview || null,
+          path: legacyPhoto.path,
+          filename: legacyPhoto.filename || legacyPhoto.file_name || `photo-${index + 1}.jpg`,
+          upload_order: legacyPhoto.upload_order ?? index + 1,
+          file_size: legacyPhoto.file_size,
+        }
+      })
     }
     return []
   })
@@ -537,15 +672,45 @@ export default function DailyReportForm({
       setLoadingType(isDraft ? 'draft' : 'submit')
       setError(null)
 
+      const materialUsagePayload = materialUsageEntries
+        .map(entry => {
+          const quantityValue = Number(entry.quantity)
+          const hasName = entry.materialName?.trim().length > 0
+
+          if (!hasName && !entry.materialId) {
+            return null
+          }
+
+          return {
+            id: entry.id && !entry.id.startsWith('material-') ? entry.id : undefined,
+            material_id: entry.materialId || null,
+            material_code: entry.materialCode || null,
+            material_name: hasName ? entry.materialName.trim() : '',
+            quantity: Number.isFinite(quantityValue) ? quantityValue : 0,
+            unit: entry.unit || null,
+            notes: entry.notes?.trim() || null,
+          }
+        })
+        .filter(
+          (
+            item
+          ): item is {
+            id?: string
+            material_id: string | null
+            material_code: string | null
+            material_name: string
+            quantity: number
+            unit: string | null
+            notes: string | null
+          } => Boolean(item && item.material_name)
+        )
+
       const submitData = {
         ...formData,
         status: isDraft ? 'draft' : 'submitted',
-        npc1000_incoming: Number(npc1000Materials.incoming) || 0,
-        npc1000_used: Number(npc1000Materials.used) || 0,
-        npc1000_remaining: Number(npc1000Materials.remaining) || 0,
         work_entries: workEntries,
         worker_entries: permissions.canManageWorkers ? workerEntries : [],
-        receipt_entries: receiptEntries.filter(r => r.file || mode === 'edit'),
+        material_usage: materialUsagePayload,
         additional_photos: additionalPhotos,
       }
 
@@ -1031,182 +1196,168 @@ export default function DailyReportForm({
             </CollapsibleSection>
           )}
 
-          {/* Section 4: 자재 현황 (고급 기능) */}
+          {/* Section 4: 자재 사용 현황 (고급 기능) */}
           {permissions.canViewAdvancedFeatures && (
             <CollapsibleSection
-              title="자재 현황 (NPC1000)"
+              title="자재 사용 현황"
               icon={Package}
               isExpanded={expandedSections.materials}
               onToggle={() => toggleSection('materials')}
               managerOnly={true}
               permissions={permissions}
             >
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>반입량</Label>
-                  <Input
-                    type="number"
-                    value={npc1000Materials.incoming}
-                    onChange={e => {
-                      const incoming = e.target.value
-                      const used = npc1000Materials.used || '0'
-                      const remaining =
-                        incoming && used ? String(Number(incoming) - Number(used)) : ''
-                      setNpc1000Materials({
-                        incoming,
-                        used,
-                        remaining,
-                      })
-                    }}
-                    placeholder="반입량"
-                  />
-                </div>
-                <div>
-                  <Label>사용량</Label>
-                  <Input
-                    type="number"
-                    value={npc1000Materials.used}
-                    onChange={e => {
-                      const used = e.target.value
-                      const incoming = npc1000Materials.incoming || '0'
-                      const remaining =
-                        incoming && used ? String(Number(incoming) - Number(used)) : ''
-                      setNpc1000Materials({
-                        incoming: npc1000Materials.incoming,
-                        used,
-                        remaining,
-                      })
-                    }}
-                    placeholder="사용량"
-                  />
-                </div>
-                <div>
-                  <Label>잔량 (자동계산)</Label>
-                  <Input
-                    type="number"
-                    value={npc1000Materials.remaining}
-                    onChange={e =>
-                      setNpc1000Materials(prev => ({ ...prev, remaining: e.target.value }))
-                    }
-                    placeholder="잔량 (반입량 - 사용량)"
-                    className="bg-gray-50"
-                    title="반입량과 사용량을 입력하면 자동으로 계산됩니다. 필요시 수동 입력도 가능합니다."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    반입량 - 사용량 = 잔량 (자동계산, 수동입력 가능)
+              <div className="space-y-4">
+                {materialSummary.length > 0 && (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    <div className="mb-2 font-medium text-slate-800">자재별 사용 합계</div>
+                    <div className="flex flex-wrap gap-2">
+                      {materialSummary.map(item => (
+                        <Badge
+                          key={`${item.name}-${item.unit || 'unit'}`}
+                          variant="secondary"
+                          className="bg-white text-slate-700 border-slate-200"
+                        >
+                          {item.name}: {item.quantity}
+                          {item.unit ? ` ${item.unit}` : ''}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {materialUsageEntries.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-sm text-slate-600">
+                    <p className="font-medium text-slate-700">등록된 자재 사용 내역이 없습니다.</p>
+                    <p className="mt-1 text-slate-500">
+                      자재는 본사 관리자 &gt; 자재 관리 설정에서 사전에 등록할 수 있으며, 필요한
+                      경우 아래 “자재 추가” 버튼을 눌러 직접 작성할 수도 있습니다.
+                    </p>
+                  </div>
+                ) : (
+                  materialUsageEntries.map((entry, index) => {
+                    const selectedOption =
+                      entry.materialId && materialOptionMap.get(entry.materialId)
+                    const selectValue =
+                      entry.materialId && materialOptionMap.get(entry.materialId)
+                        ? entry.materialId
+                        : 'custom'
+                    return (
+                      <div
+                        key={entry.id}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-xs"
+                      >
+                        <div className="mb-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+                            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-600">
+                              {index + 1}
+                            </span>
+                            <span>
+                              {entry.materialName
+                                ? entry.materialName
+                                : selectedOption?.name || '자재 미지정'}
+                            </span>
+                            {selectedOption?.code && (
+                              <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                                {selectedOption.code}
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-slate-500 hover:text-red-600"
+                            onClick={() => handleRemoveMaterial(entry.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label>자재 선택</Label>
+                            <CustomSelect
+                              value={selectValue}
+                              onValueChange={value => handleMaterialSelect(entry.id, value)}
+                            >
+                              <CustomSelectTrigger className="w-full">
+                                <CustomSelectValue
+                                  placeholder="자재를 선택하세요"
+                                  className="truncate"
+                                />
+                              </CustomSelectTrigger>
+                              <CustomSelectContent>
+                                <CustomSelectItem value="custom">직접 입력</CustomSelectItem>
+                                {materialOptions.map(option => (
+                                  <CustomSelectItem key={option.id} value={option.id}>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{option.name}</span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {option.code
+                                          ? `${option.code} · ${option.unit || '단위 없음'}`
+                                          : option.unit || '단위 없음'}
+                                      </span>
+                                    </div>
+                                  </CustomSelectItem>
+                                ))}
+                              </CustomSelectContent>
+                            </CustomSelect>
+                            <p className="text-xs text-muted-foreground">
+                              시스템에 등록된 자재를 선택하거나, 아래 항목에서 직접 입력하세요.
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>자재명</Label>
+                            <Input
+                              value={entry.materialName}
+                              onChange={e => handleMaterialNameChange(entry.id, e.target.value)}
+                              placeholder="자재명을 입력하세요"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>사용량</Label>
+                            <Input
+                              type="number"
+                              inputMode="decimal"
+                              value={entry.quantity}
+                              onChange={e => handleMaterialQuantityChange(entry.id, e.target.value)}
+                              placeholder="예: 12.5"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>단위</Label>
+                            <Input
+                              value={entry.unit ?? ''}
+                              onChange={e => handleMaterialUnitChange(entry.id, e.target.value)}
+                              placeholder="예: 개, 말, 장"
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label>비고</Label>
+                            <Textarea
+                              value={entry.notes ?? ''}
+                              onChange={e => handleMaterialNoteChange(entry.id, e.target.value)}
+                              placeholder="자재 사용 관련 특이사항이나 메모를 입력하세요"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <Button type="button" variant="outline" onClick={addMaterialEntry}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    자재 추가
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    자재 목록은 본사 관리자 &gt; 자재 관리 &gt; 기초 마스터에서 관리할 수 있습니다.
                   </p>
                 </div>
               </div>
             </CollapsibleSection>
           )}
-
-          {/* Section 5: 영수증 */}
-          <CollapsibleSection
-            title="영수증"
-            icon={Receipt}
-            isExpanded={expandedSections.receipts}
-            onToggle={() => toggleSection('receipts')}
-            permissions={permissions}
-            badge={
-              <Badge variant="outline">
-                {receiptEntries.filter(r => r.file || r.category).length}개
-              </Badge>
-            }
-          >
-            <div className="space-y-4">
-              {receiptEntries.map((entry, index) => (
-                <div key={entry.id} className="p-4 bg-gray-50 rounded-lg border">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">영수증 #{index + 1}</h4>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setReceiptEntries(prev => prev.filter((_, i) => i !== index))
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label>구분</Label>
-                      <Input
-                        value={entry.category}
-                        onChange={e => {
-                          const newEntries = [...receiptEntries]
-                          newEntries[index] = { ...newEntries[index], category: e.target.value }
-                          setReceiptEntries(newEntries)
-                        }}
-                        placeholder="예: 식비, 자재비"
-                      />
-                    </div>
-                    <div>
-                      <Label>금액</Label>
-                      <Input
-                        value={entry.amount}
-                        onChange={e => {
-                          const newEntries = [...receiptEntries]
-                          newEntries[index] = { ...newEntries[index], amount: e.target.value }
-                          setReceiptEntries(newEntries)
-                        }}
-                        placeholder="금액"
-                      />
-                    </div>
-                    <div>
-                      <Label>일자</Label>
-                      <Input
-                        type="date"
-                        value={entry.date}
-                        onChange={e => {
-                          const newEntries = [...receiptEntries]
-                          newEntries[index] = { ...newEntries[index], date: e.target.value }
-                          setReceiptEntries(newEntries)
-                        }}
-                      />
-                    </div>
-                  </div>
-                  <div className="mt-4">
-                    <Label>파일 첨부</Label>
-                    <Input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={e => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          const newEntries = [...receiptEntries]
-                          newEntries[index] = { ...newEntries[index], file }
-                          setReceiptEntries(newEntries)
-                        }
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setReceiptEntries(prev => [
-                    ...prev,
-                    {
-                      id: `receipt-${Date.now()}`,
-                      category: '',
-                      amount: '',
-                      date: new Date().toISOString().split('T')[0],
-                      file: null,
-                      preview: null,
-                    },
-                  ])
-                }}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                영수증 추가
-              </Button>
-            </div>
-          </CollapsibleSection>
 
           {/* Section 6: 추가 사진 */}
           <CollapsibleSection

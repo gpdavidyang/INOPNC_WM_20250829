@@ -38,16 +38,49 @@ async function fetchWorkers() {
   return data ?? []
 }
 
+const interpretMaterialFlag = (value: unknown): boolean | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'boolean') return value
+  const normalized = String(value).trim().toLowerCase()
+  if (['true', '1', 'y', 'yes', 'active', 'enabled'].includes(normalized)) return true
+  if (['false', '0', 'n', 'no', 'inactive', 'disabled'].includes(normalized)) return false
+  return null
+}
+
+const isMaterialSelectable = (material: any): boolean => {
+  const activeFlag = interpretMaterialFlag(material?.is_active)
+  if (activeFlag !== null) return activeFlag
+
+  const useFlag = interpretMaterialFlag(
+    material?.use_yn ??
+      material?.useYn ??
+      material?.use_flag ??
+      material?.useFlag ??
+      material?.is_use ??
+      material?.isUse
+  )
+  if (useFlag !== null) return useFlag
+
+  const statusFlag = interpretMaterialFlag(material?.status)
+  if (statusFlag !== null) return statusFlag
+
+  return true
+}
+
 async function fetchMaterials() {
   const supabase = createClient()
-  const { data, error } = await supabase.from('materials').select('*').order('name')
+  const { data, error } = await supabase
+    .from('materials')
+    .select('id, name, code, unit, is_active, use_yn, use_flag, status')
+    .order('name')
 
   if (error) {
     console.error('[AdminDailyReportEdit] failed to load materials:', error.message)
     return []
   }
 
-  return data ?? []
+  const items = Array.isArray(data) ? data : []
+  return items.filter(isMaterialSelectable)
 }
 
 export const dynamic = 'force-dynamic'

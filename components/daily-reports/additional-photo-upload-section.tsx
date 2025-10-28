@@ -1,9 +1,7 @@
 'use client'
 
-import React, { useCallback, useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import { Camera, Upload, Image as ImageIcon, Plus, X, AlertCircle } from 'lucide-react'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
 
 type FileValidationError = { code: string; message: string; filename?: string }
@@ -25,10 +23,8 @@ function validateFiles(
 }
 
 interface AdditionalPhotoUploadSectionProps {
-  beforePhotos: AdditionalPhotoData[]
-  afterPhotos: AdditionalPhotoData[]
-  onBeforePhotosChange: (photos: AdditionalPhotoData[]) => void
-  onAfterPhotosChange: (photos: AdditionalPhotoData[]) => void
+  photos?: AdditionalPhotoData[]
+  onPhotosChange?: (photos: AdditionalPhotoData[]) => void
   maxPhotosPerType?: number
   maxFileSize?: number // in bytes
   disabled?: boolean
@@ -39,21 +35,40 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 export default function AdditionalPhotoUploadSection({
-  beforePhotos,
-  afterPhotos,
-  onBeforePhotosChange,
-  onAfterPhotosChange,
+  photos = [],
+  onPhotosChange,
   maxPhotosPerType = MAX_PHOTOS_PER_TYPE,
   maxFileSize = MAX_FILE_SIZE,
   disabled = false,
 }: AdditionalPhotoUploadSectionProps) {
   const [activeTab, setActiveTab] = useState<'before' | 'after'>('before')
   const [dragOver, setDragOver] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({})
   const [errors, setErrors] = useState<FileValidationError[]>([])
 
   const beforeInputRef = useRef<HTMLInputElement>(null)
   const afterInputRef = useRef<HTMLInputElement>(null)
+
+  const beforePhotos = useMemo(
+    () => photos.filter(photo => photo.photo_type === 'before'),
+    [photos]
+  )
+  const afterPhotos = useMemo(() => photos.filter(photo => photo.photo_type === 'after'), [photos])
+
+  const applyChanges = useCallback(
+    (nextBefore: AdditionalPhotoData[], nextAfter: AdditionalPhotoData[]) => {
+      if (!onPhotosChange) return
+      const normalize = (list: AdditionalPhotoData[], type: 'before' | 'after') =>
+        list.map((photo, index) => ({
+          ...photo,
+          photo_type: type,
+          upload_order: index + 1,
+        }))
+      const normalizedBefore = normalize(nextBefore, 'before')
+      const normalizedAfter = normalize(nextAfter, 'after')
+      onPhotosChange([...normalizedBefore, ...normalizedAfter])
+    },
+    [onPhotosChange]
+  )
 
   const handleFileSelect = useCallback(
     (files: FileList, photoType: 'before' | 'after') => {
@@ -92,6 +107,7 @@ export default function AdditionalPhotoUploadSection({
         const photoData: AdditionalPhotoData = {
           id: `temp-${Date.now()}-${index}`,
           file,
+          url: null,
           filename: file.name,
           photo_type: photoType,
           file_size: file.size,
@@ -102,18 +118,14 @@ export default function AdditionalPhotoUploadSection({
       })
 
       if (newPhotos.length > 0) {
-        const updateHandler = photoType === 'before' ? onBeforePhotosChange : onAfterPhotosChange
-        updateHandler([...currentPhotos, ...newPhotos])
+        const updatedBefore =
+          photoType === 'before' ? [...currentPhotos, ...newPhotos] : [...beforePhotos]
+        const updatedAfter =
+          photoType === 'after' ? [...currentPhotos, ...newPhotos] : [...afterPhotos]
+        applyChanges(updatedBefore, updatedAfter)
       }
     },
-    [
-      beforePhotos,
-      afterPhotos,
-      maxPhotosPerType,
-      maxFileSize,
-      onBeforePhotosChange,
-      onAfterPhotosChange,
-    ]
+    [applyChanges, beforePhotos, afterPhotos, maxPhotosPerType, maxFileSize]
   )
 
   const handleDrop = useCallback(
@@ -154,10 +166,11 @@ export default function AdditionalPhotoUploadSection({
         upload_order: index + 1,
       }))
 
-      const updateHandler = photoType === 'before' ? onBeforePhotosChange : onAfterPhotosChange
-      updateHandler(reorderedPhotos)
+      const updatedBefore = photoType === 'before' ? [...reorderedPhotos] : [...beforePhotos]
+      const updatedAfter = photoType === 'after' ? [...reorderedPhotos] : [...afterPhotos]
+      applyChanges(updatedBefore, updatedAfter)
     },
-    [beforePhotos, afterPhotos, onBeforePhotosChange, onAfterPhotosChange]
+    [afterPhotos, applyChanges, beforePhotos]
   )
 
   const updatePhotoDescription = useCallback(
@@ -167,10 +180,11 @@ export default function AdditionalPhotoUploadSection({
         photo.id === photoId ? { ...photo, description } : photo
       )
 
-      const updateHandler = photoType === 'before' ? onBeforePhotosChange : onAfterPhotosChange
-      updateHandler(updatedPhotos)
+      const updatedBefore = photoType === 'before' ? [...updatedPhotos] : [...beforePhotos]
+      const updatedAfter = photoType === 'after' ? [...updatedPhotos] : [...afterPhotos]
+      applyChanges(updatedBefore, updatedAfter)
     },
-    [beforePhotos, afterPhotos, onBeforePhotosChange, onAfterPhotosChange]
+    [afterPhotos, applyChanges, beforePhotos]
   )
 
   const getImagePreviewUrl = useCallback((photo: AdditionalPhotoData) => {
