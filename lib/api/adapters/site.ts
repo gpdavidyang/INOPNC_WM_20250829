@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { computeSiteStats } from '@/lib/admin/site-stats'
 import type { ListSitesRequest, ListSitesResponse } from '../contracts/site'
 
 export async function listSites(req: ListSitesRequest): Promise<ListSitesResponse> {
@@ -39,7 +40,7 @@ export async function listSites(req: ListSitesRequest): Promise<ListSitesRespons
     return { items: [], total: 0 }
   }
 
-  const items = (data || []).map((s: any) => ({
+  const rawItems = (data || []).map((s: any) => ({
     id: String(s.id),
     name: s.name,
     address: s.address ?? null,
@@ -49,6 +50,14 @@ export async function listSites(req: ListSitesRequest): Promise<ListSitesRespons
     manager_name: s.manager_name ?? null,
     manager_phone: s.manager_phone ?? s.construction_manager_phone ?? null,
     created_at: s.created_at ?? null,
+  }))
+
+  const stats = await computeSiteStats(rawItems.map(item => item.id))
+
+  const items = rawItems.map(item => ({
+    ...item,
+    daily_reports_count: stats[item.id]?.daily_reports_count ?? 0,
+    total_labor_hours: stats[item.id]?.total_labor_hours ?? 0,
   }))
 
   return { items, total: count ?? items.length }

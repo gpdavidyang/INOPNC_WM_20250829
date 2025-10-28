@@ -28,7 +28,7 @@ type FormState = {
   name: string
   address: string
   description: string
-  status: 'active' | 'inactive' | 'completed'
+  status: 'planning' | 'active' | 'inactive' | 'completed'
   start_date: string
   end_date: string
   manager_name: string
@@ -66,7 +66,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     name: initial?.name || '',
     address: initial?.address || '',
     description: String(initial?.description || ''),
-    status: (initial?.status as FormState['status']) || 'active',
+    status: (initial?.status as FormState['status']) || 'planning',
     start_date: initial?.start_date ? toDateInput(initial.start_date) : '',
     end_date: initial?.end_date ? toDateInput(initial.end_date) : '',
     manager_name: String(initial?.manager_name || ''),
@@ -194,6 +194,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
                 <CustomSelectValue placeholder="상태 선택" />
               </CustomSelectTrigger>
               <CustomSelectContent>
+                <CustomSelectItem value="planning">준비 중</CustomSelectItem>
                 <CustomSelectItem value="active">진행 중</CustomSelectItem>
                 <CustomSelectItem value="inactive">중단</CustomSelectItem>
                 <CustomSelectItem value="completed">완료</CustomSelectItem>

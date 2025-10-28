@@ -10,6 +10,8 @@ export const Site = z.object({
   manager_name: z.string().nullable().optional(),
   manager_phone: z.string().nullable().optional(),
   created_at: z.string().nullable().optional(),
+  daily_reports_count: z.number().optional(),
+  total_labor_hours: z.number().optional(),
 })
 export type Site = z.infer<typeof Site>
 

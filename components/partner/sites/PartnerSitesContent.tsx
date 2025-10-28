@@ -41,6 +41,7 @@ type StatusFilterOption = 'all' | SiteStatus
 
 const STATUS_OPTIONS: { value: StatusFilterOption; label: string }[] = [
   { value: 'all', label: '전체 상태' },
+  { value: 'planning', label: '준비 중' },
   { value: 'active', label: '진행 중' },
   { value: 'inactive', label: '중단' },
   { value: 'completed', label: '완료' },
@@ -48,6 +49,7 @@ const STATUS_OPTIONS: { value: StatusFilterOption; label: string }[] = [
 
 const STATUS_LABELS: Record<StatusFilterOption, string> = {
   all: '전체',
+  planning: '준비 중',
   active: '진행 중',
   inactive: '중단',
   completed: '완료',
@@ -326,9 +328,7 @@ export function PartnerSitesContent({
                       </TableCell>
                       <TableCell>
                         <Badge variant={site.status === 'active' ? 'default' : 'outline'}>
-                          {STATUS_LABELS[(site.status || 'all') as StatusFilterOption] ||
-                            site.status ||
-                            '미정'}
+                          {STATUS_LABELS[(site.status || 'all') as StatusFilterOption] || '미정'}
                         </Badge>
                       </TableCell>
                       <TableCell>

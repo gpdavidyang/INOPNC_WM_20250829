@@ -51,6 +51,7 @@ type StatusFilterOption = 'all' | SiteStatus
 
 const STATUS_OPTIONS: { value: StatusFilterOption; label: string }[] = [
   { value: 'all', label: '전체 상태' },
+  { value: 'planning', label: '준비 중' },
   { value: 'active', label: '진행 중' },
   { value: 'inactive', label: '중단' },
   { value: 'completed', label: '완료' },
@@ -58,6 +59,7 @@ const STATUS_OPTIONS: { value: StatusFilterOption; label: string }[] = [
 
 const STATUS_LABELS: Record<StatusFilterOption, string> = {
   all: '전체',
+  planning: '준비 중',
   active: '진행 중',
   inactive: '중단',
   completed: '완료',
@@ -70,6 +72,18 @@ const formatDate = (value?: string | null) => {
     return '-'
   }
   return date.toLocaleDateString('ko-KR')
+}
+
+const buildStatsMapFromSites = (list: Site[]): Record<string, SiteStats> => {
+  const map: Record<string, SiteStats> = {}
+  for (const site of list) {
+    if (!site?.id) continue
+    map[site.id] = {
+      daily_reports_count: site.daily_reports_count ?? 0,
+      total_labor_hours: site.total_labor_hours ?? 0,
+    }
+  }
+  return map
 }
 
 export function SitesContent({
@@ -100,7 +114,9 @@ export function SitesContent({
   const activeCount = useMemo(() => sites.filter(site => site.status === 'active').length, [sites])
   const { confirm } = useConfirm()
   const { toast } = useToast()
-  const [statsMap, setStatsMap] = useState<Record<string, SiteStats>>({})
+  const [statsMap, setStatsMap] = useState<Record<string, SiteStats>>(
+    buildStatsMapFromSites(initialSites)
+  )
   const [managersMap, setManagersMap] = useState<
     Record<string, { user_id: string; full_name: string }>
   >({})
@@ -113,31 +129,23 @@ export function SitesContent({
   useEffect(() => {
     const ids = (sites || []).map(s => s.id).filter(Boolean)
     if (ids.length === 0) {
-      setStatsMap({})
       setManagersMap({})
       return
     }
-    const idsParam = encodeURIComponent(ids.join(','))
+    const idsParam = ids.join(',')
     let cancelled = false
     ;(async () => {
-      setStatsLoading(true)
       setManagersLoading(true)
       setStatsError(null)
       setManagersError(null)
       try {
-        const [statsRes, mgrRes] = await Promise.all([
-          fetch(`/api/admin/sites/stats?ids=${idsParam}`, { cache: 'no-store' }),
-          fetch(`/api/admin/sites/managers?ids=${idsParam}`, { cache: 'no-store' }),
-        ])
-        const statsJson = await statsRes.json().catch(() => ({}))
+        const fetchOptions: RequestInit = {
+          cache: 'no-store',
+          credentials: 'include' as RequestCredentials,
+        }
+        const mgrRes = await fetch(`/api/admin/sites/managers?ids=${idsParam}`, fetchOptions)
         const mgrJson = await mgrRes.json().catch(() => ({}))
         if (!cancelled) {
-          if (!statsRes.ok || !statsJson?.success) {
-            setStatsError(statsJson?.error || '통계를 불러오지 못했습니다.')
-            setStatsMap({})
-          } else {
-            setStatsMap((statsJson?.data || {}) as Record<string, SiteStats>)
-          }
           if (!mgrRes.ok || !mgrJson?.success) {
             setManagersError(mgrJson?.error || '관리자 정보를 불러오지 못했습니다.')
             setManagersMap({})
@@ -149,14 +157,11 @@ export function SitesContent({
         }
       } catch (e) {
         if (!cancelled) {
-          setStatsError('통계를 불러오지 못했습니다.')
           setManagersError('관리자 정보를 불러오지 못했습니다.')
-          setStatsMap({})
           setManagersMap({})
         }
       } finally {
         if (!cancelled) {
-          setStatsLoading(false)
           setManagersLoading(false)
         }
       }
@@ -207,13 +212,15 @@ export function SitesContent({
           throw new Error(payload?.error || '현장 목록을 불러오지 못했습니다.')
         }
 
-        setSites(payload.data?.sites ?? [])
+        const nextSites = payload.data?.sites ?? []
+        setSites(nextSites)
         setTotal(payload.data?.total ?? 0)
         setPages(Math.max(payload.data?.pages ?? 1, 1))
         setPage(nextPage)
         setSearchTerm(effectiveSearch)
         setSearchInput(effectiveSearch)
         setStatusFilter(effectiveStatus)
+        setStatsMap(buildStatsMapFromSites(nextSites))
       } catch (err) {
         console.error('Failed to fetch sites', err)
         setError(err instanceof Error ? err.message : '현장 목록을 불러오지 못했습니다.')
@@ -258,18 +265,29 @@ export function SitesContent({
   }
 
   const renderReportsCountCell = (s: Site) => {
+    const stats = statsMap[s.id] || {
+      daily_reports_count: s.daily_reports_count ?? 0,
+      total_labor_hours: s.total_labor_hours ?? 0,
+    }
     if (statsLoading && statsMap[s.id] === undefined) {
       return <span className="inline-block h-3 w-8 bg-gray-200 animate-pulse rounded" />
     }
-    return (statsMap[s.id]?.daily_reports_count ?? '-') as any
+    return (stats.daily_reports_count ?? 0) as any
   }
 
   const renderLaborCell = (s: Site) => {
-    const v = statsMap[s.id]?.total_labor_hours
-    if (statsLoading && v === undefined) {
+    const stats = statsMap[s.id] || {
+      daily_reports_count: s.daily_reports_count ?? 0,
+      total_labor_hours: s.total_labor_hours ?? 0,
+    }
+    const v = stats.total_labor_hours
+    if (statsLoading && statsMap[s.id] === undefined) {
       return <span className="inline-block h-3 w-12 bg-gray-200 animate-pulse rounded" />
     }
-    if (typeof v !== 'number') return '-' as any
+    if (typeof v !== 'number') {
+      const fallback = Number(s.total_labor_hours ?? 0)
+      return `${fallback.toFixed(1)} 공수` as any
+    }
     const n = Math.floor(v * 10) / 10
     return `${n.toFixed(1)} 공수` as any
   }
@@ -303,7 +321,7 @@ export function SitesContent({
         sortable: true,
         render: s => (
           <Badge variant={s.status === 'active' ? 'default' : 'outline'}>
-            {STATUS_LABELS[(s.status || 'all') as StatusFilterOption] || s.status || '미정'}
+            {STATUS_LABELS[(s.status || 'all') as StatusFilterOption] || '미정'}
           </Badge>
         ),
       },
@@ -327,7 +345,7 @@ export function SitesContent({
         key: 'manager_phone',
         header: t('sites.table.phone'),
         sortable: false,
-        render: s => (s as any).manager_phone || (s as any).construction_manager_phone || '-',
+        render: s => (s as any).manager_phone || (s as any).construction_manager_phone || '미등록',
       },
       {
         key: 'daily_reports_count',
@@ -368,8 +386,27 @@ export function SitesContent({
                 if (!ok) return
                 try {
                   const res = await fetch(`/api/admin/sites/${s.id}`, { method: 'DELETE' })
-                  const j = await res.json().catch(() => ({}))
-                  if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
+                  let payload: any = {}
+                  try {
+                    payload = await res.clone().json()
+                  } catch (error) {
+                    /* ignore JSON parse issues */
+                  }
+
+                  if (res.status === 409) {
+                    toast({
+                      title: '삭제할 수 없습니다.',
+                      description:
+                        payload?.error ||
+                        '현장에 연결된 작업일지나 데이터가 있습니다. 작업일지를 정리하거나 상태를 완료로 변경한 뒤 다시 시도하세요.',
+                      variant: 'warning',
+                    })
+                    return
+                  }
+
+                  if (!res.ok || payload?.success === false) {
+                    throw new Error(payload?.error || `삭제 실패 (코드 ${res.status})`)
+                  }
                   toast({
                     title: '삭제 완료',
                     description: '현장이 삭제되었습니다.',

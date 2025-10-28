@@ -37,7 +37,7 @@ import {
   Send,
 } from 'lucide-react'
 import type { Profile, Site, Material, DailyReport } from '@/types'
-import type { AdditionalPhotoData } from '@/types/daily-reports'
+import type { AdditionalPhotoData, UnifiedDailyReport } from '@/types/daily-reports'
 import { useWorkOptions } from '@/hooks/use-work-options'
 import AdditionalPhotoUploadSection from '@/components/daily-reports/additional-photo-upload-section'
 // Use REST endpoints to avoid importing server actions in client
@@ -58,6 +58,7 @@ interface DailyReportFormProps {
     receipts?: unknown[]
     additional_photos?: unknown[]
   }
+  initialUnifiedReport?: UnifiedDailyReport
 }
 
 interface WorkContentEntry {
@@ -240,6 +241,7 @@ export default function DailyReportForm({
   materials = [],
   workers = [],
   reportData,
+  initialUnifiedReport: _initialUnifiedReport,
 }: DailyReportFormProps) {
   const router = useRouter()
   const permissions = useRolePermissions(currentUser)
