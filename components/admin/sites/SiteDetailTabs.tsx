@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import SiteForm from '@/components/admin/sites/SiteForm'
-import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import {
   BrandTabs as Tabs,
   BrandTabsContent as TabsContent,
@@ -20,6 +19,15 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import InvoiceDocumentsManager, {
   InvoiceStageProgress,
 } from '@/components/admin/invoice/InvoiceDocumentsManager'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { useToast } from '@/components/ui/use-toast'
+import { Loader2 } from 'lucide-react'
 // Dialog replaced with dedicated page for assignments
 
 // 한글 표시용 매핑 테이블
@@ -97,6 +105,7 @@ export default function SiteDetailTabs({
   initialRequests,
 }: Props) {
   const { confirm } = useConfirm()
+  const { toast } = useToast()
   // Single-material mode and visibility toggles
   const SINGLE_MATERIAL_CODE = (
     process.env.NEXT_PUBLIC_SINGLE_MATERIAL_CODE || 'INC-1000'
@@ -144,6 +153,8 @@ export default function SiteDetailTabs({
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [invoiceProgress, setInvoiceProgress] = useState<InvoiceStageProgress | null>(null)
   const [sharedDocs, setSharedDocs] = useState<any[]>([])
+  const [sharedPreviewDoc, setSharedPreviewDoc] = useState<any | null>(null)
+  const [sharedDeleting, setSharedDeleting] = useState<Record<string, boolean>>({})
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
   const [reportsQuery, setReportsQuery] = useState('')
@@ -200,6 +211,92 @@ export default function SiteDetailTabs({
   const [assignPageSize, setAssignPageSize] = useState(20)
   const [assignHasNext, setAssignHasNext] = useState(false)
 
+  const fetchSharedDocs = useCallback(
+    async (suppressLoading = false) => {
+      if (!suppressLoading) setSharedDocsLoading(true)
+      try {
+        const res = await fetch(`/api/admin/sites/${siteId}/documents?category=shared&limit=20`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.success && Array.isArray(json.data)) {
+          const sorted = [...json.data].sort((a: any, b: any) => {
+            const ad = new Date(a.created_at || 0).getTime()
+            const bd = new Date(b.created_at || 0).getTime()
+            return bd - ad
+          })
+          setSharedDocs(sorted.slice(0, 20))
+        }
+      } catch {
+        void 0
+      } finally {
+        if (!suppressLoading) setSharedDocsLoading(false)
+      }
+    },
+    [siteId]
+  )
+
+  const handleSharedDelete = useCallback(
+    async (doc: any) => {
+      const docId = doc?.id ? String(doc.id) : null
+      if (!docId) {
+        toast({
+          title: '삭제할 수 없습니다',
+          description: '문서 식별자를 찾을 수 없습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const ok = await confirm({
+        title: '공유자료 삭제',
+        description: '선택한 공유자료를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+        confirmText: '삭제',
+        cancelText: '취소',
+        variant: 'destructive',
+      })
+      if (!ok) return
+
+      setSharedDeleting(prev => ({ ...prev, [docId]: true }))
+      try {
+        const res = await fetch(
+          `/api/admin/sites/${siteId}/documents?id=${encodeURIComponent(docId)}`,
+          {
+            method: 'DELETE',
+            credentials: 'include',
+          }
+        )
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || json?.error) {
+          const message = json?.error || res.statusText || '삭제에 실패했습니다.'
+          throw new Error(message)
+        }
+
+        setSharedDocs(prev => prev.filter(item => String(item?.id) !== docId))
+        if (sharedPreviewDoc && String(sharedPreviewDoc.id) === docId) {
+          setSharedPreviewDoc(null)
+        }
+        toast({ title: '삭제 완료', description: '공유자료가 삭제되었습니다.' })
+        void fetchSharedDocs(true)
+      } catch (error: any) {
+        console.error('Shared document delete failed:', error)
+        toast({
+          title: '삭제 실패',
+          description: error?.message || '공유자료 삭제에 실패했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setSharedDeleting(prev => {
+          const next = { ...prev }
+          delete next[docId]
+          return next
+        })
+      }
+    },
+    [confirm, fetchSharedDocs, sharedPreviewDoc, siteId, toast]
+  )
+
   const invoiceStageSummary = useMemo(() => {
     if (!invoiceProgress) return null
     const keys: InvoiceStageKey[] = ['start', 'progress', 'completion']
@@ -229,6 +326,8 @@ export default function SiteDetailTabs({
   const [txnHasNext, setTxnHasNext] = useState(false)
   const [txnQuery, setTxnQuery] = useState('')
   const [txnTotal, setTxnTotal] = useState<number | null>(null)
+  const isSharedDocsRefreshing = sharedDocsLoading && sharedDocs.length > 0
+  const sharedPreviewUrl = sharedPreviewDoc ? buildDocPreviewHref(sharedPreviewDoc) : null
 
   // Load drawings for site (uses server API with fallback to documents)
   useEffect(() => {
@@ -532,31 +631,7 @@ export default function SiteDetailTabs({
 
   // Client-side refresh for recent sections (ensures data even if SSR missed due to env/RLS)
   useEffect(() => {
-    const supabase = createSupabaseClient()
-
-    // Shared documents: admin API (category=shared)
-    ;(async () => {
-      try {
-        setSharedDocsLoading(true)
-        const res = await fetch(`/api/admin/sites/${siteId}/documents?category=shared&limit=20`, {
-          cache: 'no-store',
-          credentials: 'include',
-        })
-        const json = await res.json().catch(() => ({}))
-        if (res.ok && json?.success && Array.isArray(json.data)) {
-          const sorted = [...json.data].sort((a: any, b: any) => {
-            const ad = new Date(a.created_at || 0).getTime()
-            const bd = new Date(b.created_at || 0).getTime()
-            return bd - ad
-          })
-          setSharedDocs(sorted.slice(0, 10))
-        }
-      } catch {
-        void 0
-      } finally {
-        setSharedDocsLoading(false)
-      }
-    })()
+    void fetchSharedDocs()
 
     // Recent daily reports minimal fetch for overview section
     ;(async () => {
@@ -627,20 +702,19 @@ export default function SiteDetailTabs({
     ;(async () => {
       try {
         setRequestsLoading(true)
-        const { data } = await supabase
-          .from('material_requests')
-          .select('id, request_number, status, requested_by, request_date, created_at')
-          .eq('site_id', siteId)
-          .order('created_at', { ascending: false })
-          .limit(10)
-        if (Array.isArray(data)) setRecentRequests(data)
+        const res = await fetch(
+          `/api/admin/sites/${siteId}/materials/requests?limit=10&order=desc&sort=date`,
+          { cache: 'no-store', credentials: 'include' }
+        )
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.success && Array.isArray(json.data)) setRecentRequests(json.data)
       } catch {
         void 0
       } finally {
         setRequestsLoading(false)
       }
     })()
-  }, [siteId])
+  }, [siteId, fetchSharedDocs])
 
   // Reports tab: server-backed search/sort/pagination
   useEffect(() => {
@@ -2467,6 +2541,9 @@ export default function SiteDetailTabs({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <Button asChild size="sm">
+                <a href={`/dashboard/admin/sites/${siteId}/shared/upload`}>공유자료 업로드</a>
+              </Button>
               <Button asChild variant="outline" size="sm">
                 <a href="/dashboard/admin/documents/shared">공유문서 관리로 이동</a>
               </Button>
@@ -2555,81 +2632,118 @@ export default function SiteDetailTabs({
               </div>
             )
           ) : (
-            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <div className="rounded-lg border bg-card p-4 shadow-sm">
               {sharedDocsLoading && sharedDocs.length === 0 ? (
                 <TableSkeleton rows={5} />
+              ) : sharedDocs.length === 0 ? (
+                <div className="text-sm text-muted-foreground">등록된 공유문서가 없습니다.</div>
               ) : (
-                <DataTable<any>
-                  data={sharedDocs}
-                  rowKey={(d: any, idx?: number) =>
-                    d.id || d.document_id || d.file_id || idx || 'shared-doc'
-                  }
-                  stickyHeader
-                  emptyMessage="공유문서가 없습니다."
-                  columns={
-                    [
-                      {
-                        key: 'created_at',
-                        header: '등록일',
-                        sortable: true,
-                        accessor: (d: any) => d?.created_at || '',
-                        render: (d: any) =>
-                          d?.created_at ? new Date(d.created_at).toLocaleDateString('ko-KR') : '-',
-                        width: '16%',
-                      },
-                      {
-                        key: 'title',
-                        header: '문서명',
-                        sortable: true,
-                        accessor: (d: any) => d?.title || d?.file_name || '',
-                        render: (d: any) => (
-                          <a
-                            href={buildDocPreviewHref(d)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline text-blue-600 font-medium text-foreground"
-                          >
-                            {d?.title || d?.file_name || '-'}
-                          </a>
-                        ),
-                        width: '32%',
-                      },
-                      {
-                        key: 'category_type',
-                        header: '분류',
-                        sortable: true,
-                        accessor: (d: any) => getSharedCategoryLabel(d),
-                        render: (d: any) => getSharedCategoryLabel(d),
-                        width: '16%',
-                      },
-                      {
-                        key: 'uploader',
-                        header: '업로드',
-                        sortable: true,
-                        accessor: (d: any) =>
-                          d?.profiles?.full_name ||
-                          d?.uploaded_by_profile?.full_name ||
-                          d?.metadata?.uploader ||
-                          '',
-                        render: (d: any) =>
-                          d?.profiles?.full_name ||
-                          d?.uploaded_by_profile?.full_name ||
-                          d?.metadata?.uploader ||
-                          '-',
-                        width: '16%',
-                      },
-                      {
-                        key: 'status',
-                        header: '상태',
-                        sortable: true,
-                        accessor: (d: any) => d?.status || '',
-                        render: (d: any) =>
-                          d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
-                        width: '12%',
-                      },
-                    ] as Column<any>[]
-                  }
-                />
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>총 {sharedDocs.length}건</span>
+                    {isSharedDocsRefreshing ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        새로고침 중
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-[720px] w-full text-sm">
+                      <thead>
+                        <tr className="text-left bg-muted/60">
+                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            등록일
+                          </th>
+                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            문서명
+                          </th>
+                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            분류
+                          </th>
+                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            업로드
+                          </th>
+                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            용량
+                          </th>
+                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
+                            동작
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sharedDocs.map((doc: any, idx: number) => {
+                          const docId = doc?.id ? String(doc.id) : `${idx}`
+                          const uploader =
+                            doc?.profiles?.full_name ||
+                            doc?.uploaded_by_profile?.full_name ||
+                            doc?.metadata?.uploader ||
+                            ''
+                          const deleting = Boolean(sharedDeleting[docId])
+                          return (
+                            <tr key={docId} className="border-t">
+                              <td className="px-3 py-2 align-top text-xs text-muted-foreground">
+                                {doc?.created_at
+                                  ? new Date(doc.created_at).toLocaleString('ko-KR')
+                                  : '-'}
+                              </td>
+                              <td className="px-3 py-2 align-top">
+                                <div className="space-y-1">
+                                  <a
+                                    href={buildDocPreviewHref(doc)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-medium text-foreground underline-offset-2 decoration-dotted hover:underline"
+                                  >
+                                    {doc?.title || doc?.file_name || '-'}
+                                  </a>
+                                  {doc?.description ? (
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {doc.description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 align-top text-sm text-muted-foreground">
+                                {getSharedCategoryLabel(doc)}
+                              </td>
+                              <td className="px-3 py-2 align-top text-sm text-muted-foreground">
+                                {uploader || '-'}
+                              </td>
+                              <td className="px-3 py-2 align-top text-sm text-muted-foreground">
+                                {formatFileSize(doc?.file_size)}
+                              </td>
+                              <td className="px-3 py-2 align-top">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setSharedPreviewDoc(doc)}
+                                  >
+                                    미리보기
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => handleSharedDelete(doc)}
+                                    disabled={!doc?.id || deleting}
+                                  >
+                                    {deleting ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      '삭제'
+                                    )}
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -2776,6 +2890,70 @@ export default function SiteDetailTabs({
           </div>
         </TabsContent>
       </Tabs>
+      <Dialog
+        open={Boolean(sharedPreviewDoc)}
+        onOpenChange={open => {
+          if (!open) setSharedPreviewDoc(null)
+        }}
+      >
+        <DialogContent className="max-w-5xl w-full">
+          <DialogHeader>
+            <DialogTitle>
+              {sharedPreviewDoc?.title || sharedPreviewDoc?.file_name || '공유자료 미리보기'}
+            </DialogTitle>
+            <DialogDescription className="flex flex-wrap items-center gap-2 text-xs">
+              <span>{getSharedCategoryLabel(sharedPreviewDoc)}</span>
+              {sharedPreviewDoc?.created_at ? (
+                <span>· {new Date(sharedPreviewDoc.created_at).toLocaleString('ko-KR')}</span>
+              ) : null}
+              {sharedPreviewDoc?.file_size ? (
+                <span>· {formatFileSize(sharedPreviewDoc.file_size)}</span>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-between pb-3 text-xs text-muted-foreground">
+            <div className="truncate">
+              {sharedPreviewDoc?.file_name || sharedPreviewDoc?.title || '파일'}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" asChild>
+                <a
+                  href={sharedPreviewDoc ? buildDocPreviewHref(sharedPreviewDoc) : '#'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  문서 페이지 열기
+                </a>
+              </Button>
+              {sharedPreviewDoc?.file_url ? (
+                <Button size="sm" variant="secondary" asChild>
+                  <a href={sharedPreviewDoc.file_url} target="_blank" rel="noopener noreferrer">
+                    파일 다운로드
+                  </a>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+          {sharedPreviewUrl ? (
+            <iframe
+              src={sharedPreviewUrl}
+              title={sharedPreviewDoc?.title || sharedPreviewDoc?.file_name || 'shared-doc'}
+              className="h-[70vh] w-full rounded-md border"
+            />
+          ) : sharedPreviewDoc?.file_url ? (
+            <iframe
+              src={sharedPreviewDoc.file_url}
+              title={sharedPreviewDoc?.title || sharedPreviewDoc?.file_name || 'shared-doc-file'}
+              className="h-[70vh] w-full rounded-md border"
+            />
+          ) : (
+            <div className="rounded-md border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
+              미리보기를 지원하지 않는 문서입니다. 문서 페이지 열기 또는 파일 다운로드 버튼을 사용해
+              주세요.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
@@ -2783,6 +2961,20 @@ export default function SiteDetailTabs({
 function formatLabor(n: number): string {
   const v = Math.floor(Number(n) * 10) / 10
   return v.toFixed(1)
+}
+
+function formatFileSize(size: unknown): string {
+  const value = Number(size)
+  if (!Number.isFinite(value) || value <= 0) return '-'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let v = value
+  let idx = 0
+  while (v >= 1024 && idx < units.length - 1) {
+    v /= 1024
+    idx += 1
+  }
+  const formatted = v >= 10 ? v.toFixed(0) : v.toFixed(1)
+  return `${formatted} ${units[idx]}`
 }
 
 // 미리보기 링크 생성 헬퍼(전용 뷰어 → 파일 미리보기 → 상세 페이지 순)

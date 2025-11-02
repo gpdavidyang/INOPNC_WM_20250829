@@ -68,6 +68,7 @@ export async function POST(request: NextRequest) {
     }
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(storagePath)
 
+    const now = new Date().toISOString()
     const record = {
       title: title || file.name,
       description: description || null,
@@ -76,24 +77,27 @@ export async function POST(request: NextRequest) {
       file_url: urlData.publicUrl,
       file_size: file.size,
       category_type: 'invoice',
-      sub_category: stage || null,
+      sub_category: docType,
       metadata: {
         doc_type: docType,
-        ...(stage ? { stage } : {}),
-        ...(organizationId ? { organization_id: organizationId } : {}),
+        document_type: docType,
+        stage: stage || null,
+        organization_id: organizationId,
+        upload_origin: 'site_invoice_tab',
+        storage_path: storagePath,
       },
       site_id: siteId,
       customer_company_id: organizationId || profile.partner_company_id || null,
       uploaded_by: auth.userId,
-      status: 'uploaded',
+      status: 'active',
       is_public: false,
       is_archived: false,
       approval_required: false,
       approved_by: null,
       approved_at: null,
       tags: stage ? [`invoice_stage:${stage}`] : [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
     }
 
     const { data: inserted, error: insErr } = await supabase
@@ -114,6 +118,8 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
+
+    console.log('[invoice/upload] inserted', inserted?.id, inserted?.doc_type, inserted?.site_id)
 
     return NextResponse.json({ success: true, data: inserted })
   } catch (e) {

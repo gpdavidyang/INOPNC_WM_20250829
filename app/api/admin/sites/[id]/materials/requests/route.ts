@@ -26,13 +26,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const svc = createServiceRoleClient()
 
+    const baseSelect = `id, request_number, status, requested_by, request_date, created_at,
+         requester:profiles!material_requests_requested_by_fkey(full_name)`
+
     let query = svc
       .from('material_requests')
-      .select(
-        `id, request_number, status, requested_by, request_date, created_at,
-         requester:profiles!material_requests_requested_by_fkey(full_name)`,
-        { count: 'exact' }
-      )
+      .select(baseSelect, { count: 'exact' })
       .eq('site_id', siteId)
 
     if (statusParam && statusParam !== 'all') {
@@ -49,9 +48,44 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     query = query.order(orderBy, { ascending: orderParam === 'asc' })
 
     const { data, error, count } = await query.range(offset, offset + limit - 1)
+    if (error && error.code === '42703') {
+      // request_date column missing -> fallback to created_at only
+      let fallbackQuery = svc
+        .from('material_requests')
+        .select(
+          `id, request_number, status, requested_by, created_at,
+             requester:profiles!material_requests_requested_by_fkey(full_name)`,
+          { count: 'exact' }
+        )
+        .eq('site_id', siteId)
+
+      if (statusParam && statusParam !== 'all') {
+        fallbackQuery = fallbackQuery.eq('status', statusParam)
+      }
+      if (q) {
+        fallbackQuery = fallbackQuery.or(`request_number.ilike.%${q}%`)
+      }
+
+      const fallbackOrder =
+        sortParam === 'number' ? 'request_number' : sortParam === 'status' ? 'status' : 'created_at'
+      fallbackQuery = fallbackQuery.order(fallbackOrder, { ascending: orderParam === 'asc' })
+
+      const {
+        data: fbData,
+        error: fbError,
+        count: fbCount,
+      } = await fallbackQuery.range(offset, offset + limit - 1)
+      if (fbError) throw fbError
+      const normalized = (fbData || []).map(row => ({ ...row, request_date: row.created_at }))
+      return NextResponse.json({ success: true, data: normalized, total: fbCount || 0 })
+    }
     if (error) throw error
 
-    return NextResponse.json({ success: true, data: data || [], total: count || 0 })
+    const normalized = (data || []).map(row => ({
+      ...row,
+      request_date: row.request_date || row.created_at,
+    }))
+    return NextResponse.json({ success: true, data: normalized, total: count || 0 })
   } catch (e) {
     console.error('[admin/sites/:id/materials/requests] error:', e)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })

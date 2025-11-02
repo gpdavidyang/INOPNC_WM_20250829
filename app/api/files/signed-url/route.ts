@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const url = (searchParams.get('url') || '').trim()
+  const downloadName = (searchParams.get('download') || '').trim()
   if (!url) {
     return NextResponse.json({ success: false, error: 'Missing url' }, { status: 400 })
   }
@@ -24,7 +25,10 @@ export async function GET(request: NextRequest) {
       if (bucket && objectPath) {
         try {
           const svc = createServiceRoleClient()
-          const { data, error } = await svc.storage.from(bucket).createSignedUrl(objectPath, 600)
+          const options = downloadName ? { download: downloadName } : undefined
+          const { data, error } = await svc.storage
+            .from(bucket)
+            .createSignedUrl(objectPath, 600, options)
           if (!error && data?.signedUrl) {
             return NextResponse.json({ success: true, url: data.signedUrl })
           }
