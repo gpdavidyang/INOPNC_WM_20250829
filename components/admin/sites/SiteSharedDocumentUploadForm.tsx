@@ -11,6 +11,8 @@ type SiteSharedDocumentUploadFormProps = {
   siteId: string
   siteName?: string | null
   redirectTo?: string
+  onSuccess?: (doc: any) => void
+  onCancel?: () => void
 }
 
 const SUBCATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
@@ -29,6 +31,8 @@ export default function SiteSharedDocumentUploadForm({
   siteId,
   siteName,
   redirectTo,
+  onSuccess,
+  onCancel,
 }: SiteSharedDocumentUploadFormProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -40,6 +44,9 @@ export default function SiteSharedDocumentUploadForm({
   const [tags, setTags] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const uploadHint = onSuccess
+    ? '업로드 후 목록이 자동으로 갱신됩니다.'
+    : '업로드 후 자동으로 현장 상세 화면으로 이동합니다.'
 
   const resetForm = useCallback(() => {
     setFile(null)
@@ -102,9 +109,14 @@ export default function SiteSharedDocumentUploadForm({
         })
         setMessage('공유자료 업로드가 완료되었습니다.')
         resetForm()
-        const target = redirectTo || `/dashboard/admin/sites/${siteId}?tab=shared`
-        router.push(target)
-        router.refresh()
+        const uploadedDoc = json?.data
+        if (onSuccess) {
+          onSuccess(uploadedDoc)
+        } else {
+          const target = redirectTo || `/dashboard/admin/sites/${siteId}?tab=shared`
+          router.push(target)
+          router.refresh()
+        }
       } catch (error: any) {
         console.error('Shared document upload failed:', error)
         toast({
@@ -117,8 +129,29 @@ export default function SiteSharedDocumentUploadForm({
         setBusy(false)
       }
     },
-    [description, file, redirectTo, resetForm, router, siteId, subCategory, tags, title, toast]
+    [
+      description,
+      file,
+      onSuccess,
+      redirectTo,
+      resetForm,
+      router,
+      siteId,
+      subCategory,
+      tags,
+      title,
+      toast,
+    ]
   )
+
+  const handleCancel = useCallback(() => {
+    resetForm()
+    if (onCancel) {
+      onCancel()
+      return
+    }
+    router.push(redirectTo || `/dashboard/admin/sites/${siteId}?tab=shared`)
+  }, [onCancel, redirectTo, resetForm, router, siteId])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -196,19 +229,9 @@ export default function SiteSharedDocumentUploadForm({
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-muted-foreground">
-          {message ? message : '업로드 후 자동으로 현장 상세 화면으로 이동합니다.'}
-        </div>
+        <div className="text-sm text-muted-foreground">{message ?? uploadHint}</div>
         <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              resetForm()
-              router.push(redirectTo || `/dashboard/admin/sites/${siteId}?tab=shared`)
-            }}
-            disabled={busy}
-          >
+          <Button type="button" variant="outline" onClick={handleCancel} disabled={busy}>
             취소
           </Button>
           <Button type="submit" disabled={busy || !file}>
