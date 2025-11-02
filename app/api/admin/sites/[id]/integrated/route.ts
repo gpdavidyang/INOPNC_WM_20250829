@@ -17,7 +17,29 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 
     const svc = createServiceRoleClient()
 
-    const [docsRes, reportsRes, assignsRes, reqsRes] = await Promise.all([
+    const fetchMaterialRequests = async () => {
+      const base = svc
+        .from('material_requests')
+        .select('id, request_number, status, requested_by, request_date, created_at')
+        .eq('site_id', siteId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      const { data, error } = await base
+      if (error && error.code === '42703') {
+        const fallback = await svc
+          .from('material_requests')
+          .select('id, request_number, status, requested_by, created_at')
+          .eq('site_id', siteId)
+          .order('created_at', { ascending: false })
+          .limit(10)
+        if (fallback.error) throw fallback.error
+        return (fallback.data || []).map(row => ({ ...row, request_date: row.created_at }))
+      }
+      if (error) throw error
+      return (data || []).map(row => ({ ...row, request_date: row.request_date || row.created_at }))
+    }
+
+    const [docsRes, reportsRes, assignsRes, requestsData] = await Promise.all([
       svc
         .from('unified_document_system')
         .select(
@@ -44,12 +66,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         .eq('is_active', true)
         .order('assigned_date', { ascending: false })
         .limit(10),
-      svc
-        .from('material_requests')
-        .select('id, request_number, status, requested_by, request_date, created_at')
-        .eq('site_id', siteId)
-        .order('created_at', { ascending: false })
-        .limit(10),
+      fetchMaterialRequests(),
     ])
 
     // Enrich recent reports with counts and totals
@@ -99,7 +116,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         docs: docsRes.data || [],
         reports: enrichedReports,
         assignments: assignsRes.data || [],
-        requests: reqsRes.data || [],
+        requests: requestsData || [],
       },
     })
   } catch (e) {

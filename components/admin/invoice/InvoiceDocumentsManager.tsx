@@ -1,24 +1,20 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
-import { Download, FileText, RefreshCw, Upload, Layers, Trash2 } from 'lucide-react'
+import { Download, Eye, FileText, RefreshCw, Trash2 } from 'lucide-react'
 import DocumentVersionsDialog from '@/components/admin/invoice/DocumentVersionsDialog'
-import InvoiceUploadDialog from '@/components/admin/invoice/InvoiceUploadDialog'
+import {
+  InvoiceUploadForm,
+  type StageKey,
+  type UploadSuccessPayload,
+} from '@/components/admin/invoice/InvoiceUploadDialog'
 import { DEFAULT_INVOICE_DOC_TYPES } from '@/lib/invoice/doc-types'
-
-type StageKey = 'start' | 'progress' | 'completion'
-
-type UploadTarget = {
-  docType: string
-  label: string
-  defaultStage: StageKey
-}
 
 interface InvoiceDocType {
   code: string
@@ -84,13 +80,42 @@ export default function InvoiceDocumentsManager({
     progress: { required: 0, fulfilled: 0 },
     completion: { required: 0, fulfilled: 0 },
   })
-
-  const [uploadTarget, setUploadTarget] = useState<UploadTarget | null>(null)
   const [versionsTarget, setVersionsTarget] = useState<{ docType: string; siteId: string }>({
     docType: '',
     siteId,
   })
   const [versionsOpen, setVersionsOpen] = useState(false)
+  const refreshTimeout = useRef<number | null>(null)
+
+  const computeStageProgress = useCallback(
+    (docsMap: Record<string, InvoiceDocument[]>, types: InvoiceDocType[]) => {
+      const progressAcc: InvoiceStageProgress = {
+        start: { required: 0, fulfilled: 0 },
+        progress: { required: 0, fulfilled: 0 },
+        completion: { required: 0, fulfilled: 0 },
+      }
+      const sourceTypes = (types.length > 0 ? types : DEFAULT_INVOICE_DOC_TYPES).filter(
+        t => t.isActive !== false
+      )
+      for (const type of sourceTypes) {
+        const hasDoc = (docsMap[type.code] || []).length > 0
+        if (type.required.start) {
+          progressAcc.start.required += 1
+          if (hasDoc) progressAcc.start.fulfilled += 1
+        }
+        if (type.required.progress) {
+          progressAcc.progress.required += 1
+          if (hasDoc) progressAcc.progress.fulfilled += 1
+        }
+        if (type.required.completion) {
+          progressAcc.completion.required += 1
+          if (hasDoc) progressAcc.completion.fulfilled += 1
+        }
+      }
+      return progressAcc
+    },
+    []
+  )
 
   const fetchData = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -122,13 +147,11 @@ export default function InvoiceDocumentsManager({
           sortOrder: Number((t as any).sortOrder ?? 0),
           isActive: t.isActive !== false,
         }))
+        const docsMap: Record<string, InvoiceDocument[]> = json?.data?.documents || {}
         setDocTypes(effectiveTypes)
-        setDocuments(json?.data?.documents || {})
-        const progressData: InvoiceStageProgress = json?.data?.progress || {
-          start: { required: 0, fulfilled: 0 },
-          progress: { required: 0, fulfilled: 0 },
-          completion: { required: 0, fulfilled: 0 },
-        }
+        setDocuments(docsMap)
+        const progressData: InvoiceStageProgress =
+          json?.data?.progress || computeStageProgress(docsMap, effectiveTypes)
         setProgress(progressData)
         if (onProgressUpdate) onProgressUpdate(progressData)
       } catch (error: any) {
@@ -142,11 +165,17 @@ export default function InvoiceDocumentsManager({
         setRefreshing(false)
       }
     },
-    [onProgressUpdate, siteId, toast]
+    [computeStageProgress, onProgressUpdate, siteId, toast]
   )
 
   useEffect(() => {
     void fetchData()
+    return () => {
+      if (refreshTimeout.current) {
+        clearTimeout(refreshTimeout.current)
+        refreshTimeout.current = null
+      }
+    }
   }, [fetchData])
 
   const stageBuckets = useMemo(() => {
@@ -188,16 +217,36 @@ export default function InvoiceDocumentsManager({
     if (!doc.id) return
     if (!window.confirm('선택한 문서를 삭제하시겠습니까?')) return
     try {
+      const payload = {
+        fileUrl: doc.file_url || null,
+        storagePath:
+          (doc as any)?.metadata?.storage_path &&
+          typeof (doc as any).metadata.storage_path === 'string'
+            ? (doc as any).metadata.storage_path
+            : null,
+      }
       const res = await fetch(`/api/invoice/documents/${encodeURIComponent(doc.id)}`, {
         method: 'DELETE',
+        headers: { 'content-type': 'application/json' },
         credentials: 'include',
+        body: JSON.stringify(payload),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || json?.error) {
         throw new Error(json?.error || '삭제에 실패했습니다.')
       }
       toast({ title: '삭제 완료' })
-      await fetchData({ silent: true })
+      setDocuments(prev => {
+        const next = { ...prev }
+        Object.keys(next).forEach(key => {
+          next[key] = (next[key] || []).filter(item => item.id !== doc.id)
+        })
+        if (docTypes.length > 0) setProgress(computeStageProgress(next, docTypes))
+        return next
+      })
+      setTimeout(() => {
+        void fetchData({ silent: true })
+      }, 200)
     } catch (error: any) {
       toast({
         title: '삭제 실패',
@@ -210,6 +259,37 @@ export default function InvoiceDocumentsManager({
   const handleDownload = async (doc: InvoiceDocument) => {
     if (!doc.file_url) return
     try {
+      let signedUrl = doc.file_url
+      try {
+        const params = new URLSearchParams({ url: doc.file_url })
+        if (doc.file_name) params.set('download', doc.file_name)
+        const res = await fetch(`/api/files/signed-url?${params.toString()}`, {
+          credentials: 'include',
+        })
+        const json = await res.json()
+        if (json?.url) signedUrl = json.url
+      } catch {
+        /* ignore signed URL failure */
+      }
+      const anchor = document.createElement('a')
+      anchor.href = signedUrl
+      if (doc.file_name) anchor.download = doc.file_name
+      anchor.rel = 'noopener noreferrer'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+    } catch (error: any) {
+      toast({
+        title: '다운로드 실패',
+        description: error?.message || '문서를 다운로드할 수 없습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handlePreview = async (doc: InvoiceDocument) => {
+    if (!doc.file_url) return
+    try {
       let finalUrl = doc.file_url
       try {
         const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(doc.file_url)}`, {
@@ -220,14 +300,9 @@ export default function InvoiceDocumentsManager({
       } catch {
         /* ignore signed URL failure */
       }
-      const anchor = document.createElement('a')
-      anchor.href = finalUrl
-      anchor.download = doc?.file_name || ''
-      anchor.target = '_blank'
-      anchor.rel = 'noopener noreferrer'
-      anchor.click()
+      window.open(finalUrl, '_blank', 'noopener,noreferrer')
     } catch {
-      toast({ title: '다운로드 실패', variant: 'destructive' })
+      toast({ title: '미리보기 실패', variant: 'destructive' })
     }
   }
 
@@ -243,26 +318,28 @@ export default function InvoiceDocumentsManager({
           : type.required.completion
             ? 'completion'
             : 'start')
-    const defaultStage = (latest?.stage as StageKey | null) ?? fallbackStage
+    const resolvedStage = (latest?.stage as StageKey | null) ?? fallbackStage
+    const requiresStage = type.required.start || type.required.progress || type.required.completion
+    const stageForUpload = stage ?? (requiresStage ? resolvedStage : null)
 
     return (
       <div
         key={`${type.code}-${stage ?? 'other'}`}
-        className="rounded-lg border bg-white p-4 shadow-sm space-y-3"
+        className="rounded-lg border bg-white p-4 shadow-sm"
       >
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div className="min-w-[220px]">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <span className="text-sm font-semibold text-foreground">{type.label}</span>
               <Badge variant={fulfilled ? 'default' : 'outline'} className="text-xs">
                 {fulfilled ? '등록됨' : '미등록'}
               </Badge>
             </div>
             {latest?.created_at ? (
-              <div className="mt-1 text-xs text-muted-foreground">
+              <div className="mt-1 text-xs text-muted-foreground space-x-1">
                 {new Date(latest.created_at).toLocaleString('ko-KR')}
-                {latest?.uploader_name ? ` · ${latest.uploader_name}` : ''}
-                {latest?.version ? ` · v${latest.version}` : ''}
+                {latest?.uploader_name ? <span>· {latest.uploader_name}</span> : null}
+                {latest?.version ? <span>· v{latest.version}</span> : null}
               </div>
             ) : (
               <div className="mt-1 text-xs text-muted-foreground">최근 업로드 내역 없음</div>
@@ -271,60 +348,71 @@ export default function InvoiceDocumentsManager({
               <div className="mt-1 text-sm text-blue-600">{latest.title}</div>
             ) : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setUploadTarget({
-                  docType: type.code,
-                  label: type.label,
-                  defaultStage,
+          <div className="flex flex-col gap-2 w-full lg:w-auto lg:items-end">
+            <InvoiceUploadForm
+              siteId={siteId}
+              docType={type.code}
+              docTypeLabel={type.label}
+              initialStage={stageForUpload}
+              lockedStage={stage ?? null}
+              organizationId={organizationId}
+              onUploaded={async ({ docType, document }: UploadSuccessPayload) => {
+                setDocuments(prev => {
+                  const next = { ...prev }
+                  const cloned = Array.isArray(next[docType]) ? [...next[docType]] : []
+                  const idx = cloned.findIndex(item => item.id === document.id)
+                  if (idx >= 0) cloned[idx] = document as InvoiceDocument
+                  else cloned.unshift(document as InvoiceDocument)
+                  next[docType] = cloned
+                  if (docTypes.length > 0) setProgress(computeStageProgress(next, docTypes))
+                  return next
                 })
               }}
-              className="gap-1"
-            >
-              <Upload className="h-4 w-4" />
-              {fulfilled ? '교체 업로드' : '업로드'}
-            </Button>
-            {fulfilled ? (
-              <>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDownload(latest)}
-                  className="gap-1"
-                >
-                  <Download className="h-4 w-4" />
-                  다운로드
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setVersionsTarget({ docType: type.code, siteId })
-                    setVersionsOpen(true)
-                  }}
-                  className="gap-1"
-                >
-                  <Layers className="h-4 w-4" />
-                  이력 보기
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => handleDelete(latest)}
-                  className="gap-1"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  삭제
-                </Button>
-              </>
-            ) : null}
+              enableStageSelection={false}
+              showTitleField={false}
+              showDescriptionField={false}
+              variant="compact"
+              autoUpload
+              className="w-full lg:w-auto lg:justify-end"
+            />
+            <div className="flex flex-wrap items-center gap-2 justify-start lg:justify-end">
+              {fulfilled ? (
+                <>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handlePreview(latest)}
+                    className="gap-1"
+                  >
+                    <Eye className="h-4 w-4" />
+                    미리보기
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownload(latest)}
+                    className="gap-1"
+                  >
+                    <Download className="h-4 w-4" />
+                    다운로드
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(latest)}
+                    className="gap-1"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    삭제
+                  </Button>
+                </>
+              ) : (
+                <span className="text-xs text-muted-foreground">업로드할 파일을 선택하세요.</span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -400,7 +488,7 @@ export default function InvoiceDocumentsManager({
           variant="outline"
           size="sm"
           className="gap-1"
-          onClick={() => fetchData({ silent: true })}
+          onClick={() => void fetchData({ silent: true })}
           disabled={refreshing}
         >
           <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} />
@@ -436,24 +524,6 @@ export default function InvoiceDocumentsManager({
         docType={versionsTarget.docType}
         siteName={siteName ?? undefined}
       />
-      {uploadTarget ? (
-        <InvoiceUploadDialog
-          open={!!uploadTarget}
-          onOpenChange={open => {
-            if (!open) {
-              setUploadTarget(null)
-            }
-          }}
-          siteId={siteId}
-          docType={uploadTarget.docType}
-          docTypeLabel={uploadTarget.label}
-          defaultStage={uploadTarget.defaultStage}
-          organizationId={organizationId}
-          onUploaded={async () => {
-            await fetchData({ silent: true })
-          }}
-        />
-      ) : null}
     </>
   )
 }
