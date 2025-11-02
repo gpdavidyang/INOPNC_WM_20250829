@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import SiteForm from '@/components/admin/sites/SiteForm'
+import SiteSharedDocumentUploadForm from '@/components/admin/sites/SiteSharedDocumentUploadForm'
 import {
   BrandTabs as Tabs,
   BrandTabsContent as TabsContent,
@@ -15,6 +16,14 @@ import PhotoSheetActions from '@/components/admin/documents/PhotoSheetActions'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { useRouter, useSearchParams } from 'next/navigation'
 import InvoiceDocumentsManager, {
   InvoiceStageProgress,
@@ -27,7 +36,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 // Dialog replaced with dedicated page for assignments
 
 // 한글 표시용 매핑 테이블
@@ -66,6 +75,20 @@ const SHARED_CATEGORY_LABELS: Record<string, string> = {
   drawing: '도면',
   blueprint: '도면',
 }
+
+const SHARED_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: 'all', label: '전체' },
+  { value: 'general', label: SHARED_CATEGORY_LABELS.general },
+  { value: 'notice', label: SHARED_CATEGORY_LABELS.notice },
+  { value: 'safety', label: SHARED_CATEGORY_LABELS.safety },
+  { value: 'inspection', label: SHARED_CATEGORY_LABELS.inspection },
+  { value: 'checklist', label: SHARED_CATEGORY_LABELS.checklist },
+  { value: 'form', label: SHARED_CATEGORY_LABELS.form },
+  { value: 'reference', label: SHARED_CATEGORY_LABELS.reference },
+  { value: 'drawing', label: SHARED_CATEGORY_LABELS.drawing },
+  { value: 'blueprint', label: '도면(청사진)' },
+  { value: 'other', label: '기타' },
+]
 
 const STATUS_LABELS: Record<string, string> = {
   planning: '준비 중',
@@ -153,8 +176,16 @@ export default function SiteDetailTabs({
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [invoiceProgress, setInvoiceProgress] = useState<InvoiceStageProgress | null>(null)
   const [sharedDocs, setSharedDocs] = useState<any[]>([])
-  const [sharedPreviewDoc, setSharedPreviewDoc] = useState<any | null>(null)
   const [sharedDeleting, setSharedDeleting] = useState<Record<string, boolean>>({})
+  const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
+  const [sharedDocsRefreshing, setSharedDocsRefreshing] = useState(false)
+  const [sharedSubCategory, setSharedSubCategory] = useState<string>('all')
+  const [sharedStats, setSharedStats] = useState<{
+    total_documents: number
+    by_type?: Record<string, number>
+  } | null>(null)
+  const [sharedUploadOpen, setSharedUploadOpen] = useState(false)
+  const [sharedDownloading, setSharedDownloading] = useState<Record<string, boolean>>({})
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
   const [reportsQuery, setReportsQuery] = useState('')
@@ -169,8 +200,7 @@ export default function SiteDetailTabs({
   const [recentRequests, setRecentRequests] = useState<any[]>(initialRequests || [])
   const [laborByUser, setLaborByUser] = useState<Record<string, number>>({})
   const [globalLaborByUser, setGlobalLaborByUser] = useState<Record<string, number>>({})
-  const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
-  const [sharedView, setSharedView] = useState<'drawings' | 'documents'>('drawings')
+  const [sharedView, setSharedView] = useState<'drawings' | 'documents'>('documents')
   const [reportsLoading, setReportsLoading] = useState(false)
   const [assignmentsLoading, setAssignmentsLoading] = useState(false)
   const [requestsLoading, setRequestsLoading] = useState(false)
@@ -212,10 +242,21 @@ export default function SiteDetailTabs({
   const [assignHasNext, setAssignHasNext] = useState(false)
 
   const fetchSharedDocs = useCallback(
-    async (suppressLoading = false) => {
-      if (!suppressLoading) setSharedDocsLoading(true)
+    async (options?: { silent?: boolean; subCategory?: string }) => {
+      const silent = options?.silent ?? false
+      const subCategory = options?.subCategory ?? sharedSubCategory
+      const limit = 20
+      if (silent) setSharedDocsRefreshing(true)
+      else setSharedDocsLoading(true)
       try {
-        const res = await fetch(`/api/admin/sites/${siteId}/documents?category=shared&limit=20`, {
+        const params = new URLSearchParams({
+          category: 'shared',
+          limit: String(limit),
+        })
+        if (subCategory && subCategory !== 'all') {
+          params.set('type', subCategory)
+        }
+        const res = await fetch(`/api/admin/sites/${siteId}/documents?${params.toString()}`, {
           cache: 'no-store',
           credentials: 'include',
         })
@@ -226,15 +267,21 @@ export default function SiteDetailTabs({
             const bd = new Date(b.created_at || 0).getTime()
             return bd - ad
           })
-          setSharedDocs(sorted.slice(0, 20))
+          setSharedDocs(sorted.slice(0, limit))
+          setSharedStats(
+            json?.statistics && typeof json.statistics === 'object'
+              ? (json.statistics as { total_documents: number; by_type?: Record<string, number> })
+              : null
+          )
         }
       } catch {
         void 0
       } finally {
-        if (!suppressLoading) setSharedDocsLoading(false)
+        if (silent) setSharedDocsRefreshing(false)
+        else setSharedDocsLoading(false)
       }
     },
-    [siteId]
+    [sharedSubCategory, siteId]
   )
 
   const handleSharedDelete = useCallback(
@@ -274,11 +321,8 @@ export default function SiteDetailTabs({
         }
 
         setSharedDocs(prev => prev.filter(item => String(item?.id) !== docId))
-        if (sharedPreviewDoc && String(sharedPreviewDoc.id) === docId) {
-          setSharedPreviewDoc(null)
-        }
         toast({ title: '삭제 완료', description: '공유자료가 삭제되었습니다.' })
-        void fetchSharedDocs(true)
+        void fetchSharedDocs({ silent: true })
       } catch (error: any) {
         console.error('Shared document delete failed:', error)
         toast({
@@ -294,7 +338,97 @@ export default function SiteDetailTabs({
         })
       }
     },
-    [confirm, fetchSharedDocs, sharedPreviewDoc, siteId, toast]
+    [confirm, fetchSharedDocs, siteId, toast]
+  )
+
+  const handleSharedUploadSuccess = useCallback(
+    (doc: any) => {
+      setSharedUploadOpen(false)
+      const uploadedSubCategory = String(
+        doc?.sub_category ||
+          doc?.subCategory ||
+          doc?.metadata?.sub_category ||
+          doc?.metadata?.subcategory ||
+          ''
+      ).toLowerCase()
+      if (doc?.id && (sharedSubCategory === 'all' || sharedSubCategory === uploadedSubCategory)) {
+        setSharedDocs(prev => {
+          const filtered = prev.filter(item => String(item?.id) !== String(doc.id))
+          return [doc, ...filtered].slice(0, 20)
+        })
+      }
+      void fetchSharedDocs({ silent: true })
+    },
+    [fetchSharedDocs, sharedSubCategory]
+  )
+
+  const handleSharedDownload = useCallback(
+    async (doc: any) => {
+      const docId = doc?.id ? String(doc.id) : null
+      const fileUrl = doc ? getSharedDocFileUrl(doc) : null
+
+      if (!fileUrl) {
+        toast({
+          title: '다운로드할 수 없습니다',
+          description: '파일 경로를 찾을 수 없습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      if (docId) {
+        setSharedDownloading(prev => ({ ...prev, [docId]: true }))
+      }
+
+      try {
+        const response = await fetch(fileUrl, { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error(`Failed to fetch file. Status: ${response.status}`)
+        }
+        const blob = await response.blob()
+        const blobUrl = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        const meta =
+          doc?.metadata && typeof doc.metadata === 'object'
+            ? (doc.metadata as Record<string, any>)
+            : {}
+        const originalExt =
+          meta?.original_extension ||
+          meta?.extension ||
+          meta?.file_extension ||
+          (doc?.file_name && doc.file_name.includes('.') ? doc.file_name.split('.').pop() : '')
+        let fileName = doc?.file_name || doc?.title || 'shared-document'
+        if (originalExt && fileName && !fileName.includes('.'))
+          fileName = `${fileName}.${originalExt}`
+        const disposition = response.headers.get('Content-Disposition')
+        if (!fileName && disposition) {
+          const match = disposition.match(/filename[^;=\n]*=((['\"]).*?\2|[^;\n]*)/)
+          if (match?.[1]) fileName = match[1].replace(/['"]/g, '')
+        }
+        link.href = blobUrl
+        link.download = fileName || 'shared-document'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000)
+      } catch (error) {
+        console.error('Shared document download failed:', error)
+        toast({
+          title: '다운로드 실패',
+          description: '파일을 저장할 수 없습니다. 다시 시도해 주세요.',
+          variant: 'destructive',
+        })
+      } finally {
+        if (docId) {
+          setSharedDownloading(prev => {
+            const next = { ...prev }
+            delete next[docId]
+            return next
+          })
+        }
+      }
+    },
+    [toast]
   )
 
   const invoiceStageSummary = useMemo(() => {
@@ -326,8 +460,11 @@ export default function SiteDetailTabs({
   const [txnHasNext, setTxnHasNext] = useState(false)
   const [txnQuery, setTxnQuery] = useState('')
   const [txnTotal, setTxnTotal] = useState<number | null>(null)
-  const isSharedDocsRefreshing = sharedDocsLoading && sharedDocs.length > 0
-  const sharedPreviewUrl = sharedPreviewDoc ? buildDocPreviewHref(sharedPreviewDoc) : null
+  const isSharedDocsRefreshing =
+    sharedDocsRefreshing || (sharedDocsLoading && sharedDocs.length > 0)
+  const sharedTotalDocuments = sharedStats?.total_documents ?? sharedDocs.length
+  const sharedDocumentCount = sharedStats?.by_type?.document ?? null
+  const sharedPhotoCount = sharedStats?.by_type?.photo ?? null
 
   // Load drawings for site (uses server API with fallback to documents)
   useEffect(() => {
@@ -2541,8 +2678,8 @@ export default function SiteDetailTabs({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button asChild size="sm">
-                <a href={`/dashboard/admin/sites/${siteId}/shared/upload`}>공유자료 업로드</a>
+              <Button size="sm" onClick={() => setSharedUploadOpen(true)}>
+                공유자료 업로드
               </Button>
               <Button asChild variant="outline" size="sm">
                 <a href="/dashboard/admin/documents/shared">공유문서 관리로 이동</a>
@@ -2632,119 +2769,190 @@ export default function SiteDetailTabs({
               </div>
             )
           ) : (
-            <div className="rounded-lg border bg-card p-4 shadow-sm">
-              {sharedDocsLoading && sharedDocs.length === 0 ? (
-                <TableSkeleton rows={5} />
-              ) : sharedDocs.length === 0 ? (
-                <div className="text-sm text-muted-foreground">등록된 공유문서가 없습니다.</div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>총 {sharedDocs.length}건</span>
+            <div className="rounded-lg border bg-card shadow-sm">
+              <div className="flex flex-col gap-3 border-b bg-muted/40 px-4 py-3 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                    공유자료
                     {isSharedDocsRefreshing ? (
-                      <span className="inline-flex items-center gap-1">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        새로고침 중
-                      </span>
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     ) : null}
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-[720px] w-full text-sm">
-                      <thead>
-                        <tr className="text-left bg-muted/60">
-                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            등록일
-                          </th>
-                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            문서명
-                          </th>
-                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            분류
-                          </th>
-                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            업로드
-                          </th>
-                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            용량
-                          </th>
-                          <th className="px-3 py-2 font-medium text-xs uppercase tracking-wide text-muted-foreground">
-                            동작
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sharedDocs.map((doc: any, idx: number) => {
-                          const docId = doc?.id ? String(doc.id) : `${idx}`
-                          const uploader =
-                            doc?.profiles?.full_name ||
-                            doc?.uploaded_by_profile?.full_name ||
-                            doc?.metadata?.uploader ||
-                            ''
-                          const deleting = Boolean(sharedDeleting[docId])
-                          return (
-                            <tr key={docId} className="border-t">
-                              <td className="px-3 py-2 align-top text-xs text-muted-foreground">
-                                {doc?.created_at
-                                  ? new Date(doc.created_at).toLocaleString('ko-KR')
-                                  : '-'}
-                              </td>
-                              <td className="px-3 py-2 align-top">
-                                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    전체 {sharedTotalDocuments}건 · 최신 {sharedDocs.length}건 표시
+                  </p>
+                  {sharedDocumentCount !== null || sharedPhotoCount !== null ? (
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                      {sharedDocumentCount !== null ? (
+                        <span>문서 {sharedDocumentCount}건</span>
+                      ) : null}
+                      {sharedPhotoCount !== null ? <span>이미지 {sharedPhotoCount}건</span> : null}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={sharedSubCategory}
+                    onChange={event => setSharedSubCategory(event.target.value)}
+                    className="h-9 min-w-[140px] rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    {SHARED_FILTER_OPTIONS.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => fetchSharedDocs({ silent: true })}
+                    disabled={sharedDocsRefreshing}
+                  >
+                    {sharedDocsRefreshing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-4 w-4" />
+                    )}
+                    새로고침
+                  </Button>
+                </div>
+              </div>
+              <div className="px-4 py-4">
+                {sharedDocsLoading && sharedDocs.length === 0 ? (
+                  <TableSkeleton rows={5} />
+                ) : sharedDocs.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">등록된 공유문서가 없습니다.</div>
+                ) : (
+                  <Table className="min-w-[720px] text-sm">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          등록일
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          문서명
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          분류
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          업로더
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          용량
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground text-right">
+                          동작
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {sharedDocs.map((doc: any, idx: number) => {
+                        const docId = doc?.id ? String(doc.id) : `${idx}`
+                        const uploader =
+                          doc?.profiles?.full_name ||
+                          doc?.uploaded_by_profile?.full_name ||
+                          doc?.metadata?.uploader ||
+                          ''
+                        const deleting = Boolean(sharedDeleting[docId])
+                        const fileUrl = getSharedDocFileUrl(doc)
+                        const hasPreview = Boolean(fileUrl)
+                        const downloadHref = fileUrl ?? null
+                        const hasDownload = Boolean(downloadHref)
+                        const downloading = docId ? Boolean(sharedDownloading[docId]) : false
+                        return (
+                          <TableRow key={docId}>
+                            <TableCell className="align-top text-xs text-muted-foreground">
+                              {doc?.created_at
+                                ? new Date(doc.created_at).toLocaleString('ko-KR')
+                                : '-'}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="space-y-1">
+                                {hasPreview && fileUrl ? (
                                   <a
-                                    href={buildDocPreviewHref(doc)}
+                                    href={fileUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="font-medium text-foreground underline-offset-2 decoration-dotted hover:underline"
+                                    className="text-left font-medium text-foreground underline-offset-2 transition hover:underline"
                                   >
                                     {doc?.title || doc?.file_name || '-'}
                                   </a>
-                                  {doc?.description ? (
-                                    <p className="text-xs text-muted-foreground line-clamp-2">
-                                      {doc.description}
-                                    </p>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 align-top text-sm text-muted-foreground">
-                                {getSharedCategoryLabel(doc)}
-                              </td>
-                              <td className="px-3 py-2 align-top text-sm text-muted-foreground">
-                                {uploader || '-'}
-                              </td>
-                              <td className="px-3 py-2 align-top text-sm text-muted-foreground">
-                                {formatFileSize(doc?.file_size)}
-                              </td>
-                              <td className="px-3 py-2 align-top">
-                                <div className="flex flex-wrap items-center gap-2">
+                                ) : (
+                                  <span className="text-left font-medium text-foreground">
+                                    {doc?.title || doc?.file_name || '-'}
+                                  </span>
+                                )}
+                                {doc?.description ? (
+                                  <p className="text-xs text-muted-foreground line-clamp-2">
+                                    {doc.description}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <Badge variant="secondary">{getSharedCategoryLabel(doc)}</Badge>
+                            </TableCell>
+                            <TableCell className="align-top text-sm text-muted-foreground">
+                              {uploader || '-'}
+                            </TableCell>
+                            <TableCell className="align-top text-sm text-muted-foreground">
+                              {formatFileSize(doc?.file_size)}
+                            </TableCell>
+                            <TableCell className="align-top">
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                {hasPreview && fileUrl ? (
+                                  <Button asChild size="sm" variant="outline" className="gap-1">
+                                    <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                      미리보기
+                                    </a>
+                                  </Button>
+                                ) : (
+                                  <Button size="sm" variant="outline" className="gap-1" disabled>
+                                    미리보기
+                                  </Button>
+                                )}
+                                {hasDownload && downloadHref ? (
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => setSharedPreviewDoc(doc)}
+                                    className="gap-1"
+                                    onClick={() => {
+                                      void handleSharedDownload(doc)
+                                    }}
+                                    disabled={downloading}
                                   >
-                                    미리보기
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => handleSharedDelete(doc)}
-                                    disabled={!doc?.id || deleting}
-                                  >
-                                    {deleting ? (
+                                    {downloading ? (
                                       <Loader2 className="h-4 w-4 animate-spin" />
                                     ) : (
-                                      '삭제'
+                                      '다운로드'
                                     )}
                                   </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+                                ) : (
+                                  <Button size="sm" variant="outline" className="gap-1" disabled>
+                                    다운로드
+                                  </Button>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleSharedDelete(doc)}
+                                  disabled={!doc?.id || deleting}
+                                  className="gap-1"
+                                >
+                                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : '삭제'}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
             </div>
           )}
         </TabsContent>
@@ -2890,68 +3098,20 @@ export default function SiteDetailTabs({
           </div>
         </TabsContent>
       </Tabs>
-      <Dialog
-        open={Boolean(sharedPreviewDoc)}
-        onOpenChange={open => {
-          if (!open) setSharedPreviewDoc(null)
-        }}
-      >
-        <DialogContent className="max-w-5xl w-full">
+      <Dialog open={sharedUploadOpen} onOpenChange={setSharedUploadOpen}>
+        <DialogContent className="max-w-3xl w-full">
           <DialogHeader>
-            <DialogTitle>
-              {sharedPreviewDoc?.title || sharedPreviewDoc?.file_name || '공유자료 미리보기'}
-            </DialogTitle>
-            <DialogDescription className="flex flex-wrap items-center gap-2 text-xs">
-              <span>{getSharedCategoryLabel(sharedPreviewDoc)}</span>
-              {sharedPreviewDoc?.created_at ? (
-                <span>· {new Date(sharedPreviewDoc.created_at).toLocaleString('ko-KR')}</span>
-              ) : null}
-              {sharedPreviewDoc?.file_size ? (
-                <span>· {formatFileSize(sharedPreviewDoc.file_size)}</span>
-              ) : null}
+            <DialogTitle>공유자료 업로드</DialogTitle>
+            <DialogDescription>
+              현장 팀과 공유할 문서, 도면, 체크리스트 등을 업로드합니다.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex items-center justify-between pb-3 text-xs text-muted-foreground">
-            <div className="truncate">
-              {sharedPreviewDoc?.file_name || sharedPreviewDoc?.title || '파일'}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button size="sm" variant="outline" asChild>
-                <a
-                  href={sharedPreviewDoc ? buildDocPreviewHref(sharedPreviewDoc) : '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  문서 페이지 열기
-                </a>
-              </Button>
-              {sharedPreviewDoc?.file_url ? (
-                <Button size="sm" variant="secondary" asChild>
-                  <a href={sharedPreviewDoc.file_url} target="_blank" rel="noopener noreferrer">
-                    파일 다운로드
-                  </a>
-                </Button>
-              ) : null}
-            </div>
-          </div>
-          {sharedPreviewUrl ? (
-            <iframe
-              src={sharedPreviewUrl}
-              title={sharedPreviewDoc?.title || sharedPreviewDoc?.file_name || 'shared-doc'}
-              className="h-[70vh] w-full rounded-md border"
-            />
-          ) : sharedPreviewDoc?.file_url ? (
-            <iframe
-              src={sharedPreviewDoc.file_url}
-              title={sharedPreviewDoc?.title || sharedPreviewDoc?.file_name || 'shared-doc-file'}
-              className="h-[70vh] w-full rounded-md border"
-            />
-          ) : (
-            <div className="rounded-md border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
-              미리보기를 지원하지 않는 문서입니다. 문서 페이지 열기 또는 파일 다운로드 버튼을 사용해
-              주세요.
-            </div>
-          )}
+          <SiteSharedDocumentUploadForm
+            siteId={siteId}
+            siteName={site?.name}
+            onSuccess={handleSharedUploadSuccess}
+            onCancel={() => setSharedUploadOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>
@@ -2995,6 +3155,23 @@ function buildDocPreviewHref(d: any): string {
 
   // 기본: 통합 문서 뷰어 경로로 이동
   return `/dashboard/admin/documents/${d.id}`
+}
+
+function getSharedDocFileUrl(doc: any): string | null {
+  const meta = doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {}
+  const candidates = [
+    doc?.file_url,
+    doc?.fileUrl,
+    doc?.url,
+    meta?.public_url,
+    meta?.preview_url,
+    meta?.file_url,
+    meta?.signed_url,
+  ]
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate
+  }
+  return null
 }
 
 function getSharedCategoryLabel(d: any): string {
@@ -3127,7 +3304,4 @@ function filteredAndSortedRequests(
     }
   })
   return rows
-}
-{
-  /* Reports Tab removed from outside return scope */
 }
