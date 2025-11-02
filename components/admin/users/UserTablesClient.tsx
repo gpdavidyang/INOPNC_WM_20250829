@@ -19,6 +19,23 @@ type RequiredDoc = {
   submitted_at?: string
 }
 
+const DOCUMENT_LABELS: Record<string, string> = {
+  medical_checkup: '건강검진',
+  safety_education: '안전교육 이수증',
+  vehicle_insurance: '차량 보험 증권',
+  vehicle_registration: '차량 등록증',
+  payroll_stub: '급여 명세서',
+  id_card: '신분증',
+  senior_documents: '고령자 서류',
+}
+
+const DOCUMENT_STATUS_LABELS: Record<string, string> = {
+  submitted: '제출',
+  pending: '미제출',
+  rejected: '반려',
+  expired: '만료',
+}
+
 export function UserTablesClient({
   assignments,
   documents,
@@ -87,7 +104,11 @@ export function UserTablesClient({
                   header: '유형',
                   sortable: true,
                   render: (d: RequiredDoc) => (
-                    <span className="font-medium text-foreground">{d.document_type}</span>
+                    <span className="font-medium text-foreground">
+                      {d.document_type
+                        ? DOCUMENT_LABELS[String(d.document_type)] || d.document_type
+                        : '-'}
+                    </span>
                   ),
                 },
                 {
@@ -107,7 +128,8 @@ export function UserTablesClient({
                   key: 'status',
                   header: '상태',
                   sortable: true,
-                  render: (d: RequiredDoc) => d.status || '-',
+                  render: (d: RequiredDoc) =>
+                    d.status ? DOCUMENT_STATUS_LABELS[String(d.status)] || d.status : '-',
                 },
                 {
                   key: 'submitted_at',

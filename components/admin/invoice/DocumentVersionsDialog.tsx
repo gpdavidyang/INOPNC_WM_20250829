@@ -10,7 +10,7 @@ interface Version {
   title?: string
   file_url?: string
   file_name?: string
-  file_type?: string
+  mime_type?: string
   version?: number
   created_at?: string
   metadata?: any
@@ -92,7 +92,7 @@ export default function DocumentVersionsDialog({
 
   const remove = async (id: string) => {
     try {
-      const res = await fetch(`/api/unified-documents/v2/${encodeURIComponent(id)}?hard=true`, {
+      const res = await fetch(`/api/invoice/documents/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       })
       const j = await res.json()
@@ -122,7 +122,7 @@ export default function DocumentVersionsDialog({
               <div key={v.id} className="flex items-center justify-between rounded border p-2">
                 <div>
                   <div className="font-medium">
-                    v{v.version} · {v.title || v.file_name || '-'}{' '}
+                    v{v.version ?? 1} · {v.title || v.file_name || '-'}{' '}
                     {v?.metadata?.is_current ? (
                       <span className="ml-2 text-xs text-green-700">(현재)</span>
                     ) : null}

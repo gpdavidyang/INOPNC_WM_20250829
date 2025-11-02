@@ -47,6 +47,13 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
           user ? (
             <div className="flex gap-2">
               <a
+                href={`/dashboard/admin/users/${params.id}/edit`}
+                className={buttonVariants({ variant: 'secondary', size: 'standard' })}
+                role="button"
+              >
+                수정
+              </a>
+              <a
                 href={`/dashboard/admin/salary/personal?q=${encodeURIComponent(
                   user.full_name || user.email || params.id
                 )}&worker_id=${encodeURIComponent(params.id)}`}

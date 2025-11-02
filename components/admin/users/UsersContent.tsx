@@ -337,7 +337,7 @@ export function UsersContent({
                             size="compact"
                             stopPropagation
                             detailHref={`/dashboard/admin/users/${user.id}`}
-                            editHref={`/dashboard/admin/users/${user.id}`}
+                            editHref={`/dashboard/admin/users/${user.id}/edit`}
                             deleteHref={`/api/admin/users/${user.id}`}
                             onDeleted={() => {
                               setUsers(prev => prev.filter(u => u.id !== user.id))

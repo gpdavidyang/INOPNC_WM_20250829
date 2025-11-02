@@ -19,17 +19,38 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
 import InvoiceDocumentsTable from '@/components/admin/InvoiceDocumentsTable'
 import DocumentVersionsDialog from './DocumentVersionsDialog'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 type DocType = {
   code: string
   label: string
   required: { start: boolean; progress: boolean; completion: boolean }
   isActive?: boolean
+  sortOrder?: number
+}
+
+const generateTypeCode = (label: string, existingCodes: string[]): string => {
+  const baseFromLabel = label
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-_]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  const base = baseFromLabel || 'doc'
+  let candidate = base
+  let suffix = 1
+  while (existingCodes.includes(candidate)) {
+    suffix += 1
+    candidate = `${base}-${suffix}`
+  }
+  return candidate
 }
 
 export default function InvoiceTabsClient() {
   const { toast } = useToast()
-  const [tab, setTab] = useState<'summary' | 'by-site' | 'list' | 'settings'>('summary')
+  const [tab, setTab] = useState<'summary' | 'documents' | 'list' | 'settings'>('summary')
   const [summary, setSummary] = useState<{
     docTypes: DocType[]
     sites: Array<{
@@ -42,12 +63,8 @@ export default function InvoiceTabsClient() {
   }>({ docTypes: [], sites: [], totals: { sites: 0, documents: 0 } })
   const [loading, setLoading] = useState(false)
   const [types, setTypes] = useState<DocType[]>([])
-  const activeTypes = useMemo(() => types.filter(t => t.isActive !== false), [types])
   const [orgs, setOrgs] = useState<Array<{ id: string; name: string }>>([])
   const [orgId, setOrgId] = useState<string>('')
-  const [upDocType, setUpDocType] = useState<string>('')
-  const [upStage, setUpStage] = useState<'start' | 'progress' | 'completion'>('start')
-  const [upSiteId, setUpSiteId] = useState<string>('')
   const [siteIdFilter, setSiteIdFilter] = useState('')
   const [sitesCatalog, setSitesCatalog] = useState<Array<{ id: string; name: string }>>([])
   const siteOptions = useMemo(() => {
@@ -57,6 +74,16 @@ export default function InvoiceTabsClient() {
     for (const it of sitesCatalog) if (!map.has(it.id)) map.set(it.id, it)
     return Array.from(map.values())
   }, [summary.sites, sitesCatalog])
+  const summaryDocTypes = useMemo(() => {
+    return (summary.docTypes || [])
+      .filter(dt => dt.isActive !== false)
+      .sort((a, b) => Number(a.sortOrder || 0) - Number(b.sortOrder || 0))
+  }, [summary.docTypes])
+  const summarySitesFiltered = useMemo(
+    () =>
+      (summary.sites || []).filter(site => (siteIdFilter ? site.site_id === siteIdFilter : true)),
+    [summary.sites, siteIdFilter]
+  )
 
   useEffect(() => {
     const load = async () => {
@@ -87,6 +114,7 @@ export default function InvoiceTabsClient() {
                 progress: false,
                 completion: false,
               },
+              sortOrder: Number(item.sort_order || item.sortOrder || 0),
               isActive: item.isActive !== false,
             }))
           )
@@ -101,16 +129,6 @@ export default function InvoiceTabsClient() {
   }, [orgId])
 
   // Initialize upload doc type when types loaded
-  useEffect(() => {
-    if (activeTypes.length === 0) {
-      if (upDocType) setUpDocType('')
-      return
-    }
-    if (!activeTypes.some(t => t.code === upDocType)) {
-      setUpDocType(activeTypes[0].code)
-    }
-  }, [activeTypes, upDocType])
-
   // List tab state
   const [list, setList] = useState<any[]>([])
   const [listLoading, setListLoading] = useState(false)
@@ -160,41 +178,19 @@ export default function InvoiceTabsClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
 
-  const handleCodeEdit = async (target: DocType) => {
-    const currentCode = target.code
-    const nextCode = window.prompt('새 코드 값을 입력하세요.', currentCode)?.trim()
-    if (!nextCode || nextCode === currentCode) return
-    if (!/^[a-zA-Z0-9_-]+$/.test(nextCode)) {
-      toast({
-        title: '형식 오류',
-        description: '코드는 영문/숫자/하이픈/언더스코어만 사용할 수 있습니다.',
-        variant: 'destructive',
-      })
-      return
-    }
-    if (types.some(t => t.code === nextCode)) {
-      toast({
-        title: '중복 코드',
-        description: `'${nextCode}' 코드는 이미 사용 중입니다.`,
-        variant: 'destructive',
-      })
-      return
-    }
+  const handleDelete = async (target: DocType) => {
+    if (!window.confirm(`'${target.label}' 문서유형을 삭제하시겠습니까?`)) return
     try {
-      const res = await fetch(`/api/invoice/types/${currentCode}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ code: nextCode }),
+      const res = await fetch(`/api/invoice/types/${target.code}`, {
+        method: 'DELETE',
       })
       if (!res.ok) throw new Error('fail')
-      const nextTypes = types.map(it => (it.code === currentCode ? { ...it, code: nextCode } : it))
-      setTypes(nextTypes)
-      if (upDocType === currentCode) setUpDocType(nextCode)
-      toast({ title: '코드 변경됨', description: `${target.label} 코드가 업데이트되었습니다.` })
+      setTypes(prev => prev.filter(it => it.code !== target.code))
+      toast({ title: '삭제되었습니다', description: target.label })
     } catch {
       toast({
-        title: '코드 변경 실패',
-        description: '코드 업데이트 중 오류가 발생했습니다.',
+        title: '삭제 실패',
+        description: '문서유형 삭제 중 오류가 발생했습니다.',
         variant: 'destructive',
       })
     }
@@ -213,12 +209,6 @@ export default function InvoiceTabsClient() {
         it.code === target.code ? { ...it, isActive: nextActive } : it
       )
       setTypes(nextTypes)
-      if (!nextActive && upDocType === target.code) {
-        const fallback = nextTypes.find(it => it.isActive !== false)
-        setUpDocType(fallback?.code || '')
-      } else if (nextActive && !upDocType) {
-        setUpDocType(target.code)
-      }
       toast({
         title: nextActive ? '활성화됨' : '비활성화됨',
         description: target.label,
@@ -261,8 +251,8 @@ export default function InvoiceTabsClient() {
           <TabsTrigger fill value="summary">
             요약
           </TabsTrigger>
-          <TabsTrigger fill value="by-site">
-            현장별
+          <TabsTrigger fill value="documents">
+            문서 현황
           </TabsTrigger>
           <TabsTrigger fill value="list">
             문서목록
@@ -342,181 +332,115 @@ export default function InvoiceTabsClient() {
           )}
         </TabsContent>
 
-        <TabsContent value="by-site">
-          {/* 업로드 폼 */}
-          <div className="rounded-md border bg-white p-3 mb-3">
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
+        <TabsContent value="documents">
+          <div className="rounded-lg border bg-white p-4 shadow-sm space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">현장</label>
-                <div className="min-w-[240px]">
-                  <CustomSelect value={upSiteId} onValueChange={setUpSiteId}>
-                    <CustomSelectTrigger>
-                      <CustomSelectValue placeholder="현장 선택" />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      {siteOptions.map(opt => (
-                        <CustomSelectItem key={opt.id} value={opt.id}>
-                          {opt.name}
-                        </CustomSelectItem>
-                      ))}
-                    </CustomSelectContent>
-                  </CustomSelect>
-                </div>
+                <h3 className="text-sm font-semibold text-gray-700">현장별 문서 현황</h3>
+                <p className="text-xs text-muted-foreground">
+                  기성 문서 업로드·교체는 각 현장 상세 &gt; 기성청구 탭에서 진행할 수 있습니다.
+                </p>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">문서유형</label>
-                <div>
-                  {activeTypes.length === 0 ? (
-                    <div className="text-sm text-gray-500">활성 문서유형이 없습니다.</div>
-                  ) : (
-                    <CustomSelect
-                      value={
-                        upDocType && activeTypes.some(t => t.code === upDocType)
-                          ? upDocType
-                          : activeTypes[0]?.code || ''
-                      }
-                      onValueChange={v => setUpDocType(v)}
-                    >
-                      <CustomSelectTrigger>
-                        <CustomSelectValue placeholder="선택" />
-                      </CustomSelectTrigger>
-                      <CustomSelectContent>
-                        {activeTypes.map(t => (
-                          <CustomSelectItem key={t.code} value={t.code}>
-                            {t.label}
-                          </CustomSelectItem>
-                        ))}
-                      </CustomSelectContent>
-                    </CustomSelect>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">단계</label>
-                <div>
-                  <CustomSelect value={upStage} onValueChange={v => setUpStage(v as any)}>
-                    <CustomSelectTrigger>
-                      <CustomSelectValue />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      <CustomSelectItem value="start">착수</CustomSelectItem>
-                      <CustomSelectItem value="progress">진행</CustomSelectItem>
-                      <CustomSelectItem value="completion">완료</CustomSelectItem>
-                    </CustomSelectContent>
-                  </CustomSelect>
-                </div>
-              </div>
-              <div>
-                <input id="inv_file" type="file" className="text-sm" />
-              </div>
-              <div>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    const siteId = upSiteId?.trim()
-                    const docType = upDocType
-                    const stage = upStage
-                    const file = (document.getElementById('inv_file') as HTMLInputElement)
-                      ?.files?.[0]
-                    if (!siteId || !docType || !file) {
-                      toast({
-                        title: '입력 필요',
-                        description: '현장/문서유형/파일을 확인하세요.',
-                        variant: 'warning' as any,
-                      })
-                      return
-                    }
-                    const fd = new FormData()
-                    fd.append('site_id', siteId)
-                    fd.append('doc_type', docType)
-                    fd.append('stage', stage)
-                    fd.append('file', file)
-                    try {
-                      const res = await fetch('/api/invoice/upload', { method: 'POST', body: fd })
-                      const j = await res.json()
-                      if (!res.ok || j?.error) throw new Error(j?.error || '업로드 실패')
-                      toast({ title: '업로드 완료' })
-                      // refresh summary/list
-                      const sres = await fetch('/api/invoice/summary')
-                      const sj = await sres.json()
-                      setSummary(
-                        sj?.data || { docTypes: [], sites: [], totals: { sites: 0, documents: 0 } }
-                      )
-                      setTab('summary')
-                    } catch (e: any) {
-                      toast({
-                        title: '업로드 실패',
-                        description: e?.message || '오류',
-                        variant: 'destructive',
-                      })
-                    }
-                  }}
-                >
-                  업로드
+              <div className="flex items-center gap-2">
+                <Button asChild variant="outline" size="sm">
+                  <a href="/dashboard/admin/sites">현장 목록 이동</a>
                 </Button>
               </div>
             </div>
-          </div>
-          {/* 현장 선택 (CustomSelect) */}
-          <div className="rounded-md border bg-white p-3 mb-3 flex items-center gap-3">
-            <label className="text-xs text-gray-600">현장</label>
-            <div className="min-w-[240px]">
-              <CustomSelect
-                value={siteIdFilter || 'all'}
-                onValueChange={v => setSiteIdFilter(v === 'all' ? '' : v)}
-              >
-                <CustomSelectTrigger>
-                  <CustomSelectValue placeholder="전체" />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  <CustomSelectItem value="all">전체</CustomSelectItem>
-                  {siteOptions.map(opt => (
-                    <CustomSelectItem key={opt.id} value={opt.id}>
-                      {opt.name}
-                    </CustomSelectItem>
-                  ))}
-                </CustomSelectContent>
-              </CustomSelect>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-600">현장 선택</span>
+              <div className="min-w-[220px]">
+                <CustomSelect
+                  value={siteIdFilter || 'all'}
+                  onValueChange={v => setSiteIdFilter(v === 'all' ? '' : v)}
+                >
+                  <CustomSelectTrigger>
+                    <CustomSelectValue placeholder="전체" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="all">전체</CustomSelectItem>
+                    {siteOptions.map(opt => (
+                      <CustomSelectItem key={opt.id} value={opt.id}>
+                        {opt.name}
+                      </CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
+              {siteIdFilter ? (
+                <Button size="sm" variant="ghost" onClick={() => setSiteIdFilter('')}>
+                  초기화
+                </Button>
+              ) : null}
             </div>
-          </div>
-          {/* 간단 뷰: summary 재사용 */}
-          <div className="space-y-2">
-            {summary.sites
-              .filter(s => (siteIdFilter ? s.site_id === siteIdFilter : true))
-              .map(s => (
-                <div key={s.site_id} className="rounded-md border bg-white p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">{s.site_name || s.site_id}</div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-sm text-gray-600">진행률 {s.progress ?? 0}%</div>
-                      <Button variant="outline" size="sm" onClick={() => exportSite(s.site_id)}>
-                        내보내기
-                      </Button>
+
+            <div className="space-y-3">
+              {summarySitesFiltered.length === 0 ? (
+                <div className="text-sm text-muted-foreground">표시할 현장이 없습니다.</div>
+              ) : (
+                summarySitesFiltered.map(siteEntry => {
+                  const progressLabel =
+                    siteEntry.progress !== undefined ? `${siteEntry.progress}%` : '0%'
+                  return (
+                    <div
+                      key={siteEntry.site_id}
+                      className="rounded-lg border bg-white p-4 shadow-sm space-y-3"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="text-sm font-semibold text-foreground">
+                            {siteEntry.site_name || siteEntry.site_id}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{siteEntry.site_id}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            진행률 {progressLabel}
+                          </Badge>
+                          <Button asChild size="sm" variant="outline" className="gap-1">
+                            <a href={`/dashboard/admin/sites/${siteEntry.site_id}?tab=invoices`}>
+                              관리
+                            </a>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => exportSite(siteEntry.site_id)}
+                            className="gap-1"
+                          >
+                            내보내기
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 md:grid-cols-2">
+                        {summaryDocTypes.map(type => {
+                          const hasDoc = !!siteEntry.docs?.[type.code]
+                          return (
+                            <div
+                              key={`${siteEntry.site_id}-${type.code}`}
+                              className="flex items-center justify-between rounded border px-3 py-2 text-xs"
+                            >
+                              <span className="text-muted-foreground">{type.label}</span>
+                              <span
+                                className={cn(
+                                  'rounded-full px-2 py-0.5 font-medium',
+                                  hasDoc
+                                    ? 'bg-green-100 text-green-700 border border-green-200'
+                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                )}
+                              >
+                                {hasDoc ? '등록됨' : '미등록'}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {summary.docTypes.map(dt => {
-                      const has = !!s.docs?.[dt.code]
-                      return (
-                        <span
-                          key={dt.code}
-                          className={`px-2 py-1 text-xs rounded border ${
-                            has
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : 'bg-gray-50 text-gray-600 border-gray-200'
-                          }`}
-                        >
-                          {dt.label}
-                        </span>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            {summary.sites.filter(s => (siteIdFilter ? s.site_id === siteIdFilter : true))
-              .length === 0 && (
-              <div className="text-sm text-muted-foreground">표시할 현장이 없습니다.</div>
-            )}
+                  )
+                })
+              )}
+            </div>
           </div>
         </TabsContent>
 
@@ -533,14 +457,14 @@ export default function InvoiceTabsClient() {
         <TabsContent value="settings">
           <div className="rounded-lg border bg-white p-3">
             <div className="mb-2 text-sm text-muted-foreground">
-              문서유형 목록(코드/라벨/필수단계 편집 가능 — 테이블 미프로비저닝 시 저장은 제한됩니다)
+              문서유형 목록(라벨/필수단계 편집 가능, 코드는 시스템이 자동으로 생성합니다 — 테이블
+              미프로비저닝 시 저장은 제한될 수 있습니다)
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left">
                     <th className="px-3 py-2">정렬</th>
-                    <th className="px-3 py-2">코드</th>
                     <th className="px-3 py-2">라벨</th>
                     <th className="px-3 py-2">필수(착수)</th>
                     <th className="px-3 py-2">필수(진행)</th>
@@ -558,7 +482,6 @@ export default function InvoiceTabsClient() {
                         className={`border-t ${!isActive ? 'bg-gray-50 text-gray-500' : ''}`}
                       >
                         <td className="px-3 py-2">{idx + 1}</td>
-                        <td className="px-3 py-2 font-mono text-xs">{t.code}</td>
                         <td className="px-3 py-2">
                           <Input
                             defaultValue={t.label}
@@ -685,15 +608,21 @@ export default function InvoiceTabsClient() {
                         </td>
                         <td className="px-3 py-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Button size="sm" variant="ghost" onClick={() => handleCodeEdit(t)}>
-                              코드 수정
-                            </Button>
                             <Button
                               size="sm"
                               variant={isActive ? 'outline' : 'secondary'}
+                              className="min-w-[96px] justify-center"
                               onClick={() => handleToggleActive(t)}
                             >
                               {isActive ? '비활성화' : '활성화'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="min-w-[72px] justify-center"
+                              onClick={() => handleDelete(t)}
+                            >
+                              삭제
                             </Button>
                           </div>
                         </td>
@@ -702,7 +631,7 @@ export default function InvoiceTabsClient() {
                   })}
                   {types.length === 0 && (
                     <tr>
-                      <td className="px-3 py-6 text-center text-gray-500" colSpan={8}>
+                      <td className="px-3 py-6 text-center text-gray-500" colSpan={7}>
                         유형이 없습니다.
                       </td>
                     </tr>
@@ -714,46 +643,25 @@ export default function InvoiceTabsClient() {
             {/* Add new type (optional) */}
             <div className="mt-4 flex items-end gap-2">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">코드</label>
-                <Input id="new_code" placeholder="예: custom_doc" />
-              </div>
-              <div>
                 <label className="block text-xs text-gray-500 mb-1">라벨</label>
                 <Input id="new_label" placeholder="예: 사용자 정의 문서" />
               </div>
               <Button
                 variant="outline"
                 onClick={async () => {
-                  const code = (
-                    document.getElementById('new_code') as HTMLInputElement
-                  )?.value?.trim()
                   const label = (
                     document.getElementById('new_label') as HTMLInputElement
                   )?.value?.trim()
-                  if (!code || !label) {
+                  if (!label) {
                     toast({
                       title: '입력 필요',
-                      description: '코드/라벨을 입력하세요.',
+                      description: '라벨을 입력하세요.',
                       variant: 'warning' as any,
                     })
                     return
                   }
-                  if (!/^[a-zA-Z0-9_-]+$/.test(code)) {
-                    toast({
-                      title: '형식 오류',
-                      description: '코드는 영문/숫자/하이픈/언더스코어만 사용할 수 있습니다.',
-                      variant: 'destructive',
-                    })
-                    return
-                  }
-                  if (types.some(t => t.code === code)) {
-                    toast({
-                      title: '중복 코드',
-                      description: `'${code}' 코드는 이미 존재합니다.`,
-                      variant: 'destructive',
-                    })
-                    return
-                  }
+                  const existingCodes = types.map(t => t.code)
+                  const code = generateTypeCode(label, existingCodes)
                   try {
                     const res = await fetch('/api/invoice/types', {
                       method: 'POST',
@@ -771,7 +679,6 @@ export default function InvoiceTabsClient() {
                       } as any,
                     ])
                     toast({ title: '추가됨', description: label })
-                    ;(document.getElementById('new_code') as HTMLInputElement).value = ''
                     ;(document.getElementById('new_label') as HTMLInputElement).value = ''
                   } catch {
                     toast({
