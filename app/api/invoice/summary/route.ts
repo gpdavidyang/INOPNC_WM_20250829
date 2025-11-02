@@ -38,52 +38,100 @@ export async function GET(request: NextRequest) {
       // ignore
     }
 
-    // unified_documents 우선, 없으면 unified_document_system 폴백
-    // 1) unified_documents
-    let rows: any[] = []
+    const parseMetadata = (raw: any): Record<string, any> | null => {
+      if (!raw) return null
+      if (typeof raw === 'object') return raw as Record<string, any>
+      if (typeof raw === 'string') {
+        try {
+          return JSON.parse(raw) as Record<string, any>
+        } catch {
+          return null
+        }
+      }
+      return null
+    }
+
+    const resolveDocType = (row: any, metadata: Record<string, any> | null): string => {
+      const candidates = [
+        row?.document_type,
+        metadata?.doc_type,
+        metadata?.document_type,
+        metadata?.docType,
+        metadata?.documentType,
+        row?.sub_category,
+      ]
+      for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+          return candidate.trim()
+        }
+      }
+      return 'other'
+    }
+
+    type DocumentRow = Record<string, any> & { __source?: 'unified' | 'legacy' }
+
+    let unifiedRows: DocumentRow[] = []
     try {
       let q = supabase
         .from('unified_documents')
         .select(
-          'id, site_id, site:site_id(id,name), category_type, document_type, status, created_at, metadata'
+          'id, site_id, site:site_id(id,name), category_type, document_type, sub_type, status, is_archived, created_at, metadata'
         )
         .eq('category_type', 'invoice')
+        .eq('is_archived', false)
         .order('created_at', { ascending: false })
       if (orgId) q = q.eq('customer_company_id', orgId)
       if (stage) q = q.eq('metadata->>stage', stage)
       const { data, error } = await q.limit(limit)
       if (error) throw error
-      rows = Array.isArray(data) ? data : []
+      unifiedRows = (Array.isArray(data) ? data : []).map(row => ({ ...row, __source: 'unified' }))
     } catch (_) {
-      // 2) unified_document_system 폴백
+      unifiedRows = []
+    }
+
+    let legacyRows: DocumentRow[] = []
+    try {
       let q2 = supabase
         .from('unified_document_system')
-        .select('id, site_id, site:sites(id,name), category_type, status, created_at, metadata')
+        .select(
+          'id, site_id, site:sites(id,name), category_type, sub_category, status, is_archived, created_at, metadata'
+        )
         .eq('category_type', 'invoice')
         .order('created_at', { ascending: false })
       if (orgId) q2 = q2.eq('metadata->>organization_id', orgId)
       if (stage) q2 = q2.eq('metadata->>stage', stage)
       const { data } = await q2.limit(limit)
-      rows = Array.isArray(data) ? data : []
+      legacyRows = (Array.isArray(data) ? data : []).map(row => ({ ...row, __source: 'legacy' }))
+    } catch (_) {
+      legacyRows = []
     }
 
-    // 집계: site × doc_type (최신 1건 기준 존재 여부)
+    const allRows: DocumentRow[] = [...unifiedRows, ...legacyRows]
+
     const docTypes = (types.length > 0 ? types : DEFAULT_INVOICE_DOC_TYPES)
       .filter(d => d.isActive)
       .sort((a, b) => a.sortOrder - b.sortOrder)
+
     const sitesMap = new Map<
       string,
       { site_id: string; site_name: string; docs: Record<string, any> }
     >()
+    const uniqueDocs = new Set<string>()
 
-    for (const r of rows) {
-      const docType = r.document_type || r?.metadata?.doc_type || 'other'
+    for (const r of allRows) {
       const sid = r.site_id
       if (!sid) continue
+      const metadata = parseMetadata(r.metadata)
+      const docType = resolveDocType(r, metadata)
+      if (!docType) continue
+      const status = typeof r.status === 'string' ? r.status.toLowerCase() : ''
+      const isArchived = r?.is_archived === true
+      if (status === 'deleted' || status === 'archived' || isArchived) continue
+      uniqueDocs.add(`${r.__source || 'legacy'}:${r.id}`)
       if (!sitesMap.has(sid)) {
         sitesMap.set(sid, {
           site_id: sid,
-          site_name: r?.site?.name || '-',
+          site_name: r?.site?.name || metadata?.site_name || '-',
           docs: {},
         })
       }
@@ -115,7 +163,7 @@ export async function GET(request: NextRequest) {
       data: {
         docTypes,
         sites,
-        totals: { sites: sites.length, documents: rows.length },
+        totals: { sites: sites.length, documents: uniqueDocs.size },
       },
     })
   } catch (e) {
