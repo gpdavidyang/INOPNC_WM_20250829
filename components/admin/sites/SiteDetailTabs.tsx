@@ -17,6 +17,9 @@ import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import { useRouter, useSearchParams } from 'next/navigation'
+import InvoiceDocumentsManager, {
+  InvoiceStageProgress,
+} from '@/components/admin/invoice/InvoiceDocumentsManager'
 // Dialog replaced with dedicated page for assignments
 
 // 한글 표시용 매핑 테이블
@@ -36,13 +39,13 @@ const CATEGORY_LABELS: Record<string, string> = {
   general: '일반',
 }
 
-const INVOICE_PHASE_OPTIONS = [
-  { key: 'all', label: '전체' },
-  { key: 'pre_contract', label: '계약 전' },
-  { key: 'in_progress', label: '진행 중' },
-  { key: 'completion', label: '준공' },
-  { key: 'closed', label: '종결' },
-] as const
+type InvoiceStageKey = 'start' | 'progress' | 'completion'
+
+const INVOICE_STAGE_LABELS: Record<InvoiceStageKey, string> = {
+  start: '착수 단계',
+  progress: '진행 단계',
+  completion: '완료 단계',
+}
 
 const SHARED_CATEGORY_LABELS: Record<string, string> = {
   general: '일반',
@@ -88,7 +91,7 @@ type Props = {
 export default function SiteDetailTabs({
   siteId,
   site,
-  initialDocs,
+  initialDocs: _initialDocs,
   initialReports,
   initialAssignments,
   initialRequests,
@@ -139,7 +142,7 @@ export default function SiteDetailTabs({
   const [photoSheetsLoading, setPhotoSheetsLoading] = useState(false)
   const [stats, setStats] = useState<{ reports: number; labor: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
-  const [invoiceDocs, setInvoiceDocs] = useState<any[]>(initialDocs || [])
+  const [invoiceProgress, setInvoiceProgress] = useState<InvoiceStageProgress | null>(null)
   const [sharedDocs, setSharedDocs] = useState<any[]>([])
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
@@ -155,10 +158,6 @@ export default function SiteDetailTabs({
   const [recentRequests, setRecentRequests] = useState<any[]>(initialRequests || [])
   const [laborByUser, setLaborByUser] = useState<Record<string, number>>({})
   const [globalLaborByUser, setGlobalLaborByUser] = useState<Record<string, number>>({})
-  const [invoicePhaseFilter, setInvoicePhaseFilter] = useState<
-    'all' | 'pre_contract' | 'in_progress' | 'completion' | 'closed' | 'other'
-  >('all')
-  const [invoiceDocsLoading, setInvoiceDocsLoading] = useState(false)
   const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
   const [sharedView, setSharedView] = useState<'drawings' | 'documents'>('drawings')
   const [reportsLoading, setReportsLoading] = useState(false)
@@ -200,6 +199,23 @@ export default function SiteDetailTabs({
   const [assignPage, setAssignPage] = useState(0)
   const [assignPageSize, setAssignPageSize] = useState(20)
   const [assignHasNext, setAssignHasNext] = useState(false)
+
+  const invoiceStageSummary = useMemo(() => {
+    if (!invoiceProgress) return null
+    const keys: InvoiceStageKey[] = ['start', 'progress', 'completion']
+    const items = keys.map(key => {
+      const required = invoiceProgress[key]?.required ?? 0
+      const fulfilled = invoiceProgress[key]?.fulfilled ?? 0
+      const ratio = required > 0 ? Math.min(fulfilled / required, 1) : 0
+      return { key, required, fulfilled, ratio }
+    })
+    const totalRequired = items.reduce((acc, item) => acc + item.required, 0)
+    const totalFulfilled = items.reduce(
+      (acc, item) => acc + Math.min(item.fulfilled, item.required),
+      0
+    )
+    return { items, totalRequired, totalFulfilled }
+  }, [invoiceProgress])
   const [assignTotal, setAssignTotal] = useState<number | null>(null)
   const [reqPage, setReqPage] = useState(0)
   const [reqPageSize, setReqPageSize] = useState(20)
@@ -518,30 +534,6 @@ export default function SiteDetailTabs({
   useEffect(() => {
     const supabase = createSupabaseClient()
 
-    // Recent invoices: use admin API to load invoice documents for this site
-    ;(async () => {
-      try {
-        setInvoiceDocsLoading(true)
-        const res = await fetch(`/api/admin/sites/${siteId}/documents?category=invoice&limit=20`, {
-          cache: 'no-store',
-          credentials: 'include',
-        })
-        const json = await res.json().catch(() => ({}))
-        if (res.ok && json?.success && Array.isArray(json.data)) {
-          const sorted = [...json.data].sort((a: any, b: any) => {
-            const ad = new Date(a.created_at || 0).getTime()
-            const bd = new Date(b.created_at || 0).getTime()
-            return bd - ad
-          })
-          setInvoiceDocs(sorted.slice(0, 10))
-        }
-      } catch {
-        void 0
-      } finally {
-        setInvoiceDocsLoading(false)
-      }
-    })()
-
     // Shared documents: admin API (category=shared)
     ;(async () => {
       try {
@@ -799,6 +791,53 @@ export default function SiteDetailTabs({
             </div>
           </div>
 
+          {invoiceStageSummary ? (
+            <section className="rounded-lg border bg-card p-4 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-muted-foreground">기성 문서 진행도</h3>
+                  <p className="text-xs text-muted-foreground">
+                    단계별 필수 문서 등록 현황을 확인하세요.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {invoiceStageSummary.totalRequired > 0 ? (
+                    <Badge variant="outline" className="text-xs">
+                      완료 {invoiceStageSummary.totalFulfilled}/{invoiceStageSummary.totalRequired}
+                    </Badge>
+                  ) : null}
+                  <Button size="sm" variant="outline" onClick={() => setTab('invoices')}>
+                    관리 페이지로 이동
+                  </Button>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {invoiceStageSummary.items.map(item => (
+                  <div key={item.key} className="rounded-md border bg-white px-3 py-3 shadow-sm">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{INVOICE_STAGE_LABELS[item.key]}</span>
+                      {item.required > 0 ? (
+                        <span>
+                          {Math.min(item.fulfilled, item.required)}/{item.required}
+                        </span>
+                      ) : (
+                        <span>필수 없음</span>
+                      )}
+                    </div>
+                    <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
+                      {item.required > 0 ? (
+                        <div
+                          className="h-2 rounded-full bg-blue-500 transition-all"
+                          style={{ width: `${Math.round(item.ratio * 100)}%` }}
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           {/* 최근 작업일지 (moved before documents) */}
           <section>
             <div className="flex items-center justify-between mb-2">
@@ -992,94 +1031,6 @@ export default function SiteDetailTabs({
                             </Button>
                           </div>
                         ),
-                      },
-                    ] as Column<any>[]
-                  }
-                />
-              )}
-            </div>
-          </section>
-
-          {/* 최근 기성 문서 */}
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">최근 기성 문서</h3>
-              <Button asChild variant="ghost" size="sm">
-                <a href={`/dashboard/admin/sites/${siteId}/documents`}>더 보기</a>
-              </Button>
-            </div>
-            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              {invoiceDocsLoading && invoiceDocs.length === 0 ? (
-                <TableSkeleton rows={5} />
-              ) : (
-                <DataTable<any>
-                  data={invoiceDocs.slice(0, 5)}
-                  rowKey={(d: any, idx?: number) => d.id || d.document_id || idx || 'invoice'}
-                  stickyHeader
-                  emptyMessage="기성청구 문서가 없습니다."
-                  columns={
-                    [
-                      {
-                        key: 'created_at',
-                        header: '등록일',
-                        sortable: true,
-                        accessor: (d: any) => d?.created_at || d?.uploadDate || d?.createdAt || '',
-                        render: (d: any) => {
-                          const raw = d?.created_at || d?.uploadDate || d?.createdAt
-                          try {
-                            return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
-                          } catch {
-                            return '-'
-                          }
-                        },
-                        width: '18%',
-                      },
-                      {
-                        key: 'title',
-                        header: '문서명',
-                        sortable: true,
-                        accessor: (d: any) => d?.title || '',
-                        render: (d: any) => (
-                          <div className="space-y-1">
-                            <a
-                              href={buildDocPreviewHref(d)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline text-blue-600 font-medium text-foreground"
-                            >
-                              {d?.title || '-'}
-                            </a>
-                            <div className="text-xs text-muted-foreground">
-                              {formatInvoicePeriod(d) || '기간 미지정'}
-                            </div>
-                          </div>
-                        ),
-                        width: '34%',
-                      },
-                      {
-                        key: 'partner',
-                        header: '협력사',
-                        sortable: true,
-                        accessor: (d: any) => getInvoicePartner(d),
-                        render: (d: any) => getInvoicePartner(d) || '-',
-                        width: '18%',
-                      },
-                      {
-                        key: 'phase',
-                        header: '기성 단계',
-                        sortable: true,
-                        accessor: (d: any) => getInvoicePhaseLabel(d),
-                        render: (d: any) => getInvoicePhaseLabel(d),
-                        width: '16%',
-                      },
-                      {
-                        key: 'amount',
-                        header: '요청 금액',
-                        sortable: true,
-                        accessor: (d: any) => Number(getInvoiceAmountValue(d) ?? 0),
-                        render: (d: any) => formatInvoiceAmount(d),
-                        align: 'right',
-                        width: '14%',
                       },
                     ] as Column<any>[]
                   }
@@ -1578,131 +1529,12 @@ export default function SiteDetailTabs({
 
         {/* Invoices Tab */}
         <TabsContent value="invoices" className="mt-4 space-y-4">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-muted-foreground">현장 기성청구 문서</h3>
-              <p className="text-xs text-muted-foreground">
-                협력사와 공유되는 기성 요청·정산 문서를 확인합니다.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button asChild variant="outline" size="sm">
-                <a href="/dashboard/admin/documents/invoice">기성청구 관리로 이동</a>
-              </Button>
-              <Button asChild variant="secondary" size="sm">
-                <a href={`/dashboard/admin/sites/${siteId}/documents`}>현장 기성 문서 전체 보기</a>
-              </Button>
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">기성 단계</span>
-            {INVOICE_PHASE_OPTIONS.map(opt => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => setInvoicePhaseFilter(opt.key)}
-                className={`px-2 py-1 text-xs rounded border ${
-                  invoicePhaseFilter === opt.key
-                    ? 'bg-gray-100 border-gray-400'
-                    : 'border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            {invoiceDocsLoading && invoiceDocs.length === 0 ? (
-              <TableSkeleton rows={5} />
-            ) : (
-              <DataTable<any>
-                data={(invoiceDocs || []).filter(d => {
-                  if (invoicePhaseFilter === 'all') return true
-                  return getInvoicePhaseKey(d) === invoicePhaseFilter
-                })}
-                rowKey={(d: any, idx?: number) =>
-                  d.id || d.document_id || d.file_id || d.url || idx || 'invoice-doc'
-                }
-                stickyHeader
-                emptyMessage="기성청구 문서가 없습니다."
-                columns={
-                  [
-                    {
-                      key: 'created_at',
-                      header: '등록일',
-                      sortable: true,
-                      accessor: (d: any) => d?.created_at || d?.uploadDate || d?.createdAt || '',
-                      render: (d: any) => {
-                        const raw = d?.created_at || d?.uploadDate || d?.createdAt
-                        try {
-                          return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
-                        } catch {
-                          return '-'
-                        }
-                      },
-                      width: '14%',
-                    },
-                    {
-                      key: 'title',
-                      header: '문서명 / 기간',
-                      sortable: true,
-                      accessor: (d: any) => d?.title || '',
-                      render: (d: any) => (
-                        <div className="space-y-1">
-                          <a
-                            href={buildDocPreviewHref(d)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline text-blue-600 font-medium text-foreground"
-                          >
-                            {d?.title || '-'}
-                          </a>
-                          <div className="text-xs text-muted-foreground">
-                            {formatInvoicePeriod(d) || '기간 미지정'}
-                          </div>
-                        </div>
-                      ),
-                      width: '28%',
-                    },
-                    {
-                      key: 'partner',
-                      header: '협력사',
-                      sortable: true,
-                      accessor: (d: any) => getInvoicePartner(d),
-                      render: (d: any) => getInvoicePartner(d) || '-',
-                      width: '16%',
-                    },
-                    {
-                      key: 'phase',
-                      header: '기성 단계',
-                      sortable: true,
-                      accessor: (d: any) => getInvoicePhaseKey(d),
-                      render: (d: any) => getInvoicePhaseLabel(d),
-                      width: '12%',
-                    },
-                    {
-                      key: 'amount',
-                      header: '요청 금액',
-                      sortable: true,
-                      accessor: (d: any) => Number(getInvoiceAmountValue(d) ?? 0),
-                      render: (d: any) => formatInvoiceAmount(d),
-                      align: 'right',
-                      width: '14%',
-                    },
-                    {
-                      key: 'status',
-                      header: '상태',
-                      sortable: true,
-                      accessor: (d: any) => d?.status || '',
-                      render: (d: any) =>
-                        d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
-                      width: '12%',
-                    },
-                  ] as Column<any>[]
-                }
-              />
-            )}
-          </div>
+          <InvoiceDocumentsManager
+            siteId={siteId}
+            siteName={site?.name}
+            organizationId={site?.organization_id}
+            onProgressUpdate={setInvoiceProgress}
+          />
         </TabsContent>
 
         {/* Assignments Tab */}
@@ -2971,123 +2803,6 @@ function buildDocPreviewHref(d: any): string {
 
   // 기본: 통합 문서 뷰어 경로로 이동
   return `/dashboard/admin/documents/${d.id}`
-}
-
-function getInvoiceMetadata(d: any): Record<string, any> {
-  const meta = d?.metadata
-  if (meta && typeof meta === 'object') return meta as Record<string, any>
-  return {}
-}
-
-function getInvoicePartner(d: any): string {
-  const meta = getInvoiceMetadata(d)
-  return (
-    meta.partner_name ||
-    meta.partner ||
-    meta.partner_company ||
-    meta.partner_company_name ||
-    meta.company_name ||
-    meta.organization_name ||
-    ''
-  )
-}
-
-function getInvoicePhaseKey(
-  d: any
-): 'pre_contract' | 'in_progress' | 'completion' | 'closed' | 'other' {
-  const meta = getInvoiceMetadata(d)
-  const raw = String(
-    meta.contract_phase ||
-      meta.phase ||
-      meta.progress_stage ||
-      meta.workflow_stage ||
-      d?.status ||
-      ''
-  ).toLowerCase()
-  if (
-    raw.includes('pre') ||
-    raw.includes('준비') ||
-    raw.includes('initial') ||
-    raw.includes('pending') ||
-    raw.includes('대기') ||
-    raw.includes('draft')
-  )
-    return 'pre_contract'
-  if (
-    raw.includes('완료') ||
-    raw.includes('completion') ||
-    raw.includes('준공') ||
-    raw.includes('approved') ||
-    raw.includes('승인') ||
-    raw.includes('확정')
-  )
-    return 'completion'
-  if (
-    raw.includes('종결') ||
-    raw.includes('closed') ||
-    raw.includes('done') ||
-    raw.includes('정산')
-  )
-    return 'closed'
-  if (
-    raw.includes('progress') ||
-    raw.includes('진행') ||
-    raw.includes('중') ||
-    raw.includes('ongoing')
-  )
-    return 'in_progress'
-  return 'other'
-}
-
-function getInvoicePhaseLabel(d: any): string {
-  const key = getInvoicePhaseKey(d)
-  if (key === 'other') return '기타'
-  const found = INVOICE_PHASE_OPTIONS.find(opt => opt.key === key)
-  return found ? found.label : '기타'
-}
-
-function getInvoiceAmountValue(d: any): number | null {
-  const meta = getInvoiceMetadata(d)
-  const raw =
-    meta.request_amount ??
-    meta.amount ??
-    meta.total_amount ??
-    meta.invoice_amount ??
-    meta.expected_amount ??
-    d?.amount
-  if (raw === undefined || raw === null || raw === '') return null
-  const num = Number(raw)
-  return Number.isFinite(num) ? num : null
-}
-
-function formatInvoiceAmount(d: any): string {
-  const value = getInvoiceAmountValue(d)
-  if (value === null) return '-'
-  return `₩${new Intl.NumberFormat('ko-KR').format(value)}`
-}
-
-function formatInvoicePeriod(d: any): string {
-  const meta = getInvoiceMetadata(d)
-  const from =
-    meta.period_start ||
-    meta.start_date ||
-    meta.contract_start ||
-    meta.from ||
-    meta.billing_start ||
-    meta.period?.start
-  const to =
-    meta.period_end ||
-    meta.end_date ||
-    meta.contract_end ||
-    meta.to ||
-    meta.billing_end ||
-    meta.period?.end
-  if (from && to) {
-    return `${formatDate(String(from))} ~ ${formatDate(String(to))}`
-  }
-  const label =
-    meta.period || meta.billing_period || meta.statement_period || meta.summary_period || ''
-  return label ? String(label) : ''
 }
 
 function getSharedCategoryLabel(d: any): string {

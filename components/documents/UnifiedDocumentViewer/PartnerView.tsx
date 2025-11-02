@@ -1,13 +1,16 @@
 'use client'
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { useMemo } from 'react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DEFAULT_INVOICE_DOC_TYPES } from '@/lib/invoice/doc-types'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
+import { Package, Share2, FileText, Download, Eye, File } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PartnerViewProps {
   documents: UnifiedDocument[]
@@ -30,157 +33,86 @@ interface PartnerViewProps {
 export default function PartnerView({
   documents,
   loading,
-  viewMode,
-  selectedDocuments,
-  onSelectionChange,
   onDocumentAction,
   onDocumentClick,
   pagination,
   onPageChange,
-  companyId,
 }: PartnerViewProps) {
-  // 기성청구 문서 필터링
-  const invoiceDocuments = documents.filter(doc => doc.category_type === 'invoice')
-  const sharedDocuments = documents.filter(doc => doc.category_type === 'shared')
-  const otherDocuments = documents.filter(doc => !['invoice', 'shared'].includes(doc.category_type))
+  const invoiceDocTypes = useMemo(
+    () => DEFAULT_INVOICE_DOC_TYPES.filter(t => t.isActive !== false),
+    []
+  )
 
-  // 문서 선택 토글
-  const toggleSelection = (documentId: string) => {
-    if (selectedDocuments.includes(documentId)) {
-      onSelectionChange(selectedDocuments.filter(id => id !== documentId))
-    } else {
-      onSelectionChange([...selectedDocuments, documentId])
+  const invoiceDocuments = useMemo(
+    () => documents.filter(doc => doc.category_type === 'invoice'),
+    [documents]
+  )
+  const sharedDocuments = useMemo(
+    () => documents.filter(doc => doc.category_type === 'shared'),
+    [documents]
+  )
+  const otherDocuments = useMemo(
+    () => documents.filter(doc => !['invoice', 'shared'].includes(doc.category_type)),
+    [documents]
+  )
+
+  const invoiceDocMap = useMemo(() => {
+    const map = new Map<string, UnifiedDocument>()
+    for (const doc of invoiceDocuments) {
+      const key = String(doc.document_type || doc.metadata?.doc_type || '')
+        .toLowerCase()
+        .trim()
+      if (key && !map.has(key)) {
+        map.set(key, doc)
+      }
+    }
+    return map
+  }, [invoiceDocuments])
+
+  const sections = useMemo(() => {
+    return invoiceDocTypes.map(type => ({
+      type,
+      doc: invoiceDocuments.find(
+        doc =>
+          (doc.document_type || doc.metadata?.doc_type || '').toLowerCase() ===
+          type.code.toLowerCase()
+      ),
+    }))
+  }, [invoiceDocTypes, invoiceDocuments])
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return ''
+    try {
+      return format(new Date(value), 'yyyy-MM-dd', { locale: ko })
+    } catch {
+      return String(value)
     }
   }
 
-  // 상태 배지
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'approved':
-        return (
-          <Badge variant="default" className="bg-green-500">
-            <CheckCircle className="h-3 w-3 mr-1" />
-            승인됨
-          </Badge>
-        )
-      case 'rejected':
-        return (
-          <Badge variant="destructive">
-            <XCircle className="h-3 w-3 mr-1" />
-            반려됨
-          </Badge>
-        )
-      case 'pending':
-        return (
-          <Badge variant="secondary">
-            <Clock className="h-3 w-3 mr-1" />
-            검토중
-          </Badge>
-        )
-      default:
-        return (
-          <Badge variant="outline">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            {status}
-          </Badge>
-        )
-    }
-  }
-
-  // 문서 카드 렌더링
-  const renderDocumentCard = (document: UnifiedDocument, isInvoice: boolean = false) => {
-    const Icon = isInvoice ? Package : FileText
-
-    return (
-      <Card
-        key={document.id}
-        className={`hover:shadow-lg transition-shadow ${isInvoice ? 'border-yellow-200' : ''}`}
+  const renderDocActions = (doc: UnifiedDocument | undefined) => (
+    <div className="flex gap-2">
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!doc}
+        onClick={() => doc && onDocumentClick(doc)}
+        className="gap-1"
       >
-        <CardContent className="p-4">
-          <div className="flex items-start justify-between mb-3">
-            <Checkbox
-              checked={selectedDocuments.includes(document.id)}
-              onCheckedChange={() => toggleSelection(document.id)}
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onDocumentClick(document)}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  보기
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDocumentAction('download', [document.id])}>
-                  <Download className="h-4 w-4 mr-2" />
-                  다운로드
-                </DropdownMenuItem>
-                {isInvoice && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => onDocumentAction('edit', [document.id])}>
-                      <Edit3 className="h-4 w-4 mr-2" />
-                      수정
-                    </DropdownMenuItem>
-                    {document.workflow_status !== 'approved' && (
-                      <DropdownMenuItem
-                        onClick={() => onDocumentAction('delete', [document.id])}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        삭제
-                      </DropdownMenuItem>
-                    )}
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          <button onClick={() => onDocumentClick(document)} className="w-full text-left">
-            <div className="flex items-center gap-3 mb-3">
-              <div className={`p-2 rounded ${isInvoice ? 'bg-yellow-100' : 'bg-gray-100'}`}>
-                <Icon className={`h-6 w-6 ${isInvoice ? 'text-yellow-600' : 'text-gray-600'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">{document.title || document.file_name}</p>
-                {document.description && (
-                  <p className="text-sm text-gray-500 truncate">{document.description}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {getStatusBadge(document.workflow_status || document.status)}
-
-              {document.site && (
-                <p className="text-sm text-gray-500">
-                  <Building2 className="h-3 w-3 inline mr-1" />
-                  {document.site.name}
-                </p>
-              )}
-
-              {isInvoice && document.metadata?.amount && (
-                <p className="text-sm font-medium text-yellow-600">
-                  청구금액:{' '}
-                  {new Intl.NumberFormat('ko-KR', {
-                    style: 'currency',
-                    currency: 'KRW',
-                  }).format(document.metadata.amount)}
-                </p>
-              )}
-
-              <div className="text-xs text-gray-400">
-                {format(new Date(document.created_at), 'yyyy-MM-dd', { locale: ko })}
-              </div>
-            </div>
-          </button>
-        </CardContent>
-      </Card>
-    )
-  }
+        <Eye className="h-4 w-4" />
+        보기
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!doc}
+        onClick={() => doc && onDocumentAction('download', [doc.id])}
+        className="gap-1"
+      >
+        <Download className="h-4 w-4" />
+        다운로드
+      </Button>
+    </div>
+  )
 
   if (loading) {
     return (
@@ -192,192 +124,139 @@ export default function PartnerView({
 
   return (
     <div className="space-y-6">
-      {/* 시공업체 정보 알림 */}
       <Alert>
-        <Building2 className="h-4 w-4" />
+        <Package className="h-4 w-4" />
         <AlertDescription>
-          귀사의 문서만 표시됩니다. 기성청구 문서는 자유롭게 관리하실 수 있으며, 공유문서는 열람만
-          가능합니다.
+          기성청구 문서는 관리자에 의해 공유되며, 파트너사는 열람과 다운로드만 가능합니다.
         </AlertDescription>
       </Alert>
 
-      {/* 선택 도구바 */}
-      {selectedDocuments.length > 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg flex items-center justify-between">
-          <span className="text-sm font-medium">{selectedDocuments.length}개 문서 선택됨</span>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => onDocumentAction('download', selectedDocuments)}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              다운로드
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => onDocumentAction('delete', selectedDocuments)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              삭제
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* 기성청구 문서 섹션 */}
-      {invoiceDocuments.length > 0 && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Package className="h-5 w-5 text-yellow-600" />
-              기성청구 문서
-              <Badge variant="secondary">{invoiceDocuments.length}</Badge>
-            </h3>
-            <Button
-              size="sm"
-              onClick={() => onDocumentAction('create_invoice', [])}
-              className="bg-yellow-600 hover:bg-yellow-700"
-            >
-              새 청구서 작성
-            </Button>
-          </div>
-
-          {viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {invoiceDocuments.map(doc => renderDocumentCard(doc, true))}
-            </div>
-          ) : (
-            <Card>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b bg-yellow-50 dark:bg-yellow-900/20">
-                    <tr>
-                      <th className="text-left p-4">
-                        <Checkbox />
-                      </th>
-                      <th className="text-left p-4 font-medium">문서명</th>
-                      <th className="text-left p-4 font-medium">현장</th>
-                      <th className="text-left p-4 font-medium">청구금액</th>
-                      <th className="text-left p-4 font-medium">상태</th>
-                      <th className="text-left p-4 font-medium">작성일</th>
-                      <th className="text-left p-4 font-medium">작업</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoiceDocuments.map(document => (
-                      <tr
-                        key={document.id}
-                        className="border-b hover:bg-gray-50 dark:hover:bg-gray-900"
-                      >
-                        <td className="p-4">
-                          <Checkbox
-                            checked={selectedDocuments.includes(document.id)}
-                            onCheckedChange={() => toggleSelection(document.id)}
-                          />
-                        </td>
-                        <td className="p-4">
-                          <button
-                            onClick={() => onDocumentClick(document)}
-                            className="text-left hover:text-yellow-600 font-medium"
+      <section className="space-y-3">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Package className="h-5 w-5 text-yellow-600" />
+          기성 문서 체크리스트
+        </h3>
+        {stageSections.map(section =>
+          section.types.length === 0 ? null : (
+            <Card key={section.stage}>
+              <CardHeader className="py-3">
+                <CardTitle className="flex items-center justify-between text-sm font-semibold">
+                  <span>{section.label}</span>
+                  <Badge variant="secondary">
+                    완료{' '}
+                    {
+                      section.types.filter(type => invoiceDocMap.has(type.code.toLowerCase()))
+                        .length
+                    }
+                    /{section.types.length}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {section.types.map(type => {
+                  const doc =
+                    invoiceDocMap.get(type.code.toLowerCase()) ?? invoiceDocMap.get(type.code)
+                  const isUploaded = !!doc
+                  return (
+                    <div
+                      key={`${section.stage}-${type.code}`}
+                      className="flex flex-col gap-2 rounded border px-3 py-3 md:flex-row md:items-center md:justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-foreground">{type.label}</span>
+                          <Badge
+                            variant={isUploaded ? 'default' : 'outline'}
+                            className={cn(
+                              'text-xs',
+                              isUploaded ? 'bg-green-100 text-green-700' : 'text-muted-foreground'
+                            )}
                           >
-                            {document.title || document.file_name}
-                          </button>
-                        </td>
-                        <td className="p-4">
-                          <p className="text-sm">{document.site?.name || '-'}</p>
-                        </td>
-                        <td className="p-4">
-                          <p className="font-medium">
-                            {document.metadata?.amount
-                              ? new Intl.NumberFormat('ko-KR', {
-                                  style: 'currency',
-                                  currency: 'KRW',
-                                }).format(document.metadata.amount)
-                              : '-'}
-                          </p>
-                        </td>
-                        <td className="p-4">
-                          {getStatusBadge(document.workflow_status || document.status)}
-                        </td>
-                        <td className="p-4">
-                          <p className="text-sm">
-                            {format(new Date(document.created_at), 'yyyy-MM-dd')}
-                          </p>
-                        </td>
-                        <td className="p-4">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => onDocumentClick(document)}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                보기
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => onDocumentAction('download', [document.id])}
-                              >
-                                <Download className="h-4 w-4 mr-2" />
-                                다운로드
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => onDocumentAction('edit', [document.id])}
-                              >
-                                <Edit3 className="h-4 w-4 mr-2" />
-                                수정
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            {isUploaded ? '등록됨' : '미등록'}
+                          </Badge>
+                        </div>
+                        {doc ? (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {formatDate(doc.created_at)} · {doc.title || doc.file_name || '무제'}
+                          </div>
+                        ) : (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            공유된 문서가 없습니다.
+                          </div>
+                        )}
+                      </div>
+                      {renderDocActions(doc)}
+                    </div>
+                  )
+                })}
+              </CardContent>
             </Card>
-          )}
-        </div>
-      )}
+          )
+        )}
+      </section>
 
-      {/* 공유문서 섹션 */}
       {sharedDocuments.length > 0 && (
-        <div>
+        <section>
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
             <Share2 className="h-5 w-5 text-blue-600" />
             공유문서
             <Badge variant="secondary">{sharedDocuments.length}</Badge>
           </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sharedDocuments.map(doc => renderDocumentCard(doc, false))}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {sharedDocuments.map(doc => (
+              <Card key={doc.id} className="border bg-white shadow-sm">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <span className="truncate">{doc.title || doc.file_name}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</div>
+                  {renderDocActions(doc)}
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* 문서가 없을 때 */}
+      {otherDocuments.length > 0 && (
+        <section>
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+            <File className="h-5 w-5 text-gray-600" />
+            기타 문서
+            <Badge variant="secondary">{otherDocuments.length}</Badge>
+          </h3>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {otherDocuments.map(doc => (
+              <Card key={doc.id} className="border bg-white shadow-sm">
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <FileText className="h-4 w-4 text-gray-600" />
+                    <span className="truncate">{doc.title || doc.file_name}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {doc.category_type?.toUpperCase()}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{formatDate(doc.created_at)}</div>
+                  {renderDocActions(doc)}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
       {documents.length === 0 && (
         <Card>
-          <CardContent className="text-center py-12">
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">등록된 문서가 없습니다</p>
-            <Button
-              onClick={() => onDocumentAction('create_invoice', [])}
-              className="bg-yellow-600 hover:bg-yellow-700"
-            >
-              첫 기성청구서 작성하기
-            </Button>
+          <CardContent className="py-12 text-center space-y-3">
+            <Package className="h-12 w-12 text-gray-400 mx-auto" />
+            <p className="text-gray-500">등록된 문서가 없습니다.</p>
           </CardContent>
         </Card>
       )}
 
-      {/* 페이지네이션 */}
       {pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-6">
+        <div className="flex justify-center gap-2">
           <Button
             variant="outline"
             size="sm"
@@ -386,11 +265,9 @@ export default function PartnerView({
           >
             이전
           </Button>
-
           <span className="flex items-center px-3 text-sm">
             {pagination.page} / {pagination.totalPages}
           </span>
-
           <Button
             variant="outline"
             size="sm"

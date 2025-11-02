@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,12 +9,12 @@ export async function POST(request: NextRequest) {
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
 
-    const supabase = createClient()
+    const supabase = createServiceRoleClient()
 
     // profile (for organization context)
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, role, organization_id')
+      .select('id, role, organization_id, partner_company_id')
       .eq('id', auth.userId)
       .single()
 
@@ -68,60 +68,61 @@ export async function POST(request: NextRequest) {
     }
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(storagePath)
 
-    // Compute next version for (site_id, doc_type)
-    let newVersion = 1
-    try {
-      const { data: last } = await supabase
-        .from('unified_documents')
-        .select('version')
-        .eq('category_type', 'invoice')
-        .eq('site_id', siteId)
-        .eq('document_type', docType)
-        .order('version', { ascending: false })
-        .limit(1)
-      if (Array.isArray(last) && last.length > 0) newVersion = Number(last[0].version || 0) + 1
-    } catch {
-      // ignore
-    }
-
     const record = {
-      title: title || `${docType} - ${file.name}`,
-      description,
+      title: title || file.name,
+      description: description || null,
       file_name: file.name,
-      file_size: file.size,
-      file_type: file.type,
+      mime_type: file.type,
       file_url: urlData.publicUrl,
-      storage_path: storagePath,
+      file_size: file.size,
       category_type: 'invoice',
-      document_type: docType,
+      sub_category: stage || null,
+      metadata: {
+        doc_type: docType,
+        ...(stage ? { stage } : {}),
+        ...(organizationId ? { organization_id: organizationId } : {}),
+      },
       site_id: siteId,
-      customer_company_id: organizationId,
+      customer_company_id: organizationId || profile.partner_company_id || null,
       uploaded_by: auth.userId,
-      status: 'active',
-      workflow_status: 'draft',
+      status: 'uploaded',
       is_public: false,
       is_archived: false,
-      access_level: 'role',
-      tags: [stage ? `invoice_stage:${stage}` : ''].filter(Boolean),
-      version: newVersion,
+      approval_required: false,
+      approved_by: null,
+      approved_at: null,
+      tags: stage ? [`invoice_stage:${stage}`] : [],
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-      metadata: { stage, doc_type: docType, organization_id: organizationId || undefined },
     }
 
     const { data: inserted, error: insErr } = await supabase
-      .from('unified_documents')
+      .from('unified_document_system')
       .insert(record)
       .select('*')
       .single()
     if (insErr) {
+      console.error('[invoice/upload] insert failed', insErr)
       // rollback storage
       await supabase.storage.from('documents').remove([storagePath])
-      return NextResponse.json({ error: 'DB insert failed' }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: insErr.message || 'DB insert failed',
+          details: insErr.details,
+          hint: insErr.hint,
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ success: true, data: inserted })
   } catch (e) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[invoice/upload] error', e)
+    return NextResponse.json(
+      {
+        error: e instanceof Error ? e.message : 'Internal server error',
+      },
+      { status: 500 }
+    )
   }
 }
