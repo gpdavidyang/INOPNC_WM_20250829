@@ -18,6 +18,19 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const { id } = params
 
   try {
+    const parseMetadata = (raw: any): Record<string, any> | null => {
+      if (!raw) return null
+      if (typeof raw === 'object') return raw as Record<string, any>
+      if (typeof raw === 'string') {
+        try {
+          return JSON.parse(raw) as Record<string, any>
+        } catch {
+          return null
+        }
+      }
+      return null
+    }
+
     let payload: { fileUrl?: string | null; storagePath?: string | null } = {}
     if (request.headers.get('content-type')?.includes('application/json')) {
       payload = (await request.json().catch(() => ({}))) || {}
@@ -27,7 +40,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     let storagePath: string | undefined = payload.storagePath ?? undefined
 
     const now = new Date().toISOString()
-    const { data: deletedRow, error: deleteError } = await supabase
+    const { data: legacyRow, error: deleteError } = await supabase
       .from('unified_document_system')
       .update({ status: 'deleted', is_archived: true, updated_at: now })
       .eq('id', id)
@@ -38,27 +51,38 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 })
     }
 
-    if (!deletedRow) {
+    let targetRow = legacyRow
+    let targetTable: 'legacy' | 'unified' | null = legacyRow ? 'legacy' : null
+
+    if (!targetRow) {
+      const { data: unifiedRow, error: unifiedError } = await supabase
+        .from('unified_documents')
+        .update({ status: 'deleted', is_archived: true, updated_at: now })
+        .eq('id', id)
+        .select('id, file_url, metadata, status, is_archived')
+        .maybeSingle()
+      if (unifiedError) {
+        console.error('[invoice/delete] unified_documents delete failed', unifiedError)
+        return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 })
+      }
+      targetRow = unifiedRow || null
+      targetTable = unifiedRow ? 'unified' : null
+    }
+
+    if (!targetRow) {
       console.log('[invoice/delete] no row found for', id)
       return NextResponse.json({ success: true, data: { id } })
     }
 
-    console.log('[invoice/delete] updated row', id, deletedRow.status)
+    console.log('[invoice/delete] updated row', id, targetRow.status, targetTable)
 
-    if (!fileUrl && deletedRow?.file_url) {
-      fileUrl = deletedRow.file_url
+    if (!fileUrl && targetRow?.file_url) {
+      fileUrl = targetRow.file_url
     }
-    if (!storagePath && deletedRow?.metadata) {
-      try {
-        const parsed =
-          typeof deletedRow.metadata === 'string'
-            ? (JSON.parse(deletedRow.metadata) as Record<string, any>)
-            : (deletedRow.metadata as Record<string, any>)
-        if (parsed && typeof parsed.storage_path === 'string') {
-          storagePath = parsed.storage_path
-        }
-      } catch {
-        /* ignore */
+    if (!storagePath) {
+      const parsed = parseMetadata(targetRow?.metadata)
+      if (parsed && typeof parsed.storage_path === 'string') {
+        storagePath = parsed.storage_path
       }
     }
 

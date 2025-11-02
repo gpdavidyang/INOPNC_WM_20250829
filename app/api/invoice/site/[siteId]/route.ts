@@ -4,6 +4,8 @@ import { DEFAULT_INVOICE_DOC_TYPES } from '@/lib/invoice/doc-types'
 
 export const dynamic = 'force-dynamic'
 
+type StageKey = 'start' | 'progress' | 'completion'
+
 export async function GET(request: NextRequest, ctx: { params: { siteId: string } }) {
   const supabase = createServiceRoleClient()
   try {
@@ -50,31 +52,102 @@ export async function GET(request: NextRequest, ctx: { params: { siteId: string 
       docTypes = DEFAULT_INVOICE_DOC_TYPES
     }
 
-    // 2) Pull documents for site (unified_document_system authoritative)
+    const parseMetadata = (raw: any): Record<string, any> | null => {
+      if (!raw) return null
+      if (typeof raw === 'object') return raw as Record<string, any>
+      if (typeof raw === 'string') {
+        try {
+          return JSON.parse(raw) as Record<string, any>
+        } catch {
+          return null
+        }
+      }
+      return null
+    }
+
+    const resolveDocType = (row: any, metadata: Record<string, any> | null): string => {
+      const candidates = [
+        row?.document_type,
+        metadata?.doc_type,
+        metadata?.document_type,
+        metadata?.docType,
+        metadata?.documentType,
+        row?.sub_category,
+      ]
+      for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim().length > 0) {
+          return candidate.trim()
+        }
+      }
+      return 'other'
+    }
+
+    const resolveStage = (row: any, metadata: Record<string, any> | null): StageKey | null => {
+      const candidates = [
+        metadata?.stage,
+        metadata?.invoice_stage,
+        metadata?.Stage,
+        row?.stage,
+        row?.metadata?.stage,
+      ]
+      for (const candidate of candidates) {
+        if (candidate === 'start' || candidate === 'progress' || candidate === 'completion') {
+          return candidate
+        }
+      }
+      return null
+    }
+
+    type DocumentRow = Record<string, any> & { __source?: 'unified' | 'legacy' }
+
+    let unifiedRows: DocumentRow[] = []
+    try {
+      const { data: unifiedData } = await supabase
+        .from('unified_documents')
+        .select(
+          'id, title, file_url, file_name, mime_type, uploaded_by, created_at, metadata, document_type, sub_type, status, is_archived, version, uploader:uploaded_by(full_name)'
+        )
+        .eq('category_type', 'invoice')
+        .eq('site_id', siteId)
+        .eq('is_archived', false)
+        .order('created_at', { ascending: false })
+      unifiedRows = (Array.isArray(unifiedData) ? unifiedData : []).map(row => ({
+        ...row,
+        __source: 'unified' as const,
+      }))
+    } catch (err) {
+      console.warn('[invoice/site] unified_documents fetch failed', err)
+      unifiedRows = []
+    }
+
     const { data, error } = await supabase
       .from('unified_document_system')
       .select(
-        'id, title, file_url, file_name, mime_type, uploaded_by, created_at, metadata, sub_category, category_type, site_id, status, uploader:uploaded_by(full_name)'
+        'id, title, file_url, file_name, mime_type, uploaded_by, created_at, metadata, sub_category, category_type, site_id, status, is_archived, uploader:uploaded_by(full_name)'
       )
       .eq('category_type', 'invoice')
       .eq('site_id', siteId)
       .neq('status', 'deleted')
       .order('created_at', { ascending: false })
     if (error) throw error
-    const documents = Array.isArray(data) ? data : []
+    const legacyRows: DocumentRow[] = (Array.isArray(data) ? data : []).map(row => ({
+      ...row,
+      __source: 'legacy' as const,
+    }))
+
+    const combinedRows: DocumentRow[] = [...unifiedRows, ...legacyRows]
 
     const grouped: Record<string, any[]> = {}
-    for (const r of documents) {
-      const derivedDocType =
-        r?.document_type ||
-        r?.metadata?.doc_type ||
-        r?.metadata?.document_type ||
-        r?.sub_category ||
-        'other'
-      const status = r.status || 'active'
-      if (status === 'deleted' || status === 'archived') continue
+    for (const r of combinedRows) {
+      const metadata = parseMetadata(r.metadata)
+      const derivedDocType = resolveDocType(r, metadata)
+      const status = typeof r.status === 'string' ? r.status.toLowerCase() : ''
+      const isArchived = r?.is_archived === true
+      if (status === 'deleted' || status === 'archived' || isArchived) continue
       if (docType && derivedDocType !== docType) continue
       const list = (grouped[derivedDocType] = grouped[derivedDocType] || [])
+      const normalizedMetadata = metadata || null
+      const stage = resolveStage(r, normalizedMetadata)
       list.push({
         id: r.id,
         title: r.title || r.file_name || '',
@@ -84,9 +157,13 @@ export async function GET(request: NextRequest, ctx: { params: { siteId: string 
         uploaded_by: r.uploaded_by,
         uploader_name: r?.uploader?.full_name || null,
         created_at: r.created_at,
-        stage: r?.metadata?.stage || null,
-        metadata: r.metadata || null,
+        stage,
+        metadata: normalizedMetadata,
         status: r.status || 'active',
+        version:
+          typeof (r as any)?.version === 'number'
+            ? (r as any).version
+            : (normalizedMetadata?.version ?? null),
       })
     }
 
