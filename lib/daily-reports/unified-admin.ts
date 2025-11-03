@@ -187,8 +187,6 @@ export const integratedResponseToUnifiedReport = (
     attachments,
     additionalPhotos,
     hqRequest: dailyReport.hq_request || '',
-    issues: dailyReport.issues || '',
-    safetyNotes: dailyReport.additional_notes?.safetyNotes || '',
     notes: dailyReport.notes || '',
     progress: dailyReport.progress_rate ?? undefined,
     meta: {

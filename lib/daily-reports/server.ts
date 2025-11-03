@@ -59,6 +59,13 @@ export async function getUnifiedDailyReportForAdmin(
         return null
       }
 
+      delete (minimal as any).issues
+      delete (minimal as any).safety_notes
+      if (minimal.additional_notes && typeof minimal.additional_notes === 'object') {
+        delete (minimal.additional_notes as any).safetyNotes
+        delete (minimal.additional_notes as any).safety_notes
+      }
+
       const [siteRes, authorRes, workerRes, attachmentRes] = await Promise.all([
         supabase
           .from('sites')
@@ -121,7 +128,16 @@ export async function getUnifiedDailyReportForAdmin(
 
   const integrated: AdminIntegratedResponse = {
     daily_report: {
-      ...data,
+      ...(() => {
+        const cloned = { ...data } as Record<string, any>
+        delete cloned.issues
+        delete cloned.safety_notes
+        if (cloned.additional_notes && typeof cloned.additional_notes === 'object') {
+          delete cloned.additional_notes.safetyNotes
+          delete cloned.additional_notes.safety_notes
+        }
+        return cloned
+      })(),
       document_attachments: undefined,
     },
     site: data.sites,

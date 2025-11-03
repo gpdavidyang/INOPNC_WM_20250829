@@ -6,20 +6,30 @@ import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { unifiedReportToLegacyPayload } from '@/lib/daily-reports/unified'
 import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
 
-async function fetchSites() {
+async function fetchSites(preferredSiteId?: string) {
   const supabase = createClient()
-  const { data, error } = await supabase
-    .from('sites')
-    .select('id, name')
-    .eq('status', 'active')
-    .order('name')
+  let query = supabase.from('sites').select('id, name, status')
+
+  if (preferredSiteId) {
+    query = query.or(`status.eq.active,id.eq.${preferredSiteId}`)
+  } else {
+    query = query.eq('status', 'active')
+  }
+
+  const { data, error } = await query.order('name', { ascending: true })
 
   if (error) {
     console.error('[AdminDailyReportEdit] failed to load sites:', error.message)
     return []
   }
 
-  return data ?? []
+  const items = Array.isArray(data) ? data : []
+  const uniq = new Map<string, (typeof items)[number]>()
+  for (const item of items) {
+    if (!item?.id) continue
+    uniq.set(item.id, item)
+  }
+  return Array.from(uniq.values())
 }
 
 async function fetchWorkers() {
@@ -91,18 +101,80 @@ interface PageProps {
 
 export default async function AdminDailyReportEditPage({ params }: PageProps) {
   const profile = await requireAdminProfile()
-  const [sites, workers, materials, unifiedReport] = await Promise.all([
-    fetchSites(),
-    fetchWorkers(),
-    fetchMaterials(),
-    getUnifiedDailyReportForAdmin(params.id),
-  ])
+  const unifiedReport = await getUnifiedDailyReportForAdmin(params.id)
 
   if (!unifiedReport) {
     redirect(`/dashboard/admin/daily-reports/${params.id}`)
   }
 
+  const [sites, workers, materials] = await Promise.all([
+    fetchSites(unifiedReport.siteId),
+    fetchWorkers(),
+    fetchMaterials(),
+  ])
+
   const legacyPayload = unifiedReportToLegacyPayload(unifiedReport, { includeWorkers: true })
+
+  const workLogs = Array.isArray(unifiedReport.workEntries)
+    ? unifiedReport.workEntries.map(entry => ({
+        id: entry.id || `work-${Math.random().toString(36).slice(2, 8)}`,
+        component_type: entry.memberName || '',
+        component_type_other: entry.memberNameOther || '',
+        process_type: entry.processType || '',
+        process_type_other: entry.processTypeOther || '',
+        work_section: entry.workSection || '',
+      }))
+    : Array.isArray((legacyPayload as any).work_entries)
+      ? ((legacyPayload as any).work_entries as any[]).map(entry => ({
+          id: entry.id || `work-${Math.random().toString(36).slice(2, 8)}`,
+          component_type: entry.component_type || entry.memberName || '',
+          component_type_other: entry.component_type_other || entry.memberNameOther || '',
+          process_type: entry.process_type || entry.processType || '',
+          process_type_other: entry.process_type_other || entry.processTypeOther || '',
+          work_section: entry.work_section || entry.workSection || '',
+        }))
+      : []
+
+  const materialUsage = Array.isArray(unifiedReport.materials)
+    ? unifiedReport.materials.map(material => ({
+        id: material.id || `material-${Math.random().toString(36).slice(2, 8)}`,
+        materialId: material.materialId ?? material.materialCode ?? null,
+        materialCode: material.materialCode ?? null,
+        materialName: material.materialName ?? material.materialCode ?? '',
+        unit: material.unit ?? null,
+        quantity: material.quantity ?? '',
+        notes: material.notes ?? '',
+      }))
+    : Array.isArray((legacyPayload as any).materials)
+      ? ((legacyPayload as any).materials as any[]).map(material => ({
+          id: material.id || `material-${Math.random().toString(36).slice(2, 8)}`,
+          materialId: material.materialId ?? material.material_code ?? material.materialId ?? null,
+          materialCode: material.materialCode ?? material.material_code ?? null,
+          materialName:
+            material.materialName ||
+            material.material_name ||
+            material.materialCode ||
+            material.material_code ||
+            '',
+          unit: material.unit ?? material.unit_name ?? null,
+          quantity:
+            material.quantity !== undefined && material.quantity !== null ? material.quantity : '',
+          notes: material.notes ?? '',
+        }))
+      : []
+
+  const normalizedReportData = {
+    ...legacyPayload,
+    site_id: legacyPayload.site_id || unifiedReport.siteId || '',
+    work_logs: workLogs,
+    worker_entries: Array.isArray((legacyPayload as any).worker_entries)
+      ? (legacyPayload as any).worker_entries
+      : [],
+    material_usage: materialUsage,
+    additional_photos: Array.isArray(unifiedReport.additionalPhotos)
+      ? unifiedReport.additionalPhotos
+      : [],
+  }
 
   return (
     <div className="px-0 pb-8">
@@ -123,7 +195,8 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
           currentUser={profile as any}
           materials={(materials as any) || []}
           workers={(workers as any) || []}
-          reportData={legacyPayload as any}
+          reportData={normalizedReportData as any}
+          initialUnifiedReport={unifiedReport as any}
         />
       </div>
     </div>

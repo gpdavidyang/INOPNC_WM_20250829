@@ -65,6 +65,43 @@ export async function GET(request: NextRequest, ctx: { params: { siteId: string 
       return null
     }
 
+    const allowedDocTypes = new Set(
+      docTypes.map(type =>
+        String(type?.code || '')
+          .trim()
+          .toLowerCase()
+      )
+    )
+    if (!allowedDocTypes.has('other')) allowedDocTypes.add('other')
+    const aliasMap: Record<string, string> = {
+      기타: 'other',
+      기타문서: 'other',
+      기타자료: 'other',
+      etc: 'other',
+      'etc.': 'other',
+      etc1: 'other',
+      etc2: 'other',
+      misc: 'other',
+      miscellaneous: 'other',
+      others: 'other',
+      otherdocs: 'other',
+      'other-docs': 'other',
+      other_documents: 'other',
+      other_document: 'other',
+      otherdoc: 'other',
+      additional: 'other',
+      additional_doc: 'other',
+      additional_document: 'other',
+    }
+    const normalizeDocType = (value: unknown): string | null => {
+      if (typeof value !== 'string') return null
+      const key = value.trim().toLowerCase()
+      if (!key) return null
+      if (aliasMap[key]) return aliasMap[key]
+      if (allowedDocTypes.has(key)) return key
+      return null
+    }
+
     const resolveDocType = (row: any, metadata: Record<string, any> | null): string => {
       const candidates = [
         row?.document_type,
@@ -73,11 +110,12 @@ export async function GET(request: NextRequest, ctx: { params: { siteId: string 
         metadata?.docType,
         metadata?.documentType,
         row?.sub_category,
+        metadata?.sub_category,
+        metadata?.category,
       ]
       for (const candidate of candidates) {
-        if (typeof candidate === 'string' && candidate.trim().length > 0) {
-          return candidate.trim()
-        }
+        const normalized = normalizeDocType(candidate)
+        if (normalized) return normalized
       }
       return 'other'
     }

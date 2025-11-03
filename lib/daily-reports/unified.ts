@@ -83,6 +83,7 @@ export const unifiedReportToLegacyPayload = (
   const includeWorkers = options?.includeWorkers ?? true
 
   return {
+    id: unified.id,
     site_id: unified.siteId,
     partner_company_id: unified.partnerCompanyId ?? '',
     work_date: unified.workDate,

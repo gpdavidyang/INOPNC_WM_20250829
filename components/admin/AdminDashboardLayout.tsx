@@ -101,7 +101,7 @@ const menuCategories = [
         id: 'photo-grid-tool',
         label: '사진대지 관리',
         icon: Camera,
-        href: '/dashboard/admin/tools/photo-grid',
+        href: '/dashboard/admin/photo-sheets',
       },
       {
         id: 'markup-tool',

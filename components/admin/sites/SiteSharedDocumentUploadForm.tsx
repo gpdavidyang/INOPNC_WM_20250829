@@ -3,6 +3,12 @@
 import { useCallback, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import CustomSelect, {
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
@@ -16,15 +22,10 @@ type SiteSharedDocumentUploadFormProps = {
 }
 
 const SUBCATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'general', label: '일반' },
-  { value: 'notice', label: '공지' },
-  { value: 'safety', label: '안전' },
-  { value: 'inspection', label: '점검' },
-  { value: 'checklist', label: '체크리스트' },
-  { value: 'form', label: '양식' },
-  { value: 'reference', label: '자료' },
-  { value: 'drawing', label: '도면' },
-  { value: 'blueprint', label: '도면(청사진)' },
+  { value: 'construction_drawing', label: '공도면' },
+  { value: 'progress_drawing', label: '진행도면' },
+  { value: 'ptw', label: 'PTW(작업허가서)' },
+  { value: 'other', label: '기타' },
 ]
 
 export default function SiteSharedDocumentUploadForm({
@@ -40,7 +41,7 @@ export default function SiteSharedDocumentUploadForm({
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [subCategory, setSubCategory] = useState<string>('general')
+  const [subCategory, setSubCategory] = useState<string>(SUBCATEGORY_OPTIONS[0].value)
   const [tags, setTags] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -52,7 +53,7 @@ export default function SiteSharedDocumentUploadForm({
     setFile(null)
     setTitle('')
     setDescription('')
-    setSubCategory('general')
+    setSubCategory(SUBCATEGORY_OPTIONS[0].value)
     setTags('')
     setMessage(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -193,18 +194,18 @@ export default function SiteSharedDocumentUploadForm({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">분류</label>
-          <select
-            value={subCategory}
-            onChange={event => setSubCategory(event.target.value)}
-            className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
-            disabled={busy}
-          >
-            {SUBCATEGORY_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <CustomSelect value={subCategory} onValueChange={setSubCategory} disabled={busy}>
+            <CustomSelectTrigger className="h-11">
+              <CustomSelectValue placeholder="분류 선택" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              {SUBCATEGORY_OPTIONS.map(option => (
+                <CustomSelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </CustomSelectItem>
+              ))}
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">태그 (쉼표로 구분)</label>

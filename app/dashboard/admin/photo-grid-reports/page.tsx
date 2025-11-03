@@ -7,17 +7,12 @@ export default async function AdminPhotoGridReportsRedirect({
 }: {
   searchParams?: Record<string, string | string[] | undefined>
 }) {
-  const sp = new URLSearchParams()
-  const keys: Array<keyof NonNullable<typeof searchParams>> = [
-    'page',
-    'limit',
-    'search',
-    'status',
-    'site_id',
-  ]
-  for (const k of keys) {
-    const v = (searchParams || {})[k]
-    if (typeof v === 'string' && v) sp.set(k, v)
+  const siteId =
+    typeof searchParams?.site_id === 'string' && searchParams.site_id.trim().length > 0
+      ? searchParams.site_id.trim()
+      : null
+  if (siteId) {
+    redirect(`/dashboard/admin/sites/${siteId}?tab=photos`)
   }
-  redirect(`/dashboard/admin/documents/photo-grid${sp.toString() ? `?${sp.toString()}` : ''}`)
+  redirect('/dashboard/admin/sites')
 }

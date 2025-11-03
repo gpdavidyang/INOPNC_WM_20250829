@@ -282,7 +282,6 @@ export default function InvoiceTabsClient() {
                           {dt.label}
                         </th>
                       ))}
-                      <th className="px-3 py-2">진행률</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -290,7 +289,7 @@ export default function InvoiceTabsClient() {
                       <tr>
                         <td
                           className="px-3 py-6 text-center text-gray-500"
-                          colSpan={summary.docTypes.length + 2}
+                          colSpan={summary.docTypes.length + 1}
                         >
                           표시할 데이터가 없습니다.
                         </td>
@@ -321,7 +320,6 @@ export default function InvoiceTabsClient() {
                               </td>
                             )
                           })}
-                          <td className="px-3 py-2">{s.progress ?? 0}%</td>
                         </tr>
                       ))
                     )}

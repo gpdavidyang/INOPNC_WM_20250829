@@ -163,6 +163,15 @@ export interface AdditionalPhotoData {
   upload_order: number
   uploaded_by?: string
   uploaded_at?: string
+  storage_path?: string
+  daily_report_id?: string
+  site_id?: string
+  work_date?: string
+  process_type?: string | null
+  component_name?: string | null
+  member_name?: string | null
+  uploaded_by_name?: string | null
+  admin_uploaded?: boolean
 }
 
 export interface ReceiptData {

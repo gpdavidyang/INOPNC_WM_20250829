@@ -707,6 +707,7 @@ export default function DailyReportForm({
 
       const submitData = {
         ...formData,
+        id: reportData?.id,
         status: isDraft ? 'draft' : 'submitted',
         work_entries: workEntries,
         worker_entries: permissions.canManageWorkers ? workerEntries : [],
