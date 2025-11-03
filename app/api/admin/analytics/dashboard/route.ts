@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     Date.UTC(matStart.getFullYear(), matStart.getMonth(), matStart.getDate())
   ).toISOString()
   const { data: grids } = await supabase
-    .from('photo_grid_reports')
+    .from('photo_sheets')
     .select('created_at')
     .gte('created_at', matStartISO)
   const byDayPG: Record<string, number> = {}

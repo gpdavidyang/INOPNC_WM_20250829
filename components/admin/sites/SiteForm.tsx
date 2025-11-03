@@ -367,31 +367,16 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
           <div className="space-y-2">
             <Label>공도면</Label>
             {canUploadPTW ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <Input
-                  type="file"
-                  accept="application/pdf,image/*"
-                  onChange={e => setBlueprintFile(e.target.files?.[0] || null)}
-                />
-                <Button asChild variant="outline">
-                  <a href={`/dashboard/admin/sites/${siteId}/documents`}>공도면 링크</a>
-                </Button>
-              </div>
+              <Input
+                type="file"
+                accept="application/pdf,image/*"
+                onChange={e => setBlueprintFile(e.target.files?.[0] || null)}
+              />
             ) : (
               <div className="text-sm text-muted-foreground">
                 현장 생성 후 링크를 사용할 수 있습니다.
               </div>
             )}
-          </div>
-
-          {/* Quick links */}
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button asChild variant="secondary">
-              <a href={`/dashboard/admin/sites/${siteId}/documents`}>도면문서함 가기</a>
-            </Button>
-            <Button asChild variant="secondary">
-              <a href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}>사진함 가기</a>
-            </Button>
           </div>
         </div>
       </section>

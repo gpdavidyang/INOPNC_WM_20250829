@@ -1,9 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import SiteForm from '@/components/admin/sites/SiteForm'
-import SiteSharedDocumentUploadForm from '@/components/admin/sites/SiteSharedDocumentUploadForm'
 import {
   BrandTabs as Tabs,
   BrandTabsContent as TabsContent,
@@ -12,7 +10,6 @@ import {
 } from '@/components/ui/brand-tabs'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
-import PhotoSheetActions from '@/components/admin/documents/PhotoSheetActions'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
@@ -28,15 +25,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import InvoiceDocumentsManager, {
   InvoiceStageProgress,
 } from '@/components/admin/invoice/InvoiceDocumentsManager'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { useToast } from '@/components/ui/use-toast'
 import { Loader2, RefreshCw } from 'lucide-react'
+import { SitePhotosPanel } from '@/components/admin/sites/SitePhotosPanel'
 // Dialog replaced with dedicated page for assignments
 
 // 한글 표시용 매핑 테이블
@@ -74,10 +65,16 @@ const SHARED_CATEGORY_LABELS: Record<string, string> = {
   reference: '자료',
   drawing: '도면',
   blueprint: '도면',
+  construction_drawing: '공도면',
+  progress_drawing: '진행도면',
+  ptw: 'PTW(작업허가서)',
 }
 
 const SHARED_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
   { value: 'all', label: '전체' },
+  { value: 'construction_drawing', label: '공도면' },
+  { value: 'progress_drawing', label: '진행도면' },
+  { value: 'ptw', label: 'PTW(작업허가서)' },
   { value: 'general', label: SHARED_CATEGORY_LABELS.general },
   { value: 'notice', label: SHARED_CATEGORY_LABELS.notice },
   { value: 'safety', label: SHARED_CATEGORY_LABELS.safety },
@@ -167,11 +164,6 @@ export default function SiteDetailTabs({
   }
   const [drawings, setDrawings] = useState<any[]>([])
   const [drawingsLoading, setDrawingsLoading] = useState(false)
-  const [photos, setPhotos] = useState<any[]>([])
-  const [photosLoading, setPhotosLoading] = useState(false)
-  const [photoDate, setPhotoDate] = useState<string | null>(null)
-  const [photoSheets, setPhotoSheets] = useState<any[]>([])
-  const [photoSheetsLoading, setPhotoSheetsLoading] = useState(false)
   const [stats, setStats] = useState<{ reports: number; labor: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [invoiceProgress, setInvoiceProgress] = useState<InvoiceStageProgress | null>(null)
@@ -184,7 +176,6 @@ export default function SiteDetailTabs({
     total_documents: number
     by_type?: Record<string, number>
   } | null>(null)
-  const [sharedUploadOpen, setSharedUploadOpen] = useState(false)
   const [sharedDownloading, setSharedDownloading] = useState<Record<string, boolean>>({})
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
@@ -339,27 +330,6 @@ export default function SiteDetailTabs({
       }
     },
     [confirm, fetchSharedDocs, siteId, toast]
-  )
-
-  const handleSharedUploadSuccess = useCallback(
-    (doc: any) => {
-      setSharedUploadOpen(false)
-      const uploadedSubCategory = String(
-        doc?.sub_category ||
-          doc?.subCategory ||
-          doc?.metadata?.sub_category ||
-          doc?.metadata?.subcategory ||
-          ''
-      ).toLowerCase()
-      if (doc?.id && (sharedSubCategory === 'all' || sharedSubCategory === uploadedSubCategory)) {
-        setSharedDocs(prev => {
-          const filtered = prev.filter(item => String(item?.id) !== String(doc.id))
-          return [doc, ...filtered].slice(0, 20)
-        })
-      }
-      void fetchSharedDocs({ silent: true })
-    },
-    [fetchSharedDocs, sharedSubCategory]
   )
 
   const handleSharedDownload = useCallback(
@@ -693,27 +663,6 @@ export default function SiteDetailTabs({
     }
   }, [tab, siteId, txnQuery, txnPage, txnPageSize])
 
-  // Load photos for site (document_type='photo')
-  useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      setPhotosLoading(true)
-      try {
-        const res = await fetch(`/api/docs/photos?siteId=${encodeURIComponent(siteId)}&limit=50`, {
-          cache: 'no-store',
-          credentials: 'include',
-        })
-        const j = await res.json().catch(() => ({}))
-        if (!ignore && res.ok && j?.success) setPhotos(Array.isArray(j.data) ? j.data : [])
-      } finally {
-        setPhotosLoading(false)
-      }
-    })()
-    return () => {
-      ignore = true
-    }
-  }, [siteId])
-
   // Load site statistics (작업일지 수, 총공수)
   useEffect(() => {
     let active = true
@@ -742,27 +691,6 @@ export default function SiteDetailTabs({
     })()
     return () => {
       active = false
-    }
-  }, [siteId])
-
-  // Load photo sheets for this site
-  useEffect(() => {
-    let ignore = false
-    ;(async () => {
-      setPhotoSheetsLoading(true)
-      try {
-        const res = await fetch(`/api/photo-sheets?site_id=${encodeURIComponent(siteId)}`, {
-          cache: 'no-store',
-          credentials: 'include',
-        })
-        const j = await res.json().catch(() => ({}))
-        if (!ignore && res.ok && j?.success) setPhotoSheets(Array.isArray(j.data) ? j.data : [])
-      } finally {
-        setPhotoSheetsLoading(false)
-      }
-    })()
-    return () => {
-      ignore = true
     }
   }, [siteId])
 
@@ -2678,8 +2606,8 @@ export default function SiteDetailTabs({
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" onClick={() => setSharedUploadOpen(true)}>
-                공유자료 업로드
+              <Button asChild size="sm">
+                <a href={`/dashboard/admin/sites/${siteId}/shared/upload`}>공유자료 업로드</a>
               </Button>
               <Button asChild variant="outline" size="sm">
                 <a href="/dashboard/admin/documents/shared">공유문서 관리로 이동</a>
@@ -2959,129 +2887,7 @@ export default function SiteDetailTabs({
 
         {/* Photos Tab */}
         <TabsContent value="photos" className="mt-4">
-          {photosLoading ? (
-            <div className="text-sm text-muted-foreground">불러오는 중...</div>
-          ) : photos.length === 0 ? (
-            <div className="text-sm text-muted-foreground">사진이 없습니다.</div>
-          ) : (
-            <>
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm text-muted-foreground">현장 사진</div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="date"
-                    value={photoDate || ''}
-                    onChange={e => setPhotoDate(e.target.value || null)}
-                    className="rounded border px-2 py-1 text-xs"
-                  />
-                  {photoDate && (
-                    <Button asChild variant="outline" size="sm">
-                      <a
-                        href={`/dashboard/admin/daily-reports?site_id=${siteId}&date=${photoDate}`}
-                      >
-                        연결된 작업일지
-                      </a>
-                    </Button>
-                  )}
-                  <Button asChild variant="ghost" size="sm">
-                    <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>작업일지 목록</a>
-                  </Button>
-                  {/* 사진대지 리포트 버튼 제거 (요청에 따라 삭제) */}
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                {photos
-                  .filter((p: any) => {
-                    if (!photoDate) return true
-                    const getDateStr = (v: any) => {
-                      try {
-                        const d = new Date(v || p?.created_at || p?.uploadDate)
-                        const yyyy = String(d.getFullYear()).padStart(4, '0')
-                        const mm = String(d.getMonth() + 1).padStart(2, '0')
-                        const dd = String(d.getDate()).padStart(2, '0')
-                        return `${yyyy}-${mm}-${dd}`
-                      } catch {
-                        return ''
-                      }
-                    }
-                    const ds = getDateStr(p?.created_at || p?.uploadDate)
-                    return ds === photoDate
-                  })
-                  .map((p: any, idx: number) => (
-                    <a
-                      key={`${p?.id ?? p?.url ?? 'photo'}-${idx}`}
-                      href={p.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block relative rounded overflow-hidden border h-28"
-                      title={p.title || 'photo'}
-                    >
-                      <Image
-                        src={p.url}
-                        alt={p.title || 'photo'}
-                        fill
-                        sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 50vw"
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </a>
-                  ))}
-              </div>
-            </>
-          )}
-
-          {/* Photo Sheets (사진대지) */}
-          <div className="mt-6">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">현장 사진대지</h3>
-              <div className="flex items-center gap-2">
-                <Button asChild variant="outline" size="sm">
-                  <a href={`/dashboard/admin/tools/photo-grid?site_id=${siteId}`}>사진대지 생성</a>
-                </Button>
-                {/* 사진대지 리포트 버튼 제거 (요청에 따라 삭제) */}
-              </div>
-            </div>
-            <div className="rounded-lg border bg-card p-3 shadow-sm overflow-x-auto">
-              {photoSheetsLoading ? (
-                <TableSkeleton rows={5} />
-              ) : photoSheets.length === 0 ? (
-                <div className="text-sm text-muted-foreground">이 현장의 사진대지가 없습니다.</div>
-              ) : (
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted text-left">
-                      <th className="px-3 py-2">제목</th>
-                      <th className="px-3 py-2">행×열</th>
-                      <th className="px-3 py-2">방향</th>
-                      <th className="px-3 py-2">상태</th>
-                      <th className="px-3 py-2">생성일</th>
-                      <th className="px-3 py-2">동작</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {photoSheets.map((s: any) => (
-                      <tr key={s.id} className="border-t">
-                        <td className="px-3 py-2">{s.title || '-'}</td>
-                        <td className="px-3 py-2">
-                          {s.rows || 0}×{s.cols || 0}
-                        </td>
-                        <td className="px-3 py-2">
-                          {s.orientation === 'landscape' ? '가로' : '세로'}
-                        </td>
-                        <td className="px-3 py-2">{s.status === 'final' ? '확정' : '초안'}</td>
-                        <td className="px-3 py-2">
-                          {s.created_at ? new Date(s.created_at).toLocaleString('ko-KR') : '-'}
-                        </td>
-                        <td className="px-3 py-2">
-                          <PhotoSheetActions id={s.id} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+          <SitePhotosPanel siteId={siteId} />
         </TabsContent>
 
         {/* Edit Tab */}
@@ -3098,22 +2904,6 @@ export default function SiteDetailTabs({
           </div>
         </TabsContent>
       </Tabs>
-      <Dialog open={sharedUploadOpen} onOpenChange={setSharedUploadOpen}>
-        <DialogContent className="max-w-3xl w-full">
-          <DialogHeader>
-            <DialogTitle>공유자료 업로드</DialogTitle>
-            <DialogDescription>
-              현장 팀과 공유할 문서, 도면, 체크리스트 등을 업로드합니다.
-            </DialogDescription>
-          </DialogHeader>
-          <SiteSharedDocumentUploadForm
-            siteId={siteId}
-            siteName={site?.name}
-            onSuccess={handleSharedUploadSuccess}
-            onCancel={() => setSharedUploadOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
@@ -3146,7 +2936,17 @@ function buildDocPreviewHref(d: any): string {
   const mime: string | undefined = d?.mime_type || d?.mimeType
   // 1) 전용 뷰어 라우트 우선
   if (category === 'markup') return `/dashboard/admin/documents/markup/${d.id}`
-  if (category === 'photo_grid') return `/dashboard/admin/documents/photo-grid/${d.id}`
+  if (category === 'photo_grid') {
+    const direct = getSharedDocFileUrl(d)
+    if (direct) return direct
+    const siteId =
+      (d?.site_id && String(d.site_id)) ||
+      (d?.site?.id && String(d.site.id)) ||
+      (d?.metadata?.site_id && String(d.metadata.site_id)) ||
+      null
+    if (siteId) return `/dashboard/admin/sites/${siteId}?tab=photos`
+    return '/dashboard/admin/sites'
+  }
 
   // PTW 추정: 문서유형/하위유형/메타데이터로 식별 → PTW 뷰어
   if (docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw') {

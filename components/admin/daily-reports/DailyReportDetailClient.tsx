@@ -381,12 +381,12 @@ export default function DailyReportDetailClient({
     )
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>추가 사진</CardTitle>
+      <Card className="border shadow-sm">
+        <CardHeader className="px-4 py-3">
+          <CardTitle className="text-base">추가 사진</CardTitle>
           <CardDescription>작업 전/후 사진</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3 px-4 pb-4">
           {renderGroup('작업 전', before)}
           {renderGroup('작업 후', after)}
         </CardContent>
@@ -404,17 +404,41 @@ export default function DailyReportDetailClient({
     )
   }
 
+  const additionalPhotosSection = renderAdditionalPhotos()
+  const renderAttachmentsCard = (extraClass?: string) => (
+    <Card className={`border shadow-sm ${extraClass ?? ''}`}>
+      <CardHeader className="px-4 py-3">
+        <CardTitle className="text-base">첨부 문서</CardTitle>
+        <CardDescription>사진 / 도면 / 완료확인서 / 기타</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 px-4 pb-4 md:grid-cols-2">
+        <AttachmentSection title="사진" items={attachments.photos} onOpen={handleOpenFile} />
+        <AttachmentSection title="도면" items={attachments.drawings} onOpen={handleOpenFile} />
+        <AttachmentSection
+          title="완료확인서"
+          items={attachments.confirmations}
+          onOpen={handleOpenFile}
+        />
+        <AttachmentSection title="기타" items={attachments.others} onOpen={handleOpenFile} />
+      </CardContent>
+    </Card>
+  )
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{report.siteName || siteName || '-'}</CardTitle>
+    <div className="space-y-4">
+      <Card className="border shadow-sm">
+        <CardHeader className="px-4 py-3">
+          <CardTitle className="text-lg font-semibold">
+            {report.siteName || siteName || '-'}
+          </CardTitle>
           <CardDescription>{formatDate(report.workDate || workDate)}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 text-sm text-muted-foreground md:grid-cols-4">
+        <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-4">
           <div>
             <div className="text-xs">상태</div>
-            <div className="text-foreground font-medium">{report.status || status || '-'}</div>
+            <div className="text-foreground font-medium">
+              {renderStatus(report.status || status)}
+            </div>
           </div>
           <div>
             <div className="text-xs">작성자</div>
@@ -431,7 +455,7 @@ export default function DailyReportDetailClient({
             </div>
           </div>
           {report.npcUsage && (
-            <div className="md:col-span-4 grid gap-3 rounded border p-3 md:grid-cols-4">
+            <div className="md:col-span-4 grid gap-2 rounded border p-3 md:grid-cols-4">
               <div>
                 <div className="text-xs">NPC-1000 입고</div>
                 <div className="text-foreground">{report.npcUsage.incoming ?? '-'}</div>
@@ -461,122 +485,112 @@ export default function DailyReportDetailClient({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>작업 내용</CardTitle>
-          <CardDescription>부재 / 공정 / 구간 / 상세</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="text-xs">부재 유형</div>
-              <div className="text-foreground font-medium">{renderArray(report.memberTypes)}</div>
-            </div>
-            <div>
-              <div className="text-xs">공정</div>
-              <div className="text-foreground font-medium">{renderArray(report.workProcesses)}</div>
-            </div>
-            <div>
-              <div className="text-xs">작업 유형</div>
-              <div className="text-foreground font-medium">{renderArray(report.workTypes)}</div>
-            </div>
-            <div>
-              <div className="text-xs">작업 내용 요약</div>
-              <div className="text-foreground font-medium">
-                {renderArray((report.meta?.workContents as string[]) || [])}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border shadow-sm h-full">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">작업 내용</CardTitle>
+            <CardDescription>부재 / 공정 / 구간 / 상세</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 px-4 pb-4 text-sm text-muted-foreground">
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <div className="text-xs">부재 유형</div>
+                <div className="text-foreground font-medium">{renderArray(report.memberTypes)}</div>
+              </div>
+              <div>
+                <div className="text-xs">공정</div>
+                <div className="text-foreground font-medium">
+                  {renderArray(report.workProcesses)}
+                </div>
+              </div>
+              <div>
+                <div className="text-xs">작업 유형</div>
+                <div className="text-foreground font-medium">{renderArray(report.workTypes)}</div>
+              </div>
+              <div>
+                <div className="text-xs">작업 내용 요약</div>
+                <div className="text-foreground font-medium">
+                  {renderArray((report.meta?.workContents as string[]) || [])}
+                </div>
               </div>
             </div>
-          </div>
-          {renderWorkEntries()}
-        </CardContent>
-      </Card>
+            {renderWorkEntries()}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>작업 위치</CardTitle>
-          <CardDescription>블럭 / 동 / 호</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 text-sm text-muted-foreground md:grid-cols-3">
-          <div>
-            <div className="text-xs">블럭</div>
-            <div className="text-foreground font-medium">{report.location?.block || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">동</div>
-            <div className="text-foreground font-medium">{report.location?.dong || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">호수 / 층</div>
-            <div className="text-foreground font-medium">{report.location?.unit || '-'}</div>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="grid gap-4">
+          <Card className="border shadow-sm">
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-base">작업 위치</CardTitle>
+              <CardDescription>블럭 / 동 / 호</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-3">
+              <div>
+                <div className="text-xs">블럭</div>
+                <div className="text-foreground font-medium">{report.location?.block || '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs">동</div>
+                <div className="text-foreground font-medium">{report.location?.dong || '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs">호수 / 층</div>
+                <div className="text-foreground font-medium">{report.location?.unit || '-'}</div>
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>안전 및 비고</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 text-sm text-muted-foreground md:grid-cols-2">
-          <div>
-            <div className="text-xs">본사 요청사항</div>
-            <div className="text-foreground font-medium">{report.hqRequest || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">특이사항</div>
-            <div className="text-foreground font-medium">{report.issues || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">안전 메모</div>
-            <div className="text-foreground font-medium">{report.safetyNotes || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">비고</div>
-            <div className="text-foreground font-medium">{report.notes || '-'}</div>
-          </div>
-        </CardContent>
-      </Card>
+          <Card className="border shadow-sm">
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-base">본사 요청 및 비고</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-2">
+              <div>
+                <div className="text-xs">본사 요청사항</div>
+                <div className="text-foreground font-medium">{report.hqRequest || '-'}</div>
+              </div>
+              <div>
+                <div className="text-xs">비고</div>
+                <div className="text-foreground font-medium">{report.notes || '-'}</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>작업자 내역</CardTitle>
-          <CardDescription>배정 / 공수 / 입력 방식</CardDescription>
-        </CardHeader>
-        <CardContent>{renderWorkers()}</CardContent>
-      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">작업자 내역</CardTitle>
+            <CardDescription>배정 / 공수 / 입력 방식</CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">{renderWorkers()}</CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>자재 사용</CardTitle>
-        </CardHeader>
-        <CardContent>{renderMaterials()}</CardContent>
-      </Card>
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">자재 사용</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">{renderMaterials()}</CardContent>
+        </Card>
+      </div>
 
-      {renderAdditionalPhotos()}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>첨부 문서</CardTitle>
-          <CardDescription>사진 / 도면 / 완료확인서 / 기타</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2">
-          <AttachmentSection title="사진" items={attachments.photos} onOpen={handleOpenFile} />
-          <AttachmentSection title="도면" items={attachments.drawings} onOpen={handleOpenFile} />
-          <AttachmentSection
-            title="완료확인서"
-            items={attachments.confirmations}
-            onOpen={handleOpenFile}
-          />
-          <AttachmentSection title="기타" items={attachments.others} onOpen={handleOpenFile} />
-        </CardContent>
-      </Card>
+      {additionalPhotosSection ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {renderAttachmentsCard('lg:col-span-2')}
+          {additionalPhotosSection}
+        </div>
+      ) : (
+        renderAttachmentsCard()
+      )}
 
       {relatedReports.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>관련 작업일지</CardTitle>
+        <Card className="border shadow-sm">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-base">관련 작업일지</CardTitle>
             <CardDescription>같은 현장의 최근 작업일지</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 pb-4">
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm">
                 <thead>
@@ -619,4 +633,17 @@ export default function DailyReportDetailClient({
       {error && <div className="text-sm text-destructive">{error}</div>}
     </div>
   )
+}
+const STATUS_LABEL: Record<string, string> = {
+  draft: '작성 중',
+  submitted: '제출됨',
+  approved: '승인됨',
+  completed: '완료',
+  revision: '수정 필요',
+  archived: '보관됨',
+}
+
+const renderStatus = (value?: string | null) => {
+  if (!value) return '-'
+  return STATUS_LABEL[value] || value
 }

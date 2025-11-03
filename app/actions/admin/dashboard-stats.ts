@@ -84,9 +84,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
       const accessibleSiteIds = siteContext?.accessibleSiteIds ?? null
 
       // Total users count scoped by organization when restricted
-      const userBaseQuery = supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
+      const userBaseQuery = supabase.from('profiles').select('*', { count: 'exact', head: true })
 
       const userResult = restrictedOrgId
         ? await userBaseQuery.eq('organization_id', restrictedOrgId)
@@ -218,8 +216,8 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
             user.role === 'worker'
               ? '작업자'
               : user.role === 'site_manager'
-              ? '현장관리자'
-              : '관리자'
+                ? '현장관리자'
+                : '관리자'
           }`,
           timestamp: user.created_at,
           icon: 'AlertCircle',
@@ -229,15 +227,16 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
 
       // Recent photo uploads scoped by organization
       const photosQuery = supabase
-        .from('photo_grids')
+        .from('photo_sheets')
         .select(
           `
           id,
+          title,
           created_at,
-          component_name,
+          status,
           site_id,
-          profiles:profiles!photo_grids_uploaded_by_fkey(full_name, organization_id),
-          site:sites(name, organization_id)
+          profiles:profiles!photo_sheets_created_by_fkey(full_name, organization_id),
+          site:sites!photo_sheets_site_id_fkey(name, organization_id)
         `
         )
         .order('created_at', { ascending: false })
@@ -256,8 +255,8 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         activities.push({
           id: `photo-${photo.id}`,
           type: 'photo_upload',
-          title: '사진 업로드',
-          description: `${profileData?.full_name || '알 수 없음'} - ${photo.component_name || ''}`,
+          title: '사진대지 등록',
+          description: `${profileData?.full_name || '알 수 없음'} - ${photo.title || ''}`,
           timestamp: photo.created_at,
           icon: 'TrendingUp',
           iconColor: 'text-blue-500',

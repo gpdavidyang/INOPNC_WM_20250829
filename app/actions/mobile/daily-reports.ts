@@ -334,7 +334,11 @@ export async function submitDailyReport(id: string) {
       const before = [] as Array<{ url: string; description?: string; order: number }>
       const after = [] as Array<{ url: string; description?: string; order: number }>
       ;(rows || []).forEach((r: any) => {
-        const item = { url: r.file_url, description: r.description || undefined, order: r.upload_order || 0 }
+        const item = {
+          url: r.file_url,
+          description: r.description || undefined,
+          order: r.upload_order || 0,
+        }
         if (r.photo_type === 'before') before.push(item)
         else if (r.photo_type === 'after') after.push(item)
       })
@@ -880,12 +884,16 @@ export async function uploadAdditionalPhotos(
           filename: dbData.file_name,
           url: dbData.file_url,
           path: dbData.file_path,
+          storage_path: dbData.file_path,
           photo_type: dbData.photo_type as 'before' | 'after',
           file_size: dbData.file_size,
           description: dbData.description,
           upload_order: dbData.upload_order,
           uploaded_by: dbData.uploaded_by,
           uploaded_at: dbData.created_at,
+          daily_report_id: reportId,
+          site_id: report?.site_id,
+          admin_uploaded: false,
         })
       } catch (photoError) {
         logError(photoError, 'uploadAdditionalPhotos - individual photo')
@@ -1021,7 +1029,7 @@ export async function getAdditionalPhotos(reportId: string) {
         upload_order,
         uploaded_by,
         created_at,
-        profiles:uploaded_by(full_name)
+        profiles:uploaded_by(full_name, role)
       `
       )
       .eq('daily_report_id', reportId)
@@ -1041,12 +1049,20 @@ export async function getAdditionalPhotos(reportId: string) {
         filename: photo.file_name,
         url: photo.file_url,
         path: photo.file_path,
+        storage_path: photo.file_path,
         photo_type: photo.photo_type as 'before' | 'after',
         file_size: photo.file_size,
         description: photo.description || '',
         upload_order: photo.upload_order,
         uploaded_by: photo.uploaded_by,
         uploaded_at: photo.created_at,
+        uploaded_by_name: (photo as any)?.profiles?.full_name || undefined,
+        admin_uploaded:
+          ((photo as any)?.profiles?.role ?? '')
+            ? ['admin', 'system_admin'].includes((photo as any).profiles.role)
+            : undefined,
+        daily_report_id: reportId,
+        site_id: report?.site_id,
       }
 
       if (photo.photo_type === 'before') {

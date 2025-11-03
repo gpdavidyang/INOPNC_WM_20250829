@@ -76,28 +76,39 @@ export async function listPhotoGridReports(
   const to = from + pageSize - 1
 
   let query = supabase
-    .from('photo_grid_reports')
+    .from('photo_sheets')
     .select(
-      'id, title, status, created_at, daily_report:daily_reports(work_date, site:sites(id,name)), generated_by_profile:profiles!generated_by(full_name,email)',
+      `id,
+       title,
+       status,
+       created_at,
+       site_id,
+       orientation,
+       rows,
+       cols,
+       site:sites!photo_sheets_site_id_fkey(id,name),
+       creator:profiles!photo_sheets_created_by_fkey(full_name,email)`,
       { count: 'exact' }
     )
     .order('created_at', { ascending: false })
     .range(from, to)
 
   if (req.search) query = query.ilike('title', `%${req.search}%`)
-  if (req.siteId) query = query.eq('daily_report.site_id', req.siteId)
+  if (req.siteId) query = query.eq('site_id', req.siteId)
   if (req.status) query = query.eq('status', req.status)
 
   const { data, count, error } = await query
-  if (error) return { items: [], total: 0 }
-  // Normalize to DocumentSummary-like shape
+  if (error) {
+    console.error('[listPhotoGridReports] failed to load photo_sheets:', error)
+    return { items: [], total: 0 }
+  }
   const items = (data || []).map((r: any) => ({
     id: r.id,
     title: r.title,
     status: r.status,
     created_at: r.created_at,
-    site: r.daily_report?.site || null,
-    uploader: r.generated_by_profile || null,
+    site: r.site || null,
+    uploader: r.creator || null,
     category_type: 'photo_grid',
   }))
   return { items, total: count || 0 }
@@ -262,6 +273,48 @@ export async function getMarkupDocumentDownloadUrl(
 
 export async function getPhotoGridReportDetail(id: string): Promise<DocumentDetail | null> {
   const supabase = createClient()
+  const { data: sheet, error: sheetError } = await supabase
+    .from('photo_sheets')
+    .select(
+      `id,
+       title,
+       status,
+       created_at,
+       updated_at,
+       orientation,
+       rows,
+       cols,
+       site:sites!photo_sheets_site_id_fkey(id,name),
+       creator:profiles!photo_sheets_created_by_fkey(full_name,email)`
+    )
+    .eq('id', id)
+    .maybeSingle()
+  if (sheet) {
+    return {
+      id: (sheet as any).id,
+      title: (sheet as any).title,
+      status: (sheet as any).status,
+      category_type: 'photo_grid',
+      created_at: (sheet as any).created_at,
+      site: (sheet as any).site || null,
+      uploader: (sheet as any).creator || null,
+      file_name: null,
+      file_size: null,
+      mime_type: null,
+      file_url: null,
+      metadata: {
+        orientation: (sheet as any).orientation,
+        rows: (sheet as any).rows,
+        cols: (sheet as any).cols,
+        source: 'photo_sheets',
+      },
+    }
+  }
+
+  if (sheetError && sheetError.code !== 'PGRST116') {
+    console.error('[getPhotoGridReportDetail] photo_sheets error:', sheetError)
+  }
+
   const { data, error } = await supabase
     .from('photo_grid_reports')
     .select(
@@ -294,6 +347,17 @@ export async function getPhotoGridReportDownloadUrl(
   id: string
 ): Promise<DocumentDownloadInfo | null> {
   const supabase = createClient()
+
+  // New photo_sheets entries do not store pre-generated PDFs.
+  const { data: sheet } = await supabase
+    .from('photo_sheets')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+  if (sheet) {
+    return null
+  }
+
   const { data } = await supabase
     .from('photo_grid_reports')
     .select('file_url, file_name, mime_type, file_size, download_count')
@@ -320,6 +384,32 @@ export async function getPhotoGridReportDownloadUrl(
 
 export async function listPhotoGridReportVersions(id: string): Promise<DocumentVersion[]> {
   const supabase = createClient()
+
+  const { data: sheet } = await supabase
+    .from('photo_sheets')
+    .select(
+      `id,
+       title,
+       created_at,
+       creator:profiles!photo_sheets_created_by_fkey(full_name,email)`
+    )
+    .eq('id', id)
+    .maybeSingle()
+  if (sheet) {
+    return [
+      {
+        id: (sheet as any).id,
+        version: 1,
+        version_number: 1,
+        title: (sheet as any).title,
+        description: null,
+        created_at: (sheet as any).created_at,
+        created_by: (sheet as any).creator || null,
+        is_latest_version: true,
+      },
+    ]
+  }
+
   // If versioning exists, return records; otherwise, return current version only if present
   const { data } = await supabase
     .from('photo_grid_reports')

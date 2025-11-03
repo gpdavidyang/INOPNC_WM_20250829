@@ -109,6 +109,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
       reportData = null
     }
 
+    if (reportData) {
+      delete (reportData as any).issues
+      delete (reportData as any).safety_notes
+      const additionalNotes = reportData.additional_notes
+      if (additionalNotes && typeof additionalNotes === 'object') {
+        delete (additionalNotes as any).safetyNotes
+        delete (additionalNotes as any).safety_notes
+      }
+    }
+
     // Fallback: minimal fetch when integrated join fails or row not found
     if (reportError || !reportData) {
       const { data: minimal, error: minimalErr } = await supabase
