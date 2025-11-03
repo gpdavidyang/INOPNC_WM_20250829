@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { withSignedPhotoUrls } from '@/lib/admin/site-photos'
 
 export const dynamic = 'force-dynamic'
 
@@ -117,6 +118,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
         delete (additionalNotes as any).safetyNotes
         delete (additionalNotes as any).safety_notes
       }
+      const signedBefore = await withSignedPhotoUrls(
+        Array.isArray(reportData.additional_before_photos)
+          ? reportData.additional_before_photos
+          : []
+      )
+      const signedAfter = await withSignedPhotoUrls(
+        Array.isArray(reportData.additional_after_photos) ? reportData.additional_after_photos : []
+      )
+      reportData.additional_before_photos = signedBefore
+      reportData.additional_after_photos = signedAfter
     }
 
     // Fallback: minimal fetch when integrated join fails or row not found
@@ -148,7 +159,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
         .maybeSingle()
 
       const fallbackResponse = {
-        daily_report: minimal,
+        daily_report: {
+          ...minimal,
+          additional_before_photos: await withSignedPhotoUrls(
+            Array.isArray(minimal.additional_before_photos) ? minimal.additional_before_photos : []
+          ),
+          additional_after_photos: await withSignedPhotoUrls(
+            Array.isArray(minimal.additional_after_photos) ? minimal.additional_after_photos : []
+          ),
+        },
         site,
         worker_assignments: [],
         worker_statistics: {

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { UnifiedDailyReport } from '@/types/daily-reports'
 import { integratedResponseToUnifiedReport, type AdminIntegratedResponse } from './unified-admin'
+import { withSignedPhotoUrls } from '@/lib/admin/site-photos'
 
 const getSupabaseForAdmin = () => {
   try {
@@ -99,9 +100,18 @@ export async function getUnifiedDailyReportForAdmin(
         {}
       )
 
+      const signedFallbackBefore = await withSignedPhotoUrls(
+        Array.isArray(minimal.additional_before_photos) ? minimal.additional_before_photos : []
+      )
+      const signedFallbackAfter = await withSignedPhotoUrls(
+        Array.isArray(minimal.additional_after_photos) ? minimal.additional_after_photos : []
+      )
+
       const integratedFallback: AdminIntegratedResponse = {
         daily_report: {
           ...minimal,
+          additional_before_photos: signedFallbackBefore,
+          additional_after_photos: signedFallbackAfter,
           document_attachments: undefined,
         },
         site: siteRes.data || undefined,
@@ -125,6 +135,13 @@ export async function getUnifiedDailyReportForAdmin(
       return null
     }
   }
+
+  data.additional_before_photos = await withSignedPhotoUrls(
+    Array.isArray(data.additional_before_photos) ? data.additional_before_photos : []
+  )
+  data.additional_after_photos = await withSignedPhotoUrls(
+    Array.isArray(data.additional_after_photos) ? data.additional_after_photos : []
+  )
 
   const integrated: AdminIntegratedResponse = {
     daily_report: {

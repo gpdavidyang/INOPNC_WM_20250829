@@ -9,6 +9,7 @@ import {
   isMissingAdditionalPhotosTableError,
   mapPhotoRow,
   resequenceUploadOrder,
+  withSignedPhotoUrls,
 } from '@/lib/admin/site-photos'
 import type { RawPhotoRow } from '@/lib/admin/site-photos'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -210,9 +211,12 @@ export async function PATCH(
 
     await aggregateAdditionalPhotos(photoRow.daily_report_id)
 
+    let photo = mapPhotoRow(updatedRow as RawPhotoRow)
+    ;[photo] = await withSignedPhotoUrls([photo])
+
     return NextResponse.json({
       success: true,
-      data: mapPhotoRow(updatedRow as RawPhotoRow),
+      data: photo,
     })
   } catch (error) {
     console.error('[admin/sites/photos][PATCH] unexpected error:', error)

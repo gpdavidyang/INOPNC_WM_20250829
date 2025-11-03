@@ -15,6 +15,7 @@ import {
   listPhotosWithJoin,
   mapPhotoRow,
   resequenceUploadOrder,
+  withSignedPhotoUrls,
 } from '@/lib/admin/site-photos'
 import type { ProfileRow, RawPhotoRow } from '@/lib/admin/site-photos'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -223,6 +224,8 @@ export async function GET(request: NextRequest, context: { params: { id: string 
       total = count ?? rows.length
     }
 
+    rows = await withSignedPhotoUrls(rows)
+
     const beforeCount = rows.filter(row => row.photo_type === 'before').length
     const afterCount = rows.filter(row => row.photo_type === 'after').length
     const totalPages = Math.max(1, Math.ceil((total || 0) / limit))
@@ -384,7 +387,8 @@ export async function POST(request: NextRequest, context: { params: { id: string
 
     await aggregateAdditionalPhotos(reportId)
 
-    const photo = mapPhotoRow(inserted as RawPhotoRow)
+    let photo = mapPhotoRow(inserted as RawPhotoRow)
+    ;[photo] = await withSignedPhotoUrls([photo])
 
     return NextResponse.json({
       success: true,
