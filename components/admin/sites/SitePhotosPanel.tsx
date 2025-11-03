@@ -20,7 +20,17 @@ import PhotoSheetActions from '@/components/admin/documents/PhotoSheetActions'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { ArrowLeft, ArrowRight, Eye, RefreshCw, Trash2, UploadCloud, XCircle } from 'lucide-react'
+import {
+  ArrowLeft,
+  ArrowRight,
+  Eye,
+  LayoutGrid,
+  List,
+  RefreshCw,
+  Trash2,
+  UploadCloud,
+  XCircle,
+} from 'lucide-react'
 import { useConfirm } from '@/components/ui/use-confirm'
 
 type SitePhotosPanelProps = {
@@ -107,6 +117,7 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
     beforeFiles: [],
     afterFiles: [],
   })
+  const [viewMode, setViewMode] = useState<'preview' | 'list'>('preview')
 
   const cleanupLocalFiles = useCallback((list: LocalUploadFile[]) => {
     for (const item of list) {
@@ -884,6 +895,24 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
             </div>
             <div className="flex items-center gap-2">
               <Button
+                variant={viewMode === 'preview' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('preview')}
+                aria-pressed={viewMode === 'preview'}
+              >
+                <LayoutGrid className="mr-1 h-4 w-4" />
+                미리보기
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'primary' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                aria-pressed={viewMode === 'list'}
+              >
+                <List className="mr-1 h-4 w-4" />
+                리스트
+              </Button>
+              <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => fetchPhotos(pagination.page)}
@@ -949,7 +978,7 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
               <XCircle className="h-10 w-10 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">표시할 사진이 없습니다.</p>
             </div>
-          ) : (
+          ) : viewMode === 'preview' ? (
             <div className="grid gap-4 md:grid-cols-2">
               <PhotoColumn
                 title="보수 전"
@@ -975,6 +1004,33 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
                 onCreate={() => openUploadDialog('after')}
                 onDrop={files => handleDrop('after', files)}
                 isActive={highlightBucket === 'after'}
+                onPreview={setPreviewPhoto}
+                onMove={photo => performMove([photo.id!], 'before')}
+                onDelete={handleSingleDelete}
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <PhotoList
+                title="보수 전"
+                count={counts.before}
+                photos={beforePhotos}
+                selectedIds={selectedIds}
+                onSelect={toggleSelect}
+                onSelectAll={checked => handleSelectAll('before', checked)}
+                onCreate={() => openUploadDialog('before')}
+                onPreview={setPreviewPhoto}
+                onMove={photo => performMove([photo.id!], 'after')}
+                onDelete={handleSingleDelete}
+              />
+              <PhotoList
+                title="보수 후"
+                count={counts.after}
+                photos={afterPhotos}
+                selectedIds={selectedIds}
+                onSelect={toggleSelect}
+                onSelectAll={checked => handleSelectAll('after', checked)}
+                onCreate={() => openUploadDialog('after')}
                 onPreview={setPreviewPhoto}
                 onMove={photo => performMove([photo.id!], 'before')}
                 onDelete={handleSingleDelete}
@@ -1264,6 +1320,169 @@ function PhotoColumn({
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+type PhotoListProps = {
+  title: string
+  count: number
+  photos: AdditionalPhotoData[]
+  selectedIds: Set<string>
+  onSelect: (id?: string) => void
+  onSelectAll: (checked: boolean) => void
+  onCreate: () => void
+  onPreview: (photo: AdditionalPhotoData) => void
+  onMove: (photo: AdditionalPhotoData) => Promise<void> | void
+  onDelete: (photo: AdditionalPhotoData) => Promise<void> | void
+}
+
+function PhotoList({
+  title,
+  count,
+  photos,
+  selectedIds,
+  onSelect,
+  onSelectAll,
+  onCreate,
+  onPreview,
+  onMove,
+  onDelete,
+}: PhotoListProps) {
+  const allSelected =
+    photos.length > 0 && photos.every(photo => photo.id && selectedIds.has(photo.id))
+
+  return (
+    <div className="rounded-lg border bg-muted/20 p-4 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
+          <Badge variant="secondary">{count.toLocaleString()}장</Badge>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onCreate}>
+            사진 추가
+          </Button>
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border border-input"
+            checked={allSelected}
+            onChange={event => onSelectAll(event.target.checked)}
+          />
+          <span className="text-xs text-muted-foreground">전체 선택</span>
+        </div>
+      </div>
+      {photos.length === 0 ? (
+        <div className="flex h-28 items-center justify-center rounded border border-dashed text-xs text-muted-foreground">
+          사진이 없습니다.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-xs text-muted-foreground">
+            <thead>
+              <tr className="bg-muted/40 text-left uppercase tracking-wide">
+                <th className="px-3 py-2 font-medium">선택</th>
+                <th className="px-3 py-2 font-medium">미리보기</th>
+                <th className="px-3 py-2 font-medium">파일명</th>
+                <th className="px-3 py-2 font-medium">작업일자</th>
+                <th className="px-3 py-2 font-medium">업로더</th>
+                <th className="px-3 py-2 font-medium">메모</th>
+                <th className="px-3 py-2 font-medium">작업일지</th>
+                <th className="px-3 py-2 font-medium">작업</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {photos.map(photo => {
+                const id = photo.id || ''
+                const isSelected = id ? selectedIds.has(id) : false
+                const workDate = photo.work_date ? new Date(photo.work_date) : null
+                return (
+                  <tr key={id} className="bg-background/60">
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border border-input"
+                        checked={isSelected}
+                        onChange={() => onSelect(id)}
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
+                        {photo.url ? (
+                          <Image
+                            src={photo.url}
+                            alt={photo.filename || 'photo'}
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                            없음
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-foreground">{photo.filename || '-'}</td>
+                    <td className="px-3 py-2">{workDate ? format(workDate, 'yyyy-MM-dd') : '-'}</td>
+                    <td className="px-3 py-2">{photo.uploaded_by_name || '알 수 없음'}</td>
+                    <td className="px-3 py-2">
+                      {photo.description ? (
+                        <span className="line-clamp-2">{photo.description}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button variant="ghost" size="sm" asChild>
+                        <a
+                          href={`/dashboard/admin/daily-reports/${photo.daily_report_id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          열기
+                        </a>
+                      </Button>
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1"
+                          onClick={() => onPreview(photo)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          보기
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            void onMove(photo)
+                          }}
+                        >
+                          {photo.photo_type === 'before' ? '보수 후로' : '보수 전으로'}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => {
+                            void onDelete(photo)
+                          }}
+                        >
+                          삭제
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

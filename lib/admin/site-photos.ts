@@ -270,19 +270,28 @@ export async function aggregateAdditionalPhotos(reportId: string) {
   try {
     const { data, error } = await supabase
       .from('daily_report_additional_photos')
-      .select('photo_type, file_url, description, upload_order')
+      .select(
+        'photo_type, file_url, file_path, file_name, description, upload_order, uploaded_by, created_at'
+      )
       .eq('daily_report_id', reportId)
       .order('upload_order', { ascending: true })
 
     if (error) return
 
-    const before: Array<{ url: string; description?: string; order: number }> = []
-    const after: Array<{ url: string; description?: string; order: number }> = []
+    const before: Array<Record<string, unknown>> = []
+    const after: Array<Record<string, unknown>> = []
     for (const row of data || []) {
-      const entry = {
+      const entry: Record<string, unknown> = {
         url: row.file_url,
+        path: row.file_path || undefined,
+        storage_path: row.file_path || undefined,
+        filename: row.file_name || undefined,
         description: row.description || undefined,
+        upload_order: row.upload_order || 0,
         order: row.upload_order || 0,
+        uploaded_by: row.uploaded_by || undefined,
+        uploaded_at: row.created_at || undefined,
+        photo_type: row.photo_type,
       }
       if (row.photo_type === 'before') before.push(entry)
       else if (row.photo_type === 'after') after.push(entry)

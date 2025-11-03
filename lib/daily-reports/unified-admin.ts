@@ -65,20 +65,46 @@ const mapDocumentsToAttachments = (documents?: Record<string, any[]>): UnifiedAt
   }
 }
 
-const mapAdditionalPhotos = (photos: any[] | undefined): AdditionalPhotoData[] =>
-  (photos || []).map((photo, index) => ({
-    id: photo?.id || `photo-${index}`,
-    file: undefined,
-    url: photo?.url || photo?.file_url || null,
-    path: photo?.path || undefined,
-    filename: photo?.filename || photo?.file_name || `photo-${index + 1}.jpg`,
-    description: photo?.description || '',
-    photo_type: photo?.photo_type === 'after' ? 'after' : 'before',
-    file_size: photo?.file_size || undefined,
-    upload_order: photo?.upload_order || index + 1,
-    uploaded_by: photo?.uploaded_by || undefined,
-    uploaded_at: photo?.uploaded_at || undefined,
-  }))
+const normalizeAdditionalPhoto = (
+  photo: any,
+  index: number,
+  type: 'before' | 'after'
+): AdditionalPhotoData => ({
+  id: photo?.id || `photo-${type}-${index}`,
+  file: undefined,
+  url: photo?.url || photo?.file_url || null,
+  path: photo?.storage_path || photo?.path || photo?.file_path || undefined,
+  storage_path: photo?.storage_path || photo?.path || photo?.file_path || undefined,
+  filename: photo?.filename || photo?.file_name || `photo-${type}-${index + 1}.jpg`,
+  description: photo?.description || '',
+  photo_type: type,
+  file_size: photo?.file_size || undefined,
+  upload_order: photo?.upload_order || photo?.order || index + 1,
+  uploaded_by: photo?.uploaded_by || undefined,
+  uploaded_at: photo?.uploaded_at || photo?.created_at || undefined,
+})
+
+const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {
+  const before: AdditionalPhotoData[] = Array.isArray(dailyReport?.additional_before_photos)
+    ? dailyReport.additional_before_photos.map((photo: any, index: number) =>
+        normalizeAdditionalPhoto(photo, index, 'before')
+      )
+    : []
+
+  const after: AdditionalPhotoData[] = Array.isArray(dailyReport?.additional_after_photos)
+    ? dailyReport.additional_after_photos.map((photo: any, index: number) =>
+        normalizeAdditionalPhoto(photo, index, 'after')
+      )
+    : []
+
+  if (before.length === 0 && after.length === 0 && Array.isArray(dailyReport?.additional_photos)) {
+    return dailyReport.additional_photos.map((photo: any, index: number) =>
+      normalizeAdditionalPhoto(photo, index, photo?.photo_type === 'after' ? 'after' : 'before')
+    )
+  }
+
+  return [...before, ...after].sort((a, b) => (a.upload_order || 0) - (b.upload_order || 0))
+}
 
 const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
   (workers || []).map((worker, index) => ({
@@ -147,7 +173,7 @@ export const integratedResponseToUnifiedReport = (
 ): UnifiedDailyReport => {
   const dailyReport = response.daily_report || {}
   const attachments = mapDocumentsToAttachments(response.documents)
-  const additionalPhotos = mapAdditionalPhotos(dailyReport.additional_photos)
+  const additionalPhotos = mapAdditionalPhotos(dailyReport)
   const workerAssignments = mapWorkers(response.worker_assignments)
   const materials = mapMaterials(dailyReport.material_usage)
 
