@@ -12,7 +12,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
     const id = params.id
-    const updates = await req.json().catch(() => ({}))
+    const updatesRaw = await req.json().catch(() => ({}))
+    const {
+      worker_entries: workerEntriesUnused,
+      material_usage: materialUsageUnused,
+      additional_photos: additionalPhotosUnused,
+      work_entries: workEntriesUnused,
+      ...updates
+    } = updatesRaw || {}
 
     const siteId = String(updates?.site_id || '').trim()
     const workDate = String(updates?.work_date || updates?.report_date || '').trim()
@@ -39,6 +46,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     const result = await updateDailyReport(id, updates)
     if (!result.success) {
+      console.error('[admin/daily-reports:PATCH] update failed', {
+        id,
+        payload: updates,
+        error: result.error,
+      })
       return NextResponse.json({ success: false, error: result.error }, { status: 400 })
     }
     return NextResponse.json({ success: true, data: result.data })

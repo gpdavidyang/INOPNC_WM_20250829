@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { MANPOWER_VALUES } from '@/types/worklog'
 
 interface WorkCardProps {
   cardId: number
@@ -13,7 +14,8 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   onRemove,
   showRemoveButton = false,
 }) => {
-  const [laborCount, setLaborCount] = useState(1)
+  const laborValues = Array.from(MANPOWER_VALUES)
+  const [laborCount, setLaborCount] = useState(laborValues.includes(1) ? 1 : laborValues[0])
   const [selectedPart, setSelectedPart] = useState('')
   const [selectedProc, setSelectedProc] = useState('')
   const [selectedArea, setSelectedArea] = useState('')
@@ -25,18 +27,16 @@ export const WorkCard: React.FC<WorkCardProps> = ({
   const [ho, setHo] = useState('')
 
   const handleLaborDecrease = () => {
-    const values = [0, 0.5, 1, 1.5, 2, 2.5, 3]
-    const currentIndex = values.indexOf(laborCount)
+    const currentIndex = laborValues.indexOf(laborCount)
     if (currentIndex > 0) {
-      setLaborCount(values[currentIndex - 1])
+      setLaborCount(laborValues[currentIndex - 1])
     }
   }
 
   const handleLaborIncrease = () => {
-    const values = [0, 0.5, 1, 1.5, 2, 2.5, 3]
-    const currentIndex = values.indexOf(laborCount)
-    if (currentIndex < values.length - 1) {
-      setLaborCount(values[currentIndex + 1])
+    const currentIndex = laborValues.indexOf(laborCount)
+    if (currentIndex < laborValues.length - 1) {
+      setLaborCount(laborValues[currentIndex + 1])
     }
   }
 
