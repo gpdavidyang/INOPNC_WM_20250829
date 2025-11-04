@@ -1,9 +1,11 @@
 'use client'
 
+import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { LayoutGrid, List } from 'lucide-react'
 import type {
   UnifiedAttachment,
   UnifiedDailyReport,
@@ -116,6 +118,7 @@ export default function DailyReportDetailClient({
   const [integrated, setIntegrated] = useState<AdminIntegratedResponse | null>(null)
   const [loading, setLoading] = useState(!initialReport)
   const [error, setError] = useState<string | null>(null)
+  const [photosViewMode, setPhotosViewMode] = useState<'preview' | 'list'>('preview')
 
   useEffect(() => {
     setReport(initialReport ?? null)
@@ -338,43 +341,158 @@ export default function DailyReportDetailClient({
   }
 
   const renderAdditionalPhotos = () => {
-    if (!report?.additionalPhotos || report.additionalPhotos.length === 0) {
-      return null
-    }
+    const photos = report?.additionalPhotos || []
+    if (photos.length === 0) return null
 
-    const before = report.additionalPhotos.filter(photo => photo.photo_type === 'before')
-    const after = report.additionalPhotos.filter(photo => photo.photo_type === 'after')
+    const sorted = [...photos].sort((a, b) => {
+      if (a.photo_type === b.photo_type) {
+        return (a.upload_order ?? 0) - (b.upload_order ?? 0)
+      }
+      return a.photo_type === 'before' ? -1 : 1
+    })
+    const before = sorted.filter(photo => photo.photo_type === 'before')
+    const after = sorted.filter(photo => photo.photo_type === 'after')
+    const totalCount = photos.length
 
-    const renderGroup = (title: string, photos: typeof report.additionalPhotos) => (
-      <div>
-        <div className="mb-2 text-sm font-medium text-foreground">{title}</div>
-        {photos.length === 0 ? (
-          <div className="text-sm text-muted-foreground">사진 없음</div>
+    const renderPreviewGroup = (title: string, items: typeof photos) => (
+      <div className="space-y-2">
+        <div className="text-sm font-medium text-foreground">{title}</div>
+        {items.length === 0 ? (
+          <div className="flex h-24 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
+            사진 없음
+          </div>
         ) : (
-          <div className="grid gap-2 sm:grid-cols-2">
-            {photos.map(photo => (
-              <div key={photo.id} className="rounded border p-3">
-                <div className="text-sm font-medium text-foreground">
-                  {photo.filename || '사진'}
+          <div className="grid gap-3 md:grid-cols-2">
+            {items.map(photo => (
+              <div
+                key={`${title}-${photo.id ?? photo.filename}`}
+                className="overflow-hidden rounded-lg border bg-card shadow-sm"
+              >
+                <div className="relative h-48 w-full bg-muted">
+                  {photo.url ? (
+                    <Image
+                      src={photo.url}
+                      alt={photo.filename || 'photo'}
+                      fill
+                      sizes="(min-width: 768px) 50vw, 100vw"
+                      className="object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                      미리보기 없음
+                    </div>
+                  )}
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  {photo.uploaded_at ? formatDate(photo.uploaded_at) : ''}
-                </div>
-                {photo.description && (
-                  <div className="mt-2 text-sm text-muted-foreground">{photo.description}</div>
-                )}
-                {photo.url && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-3"
-                    onClick={() => handleOpenFile(photo.url ?? '')}
+                <div className="flex flex-col gap-2 p-3 text-sm text-muted-foreground">
+                  <div
+                    className="text-sm font-semibold text-foreground"
+                    title={photo.filename || ''}
                   >
-                    보기
-                  </Button>
-                )}
+                    {photo.filename || '사진'}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="font-medium text-foreground">{title}</span>
+                    <span>{photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}</span>
+                  </div>
+                  <div className="text-xs">업로더: {photo.uploaded_by_name || '알 수 없음'}</div>
+                  {photo.description && (
+                    <div className="text-sm leading-relaxed text-foreground">
+                      {photo.description}
+                    </div>
+                  )}
+                  <div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => photo.url && handleOpenFile(photo.url)}
+                      disabled={!photo.url}
+                    >
+                      원본 보기
+                    </Button>
+                  </div>
+                </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+    )
+
+    const renderListGroup = (title: string, items: typeof photos) => (
+      <div className="rounded-lg border bg-muted/20">
+        <div className="flex items-center justify-between border-b px-3 py-2">
+          <div className="text-sm font-semibold text-foreground">{title}</div>
+          <Badge variant="secondary">{items.length}장</Badge>
+        </div>
+        {items.length === 0 ? (
+          <div className="flex h-24 items-center justify-center text-xs text-muted-foreground">
+            사진 없음
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs text-muted-foreground">
+              <thead>
+                <tr className="bg-muted/40 text-left uppercase tracking-wide">
+                  <th className="px-3 py-2 font-medium">미리보기</th>
+                  <th className="px-3 py-2 font-medium">파일명</th>
+                  <th className="px-3 py-2 font-medium">업로드일</th>
+                  <th className="px-3 py-2 font-medium">업로더</th>
+                  <th className="px-3 py-2 font-medium">메모</th>
+                  <th className="px-3 py-2 font-medium">원본</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {items.map(photo => (
+                  <tr key={photo.id || photo.filename} className="bg-background/70">
+                    <td className="px-3 py-2">
+                      <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
+                        {photo.url ? (
+                          <Image
+                            src={photo.url}
+                            alt={photo.filename || 'photo'}
+                            fill
+                            sizes="80px"
+                            className="object-cover"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                            없음
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2 text-foreground">
+                      <span className="line-clamp-2" title={photo.filename || ''}>
+                        {photo.filename || '-'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      {photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}
+                    </td>
+                    <td className="px-3 py-2">{photo.uploaded_by_name || '알 수 없음'}</td>
+                    <td className="px-3 py-2">
+                      {photo.description ? (
+                        <span className="line-clamp-2">{photo.description}</span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => photo.url && handleOpenFile(photo.url)}
+                        disabled={!photo.url}
+                      >
+                        보기
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -383,12 +501,48 @@ export default function DailyReportDetailClient({
     return (
       <Card className="border shadow-sm">
         <CardHeader className="px-4 py-3">
-          <CardTitle className="text-base">추가 사진</CardTitle>
-          <CardDescription>작업 전/후 사진</CardDescription>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-base">추가 사진</CardTitle>
+              <CardDescription>작업 전/후 사진</CardDescription>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">전체 {totalCount}장</Badge>
+              <Badge variant="outline">보수 전 {before.length}장</Badge>
+              <Badge variant="outline">보수 후 {after.length}장</Badge>
+              <Button
+                size="sm"
+                variant={photosViewMode === 'preview' ? 'primary' : 'outline'}
+                onClick={() => setPhotosViewMode('preview')}
+                aria-pressed={photosViewMode === 'preview'}
+              >
+                <LayoutGrid className="mr-1 h-4 w-4" />
+                미리보기
+              </Button>
+              <Button
+                size="sm"
+                variant={photosViewMode === 'list' ? 'primary' : 'outline'}
+                onClick={() => setPhotosViewMode('list')}
+                aria-pressed={photosViewMode === 'list'}
+              >
+                <List className="mr-1 h-4 w-4" />
+                리스트
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-3 px-4 pb-4">
-          {renderGroup('작업 전', before)}
-          {renderGroup('작업 후', after)}
+        <CardContent className="space-y-4 px-4 pb-4">
+          {photosViewMode === 'preview' ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {renderPreviewGroup('보수 전', before)}
+              {renderPreviewGroup('보수 후', after)}
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {renderListGroup('보수 전', before)}
+              {renderListGroup('보수 후', after)}
+            </div>
+          )}
         </CardContent>
       </Card>
     )
@@ -578,7 +732,7 @@ export default function DailyReportDetailClient({
       {additionalPhotosSection ? (
         <div className="grid gap-4 lg:grid-cols-2">
           {renderAttachmentsCard('lg:col-span-2')}
-          {additionalPhotosSection}
+          <div className="lg:col-span-2">{additionalPhotosSection}</div>
         </div>
       ) : (
         renderAttachmentsCard()

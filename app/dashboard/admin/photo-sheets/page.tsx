@@ -5,10 +5,16 @@ import { buttonVariants } from '@/components/ui/button'
 import { createServiceClient } from '@/lib/supabase/service'
 import PhotoSheetActions from '@/components/admin/documents/PhotoSheetActions'
 import { cn } from '@/lib/utils'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 
 type SearchParams = {
   site_id?: string
-  status?: string
 }
 
 type PhotoSheetRow = {
@@ -26,12 +32,19 @@ type PhotoSheetRow = {
   } | null
 }
 
+type SiteOption = {
+  value: string
+  label: string
+}
+
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const revalidate = 0
 
 async function fetchPhotoSheets(searchParams: SearchParams) {
   const supabase = createServiceClient()
+  const siteId =
+    searchParams.site_id && searchParams.site_id !== 'all' ? searchParams.site_id : undefined
   let query = supabase
     .from('photo_sheets')
     .select(
@@ -50,13 +63,9 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
     .order('created_at', { ascending: false })
     .range(0, 199)
 
-  if (searchParams.site_id) {
-    query = query.eq('site_id', searchParams.site_id)
+  if (siteId) {
+    query = query.eq('site_id', siteId)
   }
-  if (searchParams.status && searchParams.status !== 'all') {
-    query = query.eq('status', searchParams.status)
-  }
-
   const { data, error } = await query
   if (error) {
     console.error('[photo-sheets] fetch error:', error)
@@ -65,13 +74,40 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
   return (data || []) as PhotoSheetRow[]
 }
 
+async function fetchSiteOptions() {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('sites')
+    .select('id, name')
+    .order('name', { ascending: true })
+
+  if (error) {
+    console.error('[photo-sheets] fetch site options error:', error)
+    return []
+  }
+
+  return (data || [])
+    .filter((site): site is { id: string; name: string | null } => Boolean(site?.id))
+    .map(
+      site =>
+        ({
+          value: site.id,
+          label: site.name || site.id,
+        }) satisfies SiteOption
+    )
+}
+
 export default async function AdminPhotoSheetsPage({
   searchParams,
 }: {
   searchParams: SearchParams
 }) {
   await requireAdminProfile()
-  const sheets = await fetchPhotoSheets(searchParams)
+  const [sheets, siteOptions] = await Promise.all([
+    fetchPhotoSheets(searchParams),
+    fetchSiteOptions(),
+  ])
+  const siteSelectOptions: SiteOption[] = [{ value: 'all', label: '전체 현장' }, ...siteOptions]
 
   return (
     <div className="px-0 pb-8">
@@ -81,27 +117,21 @@ export default async function AdminPhotoSheetsPage({
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '사진대지 관리' }]}
       />
       <div className="px-4 py-8 sm:px-6 lg:px-8">
-        <form className="grid gap-4 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-[1fr_1fr_auto]">
+        <form className="grid gap-4 rounded-lg border bg-card p-4 shadow-sm md:grid-cols-[1fr_auto]">
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">현장 ID</span>
-            <input
-              name="site_id"
-              placeholder="현장 ID를 입력하세요"
-              defaultValue={searchParams.site_id || ''}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-muted-foreground">상태</span>
-            <select
-              name="status"
-              defaultValue={searchParams.status || 'all'}
-              className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-            >
-              <option value="all">전체</option>
-              <option value="draft">초안</option>
-              <option value="final">확정</option>
-            </select>
+            <span className="text-xs text-muted-foreground">현장명 선택</span>
+            <CustomSelect name="site_id" defaultValue={searchParams.site_id || 'all'}>
+              <CustomSelectTrigger className="h-10 rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">
+                <CustomSelectValue placeholder="현장명을 선택하세요" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                {siteSelectOptions.map(option => (
+                  <CustomSelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
           </div>
           <div className="flex items-end gap-2">
             <button
@@ -112,7 +142,7 @@ export default async function AdminPhotoSheetsPage({
             </button>
             <Link
               href="/dashboard/admin/photo-sheets"
-              className={cn(buttonVariants({ variant: 'ghost', size: 'standard' }))}
+              className={cn(buttonVariants({ variant: 'outline', size: 'standard' }))}
             >
               초기화
             </Link>
@@ -142,7 +172,6 @@ export default async function AdminPhotoSheetsPage({
                     <th className="px-4 py-3 font-medium">현장</th>
                     <th className="px-4 py-3 font-medium">행×열</th>
                     <th className="px-4 py-3 font-medium">방향</th>
-                    <th className="px-4 py-3 font-medium">상태</th>
                     <th className="px-4 py-3 font-medium">생성일</th>
                     <th className="px-4 py-3 font-medium">작업</th>
                   </tr>
@@ -164,17 +193,6 @@ export default async function AdminPhotoSheetsPage({
                       </td>
                       <td className="px-4 py-3">
                         {sheet.orientation === 'landscape' ? '가로' : '세로'}
-                      </td>
-                      <td className="px-4 py-3">
-                        {sheet.status === 'final' ? (
-                          <span className="rounded bg-emerald-100 px-2 py-1 text-xs text-emerald-700">
-                            확정
-                          </span>
-                        ) : (
-                          <span className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">
-                            초안
-                          </span>
-                        )}
                       </td>
                       <td className="px-4 py-3">
                         {sheet.created_at

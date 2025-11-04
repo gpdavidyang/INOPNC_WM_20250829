@@ -4,6 +4,7 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { listSites } from '@/lib/api/adapters/site'
 import type { ListSitesRequest } from '@/lib/api/contracts/site'
 import { createSite } from '@/app/actions/admin/sites'
+import { sanitizeSitePayload } from './helpers'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,11 +81,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
     }
 
-    const payload = await request.json().catch(() => null)
-    if (!payload || typeof payload !== 'object') {
+    const rawPayload = await request.json().catch(() => null)
+    if (!rawPayload || typeof rawPayload !== 'object') {
       return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 })
     }
 
+    const payload = sanitizeSitePayload(rawPayload)
     const result = await createSite(payload)
     if (!result.success) {
       return NextResponse.json(

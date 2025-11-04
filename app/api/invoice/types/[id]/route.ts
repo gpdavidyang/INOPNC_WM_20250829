@@ -68,10 +68,8 @@ export async function DELETE(_request: NextRequest, ctx: { params: { id: string 
   const supabase = createClient()
   try {
     const idOrCode = ctx.params.id
-    let q = supabase.from('invoice_document_types').update({ is_active: false })
-    if (/^[0-9a-fA-F-]{36}$/.test(idOrCode)) q = q.eq('id', idOrCode)
-    else q = q.eq('code', idOrCode)
-    const { error } = await q
+    const column = /^[0-9a-fA-F-]{36}$/.test(idOrCode) ? 'id' : 'code'
+    const { error } = await supabase.from('invoice_document_types').delete().eq(column, idOrCode)
     if (error) throw error
     return NextResponse.json({ success: true })
   } catch (e) {

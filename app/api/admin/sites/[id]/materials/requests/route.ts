@@ -26,8 +26,25 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const svc = createServiceRoleClient()
 
-    const baseSelect = `id, request_number, status, requested_by, request_date, created_at,
-         requester:profiles!material_requests_requested_by_fkey(full_name)`
+    const baseSelect = `
+      id,
+      request_number,
+      status,
+      requested_by,
+      request_date,
+      created_at,
+      notes,
+      requester:profiles!material_requests_requested_by_fkey(full_name),
+      material_request_items(
+        id,
+        material_id,
+        material_name,
+        material_code,
+        unit,
+        requested_quantity,
+        approved_quantity
+      )
+    `
 
     let query = svc
       .from('material_requests')
@@ -84,6 +101,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const normalized = (data || []).map(row => ({
       ...row,
       request_date: row.request_date || row.created_at,
+      material_request_items: Array.isArray(row.material_request_items)
+        ? row.material_request_items
+        : [],
     }))
     return NextResponse.json({ success: true, data: normalized, total: count || 0 })
   } catch (e) {

@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { getRoleLabel } from '@/lib/auth/role-labels'
 
 type AvailableWorker = {
   id: string
@@ -331,7 +332,7 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
                       {w.full_name || '-'}
                     </TableCell>
                     <TableCell>{w.email || '-'}</TableCell>
-                    <TableCell>{w.role || '-'}</TableCell>
+                    <TableCell>{getRoleLabel(w.role)}</TableCell>
                     <TableCell>{w.company || '-'}</TableCell>
                   </TableRow>
                 ))
@@ -419,7 +420,7 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
                       {a?.profile?.full_name || '-'}
                     </TableCell>
                     <TableCell>{a?.profile?.organization?.name || '-'}</TableCell>
-                    <TableCell>{a?.role || '-'}</TableCell>
+                    <TableCell>{getRoleLabel(a?.role || a?.profile?.role)}</TableCell>
                     <TableCell>
                       {a?.assigned_date
                         ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
