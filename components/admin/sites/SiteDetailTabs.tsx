@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
+import StatsCard from '@/components/ui/stats-card'
 import {
   Table,
   TableBody,
@@ -98,6 +99,13 @@ const STATUS_LABELS: Record<string, string> = {
   approved: '승인',
   pending: '대기',
   rejected: '반려',
+  fulfilled: '완료',
+  ordered: '발주',
+  preparing: '준비 중',
+  shipped: '출고',
+  in_transit: '운송 중',
+  delivered: '완료',
+  cancelled: '취소',
 }
 // 현장 상태 전용 라벨 (개요 탭)
 const SITE_STATUS_LABELS: Record<string, string> = {
@@ -106,6 +114,78 @@ const SITE_STATUS_LABELS: Record<string, string> = {
   inactive: '중단',
   completed: '완료',
 }
+
+const EMPTY_MATERIAL_STATS = {
+  inventory_total: 0,
+  low_stock: 0,
+  out_of_stock: 0,
+  pending_requests: 0,
+  open_shipments: 0,
+}
+
+const QUANTITY_FORMATTER = new Intl.NumberFormat('ko-KR', {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 0,
+})
+
+const INVENTORY_STATUS_LABELS: Record<string, string> = {
+  normal: '정상',
+  low: '부족',
+  out: '소진',
+}
+
+const INVENTORY_STATUS_STYLES: Record<string, string> = {
+  normal: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  low: 'border border-amber-200 bg-amber-50 text-amber-700',
+  out: 'border border-rose-200 bg-rose-50 text-rose-700',
+}
+
+const STATUS_BADGE_STYLES: Record<string, string> = {
+  pending: 'border border-amber-200 bg-amber-50 text-amber-700',
+  approved: 'border border-blue-200 bg-blue-50 text-blue-700',
+  ordered: 'border border-indigo-200 bg-indigo-50 text-indigo-700',
+  fulfilled: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  delivered: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  preparing: 'border border-sky-200 bg-sky-50 text-sky-700',
+  shipped: 'border border-purple-200 bg-purple-50 text-purple-700',
+  in_transit: 'border border-purple-200 bg-purple-50 text-purple-700',
+  cancelled: 'border border-slate-200 bg-slate-50 text-slate-600',
+  rejected: 'border border-rose-200 bg-rose-50 text-rose-700',
+}
+
+const TRANSACTION_TYPE_LABELS: Record<string, string> = {
+  in: '입고',
+  out: '출고',
+  usage: '사용',
+  return: '반품',
+  adjustment: '조정',
+  transfer: '이동',
+  shipment: '출고',
+  shipped: '출고',
+  production: '생산',
+}
+
+const TRANSACTION_TYPE_STYLES: Record<string, string> = {
+  in: 'border border-emerald-200 bg-emerald-50 text-emerald-700',
+  out: 'border border-purple-200 bg-purple-50 text-purple-700',
+  usage: 'border border-purple-200 bg-purple-50 text-purple-700',
+  shipment: 'border border-purple-200 bg-purple-50 text-purple-700',
+  shipped: 'border border-purple-200 bg-purple-50 text-purple-700',
+  return: 'border border-slate-200 bg-slate-50 text-slate-600',
+  adjustment: 'border border-amber-200 bg-amber-50 text-amber-700',
+  transfer: 'border border-sky-200 bg-sky-50 text-sky-700',
+  production: 'border border-indigo-200 bg-indigo-50 text-indigo-700',
+}
+
+const REFERENCE_LABELS: Record<string, string> = {
+  material_request: '입고요청',
+  daily_report: '작업일지',
+  shipment: '출고',
+  production: '생산',
+  adjustment: '재고조정',
+}
+
+const DEFAULT_BADGE_STYLE = 'border border-slate-200 bg-slate-50 text-slate-700'
 
 type Props = {
   siteId: string
@@ -126,11 +206,7 @@ export default function SiteDetailTabs({
 }: Props) {
   const { confirm } = useConfirm()
   const { toast } = useToast()
-  // Single-material mode and visibility toggles
-  const SINGLE_MATERIAL_CODE = (
-    process.env.NEXT_PUBLIC_SINGLE_MATERIAL_CODE || 'INC-1000'
-  ).toUpperCase()
-  const MATERIAL_UNIT = process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'
+  // Materials tab configuration flags
   const SHOW_INVENTORY_SNAPSHOT = process.env.NEXT_PUBLIC_SHOW_INVENTORY_SNAPSHOT === 'true'
   const ROLE_KO: Record<string, string> = {
     worker: '작업자',
@@ -223,6 +299,7 @@ export default function SiteDetailTabs({
   >('all')
   const [inventory, setInventory] = useState<any[]>([])
   const [shipments, setShipments] = useState<any[]>([])
+  const [materialsStats, setMaterialsStats] = useState({ ...EMPTY_MATERIAL_STATS })
   const [invLoading, setInvLoading] = useState(false)
   const [shipLoading, setShipLoading] = useState(false)
   const [invQuery, setInvQuery] = useState('')
@@ -544,8 +621,25 @@ export default function SiteDetailTabs({
         const j = await res.json().catch(() => ({}))
         if (!active) return
         if (res.ok && j?.success) {
-          if (Array.isArray(j.data?.inventory)) setInventory(j.data.inventory)
-          if (Array.isArray(j.data?.shipments)) setShipments(j.data.shipments)
+          const inventoryData = Array.isArray(j.data?.inventory) ? j.data.inventory : []
+          const shipmentData = Array.isArray(j.data?.shipments) ? j.data.shipments : []
+          setInventory(inventoryData)
+          setShipments(shipmentData)
+          if (j.data?.stats) {
+            setMaterialsStats({
+              inventory_total: Number(j.data.stats.inventory_total ?? 0) || 0,
+              low_stock: Number(j.data.stats.low_stock ?? 0) || 0,
+              out_of_stock: Number(j.data.stats.out_of_stock ?? 0) || 0,
+              pending_requests: Number(j.data.stats.pending_requests ?? 0) || 0,
+              open_shipments: Number(j.data.stats.open_shipments ?? 0) || 0,
+            })
+          } else {
+            setMaterialsStats({ ...EMPTY_MATERIAL_STATS })
+          }
+        } else {
+          setInventory([])
+          setShipments([])
+          setMaterialsStats({ ...EMPTY_MATERIAL_STATS })
         }
       } catch {
         // noop
@@ -2030,6 +2124,13 @@ export default function SiteDetailTabs({
 
         {/* Materials Tab */}
         <TabsContent value="materials" className="mt-4">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-4">
+            <StatsCard label="관리 자재" value={materialsStats.inventory_total} />
+            <StatsCard label="재고 부족" value={materialsStats.low_stock} />
+            <StatsCard label="재고 소진" value={materialsStats.out_of_stock} />
+            <StatsCard label="대기 요청" value={materialsStats.pending_requests} />
+          </div>
+
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
@@ -2063,7 +2164,7 @@ export default function SiteDetailTabs({
                 </select>
               </div>
               <div className="flex items-center gap-2">
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="outline" size="sm">
                   <a href={`/dashboard/admin/materials?tab=requests&site_id=${siteId}`}>
                     자재관리로 이동
                   </a>
@@ -2149,6 +2250,27 @@ export default function SiteDetailTabs({
                       ),
                     },
                     {
+                      key: 'items',
+                      header: '품목',
+                      sortable: false,
+                      accessor: (rq: any) => (rq?.material_request_items || []).length,
+                      render: (rq: any) => renderRequestItemsCell(rq?.material_request_items),
+                      width: '26%',
+                    },
+                    {
+                      key: 'quantity',
+                      header: '수량',
+                      sortable: false,
+                      accessor: (rq: any) =>
+                        (rq?.material_request_items || []).reduce(
+                          (sum: number, item: any) => sum + Number(item?.requested_quantity ?? 0),
+                          0
+                        ),
+                      render: (rq: any) => renderRequestQuantityCell(rq?.material_request_items),
+                      align: 'right',
+                      width: '14%',
+                    },
+                    {
                       key: 'requester',
                       header: '요청자',
                       sortable: true,
@@ -2171,7 +2293,8 @@ export default function SiteDetailTabs({
                       header: '상태',
                       sortable: true,
                       accessor: (rq: any) => rq?.status || '',
-                      render: (rq: any) => rq?.status || '-',
+                      render: (rq: any) => renderStatusBadge(rq?.status),
+                      width: '10%',
                     },
                     {
                       key: 'date',
@@ -2294,10 +2417,28 @@ export default function SiteDetailTabs({
                               className="underline text-blue-600"
                               title="자재관리 인벤토리로 이동"
                             >
-                              {it?.materials?.name || '-'}
+                              <div className="flex flex-col">
+                                <span className="font-medium text-foreground">
+                                  {it?.materials?.name || '-'}
+                                </span>
+                                {it?.materials?.specification ? (
+                                  <span className="text-xs text-muted-foreground">
+                                    {it.materials.specification}
+                                  </span>
+                                ) : null}
+                              </div>
                             </a>
                           ) : (
-                            it?.materials?.name || '-'
+                            <div className="flex flex-col">
+                              <span className="font-medium text-foreground">
+                                {it?.materials?.name || '-'}
+                              </span>
+                              {it?.materials?.specification ? (
+                                <span className="text-xs text-muted-foreground">
+                                  {it.materials.specification}
+                                </span>
+                              ) : null}
+                            </div>
                           ),
                       },
                       {
@@ -2309,19 +2450,33 @@ export default function SiteDetailTabs({
                       },
                       {
                         key: 'qty',
-                        header: '수량',
+                        header: '재고',
                         sortable: true,
                         accessor: (it: any) => Number(it?.quantity ?? 0),
-                        render: (it: any) => Number(it?.quantity ?? 0),
+                        render: (it: any) =>
+                          formatQuantityDisplay(it?.quantity, it?.materials?.unit),
                         align: 'right',
                         width: '12%',
                       },
                       {
-                        key: 'unit',
-                        header: '단위',
+                        key: 'minimum',
+                        header: '최소재고',
                         sortable: true,
-                        accessor: (it: any) => it?.materials?.unit || '',
-                        render: (it: any) => it?.materials?.unit || '-',
+                        accessor: (it: any) => Number(it?.minimum_stock ?? 0),
+                        render: (it: any) =>
+                          it?.minimum_stock !== null && it?.minimum_stock !== undefined
+                            ? formatQuantityDisplay(it.minimum_stock, it?.materials?.unit)
+                            : '-',
+                        align: 'right',
+                        width: '12%',
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        accessor: (it: any) => it?.status || '',
+                        render: (it: any) => renderInventoryStatusBadge(it?.status),
+                        width: '12%',
                       },
                       {
                         key: 'updated',
@@ -2343,7 +2498,14 @@ export default function SiteDetailTabs({
           {/* Recent shipments */}
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">최근 출고</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                최근 출고
+                {materialsStats.open_shipments > 0 ? (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                    진행중 {materialsStats.open_shipments}건
+                  </span>
+                ) : null}
+              </h3>
               <div className="flex items-center gap-2">
                 <input
                   value={shipQuery}
@@ -2389,11 +2551,32 @@ export default function SiteDetailTabs({
                       ),
                     },
                     {
+                      key: 'items',
+                      header: '품목',
+                      sortable: false,
+                      accessor: (s: any) => (s?.shipment_items || []).length,
+                      render: (s: any) => renderShipmentItemsCell(s?.shipment_items),
+                    },
+                    {
+                      key: 'quantity',
+                      header: '수량',
+                      sortable: false,
+                      accessor: (s: any) =>
+                        (s?.shipment_items || []).reduce(
+                          (sum: number, item: any) => sum + Number(item?.quantity ?? 0),
+                          0
+                        ),
+                      render: (s: any) => renderShipmentQuantityCell(s?.shipment_items),
+                      align: 'right',
+                      width: '14%',
+                    },
+                    {
                       key: 'status',
                       header: '상태',
                       sortable: true,
                       accessor: (s: any) => s?.status || '',
-                      render: (s: any) => s?.status || '-',
+                      render: (s: any) => renderStatusBadge(s?.status),
+                      width: '12%',
                     },
                     {
                       key: 'date',
@@ -2456,10 +2639,7 @@ export default function SiteDetailTabs({
               <TableSkeleton rows={5} />
             ) : (
               <DataTable<any>
-                data={(transactions || []).filter(
-                  (t: any) =>
-                    String(t?.materials?.code || '').toUpperCase() === SINGLE_MATERIAL_CODE
-                )}
+                data={transactions || []}
                 rowKey={(t: any) => t.id}
                 stickyHeader
                 emptyMessage="최근 입출고 내역이 없습니다."
@@ -2480,21 +2660,8 @@ export default function SiteDetailTabs({
                       header: '유형',
                       sortable: true,
                       accessor: (t: any) => t?.transaction_type || '',
-                      render: (t: any) => {
-                        const map: Record<string, string> = {
-                          in: '입고',
-                          out: '사용',
-                          usage: '사용',
-                          transfer: '이동',
-                          adjustment: '조정',
-                          return: '반품',
-                          shipment: '출고',
-                          shipped: '출고',
-                          production: '생산',
-                        }
-                        const key = String(t?.transaction_type || '').toLowerCase()
-                        return map[key] || t?.transaction_type || '-'
-                      },
+                      render: (t: any) => renderTransactionTypeBadge(t?.transaction_type),
+                      width: '12%',
                     },
                     {
                       key: 'material',
@@ -2502,21 +2669,24 @@ export default function SiteDetailTabs({
                       sortable: true,
                       accessor: (t: any) =>
                         `${t?.materials?.name || ''} ${t?.materials?.code || ''}`.trim(),
-                      render: (t: any) => (
-                        <span>
-                          {t?.materials?.name || '-'}
-                          {t?.materials?.code ? ` (${t.materials.code})` : ''}
-                        </span>
-                      ),
+                      render: (t: any) => renderTransactionMaterialCell(t),
+                      width: '28%',
                     },
                     {
-                      key: 'qty',
+                      key: 'quantity',
                       header: '수량',
                       sortable: true,
                       accessor: (t: any) => Number(t?.quantity ?? 0),
-                      render: (t: any) => Number(t?.quantity ?? 0),
+                      render: (t: any) => formatQuantityDisplay(t?.quantity, t?.materials?.unit),
                       align: 'right',
-                      width: '12%',
+                      width: '14%',
+                    },
+                    {
+                      key: 'reference',
+                      header: '참조',
+                      sortable: false,
+                      accessor: (t: any) => t?.reference_type || '',
+                      render: (t: any) => renderTransactionReferenceCell(t),
                     },
                   ] as Column<any>[]
                 }
@@ -2608,9 +2778,6 @@ export default function SiteDetailTabs({
             <div className="flex flex-wrap items-center gap-2">
               <Button asChild size="sm">
                 <a href={`/dashboard/admin/sites/${siteId}/shared/upload`}>공유자료 업로드</a>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <a href="/dashboard/admin/documents/shared">공유문서 관리로 이동</a>
               </Button>
             </div>
           </div>
@@ -2925,6 +3092,174 @@ function formatFileSize(size: unknown): string {
   }
   const formatted = v >= 10 ? v.toFixed(0) : v.toFixed(1)
   return `${formatted} ${units[idx]}`
+}
+
+function formatQuantityDisplay(value: unknown, unit?: string | null): string {
+  const num = Number(value)
+  if (!Number.isFinite(num)) return '-'
+  const formatted = QUANTITY_FORMATTER.format(num)
+  if (!unit || unit.trim().length === 0) return formatted
+  return `${formatted} ${unit}`.trim()
+}
+
+function renderInventoryStatusBadge(status: string | null | undefined) {
+  const key = String(status || '').toLowerCase()
+  const className = INVENTORY_STATUS_STYLES[key] || DEFAULT_BADGE_STYLE
+  const label = INVENTORY_STATUS_LABELS[key] || STATUS_LABELS[key] || status || '-'
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
+    >
+      {label}
+    </span>
+  )
+}
+
+function renderStatusBadge(status: string | null | undefined) {
+  const key = String(status || '').toLowerCase()
+  const className = STATUS_BADGE_STYLES[key] || DEFAULT_BADGE_STYLE
+  const label = STATUS_LABELS[key] || status || '-'
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
+    >
+      {label}
+    </span>
+  )
+}
+
+function renderShipmentItemsCell(items: unknown) {
+  const list = Array.isArray(items) ? items : []
+  if (list.length === 0) return <span className="text-sm text-muted-foreground">-</span>
+  const first = list[0] as any
+  const label = first?.materials?.name || first?.materials?.code || '자재'
+  const quantity = formatQuantityDisplay(first?.quantity, first?.materials?.unit)
+  const remaining = list.length - 1
+  return (
+    <div className="flex flex-col">
+      <span className="font-medium text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">
+        {quantity}
+        {remaining > 0 ? ` · 외 ${remaining}건` : ''}
+      </span>
+    </div>
+  )
+}
+
+function renderShipmentQuantityCell(items: unknown) {
+  const list = Array.isArray(items) ? items : []
+  if (list.length === 0) return <span className="text-sm text-muted-foreground">-</span>
+  const totals = new Map<string, number>()
+  list.forEach(item => {
+    const unit = (item as any)?.materials?.unit || ''
+    const qty = Number((item as any)?.quantity ?? 0)
+    if (!Number.isFinite(qty)) return
+    totals.set(unit, (totals.get(unit) || 0) + qty)
+  })
+  return (
+    <div className="flex flex-col items-end">
+      {Array.from(totals.entries()).map(([unit, qty]) => (
+        <span key={unit || 'default'} className="text-sm font-medium text-foreground">
+          {formatQuantityDisplay(qty, unit || undefined)}
+        </span>
+      ))}
+      <span className="text-xs text-muted-foreground">{list.length}건</span>
+    </div>
+  )
+}
+
+function renderRequestItemsCell(items: unknown) {
+  const list = Array.isArray(items) ? items : []
+  if (list.length === 0) return <span className="text-sm text-muted-foreground">-</span>
+  const first = list[0] as any
+  const label = first?.material_name || first?.material_code || '자재'
+  const quantity = formatQuantityDisplay(first?.requested_quantity, first?.unit)
+  const remaining = list.length - 1
+  return (
+    <div className="flex flex-col">
+      <span className="font-medium text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">
+        {quantity}
+        {remaining > 0 ? ` · 외 ${remaining}건` : ''}
+      </span>
+    </div>
+  )
+}
+
+function renderRequestQuantityCell(items: unknown) {
+  const list = Array.isArray(items) ? items : []
+  if (list.length === 0) return <span className="text-sm text-muted-foreground">-</span>
+  const totals = new Map<string, number>()
+  list.forEach(item => {
+    const unit = (item as any)?.unit || ''
+    const qty = Number((item as any)?.requested_quantity ?? 0)
+    if (!Number.isFinite(qty)) return
+    totals.set(unit, (totals.get(unit) || 0) + qty)
+  })
+  return (
+    <div className="flex flex-col items-end">
+      {Array.from(totals.entries()).map(([unit, qty]) => (
+        <span key={unit || 'default'} className="text-sm font-medium text-foreground">
+          {formatQuantityDisplay(qty, unit || undefined)}
+        </span>
+      ))}
+      <span className="text-xs text-muted-foreground">{list.length}건</span>
+    </div>
+  )
+}
+
+function renderTransactionTypeBadge(type: string | null | undefined) {
+  const key = String(type || '').toLowerCase()
+  const className = TRANSACTION_TYPE_STYLES[key] || DEFAULT_BADGE_STYLE
+  const label = TRANSACTION_TYPE_LABELS[key] || type || '-'
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${className}`}
+    >
+      {label}
+    </span>
+  )
+}
+
+function renderTransactionMaterialCell(t: any) {
+  const primary = t?.materials?.name || t?.materials?.code || '-'
+  const code = t?.materials?.code || ''
+  const unit = t?.materials?.unit || ''
+  const secondaryParts: string[] = []
+  if (code && code !== primary) secondaryParts.push(code)
+  if (unit) secondaryParts.push(unit)
+  return (
+    <div className="flex flex-col">
+      <span className="font-medium text-foreground">{primary}</span>
+      {secondaryParts.length > 0 ? (
+        <span className="text-xs text-muted-foreground">{secondaryParts.join(' · ')}</span>
+      ) : null}
+    </div>
+  )
+}
+
+function renderTransactionReferenceCell(t: any) {
+  const typeKey = String(t?.reference_type || '').toLowerCase()
+  const label = REFERENCE_LABELS[typeKey] || t?.reference_type || ''
+  const referenceId = t?.reference_id
+  const notes = typeof t?.notes === 'string' ? t.notes : ''
+  if (!label && !referenceId && !notes) {
+    return <span className="text-sm text-muted-foreground">-</span>
+  }
+  return (
+    <div className="flex flex-col">
+      {label ? <span className="font-medium text-foreground">{label}</span> : null}
+      {referenceId ? <span className="text-xs text-muted-foreground">{referenceId}</span> : null}
+      {notes ? (
+        <span className="text-xs text-muted-foreground">{truncateText(notes, 60)}</span>
+      ) : null}
+    </div>
+  )
+}
+
+function truncateText(value: string, limit = 60): string {
+  if (!value) return ''
+  return value.length > limit ? `${value.slice(0, limit)}...` : value
 }
 
 // 미리보기 링크 생성 헬퍼(전용 뷰어 → 파일 미리보기 → 상세 페이지 순)

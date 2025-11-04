@@ -1274,7 +1274,8 @@ function PhotoColumn({
                     <span className="font-medium text-foreground">작업일자</span>
                     <span>{workDate ? format(workDate, 'yyyy-MM-dd') : '-'}</span>
                   </div>
-                  <div>작업일지 ID: {photo.daily_report_id || '-'}</div>
+                  <div>부재명: {photo.component_name || photo.metadata?.component_name || '-'}</div>
+                  <div>작업공정: {photo.work_process || photo.metadata?.work_process || '-'}</div>
                   <div>업로더: {photo.uploaded_by_name || '알 수 없음'}</div>
                   {photo.description && <div>메모: {photo.description}</div>}
                   <div className="mt-auto flex flex-wrap gap-2">

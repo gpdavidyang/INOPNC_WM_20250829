@@ -26,9 +26,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // Step 1: get transactions (paged) and total count
     let baseQuery = svc
       .from('material_transactions')
-      .select('id, site_id, material_id, transaction_type, transaction_date, quantity', {
-        count: 'exact',
-      })
+      .select(
+        `
+        id,
+        site_id,
+        material_id,
+        transaction_type,
+        transaction_date,
+        quantity,
+        reference_type,
+        reference_id,
+        notes,
+        materials(id, name, code, unit)
+      `,
+        { count: 'exact' }
+      )
       .eq('site_id', siteId)
       .order('transaction_date', { ascending: false, nullsFirst: false })
 
@@ -57,10 +69,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     // Step 3: optional q filter by material name/code (client expects server-side)
     const hydrated = transactions
-      .map((t: any) => ({
-        ...t,
-        materials: materialsMap.get(String(t.material_id)) || { name: '', code: '', unit: '' },
-      }))
+      .map((t: any) => {
+        const materialMeta =
+          t.materials && Object.keys(t.materials).length > 0
+            ? {
+                name: t.materials?.name || '',
+                code: t.materials?.code || '',
+                unit: t.materials?.unit || '',
+              }
+            : materialsMap.get(String(t.material_id)) || { name: '', code: '', unit: '' }
+
+        return {
+          ...t,
+          materials: materialMeta,
+        }
+      })
       .filter(t => {
         if (!q) return true
         const name = (t.materials?.name || '').toLowerCase()

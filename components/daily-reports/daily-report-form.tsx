@@ -101,6 +101,170 @@ interface MaterialUsageFormEntry {
   notes?: string
 }
 
+const createReportKey = (reportData?: DailyReportFormProps['reportData'] | null) => {
+  if (!reportData) return null
+  if (reportData.id) return String(reportData.id)
+  const siteId = (reportData.site_id as string | undefined) || ''
+  const workDate = (reportData.work_date as string | undefined) || ''
+  return siteId || workDate ? `${siteId}-${workDate}` : null
+}
+
+const buildFormDataFromReport = (
+  mode: DailyReportFormProps['mode'],
+  reportData: DailyReportFormProps['reportData'],
+  currentUser: Profile
+) => {
+  if (mode === 'edit' && reportData) {
+    return {
+      site_id:
+        reportData.site_id ||
+        (currentUser as unknown as { site_id?: string | null })?.site_id ||
+        '',
+      partner_company_id: reportData.partner_company_id || '',
+      work_date: reportData.work_date || new Date().toISOString().split('T')[0],
+      member_name: reportData.member_name || '',
+      process_type: reportData.process_type || '',
+      total_workers: reportData.total_workers || 0,
+      npc1000_incoming: reportData.npc1000_incoming || 0,
+      npc1000_used: reportData.npc1000_used || 0,
+      npc1000_remaining: reportData.npc1000_remaining || 0,
+      issues: reportData.issues || '',
+      component_name: reportData.component_name || '',
+      work_process: reportData.work_process || '',
+      work_section: reportData.work_section || '',
+      hq_request: reportData.hq_request || '',
+      created_by: reportData.created_by || currentUser.full_name,
+    }
+  }
+  return {
+    site_id: (currentUser as unknown as { site_id?: string | null })?.site_id || '',
+    partner_company_id: '',
+    work_date: new Date().toISOString().split('T')[0],
+    member_name: '',
+    process_type: '',
+    total_workers: 0,
+    npc1000_incoming: 0,
+    npc1000_used: 0,
+    npc1000_remaining: 0,
+    issues: '',
+    component_name: '',
+    work_process: '',
+    work_section: '',
+    hq_request: '',
+    created_by: currentUser.full_name,
+  }
+}
+
+const buildWorkEntriesFromReport = (
+  mode: DailyReportFormProps['mode'],
+  reportData: DailyReportFormProps['reportData']
+): WorkContentEntry[] => {
+  if (mode === 'edit' && reportData?.work_logs?.length) {
+    return reportData.work_logs.map((log: any, index: number) => ({
+      id: log?.id || `work-${index}-${Math.random().toString(36).slice(2, 8)}`,
+      memberName: log?.component_type || '',
+      memberNameOther: log?.component_type_other || '',
+      processType: log?.process_type || '',
+      processTypeOther: log?.process_type_other || '',
+      workSection: log?.work_section || '',
+      beforePhotos: [],
+      afterPhotos: [],
+      beforePhotoPreviews: [],
+      afterPhotoPreviews: [],
+    }))
+  }
+  return [
+    {
+      id: `work-${Math.random().toString(36).slice(2, 8)}`,
+      memberName: '',
+      memberNameOther: '',
+      processType: '',
+      processTypeOther: '',
+      workSection: '',
+      beforePhotos: [],
+      afterPhotos: [],
+      beforePhotoPreviews: [],
+      afterPhotoPreviews: [],
+    },
+  ]
+}
+
+const buildWorkerEntriesFromReport = (
+  mode: DailyReportFormProps['mode'],
+  reportData: DailyReportFormProps['reportData'],
+  canManageWorkers: boolean
+): WorkerEntry[] => {
+  if (mode === 'edit' && reportData?.worker_entries?.length) {
+    return reportData.worker_entries.map((entry: any, index: number) => ({
+      id: entry?.id || `worker-${index}-${Math.random().toString(36).slice(2, 8)}`,
+      worker_id: entry?.worker_id || '',
+      labor_hours: entry?.labor_hours || 0,
+      worker_name: entry?.worker_name || '',
+      is_direct_input: entry?.is_direct_input || false,
+    }))
+  }
+  if (!canManageWorkers) return []
+  return [
+    {
+      id: `worker-${Math.random().toString(36).slice(2, 8)}`,
+      worker_id: '',
+      labor_hours: 0,
+      worker_name: '',
+      is_direct_input: false,
+    },
+  ]
+}
+
+const buildMaterialUsageEntriesFromReport = (
+  mode: DailyReportFormProps['mode'],
+  reportData: DailyReportFormProps['reportData']
+): MaterialUsageFormEntry[] => {
+  const fromReportData =
+    mode === 'edit' && Array.isArray((reportData as any)?.materials)
+      ? ((reportData as any)?.materials as UnifiedMaterialEntry[])
+      : Array.isArray((reportData as any)?.material_usage)
+        ? ((reportData as any)?.material_usage as UnifiedMaterialEntry[])
+        : []
+
+  if (fromReportData.length === 0) return []
+
+  return fromReportData.map((entry, index) => ({
+    id: entry.id || `material-${index}`,
+    materialId: entry.materialId || null,
+    materialCode: entry.materialCode || null,
+    materialName: entry.materialName || entry.materialCode || `자재-${index + 1}`,
+    unit: entry.unit || null,
+    quantity: entry.quantity !== undefined && entry.quantity !== null ? String(entry.quantity) : '',
+    notes: entry.notes || '',
+  }))
+}
+
+const buildAdditionalPhotosFromReport = (
+  mode: DailyReportFormProps['mode'],
+  reportData: DailyReportFormProps['reportData']
+): AdditionalPhotoData[] => {
+  if (mode === 'edit' && reportData?.additional_photos?.length) {
+    return (reportData.additional_photos as AdditionalPhotoData[]).map((photo, index) => {
+      const legacyPhoto = photo as AdditionalPhotoData & {
+        preview?: string | null
+        file_name?: string
+      }
+      return {
+        id: legacyPhoto.id ?? `existing-${index}`,
+        photo_type: legacyPhoto.photo_type === 'after' ? 'after' : 'before',
+        description: legacyPhoto.description || '',
+        file: null,
+        url: legacyPhoto.url || legacyPhoto.preview || null,
+        path: legacyPhoto.path,
+        filename: legacyPhoto.filename || legacyPhoto.file_name || `photo-${index + 1}.jpg`,
+        upload_order: legacyPhoto.upload_order ?? index + 1,
+        file_size: legacyPhoto.file_size,
+      }
+    })
+  }
+  return []
+}
+
 const interpretMaterialActiveFlag = (value: unknown): boolean | null => {
   if (value === null || value === undefined) return null
   if (typeof value === 'boolean') return value
@@ -267,7 +431,7 @@ export default function DailyReportForm({
   materials = [],
   workers = [],
   reportData,
-  initialUnifiedReport: _initialUnifiedReport,
+  initialUnifiedReport,
 }: DailyReportFormProps) {
   const router = useRouter()
   const permissions = useRolePermissions(currentUser)
@@ -293,44 +457,9 @@ export default function DailyReportForm({
   const [allExpanded, setAllExpanded] = useState(false)
 
   // Form state - 편집 모드일 때 기존 데이터로 초기화
-  const [formData, setFormData] = useState(() => {
-    if (mode === 'edit' && reportData) {
-      return {
-        site_id: reportData.site_id || (currentUser as unknown).site_id || '',
-        partner_company_id: reportData.partner_company_id || '',
-        work_date: reportData.work_date || new Date().toISOString().split('T')[0],
-        member_name: reportData.member_name || '',
-        process_type: reportData.process_type || '',
-        total_workers: reportData.total_workers || 0,
-        npc1000_incoming: reportData.npc1000_incoming || 0,
-        npc1000_used: reportData.npc1000_used || 0,
-        npc1000_remaining: reportData.npc1000_remaining || 0,
-        issues: reportData.issues || '',
-        component_name: reportData.component_name || '',
-        work_process: reportData.work_process || '',
-        work_section: reportData.work_section || '',
-        hq_request: reportData.hq_request || '',
-        created_by: reportData.created_by || currentUser.full_name,
-      }
-    }
-    return {
-      site_id: (currentUser as unknown).site_id || '',
-      partner_company_id: '',
-      work_date: new Date().toISOString().split('T')[0],
-      member_name: '',
-      process_type: '',
-      total_workers: 0,
-      npc1000_incoming: 0,
-      npc1000_used: 0,
-      npc1000_remaining: 0,
-      issues: '',
-      component_name: '',
-      work_process: '',
-      work_section: '',
-      hq_request: '',
-      created_by: currentUser.full_name,
-    }
-  })
+  const [formData, setFormData] = useState(() =>
+    buildFormDataFromReport(mode, reportData, currentUser)
+  )
 
   // Work options
   const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
@@ -339,6 +468,9 @@ export default function DailyReportForm({
   const [partnerCompanies, setPartnerCompanies] = useState<any[]>([])
   const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
   const [loadingPartners, setLoadingPartners] = useState(false)
+  const [reportHydrationKey, setReportHydrationKey] = useState<string | null>(() =>
+    mode === 'edit' ? createReportKey(reportData) : null
+  )
 
   // Load partner companies based on user role
   useEffect(() => {
@@ -365,9 +497,23 @@ export default function DailyReportForm({
 
   // Filter sites based on selected partner company
   useEffect(() => {
+    const withCurrentSite = (list: any[]): any[] => {
+      const currentSiteId =
+        formData.site_id ||
+        (reportData as any)?.site_id ||
+        (initialUnifiedReport ? (initialUnifiedReport as any).siteId : '')
+      if (!currentSiteId) return Array.isArray(list) ? list : []
+      const normalized = Array.isArray(list) ? [...list] : []
+      const hasSite = normalized.some(site => String(site?.id) === String(currentSiteId))
+      if (hasSite) return normalized
+      const fallback = sites.find(site => String(site.id) === String(currentSiteId))
+      if (fallback) normalized.push(fallback)
+      return normalized
+    }
+
     const filterSites = async () => {
       if (!formData.partner_company_id) {
-        setFilteredSites(sites)
+        setFilteredSites(withCurrentSite(sites))
         return
       }
 
@@ -377,100 +523,40 @@ export default function DailyReportForm({
         )
         if (response.ok) {
           const partnerSites = await response.json()
-          setFilteredSites(partnerSites)
+          setFilteredSites(withCurrentSite(partnerSites))
         } else {
           console.error('Failed to fetch sites for partner')
-          setFilteredSites(sites) // Fallback to all sites
+          setFilteredSites(withCurrentSite(sites)) // Fallback to all sites
         }
       } catch (error) {
         console.error('Error fetching partner sites:', error)
-        setFilteredSites(sites) // Fallback to all sites
+        setFilteredSites(withCurrentSite(sites)) // Fallback to all sites
       }
     }
 
     filterSites()
-  }, [formData.partner_company_id, sites])
+  }, [
+    formData.partner_company_id,
+    formData.site_id,
+    sites,
+    reportData?.site_id,
+    initialUnifiedReport,
+  ])
 
   // Work content entries
-  const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() => {
-    if (mode === 'edit' && reportData?.work_logs?.length) {
-      return reportData.work_logs.map((log: unknown) => ({
-        id: log.id || `work-${Date.now()}`,
-        memberName: log.component_type || '',
-        memberNameOther: log.component_type_other || '',
-        processType: log.process_type || '',
-        processTypeOther: log.process_type_other || '',
-        workSection: log.work_section || '',
-        beforePhotos: [],
-        afterPhotos: [],
-        beforePhotoPreviews: [],
-        afterPhotoPreviews: [],
-      }))
-    }
-    return [
-      {
-        id: `work-${Date.now()}`,
-        memberName: '',
-        memberNameOther: '',
-        processType: '',
-        processTypeOther: '',
-        workSection: '',
-        beforePhotos: [],
-        afterPhotos: [],
-        beforePhotoPreviews: [],
-        afterPhotoPreviews: [],
-      },
-    ]
-  })
+  const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() =>
+    buildWorkEntriesFromReport(mode, reportData)
+  )
 
   // Worker entries
-  const [workerEntries, setWorkerEntries] = useState<WorkerEntry[]>(() => {
-    if (mode === 'edit' && reportData?.worker_entries?.length) {
-      return reportData.worker_entries.map((entry: unknown) => ({
-        id: entry.id || `worker-${Date.now()}`,
-        worker_id: entry.worker_id || '',
-        labor_hours: entry.labor_hours || 0,
-        worker_name: entry.worker_name || '',
-        is_direct_input: entry.is_direct_input || false,
-      }))
-    }
-    return permissions.canManageWorkers
-      ? [
-          {
-            id: `worker-${Date.now()}`,
-            worker_id: '',
-            labor_hours: 0,
-            worker_name: '',
-            is_direct_input: false,
-          },
-        ]
-      : []
-  })
+  const [workerEntries, setWorkerEntries] = useState<WorkerEntry[]>(() =>
+    buildWorkerEntriesFromReport(mode, reportData, permissions.canManageWorkers)
+  )
 
   // Material usage entries
-  const [materialUsageEntries, setMaterialUsageEntries] = useState<MaterialUsageFormEntry[]>(() => {
-    const fromReportData =
-      mode === 'edit' && Array.isArray((reportData as any)?.materials)
-        ? ((reportData as any)?.materials as UnifiedMaterialEntry[])
-        : Array.isArray((reportData as any)?.material_usage)
-          ? ((reportData as any)?.material_usage as UnifiedMaterialEntry[])
-          : []
-
-    if (fromReportData.length > 0) {
-      return fromReportData.map((entry, index) => ({
-        id: entry.id || `material-${index}`,
-        materialId: entry.materialId || null,
-        materialCode: entry.materialCode || null,
-        materialName: entry.materialName || entry.materialCode || `자재-${index + 1}`,
-        unit: entry.unit || null,
-        quantity:
-          entry.quantity !== undefined && entry.quantity !== null ? String(entry.quantity) : '',
-        notes: entry.notes || '',
-      }))
-    }
-
-    return []
-  })
+  const [materialUsageEntries, setMaterialUsageEntries] = useState<MaterialUsageFormEntry[]>(() =>
+    buildMaterialUsageEntriesFromReport(mode, reportData)
+  )
 
   const materialOptions = useMemo(() => {
     const list = Array.isArray(materials) ? (materials as Array<any>) : []
@@ -590,28 +676,21 @@ export default function DailyReportForm({
   }, [materialUsageEntries, materialOptionMap])
 
   // Additional photos
-  const [additionalPhotos, setAdditionalPhotos] = useState<AdditionalPhotoData[]>(() => {
-    if (mode === 'edit' && reportData?.additional_photos?.length) {
-      return (reportData.additional_photos as AdditionalPhotoData[]).map((photo, index) => {
-        const legacyPhoto = photo as AdditionalPhotoData & {
-          preview?: string | null
-          file_name?: string
-        }
-        return {
-          id: legacyPhoto.id ?? `existing-${index}`,
-          photo_type: legacyPhoto.photo_type === 'after' ? 'after' : 'before',
-          description: legacyPhoto.description || '',
-          file: null,
-          url: legacyPhoto.url || legacyPhoto.preview || null,
-          path: legacyPhoto.path,
-          filename: legacyPhoto.filename || legacyPhoto.file_name || `photo-${index + 1}.jpg`,
-          upload_order: legacyPhoto.upload_order ?? index + 1,
-          file_size: legacyPhoto.file_size,
-        }
-      })
-    }
-    return []
-  })
+  const [additionalPhotos, setAdditionalPhotos] = useState<AdditionalPhotoData[]>(() =>
+    buildAdditionalPhotosFromReport(mode, reportData)
+  )
+
+  useEffect(() => {
+    if (mode !== 'edit' || !reportData) return
+    const nextKey = createReportKey(reportData)
+    if (nextKey && nextKey === reportHydrationKey) return
+    setFormData(buildFormDataFromReport(mode, reportData, currentUser))
+    setWorkEntries(buildWorkEntriesFromReport(mode, reportData))
+    setWorkerEntries(buildWorkerEntriesFromReport(mode, reportData, permissions.canManageWorkers))
+    setMaterialUsageEntries(buildMaterialUsageEntriesFromReport(mode, reportData))
+    setAdditionalPhotos(buildAdditionalPhotosFromReport(mode, reportData))
+    setReportHydrationKey(nextKey ?? null)
+  }, [mode, reportData, currentUser, permissions.canManageWorkers, reportHydrationKey])
 
   // 페이지 헤더 - 모드와 권한에 따른 표시
   const getPageTitle = () => {

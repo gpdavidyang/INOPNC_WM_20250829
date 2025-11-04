@@ -14,8 +14,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
-    // Fetch all active, non-deleted sites
-    const { data: sites, error } = await supabase
+    const { searchParams } = new URL(request.url)
+    const statusParam = (searchParams.get('status') || '').toLowerCase()
+    const includeDeleted = ['1', 'true', 'yes'].includes(
+      (searchParams.get('include_deleted') || '').toLowerCase()
+    )
+
+    let query = supabase
       .from('sites')
       .select(
         `
@@ -26,9 +31,19 @@ export async function GET(request: NextRequest) {
         created_at
       `
       )
-      .eq('status', 'active')
-      .eq('is_deleted', false)
       .order('created_at', { ascending: false })
+
+    if (!includeDeleted) {
+      query = query.eq('is_deleted', false)
+    }
+
+    if (!statusParam || statusParam === 'active') {
+      query = query.eq('status', 'active')
+    } else if (statusParam !== 'all') {
+      query = query.eq('status', statusParam)
+    }
+
+    const { data: sites, error } = await query
 
     if (error) {
       console.error('Sites query error:', error)

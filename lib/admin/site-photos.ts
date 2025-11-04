@@ -434,3 +434,40 @@ export async function withSignedPhotoUrls<T extends PhotoWithPath>(
     return { ...photo, url: signed }
   })
 }
+
+export async function fetchAdditionalPhotosForReport(reportId: string) {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('daily_report_additional_photos')
+    .select(
+      `
+        id,
+        daily_report_id,
+        photo_type,
+        file_url,
+        file_path,
+        file_name,
+        file_size,
+        description,
+        upload_order,
+        uploaded_by,
+        created_at
+      `
+    )
+    .eq('daily_report_id', reportId)
+    .order('photo_type', { ascending: true })
+    .order('upload_order', { ascending: true })
+
+  if (error) {
+    console.error('[site-photos] fetchAdditionalPhotosForReport error:', error)
+    return { before: [], after: [] }
+  }
+
+  const mapped = (data || []).map(row => mapPhotoRow(row as RawPhotoRow))
+  const signed = await withSignedPhotoUrls(mapped)
+
+  return {
+    additional_before_photos: signed.filter(photo => photo.photo_type === 'before'),
+    additional_after_photos: signed.filter(photo => photo.photo_type === 'after'),
+  }
+}

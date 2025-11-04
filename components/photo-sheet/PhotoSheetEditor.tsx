@@ -96,7 +96,10 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
     ;(async () => {
       try {
         setLoadingSites(true)
-        const res = await fetch('/api/sites', { cache: 'no-store', credentials: 'include' })
+        const res = await fetch('/api/sites?status=all', {
+          cache: 'no-store',
+          credentials: 'include',
+        })
         const json = await res.json().catch(() => null)
         const list = (json?.data || []) as SiteOption[]
         if (mounted) setSites(list)
