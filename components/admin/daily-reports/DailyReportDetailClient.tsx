@@ -58,6 +58,8 @@ const formatNumber = (value: unknown, fractionDigits = 1) => {
   return num.toFixed(fractionDigits)
 }
 
+const WORK_CONTENT_DESCRIPTION = '부재명 / 작업공정 / 구간 / 상세'
+
 const mapWorkersToStats = (workers: UnifiedWorkerEntry[]): WorkerStatistics => {
   return workers.reduce(
     (stats, worker) => {
@@ -236,6 +238,26 @@ export default function DailyReportDetailClient({
 
   const renderArray = (values?: string[]) => (values && values.length > 0 ? values.join(', ') : '-')
 
+  const memberNames = useMemo(() => {
+    const entries = (report?.workEntries || [])
+      .map(entry => entry.memberName || entry.memberNameOther)
+      .filter((value): value is string => !!value && value.trim().length > 0)
+    if (entries.length > 0) {
+      return Array.from(new Set(entries.map(item => item.trim())))
+    }
+    return (report?.memberTypes || []).filter(value => !!value && value.trim().length > 0)
+  }, [report?.workEntries, report?.memberTypes])
+
+  const processNames = useMemo(() => {
+    const entries = (report?.workEntries || [])
+      .map(entry => entry.processType || entry.processTypeOther)
+      .filter((value): value is string => !!value && value.trim().length > 0)
+    if (entries.length > 0) {
+      return Array.from(new Set(entries.map(item => item.trim())))
+    }
+    return (report?.workProcesses || []).filter(value => !!value && value.trim().length > 0)
+  }, [report?.workEntries, report?.workProcesses])
+
   const renderWorkEntries = () => {
     if (!report?.workEntries || report.workEntries.length === 0) {
       return <div className="text-sm text-muted-foreground">등록된 작업 내역이 없습니다.</div>
@@ -250,7 +272,7 @@ export default function DailyReportDetailClient({
             </div>
             <div className="grid gap-1 mt-1 md:grid-cols-3 text-muted-foreground">
               <div>
-                <span className="text-xs">공정</span>
+                <span className="text-xs">작업공정</span>
                 <div>{entry.processType || entry.processTypeOther || '-'}</div>
               </div>
               <div>
@@ -643,19 +665,17 @@ export default function DailyReportDetailClient({
         <Card className="border shadow-sm h-full">
           <CardHeader className="px-4 py-3">
             <CardTitle className="text-base">작업 내용</CardTitle>
-            <CardDescription>부재 / 공정 / 구간 / 상세</CardDescription>
+            <CardDescription>{WORK_CONTENT_DESCRIPTION}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3 px-4 pb-4 text-sm text-muted-foreground">
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <div className="text-xs">부재 유형</div>
-                <div className="text-foreground font-medium">{renderArray(report.memberTypes)}</div>
+                <div className="text-xs">부재명</div>
+                <div className="text-foreground font-medium">{renderArray(memberNames)}</div>
               </div>
               <div>
-                <div className="text-xs">공정</div>
-                <div className="text-foreground font-medium">
-                  {renderArray(report.workProcesses)}
-                </div>
+                <div className="text-xs">작업공정</div>
+                <div className="text-foreground font-medium">{renderArray(processNames)}</div>
               </div>
               <div>
                 <div className="text-xs">작업 유형</div>

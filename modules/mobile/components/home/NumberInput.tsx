@@ -1,11 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { MANPOWER_VALUES } from '@/types/worklog'
+
+const DEFAULT_MANPOWER_VALUES = Array.from(MANPOWER_VALUES)
 
 interface NumberInputProps {
   value: number
   onChange: (value: number) => void
-  values?: number[]  // 선택 가능한 값들
+  values?: number[] // 선택 가능한 값들
   min?: number
   max?: number
   step?: number
@@ -16,12 +19,12 @@ interface NumberInputProps {
 export const NumberInput: React.FC<NumberInputProps> = ({
   value,
   onChange,
-  values = [0, 0.5, 1, 1.5, 2, 2.5, 3],
-  min = 0,
-  max = 3,
+  values = DEFAULT_MANPOWER_VALUES,
+  min = DEFAULT_MANPOWER_VALUES[0],
+  max = DEFAULT_MANPOWER_VALUES[DEFAULT_MANPOWER_VALUES.length - 1],
   step = 0.5,
   label,
-  className = ''
+  className = '',
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
 
@@ -51,27 +54,33 @@ export const NumberInput: React.FC<NumberInputProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = parseFloat(e.target.value)
-    if (!isNaN(inputValue) && inputValue >= min && inputValue <= max) {
-      onChange(inputValue)
-      // 가장 가까운 값의 인덱스 찾기
-      let closestIndex = 0
-      let minDiff = Math.abs(values[0] - inputValue)
-      values.forEach((v, i) => {
-        const diff = Math.abs(v - inputValue)
-        if (diff < minDiff) {
-          minDiff = diff
-          closestIndex = i
-        }
-      })
-      setCurrentIndex(closestIndex)
+    if (Number.isNaN(inputValue) || inputValue < min || inputValue > max) return
+
+    const matchingIndex = values.findIndex(v => v === inputValue)
+    if (matchingIndex !== -1) {
+      setCurrentIndex(matchingIndex)
+      onChange(values[matchingIndex])
+      return
     }
+
+    let closestIndex = 0
+    let minDiff = Math.abs(values[0] - inputValue)
+    values.forEach((v, i) => {
+      const diff = Math.abs(v - inputValue)
+      if (diff < minDiff) {
+        minDiff = diff
+        closestIndex = i
+      }
+    })
+    setCurrentIndex(closestIndex)
+    onChange(values[closestIndex])
   }
 
   return (
     <div className={`number-input-container ${className}`}>
       {label && <label className="form-label">{label}</label>}
       <div className="number-input">
-        <button 
+        <button
           type="button"
           className="number-btn minus"
           onClick={handleDecrease}
@@ -89,7 +98,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
           max={max}
           step={step}
         />
-        <button 
+        <button
           type="button"
           className="number-btn plus"
           onClick={handleIncrease}

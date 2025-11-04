@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -78,7 +78,6 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
   const [ptwFile, setPtwFile] = useState<File | null>(null)
   const [ptwUploading, setPtwUploading] = useState(false)
   const [blueprintFile, setBlueprintFile] = useState<File | null>(null)
-  const [isMounted, setIsMounted] = useState(false)
 
   const [form, setForm] = useState<FormState>(() => ({
     name: initial?.name || '',
@@ -112,24 +111,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
       ),
     [initial?.accommodation_address, initial?.accommodation_name, initial?.accommodation_phone]
   )
-  const [showExtras, setShowExtras] = useState(false)
-  const syncedInitialExtras = useRef(false)
-
-  useEffect(() => {
-    if (!syncedInitialExtras.current) {
-      setShowExtras(initialExtrasExpanded)
-      syncedInitialExtras.current = true
-    }
-  }, [initialExtrasExpanded])
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return <div className="min-h-[200px]" aria-busy="true" />
-  }
-
+  const [showExtras, setShowExtras] = useState(() => initialExtrasExpanded)
   const hasExtraValues = useMemo(
     () =>
       Boolean(form.accommodation_address || form.accommodation_name || form.accommodation_phone),

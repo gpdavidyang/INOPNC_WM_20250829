@@ -101,6 +101,17 @@ interface MaterialUsageFormEntry {
   notes?: string
 }
 
+const LABOR_HOUR_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3] as const
+
+const isAllowedLaborHour = (value: number) => LABOR_HOUR_OPTIONS.some(option => option === value)
+
+const coerceLaborHours = (value: unknown): number => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) && isAllowedLaborHour(numeric) ? numeric : LABOR_HOUR_OPTIONS[0]
+}
+
+const formatLaborHourLabel = (value: number) => value.toFixed(1)
+
 const createReportKey = (reportData?: DailyReportFormProps['reportData'] | null) => {
   if (!reportData) return null
   if (reportData.id) return String(reportData.id)
@@ -198,7 +209,7 @@ const buildWorkerEntriesFromReport = (
     return reportData.worker_entries.map((entry: any, index: number) => ({
       id: entry?.id || `worker-${index}-${Math.random().toString(36).slice(2, 8)}`,
       worker_id: entry?.worker_id || '',
-      labor_hours: entry?.labor_hours || 0,
+      labor_hours: coerceLaborHours(entry?.labor_hours),
       worker_name: entry?.worker_name || '',
       is_direct_input: entry?.is_direct_input || false,
     }))
@@ -208,7 +219,7 @@ const buildWorkerEntriesFromReport = (
     {
       id: `worker-${Math.random().toString(36).slice(2, 8)}`,
       worker_id: '',
-      labor_hours: 0,
+      labor_hours: LABOR_HOUR_OPTIONS[0],
       worker_name: '',
       is_direct_input: false,
     },
@@ -784,15 +795,84 @@ export default function DailyReportForm({
           } => Boolean(item && item.material_name)
         )
 
-      const submitData = {
-        ...formData,
+      const primaryEntry = workEntries[0]
+      const normalizeLabel = (value?: string | null) => (value || '').trim()
+      const resolvedMemberName = primaryEntry
+        ? primaryEntry.memberName === '기타'
+          ? normalizeLabel(primaryEntry.memberNameOther) ||
+            normalizeLabel(formData.member_name) ||
+            primaryEntry.memberName
+          : normalizeLabel(primaryEntry.memberName) || normalizeLabel(formData.member_name)
+        : normalizeLabel(formData.member_name)
+      const resolvedProcessType = primaryEntry
+        ? primaryEntry.processType === '기타'
+          ? normalizeLabel(primaryEntry.processTypeOther) ||
+            normalizeLabel(formData.process_type) ||
+            primaryEntry.processType
+          : normalizeLabel(primaryEntry.processType) || normalizeLabel(formData.process_type)
+        : normalizeLabel(formData.process_type)
+      const existingMemberName = normalizeLabel((reportData as any)?.member_name)
+      const existingProcessType = normalizeLabel((reportData as any)?.process_type)
+      const existingWorkSection = normalizeLabel((reportData as any)?.work_section)
+      const resolvedWorkSection = normalizeLabel(primaryEntry?.workSection) || existingWorkSection
+
+      const workerEntriesPayload = permissions.canManageWorkers
+        ? workerEntries
+            .map(entry => {
+              const trimmedName = (entry.worker_name || '').trim()
+              const hasWorkerReference = entry.worker_id && entry.worker_id.length > 0
+              const resolvedName =
+                trimmedName ||
+                (hasWorkerReference
+                  ? workers.find(worker => worker.id === entry.worker_id)?.full_name || ''
+                  : '')
+              return {
+                ...entry,
+                worker_id: hasWorkerReference ? entry.worker_id : null,
+                worker_name: resolvedName,
+                is_direct_input: entry.is_direct_input || !hasWorkerReference,
+              }
+            })
+            .filter(entry => {
+              const hasLabor = isAllowedLaborHour(entry.labor_hours) && entry.labor_hours > 0
+              const hasWorkerInfo =
+                (typeof entry.worker_id === 'string' && entry.worker_id.length > 0) ||
+                (entry.worker_name && entry.worker_name.trim().length > 0)
+              return hasLabor && hasWorkerInfo
+            })
+        : []
+
+      const resolvedSiteId = formData.site_id || (reportData as any)?.site_id
+      if (!resolvedSiteId) {
+        throw new Error('현장 정보가 비어 있어 저장할 수 없습니다.')
+      }
+
+      const nextMemberName = resolvedMemberName || existingMemberName
+      const nextProcessType = resolvedProcessType || existingProcessType
+
+      const submitData: Record<string, any> = {
         id: reportData?.id,
+        site_id: resolvedSiteId,
+        partner_company_id: formData.partner_company_id || null,
+        work_date: formData.work_date,
+        member_name: nextMemberName || null,
+        process_type: nextProcessType || null,
+        component_name: nextMemberName || null,
+        work_process: nextProcessType || null,
+        work_section: resolvedWorkSection || null,
+        total_workers: Number(formData.total_workers ?? 0) || 0,
+        npc1000_incoming: Number(formData.npc1000_incoming ?? 0) || 0,
+        npc1000_used: Number(formData.npc1000_used ?? 0) || 0,
+        npc1000_remaining: Number(formData.npc1000_remaining ?? 0) || 0,
+        issues: normalizeLabel(formData.issues) || null,
+        hq_request: normalizeLabel(formData.hq_request) || null,
         status: isDraft ? 'draft' : 'submitted',
         work_entries: workEntries,
-        worker_entries: permissions.canManageWorkers ? workerEntries : [],
+        worker_entries: workerEntriesPayload,
         material_usage: materialUsagePayload,
         additional_photos: additionalPhotos,
       }
+      console.debug('작업일지 제출 payload', submitData)
 
       let ok = false
       if (mode === 'edit' && reportData) {
@@ -815,6 +895,12 @@ export default function DailyReportForm({
           })
           ok = false
         } else {
+          if (!res.ok) {
+            const errPayload = await res.json().catch(() => ({}))
+            console.error('작업일지 수정 실패 응답:', errPayload)
+            setError(errPayload?.error || '작업일지 저장에 실패했습니다.')
+            toast.error(errPayload?.error || '작업일지 저장에 실패했습니다.')
+          }
           ok = res.ok
         }
       } else {
@@ -837,6 +923,12 @@ export default function DailyReportForm({
           })
           ok = false
         } else {
+          if (!res.ok) {
+            const errPayload = await res.json().catch(() => ({}))
+            console.error('작업일지 생성 실패 응답:', errPayload)
+            setError(errPayload?.error || '작업일지 저장에 실패했습니다.')
+            toast.error(errPayload?.error || '작업일지 저장에 실패했습니다.')
+          }
           ok = res.ok
         }
       }
@@ -1191,13 +1283,18 @@ export default function DailyReportForm({
                       <div>
                         <Label>작업자 선택</Label>
                         <CustomSelect
-                          value={entry.worker_id}
+                          value={entry.is_direct_input ? 'direct' : entry.worker_id || ''}
                           onValueChange={value => {
                             const newEntries = [...workerEntries]
+                            const isDirect = value === 'direct'
+                            const selectedWorker = workers.find(worker => worker.id === value)
                             newEntries[index] = {
                               ...newEntries[index],
-                              worker_id: value,
-                              is_direct_input: false,
+                              worker_id: isDirect ? '' : value,
+                              worker_name: isDirect
+                                ? ''
+                                : selectedWorker?.full_name || newEntries[index].worker_name || '',
+                              is_direct_input: isDirect,
                             }
                             setWorkerEntries(newEntries)
                           }}
@@ -1215,7 +1312,7 @@ export default function DailyReportForm({
                           </CustomSelectContent>
                         </CustomSelect>
                       </div>
-                      {entry.worker_id === 'direct' && (
+                      {entry.is_direct_input && (
                         <div>
                           <Label>작업자 이름</Label>
                           <Input
@@ -1234,20 +1331,36 @@ export default function DailyReportForm({
                         </div>
                       )}
                       <div>
-                        <Label>작업 시간</Label>
-                        <Input
-                          type="number"
-                          value={entry.labor_hours}
-                          onChange={e => {
+                        <Label>공수</Label>
+                        <CustomSelect
+                          value={
+                            isAllowedLaborHour(entry.labor_hours)
+                              ? formatLaborHourLabel(entry.labor_hours)
+                              : ''
+                          }
+                          onValueChange={value => {
                             const newEntries = [...workerEntries]
                             newEntries[index] = {
                               ...newEntries[index],
-                              labor_hours: Number(e.target.value),
+                              labor_hours: coerceLaborHours(parseFloat(value)),
                             }
                             setWorkerEntries(newEntries)
                           }}
-                          placeholder="작업 시간 (시간 단위)"
-                        />
+                        >
+                          <CustomSelectTrigger>
+                            <CustomSelectValue placeholder="공수를 선택하세요" />
+                          </CustomSelectTrigger>
+                          <CustomSelectContent>
+                            {LABOR_HOUR_OPTIONS.map(option => {
+                              const optionValue = formatLaborHourLabel(option)
+                              return (
+                                <CustomSelectItem key={optionValue} value={optionValue}>
+                                  {optionValue} 공수
+                                </CustomSelectItem>
+                              )
+                            })}
+                          </CustomSelectContent>
+                        </CustomSelect>
                       </div>
                     </div>
                   </div>
@@ -1261,7 +1374,7 @@ export default function DailyReportForm({
                       {
                         id: `worker-${Date.now()}`,
                         worker_id: '',
-                        labor_hours: 0,
+                        labor_hours: LABOR_HOUR_OPTIONS[0],
                         worker_name: '',
                         is_direct_input: false,
                       },

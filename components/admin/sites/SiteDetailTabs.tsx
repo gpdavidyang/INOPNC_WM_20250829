@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import SiteForm from '@/components/admin/sites/SiteForm'
 import {
   BrandTabs as Tabs,
@@ -512,6 +513,214 @@ export default function SiteDetailTabs({
   const sharedTotalDocuments = sharedStats?.total_documents ?? sharedDocs.length
   const sharedDocumentCount = sharedStats?.by_type?.document ?? null
   const sharedPhotoCount = sharedStats?.by_type?.photo ?? null
+
+  type InventoryDisplayRow = {
+    id: string
+    material: ReactNode
+    code: string
+    quantity: ReactNode
+    minimum: ReactNode
+    status: ReactNode
+    updated: string
+  }
+
+  type RequestDisplayRow = {
+    id: string
+    number: ReactNode
+    items: ReactNode
+    quantity: ReactNode
+    requester: ReactNode
+    status: ReactNode
+    date: string
+  }
+
+  type ShipmentDisplayRow = {
+    id: string
+    number: ReactNode
+    items: ReactNode
+    quantity: ReactNode
+    status: ReactNode
+    date: string
+  }
+
+  type TransactionDisplayRow = {
+    id: string
+    date: string
+    type: ReactNode
+    material: ReactNode
+    quantity: ReactNode
+    reference: ReactNode
+  }
+
+  const inventoryColumns: Column<InventoryDisplayRow>[] = [
+    { key: 'material', header: '자재', render: row => row.material },
+    { key: 'code', header: '코드', accessor: row => row.code },
+    { key: 'quantity', header: '재고', align: 'right', render: row => row.quantity },
+    { key: 'minimum', header: '최소재고', align: 'right', render: row => row.minimum },
+    { key: 'status', header: '상태', render: row => row.status },
+    { key: 'updated', header: '업데이트', accessor: row => row.updated },
+  ]
+
+  const requestColumns: Column<RequestDisplayRow>[] = [
+    { key: 'number', header: '요청번호', render: row => row.number },
+    { key: 'items', header: '품목', render: row => row.items },
+    { key: 'quantity', header: '수량', align: 'right', render: row => row.quantity },
+    { key: 'requester', header: '요청자', render: row => row.requester },
+    { key: 'status', header: '상태', render: row => row.status },
+    { key: 'date', header: '요청일', accessor: row => row.date },
+  ]
+
+  const shipmentColumns: Column<ShipmentDisplayRow>[] = [
+    { key: 'number', header: '출고번호', render: row => row.number },
+    { key: 'items', header: '품목', render: row => row.items },
+    { key: 'quantity', header: '수량', align: 'right', render: row => row.quantity },
+    { key: 'status', header: '상태', render: row => row.status },
+    { key: 'date', header: '출고일', accessor: row => row.date },
+  ]
+
+  const transactionColumns: Column<TransactionDisplayRow>[] = [
+    { key: 'date', header: '일자', accessor: row => row.date },
+    { key: 'type', header: '유형', render: row => row.type },
+    { key: 'material', header: '자재', render: row => row.material },
+    { key: 'quantity', header: '수량', align: 'right', render: row => row.quantity },
+    { key: 'reference', header: '참조', render: row => row.reference },
+  ]
+
+  const filteredInventory = useMemo(() => {
+    return (Array.isArray(inventory) ? inventory : []).filter((it: any) => {
+      const q = invQuery.trim().toLowerCase()
+      if (!q) return true
+      const name = String(it?.materials?.name || '').toLowerCase()
+      const code = String(it?.materials?.code || '').toLowerCase()
+      return name.includes(q) || code.includes(q)
+    })
+  }, [inventory, invQuery])
+
+  const inventoryTableRows: InventoryDisplayRow[] = useMemo(() => {
+    return filteredInventory.map((it: any) => {
+      const linkTarget = it?.materials?.code
+        ? `/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`
+        : null
+
+      const nameNode = (
+        <div className="flex flex-col">
+          <span className="font-medium text-foreground">{it?.materials?.name || '-'}</span>
+          {it?.materials?.specification ? (
+            <span className="text-xs text-muted-foreground">{it.materials.specification}</span>
+          ) : null}
+        </div>
+      )
+
+      return {
+        id: String(it?.id || ''),
+        material:
+          linkTarget !== null ? (
+            <a
+              href={linkTarget}
+              className="underline text-blue-600"
+              title="자재관리 인벤토리로 이동"
+            >
+              {nameNode}
+            </a>
+          ) : (
+            nameNode
+          ),
+        code: it?.materials?.code || '-',
+        quantity: formatQuantityDisplay(it?.quantity, it?.materials?.unit),
+        minimum:
+          it?.minimum_stock !== null && it?.minimum_stock !== undefined
+            ? formatQuantityDisplay(it.minimum_stock, it?.materials?.unit)
+            : '-',
+        status: renderInventoryStatusBadge(it?.status),
+        updated: it?.last_updated ? new Date(it.last_updated).toLocaleDateString('ko-KR') : '-',
+      }
+    })
+  }, [filteredInventory, siteId])
+
+  const requestTableRows: RequestDisplayRow[] = useMemo(
+    () =>
+      (reqRows || []).map((rq: any, idx?: number) => ({
+        id: rq?.id || String(idx ?? ''),
+        number: (
+          <a
+            href={`/dashboard/admin/materials/requests/${rq.id}`}
+            className="underline text-blue-600"
+            title="요청 상세 보기"
+          >
+            {rq?.request_number || rq?.id}
+          </a>
+        ),
+        items: renderRequestItemsCell(rq?.material_request_items),
+        quantity: renderRequestQuantityCell(rq?.material_request_items),
+        requester: rq?.requested_by ? (
+          <a
+            href={`/dashboard/admin/users/${rq.requested_by}`}
+            className="underline-offset-2 hover:underline"
+            title="사용자 상세 보기"
+          >
+            {rq?.requester?.full_name || rq?.requested_by}
+          </a>
+        ) : (
+          <span>{rq?.requester?.full_name || '-'}</span>
+        ),
+        status: renderStatusBadge(rq?.status),
+        date: rq?.request_date ? new Date(rq.request_date).toLocaleDateString('ko-KR') : '-',
+      })),
+    [reqRows]
+  )
+
+  const filteredShipments = useMemo(() => {
+    return (Array.isArray(shipments) ? shipments : []).filter((s: any) => {
+      const q = shipQuery.trim().toLowerCase()
+      if (!q) return true
+      const num = String(s?.shipment_number || s?.id || '').toLowerCase()
+      const st = String(s?.status || '').toLowerCase()
+      return num.includes(q) || st.includes(q)
+    })
+  }, [shipments, shipQuery])
+
+  const shipmentTableRows: ShipmentDisplayRow[] = useMemo(
+    () =>
+      filteredShipments.map((s: any) => ({
+        id: String(s?.id || ''),
+        number: (
+          <a
+            href={`/dashboard/admin/materials/shipments/${s.id}`}
+            className="underline text-blue-600"
+          >
+            {s?.shipment_number || s?.id}
+          </a>
+        ),
+        items: renderShipmentItemsCell(s?.shipment_items),
+        quantity: renderShipmentQuantityCell(s?.shipment_items),
+        status: renderStatusBadge(s?.status),
+        date: s?.shipment_date ? new Date(s.shipment_date).toLocaleDateString('ko-KR') : '-',
+      })),
+    [filteredShipments]
+  )
+
+  const filteredTransactions = useMemo(() => {
+    return (transactions || []).filter((t: any) => {
+      const q = txnQuery.trim().toLowerCase()
+      if (!q) return true
+      const name = String(t?.materials?.name || '').toLowerCase()
+      const code = String(t?.materials?.code || '').toLowerCase()
+      return name.includes(q) || code.includes(q)
+    })
+  }, [transactions, txnQuery])
+
+  const transactionTableRows: TransactionDisplayRow[] = useMemo(
+    () =>
+      filteredTransactions.map((t: any) => ({
+        id: String(t?.id || ''),
+        date: t?.transaction_date ? new Date(t.transaction_date).toLocaleDateString('ko-KR') : '-',
+        type: renderTransactionTypeBadge(t?.transaction_type),
+        material: renderTransactionMaterialCell(t),
+        quantity: formatQuantityDisplay(t?.quantity, t?.materials?.unit),
+        reference: renderTransactionReferenceCell(t),
+      })),
+    [filteredTransactions]
+  )
 
   // Load drawings for site (uses server API with fallback to documents)
   useEffect(() => {
@@ -2224,90 +2433,15 @@ export default function SiteDetailTabs({
                 </select>
               </div>
             </div>
-            {requestsLoading && reqRows.length === 0 ? (
+            {requestsLoading && requestTableRows.length === 0 ? (
               <TableSkeleton rows={6} />
             ) : (
-              <DataTable<any>
-                data={reqRows}
-                rowKey={(rq: any, idx?: number) => rq.id || rq.request_number || idx || 'req'}
+              <DataTable<RequestDisplayRow>
+                data={requestTableRows}
+                rowKey="id"
                 stickyHeader
                 emptyMessage="요청 내역이 없습니다."
-                columns={
-                  [
-                    {
-                      key: 'number',
-                      header: '요청번호',
-                      sortable: true,
-                      accessor: (rq: any) => rq?.request_number || rq?.id || '',
-                      render: (rq: any) => (
-                        <a
-                          href={`/dashboard/admin/materials/requests/${rq.id}`}
-                          className="underline text-blue-600"
-                          title="요청 상세 보기"
-                        >
-                          {rq?.request_number || rq?.id}
-                        </a>
-                      ),
-                    },
-                    {
-                      key: 'items',
-                      header: '품목',
-                      sortable: false,
-                      accessor: (rq: any) => (rq?.material_request_items || []).length,
-                      render: (rq: any) => renderRequestItemsCell(rq?.material_request_items),
-                      width: '26%',
-                    },
-                    {
-                      key: 'quantity',
-                      header: '수량',
-                      sortable: false,
-                      accessor: (rq: any) =>
-                        (rq?.material_request_items || []).reduce(
-                          (sum: number, item: any) => sum + Number(item?.requested_quantity ?? 0),
-                          0
-                        ),
-                      render: (rq: any) => renderRequestQuantityCell(rq?.material_request_items),
-                      align: 'right',
-                      width: '14%',
-                    },
-                    {
-                      key: 'requester',
-                      header: '요청자',
-                      sortable: true,
-                      accessor: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '',
-                      render: (rq: any) =>
-                        rq?.requested_by ? (
-                          <a
-                            href={`/dashboard/admin/users/${rq.requested_by}`}
-                            className="underline-offset-2 hover:underline"
-                            title="사용자 상세 보기"
-                          >
-                            {rq?.requester?.full_name || rq?.requested_by}
-                          </a>
-                        ) : (
-                          <span>{rq?.requester?.full_name || '-'}</span>
-                        ),
-                    },
-                    {
-                      key: 'status',
-                      header: '상태',
-                      sortable: true,
-                      accessor: (rq: any) => rq?.status || '',
-                      render: (rq: any) => renderStatusBadge(rq?.status),
-                      width: '10%',
-                    },
-                    {
-                      key: 'date',
-                      header: '요청일',
-                      sortable: true,
-                      accessor: (rq: any) => rq?.request_date || '',
-                      render: (rq: any) =>
-                        rq?.request_date
-                          ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                          : '-',
-                    },
-                  ] as Column<any>[]
-                }
+                columns={requestColumns}
               />
             )}
             <div className="flex items-center justify-end gap-2 mt-2">
@@ -2389,107 +2523,15 @@ export default function SiteDetailTabs({
                   />
                 </div>
               </div>
-              {invLoading && inventory.length === 0 ? (
+              {invLoading && inventoryTableRows.length === 0 ? (
                 <TableSkeleton rows={5} />
               ) : (
-                <DataTable<any>
-                  data={(Array.isArray(inventory) ? inventory : []).filter((it: any) => {
-                    const q = invQuery.trim().toLowerCase()
-                    if (!q) return true
-                    const name = String(it?.materials?.name || '').toLowerCase()
-                    const code = String(it?.materials?.code || '').toLowerCase()
-                    return name.includes(q) || code.includes(q)
-                  })}
-                  rowKey={(it: any) => it.id}
+                <DataTable<InventoryDisplayRow>
+                  data={inventoryTableRows}
+                  rowKey="id"
                   stickyHeader
                   emptyMessage="재고 데이터가 없습니다."
-                  columns={
-                    [
-                      {
-                        key: 'name',
-                        header: '자재',
-                        sortable: true,
-                        accessor: (it: any) => it?.materials?.name || '',
-                        render: (it: any) =>
-                          it?.materials?.code ? (
-                            <a
-                              href={`/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`}
-                              className="underline text-blue-600"
-                              title="자재관리 인벤토리로 이동"
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium text-foreground">
-                                  {it?.materials?.name || '-'}
-                                </span>
-                                {it?.materials?.specification ? (
-                                  <span className="text-xs text-muted-foreground">
-                                    {it.materials.specification}
-                                  </span>
-                                ) : null}
-                              </div>
-                            </a>
-                          ) : (
-                            <div className="flex flex-col">
-                              <span className="font-medium text-foreground">
-                                {it?.materials?.name || '-'}
-                              </span>
-                              {it?.materials?.specification ? (
-                                <span className="text-xs text-muted-foreground">
-                                  {it.materials.specification}
-                                </span>
-                              ) : null}
-                            </div>
-                          ),
-                      },
-                      {
-                        key: 'code',
-                        header: '코드',
-                        sortable: true,
-                        accessor: (it: any) => it?.materials?.code || '',
-                        render: (it: any) => it?.materials?.code || '-',
-                      },
-                      {
-                        key: 'qty',
-                        header: '재고',
-                        sortable: true,
-                        accessor: (it: any) => Number(it?.quantity ?? 0),
-                        render: (it: any) =>
-                          formatQuantityDisplay(it?.quantity, it?.materials?.unit),
-                        align: 'right',
-                        width: '12%',
-                      },
-                      {
-                        key: 'minimum',
-                        header: '최소재고',
-                        sortable: true,
-                        accessor: (it: any) => Number(it?.minimum_stock ?? 0),
-                        render: (it: any) =>
-                          it?.minimum_stock !== null && it?.minimum_stock !== undefined
-                            ? formatQuantityDisplay(it.minimum_stock, it?.materials?.unit)
-                            : '-',
-                        align: 'right',
-                        width: '12%',
-                      },
-                      {
-                        key: 'status',
-                        header: '상태',
-                        sortable: true,
-                        accessor: (it: any) => it?.status || '',
-                        render: (it: any) => renderInventoryStatusBadge(it?.status),
-                        width: '12%',
-                      },
-                      {
-                        key: 'updated',
-                        header: '업데이트',
-                        sortable: true,
-                        accessor: (it: any) => it?.last_updated || '',
-                        render: (it: any) =>
-                          it?.last_updated
-                            ? new Date(it.last_updated).toLocaleDateString('ko-KR')
-                            : '-',
-                      },
-                    ] as Column<any>[]
-                  }
+                  columns={inventoryColumns}
                 />
               )}
             </div>
@@ -2520,76 +2562,15 @@ export default function SiteDetailTabs({
                 </Button>
               </div>
             </div>
-            {shipLoading && shipments.length === 0 ? (
+            {shipLoading && shipmentTableRows.length === 0 ? (
               <TableSkeleton rows={5} />
             ) : (
-              <DataTable<any>
-                data={(Array.isArray(shipments) ? shipments : []).filter((s: any) => {
-                  const q = shipQuery.trim().toLowerCase()
-                  if (!q) return true
-                  const num = String(s?.shipment_number || s?.id || '').toLowerCase()
-                  const st = String(s?.status || '').toLowerCase()
-                  return num.includes(q) || st.includes(q)
-                })}
-                rowKey={(s: any) => s.id}
+              <DataTable<ShipmentDisplayRow>
+                data={shipmentTableRows}
+                rowKey="id"
                 stickyHeader
                 emptyMessage="최근 출고 내역이 없습니다."
-                columns={
-                  [
-                    {
-                      key: 'number',
-                      header: '출고번호',
-                      sortable: true,
-                      accessor: (s: any) => s?.shipment_number || s?.id || '',
-                      render: (s: any) => (
-                        <a
-                          href={`/dashboard/admin/materials/shipments/${s.id}`}
-                          className="underline text-blue-600"
-                        >
-                          {s?.shipment_number || s?.id}
-                        </a>
-                      ),
-                    },
-                    {
-                      key: 'items',
-                      header: '품목',
-                      sortable: false,
-                      accessor: (s: any) => (s?.shipment_items || []).length,
-                      render: (s: any) => renderShipmentItemsCell(s?.shipment_items),
-                    },
-                    {
-                      key: 'quantity',
-                      header: '수량',
-                      sortable: false,
-                      accessor: (s: any) =>
-                        (s?.shipment_items || []).reduce(
-                          (sum: number, item: any) => sum + Number(item?.quantity ?? 0),
-                          0
-                        ),
-                      render: (s: any) => renderShipmentQuantityCell(s?.shipment_items),
-                      align: 'right',
-                      width: '14%',
-                    },
-                    {
-                      key: 'status',
-                      header: '상태',
-                      sortable: true,
-                      accessor: (s: any) => s?.status || '',
-                      render: (s: any) => renderStatusBadge(s?.status),
-                      width: '12%',
-                    },
-                    {
-                      key: 'date',
-                      header: '출고일',
-                      sortable: true,
-                      accessor: (s: any) => s?.shipment_date || '',
-                      render: (s: any) =>
-                        s?.shipment_date
-                          ? new Date(s.shipment_date).toLocaleDateString('ko-KR')
-                          : '-',
-                    },
-                  ] as Column<any>[]
-                }
+                columns={shipmentColumns}
               />
             )}
           </div>
@@ -2635,61 +2616,15 @@ export default function SiteDetailTabs({
                 </select>
               </div>
             </div>
-            {txnLoading && transactions.length === 0 ? (
+            {txnLoading && transactionTableRows.length === 0 ? (
               <TableSkeleton rows={5} />
             ) : (
-              <DataTable<any>
-                data={transactions || []}
-                rowKey={(t: any) => t.id}
+              <DataTable<TransactionDisplayRow>
+                data={transactionTableRows}
+                rowKey="id"
                 stickyHeader
                 emptyMessage="최근 입출고 내역이 없습니다."
-                columns={
-                  [
-                    {
-                      key: 'date',
-                      header: '일자',
-                      sortable: true,
-                      accessor: (t: any) => t?.transaction_date || '',
-                      render: (t: any) =>
-                        t?.transaction_date
-                          ? new Date(t.transaction_date).toLocaleDateString('ko-KR')
-                          : '-',
-                    },
-                    {
-                      key: 'type',
-                      header: '유형',
-                      sortable: true,
-                      accessor: (t: any) => t?.transaction_type || '',
-                      render: (t: any) => renderTransactionTypeBadge(t?.transaction_type),
-                      width: '12%',
-                    },
-                    {
-                      key: 'material',
-                      header: '자재',
-                      sortable: true,
-                      accessor: (t: any) =>
-                        `${t?.materials?.name || ''} ${t?.materials?.code || ''}`.trim(),
-                      render: (t: any) => renderTransactionMaterialCell(t),
-                      width: '28%',
-                    },
-                    {
-                      key: 'quantity',
-                      header: '수량',
-                      sortable: true,
-                      accessor: (t: any) => Number(t?.quantity ?? 0),
-                      render: (t: any) => formatQuantityDisplay(t?.quantity, t?.materials?.unit),
-                      align: 'right',
-                      width: '14%',
-                    },
-                    {
-                      key: 'reference',
-                      header: '참조',
-                      sortable: false,
-                      accessor: (t: any) => t?.reference_type || '',
-                      render: (t: any) => renderTransactionReferenceCell(t),
-                    },
-                  ] as Column<any>[]
-                }
+                columns={transactionColumns}
               />
             )}
             <div className="flex items-center justify-end gap-2 mt-2">
@@ -3061,6 +2996,7 @@ export default function SiteDetailTabs({
         <TabsContent value="edit" className="mt-4">
           <div className="rounded-lg border bg-card p-4 shadow-sm">
             <SiteForm
+              key={siteId}
               mode="edit"
               siteId={siteId}
               initial={site}
@@ -3394,45 +3330,6 @@ function filteredAndSortedAssignments(
         return laborB - laborA || nameA.localeCompare(nameB)
       case 'labor_asc':
         return laborA - laborB || nameA.localeCompare(nameB)
-      case 'date_desc':
-      default:
-        return dateB - dateA
-    }
-  })
-  return rows
-}
-
-function filteredAndSortedRequests(
-  items: any[],
-  query: string,
-  sort: 'date_desc' | 'date_asc' | 'status' | 'number',
-  statusFilter: 'all' | 'pending' | 'approved' | 'rejected' | 'completed'
-): any[] {
-  const q = query.trim().toLowerCase()
-  let rows = Array.isArray(items) ? [...items] : []
-  if (q) {
-    rows = rows.filter(rq => {
-      const fields = [rq?.request_number, rq?.requester?.full_name, rq?.status].map(normalizeString)
-      return fields.some(f => f.includes(q))
-    })
-  }
-  if (statusFilter !== 'all') {
-    rows = rows.filter(rq => normalizeString(rq?.status) === statusFilter)
-  }
-  rows.sort((a, b) => {
-    const dateA = a?.request_date ? new Date(a.request_date).getTime() : 0
-    const dateB = b?.request_date ? new Date(b.request_date).getTime() : 0
-    const statusA = normalizeString(a?.status)
-    const statusB = normalizeString(b?.status)
-    const numA = normalizeString(a?.request_number)
-    const numB = normalizeString(b?.request_number)
-    switch (sort) {
-      case 'date_asc':
-        return dateA - dateB
-      case 'status':
-        return statusA.localeCompare(statusB) || dateB - dateA
-      case 'number':
-        return numA.localeCompare(numB) || dateB - dateA
       case 'date_desc':
       default:
         return dateB - dateA

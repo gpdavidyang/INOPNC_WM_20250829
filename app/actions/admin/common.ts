@@ -1,10 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import {
-  requireServerActionAuth,
-  type SimpleAuth,
-} from '@/lib/auth/ultra-simple'
+import { requireServerActionAuth, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType, logError } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
 
@@ -54,7 +51,12 @@ export async function withAdminAuth<T>(
     logError(error, 'withAdminAuth')
     return {
       success: false,
-      error: error instanceof AppError ? error.message : 'Unknown error occurred',
+      error:
+        error instanceof AppError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : 'Unknown error occurred',
     }
   }
 }

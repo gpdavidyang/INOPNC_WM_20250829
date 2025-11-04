@@ -89,7 +89,7 @@ export const MEMBER_TYPES = [
 ] as const
 
 // 공수 값 옵션 (0.5 단위)
-export const MANPOWER_VALUES = [0, 0.5, 1, 1.5, 2, 2.5, 3] as const
+export const MANPOWER_VALUES = [0.5, 1, 1.5, 2, 2.5, 3] as const
 
 // ==================== v3 UI Data Models ====================
 

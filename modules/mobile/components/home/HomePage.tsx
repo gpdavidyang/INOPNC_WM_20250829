@@ -21,7 +21,7 @@ import { DrawingQuickAction } from './DrawingQuickAction'
 import { SummarySection } from './SummarySection'
 import { MaterialsInput } from './MaterialsInput'
 import { toast } from 'sonner'
-import { WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
+import { WorkLogLocation, WorkSection, AdditionalManpower, MANPOWER_VALUES } from '@/types/worklog'
 import { useAuth } from '@/modules/mobile/providers/AuthProvider'
 import { User } from '@supabase/supabase-js'
 import { useCreateWorklog, MaterialEntry } from '@/modules/mobile/hooks/use-worklog-mutations'
@@ -998,7 +998,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                 label="공수"
                 value={mainManpower}
                 onChange={setMainManpower}
-                values={[0, 0.5, 1, 1.5, 2, 2.5, 3]}
+                values={Array.from(MANPOWER_VALUES)}
               />
             </div>
           </div>
@@ -1065,7 +1065,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                     )
                     setAdditionalManpower(updated)
                   }}
-                  values={[0, 0.5, 1, 1.5, 2, 2.5, 3]}
+                  values={Array.from(MANPOWER_VALUES)}
                 />
               </div>
             </div>
