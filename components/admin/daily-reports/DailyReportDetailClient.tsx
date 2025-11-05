@@ -73,41 +73,6 @@ const mapWorkersToStats = (workers: UnifiedWorkerEntry[]): WorkerStatistics => {
   )
 }
 
-const AttachmentSection = ({
-  title,
-  items,
-  onOpen,
-}: {
-  title: string
-  items: UnifiedAttachment[]
-  onOpen: (url: string) => void
-}) => (
-  <div>
-    <div className="mb-2 font-medium text-foreground">{title}</div>
-    {items.length === 0 ? (
-      <div className="text-sm text-muted-foreground">첨부 없음</div>
-    ) : (
-      <div className="grid grid-cols-1 gap-2">
-        {items.map(item => (
-          <div key={item.id} className="flex items-center justify-between rounded border p-2">
-            <div className="truncate">
-              <div className="font-medium text-foreground truncate max-w-[340px]" title={item.name}>
-                {item.name}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {item.uploadedAt ? formatDate(item.uploadedAt) : '업로드 정보 없음'}
-              </div>
-            </div>
-            <Button size="sm" variant="outline" onClick={() => onOpen(item.url)}>
-              보기
-            </Button>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-)
-
 export default function DailyReportDetailClient({
   reportId,
   siteName,
@@ -581,21 +546,56 @@ export default function DailyReportDetailClient({
   }
 
   const additionalPhotosSection = renderAdditionalPhotos()
+  const attachmentList = useMemo(() => {
+    const withType = (
+      items: UnifiedAttachment[],
+      type?: 'photo' | 'drawing' | 'confirmation' | 'other'
+    ) =>
+      items.map(item => ({
+        ...item,
+        __type: type,
+      }))
+    return [
+      ...withType(attachments.photos, 'photo'),
+      ...withType(attachments.drawings, 'drawing'),
+      ...withType(attachments.confirmations, 'confirmation'),
+      ...withType(attachments.others, 'other'),
+    ]
+  }, [attachments])
+
   const renderAttachmentsCard = (extraClass?: string) => (
     <Card className={`border shadow-sm ${extraClass ?? ''}`}>
       <CardHeader className="px-4 py-3">
         <CardTitle className="text-base">첨부 문서</CardTitle>
-        <CardDescription>사진 / 도면 / 완료확인서 / 기타</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3 px-4 pb-4 md:grid-cols-2">
-        <AttachmentSection title="사진" items={attachments.photos} onOpen={handleOpenFile} />
-        <AttachmentSection title="도면" items={attachments.drawings} onOpen={handleOpenFile} />
-        <AttachmentSection
-          title="완료확인서"
-          items={attachments.confirmations}
-          onOpen={handleOpenFile}
-        />
-        <AttachmentSection title="기타" items={attachments.others} onOpen={handleOpenFile} />
+      <CardContent className="px-4 pb-4">
+        {attachmentList.length === 0 ? (
+          <div className="text-sm text-muted-foreground">첨부 문서가 없습니다.</div>
+        ) : (
+          <div className="space-y-2">
+            {attachmentList.map(item => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between rounded border p-2 text-sm"
+              >
+                <div className="truncate">
+                  <div
+                    className="font-medium text-foreground truncate max-w-[340px]"
+                    title={item.name}
+                  >
+                    {item.name}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {item.uploadedAt ? formatDate(item.uploadedAt) : '업로드 정보 없음'}
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => handleOpenFile(item.url)}>
+                  보기
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   )

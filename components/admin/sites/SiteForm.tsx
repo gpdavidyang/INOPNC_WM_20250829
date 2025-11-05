@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -112,11 +112,19 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     [initial?.accommodation_address, initial?.accommodation_name, initial?.accommodation_phone]
   )
   const [showExtras, setShowExtras] = useState(() => initialExtrasExpanded)
+  const initialExtrasRef = useRef(initialExtrasExpanded)
   const hasExtraValues = useMemo(
     () =>
       Boolean(form.accommodation_address || form.accommodation_name || form.accommodation_phone),
     [form]
   )
+
+  useEffect(() => {
+    if (initialExtrasRef.current !== initialExtrasExpanded) {
+      initialExtrasRef.current = initialExtrasExpanded
+      setShowExtras(initialExtrasExpanded)
+    }
+  }, [initialExtrasExpanded])
 
   const handleChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))

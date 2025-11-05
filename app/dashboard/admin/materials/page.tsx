@@ -38,11 +38,17 @@ export default async function AdminMaterialsPage({
 }) {
   await requireAdminProfile()
 
-  const tab = ((searchParams?.tab as string) || 'inventory') as
+  const rawTab = (searchParams?.tab as string) || 'inventory'
+  const tab = (
+    ['inventory', 'requests', 'productions', 'shipments', 'settings'].includes(rawTab)
+      ? rawTab
+      : 'inventory'
+  ) as
     | 'inventory' // 현장별 재고/요약
     | 'requests' // 입고요청 관리
     | 'productions' // 생산정보 관리
     | 'shipments' // 출고배송 관리
+    | 'settings' // 설정
   const page = Math.max(1, Number((searchParams?.page as string) || '1') || 1)
   // 페이지 크기 고정: 100
   const limit = 100
@@ -113,6 +119,8 @@ export default async function AdminMaterialsPage({
     shipments = res.success && res.data ? (res.data as any).shipments : []
     total = res.success && res.data ? (res.data as any).total : 0
     pages = res.success && res.data ? (res.data as any).pages : 1
+  } else if (tab === 'settings') {
+    // No additional data needed; configuration cards are static links
   }
 
   const buildQuery = (overrides: Record<string, string>) => {
@@ -136,15 +144,6 @@ export default async function AdminMaterialsPage({
         title="자재 관리"
         description="현장별 재고/요청/출고/생산 정보를 관리합니다"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '자재 관리' }]}
-        actions={
-          <a
-            href="/dashboard/admin/materials/settings"
-            className={buttonVariants({ variant: 'outline', size: 'standard' })}
-            role="button"
-          >
-            설정
-          </a>
-        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         {/* Tabs (shared pill-style component) */}
@@ -167,6 +166,11 @@ export default async function AdminMaterialsPage({
                 key: 'shipments',
                 label: '출고·배송·결제 관리',
                 href: buildQuery({ tab: 'shipments' }),
+              },
+              {
+                key: 'settings',
+                label: '설정',
+                href: buildQuery({ tab: 'settings' }),
               },
             ]}
             fill
@@ -590,6 +594,45 @@ export default async function AdminMaterialsPage({
               </div>
               <ShipmentsTable shipments={shipments as any} />
             </div>
+          </div>
+        )}
+
+        {tab === 'settings' && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <a href="/dashboard/admin/materials/settings/materials">
+              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
+                <div className="mb-1 text-sm font-semibold text-foreground">품목 관리</div>
+                <div className="text-xs text-muted-foreground">
+                  자재 코드, 단위 등 기본 정보를 등록·수정합니다.
+                </div>
+              </div>
+            </a>
+            <a href="/dashboard/admin/materials/settings/payment-methods">
+              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
+                <div className="mb-1 text-sm font-semibold text-foreground">
+                  결제/배송 방식 관리
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  운송·결제 유형, 세율, 운임 정책 등을 설정합니다.
+                </div>
+              </div>
+            </a>
+            <a href="/dashboard/admin/materials/settings/transport-modes">
+              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
+                <div className="mb-1 text-sm font-semibold text-foreground">운송 방식 관리</div>
+                <div className="text-xs text-muted-foreground">
+                  자재 운송 수단과 관련 정보를 관리합니다.
+                </div>
+              </div>
+            </a>
+            <a href="/dashboard/admin/materials/settings/partners">
+              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
+                <div className="mb-1 text-sm font-semibold text-foreground">거래처/생산자 관리</div>
+                <div className="text-xs text-muted-foreground">
+                  공급업체 및 생산 담당자 정보를 등록하고 관리합니다.
+                </div>
+              </div>
+            </a>
           </div>
         )}
 

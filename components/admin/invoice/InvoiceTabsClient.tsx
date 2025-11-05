@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import StatsCard from '@/components/ui/stats-card'
 import {
   PillTabs as Tabs,
@@ -21,6 +21,7 @@ import InvoiceDocumentsTable from '@/components/admin/InvoiceDocumentsTable'
 import DocumentVersionsDialog from './DocumentVersionsDialog'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+import { Download, Eye } from 'lucide-react'
 
 type DocType = {
   code: string
@@ -28,6 +29,38 @@ type DocType = {
   required: { start: boolean; progress: boolean; completion: boolean }
   isActive?: boolean
   sortOrder?: number
+}
+
+const toCanonicalDocType = (value: string | null | undefined): string => {
+  if (!value) return ''
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+const normalizeSummaryDocs = (docs: Record<string, any> | undefined | null) => {
+  const result: Record<string, any> = {}
+  if (!docs) return result
+  for (const [key, value] of Object.entries(docs)) {
+    if (key) result[key] = value
+    const canonical = toCanonicalDocType(key)
+    if (canonical && canonical !== key) result[canonical] = value
+  }
+  return result
+}
+
+const getSummaryDocEntry = (docs: Record<string, any>, code: string) => {
+  if (!code) return undefined
+  const canonical = toCanonicalDocType(code)
+  if (canonical && docs[canonical]) return docs[canonical]
+  if (docs[code]) return docs[code]
+  if (!canonical) return undefined
+  for (const [key, value] of Object.entries(docs)) {
+    if (toCanonicalDocType(key) === canonical) return value
+  }
+  return undefined
 }
 
 const generateTypeCode = (label: string, existingCodes: string[]): string => {
@@ -50,7 +83,7 @@ const generateTypeCode = (label: string, existingCodes: string[]): string => {
 
 export default function InvoiceTabsClient() {
   const { toast } = useToast()
-  const [tab, setTab] = useState<'summary' | 'documents' | 'list' | 'settings'>('summary')
+  const [tab, setTab] = useState<'summary' | 'documents' | 'settings'>('summary')
   const [summary, setSummary] = useState<{
     docTypes: DocType[]
     sites: Array<{
@@ -67,6 +100,9 @@ export default function InvoiceTabsClient() {
   const [orgId, setOrgId] = useState<string>('')
   const [siteIdFilter, setSiteIdFilter] = useState('')
   const [sitesCatalog, setSitesCatalog] = useState<Array<{ id: string; name: string }>>([])
+  const [docCache, setDocCache] = useState<
+    Record<string, { file_url?: string; file_name?: string }>
+  >({})
   const siteOptions = useMemo(() => {
     const a = (summary.sites || []).map(s => ({ id: s.site_id, name: s.site_name || s.site_id }))
     const map = new Map<string, { id: string; name: string }>()
@@ -103,7 +139,20 @@ export default function InvoiceTabsClient() {
         const ty = await typesRes.json()
         const og = await orgRes.json().catch(() => ({}))
         const sc = await siteRes.json().catch(() => ({}))
-        if (sum?.data) setSummary(sum.data)
+        if (sum?.data) {
+          const docTypes = Array.isArray(sum.data.docTypes) ? sum.data.docTypes : []
+          const sites = Array.isArray(sum.data.sites)
+            ? sum.data.sites.map((site: any) => ({
+                ...site,
+                docs: normalizeSummaryDocs(site?.docs),
+              }))
+            : []
+          setSummary({
+            docTypes,
+            sites,
+            totals: sum.data?.totals ?? { sites: sites.length, documents: 0 },
+          })
+        }
         if (Array.isArray(ty?.data)) {
           setTypes(
             ty.data.map((item: any) => ({
@@ -130,53 +179,11 @@ export default function InvoiceTabsClient() {
 
   // Initialize upload doc type when types loaded
   // List tab state
-  const [list, setList] = useState<any[]>([])
-  const [listLoading, setListLoading] = useState(false)
   // Versions dialog state
   const [vOpen, setVOpen] = useState(false)
   const [vSiteId, setVSiteId] = useState<string | undefined>(undefined)
   const [vDocType, setVDocType] = useState<string | undefined>(undefined)
   const [vSiteName, setVSiteName] = useState<string | undefined>(undefined)
-
-  // Export latest manifest per doc_type (parallel downloads for now)
-  const exportSite = async (siteId: string) => {
-    try {
-      const res = await fetch(`/api/invoice/export?site_id=${encodeURIComponent(siteId)}`)
-      const j = await res.json()
-      const files: Array<{ url: string; file_name: string }> = j?.data?.files || []
-      if (!files.length) return toast({ title: '내보낼 파일 없음', variant: 'warning' as any })
-      for (const f of files) {
-        const a = document.createElement('a')
-        a.href = f.url
-        a.download = f.file_name || ''
-        a.target = '_blank'
-        a.click()
-      }
-      toast({ title: '내보내기 시작', description: `${files.length}개 파일` })
-    } catch {
-      toast({ title: '내보내기 실패', variant: 'destructive' })
-    }
-  }
-  const loadList = async () => {
-    setListLoading(true)
-    try {
-      const params = new URLSearchParams({ page: '1', limit: '20', category_type: 'invoice' })
-      if (orgId) params.set('organization_id', orgId)
-      const res = await fetch(`/api/unified-documents/v2?${params.toString()}`, {
-        cache: 'no-store',
-      })
-      const json = await res.json()
-      setList(Array.isArray(json?.data) ? json.data : [])
-    } catch {
-      setList([])
-    } finally {
-      setListLoading(false)
-    }
-  }
-  useEffect(() => {
-    if (tab === 'list') loadList()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tab])
 
   const handleDelete = async (target: DocType) => {
     if (!window.confirm(`'${target.label}' 문서유형을 삭제하시겠습니까?`)) return
@@ -222,6 +229,84 @@ export default function InvoiceTabsClient() {
     }
   }
 
+  const fetchDocumentDetail = useCallback(
+    async (docId: string) => {
+      if (!docId) throw new Error('문서 ID가 없습니다.')
+      if (docCache[docId]) return docCache[docId]
+
+      const res = await fetch(`/api/invoice/documents/${encodeURIComponent(docId)}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || '문서 정보를 불러오지 못했습니다.')
+      }
+      const data: { file_url?: string; file_name?: string } = json?.data || {}
+      setDocCache(prev => ({ ...prev, [docId]: data }))
+      return data
+    },
+    [docCache]
+  )
+
+  const resolveSignedUrl = useCallback(async (url: string) => {
+    try {
+      const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`, {
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.url) return json.url as string
+    } catch {
+      /* ignore */
+    }
+    return url
+  }, [])
+
+  const handlePreviewDoc = useCallback(
+    async (docId: string) => {
+      try {
+        const doc = await fetchDocumentDetail(docId)
+        if (!doc?.file_url) {
+          throw new Error('파일 URL을 찾을 수 없습니다.')
+        }
+        const finalUrl = await resolveSignedUrl(doc.file_url)
+        window.open(finalUrl, '_blank', 'noopener,noreferrer')
+      } catch (error: any) {
+        toast({
+          title: '미리보기 실패',
+          description: error?.message || '문서를 열 수 없습니다.',
+          variant: 'destructive',
+        })
+      }
+    },
+    [fetchDocumentDetail, resolveSignedUrl, toast]
+  )
+
+  const handleDownloadDoc = useCallback(
+    async (docId: string) => {
+      try {
+        const doc = await fetchDocumentDetail(docId)
+        if (!doc?.file_url) {
+          throw new Error('파일 URL을 찾을 수 없습니다.')
+        }
+        const finalUrl = await resolveSignedUrl(doc.file_url)
+        const anchor = document.createElement('a')
+        anchor.href = finalUrl
+        if (doc.file_name) anchor.download = doc.file_name
+        anchor.target = '_blank'
+        anchor.rel = 'noopener noreferrer'
+        anchor.click()
+      } catch (error: any) {
+        toast({
+          title: '다운로드 실패',
+          description: error?.message || '파일을 내려받을 수 없습니다.',
+          variant: 'destructive',
+        })
+      }
+    },
+    [fetchDocumentDetail, resolveSignedUrl, toast]
+  )
+
   return (
     <div>
       <Tabs value={tab} onValueChange={v => setTab(v as any)}>
@@ -252,10 +337,7 @@ export default function InvoiceTabsClient() {
             요약
           </TabsTrigger>
           <TabsTrigger fill value="documents">
-            문서 현황
-          </TabsTrigger>
-          <TabsTrigger fill value="list">
-            문서목록
+            현장별 현황
           </TabsTrigger>
           <TabsTrigger fill value="settings">
             설정
@@ -299,12 +381,14 @@ export default function InvoiceTabsClient() {
                         <tr key={s.site_id} className="border-t">
                           <td className="px-3 py-2">{s.site_name || s.site_id}</td>
                           {summary.docTypes.map(dt => {
-                            const has = !!s.docs?.[dt.code]
+                            const docEntry = getSummaryDocEntry(s.docs || {}, dt.code)
+                            const has = !!docEntry?.id
                             return (
                               <td
                                 key={dt.code}
                                 className="px-3 py-2 cursor-pointer"
                                 onClick={() => {
+                                  if (!has) return
                                   setVSiteId(s.site_id)
                                   setVDocType(dt.code)
                                   setVSiteName(s.site_name)
@@ -401,35 +485,86 @@ export default function InvoiceTabsClient() {
                               관리
                             </a>
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => exportSite(siteEntry.site_id)}
-                            className="gap-1"
-                          >
-                            내보내기
-                          </Button>
                         </div>
                       </div>
                       <div className="grid gap-2 md:grid-cols-2">
                         {summaryDocTypes.map(type => {
-                          const hasDoc = !!siteEntry.docs?.[type.code]
+                          const docEntry = getSummaryDocEntry(siteEntry.docs || {}, type.code)
+                          const docId = docEntry?.id
+                          const hasDoc = Boolean(docId)
+                          const createdAt = docEntry?.createdAt
+                          const displayName =
+                            (docEntry?.label as string | undefined) ||
+                            (docEntry?.title as string | undefined) ||
+                            (docEntry?.fileName as string | undefined) ||
+                            (docEntry?.file_name as string | undefined) ||
+                            null
                           return (
                             <div
                               key={`${siteEntry.site_id}-${type.code}`}
-                              className="flex items-center justify-between rounded border px-3 py-2 text-xs"
+                              className="flex flex-col gap-2 rounded border px-3 py-2 text-xs md:flex-row md:items-center md:justify-between"
                             >
-                              <span className="text-muted-foreground">{type.label}</span>
-                              <span
-                                className={cn(
-                                  'rounded-full px-2 py-0.5 font-medium',
-                                  hasDoc
-                                    ? 'bg-green-100 text-green-700 border border-green-200'
-                                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                              <div className="flex flex-col gap-1 min-w-[180px]">
+                                <div className="text-sm font-medium text-foreground">
+                                  {type.label}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span
+                                    className={cn(
+                                      'max-w-[220px] truncate text-sm',
+                                      hasDoc ? 'text-blue-600' : 'text-muted-foreground'
+                                    )}
+                                    title={displayName || undefined}
+                                  >
+                                    {hasDoc ? displayName || '파일명 미상' : '업로드된 파일 없음'}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'rounded-full px-2 py-0.5 text-xs font-medium',
+                                      hasDoc
+                                        ? 'bg-green-100 text-green-700 border border-green-200'
+                                        : 'bg-gray-100 text-gray-600 border border-gray-200'
+                                    )}
+                                  >
+                                    {hasDoc ? '등록됨' : '미등록'}
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-muted-foreground">
+                                  {hasDoc && createdAt
+                                    ? new Date(createdAt).toLocaleString('ko-KR')
+                                    : '최근 업로드 없음'}
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 md:ml-auto md:justify-end">
+                                {hasDoc && docId ? (
+                                  <>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="compact"
+                                      className="px-2"
+                                      onClick={() => void handlePreviewDoc(docId)}
+                                      aria-label={`${type.label} 미리보기`}
+                                    >
+                                      <Eye className="h-3.5 w-3.5" aria-hidden />
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="compact"
+                                      className="px-2"
+                                      onClick={() => void handleDownloadDoc(docId)}
+                                      aria-label={`${type.label} 다운로드`}
+                                    >
+                                      <Download className="h-3.5 w-3.5" aria-hidden />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <span className="text-[11px] text-muted-foreground">
+                                    문서 없음
+                                  </span>
                                 )}
-                              >
-                                {hasDoc ? '등록됨' : '미등록'}
-                              </span>
+                              </div>
                             </div>
                           )
                         })}
@@ -440,16 +575,6 @@ export default function InvoiceTabsClient() {
               )}
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="list">
-          {listLoading ? (
-            <div className="text-sm text-muted-foreground">불러오는 중…</div>
-          ) : (
-            <div className="rounded-lg border bg-white p-3">
-              <InvoiceDocumentsTable docs={list} />
-            </div>
-          )}
         </TabsContent>
 
         <TabsContent value="settings">

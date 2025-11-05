@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { PageHeader } from '@/components/ui/page-header'
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
@@ -78,11 +79,17 @@ const isMaterialSelectable = (material: any): boolean => {
 }
 
 async function fetchMaterials() {
-  const supabase = createClient()
+  const supabase = (() => {
+    try {
+      return createServiceClient()
+    } catch {
+      return createClient()
+    }
+  })()
   const { data, error } = await supabase
     .from('materials')
-    .select('id, name, code, unit, is_active, use_yn, use_flag, status')
-    .order('name')
+    .select('id, name, code, unit, is_active, use_yn, use_flag, status, is_deleted')
+    .order('name', { ascending: true })
 
   if (error) {
     console.error('[AdminDailyReportEdit] failed to load materials:', error.message)
@@ -90,7 +97,11 @@ async function fetchMaterials() {
   }
 
   const items = Array.isArray(data) ? data : []
-  return items.filter(isMaterialSelectable)
+  console.info('[AdminDailyReportEdit] materials fetched', items.length)
+  return items.filter(item => {
+    if (typeof item?.is_deleted === 'boolean' && item.is_deleted) return false
+    return isMaterialSelectable(item)
+  })
 }
 
 export const dynamic = 'force-dynamic'

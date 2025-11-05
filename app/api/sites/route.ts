@@ -37,9 +37,7 @@ export async function GET(request: NextRequest) {
       query = query.eq('is_deleted', false)
     }
 
-    if (!statusParam || statusParam === 'active') {
-      query = query.eq('status', 'active')
-    } else if (statusParam !== 'all') {
+    if (statusParam && statusParam !== 'all') {
       query = query.eq('status', statusParam)
     }
 

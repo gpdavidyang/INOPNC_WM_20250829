@@ -6,6 +6,71 @@ export const dynamic = 'force-dynamic'
 
 const ALLOWED_ROLES = new Set(['admin', 'system_admin', 'site_manager'])
 
+const parseMetadata = (raw: any): Record<string, any> | null => {
+  if (!raw) return null
+  if (typeof raw === 'object') return raw as Record<string, any>
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw) as Record<string, any>
+    } catch {
+      return null
+    }
+  }
+  return null
+}
+
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+  const supabase = createServiceRoleClient()
+  try {
+    const { id } = params
+    if (!id) {
+      return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+    }
+
+    const { data: unifiedRow } = await supabase
+      .from('unified_documents')
+      .select(
+        'id, title, file_url, file_name, mime_type, created_at, metadata, uploader:uploaded_by(full_name)'
+      )
+      .eq('id', id)
+      .maybeSingle()
+
+    let row = unifiedRow
+
+    if (!row) {
+      const { data: legacyRow } = await supabase
+        .from('unified_document_system')
+        .select(
+          'id, title, file_url, file_name, mime_type, created_at, metadata, uploader:uploaded_by(full_name)'
+        )
+        .eq('id', id)
+        .maybeSingle()
+      row = legacyRow || null
+    }
+
+    if (!row) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    }
+
+    const metadata = parseMetadata((row as any)?.metadata)
+    const payload = {
+      id: row.id,
+      title: row.title || metadata?.title || null,
+      file_url: row.file_url || metadata?.file_url || null,
+      file_name: row.file_name || metadata?.file_name || null,
+      mime_type: row.mime_type || metadata?.mime_type || null,
+      created_at: row.created_at || metadata?.created_at || null,
+      uploader_name: (row as any)?.uploader?.full_name || metadata?.uploader_name || null,
+      metadata,
+    }
+
+    return NextResponse.json({ success: true, data: payload })
+  } catch (error) {
+    console.error('[invoice/documents][GET]', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireApiAuth()
   if (auth instanceof NextResponse) return auth
@@ -18,19 +83,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   const { id } = params
 
   try {
-    const parseMetadata = (raw: any): Record<string, any> | null => {
-      if (!raw) return null
-      if (typeof raw === 'object') return raw as Record<string, any>
-      if (typeof raw === 'string') {
-        try {
-          return JSON.parse(raw) as Record<string, any>
-        } catch {
-          return null
-        }
-      }
-      return null
-    }
-
     let payload: { fileUrl?: string | null; storagePath?: string | null } = {}
     if (request.headers.get('content-type')?.includes('application/json')) {
       payload = (await request.json().catch(() => ({}))) || {}

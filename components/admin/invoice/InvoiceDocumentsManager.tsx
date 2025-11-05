@@ -8,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { Download, Eye, FileText, RefreshCw, Trash2 } from 'lucide-react'
-import DocumentVersionsDialog from '@/components/admin/invoice/DocumentVersionsDialog'
 import {
   InvoiceUploadForm,
   type StageKey,
@@ -43,6 +42,176 @@ export interface InvoiceStageProgress {
   start: { required: number; fulfilled: number }
   progress: { required: number; fulfilled: number }
   completion: { required: number; fulfilled: number }
+}
+const toCanonicalDocType = (value: string | null | undefined): string => {
+  if (!value) return ''
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
+
+const normalizeDocumentList = (list: any[]): InvoiceDocument[] =>
+  (Array.isArray(list) ? list : [])
+    .map(item => {
+      const createdAt = item?.createdAt ?? item?.created_at ?? null
+      return { ...item, createdAt }
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a?.createdAt || a?.created_at || 0).getTime()
+      const bTime = new Date(b?.createdAt || b?.created_at || 0).getTime()
+      return bTime - aTime
+    })
+
+const indexDocumentsByType = (
+  docs: Record<string, InvoiceDocument[]> | undefined | null
+): Record<string, InvoiceDocument[]> => {
+  const result: Record<string, InvoiceDocument[]> = {}
+  if (!docs) return result
+  for (const [key, list] of Object.entries(docs)) {
+    if (!key) continue
+    const normalized = normalizeDocumentList(list)
+    result[key] = normalized
+    const canonicalKey = toCanonicalDocType(key)
+    if (canonicalKey && canonicalKey !== key) {
+      result[canonicalKey] = normalized
+    }
+  }
+  return result
+}
+
+const getDocumentsForType = (
+  docsMap: Record<string, InvoiceDocument[]>,
+  code: string
+): InvoiceDocument[] | undefined => {
+  if (!code) return undefined
+  const canonical = toCanonicalDocType(code)
+  if (canonical && Array.isArray(docsMap[canonical]) && docsMap[canonical].length > 0) {
+    return docsMap[canonical]
+  }
+  if (Array.isArray(docsMap[code]) && docsMap[code].length > 0) {
+    return docsMap[code]
+  }
+  if (!canonical) return undefined
+  for (const [key, value] of Object.entries(docsMap)) {
+    if (toCanonicalDocType(key) === canonical && Array.isArray(value) && value.length > 0) {
+      return value
+    }
+  }
+  return undefined
+}
+
+const ensureDocumentsForType = (
+  docsMap: Record<string, InvoiceDocument[]>,
+  code: string,
+  docs: InvoiceDocument[]
+): Record<string, InvoiceDocument[]> => {
+  const next = { ...docsMap }
+  const normalized = normalizeDocumentList(docs)
+  const canonical = toCanonicalDocType(code)
+  const keys = new Set<string>()
+  if (code) keys.add(code)
+  if (canonical) keys.add(canonical)
+  Object.keys(next).forEach(key => {
+    if (canonical && toCanonicalDocType(key) === canonical) keys.add(key)
+  })
+  keys.forEach(key => {
+    if (key) next[key] = normalized
+  })
+  return next
+}
+
+const removeDocumentFromMaps = (
+  docsMap: Record<string, InvoiceDocument[]>,
+  code: string,
+  documentId: string
+): Record<string, InvoiceDocument[]> => {
+  const next = { ...docsMap }
+  const canonical = toCanonicalDocType(code)
+  const keys = new Set<string>()
+  if (code) keys.add(code)
+  if (canonical) keys.add(canonical)
+  Object.keys(next).forEach(key => {
+    if (canonical && toCanonicalDocType(key) === canonical) keys.add(key)
+  })
+  keys.forEach(key => {
+    const filtered = normalizeDocumentList((next[key] || []).filter(item => item.id !== documentId))
+    if (filtered.length === 0) {
+      delete next[key]
+    } else {
+      next[key] = filtered
+    }
+  })
+  return next
+}
+
+const findDocTypesForDocument = (
+  docsMap: Record<string, InvoiceDocument[]>,
+  documentId: string
+): string[] => {
+  const codes = new Set<string>()
+  for (const [code, list] of Object.entries(docsMap)) {
+    if (!Array.isArray(list)) continue
+    if (list.some(item => item?.id === documentId)) {
+      codes.add(code)
+    }
+  }
+  return Array.from(codes)
+}
+
+const toInvoiceDocumentFromDetail = (
+  detail: Record<string, any>,
+  fallback?: InvoiceDocument
+): InvoiceDocument => {
+  const rawMetadata = (
+    detail?.metadata && typeof detail.metadata === 'object' ? detail.metadata : {}
+  ) as Record<string, any>
+  const fallbackMetadata = (
+    fallback?.metadata && typeof fallback.metadata === 'object' ? fallback.metadata : {}
+  ) as Record<string, any>
+  const mergedMetadata = { ...fallbackMetadata, ...rawMetadata }
+  if (mergedMetadata?.source === 'summary') {
+    delete mergedMetadata.source
+  }
+
+  const stageCandidate =
+    (detail?.stage as StageKey | undefined) ??
+    (rawMetadata?.stage as StageKey | undefined) ??
+    (fallback?.stage as StageKey | undefined) ??
+    null
+
+  const createdAt = detail?.created_at || detail?.createdAt || fallback?.created_at || null
+  let resolvedCreatedAt = ''
+  if (createdAt) {
+    const d = new Date(createdAt)
+    resolvedCreatedAt = Number.isNaN(d.getTime()) ? '' : d.toISOString()
+  }
+
+  return {
+    id: detail?.id || fallback?.id || '',
+    title:
+      detail?.title ||
+      rawMetadata?.title ||
+      fallback?.title ||
+      detail?.file_name ||
+      fallback?.file_name ||
+      detail?.id ||
+      fallback?.id ||
+      '',
+    file_url: detail?.file_url || rawMetadata?.file_url || fallback?.file_url || '',
+    file_name: detail?.file_name || rawMetadata?.file_name || fallback?.file_name || '',
+    mime_type: detail?.mime_type || fallback?.mime_type || '',
+    uploaded_by: (detail as any)?.uploaded_by ?? fallback?.uploaded_by ?? null,
+    uploader_name:
+      detail?.uploader_name ??
+      (detail as any)?.uploader?.full_name ??
+      fallback?.uploader_name ??
+      null,
+    created_at: resolvedCreatedAt,
+    stage: stageCandidate,
+    metadata: mergedMetadata,
+  }
 }
 
 const STAGE_LABELS: Record<StageKey, string> = {
@@ -80,12 +249,80 @@ export default function InvoiceDocumentsManager({
     progress: { required: 0, fulfilled: 0 },
     completion: { required: 0, fulfilled: 0 },
   })
-  const [versionsTarget, setVersionsTarget] = useState<{ docType: string; siteId: string }>({
-    docType: '',
-    siteId,
-  })
-  const [versionsOpen, setVersionsOpen] = useState(false)
   const refreshTimeout = useRef<number | null>(null)
+  const detailCache = useRef<Record<string, any>>({})
+
+  const fetchDocumentDetail = useCallback(async (docId: string) => {
+    if (!docId) throw new Error('문서 ID가 없습니다.')
+    if (detailCache.current[docId]) return detailCache.current[docId]
+    const res = await fetch(`/api/invoice/documents/${encodeURIComponent(docId)}`, {
+      cache: 'no-store',
+      credentials: 'include',
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok || json?.error) {
+      throw new Error(json?.error || '문서 정보를 불러오지 못했습니다.')
+    }
+    const data = json?.data || {}
+    detailCache.current[docId] = data
+    return data
+  }, [])
+
+  const resolveDocumentDetail = useCallback(
+    async (doc: InvoiceDocument) => {
+      if (!doc?.id) throw new Error('문서 ID가 없습니다.')
+      const detail = await fetchDocumentDetail(doc.id)
+      return toInvoiceDocumentFromDetail(detail, doc)
+    },
+    [fetchDocumentDetail]
+  )
+
+  const enrichDocuments = useCallback(
+    async (docsMap: Record<string, InvoiceDocument[]>) => {
+      const idsToFetch = new Set<string>()
+      for (const list of Object.values(docsMap)) {
+        if (!Array.isArray(list)) continue
+        for (const item of list) {
+          if (!item?.id) continue
+          const requiresDetail =
+            !item.file_url ||
+            !item.file_name ||
+            !item.title ||
+            item.metadata?.source === 'summary' ||
+            item.title === item.id
+          if (requiresDetail) idsToFetch.add(item.id)
+        }
+      }
+      if (idsToFetch.size === 0) return docsMap
+
+      let nextMap = { ...docsMap }
+      const results = await Promise.all(
+        Array.from(idsToFetch).map(async id => {
+          try {
+            const detail = await fetchDocumentDetail(id)
+            return { id, detail }
+          } catch {
+            return null
+          }
+        })
+      )
+      for (const result of results) {
+        if (!result?.detail) continue
+        const { id, detail } = result
+        const matchedTypes = findDocTypesForDocument(nextMap, id)
+        if (matchedTypes.length === 0) continue
+        for (const code of matchedTypes) {
+          const existing = getDocumentsForType(nextMap, code) || []
+          const fallback = existing.find(item => item.id === id)
+          const transformed = toInvoiceDocumentFromDetail(detail, fallback)
+          const merged = [transformed, ...existing.filter(item => item.id !== id)]
+          nextMap = ensureDocumentsForType(nextMap, code, merged)
+        }
+      }
+      return nextMap
+    },
+    [fetchDocumentDetail]
+  )
 
   const computeStageProgress = useCallback(
     (docsMap: Record<string, InvoiceDocument[]>, types: InvoiceDocType[]) => {
@@ -98,7 +335,8 @@ export default function InvoiceDocumentsManager({
         t => t.isActive !== false
       )
       for (const type of sourceTypes) {
-        const hasDoc = (docsMap[type.code] || []).length > 0
+        const docsForType = getDocumentsForType(docsMap, type.code)
+        const hasDoc = Array.isArray(docsForType) && docsForType.length > 0
         if (type.required.start) {
           progressAcc.start.required += 1
           if (hasDoc) progressAcc.start.fulfilled += 1
@@ -119,39 +357,131 @@ export default function InvoiceDocumentsManager({
 
   const fetchData = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!opts?.silent) setLoading(true)
-      else setRefreshing(true)
+      if (!opts?.silent) {
+        setLoading(true)
+        detailCache.current = {}
+      } else {
+        setRefreshing(true)
+      }
       try {
-        const res = await fetch(
+        const sitePromise = fetch(
           `/api/invoice/site/${encodeURIComponent(siteId)}?include_history=false`,
-          {
-            cache: 'no-store',
-            credentials: 'include',
-          }
+          { cache: 'no-store', credentials: 'include' }
         )
-        const json = await res.json()
-        if (!res.ok || json?.error) {
-          throw new Error(json?.error || '데이터를 불러오지 못했습니다.')
+        const typesPromise = fetch(`/api/invoice/types`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const summaryParams = new URLSearchParams({ limit: '500' })
+        if (organizationId) summaryParams.set('organization_id', String(organizationId))
+        const summaryPromise = fetch(`/api/invoice/summary?${summaryParams.toString()}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+
+        const [siteRes, typesRes, summaryRes] = await Promise.allSettled([
+          sitePromise,
+          typesPromise,
+          summaryPromise,
+        ])
+
+        if (siteRes.status !== 'fulfilled') {
+          throw new Error('기성 문서 데이터를 불러오지 못했습니다.')
+        }
+        const siteJson = await siteRes.value.json()
+        if (!siteRes.value.ok || siteJson?.error) {
+          throw new Error(siteJson?.error || '데이터를 불러오지 못했습니다.')
         }
 
-        const typesFromServer: InvoiceDocType[] = Array.isArray(json?.data?.docTypes)
-          ? json.data.docTypes
+        let settingsTypes: InvoiceDocType[] = []
+        if (typesRes.status === 'fulfilled' && typesRes.value.ok) {
+          try {
+            const typesJson = await typesRes.value.json()
+            if (Array.isArray(typesJson?.data)) {
+              settingsTypes = typesJson.data.map((item: any) => ({
+                code: item.code,
+                label: item.label,
+                required: item.required || {
+                  start: false,
+                  progress: false,
+                  completion: false,
+                },
+                allowMultipleVersions: item.allowMultipleVersions !== false,
+                sortOrder: Number(item.sortOrder ?? item.sort_order ?? 0),
+                isActive: item.isActive !== false,
+              }))
+            }
+          } catch {
+            /* ignore settings fetch errors */
+          }
+        }
+
+        const typesFromSite: InvoiceDocType[] = Array.isArray(siteJson?.data?.docTypes)
+          ? siteJson.data.docTypes
           : []
-        const effectiveTypes = (
-          typesFromServer.length > 0 ? typesFromServer : DEFAULT_INVOICE_DOC_TYPES
-        ).map(t => ({
+
+        const effectiveTypesSource =
+          settingsTypes.length > 0
+            ? settingsTypes
+            : typesFromSite.length > 0
+              ? typesFromSite
+              : DEFAULT_INVOICE_DOC_TYPES
+
+        const effectiveTypes = effectiveTypesSource.map(t => ({
           code: t.code,
           label: t.label,
           required: t.required,
           allowMultipleVersions: t.allowMultipleVersions,
-          sortOrder: Number((t as any).sortOrder ?? 0),
+          sortOrder: Number((t as any).sortOrder ?? (t as any).sort_order ?? 0),
           isActive: t.isActive !== false,
         }))
-        const docsMap: Record<string, InvoiceDocument[]> = json?.data?.documents || {}
+
+        let docsMap: Record<string, InvoiceDocument[]> = indexDocumentsByType(
+          siteJson?.data?.documents
+        )
+
+        if (summaryRes.status === 'fulfilled' && summaryRes.value.ok) {
+          try {
+            const summaryJson = await summaryRes.value.json().catch(() => ({}))
+            const summarySites = Array.isArray(summaryJson?.data?.sites)
+              ? summaryJson.data.sites
+              : []
+            const summaryForSite = summarySites.find((s: any) => s?.site_id === siteId)
+            if (summaryForSite?.docs) {
+              for (const [code, entry] of Object.entries(summaryForSite.docs)) {
+                const docEntry = entry as any
+                if (!docEntry || !docEntry.id) continue
+                const existing = getDocumentsForType(docsMap, String(code))
+                if (existing && existing.length > 0) continue
+                const createdAtValue = docEntry.createdAt || docEntry.created_at || null
+                const placeholder: InvoiceDocument = {
+                  id: docEntry.id,
+                  title: docEntry.label || docEntry.file_name || docEntry.id,
+                  file_url: (docEntry as any).file_url || '',
+                  file_name: docEntry.file_name || '',
+                  mime_type: '',
+                  uploaded_by: null,
+                  uploader_name: null,
+                  created_at:
+                    createdAtValue && !Number.isNaN(new Date(createdAtValue).getTime())
+                      ? new Date(createdAtValue).toISOString()
+                      : '',
+                  stage: null,
+                  metadata: { source: 'summary', doc_type: code },
+                }
+                docsMap = ensureDocumentsForType(docsMap, String(code), [placeholder])
+              }
+            }
+          } catch {
+            /* ignore summary fallback errors */
+          }
+        }
+
+        docsMap = await enrichDocuments(docsMap)
+
         setDocTypes(effectiveTypes)
         setDocuments(docsMap)
-        const progressData: InvoiceStageProgress =
-          json?.data?.progress || computeStageProgress(docsMap, effectiveTypes)
+        const progressData: InvoiceStageProgress = computeStageProgress(docsMap, effectiveTypes)
         setProgress(progressData)
         if (onProgressUpdate) onProgressUpdate(progressData)
       } catch (error: any) {
@@ -165,7 +495,7 @@ export default function InvoiceDocumentsManager({
         setRefreshing(false)
       }
     },
-    [computeStageProgress, onProgressUpdate, siteId, toast]
+    [computeStageProgress, enrichDocuments, onProgressUpdate, organizationId, siteId, toast]
   )
 
   useEffect(() => {
@@ -213,19 +543,20 @@ export default function InvoiceDocumentsManager({
     )
   }, [stageBuckets])
 
-  const handleDelete = async (doc: InvoiceDocument) => {
-    if (!doc.id) return
+  const handleDelete = async (docType: string, doc: InvoiceDocument) => {
+    if (!doc?.id) return
     if (!window.confirm('선택한 문서를 삭제하시겠습니까?')) return
     try {
+      const resolved = await resolveDocumentDetail(doc)
       const payload = {
-        fileUrl: doc.file_url || null,
+        fileUrl: resolved.file_url || null,
         storagePath:
-          (doc as any)?.metadata?.storage_path &&
-          typeof (doc as any).metadata.storage_path === 'string'
-            ? (doc as any).metadata.storage_path
+          (resolved as any)?.metadata?.storage_path &&
+          typeof (resolved as any).metadata.storage_path === 'string'
+            ? (resolved as any).metadata.storage_path
             : null,
       }
-      const res = await fetch(`/api/invoice/documents/${encodeURIComponent(doc.id)}`, {
+      const res = await fetch(`/api/invoice/documents/${encodeURIComponent(resolved.id)}`, {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
         credentials: 'include',
@@ -237,10 +568,7 @@ export default function InvoiceDocumentsManager({
       }
       toast({ title: '삭제 완료' })
       setDocuments(prev => {
-        const next = { ...prev }
-        Object.keys(next).forEach(key => {
-          next[key] = (next[key] || []).filter(item => item.id !== doc.id)
-        })
+        const next = removeDocumentFromMaps(prev, docType, resolved.id)
         if (docTypes.length > 0) setProgress(computeStageProgress(next, docTypes))
         return next
       })
@@ -256,13 +584,15 @@ export default function InvoiceDocumentsManager({
     }
   }
 
-  const handleDownload = async (doc: InvoiceDocument) => {
-    if (!doc.file_url) return
+  const handleDownload = async (docType: string, doc: InvoiceDocument) => {
+    if (!doc?.id) return
     try {
-      let signedUrl = doc.file_url
+      const resolved = doc.file_url ? doc : await resolveDocumentDetail(doc)
+      let signedUrl = resolved.file_url
       try {
-        const params = new URLSearchParams({ url: doc.file_url })
-        if (doc.file_name) params.set('download', doc.file_name)
+        if (!signedUrl) throw new Error('파일 URL이 없습니다.')
+        const params = new URLSearchParams({ url: signedUrl })
+        if (resolved.file_name) params.set('download', resolved.file_name)
         const res = await fetch(`/api/files/signed-url?${params.toString()}`, {
           credentials: 'include',
         })
@@ -271,13 +601,24 @@ export default function InvoiceDocumentsManager({
       } catch {
         /* ignore signed URL failure */
       }
+      if (!signedUrl) throw new Error('파일 URL을 찾을 수 없습니다.')
       const anchor = document.createElement('a')
       anchor.href = signedUrl
-      if (doc.file_name) anchor.download = doc.file_name
+      if (resolved.file_name) anchor.download = resolved.file_name
       anchor.rel = 'noopener noreferrer'
       document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
+      setDocuments(prev => {
+        const existing = getDocumentsForType(prev, docType) || []
+        const merged = [
+          resolved as InvoiceDocument,
+          ...existing.filter(item => item.id !== resolved.id),
+        ]
+        const next = ensureDocumentsForType(prev, docType, merged)
+        if (docTypes.length > 0) setProgress(computeStageProgress(next, docTypes))
+        return next
+      })
     } catch (error: any) {
       toast({
         title: '다운로드 실패',
@@ -287,12 +628,16 @@ export default function InvoiceDocumentsManager({
     }
   }
 
-  const handlePreview = async (doc: InvoiceDocument) => {
-    if (!doc.file_url) return
+  const handlePreview = async (docType: string, doc: InvoiceDocument) => {
+    if (!doc?.id) return
     try {
-      let finalUrl = doc.file_url
+      const resolved = doc.file_url ? doc : await resolveDocumentDetail(doc)
+      let finalUrl = resolved.file_url
+      if (!finalUrl) {
+        throw new Error('파일 URL을 찾을 수 없습니다.')
+      }
       try {
-        const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(doc.file_url)}`, {
+        const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(finalUrl)}`, {
           credentials: 'include',
         })
         const json = await res.json()
@@ -301,14 +646,29 @@ export default function InvoiceDocumentsManager({
         /* ignore signed URL failure */
       }
       window.open(finalUrl, '_blank', 'noopener,noreferrer')
-    } catch {
-      toast({ title: '미리보기 실패', variant: 'destructive' })
+      setDocuments(prev => {
+        const existing = getDocumentsForType(prev, docType) || []
+        const merged = [
+          resolved as InvoiceDocument,
+          ...existing.filter(item => item.id !== resolved.id),
+        ]
+        const next = ensureDocumentsForType(prev, docType, merged)
+        if (docTypes.length > 0) setProgress(computeStageProgress(next, docTypes))
+        return next
+      })
+    } catch (error: any) {
+      toast({
+        title: '미리보기 실패',
+        description: error?.message || '문서를 열 수 없습니다.',
+        variant: 'destructive',
+      })
     }
   }
 
   const renderDocEntry = (type: InvoiceDocType, stage: StageKey | null) => {
-    const latest = documents[type.code]?.[0] as InvoiceDocument | undefined
-    const fulfilled = !!latest
+    const docsForType = getDocumentsForType(documents, type.code)
+    const latest = docsForType?.[0] as InvoiceDocument | undefined
+    const fulfilled = Array.isArray(docsForType) && docsForType.length > 0
     const fallbackStage: StageKey =
       stage ??
       (type.required.start
@@ -358,12 +718,12 @@ export default function InvoiceDocumentsManager({
               organizationId={organizationId}
               onUploaded={async ({ docType, document }: UploadSuccessPayload) => {
                 setDocuments(prev => {
-                  const next = { ...prev }
-                  const cloned = Array.isArray(next[docType]) ? [...next[docType]] : []
-                  const idx = cloned.findIndex(item => item.id === document.id)
-                  if (idx >= 0) cloned[idx] = document as InvoiceDocument
-                  else cloned.unshift(document as InvoiceDocument)
-                  next[docType] = cloned
+                  const existing = getDocumentsForType(prev, docType) || []
+                  const merged = [
+                    document as InvoiceDocument,
+                    ...existing.filter(item => item.id !== document.id),
+                  ]
+                  const next = ensureDocumentsForType(prev, docType, merged)
                   if (docTypes.length > 0) setProgress(computeStageProgress(next, docTypes))
                   return next
                 })
@@ -382,7 +742,7 @@ export default function InvoiceDocumentsManager({
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => handlePreview(latest)}
+                    onClick={() => handlePreview(type.code, latest!)}
                     className="gap-1"
                   >
                     <Eye className="h-4 w-4" />
@@ -392,7 +752,7 @@ export default function InvoiceDocumentsManager({
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDownload(latest)}
+                    onClick={() => handleDownload(type.code, latest!)}
                     className="gap-1"
                   >
                     <Download className="h-4 w-4" />
@@ -402,7 +762,7 @@ export default function InvoiceDocumentsManager({
                     type="button"
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleDelete(latest)}
+                    onClick={() => handleDelete(type.code, latest!)}
                     className="gap-1"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -516,14 +876,6 @@ export default function InvoiceDocumentsManager({
           </>
         )}
       </div>
-
-      <DocumentVersionsDialog
-        open={versionsOpen}
-        onOpenChange={setVersionsOpen}
-        siteId={versionsTarget.siteId}
-        docType={versionsTarget.docType}
-        siteName={siteName ?? undefined}
-      />
     </>
   )
 }
