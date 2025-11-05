@@ -32,6 +32,58 @@ export default function DocumentVersionsDialog({
   const { toast } = useToast()
   const [versions, setVersions] = useState<Version[]>([])
   const [loading, setLoading] = useState(false)
+  const toCanonicalDocType = (value: string | null | undefined): string => {
+    if (!value) return ''
+    return value
+      .toString()
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+  }
+  const normalizeDocumentList = (list: any[]): Version[] =>
+    (Array.isArray(list) ? list : [])
+      .map(item => {
+        const createdAt = item?.createdAt ?? item?.created_at ?? null
+        return { ...item, createdAt }
+      })
+      .sort((a, b) => {
+        const aTime = new Date(a?.createdAt || a?.created_at || 0).getTime()
+        const bTime = new Date(b?.createdAt || b?.created_at || 0).getTime()
+        return bTime - aTime
+      })
+
+  const indexDocumentsByType = (docs: Record<string, Version[]> | undefined | null) => {
+    const result: Record<string, Version[]> = {}
+    if (!docs) return result
+    for (const [key, value] of Object.entries(docs)) {
+      if (!key) continue
+      const normalizedList = normalizeDocumentList(value)
+      result[key] = normalizedList
+      const canonicalKey = toCanonicalDocType(key)
+      if (canonicalKey && canonicalKey !== key) {
+        result[canonicalKey] = normalizedList
+      }
+    }
+    return result
+  }
+
+  const getDocsForType = (docs: Record<string, Version[]>, code: string): Version[] | undefined => {
+    if (!code) return undefined
+    const canonical = toCanonicalDocType(code)
+    if (canonical && Array.isArray(docs[canonical]) && docs[canonical].length > 0) {
+      return docs[canonical]
+    }
+    if (Array.isArray(docs[code]) && docs[code].length > 0) {
+      return docs[code]
+    }
+    if (!canonical) return undefined
+    for (const [key, value] of Object.entries(docs)) {
+      if (toCanonicalDocType(key) === canonical && Array.isArray(value) && value.length > 0) {
+        return value
+      }
+    }
+    return undefined
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -39,11 +91,12 @@ export default function DocumentVersionsDialog({
       setLoading(true)
       try {
         const res = await fetch(
-          `/api/invoice/site/${encodeURIComponent(siteId)}?doc_type=${encodeURIComponent(docType)}`
+          `/api/invoice/site/${encodeURIComponent(siteId)}?include_history=true`
         )
         const j = await res.json()
-        const list = Array.isArray(j?.data?.[docType]) ? j.data[docType] : []
-        setVersions(list)
+        const index = indexDocumentsByType(j?.data?.documents)
+        const list = getDocsForType(index, docType || '') ?? []
+        setVersions(Array.isArray(list) ? list : [])
       } catch {
         setVersions([])
       } finally {
@@ -156,13 +209,12 @@ export default function DocumentVersionsDialog({
                           if (!res.ok) throw new Error('fail')
                           // reload
                           const r = await fetch(
-                            `/api/invoice/site/${encodeURIComponent(String(siteId))}?doc_type=${encodeURIComponent(String(docType))}`
+                            `/api/invoice/site/${encodeURIComponent(String(siteId))}?include_history=true`
                           )
                           const j = await r.json()
-                          const list = Array.isArray(j?.data?.[docType || ''])
-                            ? j.data[docType || '']
-                            : []
-                          setVersions(list)
+                          const index = indexDocumentsByType(j?.data?.documents)
+                          const list = getDocsForType(index, docType || '') ?? []
+                          setVersions(Array.isArray(list) ? list : [])
                           ;(document.activeElement as HTMLElement)?.blur()
                           toast({ title: '현재 버전 지정됨' })
                         } catch {

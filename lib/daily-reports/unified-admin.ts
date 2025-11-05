@@ -82,6 +82,12 @@ const normalizeAdditionalPhoto = (
   upload_order: photo?.upload_order || photo?.order || index + 1,
   uploaded_by: photo?.uploaded_by || undefined,
   uploaded_at: photo?.uploaded_at || photo?.created_at || undefined,
+  uploaded_by_name:
+    photo?.uploaded_by_name ||
+    photo?.uploader?.full_name ||
+    photo?.uploaded_by_profile?.full_name ||
+    photo?.profiles?.full_name ||
+    undefined,
 })
 
 const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {

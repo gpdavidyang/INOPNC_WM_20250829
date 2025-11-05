@@ -569,9 +569,8 @@ export default function DailyReportForm({
     buildMaterialUsageEntriesFromReport(mode, reportData)
   )
 
-  const materialOptions = useMemo(() => {
-    const list = Array.isArray(materials) ? (materials as Array<any>) : []
-    return list.filter(isSelectableMaterial).map(material => ({
+  const mapMaterialToOption = useCallback(
+    (material: any) => ({
       id: String(material.id),
       name:
         material.name ||
@@ -581,19 +580,53 @@ export default function DailyReportForm({
         '이름 없는 자재',
       code: material.code || material.material_code || null,
       unit: material.unit || material.unit_name || material.unit_symbol || null,
-    }))
-  }, [materials])
+    }),
+    []
+  )
+
+  const materialOptionsFromProps = useMemo(() => {
+    const list = Array.isArray(materials) ? (materials as Array<any>) : []
+    return list.map(mapMaterialToOption)
+  }, [materials, mapMaterialToOption])
+
+  const [materialOptionsState, setMaterialOptionsState] = useState(materialOptionsFromProps)
+
+  useEffect(() => {
+    setMaterialOptionsState(materialOptionsFromProps)
+  }, [materialOptionsFromProps])
+
+  useEffect(() => {
+    let ignore = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/admin/materials/active', {
+          credentials: 'include',
+          cache: 'no-store',
+        })
+        if (!res.ok) return
+        const json = await res.json().catch(() => null)
+        if (!json?.success || !Array.isArray(json.data) || ignore) return
+        const active = json.data.filter((item: any) => item?.is_active !== false)
+        setMaterialOptionsState(active.map(mapMaterialToOption))
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      ignore = true
+    }
+  }, [mapMaterialToOption])
 
   const materialOptionMap = useMemo(() => {
     const map = new Map<
       string,
       { id: string; name: string; code: string | null; unit: string | null }
     >()
-    materialOptions.forEach(option => {
+    materialOptionsState.forEach(option => {
       map.set(option.id, option)
     })
     return map
-  }, [materialOptions])
+  }, [materialOptionsState])
 
   const addMaterialEntry = useCallback(() => {
     setMaterialUsageEntries(prev => [
@@ -619,11 +652,13 @@ export default function DailyReportForm({
       setMaterialUsageEntries(prev =>
         prev.map(entry => {
           if (entry.id !== entryId) return entry
-          if (selectedValue === 'custom') {
+          if (selectedValue === '__unset__') {
             return {
               ...entry,
               materialId: null,
               materialCode: null,
+              materialName: '',
+              unit: null,
             }
           }
           const option = materialOptionMap.get(selectedValue)
@@ -639,12 +674,6 @@ export default function DailyReportForm({
     },
     [materialOptionMap]
   )
-
-  const handleMaterialNameChange = useCallback((entryId: string, value: string) => {
-    setMaterialUsageEntries(prev =>
-      prev.map(entry => (entry.id === entryId ? { ...entry, materialName: value } : entry))
-    )
-  }, [])
 
   const handleMaterialQuantityChange = useCallback((entryId: string, value: string) => {
     setMaterialUsageEntries(prev =>
@@ -1430,10 +1459,7 @@ export default function DailyReportForm({
                   materialUsageEntries.map((entry, index) => {
                     const selectedOption =
                       entry.materialId && materialOptionMap.get(entry.materialId)
-                    const selectValue =
-                      entry.materialId && materialOptionMap.get(entry.materialId)
-                        ? entry.materialId
-                        : 'custom'
+                    const selectValue = entry.materialId ?? '__unset__'
                     return (
                       <div
                         key={entry.id}
@@ -1479,8 +1505,8 @@ export default function DailyReportForm({
                                 />
                               </CustomSelectTrigger>
                               <CustomSelectContent>
-                                <CustomSelectItem value="custom">직접 입력</CustomSelectItem>
-                                {materialOptions.map(option => (
+                                <CustomSelectItem value="__unset__">선택 안 함</CustomSelectItem>
+                                {materialOptionsState.map(option => (
                                   <CustomSelectItem key={option.id} value={option.id}>
                                     <div className="flex flex-col">
                                       <span className="font-medium">{option.name}</span>
@@ -1495,15 +1521,16 @@ export default function DailyReportForm({
                               </CustomSelectContent>
                             </CustomSelect>
                             <p className="text-xs text-muted-foreground">
-                              시스템에 등록된 자재를 선택하거나, 아래 항목에서 직접 입력하세요.
+                              자재관리 도구에서 활성화된 자재만 목록에 표시됩니다.
                             </p>
                           </div>
                           <div className="space-y-2">
                             <Label>자재명</Label>
                             <Input
                               value={entry.materialName}
-                              onChange={e => handleMaterialNameChange(entry.id, e.target.value)}
-                              placeholder="자재명을 입력하세요"
+                              readOnly
+                              placeholder="자재를 선택하세요"
+                              className="bg-muted/50 cursor-not-allowed"
                             />
                           </div>
                           <div className="space-y-2">
@@ -1586,26 +1613,6 @@ export default function DailyReportForm({
             </div>
           </CollapsibleSection>
 
-          {/* Section 8: 특이사항 */}
-          <CollapsibleSection
-            title="특이사항 / 이슈"
-            icon={AlertCircle}
-            isExpanded={expandedSections.specialNotes}
-            onToggle={() => toggleSection('specialNotes')}
-            permissions={permissions}
-          >
-            <div>
-              <Label>특이사항</Label>
-              <Textarea
-                value={formData.issues || ''}
-                onChange={e => setFormData(prev => ({ ...prev, issues: e.target.value }))}
-                placeholder="특이사항이나 이슈사항을 입력하세요"
-                rows={4}
-              />
-            </div>
-          </CollapsibleSection>
-
-          {/* Section 9: 관리자 전용 기능 */}
           {permissions.isAdmin && (
             <CollapsibleSection
               title="관리자 전용 기능"

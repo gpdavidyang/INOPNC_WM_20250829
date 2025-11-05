@@ -451,7 +451,12 @@ export async function fetchAdditionalPhotosForReport(reportId: string) {
         description,
         upload_order,
         uploaded_by,
-        created_at
+        created_at,
+        uploader:profiles!daily_report_additional_photos_uploaded_by_fkey (
+          id,
+          full_name,
+          role
+        )
       `
     )
     .eq('daily_report_id', reportId)
