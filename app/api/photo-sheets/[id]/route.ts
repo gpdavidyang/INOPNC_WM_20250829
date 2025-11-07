@@ -29,11 +29,21 @@ export async function GET(_request: NextRequest, ctx: { params: { id: string } }
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { data: items } = await supabase
+    const service = createServiceClient()
+    const { data: items, error: itemsError } = await service
       .from('photo_sheet_items')
       .select('*')
       .eq('photosheet_id', id)
       .order('item_index', { ascending: true })
+
+    if (itemsError) {
+      const msg = itemsError.message || String(itemsError)
+      console.error('Fetch photo_sheet_items error:', msg)
+      return NextResponse.json(
+        { error: '사진대지 항목을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({ success: true, data: { ...sheet, items: items || [] } })
   } catch (e) {
