@@ -32,16 +32,6 @@ type Tile = {
   previewUrl?: string
 }
 
-type ExistingSheet = {
-  id: string
-  title: string
-  rows: number
-  cols: number
-  orientation: Orientation
-  status: 'draft' | 'final'
-  created_at?: string
-}
-
 type EditorProps = {
   onSaved?: (id: string, status: 'draft' | 'final') => void
   sheetId?: string
@@ -61,7 +51,6 @@ export default function PhotoSheetEditor({
     () => PHOTO_SHEET_PRESETS.find(p => p.id === presetId) || PHOTO_SHEET_PRESETS[3],
     [presetId]
   )
-  const [pageCount, setPageCount] = useState<number>(1)
 
   const [title, setTitle] = useState('사진대지')
   const [siteId, setSiteId] = useState('')
@@ -75,8 +64,6 @@ export default function PhotoSheetEditor({
   const [messageType, setMessageType] = useState<'info' | 'error'>('info')
   // Use unified layout across editor preview and list preview
   const templateMode = false
-  const [existingSheets, setExistingSheets] = useState<ExistingSheet[]>([])
-  const [loadingExisting, setLoadingExisting] = useState(false)
   const [sites, setSites] = useState<SiteOption[]>([])
   const [loadingSites, setLoadingSites] = useState(false)
 
@@ -89,23 +76,40 @@ export default function PhotoSheetEditor({
     () => Math.max(1, preset.rows * preset.cols),
     [preset.rows, preset.cols]
   )
-  const totalSlots = photosPerPage * Math.max(1, pageCount)
   const [tiles, setTiles] = useState<Tile[]>(() =>
-    Array.from({ length: totalSlots }, (_, i) => ({ id: String(i) }))
+    Array.from({ length: photosPerPage }, (_, i) => ({ id: String(i) }))
   )
-
-  useEffect(() => {
-    setTiles(prev => {
-      const nextLen = totalSlots
-      const next: Tile[] = []
-      for (let i = 0; i < nextLen; i++) {
-        next[i] = prev[i] || { id: String(i) }
+  const pageCount = useMemo(
+    () => Math.max(1, Math.ceil(tiles.length / photosPerPage)),
+    [tiles.length, photosPerPage]
+  )
+  const lastOccupiedIndex = useMemo(() => {
+    for (let i = tiles.length - 1; i >= 0; i--) {
+      const t = tiles[i]
+      if (!t) continue
+      if (t.file || t.previewUrl || t.member || t.process || t.content || t.stage) {
+        return i
       }
-      // revoke URLs for removed items
-      prev.slice(nextLen).forEach(t => t.previewUrl && URL.revokeObjectURL(t.previewUrl))
-      return next
+    }
+    return -1
+  }, [tiles])
+  useEffect(() => {
+    const minSlots = Math.max(lastOccupiedIndex + 2, photosPerPage)
+    const requiredSlots = Math.ceil(minSlots / photosPerPage) * photosPerPage
+    setTiles(prev => {
+      if (prev.length === requiredSlots) return prev
+      if (prev.length < requiredSlots) {
+        const next = prev.slice()
+        for (let i = prev.length; i < requiredSlots; i++) {
+          next[i] = { id: String(i) }
+        }
+        return next
+      }
+      const removed = prev.slice(requiredSlots)
+      removed.forEach(t => t.previewUrl && URL.revokeObjectURL(t.previewUrl))
+      return prev.slice(0, requiredSlots)
     })
-  }, [totalSlots])
+  }, [lastOccupiedIndex, photosPerPage])
 
   useEffect(() => {
     let mounted = true
@@ -228,7 +232,6 @@ export default function PhotoSheetEditor({
       const items: any[] = Array.isArray(s.items) ? s.items : []
       const perPage = s.rows * s.cols
       const pg = Math.max(1, Math.ceil(items.length / Math.max(1, perPage)))
-      setPageCount(pg)
       setTiles(() => {
         const total = s.rows * s.cols * pg
         const arr: Tile[] = Array.from({ length: total }, (_, i) => ({ id: String(i) }))
@@ -282,52 +285,11 @@ export default function PhotoSheetEditor({
   }, [siteId, sites])
 
   // Fetch existing photo sheets for selected site
-  useEffect(() => {
-    let active = true
-    if (!siteId) {
-      setExistingSheets([])
-      return
-    }
-    ;(async () => {
-      try {
-        setLoadingExisting(true)
-        const res = await fetch(`/api/photo-sheets?site_id=${encodeURIComponent(siteId)}`, {
-          cache: 'no-store',
-          credentials: 'include',
-        })
-        const json = await res.json().catch(() => null)
-        if (!active) return
-        if (res.ok && json?.success && Array.isArray(json.data)) {
-          const list = (json.data as any[]).map(it => ({
-            id: it.id,
-            title: it.title || '사진대지',
-            rows: Number(it.rows) || 1,
-            cols: Number(it.cols) || 1,
-            orientation: (it.orientation as Orientation) || 'portrait',
-            status: (it.status as 'draft' | 'final') || 'draft',
-            created_at: it.created_at,
-          })) as ExistingSheet[]
-          setExistingSheets(list)
-        } else {
-          setExistingSheets([])
-        }
-      } catch {
-        if (active) setExistingSheets([])
-      } finally {
-        if (active) setLoadingExisting(false)
-      }
-    })()
-    return () => {
-      active = false
-    }
-  }, [siteId])
 
   const onTileFileChange = (index: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter(Boolean)
     if (files.length === 0) return
     const requiredSlots = index + files.length
-    const requiredPages = Math.max(1, Math.ceil(requiredSlots / photosPerPage))
-    setPageCount(prev => (requiredPages > prev ? requiredPages : prev))
     setTiles(prev => {
       const next = prev.slice()
       while (next.length < requiredSlots) {
@@ -605,94 +567,9 @@ export default function PhotoSheetEditor({
             </SelectContent>
           </Select>
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="pages">페이지 수</Label>
-          <Input
-            id="pages"
-            type="number"
-            min={1}
-            value={pageCount}
-            onChange={e => setPageCount(Math.max(1, Number(e.target.value) || 1))}
-          />
-        </div>
-      </div>
-      {/* 기존 사진대지 불러오기: 현장명 선택 아래로 재배치, 라벨 스타일 통일 */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-        <div className="space-y-1 md:col-span-2">
-          <Label htmlFor="existingSheet">기존 사진대지 불러오기</Label>
-          <Select
-            value={''}
-            onValueChange={v => {
-              if (v) void loadSheet(v)
-            }}
-            disabled={loadingExisting || !siteId || existingSheets.length === 0}
-          >
-            <SelectTrigger id="existingSheet" aria-label="기존 사진대지 선택">
-              <SelectValue
-                placeholder={
-                  loadingExisting
-                    ? '로딩 중…'
-                    : existingSheets.length
-                      ? '선택하세요'
-                      : '해당 현장의 사진대지가 없습니다.'
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {existingSheets.map(s => (
-                <SelectItem key={s.id} value={s.id}>
-                  {(s.title || '사진대지') +
-                    ' · ' +
-                    (s.rows + '×' + s.cols) +
-                    ' · ' +
-                    (s.orientation === 'landscape' ? '가로' : '세로') +
-                    (s.created_at
-                      ? ' · ' + new Date(s.created_at).toLocaleDateString('ko-KR')
-                      : '')}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loadingExisting || !siteId}
-            onClick={() => {
-              // refetch
-              const current = siteId
-              setTimeout(() => {
-                // trigger effect by temporary clearing and restoring
-                setExistingSheets([])
-                if (current) {
-                  fetch(`/api/photo-sheets?site_id=${encodeURIComponent(current)}`, {
-                    cache: 'no-store',
-                    credentials: 'include',
-                  })
-                    .then(r => r.json().catch(() => null))
-                    .then(json => {
-                      const list = Array.isArray(json?.data) ? (json.data as any[]) : []
-                      setExistingSheets(
-                        list.map(it => ({
-                          id: it.id,
-                          title: it.title || '사진대지',
-                          rows: Number(it.rows) || 1,
-                          cols: Number(it.cols) || 1,
-                          orientation: (it.orientation as Orientation) || 'portrait',
-                          status: (it.status as 'draft' | 'final') || 'draft',
-                          created_at: it.created_at,
-                        }))
-                      )
-                    })
-                    .catch(() => void 0)
-                }
-              }, 0)
-            }}
-          >
-            새로고침
-          </Button>
-        </div>
+        <p className="text-xs text-muted-foreground self-end md:col-span-2">
+          페이지 수는 사진 개수에 따라 자동으로 확장됩니다.
+        </p>
       </div>
       <Separator className="my-4" />
 
@@ -767,7 +644,7 @@ export default function PhotoSheetEditor({
         </div>
       </div>
 
-      {Array.from({ length: Math.max(1, pageCount) }).map((_, pageIdx) => {
+      {Array.from({ length: pageCount }).map((_, pageIdx) => {
         const start = pageIdx * (preset.rows * preset.cols)
         const end = start + preset.rows * preset.cols
         const pageTiles = tiles.slice(start, end)
@@ -784,15 +661,31 @@ export default function PhotoSheetEditor({
               style={{ gridTemplateColumns: `repeat(${preset.cols}, minmax(0, 1fr))` }}
             >
               {pageTiles.map((t, i) => (
-                <div key={t.id} className="border rounded p-3">
-                  <div className="aspect-video w-full bg-muted overflow-hidden rounded border relative">
+                <div key={t.id} className="border rounded p-3 space-y-2">
+                  <div className="aspect-video w-full bg-muted overflow-hidden rounded border relative group">
                     {t.previewUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={t.previewUrl}
-                        alt={`사진 ${start + i + 1}`}
-                        className="absolute inset-0 w-full h-full object-fill"
-                      />
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={t.previewUrl}
+                          alt={`사진 ${start + i + 1}`}
+                          className="absolute inset-0 w-full h-full object-fill"
+                        />
+                        <label className="absolute inset-0 flex items-center justify-center bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 cursor-pointer transition text-center px-2">
+                          <span>
+                            다른 사진 선택
+                            <br />
+                            <span className="text-[10px]">이미지를 클릭하여 변경</span>
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={onTileFileChange(start + i)}
+                          />
+                        </label>
+                      </>
                     ) : (
                       <label className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground cursor-pointer text-center px-2">
                         <span>
@@ -888,7 +781,7 @@ export default function PhotoSheetEditor({
           disabled={saving || !siteId}
           onClick={() => void saveSheet('final')}
         >
-          {saving ? '저장 중…' : '저장'}
+          {saving ? '생성 중…' : '사진대지 생성'}
         </Button>
         <Button
           type="button"
