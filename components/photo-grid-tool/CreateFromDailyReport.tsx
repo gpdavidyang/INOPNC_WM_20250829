@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/custom-select'
+import { PHOTO_SHEET_PRESETS } from '@/components/photo-sheet/presets'
 
 interface SiteOption {
   id: string
@@ -43,6 +44,63 @@ interface PhotoItem {
   id?: string | number
 }
 
+const resolvePhotoUrl = (photo: unknown): string | null => {
+  if (!photo) return null
+  if (typeof photo === 'string') {
+    const trimmed = photo.trim()
+    return trimmed || null
+  }
+  if (typeof photo === 'object') {
+    const record = photo as Record<string, unknown>
+    const candidates = [
+      record['url'],
+      record['file_url'],
+      record['fileUrl'],
+      record['public_url'],
+      record['publicUrl'],
+      record['download_url'],
+      record['downloadUrl'],
+      record['signed_url'],
+      record['signedUrl'],
+    ]
+    for (const candidate of candidates) {
+      if (typeof candidate === 'string' && candidate.trim()) {
+        return candidate.trim()
+      }
+    }
+  }
+  return null
+}
+
+const normalizePhotoItems = (photos?: unknown[]): PhotoItem[] => {
+  if (!Array.isArray(photos)) return []
+  return photos
+    .map((photo, index) => {
+      const url = resolvePhotoUrl(photo)
+      if (!url) return null
+      if (photo && typeof photo === 'object') {
+        const record = photo as Record<string, unknown>
+        const id = record['id']
+        const uploadOrder = record['upload_order']
+        const order = record['order']
+        const normalizedId =
+          typeof id === 'string' || typeof id === 'number'
+            ? id
+            : typeof uploadOrder === 'number'
+              ? uploadOrder
+              : typeof order === 'number'
+                ? order
+                : index
+        return { url, id: normalizedId }
+      }
+      return { url, id: index }
+    })
+    .filter((item): item is PhotoItem => Boolean(item))
+}
+
+const countPhotoItems = (...groups: Array<unknown[] | undefined>): number =>
+  groups.reduce((sum, group) => sum + normalizePhotoItems(group).length, 0)
+
 export default function CreateFromDailyReport({ onCreated }: { onCreated?: () => void }) {
   // Filters
   const [sites, setSites] = useState<SiteOption[]>([])
@@ -61,10 +119,46 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const layoutPresets = useMemo(
+    () => PHOTO_SHEET_PRESETS.filter(p => ['1x1', '2x1', '2x2', '3x2'].includes(p.id)),
+    []
+  )
+  const [layoutPresetId, setLayoutPresetId] = useState<string>('2x2')
+  const selectedLayout = useMemo(() => {
+    const fallback = layoutPresets.find(p => p.id === '2x2') || layoutPresets[0]
+    return layoutPresets.find(p => p.id === layoutPresetId) || fallback
+  }, [layoutPresets, layoutPresetId])
+  const [pageCount, setPageCount] = useState<number>(1)
+
   // Selected photos
   type Selected = { url: string; order: number }
   const [selectedBefore, setSelectedBefore] = useState<Selected[]>([])
   const [selectedAfter, setSelectedAfter] = useState<Selected[]>([])
+  const perPageSlots = selectedLayout.rows * selectedLayout.cols
+  const safePageCount = Math.max(1, pageCount)
+  const selectedPhotoTotal = selectedBefore.length + selectedAfter.length
+  const totalCapacity = perPageSlots * safePageCount
+  const capacityExceeded = selectedPhotoTotal > totalCapacity
+
+  const recommendPresetId = useCallback((count: number) => {
+    if (count <= 1) return '1x1'
+    if (count <= 2) return '2x1'
+    if (count <= 4) return '2x2'
+    return '3x2'
+  }, [])
+
+  const handleAutoLayout = () => {
+    const count = selectedPhotoTotal
+    if (count === 0) {
+      alert('먼저 사진을 선택해 주세요.')
+      return
+    }
+    const targetId = recommendPresetId(count)
+    setLayoutPresetId(targetId)
+    const preset = layoutPresets.find(p => p.id === targetId) || selectedLayout
+    const capacityPerPage = preset.rows * preset.cols
+    setPageCount(Math.max(1, Math.ceil(count / capacityPerPage)))
+  }
 
   // Meta fields
   const [componentName, setComponentName] = useState('')
@@ -168,12 +262,14 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
         setWorkProcess(procMatch ? procMatch.option_label : proc ? '__OTHER__' : '')
         setWorkProcessOther(procMatch ? '' : proc || '')
 
-        const before: PhotoItem[] = []
-        const after: PhotoItem[] = []
-        for (const p of dr?.before_photos || []) if (p?.url) before.push({ url: p.url })
-        for (const p of dr?.after_photos || []) if (p?.url) after.push({ url: p.url })
-        for (const p of dr?.additional_before_photos || []) if (p?.url) before.push({ url: p.url })
-        for (const p of dr?.additional_after_photos || []) if (p?.url) after.push({ url: p.url })
+        const before: PhotoItem[] = [
+          ...normalizePhotoItems(dr?.before_photos),
+          ...normalizePhotoItems(dr?.additional_before_photos),
+        ]
+        const after: PhotoItem[] = [
+          ...normalizePhotoItems(dr?.after_photos),
+          ...normalizePhotoItems(dr?.additional_after_photos),
+        ]
 
         setSelectedBefore([])
         setSelectedAfter([])
@@ -203,19 +299,17 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
       setWorkProcess(procMatch ? procMatch.option_label : proc ? '__OTHER__' : '')
       setWorkProcessOther(procMatch ? '' : proc || '')
 
-      const before: PhotoItem[] = []
-      const after: PhotoItem[] = []
-      const drb = dr?.before_photos || []
-      const dra = dr?.after_photos || []
-      const adb = dr?.additional_before_photos || []
-      const ada = dr?.additional_after_photos || []
-      for (const p of drb) if (p?.url) before.push({ url: p.url })
-      for (const p of dra) if (p?.url) after.push({ url: p.url })
-      for (const p of adb) if (p?.url) before.push({ url: p.url })
-      for (const p of ada) if (p?.url) after.push({ url: p.url })
+      let before: PhotoItem[] = [
+        ...normalizePhotoItems(dr?.before_photos),
+        ...normalizePhotoItems(dr?.additional_before_photos),
+      ]
+      let after: PhotoItem[] = [
+        ...normalizePhotoItems(dr?.after_photos),
+        ...normalizePhotoItems(dr?.additional_after_photos),
+      ]
       const docs = detail?.documents || {}
       if (before.length === 0 && after.length === 0 && Array.isArray(docs['photo'])) {
-        for (const d of docs['photo']) if (d?.file_url) before.push({ url: d.file_url })
+        before = normalizePhotoItems(docs['photo'])
       }
       setSelectedBefore([])
       setSelectedAfter([])
@@ -233,16 +327,22 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
   }
 
   // Helpers: selection/reorder
-  const canAddBefore = selectedBefore.length < 3
-  const canAddAfter = selectedAfter.length < 3
   const addBefore = (p: PhotoItem) => {
-    if (!canAddBefore) return
     if (selectedBefore.find(x => x.url === p.url)) return
+    const nextTotal = selectedBefore.length + selectedAfter.length + 1
+    if (nextTotal > totalCapacity) {
+      alert('선택한 사진이 현재 배치 수용량을 초과합니다. 사진수량 또는 페이지 수를 조정해 주세요.')
+      return
+    }
     setSelectedBefore(prev => [...prev, { url: p.url, order: prev.length }])
   }
   const addAfter = (p: PhotoItem) => {
-    if (!canAddAfter) return
     if (selectedAfter.find(x => x.url === p.url)) return
+    const nextTotal = selectedBefore.length + selectedAfter.length + 1
+    if (nextTotal > totalCapacity) {
+      alert('선택한 사진이 현재 배치 수용량을 초과합니다. 사진수량 또는 페이지 수를 조정해 주세요.')
+      return
+    }
     setSelectedAfter(prev => [...prev, { url: p.url, order: prev.length }])
   }
   const removeBefore = (i: number) => {
@@ -273,8 +373,12 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
     const compOk = !!componentName && (!isOtherComponent || !!componentNameOther.trim())
     const procOk = !!workProcess && (!isOtherProcess || !!workProcessOther.trim())
     const siteOk = !!siteId || !!reportDetail?.site?.id || !!reportDetail?.daily_report?.site_id
-    const havePhotos = selectedBefore.length + selectedAfter.length > 0
-    return compOk && procOk && siteOk && !!workDate && havePhotos
+    const totalPhotos = selectedBefore.length + selectedAfter.length
+    const havePhotos = totalPhotos > 0
+    const perPageSlots = selectedLayout.rows * selectedLayout.cols
+    const safePageCount = Math.max(1, pageCount)
+    const capacityOk = totalPhotos <= perPageSlots * safePageCount
+    return compOk && procOk && siteOk && !!workDate && havePhotos && capacityOk
   }, [
     componentName,
     componentNameOther,
@@ -287,7 +391,38 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
     workDate,
     selectedBefore.length,
     selectedAfter.length,
+    pageCount,
+    selectedLayout.rows,
+    selectedLayout.cols,
   ])
+
+  const buildReportSummary = useCallback(() => {
+    const detail =
+      (reportDetail?.daily_report as any) || reports.find(r => r.id === selectedReportId)
+    if (!detail) return ''
+    const parts: string[] = []
+    const workDate = detail.work_date || detail.date || ''
+    if (workDate) {
+      try {
+        parts.push(
+          new Date(workDate).toLocaleDateString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
+        )
+      } catch {
+        parts.push(workDate)
+      }
+    }
+    if (detail.component_name || detail.member_name) {
+      parts.push(detail.component_name || detail.member_name)
+    }
+    if (detail.process_type) {
+      parts.push(detail.process_type)
+    }
+    return parts.join(' / ')
+  }, [reportDetail, reports, selectedReportId])
 
   const handleCreate = async () => {
     if (!canSubmit) return
@@ -301,26 +436,14 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
         ...selectedAfter.map(p => ({ ...p, stage: 'after' as const })),
       ]
       const count = all.length
-      const bestFit = (n: number) => {
-        if (n <= 0) return { rows: 1, cols: 1 }
-        let cols = 2
-        let rows = Math.max(1, Math.ceil(n / cols))
-        if (n <= 4) {
-          cols = 2
-          rows = Math.ceil(n / 2)
-        } else if (n <= 6) {
-          cols = 3
-          rows = Math.ceil(n / 3)
-        } else if (n <= 9) {
-          cols = 3
-          rows = 3
-        } else {
-          cols = Math.min(5, Math.ceil(Math.sqrt(n)))
-          rows = Math.ceil(n / cols)
-        }
-        return { rows, cols }
+      const rows = selectedLayout.rows
+      const cols = selectedLayout.cols
+      const perPage = rows * cols
+      const safePages = Math.max(1, pageCount)
+      if (count > perPage * safePages) {
+        alert('선택한 사진이 현재 배치보다 많습니다. 사진수량 또는 페이지 수를 조정해 주세요.')
+        return
       }
-      const { rows, cols } = bestFit(count)
 
       const items = all.map((p, idx) => ({
         index: idx,
@@ -338,6 +461,11 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
       form.append('rows', String(rows))
       form.append('cols', String(cols))
       form.append('status', 'final')
+      if (selectedReportId) {
+        form.append('source_daily_report_id', selectedReportId)
+        const summary = buildReportSummary()
+        if (summary) form.append('source_daily_report_summary', summary)
+      }
       form.append('items', JSON.stringify(items))
 
       const res = await fetch('/api/photo-sheets', {
@@ -409,6 +537,51 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
         </div>
       </div>
 
+      {/* Layout selection */}
+      <div className="rounded border bg-white p-4 space-y-3">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="md:w-48">
+            <Label>사진수량 (행×열)</Label>
+            <Select value={layoutPresetId} onValueChange={setLayoutPresetId}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="선택" />
+              </SelectTrigger>
+              <SelectContent>
+                {layoutPresets.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:w-32">
+            <Label>페이지 수</Label>
+            <Input
+              type="number"
+              min={1}
+              value={pageCount}
+              onChange={e => setPageCount(Math.max(1, Number(e.target.value) || 1))}
+              className="h-9"
+            />
+          </div>
+          <div className="flex items-end">
+            <Button type="button" variant="outline" onClick={handleAutoLayout}>
+              자동 맞춤
+            </Button>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <span className="text-muted-foreground">선택한 사진: {selectedPhotoTotal}장</span>
+          <span className="text-muted-foreground">현재 배치 수용량: {totalCapacity}장</span>
+          {capacityExceeded && (
+            <span className="text-red-600">
+              선택한 사진이 수용량을 초과했습니다. 사진수량 또는 페이지 수를 조정하세요.
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Reports list */}
       <div className="rounded border overflow-hidden">
         <table className="min-w-full text-sm">
@@ -450,18 +623,13 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
                   <td className="px-3 py-2">{r.member_name || '-'}</td>
                   <td className="px-3 py-2">
                     {(() => {
-                      const hasPhotoFields =
-                        (r as any).before_photos !== undefined ||
-                        (r as any).after_photos !== undefined ||
-                        (r as any).additional_before_photos !== undefined ||
-                        (r as any).additional_after_photos !== undefined
-                      if (!hasPhotoFields) return <span className="text-muted-foreground">-</span>
-                      const beforeCount =
-                        (r.before_photos || []).filter(p => p?.url).length +
-                        (r.additional_before_photos || []).filter(p => p?.url).length
-                      const afterCount =
-                        (r.after_photos || []).filter(p => p?.url).length +
-                        (r.additional_after_photos || []).filter(p => p?.url).length
+                      const beforeCount = countPhotoItems(
+                        r.before_photos,
+                        r.additional_before_photos
+                      )
+                      const afterCount = countPhotoItems(r.after_photos, r.additional_after_photos)
+                      const total = beforeCount + afterCount
+                      if (total === 0) return <span className="text-muted-foreground">-</span>
                       return (
                         <span>
                           전 {beforeCount} / 후 {afterCount}
@@ -562,9 +730,7 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <div className="text-sm font-semibold">
-                  작업 전 선택 ({selectedBefore.length}/3)
-                </div>
+                <div className="text-sm font-semibold">작업 전 선택 ({selectedBefore.length})</div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {selectedBefore.map((p, i) => (
@@ -622,7 +788,7 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
             </div>
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <div className="text-sm font-semibold">작업 후 선택 ({selectedAfter.length}/3)</div>
+                <div className="text-sm font-semibold">작업 후 선택 ({selectedAfter.length})</div>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {selectedAfter.map((p, i) => (

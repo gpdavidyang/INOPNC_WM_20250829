@@ -73,11 +73,25 @@ export default function DocumentDetailModal({
     )
   }
 
-  const handleDownload = () => {
-    if (document.file_url) {
+  const handleDownload = async () => {
+    if (!document.file_url) return
+    try {
+      const qs = new URLSearchParams({ url: document.file_url })
+      if (document.file_name) qs.set('download', document.file_name)
+      const res = await fetch(`/api/files/signed-url?${qs.toString()}`, { credentials: 'include' })
+      const json = await res.json().catch(() => ({}))
+      const finalUrl = json?.url || document.file_url
+      const link = document.createElement('a')
+      link.href = finalUrl
+      if (document.file_name) link.download = document.file_name
+      link.target = '_blank'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch {
       const link = document.createElement('a')
       link.href = document.file_url
-      link.download = document.file_name || document.title
+      if (document.file_name) link.download = document.file_name
       link.target = '_blank'
       document.body.appendChild(link)
       link.click()
@@ -85,9 +99,18 @@ export default function DocumentDetailModal({
     }
   }
 
-  const handlePreview = () => {
-    if (document.file_url) {
-      window.open(document.file_url, '_blank')
+  const handlePreview = async () => {
+    if (!document.file_url) return
+    try {
+      const res = await fetch(
+        `/api/files/signed-url?${new URLSearchParams({ url: document.file_url }).toString()}`,
+        { credentials: 'include' }
+      )
+      const json = await res.json().catch(() => ({}))
+      const finalUrl = json?.url || document.file_url
+      window.open(finalUrl, '_blank', 'noopener,noreferrer')
+    } catch {
+      window.open(document.file_url, '_blank', 'noopener,noreferrer')
     }
   }
 

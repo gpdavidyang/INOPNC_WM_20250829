@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       let q = supabase
         .from('unified_documents')
         .select(
-          'id, site_id, site:site_id(id,name), category_type, document_type, sub_type, status, is_archived, created_at, metadata, title, file_name'
+          'id, site_id, site:site_id(id,name,address), category_type, document_type, sub_type, status, is_archived, created_at, metadata, title, file_name'
         )
         .eq('category_type', 'invoice')
         .eq('is_archived', false)
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       let q2 = supabase
         .from('unified_document_system')
         .select(
-          'id, site_id, site:sites(id,name), category_type, sub_category, status, is_archived, created_at, metadata, title, file_name'
+          'id, site_id, site:sites(id,name,address), category_type, sub_category, status, is_archived, created_at, metadata, title, file_name'
         )
         .eq('category_type', 'invoice')
         .order('created_at', { ascending: false })
@@ -152,7 +152,12 @@ export async function GET(request: NextRequest) {
 
     const sitesMap = new Map<
       string,
-      { site_id: string; site_name: string; docs: Record<string, any> }
+      {
+        site_id: string
+        site_name: string
+        site_address?: string | null
+        docs: Record<string, any>
+      }
     >()
     const uniqueDocs = new Set<string>()
 
@@ -166,15 +171,23 @@ export async function GET(request: NextRequest) {
       const isArchived = r?.is_archived === true
       if (status === 'deleted' || status === 'archived' || isArchived) continue
       uniqueDocs.add(`${r.__source || 'legacy'}:${r.id}`)
+      const siteAddress =
+        r?.site?.address ||
+        metadata?.site_address ||
+        metadata?.siteAddress ||
+        metadata?.address ||
+        null
       if (!sitesMap.has(sid)) {
         sitesMap.set(sid, {
           site_id: sid,
           site_name: r?.site?.name || metadata?.site_name || '-',
+          site_address: siteAddress,
           docs: {},
         })
       }
       const entry = sitesMap.get(sid)!
-      const normalizedMetadata = parseMetadata(r.metadata)
+      if (!entry.site_address && siteAddress) entry.site_address = siteAddress
+      const normalizedMetadata = metadata
       const prev = entry.docs[docType]
       const createdAt = new Date(r.created_at || 0).getTime()
       if (!prev || createdAt > prev.createdAt) {

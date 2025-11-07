@@ -134,7 +134,7 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
           <CardContent>
             <DataTable<any>
               data={shipment?.shipment_items || []}
-              rowKey={(it: any) => it.id}
+              rowKey="id"
               stickyHeader
               columns={
                 [

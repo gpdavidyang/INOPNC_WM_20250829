@@ -5,7 +5,7 @@ import { PartnerDetail } from '@/components/admin/partners/PartnerDetail'
 import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
-  title: '공급업체 상세',
+  title: '자재거래처 상세',
 }
 
 interface PartnerDetailPageProps {
@@ -43,10 +43,10 @@ export default async function AdminPartnerDetailPage({ params }: PartnerDetailPa
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="공급업체 상세"
+        title="자재거래처 상세"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '공급업체 관리', href: '/dashboard/admin/partners' },
+          { label: '자재거래처 관리', href: '/dashboard/admin/partners' },
           { label: '상세' },
         ]}
         showBackButton

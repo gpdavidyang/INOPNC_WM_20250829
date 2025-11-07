@@ -42,29 +42,51 @@ export async function getAuthForClient(
 }
 
 async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<SimpleAuth | null> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser()
 
-  if (!user) return null
+    if (error) {
+      // 토큰 만료 등으로 InvalidJWT 발생 시 null 처리하여 재인증을 유도
+      if (error.message?.toLowerCase().includes('invalid') && error.message?.includes('JWT')) {
+        return null
+      }
+      throw error
+    }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, organization_id, partner_company_id, full_name, site_id, status')
-    .eq('id', user.id)
-    .single()
+    if (!user) return null
 
-  const normalizedRole = normalizeUserRole(profile?.role)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, organization_id, partner_company_id, full_name, site_id, status')
+      .eq('id', user.id)
+      .single()
 
-  return {
-    userId: user.id,
-    email: user.email!,
-    isRestricted: normalizedRole === 'customer_manager',
-    // Prefer partner_company_id for restricted organization, fallback to legacy organization_id
-    restrictedOrgId:
-      (profile as any)?.partner_company_id || (profile as any)?.organization_id || undefined,
-    uiTrack: getUITrack(normalizedRole),
-    role: normalizedRole,
+    const normalizedRole = normalizeUserRole(profile?.role)
+
+    return {
+      userId: user.id,
+      email: user.email!,
+      isRestricted: normalizedRole === 'customer_manager',
+      // Prefer partner_company_id for restricted organization, fallback to legacy organization_id
+      restrictedOrgId:
+        (profile as any)?.partner_company_id || (profile as any)?.organization_id || undefined,
+      uiTrack: getUITrack(normalizedRole),
+      role: normalizedRole,
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AuthSessionMissingError') {
+        return null
+      }
+      const message = error.message.toLowerCase()
+      if (message.includes('invalid') && message.includes('jwt')) {
+        return null
+      }
+    }
+    throw error
   }
 }
 

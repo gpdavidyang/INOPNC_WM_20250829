@@ -1,0 +1,27 @@
+[
+  {
+    "value": "construction_drawing",
+    "label": "공도면",
+    "description": null
+  },
+  {
+    "value": "progress_drawing",
+    "label": "진행도면",
+    "description": null
+  },
+  {
+    "value": "ptw",
+    "label": "PTW",
+    "description": null
+  },
+  {
+    "value": "general",
+    "label": "일반",
+    "description": null
+  },
+  {
+    "value": "other",
+    "label": "기타",
+    "description": null
+  }
+]

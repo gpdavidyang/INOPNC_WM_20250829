@@ -301,7 +301,19 @@ export default async function PaymentMethodsListPage() {
       throw error
     }
   } else {
-    records = data || []
+    const rows = data || []
+    // Fallback: category column exists but legacy rows have NULL category → use legacy decoding
+    const allMissingCategory = rows.length === 0 || rows.every((r: any) => r?.category == null)
+    if (allMissingCategory) {
+      supportsCategory = false
+      const legacy = await supabase
+        .from('payment_methods')
+        .select('id, name, is_active')
+        .order('name', { ascending: true })
+      records = legacy.data || []
+    } else {
+      records = rows
+    }
   }
 
   const grouped = new Map<PaymentCategory, PaymentMethod[]>()

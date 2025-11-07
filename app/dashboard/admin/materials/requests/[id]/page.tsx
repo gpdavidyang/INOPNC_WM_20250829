@@ -72,7 +72,7 @@ export default async function AdminMaterialRequestDetailPage({
           <CardContent>
             <DataTable<any>
               data={rq?.material_request_items || []}
-              rowKey={(it: any) => it.id}
+              rowKey="id"
               stickyHeader
               columns={
                 [

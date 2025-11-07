@@ -23,6 +23,7 @@ interface PartnerEditFormProps {
     contact_name?: string
     contact_phone?: string
     contact_email?: string
+    address?: string
   }
 }
 
@@ -86,6 +87,16 @@ export function PartnerEditForm({ partner }: PartnerEditFormProps) {
                 id="partner-name"
                 value={formState.company_name}
                 onChange={handleChange('company_name')}
+                disabled={isPending}
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="partner-address">주소</Label>
+              <Input
+                id="partner-address"
+                value={(formState as any).address || ''}
+                placeholder="도로명 주소 등"
+                onChange={handleChange('address' as any)}
                 disabled={isPending}
               />
             </div>

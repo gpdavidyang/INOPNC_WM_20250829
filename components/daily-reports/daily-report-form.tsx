@@ -32,8 +32,6 @@ import {
   Package,
   Image as ImageIcon,
   Trash2,
-  Save,
-  Send,
 } from 'lucide-react'
 import type { Profile, Site, Material, DailyReport } from '@/types'
 import type {
@@ -61,6 +59,8 @@ interface DailyReportFormProps {
     additional_photos?: unknown[]
   }
   initialUnifiedReport?: UnifiedDailyReport
+  // When true, suppress internal header (title/back/toggle)
+  hideHeader?: boolean
 }
 
 interface WorkContentEntry {
@@ -355,13 +355,13 @@ const CollapsibleSection = ({
 
   const getBorderColor = () => {
     if (adminOnly) return 'border-[#8DA0CD] shadow-sm'
-    if (managerOnly) return 'border-[#FF461C] shadow-sm'
+    // Align manager-only sections with neutral tone for consistency
     return 'border-gray-200 dark:border-gray-700'
   }
 
   const getHeaderBg = () => {
     if (adminOnly) return 'hover:bg-[rgba(141,160,205,0.15)]'
-    if (managerOnly) return 'hover:bg-[rgba(255,70,28,0.08)]'
+    // Manager-only sections use the default hover background
     return 'hover:bg-[#F3F7FA] dark:hover:bg-gray-700'
   }
 
@@ -384,19 +384,10 @@ const CollapsibleSection = ({
           <div
             className={cn(
               'p-1.5 rounded',
-              adminOnly
-                ? 'bg-[rgba(141,160,205,0.25)]'
-                : managerOnly
-                  ? 'bg-[rgba(255,70,28,0.12)]'
-                  : 'bg-[#F3F7FA]'
+              adminOnly ? 'bg-[rgba(141,160,205,0.25)]' : 'bg-[#F3F7FA]'
             )}
           >
-            <Icon
-              className={cn(
-                'h-4 w-4',
-                adminOnly ? 'text-[#1B419C]' : managerOnly ? 'text-[#E62C00]' : 'text-[#5F7AB9]'
-              )}
-            />
+            <Icon className={cn('h-4 w-4', adminOnly ? 'text-[#1B419C]' : 'text-[#5F7AB9]')} />
           </div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -443,6 +434,7 @@ export default function DailyReportForm({
   workers = [],
   reportData,
   initialUnifiedReport,
+  hideHeader = false,
 }: DailyReportFormProps) {
   const router = useRouter()
   const permissions = useRolePermissions(currentUser)
@@ -606,10 +598,11 @@ export default function DailyReportForm({
         if (!res.ok) return
         const json = await res.json().catch(() => null)
         if (!json?.success || !Array.isArray(json.data) || ignore) return
+        console.info('[DailyReportForm] fetched active materials', json.data.length)
         const active = json.data.filter((item: any) => item?.is_active !== false)
         setMaterialOptionsState(active.map(mapMaterialToOption))
       } catch {
-        /* ignore */
+        console.warn('[DailyReportForm] active materials fetch failed')
       }
     })()
     return () => {
@@ -731,6 +724,31 @@ export default function DailyReportForm({
     setAdditionalPhotos(buildAdditionalPhotosFromReport(mode, reportData))
     setReportHydrationKey(nextKey ?? null)
   }, [mode, reportData, currentUser, permissions.canManageWorkers, reportHydrationKey])
+
+  // Users list for admin: current user + workers (deduped)
+  const userOptions = useMemo(() => {
+    const map = new Map<string, Profile>()
+    const push = (u?: Profile | null) => {
+      if (!u || !u.id) return
+      if (!map.has(u.id)) map.set(u.id, u)
+    }
+    push(currentUser)
+    ;(workers || []).forEach(w => push(w as Profile))
+    return Array.from(map.values())
+      .map(u => ({ id: String(u.id), name: u.full_name || '', role: (u as any).role || '' }))
+      .filter(u => u.name)
+  }, [currentUser, workers])
+
+  // Created-by selection state (for admin-only override)
+  const [createdByUserId, setCreatedByUserId] = useState<string>(() => {
+    const raw = (reportData as any)?.created_by || formData.created_by || ''
+    // try match by id
+    const byId = userOptions.find(u => u.id === raw)?.id
+    if (byId) return byId
+    // try match by name
+    const byName = userOptions.find(u => u.name === raw)?.id
+    return byName || String((currentUser as any).id || '')
+  })
 
   // 페이지 헤더 - 모드와 권한에 따른 표시
   const getPageTitle = () => {
@@ -884,6 +902,8 @@ export default function DailyReportForm({
         site_id: resolvedSiteId,
         partner_company_id: formData.partner_company_id || null,
         work_date: formData.work_date,
+        // created_by should be a user id in DB
+        created_by: createdByUserId || undefined,
         member_name: nextMemberName || null,
         process_type: nextProcessType || null,
         component_name: nextMemberName || null,
@@ -979,61 +999,44 @@ export default function DailyReportForm({
     }
   }
 
+  // External toggle-all control via window event
+  React.useEffect(() => {
+    const handler = () => toggleAllSections()
+    window.addEventListener('toggle-all-sections', handler)
+    return () => window.removeEventListener('toggle-all-sections', handler)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 헤더 - Enhanced with unified system branding */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                onClick={() => router.push(getBreadcrumb())}
-                className="flex items-center gap-2 text-gray-600 hover:text-[#15347C] hover:bg-[#F3F7FA]"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>돌아가기</span>
-              </Button>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-3 mb-2">
-                {getRoleIcon()}
-                <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
-              </div>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <Badge className={cn('text-xs font-medium border shadow-sm', getRoleBadgeColor())}>
-                  {permissions.roleDisplayName}
-                </Badge>
-                {mode === 'edit' && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs bg-[#FFDF00] text-[#15347C] border-[#FFDF00]"
-                  >
-                    편집 모드
-                  </Badge>
-                )}
-                <Badge
-                  variant="outline"
-                  className="text-xs text-[#28BE6E] bg-[rgba(40,190,110,0.12)] border-[#28BE6E] shadow-sm"
+      {!hideHeader && (
+        <div className="bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => router.push(getBreadcrumb())}
+                  className="flex items-center gap-2 text-gray-600 hover:text-[#15347C] hover:bg-[#F3F7FA]"
                 >
-                  ✨ 통합 시스템 v2.0
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="text-xs text-[#5F7AB9] bg-[rgba(141,160,205,0.15)] border-[#8DA0CD]"
-                >
-                  동적 옵션 활성화
-                </Badge>
+                  <ArrowLeft className="h-5 w-5" />
+                  <span>돌아가기</span>
+                </Button>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={toggleAllSections} className="text-sm">
-                {allExpanded ? '모두 접기' : '모두 펼치기'}
-              </Button>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  {getRoleIcon()}
+                  <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" onClick={toggleAllSections} className="text-sm">
+                  {allExpanded ? '모두 접기' : '모두 펼치기'}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {error && (
@@ -1661,12 +1664,25 @@ export default function DailyReportForm({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>작성자 (수정 가능)</Label>
-                    <Input
-                      value={formData.created_by || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, created_by: e.target.value }))}
-                      placeholder="작성자 이름"
-                      className="border-[#8DA0CD] focus:border-[#5F7AB9]"
-                    />
+                    <CustomSelect
+                      value={createdByUserId}
+                      onValueChange={val => {
+                        setCreatedByUserId(val)
+                        const selected = userOptions.find(u => u.id === val)
+                        setFormData(prev => ({ ...prev, created_by: selected?.name || '' }))
+                      }}
+                    >
+                      <CustomSelectTrigger className="border-[#8DA0CD]">
+                        <CustomSelectValue placeholder="사용자 리스트" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent>
+                        {userOptions.map(u => (
+                          <CustomSelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </CustomSelectItem>
+                        ))}
+                      </CustomSelectContent>
+                    </CustomSelect>
                     <p className="text-xs text-gray-500 mt-1">
                       다른 작업자를 대신하여 작성 시 사용
                     </p>
@@ -1692,30 +1708,7 @@ export default function DailyReportForm({
 
         {/* Submit Buttons - Enhanced with role-based styling */}
         <div className="mt-8 bg-white p-6 rounded-lg border shadow-sm">
-          {/* Action Summary */}
-          <div className="mb-4 p-3 bg-[#F3F7FA] dark:bg-gray-800 rounded-lg">
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <div
-                  className={cn(
-                    'w-2 h-2 rounded-full',
-                    permissions.isAdmin
-                      ? 'bg-[#1B419C]'
-                      : permissions.isSiteManager
-                        ? 'bg-[#E62C00]'
-                        : 'bg-[#5F7AB9]'
-                  )}
-                />
-                <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {mode === 'create' ? '새 작업일지 작성' : '작업일지 편집'} -{' '}
-                  {permissions.roleDisplayName}
-                </span>
-              </div>
-              <Badge variant="outline" className="text-xs">
-                통합 시스템
-              </Badge>
-            </div>
-          </div>
+          {/* Action Summary removed per admin UX cleanup */}
 
           {/* Error Display */}
           {error && (
@@ -1743,7 +1736,6 @@ export default function DailyReportForm({
               disabled={loading}
               className="min-w-[120px] border-[#8DA0CD] text-[#5F7AB9] hover:bg-[#F3F7FA]"
             >
-              <Save className="h-4 w-4 mr-2" />
               {loading && loadingType === 'draft' ? '저장 중...' : '임시저장'}
             </Button>
             <Button
@@ -1759,7 +1751,6 @@ export default function DailyReportForm({
                     : 'bg-gradient-to-r from-[#8DA0CD] to-[#5F7AB9] hover:from-[#5F7AB9] hover:to-[#8DA0CD]'
               )}
             >
-              <Send className="h-4 w-4 mr-2" />
               {loading && loadingType === 'submit'
                 ? '처리 중...'
                 : mode === 'create'

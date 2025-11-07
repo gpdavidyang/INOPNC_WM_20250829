@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import PillTabLinks from '@/components/ui/pill-tab-links'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { createClient } from '@/lib/supabase/server'
+import { ADMIN_PARTNER_COMPANIES_STUB } from '@/lib/admin/stub-data'
 import {
   Table,
   TableBody,
@@ -37,6 +39,26 @@ export default async function AdminMaterialsPage({
   searchParams?: Record<string, string | string[] | undefined>
 }) {
   await requireAdminProfile()
+
+  // Inline settings datasets (initialized; populated when tab === 'settings')
+  let materialsData: Array<{
+    id: string
+    code: string | null
+    name: string
+    unit: string | null
+    is_active: boolean | null
+    specification?: string | null
+  }> = []
+  let paymentByCategory: Record<
+    string,
+    Array<{ id: string; name: string; is_active: boolean | null; sort_order: number | null }>
+  > = {
+    billing: [],
+    shipping: [],
+    freight: [],
+  }
+  let partnersCount: number | null = null
+  let partnersPreview: Array<{ id: string; company_name: string; status?: string | null }> = []
 
   const rawTab = (searchParams?.tab as string) || 'inventory'
   const tab = (
@@ -120,7 +142,113 @@ export default async function AdminMaterialsPage({
     total = res.success && res.data ? (res.data as any).total : 0
     pages = res.success && res.data ? (res.data as any).pages : 1
   } else if (tab === 'settings') {
-    // No additional data needed; configuration cards are static links
+    // Load compact datasets for inline settings sections
+    const supabase = createClient()
+    // Materials (compact list)
+    const { data: mData } = await supabase
+      .from('materials')
+      .select('id, code, name, unit, is_active, specification')
+      .order('name', { ascending: true })
+      .limit(10)
+    materialsData = (mData || []) as any
+    // Payment methods grouped
+    const categories: Array<'billing' | 'shipping' | 'freight'> = ['billing', 'shipping', 'freight']
+    try {
+      const { data: pm } = await supabase
+        .from('payment_methods')
+        .select('id, name, category, is_active, sort_order')
+        .in('category', categories as any)
+        .order('category', { ascending: true })
+        .order('sort_order', { ascending: true })
+        .order('name', { ascending: true })
+
+      const rows = pm || []
+      const allMissingCategory = rows.length === 0 || rows.every((r: any) => r?.category == null)
+
+      if (!allMissingCategory) {
+        for (const it of rows) {
+          const cat = (it as any).category || 'billing'
+          if (!paymentByCategory[cat]) paymentByCategory[cat] = []
+          paymentByCategory[cat].push({
+            id: (it as any).id,
+            name: (it as any).name,
+            is_active: (it as any).is_active ?? null,
+            sort_order: (it as any).sort_order ?? null,
+          })
+        }
+      } else {
+        // Legacy fallback: category column exists but values are NULL or table doesn't support category
+        const LEGACY_DEFAULT_CATEGORY: Record<string, 'billing' | 'shipping' | 'freight'> = {
+          즉시청구: 'billing',
+          월말청구: 'billing',
+          택배: 'shipping',
+          화물: 'shipping',
+          직접: 'shipping',
+          선불: 'freight',
+          착불: 'freight',
+        }
+        const decodeLegacyName = (
+          raw: string
+        ): { category: 'billing' | 'shipping' | 'freight'; name: string } => {
+          const idx = raw.indexOf('::')
+          if (idx > 0) {
+            const prefix = raw.slice(0, idx).toLowerCase()
+            const label = raw.slice(idx + 2)
+            if (prefix === 'billing' || prefix === 'shipping' || prefix === 'freight') {
+              return { category: prefix as any, name: label }
+            }
+          }
+          const inferred = LEGACY_DEFAULT_CATEGORY[raw] ?? 'billing'
+          return { category: inferred, name: raw }
+        }
+
+        const { data: legacy } = await supabase
+          .from('payment_methods')
+          .select('id, name, is_active')
+          .order('name', { ascending: true })
+        for (const it of legacy || []) {
+          const decoded = decodeLegacyName((it as any).name || '')
+          paymentByCategory[decoded.category].push({
+            id: (it as any).id,
+            name: decoded.name,
+            is_active: (it as any).is_active ?? null,
+            sort_order: null,
+          })
+        }
+      }
+    } catch {
+      // best-effort; leave as empty
+    }
+    // Partners quick count (best-effort)
+    try {
+      const apiUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/api/admin/partner-companies`
+      const res = await fetch(apiUrl, { cache: 'no-store', credentials: 'include' })
+      if (res.ok) {
+        const json = await res.json()
+        const list = (json?.data?.partner_companies || []) as Array<any>
+        partnersCount = Number(json?.data?.total ?? list.length)
+        partnersPreview = list.slice(0, 10).map((p: any) => ({
+          id: p.id,
+          company_name: p.company_name,
+          status: p.status ?? null,
+        }))
+      } else {
+        // API 실패 시 스텁으로 폴백
+        partnersCount = ADMIN_PARTNER_COMPANIES_STUB.length
+        partnersPreview = ADMIN_PARTNER_COMPANIES_STUB.slice(0, 10).map((p: any) => ({
+          id: p.id,
+          company_name: p.company_name,
+          status: p.status ?? null,
+        }))
+      }
+    } catch {
+      partnersCount = ADMIN_PARTNER_COMPANIES_STUB.length
+      partnersPreview = ADMIN_PARTNER_COMPANIES_STUB.slice(0, 10).map((p: any) => ({
+        id: p.id,
+        company_name: p.company_name,
+        status: p.status ?? null,
+      }))
+    }
   }
 
   const buildQuery = (overrides: Record<string, string>) => {
@@ -598,41 +726,160 @@ export default async function AdminMaterialsPage({
         )}
 
         {tab === 'settings' && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <a href="/dashboard/admin/materials/settings/materials">
-              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
-                <div className="mb-1 text-sm font-semibold text-foreground">품목 관리</div>
-                <div className="text-xs text-muted-foreground">
-                  자재 코드, 단위 등 기본 정보를 등록·수정합니다.
+          <div className="space-y-6">
+            {/* Section: 품목 관리 (요약) */}
+            <section className="rounded-lg border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">품목 관리</div>
+                  <div className="text-xs text-muted-foreground">
+                    자재 코드/명/단위 등 기본 정보를 확인합니다.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/dashboard/admin/materials/settings/materials/new"
+                    className={buttonVariants({ variant: 'primary', size: 'compact' })}
+                  >
+                    새 품목
+                  </Link>
+                  <Link
+                    href="/dashboard/admin/materials/settings/materials"
+                    className={buttonVariants({ variant: 'outline', size: 'compact' })}
+                  >
+                    관리
+                  </Link>
                 </div>
               </div>
-            </a>
-            <a href="/dashboard/admin/materials/settings/payment-methods">
-              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
-                <div className="mb-1 text-sm font-semibold text-foreground">
-                  결제/배송 방식 관리
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  운송·결제 유형, 세율, 운임 정책 등을 설정합니다.
-                </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-left">
+                      <th className="px-3 py-2 w-[140px]">코드</th>
+                      <th className="px-3 py-2">품명</th>
+                      <th className="px-3 py-2 w-[120px]">단위</th>
+                      <th className="px-3 py-2 w-[80px]">사용</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(materialsData || []).length === 0 ? (
+                      <tr>
+                        <td className="px-3 py-6 text-center text-muted-foreground" colSpan={4}>
+                          표시할 품목이 없습니다.
+                        </td>
+                      </tr>
+                    ) : (
+                      (materialsData || []).map((m: any) => (
+                        <tr key={m.id} className="border-t">
+                          <td className="px-3 py-2 font-mono text-xs">{m.code || '-'}</td>
+                          <td className="px-3 py-2">{m.name}</td>
+                          <td className="px-3 py-2">{m.unit || '-'}</td>
+                          <td className="px-3 py-2">{m.is_active ? 'Y' : 'N'}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
-            </a>
-            <a href="/dashboard/admin/materials/settings/transport-modes">
-              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
-                <div className="mb-1 text-sm font-semibold text-foreground">운송 방식 관리</div>
-                <div className="text-xs text-muted-foreground">
-                  자재 운송 수단과 관련 정보를 관리합니다.
+            </section>
+
+            {/* Section: 결제/배송/운임 방식 */}
+            <section className="rounded-lg border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">결제/배송 방식 관리</div>
+                  <div className="text-xs text-muted-foreground">
+                    청구/배송/운임 결제 방식을 확인합니다.
+                  </div>
                 </div>
+                <Link
+                  href="/dashboard/admin/materials/settings/payment-methods"
+                  className={buttonVariants({ variant: 'outline', size: 'compact' })}
+                >
+                  관리
+                </Link>
               </div>
-            </a>
-            <a href="/dashboard/admin/materials/settings/partners">
-              <div className="rounded-lg border bg-card p-6 shadow-sm hover:bg-accent/50 transition-colors">
-                <div className="mb-1 text-sm font-semibold text-foreground">거래처/생산자 관리</div>
-                <div className="text-xs text-muted-foreground">
-                  공급업체 및 생산 담당자 정보를 등록하고 관리합니다.
+              <div className="grid gap-3 md:grid-cols-3">
+                {(['billing', 'shipping', 'freight'] as const).map(cat => (
+                  <div key={cat} className="rounded border bg-white p-3">
+                    <div className="mb-2 text-xs font-semibold text-foreground">
+                      {cat === 'billing'
+                        ? '청구방식'
+                        : cat === 'shipping'
+                          ? '배송방식'
+                          : '선불/착불'}
+                    </div>
+                    <ul className="space-y-1 text-sm">
+                      {(paymentByCategory[cat] || []).length === 0 ? (
+                        <li className="text-xs text-muted-foreground">등록된 항목 없음</li>
+                      ) : (
+                        (paymentByCategory[cat] || []).slice(0, 10).map(item => (
+                          <li key={item.id} className="flex items-center justify-between">
+                            <span className="truncate">{item.name}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {item.is_active ? '사용' : '중지'}
+                            </span>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* 운송 방식 관리는 배송방식과 중복되어 제거됨 */}
+
+            {/* Section: 자재거래처 관리 (요약) */}
+            <section className="rounded-lg border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-foreground">자재거래처 관리</div>
+                  <div className="text-xs text-muted-foreground">
+                    ‘거래처’는 원료를 공급하는 공급처와 당사 제품을 매입하는 판매처를 포함합니다
+                    {partnersCount !== null ? ` · 총 ${partnersCount}개` : ''}.
+                  </div>
                 </div>
+                <Link
+                  href="/dashboard/admin/partners"
+                  className={buttonVariants({ variant: 'outline', size: 'compact' })}
+                >
+                  관리
+                </Link>
               </div>
-            </a>
+              <div className="rounded border bg-white p-0 overflow-hidden">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 text-left">
+                      <th className="px-3 py-2">업체명</th>
+                      <th className="px-3 py-2 w-[120px]">상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {partnersPreview.length === 0 ? (
+                      <tr>
+                        <td className="px-3 py-6 text-center text-muted-foreground" colSpan={2}>
+                          등록된 거래업체가 없습니다.
+                        </td>
+                      </tr>
+                    ) : (
+                      partnersPreview.map(p => (
+                        <tr key={p.id} className="border-t">
+                          <td className="px-3 py-2">{p.company_name}</td>
+                          <td className="px-3 py-2">
+                            {p.status === 'active'
+                              ? '활성'
+                              : p.status === 'inactive'
+                                ? '비활성'
+                                : '-'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </div>
         )}
 

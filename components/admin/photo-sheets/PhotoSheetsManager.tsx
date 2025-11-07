@@ -39,6 +39,9 @@ type PhotoSheetRow = {
   status?: string | null
   created_at?: string | null
   site_id: string
+  source_daily_report_id?: string | null
+  source_daily_report_summary?: string | null
+  photo_count?: number
   site?: {
     id: string
     name?: string | null
@@ -120,10 +123,10 @@ export default function PhotoSheetsManager({ searchParams, siteOptions, sheets }
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-muted/30 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <th className="px-4 py-3 font-medium">제목</th>
                     <th className="px-4 py-3 font-medium">현장</th>
+                    <th className="px-4 py-3 font-medium">작업일지</th>
                     <th className="px-4 py-3 font-medium">행×열</th>
-                    <th className="px-4 py-3 font-medium">방향</th>
+                    <th className="px-4 py-3 font-medium">사진 수</th>
                     <th className="px-4 py-3 font-medium">생성일</th>
                     <th className="px-4 py-3 font-medium">작업</th>
                   </tr>
@@ -131,7 +134,6 @@ export default function PhotoSheetsManager({ searchParams, siteOptions, sheets }
                 <tbody>
                   {sheets.map(sheet => (
                     <tr key={sheet.id} className="border-b last:border-none">
-                      <td className="px-4 py-3">{sheet.title || '-'}</td>
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
                           <span className="font-medium text-foreground">
@@ -142,12 +144,22 @@ export default function PhotoSheetsManager({ searchParams, siteOptions, sheets }
                           </span>
                         </div>
                       </td>
+                      <td className="px-4 py-3 text-sm">
+                        {sheet.source_daily_report_id ? (
+                          <Link
+                            href={`/dashboard/admin/daily-reports/${sheet.source_daily_report_id}`}
+                            className="text-primary hover:underline"
+                          >
+                            {sheet.source_daily_report_summary || '작업일지 열기'}
+                          </Link>
+                        ) : (
+                          <span className="text-muted-foreground">연결 없음</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         {sheet.rows}×{sheet.cols}
                       </td>
-                      <td className="px-4 py-3">
-                        {sheet.orientation === 'landscape' ? '가로' : '세로'}
-                      </td>
+                      <td className="px-4 py-3">{sheet.photo_count ?? 0}장</td>
                       <td className="px-4 py-3">
                         {sheet.created_at
                           ? new Date(sheet.created_at).toLocaleString('ko-KR')

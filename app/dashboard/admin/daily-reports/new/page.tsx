@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { PageHeader } from '@/components/ui/page-header'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
+import { ToggleAllSectionsButton } from '@/components/daily-reports/ToggleAllSectionsButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -88,6 +89,7 @@ export default async function AdminNewDailyReportPage() {
         ]}
         showBackButton
         backButtonHref="/dashboard/admin/daily-reports"
+        actions={<ToggleAllSectionsButton />}
       />
 
       <div className="px-0">
@@ -98,6 +100,7 @@ export default async function AdminNewDailyReportPage() {
           currentUser={profile as any}
           materials={(materials as any) || []}
           workers={(workers as any) || []}
+          hideHeader
         />
       </div>
     </div>

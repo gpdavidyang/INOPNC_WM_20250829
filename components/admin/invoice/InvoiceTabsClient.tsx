@@ -89,6 +89,7 @@ export default function InvoiceTabsClient() {
     sites: Array<{
       site_id: string
       site_name: string
+      site_address?: string | null
       docs: Record<string, any>
       progress?: number
     }>
@@ -474,7 +475,9 @@ export default function InvoiceTabsClient() {
                           <div className="text-sm font-semibold text-foreground">
                             {siteEntry.site_name || siteEntry.site_id}
                           </div>
-                          <div className="text-xs text-muted-foreground">{siteEntry.site_id}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {siteEntry.site_address || siteEntry.site_id}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">

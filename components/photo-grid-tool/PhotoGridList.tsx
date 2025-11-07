@@ -21,6 +21,7 @@ type PhotoSheetRow = {
   cols: number
   orientation: 'portrait' | 'landscape'
   status?: 'draft' | 'final'
+  site_id?: string
   site?: { id: string; name: string } | null
   items?: PhotoSheetItem[]
 }
@@ -167,12 +168,14 @@ export default function PhotoGridList() {
     const json = await res.json().catch(() => null)
     const sheet = res.ok && json?.success && json?.data ? (json.data as PhotoSheetRow) : item
     const previewData = {
-      title: sheet.title || '사진대지',
-      siteName: sheet.site?.name || '',
+      title: (sheet.title || '').trim(),
+      siteId: sheet.site_id || sheet.site?.id || item.site?.id || '',
+      siteName: sheet.site?.name || item.site?.name || '',
       rows: sheet.rows,
       cols: sheet.cols,
       orientation: sheet.orientation,
       templateMode: false,
+      sheetId: sheet.id,
       items: (sheet.items || []).map((it, i) => ({
         id: String(i),
         previewUrl: it.image_url || '',
@@ -231,7 +234,7 @@ export default function PhotoGridList() {
           <tr className="bg-gray-50 text-left">
             <th className="px-3 py-2">생성일</th>
             <th className="px-3 py-2">현장</th>
-            <th className="px-3 py-2">제목/격자</th>
+            <th className="px-3 py-2">격자</th>
             <th className="px-3 py-2">상태</th>
             <th className="px-3 py-2">동작</th>
           </tr>
@@ -257,12 +260,9 @@ export default function PhotoGridList() {
                     {item.created_at ? new Date(item.created_at).toLocaleString('ko-KR') : '-'}
                   </td>
                   <td className="px-3 py-2">{item.site?.name || '-'}</td>
-                  <td className="px-3 py-2">
-                    <div className="text-foreground">{item.title || '사진대지'}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {(item.rows || 0) + '×' + (item.cols || 0)} ·{' '}
-                      {item.orientation === 'landscape' ? '가로' : '세로'}
-                    </div>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {(item.rows || 0) + '×' + (item.cols || 0)} ·{' '}
+                    {item.orientation === 'landscape' ? '가로' : '세로'}
                   </td>
                   <td className="px-3 py-2">{item.status === 'final' ? '확정' : '초안'}</td>
                   <td className="px-3 py-2">
