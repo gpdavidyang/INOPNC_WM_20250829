@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import CustomSelect, {
@@ -12,6 +12,7 @@ import CustomSelect, {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
+import { DEFAULT_SHARED_DOCUMENT_CATEGORIES } from '@/lib/constants/shared-document-categories'
 
 type SiteSharedDocumentUploadFormProps = {
   siteId: string
@@ -20,13 +21,6 @@ type SiteSharedDocumentUploadFormProps = {
   onSuccess?: (doc: any) => void
   onCancel?: () => void
 }
-
-const SUBCATEGORY_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'construction_drawing', label: '공도면' },
-  { value: 'progress_drawing', label: '진행도면' },
-  { value: 'ptw', label: 'PTW(작업허가서)' },
-  { value: 'other', label: '기타' },
-]
 
 export default function SiteSharedDocumentUploadForm({
   siteId,
@@ -41,7 +35,10 @@ export default function SiteSharedDocumentUploadForm({
   const [file, setFile] = useState<File | null>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [subCategory, setSubCategory] = useState<string>(SUBCATEGORY_OPTIONS[0].value)
+  const [categoryOptions, setCategoryOptions] = useState(DEFAULT_SHARED_DOCUMENT_CATEGORIES)
+  const [subCategory, setSubCategory] = useState<string>(
+    DEFAULT_SHARED_DOCUMENT_CATEGORIES[0]?.value || ''
+  )
   const [tags, setTags] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -49,15 +46,49 @@ export default function SiteSharedDocumentUploadForm({
     ? '업로드 후 목록이 자동으로 갱신됩니다.'
     : '업로드 후 자동으로 현장 상세 화면으로 이동합니다.'
 
+  useEffect(() => {
+    let mounted = true
+    const controller = new AbortController()
+    async function loadCategoryOptions() {
+      try {
+        const res = await fetch('/api/admin/document-categories/shared', {
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!mounted) return
+        if (res.ok && Array.isArray(json?.data)) {
+          setCategoryOptions(json.data)
+          setSubCategory(prev => {
+            if (prev && json.data.some(option => option.value === prev)) {
+              return prev
+            }
+            return json.data[0]?.value || ''
+          })
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Failed to load shared document categories for upload form.', error)
+        }
+      }
+    }
+    void loadCategoryOptions()
+    return () => {
+      mounted = false
+      controller.abort()
+    }
+  }, [])
+
   const resetForm = useCallback(() => {
     setFile(null)
     setTitle('')
     setDescription('')
-    setSubCategory(SUBCATEGORY_OPTIONS[0].value)
+    setSubCategory(categoryOptions[0]?.value || '')
     setTags('')
     setMessage(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
-  }, [])
+  }, [categoryOptions])
 
   const handleFileChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,18 +225,31 @@ export default function SiteSharedDocumentUploadForm({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">분류</label>
-          <CustomSelect value={subCategory} onValueChange={setSubCategory} disabled={busy}>
+          <CustomSelect
+            value={subCategory}
+            onValueChange={setSubCategory}
+            disabled={busy || categoryOptions.length === 0}
+          >
             <CustomSelectTrigger className="h-11">
               <CustomSelectValue placeholder="분류 선택" />
             </CustomSelectTrigger>
             <CustomSelectContent>
-              {SUBCATEGORY_OPTIONS.map(option => (
-                <CustomSelectItem key={option.value} value={option.value}>
-                  {option.label}
+              {categoryOptions.length === 0 ? (
+                <CustomSelectItem value="__none" disabled>
+                  설정된 분류가 없습니다
                 </CustomSelectItem>
-              ))}
+              ) : (
+                categoryOptions.map(option => (
+                  <CustomSelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </CustomSelectItem>
+                ))
+              )}
             </CustomSelectContent>
           </CustomSelect>
+          <p className="text-xs text-muted-foreground">
+            필수 입력 항목입니다. 적절한 분류를 선택해 주세요.
+          </p>
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">태그 (쉼표로 구분)</label>

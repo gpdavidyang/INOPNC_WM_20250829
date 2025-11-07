@@ -65,6 +65,9 @@ export async function PUT(request: NextRequest, ctx: { params: { id: string } })
 
     const form = await request.formData()
     const patch: Record<string, any> = {}
+    const isMissingSourceColumns = (message?: string) =>
+      !!message && /source_daily_report/i.test(message)
+
     if (form.has('title')) patch.title = String(form.get('title') || '')
     if (form.has('orientation')) patch.orientation = String(form.get('orientation'))
     if (form.has('rows')) patch.rows = Number(form.get('rows'))
@@ -72,10 +75,84 @@ export async function PUT(request: NextRequest, ctx: { params: { id: string } })
     if (form.has('status')) patch.status = String(form.get('status'))
     if (form.has('site_id')) patch.site_id = String(form.get('site_id'))
 
+    let newSourceReportId: string | null | undefined = undefined
+    if (form.has('source_daily_report_id')) {
+      const raw = String(form.get('source_daily_report_id') || '').trim()
+      newSourceReportId = raw || null
+    }
+    let newSourceSummary: string | null | undefined = undefined
+    if (form.has('source_daily_report_summary')) {
+      const raw = String(form.get('source_daily_report_summary') || '').trim()
+      newSourceSummary = raw || null
+    }
+
+    if (newSourceReportId !== undefined) {
+      if (newSourceReportId) {
+        const { data: linkedReport, error: linkedErr } = await supabase
+          .from('daily_reports')
+          .select('id, site_id, work_date, component_name, process_type')
+          .eq('id', newSourceReportId)
+          .maybeSingle()
+        if (linkedErr || !linkedReport) {
+          return NextResponse.json({ error: '존재하지 않는 작업일지입니다.' }, { status: 400 })
+        }
+        if (patch.site_id && patch.site_id !== linkedReport.site_id) {
+          return NextResponse.json(
+            { error: '선택한 작업일지가 변경된 현장과 일치하지 않습니다.' },
+            { status: 400 }
+          )
+        }
+        if (!patch.site_id && linkedReport.site_id !== (sheet as any).site?.id) {
+          return NextResponse.json(
+            { error: '선택한 작업일지가 해당 현장과 일치하지 않습니다.' },
+            { status: 400 }
+          )
+        }
+        patch.source_daily_report_id = newSourceReportId
+        if (!newSourceSummary) {
+          const parts: string[] = []
+          if (linkedReport.work_date) {
+            try {
+              parts.push(
+                new Date(linkedReport.work_date).toLocaleDateString('ko-KR', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                })
+              )
+            } catch {
+              parts.push(linkedReport.work_date)
+            }
+          }
+          if (linkedReport.component_name) parts.push(linkedReport.component_name)
+          if (linkedReport.process_type) parts.push(linkedReport.process_type)
+          patch.source_daily_report_summary = parts.join(' / ')
+        }
+      } else {
+        patch.source_daily_report_id = null
+        if (newSourceSummary !== undefined) {
+          patch.source_daily_report_summary = newSourceSummary
+        }
+      }
+    }
+
+    if (newSourceReportId === undefined && newSourceSummary !== undefined) {
+      patch.source_daily_report_summary = newSourceSummary
+    }
+
     if (Object.keys(patch).length) {
       const db =
         auth.role === 'admin' || auth.role === 'system_admin' ? createServiceClient() : supabase
-      const { error: upErr } = await db.from('photo_sheets').update(patch).eq('id', id)
+      const attemptUpdate = async (payload: Record<string, any>) =>
+        db.from('photo_sheets').update(payload).eq('id', id)
+      let { error: upErr } = await attemptUpdate(patch)
+      if (upErr && isMissingSourceColumns(upErr.message)) {
+        const fallbackPatch = { ...patch }
+        delete fallbackPatch.source_daily_report_id
+        delete fallbackPatch.source_daily_report_summary
+        const fallback = await attemptUpdate(fallbackPatch)
+        upErr = fallback.error
+      }
       if (upErr) {
         console.error('Update sheet error:', upErr)
         return NextResponse.json(

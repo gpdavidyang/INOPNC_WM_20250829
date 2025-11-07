@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { PageHeader } from '@/components/ui/page-header'
+import { ToggleAllSectionsButton } from '@/components/daily-reports/ToggleAllSectionsButton'
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { unifiedReportToLegacyPayload } from '@/lib/daily-reports/unified'
 import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
@@ -81,7 +82,7 @@ const isMaterialSelectable = (material: any): boolean => {
 async function fetchMaterials() {
   const supabase = (() => {
     try {
-      return createServiceClient()
+      return createServiceRoleClient()
     } catch {
       return createClient()
     }
@@ -198,6 +199,7 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
         ]}
         showBackButton
         backButtonHref={`/dashboard/admin/daily-reports/${params.id}`}
+        actions={<ToggleAllSectionsButton />}
       />
       <div className="px-0">
         <DailyReportForm
@@ -208,6 +210,7 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
           workers={(workers as any) || []}
           reportData={normalizedReportData as any}
           initialUnifiedReport={unifiedReport as any}
+          hideHeader={true}
         />
       </div>
     </div>

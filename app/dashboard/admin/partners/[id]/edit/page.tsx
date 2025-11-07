@@ -5,7 +5,7 @@ import { PartnerEditForm } from '@/components/admin/partners/PartnerEditForm'
 import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
-  title: '공급업체 수정',
+  title: '자재거래처 수정',
 }
 
 interface PartnerEditPageProps {
@@ -41,10 +41,10 @@ export default async function AdminPartnerEditPage({ params }: PartnerEditPagePr
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="공급업체 수정"
+        title="자재거래처 수정"
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '공급업체 관리', href: '/dashboard/admin/partners' },
+          { label: '자재거래처 관리', href: '/dashboard/admin/partners' },
           { label: '수정' },
         ]}
         showBackButton

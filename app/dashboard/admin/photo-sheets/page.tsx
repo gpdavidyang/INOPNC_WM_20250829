@@ -16,6 +16,9 @@ type PhotoSheetRow = {
   status?: string | null
   created_at?: string | null
   site_id: string
+  source_daily_report_id?: string | null
+  source_daily_report_summary?: string | null
+  photo_count?: number
   site?: {
     id: string
     name?: string | null
@@ -36,10 +39,21 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
   const supabase = createServiceClient()
   const siteId =
     searchParams.site_id && searchParams.site_id !== 'all' ? searchParams.site_id : undefined
-  let query = supabase
-    .from('photo_sheets')
-    .select(
+  const baseSelect = `
+        id,
+        title,
+        rows,
+        cols,
+        orientation,
+        status,
+        created_at,
+        site_id,
+        source_daily_report_id,
+        source_daily_report_summary,
+        site:sites!photo_sheets_site_id_fkey ( id, name, address )
       `
+
+  const basicSelect = `
         id,
         title,
         rows,
@@ -50,19 +64,63 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
         site_id,
         site:sites!photo_sheets_site_id_fkey ( id, name, address )
       `
-    )
-    .order('created_at', { ascending: false })
-    .range(0, 199)
 
-  if (siteId) {
-    query = query.eq('site_id', siteId)
+  const buildQuery = (selectFields: string) => {
+    let q = supabase
+      .from('photo_sheets')
+      .select(selectFields)
+      .order('created_at', { ascending: false })
+      .range(0, 199)
+    if (siteId) q = q.eq('site_id', siteId)
+    return q
   }
-  const { data, error } = await query
-  if (error) {
-    console.error('[photo-sheets] fetch error:', error)
-    return []
+
+  let data: PhotoSheetRow[] | null = null
+  let errorMessage: string | null = null
+  let query = buildQuery(baseSelect)
+  const { data: primaryData, error: primaryError } = await query
+  if (primaryError) {
+    errorMessage = primaryError.message || ''
+    if (primaryError.code === '42703' || /source_daily_report/i.test(errorMessage)) {
+      const fallback = await buildQuery(basicSelect)
+      const { data: fallbackData, error: fallbackError } = await fallback
+      if (fallbackError) {
+        console.error('[photo-sheets] fallback fetch error:', fallbackError)
+        return []
+      }
+      data = (fallbackData || []) as PhotoSheetRow[]
+    } else {
+      console.error('[photo-sheets] fetch error:', primaryError)
+      return []
+    }
+  } else {
+    data = (primaryData || []) as PhotoSheetRow[]
   }
-  return (data || []) as PhotoSheetRow[]
+
+  const sheets = (data || []).map(sheet => ({ ...sheet, photo_count: 0 }))
+  const sheetIds = sheets.map(sheet => sheet.id).filter(Boolean)
+  if (sheetIds.length === 0) return sheets
+
+  const { data: itemRows, error: itemError } = await supabase
+    .from('photo_sheet_items')
+    .select('photosheet_id')
+    .in('photosheet_id', sheetIds)
+
+  if (itemError) {
+    console.warn('[photo-sheets] fetch photo count error (fallback to zero):', itemError)
+    return sheets
+  }
+
+  const countMap = new Map<string, number>()
+  ;(itemRows || []).forEach(row => {
+    if (!row?.photosheet_id) return
+    countMap.set(row.photosheet_id, (countMap.get(row.photosheet_id) || 0) + 1)
+  })
+
+  return sheets.map(sheet => ({
+    ...sheet,
+    photo_count: countMap.get(sheet.id) || 0,
+  }))
 }
 
 async function fetchSiteOptions() {

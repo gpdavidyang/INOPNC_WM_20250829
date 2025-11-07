@@ -5,6 +5,27 @@ import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
+const DOCUMENT_SELECT_FIELDS = `
+        id,
+        category_type,
+        sub_category,
+        file_name,
+        file_url,
+        title,
+        description,
+        created_at,
+        metadata,
+        updated_at,
+        uploaded_by,
+        file_size,
+        mime_type,
+        status,
+        profiles:profiles!unified_document_system_uploaded_by_fkey(
+          full_name,
+          role
+        )
+      `
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
@@ -27,28 +48,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Build query for site documents
     let query = supabase
       .from('unified_document_system')
-      .select(
-        `
-        id,
-        category_type,
-        sub_category,
-        file_name,
-        file_url,
-        title,
-        description,
-        created_at,
-        metadata,
-        updated_at,
-        uploaded_by,
-        file_size,
-        mime_type,
-        status,
-        profiles!unified_document_system_uploaded_by_fkey(
-          full_name,
-          role
-        )
-      `
-      )
+      .select(DOCUMENT_SELECT_FIELDS)
       .eq('site_id', siteId)
       .eq('category_type', category)
       .eq('status', 'active')
@@ -232,28 +232,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const { data: inserted, error: insertError } = await supabase
       .from('unified_document_system')
       .insert(insertPayload)
-      .select(
-        `
-        id,
-        category_type,
-        sub_category,
-        file_name,
-        file_url,
-        title,
-        description,
-        created_at,
-        metadata,
-        updated_at,
-        uploaded_by,
-        file_size,
-        mime_type,
-        status,
-        profiles:profiles!unified_document_system_uploaded_by_fkey(
-          full_name,
-          role
-        )
-      `
-      )
+      .select(DOCUMENT_SELECT_FIELDS)
       .single()
 
     if (insertError) {
@@ -283,6 +262,130 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
 function sanitizeFilename(name: string): string {
   return name.replace(/[^a-zA-Z0-9가-힣._-]/g, '_')
+}
+
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (authResult.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const siteId = params.id
+    if (!siteId) {
+      return NextResponse.json({ error: 'Missing site id' }, { status: 400 })
+    }
+
+    const body = await request.json().catch(() => null)
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+
+    const {
+      id: documentId,
+      title,
+      description,
+      sub_category: subCategory,
+    }: {
+      id?: string
+      title?: string
+      description?: string | null
+      sub_category?: string | null
+    } = body
+
+    if (!documentId || typeof documentId !== 'string') {
+      return NextResponse.json({ error: 'Missing document id' }, { status: 400 })
+    }
+
+    const updates: Record<string, any> = {}
+
+    if (title !== undefined) {
+      if (typeof title !== 'string' || title.trim().length === 0) {
+        return NextResponse.json({ error: 'Title must be a non-empty string' }, { status: 400 })
+      }
+      updates.title = title.trim()
+    }
+
+    if (description !== undefined) {
+      if (description === null) updates.description = null
+      else if (typeof description === 'string') updates.description = description.trim()
+      else
+        return NextResponse.json({ error: 'Description must be a string or null' }, { status: 400 })
+    }
+
+    let subCategoryValue: string | null | undefined = undefined
+    if (subCategory !== undefined) {
+      if (subCategory === null) subCategoryValue = null
+      else if (typeof subCategory === 'string') subCategoryValue = subCategory.trim() || null
+      else
+        return NextResponse.json(
+          { error: 'sub_category must be a string or null' },
+          { status: 400 }
+        )
+    }
+
+    const hasUpdates = Object.keys(updates).length > 0 || subCategoryValue !== undefined
+
+    if (!hasUpdates) {
+      return NextResponse.json({ error: 'No updates provided' }, { status: 400 })
+    }
+
+    const supabase = createServiceRoleClient()
+
+    const { data: existing, error: fetchError } = await supabase
+      .from('unified_document_system')
+      .select('id, site_id, category_type, metadata')
+      .eq('id', documentId)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error('[admin/sites/:id/documents][PATCH] fetch failed:', fetchError)
+      return NextResponse.json({ error: 'Failed to lookup document' }, { status: 500 })
+    }
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
+
+    if (String(existing.site_id) !== String(siteId) || existing.category_type !== 'shared') {
+      return NextResponse.json({ error: 'Document does not belong to this site' }, { status: 400 })
+    }
+
+    if (subCategoryValue !== undefined) {
+      updates.sub_category = subCategoryValue
+      const metadata = safeParseMetadata(existing.metadata)
+      updates.metadata = {
+        ...metadata,
+        sub_category: subCategoryValue,
+      }
+    }
+
+    updates.updated_at = new Date().toISOString()
+
+    const { data: updated, error: updateError } = await supabase
+      .from('unified_document_system')
+      .update(updates)
+      .eq('id', documentId)
+      .select(DOCUMENT_SELECT_FIELDS)
+      .single()
+
+    if (updateError) {
+      console.error('[admin/sites/:id/documents][PATCH] update failed:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to update document', details: updateError.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error) {
+    console.error('[admin/sites/:id/documents][PATCH] unexpected error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {

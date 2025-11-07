@@ -54,6 +54,7 @@ export default function PhotoSheetPrint({
     [orientation, rows, cols, title, siteName]
   )
   const isThreeByTwo = (rows === 3 && cols === 2) || (rows === 2 && cols === 3)
+  const isConstrainedGrid = isThreeByTwo || (rows === 2 && cols === 1)
   // Enable per-photo captions for 2x2 (already), and also 1x1, 2x1, 3x2 grids
   const usePerCellCaption =
     !templateMode &&
@@ -102,7 +103,7 @@ export default function PhotoSheetPrint({
 
     let rowHeight: number | null = null
     let usedHeight = available
-    if (isThreeByTwo) {
+    if (isConstrainedGrid) {
       const gridStyles = getComputedStyle(gridEl)
       const gap = parseFloat(gridStyles.rowGap) || 0
       const cells = Array.from(gridEl.querySelectorAll<HTMLElement>('.cell'))
@@ -130,7 +131,7 @@ export default function PhotoSheetPrint({
       maxHeight: usedHeight,
       rowHeight: rowHeight && rowHeight > 0 ? rowHeight : null,
     })
-  }, [isThreeByTwo, rows, primaryGrid])
+  }, [isConstrainedGrid, rows, primaryGrid])
 
   useLayoutEffect(() => {
     if (typeof ResizeObserver === 'undefined') {
@@ -159,6 +160,12 @@ export default function PhotoSheetPrint({
     []
   )
 
+  const resolvedTitle = useMemo(() => {
+    const trimmed = (title || '').trim()
+    if (!trimmed || trimmed === '사진대지') return '\u00A0'
+    return trimmed
+  }, [title])
+
   return (
     <div className="print-root">
       <style>{dynamicPrintStyles}</style>
@@ -173,7 +180,7 @@ export default function PhotoSheetPrint({
               <div className="title site-only">현장명: {siteName || '\u00A0'}</div>
             ) : (
               <>
-                <div className="title">{title || '사진대지'}</div>
+                <div className="title">{resolvedTitle}</div>
                 <div className="header-divider" />
                 <div className="site-row">
                   <div className="label">현장명</div>
@@ -190,7 +197,7 @@ export default function PhotoSheetPrint({
             style={{
               ...gridStyle,
               ...(gridMetrics.maxHeight > 0 ? { maxHeight: `${gridMetrics.maxHeight}px` } : {}),
-              ...(isThreeByTwo && gridMetrics.rowHeight
+              ...(isConstrainedGrid && gridMetrics.rowHeight
                 ? {
                     height: `${gridMetrics.maxHeight}px`,
                     gridTemplateRows: `repeat(${rows}, ${gridMetrics.rowHeight}px)`,
@@ -348,7 +355,7 @@ export default function PhotoSheetPrint({
           <div className="footer" ref={pageIndex === 0 ? footerRef : undefined}>
             <div className="footer-divider" />
             <div className="footer-row">
-              <div className="foot-left">{siteName && siteName !== '-' ? siteName : ''}</div>
+              <div className="foot-left">주식회사 이노피앤씨</div>
               <div className="foot-right">
                 페이지 {pageIndex + 1} / {pages.length}
               </div>
@@ -422,9 +429,7 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
   flex: 1 1 auto;
   min-height: 12mm;
   max-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  position: relative;
   border: 0.5px solid #d4d4d4;
   border-radius: 2mm;
   background: transparent;
@@ -481,11 +486,18 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
   word-break: break-word;
 }
 /* use single rule below with fallback; 3x2 sets --cap-h inline */
-.print-root .cell.percap .img { object-fit: contain; }
+.print-root .cell.percap .img { object-fit: fill; }
 
-.print-root .img { width: 100%; height: 100%; object-fit: cover; }
-.print-root .cell.cap3x2 .img { object-fit: contain; }
-.print-root .page.template .img { object-fit: contain; }
+.print-root .cell .cell-image img,
+.print-root .img {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  position: absolute;
+  inset: 0;
+}
+.print-root .cell.cap3x2 .img { object-fit: fill; }
+.print-root .page.template .img { object-fit: fill; }
 .print-root .placeholder { color: #888; font-size: 12px; }
 .print-root .meta-table { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
 .print-root .meta-table th, .print-root .meta-table td { border: 1px solid #000; padding: 2mm 3mm; font-size: 10pt; }

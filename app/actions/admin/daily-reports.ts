@@ -440,14 +440,18 @@ export async function createDailyReport(reportData: any) {
 
     await ensureSiteAccess(supabase, auth, reportData.site_id)
 
-    const { worker_ids, ...reportFields } = reportData
+    const { worker_ids, created_by, ...reportFields } = reportData
+
+    // Allow admin to override creator; restricted users cannot override
+    const creatorId =
+      !auth.isRestricted && typeof created_by === 'string' && created_by ? created_by : auth.userId
 
     // Create the daily report
     const { data, error } = await supabase
       .from('daily_reports')
       .insert({
         ...reportFields,
-        created_by: auth.userId,
+        created_by: creatorId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -479,6 +483,11 @@ export async function updateDailyReport(id: string, updates: any) {
     const auth = profile.auth
 
     await fetchReportWithAccess(supabase, auth, id)
+
+    // Prevent restricted users from reassigning creator
+    if (auth.isRestricted && 'created_by' in updates) {
+      delete updates.created_by
+    }
 
     const { data, error } = await supabase
       .from('daily_reports')

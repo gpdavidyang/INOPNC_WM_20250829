@@ -39,6 +39,17 @@ export default function PhotoSheetActions({ id }: { id: string }) {
       <Button
         variant="outline"
         size="compact"
+        onClick={() => {
+          router.push(
+            `/dashboard/admin/tools/photo-grid?sheet_id=${encodeURIComponent(id)}&tab=upload`
+          )
+        }}
+      >
+        수정
+      </Button>
+      <Button
+        variant="outline"
+        size="compact"
         onClick={() =>
           router.push(
             `/dashboard/admin/tools/photo-grid/preview/live?sheet_id=${encodeURIComponent(id)}`

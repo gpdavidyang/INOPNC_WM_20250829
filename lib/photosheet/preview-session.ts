@@ -1,5 +1,6 @@
 type PreviewData = {
   title: string
+  siteId?: string | null
   siteName: string
   rows: number
   cols: number
@@ -13,6 +14,7 @@ type PreviewData = {
     previewUrl?: string
   }>
   templateMode?: boolean
+  sheetId?: string | null
 }
 
 type SessionValue = { data: PreviewData; expiresAt: number }

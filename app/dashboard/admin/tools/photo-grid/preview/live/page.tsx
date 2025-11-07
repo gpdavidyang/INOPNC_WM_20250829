@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import PhotoSheetPrint from '@/components/photo-sheet/PhotoSheetPrint'
 import { Button } from '@/components/ui/button'
@@ -17,16 +17,20 @@ type ItemMeta = {
 
 type PreviewData = {
   title: string
+  siteId?: string | null
   siteName: string
   rows: number
   cols: number
   orientation: 'portrait' | 'landscape'
   items: ItemMeta[]
   templateMode?: boolean
+  sheetId?: string | null
 }
 
 export default function LivePreviewPage() {
   const [data, setData] = useState<PreviewData | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const params = useSearchParams()
 
   useEffect(() => {
@@ -86,7 +90,9 @@ export default function LivePreviewPage() {
               const s = j.data as any
               const items = Array.isArray(s.items) ? s.items : []
               const preview = {
-                title: s.title || '사진대지',
+                title: (s.title || '').trim(),
+                sheetId: s.id || null,
+                siteId: s.site_id || s.site?.id || null,
                 siteName: s.site?.name || '',
                 rows: Number(s.rows) || 1,
                 cols: Number(s.cols) || 1,
@@ -226,6 +232,84 @@ export default function LivePreviewPage() {
     )
   }, [data])
 
+  const handleSave = useCallback(async () => {
+    if (!data) return
+    if (!data.siteId) {
+      setSaveMessage('현장 정보가 없어 저장할 수 없습니다.')
+      return
+    }
+    try {
+      setSaving(true)
+      setSaveMessage(null)
+      const form = new FormData()
+      const normalizedTitle = data.title?.trim() ? data.title.trim() : '사진대지'
+      form.append('title', normalizedTitle)
+      form.append('site_id', data.siteId)
+      form.append('orientation', data.orientation)
+      form.append('rows', String(data.rows))
+      form.append('cols', String(data.cols))
+      form.append('status', 'final')
+
+      const itemsPayload: Array<{
+        index: number
+        member: string | null
+        process: string | null
+        content: string | null
+        stage: string | null
+        image_url: string | null
+      }> = []
+
+      await Promise.all(
+        data.items.map(async (item, index) => {
+          const payload = {
+            index,
+            member: item.member || null,
+            process: item.process || null,
+            content: item.content || null,
+            stage: item.stage || null,
+            image_url: null as string | null,
+          }
+          const url = item.previewUrl || ''
+          if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+            payload.image_url = url
+          } else if (url) {
+            const response = await fetch(url)
+            const blob = await response.blob()
+            const contentType = response.headers.get('content-type') || 'image/png'
+            const extension = contentType.split('/')[1] || 'png'
+            const filename = `photo-${index + 1}.${extension}`
+            form.append(`file_${index}`, blob, filename)
+          }
+          itemsPayload.push(payload)
+        })
+      )
+
+      form.append('items', JSON.stringify(itemsPayload))
+
+      const res = await fetch('/api/photo-sheets', {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || '저장에 실패했습니다.')
+      }
+      setSaveMessage('사진대지가 저장되었습니다.')
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : '저장 중 오류가 발생했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }, [data])
+
+  const canSave = useMemo(() => {
+    if (!data) return false
+    if (!data.siteId) return false
+    if (data.sheetId) return false
+    return data.items.length > 0
+  }, [data])
+
   if (!data) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
@@ -233,6 +317,14 @@ export default function LivePreviewPage() {
       </div>
     )
   }
+
+  const helperMessage =
+    saveMessage ||
+    (!data.siteId
+      ? '현장 정보가 없어 저장 버튼이 비활성화되었습니다.'
+      : data.sheetId
+        ? '이미 저장된 사진대지입니다.'
+        : null)
 
   return (
     <div className="px-0 pb-8">
@@ -247,6 +339,9 @@ export default function LivePreviewPage() {
         ]}
         actions={
           <div className="flex items-center gap-2">
+            <Button onClick={() => void handleSave()} disabled={!canSave || saving}>
+              {saving ? '저장 중…' : '저장'}
+            </Button>
             <Button variant="outline" onClick={() => window.print()}>
               인쇄
             </Button>
@@ -269,6 +364,9 @@ export default function LivePreviewPage() {
           </div>
         }
       />
+      {helperMessage && (
+        <div className="px-4 sm:px-6 lg:px-8 text-sm text-muted-foreground">{helperMessage}</div>
+      )}
       <div className="px-4 sm:px-6 lg:px-8 py-4">
         <div className="w-full overflow-x-auto">
           <div className="mx-auto min-w-max flex justify-center">{content}</div>

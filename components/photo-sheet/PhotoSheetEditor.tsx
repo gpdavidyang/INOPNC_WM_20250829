@@ -42,9 +42,17 @@ type ExistingSheet = {
   created_at?: string
 }
 
-type EditorProps = { onSaved?: (id: string, status: 'draft' | 'final') => void }
+type EditorProps = {
+  onSaved?: (id: string, status: 'draft' | 'final') => void
+  sheetId?: string
+  onClose?: () => void
+}
 
-export default function PhotoSheetEditor({ onSaved }: EditorProps) {
+export default function PhotoSheetEditor({
+  onSaved,
+  sheetId: externalSheetId,
+  onClose,
+}: EditorProps) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   const [orientation, setOrientation] = useState<Orientation>('portrait')
@@ -59,6 +67,8 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
   const [siteId, setSiteId] = useState('')
   const [siteName, setSiteName] = useState('')
   const [sheetId, setSheetId] = useState<string>('')
+  const [sourceReportId, setSourceReportId] = useState('')
+  const [sourceReportSummary, setSourceReportSummary] = useState('')
   const [saving, setSaving] = useState(false)
   const [loadingSheet, setLoadingSheet] = useState(false)
   const [message, setMessage] = useState<string>('')
@@ -72,8 +82,14 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
 
   const [componentOptions, setComponentOptions] = useState<WorkOption[]>([])
   const [processOptions, setProcessOptions] = useState<WorkOption[]>([])
+  const [bulkMember, setBulkMember] = useState('')
+  const [bulkProcess, setBulkProcess] = useState('')
 
-  const totalSlots = preset.rows * preset.cols * Math.max(1, pageCount)
+  const photosPerPage = useMemo(
+    () => Math.max(1, preset.rows * preset.cols),
+    [preset.rows, preset.cols]
+  )
+  const totalSlots = photosPerPage * Math.max(1, pageCount)
   const [tiles, setTiles] = useState<Tile[]>(() =>
     Array.from({ length: totalSlots }, (_, i) => ({ id: String(i) }))
   )
@@ -139,7 +155,7 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       tiles.forEach(t => t.previewUrl && URL.revokeObjectURL(t.previewUrl))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [externalSheetId])
 
   // Respond to preview data requests from preview tab
   useEffect(() => {
@@ -190,8 +206,57 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
     return () => window.removeEventListener('message', onMessage)
   }, [title, siteName, preset.rows, preset.cols, orientation, tiles])
 
-  // Auto-load by query param (?sheet_id=...)
+  const loadSheet = useCallback(async (id: string) => {
+    if (!id) return
+    setLoadingSheet(true)
+    setMessage('')
+    try {
+      const res = await fetch(`/api/photo-sheets/${encodeURIComponent(id)}`, {
+        cache: 'no-store',
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.success) throw new Error(json?.error || '불러오기에 실패했습니다')
+      const s = json.data
+      setSheetId(s.id)
+      setTitle(s.title || '사진대지')
+      setOrientation('portrait')
+      const match = PHOTO_SHEET_PRESETS.find(p => p.rows === s.rows && p.cols === s.cols)
+      if (match) setPresetId(match.id)
+      setSiteId(s.site_id)
+      setSourceReportId(s.source_daily_report_id || '')
+      setSourceReportSummary(s.source_daily_report_summary || '')
+      const items: any[] = Array.isArray(s.items) ? s.items : []
+      const perPage = s.rows * s.cols
+      const pg = Math.max(1, Math.ceil(items.length / Math.max(1, perPage)))
+      setPageCount(pg)
+      setTiles(() => {
+        const total = s.rows * s.cols * pg
+        const arr: Tile[] = Array.from({ length: total }, (_, i) => ({ id: String(i) }))
+        items.forEach((it: any) => {
+          const idx = Number(it.item_index)
+          if (!Number.isFinite(idx) || idx < 0 || idx >= total) return
+          arr[idx] = {
+            id: String(idx),
+            member: it.member_name || undefined,
+            process: it.process_name || undefined,
+            content: it.content || undefined,
+            stage: it.stage || undefined,
+            previewUrl: it.image_url || undefined,
+          }
+        })
+        return arr
+      })
+      setMessage('불러오기 완료')
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : '불러오기 중 오류가 발생했습니다.')
+    } finally {
+      setLoadingSheet(false)
+    }
+  }, [])
+
+  // Auto-load by query param (?sheet_id=...) only when external sheet id is not provided
   useEffect(() => {
+    if (externalSheetId) return
     try {
       const url = new URL(window.location.href)
       const sid = url.searchParams.get('sheet_id')
@@ -203,8 +268,13 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
     } catch {
       /* noop for SSR */
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [externalSheetId, loadSheet, sheetId, siteId])
+
+  useEffect(() => {
+    if (externalSheetId) {
+      void loadSheet(externalSheetId)
+    }
+  }, [externalSheetId, loadSheet])
 
   useEffect(() => {
     const s = sites.find(s => s.id === siteId)
@@ -253,13 +323,27 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
   }, [siteId])
 
   const onTileFileChange = (index: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const files = Array.from(e.target.files || []).filter(Boolean)
+    if (files.length === 0) return
+    const requiredSlots = index + files.length
+    const requiredPages = Math.max(1, Math.ceil(requiredSlots / photosPerPage))
+    setPageCount(prev => (requiredPages > prev ? requiredPages : prev))
     setTiles(prev => {
       const next = prev.slice()
-      const old = next[index]
-      if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl)
-      next[index] = { ...old, file, previewUrl: URL.createObjectURL(file) }
+      while (next.length < requiredSlots) {
+        next.push({ id: String(next.length) })
+      }
+      files.forEach((file, offset) => {
+        const tileIndex = index + offset
+        const old = next[tileIndex]
+        if (old?.previewUrl) URL.revokeObjectURL(old.previewUrl)
+        next[tileIndex] = {
+          ...old,
+          id: old?.id || String(tileIndex),
+          file,
+          previewUrl: URL.createObjectURL(file),
+        }
+      })
       return next
     })
     e.currentTarget.value = ''
@@ -273,10 +357,30 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
     })
   }
 
+  const applyBulkMetadata = useCallback(() => {
+    if (!bulkMember && !bulkProcess) return
+    setTiles(prev =>
+      prev.map(tile => {
+        const patch: Partial<Tile> = {}
+        if (bulkMember) patch.member = bulkMember
+        if (bulkProcess) patch.process = bulkProcess
+        return Object.keys(patch).length ? { ...tile, ...patch } : tile
+      })
+    )
+    setMessageType('info')
+    setMessage('선택한 부재명/공정을 전체 슬롯에 적용했습니다.')
+  }, [bulkMember, bulkProcess])
+
   const canPrint = useMemo(
     () => !!title && !!siteId && tiles.some(t => t.previewUrl),
     [title, siteId, tiles]
   )
+
+  const previewTitle = useMemo(() => {
+    const trimmed = (title || '').trim()
+    if (!trimmed || trimmed === '사진대지') return ''
+    return trimmed
+  }, [title])
 
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -314,7 +418,8 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       )
 
       const previewData = {
-        title,
+        title: previewTitle,
+        siteId,
         siteName,
         rows: preset.rows,
         cols: preset.cols,
@@ -403,6 +508,8 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       form.append('rows', String(preset.rows))
       form.append('cols', String(preset.cols))
       form.append('status', status)
+      if (sourceReportId) form.append('source_daily_report_id', sourceReportId)
+      if (sourceReportSummary) form.append('source_daily_report_summary', sourceReportSummary)
       form.append('items', buildItemsPayload())
       tiles.forEach((t, i) => {
         if (t.file) form.append(`file_${i}`, t.file as File)
@@ -458,53 +565,6 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
       setMessageType('error')
     } finally {
       setSaving(false)
-    }
-  }
-
-  const loadSheet = async (id: string) => {
-    if (!id) return
-    setLoadingSheet(true)
-    setMessage('')
-    try {
-      const res = await fetch(`/api/photo-sheets/${encodeURIComponent(id)}`, { cache: 'no-store' })
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) throw new Error(json?.error || '불러오기에 실패했습니다')
-      const s = json.data
-      setSheetId(s.id)
-      setTitle(s.title || '사진대지')
-      // Direct upload tab requirement: orientation fixed to portrait
-      setOrientation('portrait')
-      // Update preset via rows/cols; pick matching preset if available, else keep current and set pageCount appropriately
-      const match = PHOTO_SHEET_PRESETS.find(p => p.rows === s.rows && p.cols === s.cols)
-      if (match) setPresetId(match.id)
-      setSiteId(s.site_id)
-      const items: any[] = Array.isArray(s.items) ? s.items : []
-      const perPage = s.rows * s.cols
-      const pg = Math.max(1, Math.ceil(items.length / Math.max(1, perPage)))
-      setPageCount(pg)
-      // Build tiles array sized to rows*cols*pages
-      setTiles(() => {
-        const total = s.rows * s.cols * pg
-        const arr: Tile[] = Array.from({ length: total }, (_, i) => ({ id: String(i) }))
-        items.forEach((it: any) => {
-          const idx = Number(it.item_index)
-          if (!Number.isFinite(idx) || idx < 0 || idx >= total) return
-          arr[idx] = {
-            id: String(idx),
-            member: it.member_name || undefined,
-            process: it.process_name || undefined,
-            content: it.content || undefined,
-            stage: it.stage || undefined,
-            previewUrl: it.image_url || undefined,
-          }
-        })
-        return arr
-      })
-      setMessage('불러오기 완료')
-    } catch (e) {
-      setMessage(e instanceof Error ? e.message : '불러오기 중 오류가 발생했습니다.')
-    } finally {
-      setLoadingSheet(false)
     }
   }
 
@@ -650,6 +710,63 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
         {message ? `${sheetId ? ' • ' : ''}${message}` : ''}
       </div>
 
+      <div className="rounded-lg border bg-card/40 p-4 space-y-3">
+        <div className="text-sm font-semibold">부재/공정 일괄 적용</div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+          <div className="md:col-span-2">
+            <Label className="text-xs">부재명</Label>
+            <Select value={bulkMember} onValueChange={setBulkMember}>
+              <SelectTrigger className="h-9" aria-label="부재명 일괄 선택">
+                <SelectValue placeholder="선택 시 전체 슬롯에 적용" />
+              </SelectTrigger>
+              <SelectContent>
+                {componentOptions.map(o => (
+                  <SelectItem key={o.id} value={o.option_label}>
+                    {o.option_label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs">공정</Label>
+            <Select value={bulkProcess} onValueChange={setBulkProcess}>
+              <SelectTrigger className="h-9" aria-label="공정 일괄 선택">
+                <SelectValue placeholder="선택 시 전체 슬롯에 적용" />
+              </SelectTrigger>
+              <SelectContent>
+                {processOptions.map(o => (
+                  <SelectItem key={o.id} value={o.option_label}>
+                    {o.option_label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="md:col-span-4 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!bulkMember && !bulkProcess}
+              onClick={applyBulkMetadata}
+            >
+              전체 적용
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-xs text-muted-foreground"
+              onClick={() => {
+                setBulkMember('')
+                setBulkProcess('')
+              }}
+            >
+              선택 초기화
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {Array.from({ length: Math.max(1, pageCount) }).map((_, pageIdx) => {
         const start = pageIdx * (preset.rows * preset.cols)
         const end = start + preset.rows * preset.cols
@@ -668,20 +785,25 @@ export default function PhotoSheetEditor({ onSaved }: EditorProps) {
             >
               {pageTiles.map((t, i) => (
                 <div key={t.id} className="border rounded p-3">
-                  <div className="aspect-video w-full bg-muted flex items-center justify-center overflow-hidden rounded border">
+                  <div className="aspect-video w-full bg-muted overflow-hidden rounded border relative">
                     {t.previewUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={t.previewUrl}
                         alt={`사진 ${start + i + 1}`}
-                        className="w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-fill"
                       />
                     ) : (
-                      <label className="text-sm text-muted-foreground cursor-pointer">
-                        이미지를 클릭하여 업로드
+                      <label className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground cursor-pointer text-center px-2">
+                        <span>
+                          이미지를 클릭하여 업로드
+                          <br />
+                          <span className="text-xs">(다중 선택 지원)</span>
+                        </span>
                         <input
                           type="file"
                           accept="image/*"
+                          multiple
                           className="hidden"
                           onChange={onTileFileChange(start + i)}
                         />

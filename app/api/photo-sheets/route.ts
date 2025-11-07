@@ -148,14 +148,78 @@ export async function POST(request: NextRequest) {
     if (rows <= 0 || cols <= 0)
       return NextResponse.json({ error: 'invalid rows/cols' }, { status: 400 })
 
+    let sourceDailyReportId = String(form.get('source_daily_report_id') || '').trim()
+    if (!sourceDailyReportId) sourceDailyReportId = ''
+    let sourceDailyReportSummary = String(form.get('source_daily_report_summary') || '').trim()
+
+    if (sourceDailyReportId) {
+      const { data: linkedReport, error: linkedErr } = await supabase
+        .from('daily_reports')
+        .select('id, site_id, work_date, component_name, process_type')
+        .eq('id', sourceDailyReportId)
+        .maybeSingle()
+
+      if (linkedErr || !linkedReport) {
+        return NextResponse.json({ error: '존재하지 않는 작업일지입니다.' }, { status: 400 })
+      }
+      if (linkedReport.site_id !== site_id) {
+        return NextResponse.json(
+          { error: '선택한 작업일지가 해당 현장과 일치하지 않습니다.' },
+          { status: 400 }
+        )
+      }
+      if (!sourceDailyReportSummary) {
+        const parts: string[] = []
+        if (linkedReport.work_date) {
+          try {
+            parts.push(
+              new Date(linkedReport.work_date).toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              })
+            )
+          } catch {
+            parts.push(linkedReport.work_date)
+          }
+        }
+        if (linkedReport.component_name) parts.push(linkedReport.component_name)
+        if (linkedReport.process_type) parts.push(linkedReport.process_type)
+        sourceDailyReportSummary = parts.join(' / ')
+      }
+    }
+
     // Insert sheet (use service client for admins to avoid RLS interference)
     const db =
       auth.role === 'admin' || auth.role === 'system_admin' ? createServiceClient() : supabase
-    const { data: sheet, error: insErr } = await db
-      .from('photo_sheets')
-      .insert({ title, orientation, rows, cols, site_id, status, created_by: auth.userId })
-      .select()
-      .single()
+
+    const attemptInsert = async (payload: Record<string, any>) =>
+      db.from('photo_sheets').insert(payload).select().single()
+
+    const insertPayload = {
+      title,
+      orientation,
+      rows,
+      cols,
+      site_id,
+      status,
+      created_by: auth.userId,
+      source_daily_report_id: sourceDailyReportId || null,
+      source_daily_report_summary: sourceDailyReportSummary || null,
+    }
+
+    let { data: sheet, error: insErr } = await attemptInsert(insertPayload)
+    const isMissingSourceColumns = (message?: string) =>
+      !!message && /source_daily_report/i.test(message)
+
+    if (insErr && isMissingSourceColumns(insErr.message || '')) {
+      const fallbackPayload = { ...insertPayload }
+      delete fallbackPayload.source_daily_report_id
+      delete fallbackPayload.source_daily_report_summary
+      const fallback = await attemptInsert(fallbackPayload)
+      sheet = fallback.data
+      insErr = fallback.error
+    }
 
     if (insErr || !sheet) {
       console.error('Insert photo_sheets error:', insErr)

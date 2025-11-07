@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { withSignedPhotoUrls } from '@/lib/admin/site-photos'
 
 export const dynamic = 'force-dynamic'
 
@@ -205,6 +206,159 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     // Enrich per report: worker_count, document_count, total_manhours
     const list = Array.isArray(reports) ? reports : []
+    const authorIds = Array.from(
+      new Set(
+        list
+          .map((r: any) => (typeof r?.created_by === 'string' ? r.created_by : null))
+          .filter((id): id is string => Boolean(id))
+      )
+    )
+    const authorProfilesMap = new Map<
+      string,
+      {
+        id: string
+        full_name: string
+        email: string | null
+        metadata: Record<string, unknown> | null
+      }
+    >()
+
+    if (authorIds.length > 0) {
+      const { data: authorProfiles, error: authorProfilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, metadata')
+        .in('id', authorIds)
+
+      if (authorProfilesError) {
+        console.warn('[admin/sites/:id/daily-reports] failed to load author profiles', {
+          error: authorProfilesError.message,
+        })
+      } else if (Array.isArray(authorProfiles)) {
+        authorProfiles.forEach(profile => {
+          if (!profile?.id) return
+          const metadata =
+            profile?.metadata && typeof profile.metadata === 'object'
+              ? (profile.metadata as Record<string, unknown>)
+              : null
+          let resolvedName = typeof profile?.full_name === 'string' ? profile.full_name.trim() : ''
+          if (!resolvedName && metadata) {
+            const nameKeys = ['full_name', 'name', 'name_ko', 'korean_name', 'display_name']
+            for (const key of nameKeys) {
+              const value = metadata[key]
+              if (typeof value === 'string' && value.trim()) {
+                resolvedName = value.trim()
+                break
+              }
+            }
+          }
+          if (!resolvedName && typeof profile?.email === 'string') {
+            const [local] = profile.email.split('@')
+            if (local) resolvedName = local
+          }
+          authorProfilesMap.set(profile.id, {
+            id: profile.id,
+            full_name: resolvedName || profile?.full_name || '',
+            email: typeof profile?.email === 'string' ? profile.email : null,
+            metadata,
+          })
+        })
+      }
+    }
+
+    const reportIds = list
+      .map((r: any) => (typeof r?.id === 'string' ? r.id : null))
+      .filter((id): id is string => Boolean(id))
+
+    type PhotoEntry = {
+      url?: string | null
+      path?: string | null
+      storage_path?: string | null
+      filename?: string | null
+      description?: string | null
+      upload_order?: number | null
+      order?: number | null
+      uploaded_by?: string | null
+      uploaded_at?: string | null
+      photo_type?: 'before' | 'after' | string | null
+    }
+
+    const fallbackPhotoMap = new Map<string, { before: PhotoEntry[]; after: PhotoEntry[] }>()
+    if (reportIds.length > 0) {
+      try {
+        const { data: photoRows, error: photoError } = await supabase
+          .from('daily_report_additional_photos')
+          .select(
+            `
+              daily_report_id,
+              photo_type,
+              file_url,
+              file_path,
+              file_name,
+              description,
+              upload_order,
+              uploaded_by,
+              created_at
+            `
+          )
+          .in('daily_report_id', reportIds)
+
+        if (!photoError && Array.isArray(photoRows)) {
+          const signingTasks: Promise<void>[] = []
+          for (const row of photoRows) {
+            if (!row?.daily_report_id) continue
+            const bucket = String(row.photo_type) === 'after' ? 'after' : 'before'
+            const entry: PhotoEntry = {
+              url: row.file_url || null,
+              path: row.file_path || null,
+              storage_path: row.file_path || null,
+              filename: row.file_name || null,
+              description: row.description || null,
+              upload_order: typeof row.upload_order === 'number' ? row.upload_order : null,
+              order: typeof row.upload_order === 'number' ? row.upload_order : null,
+              uploaded_by: row.uploaded_by || null,
+              uploaded_at: row.created_at || null,
+              photo_type: bucket as 'before' | 'after',
+            }
+            const existing = fallbackPhotoMap.get(row.daily_report_id) ?? {
+              before: [] as PhotoEntry[],
+              after: [] as PhotoEntry[],
+            }
+            existing[bucket as 'before' | 'after'].push(entry)
+            fallbackPhotoMap.set(row.daily_report_id, existing)
+          }
+
+          fallbackPhotoMap.forEach((group, reportId) => {
+            group.before.sort(
+              (a, b) => (a.upload_order || a.order || 0) - (b.upload_order || b.order || 0)
+            )
+            group.after.sort(
+              (a, b) => (a.upload_order || a.order || 0) - (b.upload_order || b.order || 0)
+            )
+            signingTasks.push(
+              (async () => {
+                const signedBefore =
+                  group.before.length > 0 ? await withSignedPhotoUrls(group.before) : group.before
+                const signedAfter =
+                  group.after.length > 0 ? await withSignedPhotoUrls(group.after) : group.after
+                fallbackPhotoMap.set(reportId, { before: signedBefore, after: signedAfter })
+              })()
+            )
+          })
+          await Promise.all(signingTasks)
+        } else if (photoError) {
+          console.warn(
+            '[admin/sites/:id/daily-reports] additional photo fallback query error:',
+            photoError
+          )
+        }
+      } catch (photoQueryError) {
+        console.warn(
+          '[admin/sites/:id/daily-reports] failed to load fallback additional photos:',
+          photoQueryError
+        )
+      }
+    }
+
     const enriched = await Promise.all(
       list.map(async (r: any) => {
         let worker_count = Number(r.total_workers)
@@ -253,7 +407,35 @@ export async function GET(request: Request, { params }: { params: { id: string }
           document_count = document_count || 0
         }
 
-        return { ...r, worker_count, document_count, total_manhours }
+        const existingProfile =
+          r?.created_by_profile && typeof r.created_by_profile === 'object'
+            ? (r.created_by_profile as Record<string, unknown>)
+            : null
+        const createdByProfile =
+          (typeof r?.created_by === 'string' && authorProfilesMap.get(r.created_by)) ||
+          existingProfile ||
+          null
+
+        const fallbackPhotos = fallbackPhotoMap.get(r.id) || { before: [], after: [] }
+        const mergedAdditionalBefore =
+          Array.isArray(r.additional_before_photos) && r.additional_before_photos.length > 0
+            ? r.additional_before_photos
+            : fallbackPhotos.before
+        const mergedAdditionalAfter =
+          Array.isArray(r.additional_after_photos) && r.additional_after_photos.length > 0
+            ? r.additional_after_photos
+            : fallbackPhotos.after
+
+        return {
+          ...r,
+          additional_before_photos: mergedAdditionalBefore,
+          additional_after_photos: mergedAdditionalAfter,
+          worker_count,
+          document_count,
+          total_manhours,
+          created_by_profile: createdByProfile,
+          profiles: createdByProfile ?? r?.profiles ?? null,
+        }
       })
     )
 

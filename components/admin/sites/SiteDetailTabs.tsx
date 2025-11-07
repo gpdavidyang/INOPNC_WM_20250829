@@ -13,6 +13,18 @@ import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
+  DEFAULT_SHARED_DOCUMENT_CATEGORIES,
+  type SharedDocumentCategoryOption,
+} from '@/lib/constants/shared-document-categories'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import StatsCard from '@/components/ui/stats-card'
 import {
@@ -57,37 +69,13 @@ const INVOICE_STAGE_LABELS: Record<InvoiceStageKey, string> = {
   completion: '완료 단계',
 }
 
-const SHARED_CATEGORY_LABELS: Record<string, string> = {
-  general: '일반',
-  notice: '공지',
-  safety: '안전',
-  inspection: '점검',
-  checklist: '체크리스트',
-  form: '양식',
-  reference: '자료',
-  drawing: '도면',
-  blueprint: '도면',
-  construction_drawing: '공도면',
-  progress_drawing: '진행도면',
-  ptw: 'PTW(작업허가서)',
-}
-
-const SHARED_FILTER_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: 'all', label: '전체' },
-  { value: 'construction_drawing', label: '공도면' },
-  { value: 'progress_drawing', label: '진행도면' },
-  { value: 'ptw', label: 'PTW(작업허가서)' },
-  { value: 'general', label: SHARED_CATEGORY_LABELS.general },
-  { value: 'notice', label: SHARED_CATEGORY_LABELS.notice },
-  { value: 'safety', label: SHARED_CATEGORY_LABELS.safety },
-  { value: 'inspection', label: SHARED_CATEGORY_LABELS.inspection },
-  { value: 'checklist', label: SHARED_CATEGORY_LABELS.checklist },
-  { value: 'form', label: SHARED_CATEGORY_LABELS.form },
-  { value: 'reference', label: SHARED_CATEGORY_LABELS.reference },
-  { value: 'drawing', label: SHARED_CATEGORY_LABELS.drawing },
-  { value: 'blueprint', label: '도면(청사진)' },
-  { value: 'other', label: '기타' },
-]
+const DEFAULT_SHARED_CATEGORY_LABEL_MAP = DEFAULT_SHARED_DOCUMENT_CATEGORIES.reduce(
+  (acc, option) => {
+    acc[option.value] = option.label
+    return acc
+  },
+  {} as Record<string, string>
+)
 
 const STATUS_LABELS: Record<string, string> = {
   planning: '준비 중',
@@ -249,11 +237,58 @@ export default function SiteDetailTabs({
   const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
   const [sharedDocsRefreshing, setSharedDocsRefreshing] = useState(false)
   const [sharedSubCategory, setSharedSubCategory] = useState<string>('all')
+  const [sharedCategoryOptions, setSharedCategoryOptions] = useState<
+    SharedDocumentCategoryOption[]
+  >(DEFAULT_SHARED_DOCUMENT_CATEGORIES)
   const [sharedStats, setSharedStats] = useState<{
     total_documents: number
     by_type?: Record<string, number>
   } | null>(null)
   const [sharedDownloading, setSharedDownloading] = useState<Record<string, boolean>>({})
+  const [sharedEditingDocId, setSharedEditingDocId] = useState<string | null>(null)
+  const [sharedEditDraft, setSharedEditDraft] = useState<{
+    title: string
+    subCategory: string | null
+  } | null>(null)
+  const [sharedUpdating, setSharedUpdating] = useState<Record<string, boolean>>({})
+  const sharedCategoryLabelMap = useMemo(() => {
+    const next = { ...DEFAULT_SHARED_CATEGORY_LABEL_MAP }
+    sharedCategoryOptions.forEach(option => {
+      next[option.value] = option.label
+    })
+    return next
+  }, [sharedCategoryOptions])
+  const sharedFilterOptions = useMemo(
+    () => [{ value: 'all', label: '전체' }, ...sharedCategoryOptions],
+    [sharedCategoryOptions]
+  )
+  const resolveSharedCategoryLabel = useCallback(
+    (doc: any) => {
+      const meta =
+        doc?.metadata && typeof doc.metadata === 'object'
+          ? (doc.metadata as Record<string, unknown>)
+          : {}
+      const subRaw =
+        doc?.sub_category ||
+        doc?.subCategory ||
+        meta?.sub_category ||
+        meta?.subcategory ||
+        meta?.category ||
+        ''
+      const catRaw = doc?.category_type || doc?.categoryType || meta?.category_type || ''
+      const sub = String(subRaw || '').toLowerCase()
+      const cat = String(catRaw || '').toLowerCase()
+
+      if (sub && sharedCategoryLabelMap[sub]) return sharedCategoryLabelMap[sub]
+      if (cat && sharedCategoryLabelMap[cat]) return sharedCategoryLabelMap[cat]
+      if (sub && CATEGORY_LABELS[sub]) return CATEGORY_LABELS[sub]
+      if (cat && CATEGORY_LABELS[cat]) return CATEGORY_LABELS[cat]
+      if (sub) return sub
+      if (cat) return cat
+      return '기타'
+    },
+    [sharedCategoryLabelMap]
+  )
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
   const [reportsQuery, setReportsQuery] = useState('')
@@ -353,6 +388,145 @@ export default function SiteDetailTabs({
     [sharedSubCategory, siteId]
   )
 
+  useEffect(() => {
+    let mounted = true
+    const controller = new AbortController()
+    async function loadSharedCategories() {
+      try {
+        const res = await fetch('/api/admin/document-categories/shared', {
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!mounted) return
+        if (res.ok && Array.isArray(json?.data)) {
+          setSharedCategoryOptions(json.data)
+        }
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('Failed to load shared document categories, using defaults.', error)
+        }
+      }
+    }
+    void loadSharedCategories()
+    return () => {
+      mounted = false
+      controller.abort()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (sharedSubCategory === 'all') return
+    const exists = sharedCategoryOptions.some(option => option.value === sharedSubCategory)
+    if (!exists) setSharedSubCategory('all')
+  }, [sharedCategoryOptions, sharedSubCategory])
+
+  const startSharedEdit = useCallback(
+    (doc: any) => {
+      const docId = doc?.id ? String(doc.id) : null
+      if (!docId) {
+        toast({
+          title: '수정할 수 없습니다',
+          description: '문서 식별자를 찾을 수 없습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+      const meta =
+        doc?.metadata && typeof doc.metadata === 'object'
+          ? (doc.metadata as Record<string, any>)
+          : {}
+      const initialTitle =
+        typeof doc?.title === 'string' && doc.title.trim().length > 0
+          ? doc.title
+          : doc?.file_name || meta?.file_name || ''
+      const rawSubCategory =
+        (typeof doc?.sub_category === 'string' && doc.sub_category) ||
+        (typeof meta?.sub_category === 'string' && meta.sub_category) ||
+        (typeof meta?.subcategory === 'string' && meta.subcategory) ||
+        null
+      const normalizedSubCategory =
+        typeof rawSubCategory === 'string' && rawSubCategory.trim().length > 0
+          ? rawSubCategory.trim()
+          : null
+      setSharedEditingDocId(docId)
+      setSharedEditDraft({
+        title: initialTitle || '',
+        subCategory: normalizedSubCategory,
+      })
+    },
+    [toast]
+  )
+
+  const cancelSharedEdit = useCallback(() => {
+    setSharedEditingDocId(null)
+    setSharedEditDraft(null)
+  }, [])
+
+  const handleSharedEditSubmit = useCallback(async () => {
+    if (!sharedEditingDocId || !sharedEditDraft) return
+    const docId = sharedEditingDocId
+    const trimmedTitle = (sharedEditDraft.title || '').trim()
+    if (trimmedTitle.length === 0) {
+      toast({
+        title: '문서명을 입력해 주세요',
+        description: '문서명은 비워둘 수 없습니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setSharedUpdating(prev => ({ ...prev, [docId]: true }))
+
+    try {
+      const payload = {
+        id: docId,
+        title: trimmedTitle,
+        sub_category: sharedEditDraft.subCategory,
+      }
+      const res = await fetch(`/api/admin/sites/${siteId}/documents`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success || !json?.data) {
+        const message = json?.error || res.statusText || '공유자료 정보를 수정할 수 없습니다.'
+        throw new Error(message)
+      }
+
+      const updatedDoc = json.data
+      setSharedDocs(prev =>
+        Array.isArray(prev)
+          ? prev.map(item => (String(item?.id) === docId ? updatedDoc : item))
+          : prev
+      )
+      toast({
+        title: '수정 완료',
+        description: '문서 정보가 업데이트되었습니다.',
+      })
+      cancelSharedEdit()
+      void fetchSharedDocs({ silent: true })
+    } catch (error: any) {
+      console.error('Shared document update failed:', error)
+      toast({
+        title: '수정 실패',
+        description: error?.message || '공유자료 정보를 수정할 수 없습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSharedUpdating(prev => {
+        const next = { ...prev }
+        delete next[docId]
+        return next
+      })
+    }
+  }, [cancelSharedEdit, fetchSharedDocs, sharedEditDraft, sharedEditingDocId, siteId, toast])
+
   const handleSharedDelete = useCallback(
     async (doc: any) => {
       const docId = doc?.id ? String(doc.id) : null
@@ -390,6 +564,9 @@ export default function SiteDetailTabs({
         }
 
         setSharedDocs(prev => prev.filter(item => String(item?.id) !== docId))
+        if (sharedEditingDocId === docId) {
+          cancelSharedEdit()
+        }
         toast({ title: '삭제 완료', description: '공유자료가 삭제되었습니다.' })
         void fetchSharedDocs({ silent: true })
       } catch (error: any) {
@@ -407,7 +584,7 @@ export default function SiteDetailTabs({
         })
       }
     },
-    [confirm, fetchSharedDocs, siteId, toast]
+    [cancelSharedEdit, confirm, fetchSharedDocs, sharedEditingDocId, siteId, toast]
   )
 
   const handleSharedDownload = useCallback(
@@ -2826,7 +3003,7 @@ export default function SiteDetailTabs({
                     onChange={event => setSharedSubCategory(event.target.value)}
                     className="h-9 min-w-[140px] rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
-                    {SHARED_FILTER_OPTIONS.map(option => (
+                    {sharedFilterOptions.map(option => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -2892,6 +3069,17 @@ export default function SiteDetailTabs({
                         const downloadHref = fileUrl ?? null
                         const hasDownload = Boolean(downloadHref)
                         const downloading = docId ? Boolean(sharedDownloading[docId]) : false
+                        const isEditing = sharedEditingDocId === docId
+                        const editDraft = isEditing && sharedEditDraft ? sharedEditDraft : null
+                        const updating = Boolean(sharedUpdating[docId])
+                        const titleValue = editDraft?.title ?? ''
+                        const canSave = titleValue.trim().length > 0
+                        const hasExistingCategory =
+                          editDraft?.subCategory &&
+                          sharedCategoryOptions.some(
+                            option => option.value === editDraft.subCategory
+                          )
+                        const editSubCategoryValue = editDraft?.subCategory ?? '__none'
                         return (
                           <TableRow key={docId}>
                             <TableCell className="align-top text-xs text-muted-foreground">
@@ -2900,30 +3088,92 @@ export default function SiteDetailTabs({
                                 : '-'}
                             </TableCell>
                             <TableCell className="align-top">
-                              <div className="space-y-1">
-                                {hasPreview && fileUrl ? (
-                                  <a
-                                    href={fileUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-left font-medium text-foreground underline-offset-2 transition hover:underline"
-                                  >
-                                    {doc?.title || doc?.file_name || '-'}
-                                  </a>
-                                ) : (
-                                  <span className="text-left font-medium text-foreground">
-                                    {doc?.title || doc?.file_name || '-'}
-                                  </span>
-                                )}
-                                {doc?.description ? (
-                                  <p className="text-xs text-muted-foreground line-clamp-2">
-                                    {doc.description}
+                              {isEditing ? (
+                                <div className="space-y-2">
+                                  <Input
+                                    value={titleValue}
+                                    onChange={event => {
+                                      const value = event.target.value
+                                      if (!isEditing) return
+                                      setSharedEditDraft(prev =>
+                                        prev ? { ...prev, title: value } : prev
+                                      )
+                                    }}
+                                    placeholder="문서명을 입력하세요"
+                                    className="h-9"
+                                    disabled={updating}
+                                  />
+                                  <p className="text-xs text-muted-foreground">
+                                    원본 파일명: {doc?.file_name || '-'}
                                   </p>
-                                ) : null}
-                              </div>
+                                  {doc?.description ? (
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {doc.description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <div className="space-y-1">
+                                  {hasPreview && fileUrl ? (
+                                    <a
+                                      href={fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-left font-medium text-foreground underline-offset-2 transition hover:underline"
+                                    >
+                                      {doc?.title || doc?.file_name || '-'}
+                                    </a>
+                                  ) : (
+                                    <span className="text-left font-medium text-foreground">
+                                      {doc?.title || doc?.file_name || '-'}
+                                    </span>
+                                  )}
+                                  {doc?.description ? (
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {doc.description}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              )}
                             </TableCell>
                             <TableCell className="align-top">
-                              <Badge variant="secondary">{getSharedCategoryLabel(doc)}</Badge>
+                              {isEditing ? (
+                                <Select
+                                  value={editSubCategoryValue}
+                                  onValueChange={value => {
+                                    if (!isEditing) return
+                                    setSharedEditDraft(prev =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            subCategory: value === '__none' ? null : value,
+                                          }
+                                        : prev
+                                    )
+                                  }}
+                                  disabled={updating}
+                                >
+                                  <SelectTrigger className="h-9 min-w-[160px]">
+                                    <SelectValue placeholder="분류 선택" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="__none">분류 없음</SelectItem>
+                                    {!hasExistingCategory && editDraft?.subCategory ? (
+                                      <SelectItem value={editDraft.subCategory}>
+                                        {sharedCategoryLabelMap[editDraft.subCategory] ||
+                                          `${editDraft.subCategory} (미등록)`}
+                                      </SelectItem>
+                                    ) : null}
+                                    {sharedCategoryOptions.map(option => (
+                                      <SelectItem key={option.value} value={option.value}>
+                                        {option.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <Badge variant="secondary">{resolveSharedCategoryLabel(doc)}</Badge>
+                              )}
                             </TableCell>
                             <TableCell className="align-top text-sm text-muted-foreground">
                               {uploader || '-'}
@@ -2965,15 +3215,56 @@ export default function SiteDetailTabs({
                                     다운로드
                                   </Button>
                                 )}
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleSharedDelete(doc)}
-                                  disabled={!doc?.id || deleting}
-                                  className="gap-1"
-                                >
-                                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : '삭제'}
-                                </Button>
+                                {isEditing ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={cancelSharedEdit}
+                                      disabled={updating}
+                                      className="gap-1"
+                                    >
+                                      취소
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      onClick={handleSharedEditSubmit}
+                                      disabled={updating || !canSave}
+                                      className="gap-1"
+                                    >
+                                      {updating ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        '저장'
+                                      )}
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => startSharedEdit(doc)}
+                                      disabled={!doc?.id}
+                                      className="gap-1"
+                                    >
+                                      수정
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="destructive"
+                                      onClick={() => handleSharedDelete(doc)}
+                                      disabled={!doc?.id || deleting}
+                                      className="gap-1"
+                                    >
+                                      {deleting ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                      ) : (
+                                        '삭제'
+                                      )}
+                                    </Button>
+                                  </>
+                                )}
                               </div>
                             </TableCell>
                           </TableRow>
@@ -3243,26 +3534,6 @@ function getSharedDocFileUrl(doc: any): string | null {
     if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate
   }
   return null
-}
-
-function getSharedCategoryLabel(d: any): string {
-  const meta = d?.metadata && typeof d.metadata === 'object' ? d.metadata : {}
-  const subRaw =
-    d?.sub_category ||
-    d?.subCategory ||
-    meta?.sub_category ||
-    meta?.subcategory ||
-    meta?.category ||
-    ''
-  const catRaw = d?.category_type || meta?.category_type || ''
-  const sub = String(subRaw || '').toLowerCase()
-  const cat = String(catRaw || '').toLowerCase()
-
-  if (sub && SHARED_CATEGORY_LABELS[sub]) return SHARED_CATEGORY_LABELS[sub]
-  if (cat && SHARED_CATEGORY_LABELS[cat]) return SHARED_CATEGORY_LABELS[cat]
-  if (sub) return sub
-  if (cat && CATEGORY_LABELS[cat]) return CATEGORY_LABELS[cat]
-  return '기타'
 }
 
 // Helpers: filter/sort for assignments and requests
