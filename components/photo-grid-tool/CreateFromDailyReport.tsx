@@ -135,10 +135,15 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
   const [selectedBefore, setSelectedBefore] = useState<Selected[]>([])
   const [selectedAfter, setSelectedAfter] = useState<Selected[]>([])
   const perPageSlots = selectedLayout.rows * selectedLayout.cols
-  const safePageCount = Math.max(1, pageCount)
   const selectedPhotoTotal = selectedBefore.length + selectedAfter.length
-  const totalCapacity = perPageSlots * safePageCount
-  const capacityExceeded = selectedPhotoTotal > totalCapacity
+
+  useEffect(() => {
+    if (perPageSlots <= 0) return
+    const neededPages = Math.max(1, Math.ceil(selectedPhotoTotal / perPageSlots))
+    setPageCount(prev => (prev < neededPages ? neededPages : prev || 1))
+  }, [perPageSlots, selectedPhotoTotal])
+
+  const totalCapacity = perPageSlots * Math.max(1, pageCount)
 
   const recommendPresetId = useCallback((count: number) => {
     if (count <= 1) return '1x1'
@@ -329,20 +334,10 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
   // Helpers: selection/reorder
   const addBefore = (p: PhotoItem) => {
     if (selectedBefore.find(x => x.url === p.url)) return
-    const nextTotal = selectedBefore.length + selectedAfter.length + 1
-    if (nextTotal > totalCapacity) {
-      alert('선택한 사진이 현재 배치 수용량을 초과합니다. 사진수량 또는 페이지 수를 조정해 주세요.')
-      return
-    }
     setSelectedBefore(prev => [...prev, { url: p.url, order: prev.length }])
   }
   const addAfter = (p: PhotoItem) => {
     if (selectedAfter.find(x => x.url === p.url)) return
-    const nextTotal = selectedBefore.length + selectedAfter.length + 1
-    if (nextTotal > totalCapacity) {
-      alert('선택한 사진이 현재 배치 수용량을 초과합니다. 사진수량 또는 페이지 수를 조정해 주세요.')
-      return
-    }
     setSelectedAfter(prev => [...prev, { url: p.url, order: prev.length }])
   }
   const removeBefore = (i: number) => {
@@ -375,10 +370,7 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
     const siteOk = !!siteId || !!reportDetail?.site?.id || !!reportDetail?.daily_report?.site_id
     const totalPhotos = selectedBefore.length + selectedAfter.length
     const havePhotos = totalPhotos > 0
-    const perPageSlots = selectedLayout.rows * selectedLayout.cols
-    const safePageCount = Math.max(1, pageCount)
-    const capacityOk = totalPhotos <= perPageSlots * safePageCount
-    return compOk && procOk && siteOk && !!workDate && havePhotos && capacityOk
+    return compOk && procOk && siteOk && !!workDate && havePhotos
   }, [
     componentName,
     componentNameOther,
@@ -391,9 +383,6 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
     workDate,
     selectedBefore.length,
     selectedAfter.length,
-    pageCount,
-    selectedLayout.rows,
-    selectedLayout.cols,
   ])
 
   const buildReportSummary = useCallback(() => {
@@ -438,13 +427,6 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
       const count = all.length
       const rows = selectedLayout.rows
       const cols = selectedLayout.cols
-      const perPage = rows * cols
-      const safePages = Math.max(1, pageCount)
-      if (count > perPage * safePages) {
-        alert('선택한 사진이 현재 배치보다 많습니다. 사진수량 또는 페이지 수를 조정해 주세요.')
-        return
-      }
-
       const items = all.map((p, idx) => ({
         index: idx,
         member: finalComponentName || null,
@@ -555,30 +537,11 @@ export default function CreateFromDailyReport({ onCreated }: { onCreated?: () =>
               </SelectContent>
             </Select>
           </div>
-          <div className="md:w-32">
-            <Label>페이지 수</Label>
-            <Input
-              type="number"
-              min={1}
-              value={pageCount}
-              onChange={e => setPageCount(Math.max(1, Number(e.target.value) || 1))}
-              className="h-9"
-            />
-          </div>
-          <div className="flex items-end">
-            <Button type="button" variant="outline" onClick={handleAutoLayout}>
-              자동 맞춤
-            </Button>
-          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-xs">
           <span className="text-muted-foreground">선택한 사진: {selectedPhotoTotal}장</span>
           <span className="text-muted-foreground">현재 배치 수용량: {totalCapacity}장</span>
-          {capacityExceeded && (
-            <span className="text-red-600">
-              선택한 사진이 수용량을 초과했습니다. 사진수량 또는 페이지 수를 조정하세요.
-            </span>
-          )}
+          <span className="text-muted-foreground">필요 페이지 수는 자동으로 맞춰집니다.</span>
         </div>
       </div>
 
