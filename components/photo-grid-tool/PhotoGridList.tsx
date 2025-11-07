@@ -198,7 +198,13 @@ export default function PhotoGridList() {
     } catch {
       /* ignore */
     }
-    const qs = `${autoPrint ? '?auto=print' : ''}${autoPrint ? '&' : '?'}id=${encodeURIComponent(key)}`
+    const buildPreviewUrl = (previewId: string) => {
+      const params = new URLSearchParams()
+      if (autoPrint) params.set('auto', 'print')
+      params.set('id', previewId)
+      if (item.id) params.set('sheet_id', item.id)
+      return `/dashboard/admin/tools/photo-grid/preview/live?${params.toString()}`
+    }
     // Try server-side preview session first
     try {
       const res = await fetch('/api/photo-sheets/preview-session', {
@@ -209,7 +215,7 @@ export default function PhotoGridList() {
       })
       const j = await res.json().catch(() => null)
       if (res.ok && j?.success && j?.id) {
-        const url = `/dashboard/admin/tools/photo-grid/preview/live?${autoPrint ? 'auto=print&' : ''}id=${encodeURIComponent(j.id as string)}`
+        const url = buildPreviewUrl(String(j.id))
         router.push(url)
         return
       }
@@ -217,9 +223,8 @@ export default function PhotoGridList() {
       /* ignore */
     }
 
-    const url = `/dashboard/admin/tools/photo-grid/preview/live${qs}`
     // Same-tab fallback using localStorage key
-    router.push(url)
+    router.push(buildPreviewUrl(key))
   }
 
   return (

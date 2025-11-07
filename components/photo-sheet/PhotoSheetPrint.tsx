@@ -40,6 +40,14 @@ export default function PhotoSheetPrint({
   })
 
   const perPage = rows * cols
+  const firstMemberName = useMemo(() => {
+    for (const it of items) {
+      const member = (it?.member || '').trim()
+      if (member) return member
+    }
+    return ''
+  }, [items])
+
   const pages: ItemMeta[][] = useMemo(() => {
     if (!items || items.length === 0) return [[]]
     const result: ItemMeta[][] = []
@@ -160,11 +168,20 @@ export default function PhotoSheetPrint({
     []
   )
 
+  const fallbackTitle = useMemo(() => {
+    const normalizedSite = (siteName || '').trim()
+    return normalizedSite || '사진대지'
+  }, [siteName])
+
   const resolvedTitle = useMemo(() => {
     const trimmed = (title || '').trim()
-    if (!trimmed || trimmed === '사진대지') return '\u00A0'
-    return trimmed
-  }, [title])
+    const normalizedMember = firstMemberName.trim()
+    const normalize = (value: string) => value.replace(/\s+/g, '').toLowerCase()
+    const looksLikeMemberTitle =
+      trimmed && normalizedMember && normalize(trimmed) === normalize(normalizedMember)
+    const displayTitle = !trimmed || looksLikeMemberTitle ? fallbackTitle : trimmed
+    return displayTitle || '\u00A0'
+  }, [title, fallbackTitle, firstMemberName])
 
   return (
     <div className="print-root">
