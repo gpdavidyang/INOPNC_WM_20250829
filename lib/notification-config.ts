@@ -36,10 +36,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     actions: [
       { action: 'approve', title: '승인', icon: '/icons/approve-icon.png' },
       { action: 'reject', title: '거부', icon: '/icons/reject-icon.png' },
-      { action: 'view', title: '상세보기' }
+      { action: 'view', title: '상세보기' },
     ],
     ttl: 86400, // 24 hours
-    group: 'approvals'
+    group: 'approvals',
   },
 
   daily_report_reminder: {
@@ -53,10 +53,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     requireInteraction: false,
     actions: [
       { action: 'create', title: '작성하기' },
-      { action: 'remind_later', title: '나중에' }
+      { action: 'remind_later', title: '나중에' },
     ],
     ttl: 3600, // 1 hour
-    group: 'reminders'
+    group: 'reminders',
   },
 
   safety_alert: {
@@ -72,10 +72,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     actions: [
       { action: 'acknowledge', title: '확인', icon: '/icons/check-icon.png' },
       { action: 'view', title: '상세보기' },
-      { action: 'emergency', title: '긴급신고', icon: '/icons/emergency-icon.png' }
+      { action: 'emergency', title: '긴급신고', icon: '/icons/emergency-icon.png' },
     ],
     ttl: 86400, // 24 hours
-    group: 'safety'
+    group: 'safety',
   },
 
   equipment_maintenance: {
@@ -90,10 +90,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     actions: [
       { action: 'start_maintenance', title: '정비 시작' },
       { action: 'defer', title: '연기' },
-      { action: 'view', title: '상세보기' }
+      { action: 'view', title: '상세보기' },
     ],
     ttl: 7200, // 2 hours
-    group: 'maintenance'
+    group: 'maintenance',
   },
 
   site_announcement: {
@@ -107,10 +107,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     requireInteraction: false,
     actions: [
       { action: 'view', title: '상세보기' },
-      { action: 'dismiss', title: '확인' }
+      { action: 'dismiss', title: '확인' },
     ],
     ttl: 3600, // 1 hour
-    group: 'announcements'
+    group: 'announcements',
   },
 
   // Additional notification types
@@ -125,10 +125,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     requireInteraction: false,
     actions: [
       { action: 'accept', title: '수락' },
-      { action: 'view', title: '상세보기' }
+      { action: 'view', title: '상세보기' },
     ],
     ttl: 7200, // 2 hours
-    group: 'assignments'
+    group: 'assignments',
   },
 
   attendance_reminder: {
@@ -142,10 +142,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     requireInteraction: false,
     actions: [
       { action: 'check_in', title: '출근 체크' },
-      { action: 'dismiss', title: '확인' }
+      { action: 'dismiss', title: '확인' },
     ],
     ttl: 1800, // 30 minutes
-    group: 'reminders'
+    group: 'reminders',
   },
 
   document_approval: {
@@ -160,10 +160,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     actions: [
       { action: 'approve', title: '승인' },
       { action: 'reject', title: '반려' },
-      { action: 'view', title: '상세보기' }
+      { action: 'view', title: '상세보기' },
     ],
     ttl: 86400, // 24 hours
-    group: 'approvals'
+    group: 'approvals',
   },
 
   quality_inspection: {
@@ -178,10 +178,10 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     actions: [
       { action: 'start_inspection', title: '검사 시작' },
       { action: 'schedule', title: '일정 조정' },
-      { action: 'view', title: '상세보기' }
+      { action: 'view', title: '상세보기' },
     ],
     ttl: 3600, // 1 hour
-    group: 'inspections'
+    group: 'inspections',
   },
 
   weather_warning: {
@@ -196,11 +196,11 @@ export const NOTIFICATION_CONFIGS: Record<string, NotificationConfig> = {
     actions: [
       { action: 'acknowledge', title: '확인' },
       { action: 'safety_measures', title: '안전조치' },
-      { action: 'view', title: '상세보기' }
+      { action: 'view', title: '상세보기' },
     ],
     ttl: 10800, // 3 hours
-    group: 'safety'
-  }
+    group: 'safety',
+  },
 }
 
 // Notification priority and grouping settings
@@ -210,29 +210,29 @@ export const NOTIFICATION_PRIORITIES = {
     persistent: true,
     bypassQuietHours: true,
     maxRetries: 3,
-    retryInterval: 300 // 5 minutes
+    retryInterval: 300, // 5 minutes
   },
   high: {
     weight: 75,
     persistent: true,
     bypassQuietHours: false,
     maxRetries: 2,
-    retryInterval: 600 // 10 minutes
+    retryInterval: 600, // 10 minutes
   },
   medium: {
     weight: 50,
     persistent: false,
     bypassQuietHours: false,
     maxRetries: 1,
-    retryInterval: 1800 // 30 minutes
+    retryInterval: 1800, // 30 minutes
   },
   low: {
     weight: 25,
     persistent: false,
     bypassQuietHours: false,
     maxRetries: 0,
-    retryInterval: 0
-  }
+    retryInterval: 0,
+  },
 }
 
 // Notification grouping configuration
@@ -241,54 +241,57 @@ export const NOTIFICATION_GROUPS = {
     name: '안전 관련',
     priority: 'critical',
     maxGroupSize: 3,
-    collapseAfter: 2
+    collapseAfter: 2,
   },
   approvals: {
     name: '승인 요청',
     priority: 'high',
     maxGroupSize: 5,
-    collapseAfter: 3
+    collapseAfter: 3,
   },
   reminders: {
     name: '리마인더',
     priority: 'medium',
     maxGroupSize: 10,
-    collapseAfter: 5
+    collapseAfter: 5,
   },
   announcements: {
     name: '공지사항',
     priority: 'low',
     maxGroupSize: 15,
-    collapseAfter: 10
+    collapseAfter: 10,
   },
   maintenance: {
     name: '정비 관련',
     priority: 'medium',
     maxGroupSize: 5,
-    collapseAfter: 3
+    collapseAfter: 3,
   },
   assignments: {
     name: '작업 배정',
     priority: 'medium',
     maxGroupSize: 10,
-    collapseAfter: 5
+    collapseAfter: 5,
   },
   inspections: {
     name: '검사 관련',
     priority: 'medium',
     maxGroupSize: 5,
-    collapseAfter: 3
-  }
+    collapseAfter: 3,
+  },
 }
 
 // Template variable replacement function
-export function processNotificationTemplate(config: NotificationConfig, variables: Record<string, unknown>): NotificationConfig {
+export function processNotificationTemplate(
+  config: NotificationConfig,
+  variables: Record<string, unknown>
+): NotificationConfig {
   const processed = { ...config }
-  
+
   // Replace variables in title and body
   processed.title = replaceVariables(config.title, variables)
   processed.body = replaceVariables(config.body, variables)
-  
+
   return processed
 }
 
@@ -304,21 +307,24 @@ export function getNotificationConfig(type: string): NotificationConfig | null {
 }
 
 // Validate notification payload
-export function validateNotificationPayload(payload: unknown): { valid: boolean; errors: string[] } {
+export function validateNotificationPayload(payload: unknown): {
+  valid: boolean
+  errors: string[]
+} {
   const errors: string[] = []
-  
+
   if (!payload.title) {
     errors.push('Title is required')
   }
-  
+
   if (!payload.body) {
     errors.push('Body is required')
   }
-  
+
   if (payload.urgency && !['critical', 'high', 'medium', 'low'].includes(payload.urgency)) {
     errors.push('Invalid urgency level')
   }
-  
+
   if (payload.actions && Array.isArray(payload.actions)) {
     payload.actions.forEach((action: unknown, index: number) => {
       if (!action.action) {
@@ -329,20 +335,22 @@ export function validateNotificationPayload(payload: unknown): { valid: boolean;
       }
     })
   }
-  
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
   }
 }
 
 // Get deep link URL for notification
 export function getNotificationDeepLink(type: string, data?: unknown): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
-  
+
   switch (type) {
     case 'material_approval':
-      return `${baseUrl}/dashboard/materials/requests${data?.requestId ? `/${data.requestId}` : ''}`
+      return `${baseUrl}/dashboard/admin/materials?tab=requests${
+        data?.requestId ? `&search=${encodeURIComponent(data.requestId)}` : ''
+      }`
     case 'daily_report_reminder':
       return `${baseUrl}/dashboard/daily-reports/new`
     case 'safety_alert':

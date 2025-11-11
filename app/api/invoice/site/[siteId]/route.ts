@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { DEFAULT_INVOICE_DOC_TYPES } from '@/lib/invoice/doc-types'
+import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -184,7 +185,16 @@ export async function GET(request: NextRequest, ctx: { params: { siteId: string 
       if (status === 'deleted' || status === 'archived' || isArchived) continue
       if (docType && derivedDocType !== docType) continue
       const list = (grouped[derivedDocType] = grouped[derivedDocType] || [])
-      const normalizedMetadata = metadata || null
+      const normalizedMetadata = metadata ? { ...metadata } : {}
+      const storageRef = parseSupabaseStorageUrl(r.file_url || normalizedMetadata?.file_url || null)
+      if (storageRef) {
+        if (!normalizedMetadata.storage_path)
+          normalizedMetadata.storage_path = storageRef.objectPath
+        if (!normalizedMetadata.storage_bucket)
+          normalizedMetadata.storage_bucket = storageRef.bucket
+      } else if (!normalizedMetadata.storage_bucket && normalizedMetadata.storage_path) {
+        normalizedMetadata.storage_bucket = 'documents'
+      }
       const stage = resolveStage(r, normalizedMetadata)
       list.push({
         id: r.id,

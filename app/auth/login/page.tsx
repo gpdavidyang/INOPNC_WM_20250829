@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import LogoImage from '@/components/LogoImage'
 import { getLoginLogoSrc } from '@/lib/ui/brand'
+import { getDemoAccountPassword, isDemoAccountEmail } from '@/lib/auth/demo-accounts'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [email, setEmail] = useState('')
   const [devHelp, setDevHelp] = useState<string | null>(null)
+  const passwordInputRef = useRef<HTMLInputElement | null>(null)
   // Logo handled by client component
 
   // Find ID modal state (UI only)
@@ -96,14 +98,38 @@ export default function LoginPage() {
     }
   }, [])
 
+  const requestDemoAccountRepair = async (
+    targetEmail: string
+  ): Promise<{ defaultPassword?: string } | null> => {
+    try {
+      const res = await fetch('/api/auth/demo-account/repair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok || !payload?.success) {
+        return null
+      }
+      const defaultPassword =
+        typeof payload.defaultPassword === 'string' && payload.defaultPassword.length > 0
+          ? payload.defaultPassword
+          : getDemoAccountPassword(targetEmail)
+      return { defaultPassword: defaultPassword || undefined }
+    } catch (repairError) {
+      console.error('Demo account repair request failed:', repairError)
+      return null
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
     const formData = new FormData(form)
-    const email = (formData.get('email') as string) || ''
-    const password = (formData.get('password') as string) || ''
+    const submittedEmail = ((formData.get('email') as string) || '').trim()
+    const submittedPassword = (formData.get('password') as string) || ''
 
-    if (!email || !password) {
+    if (!submittedEmail || !submittedPassword) {
       setError('이메일과 비밀번호를 입력해주세요.')
       return
     }
@@ -115,23 +141,69 @@ export default function LoginPage() {
       // 자동로그인(이메일 저장) 처리
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
-        localStorage.setItem('savedEmail', email)
+        localStorage.setItem('savedEmail', submittedEmail)
       } else {
         localStorage.removeItem('rememberMe')
         localStorage.removeItem('savedEmail')
       }
 
+      const normalizedEmail = submittedEmail.toLowerCase()
+
       // 1) Supabase 로그인 (세션 획득)
       const supabase = createClient(undefined, true)
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
-        console.error('Login error:', error)
-        const msg = error.message || ''
-        if (msg.toLowerCase().includes('invalid login credentials')) {
+
+      const attemptSignIn = async (
+        currentPassword: string,
+        allowRepair: boolean
+      ): Promise<
+        NonNullable<Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>['data']>
+      > => {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: submittedEmail,
+          password: currentPassword,
+        })
+
+        if (!signInError && signInData) {
+          return signInData
+        }
+
+        const message = (signInError?.message || '').toLowerCase()
+
+        if (
+          allowRepair &&
+          message.includes('invalid login credentials') &&
+          isDemoAccountEmail(normalizedEmail)
+        ) {
+          const repair = await requestDemoAccountRepair(normalizedEmail)
+          if (repair?.defaultPassword) {
+            const infoMessage = `데모 계정 비밀번호를 기본값(${repair.defaultPassword})으로 초기화했습니다. 다시 시도합니다.`
+            setInfo(infoMessage)
+            setError(null)
+            if (passwordInputRef.current) {
+              passwordInputRef.current.value = repair.defaultPassword
+            }
+            return attemptSignIn(repair.defaultPassword, false)
+          }
+        }
+
+        throw signInError || new Error('로그인에 실패했습니다.')
+      }
+
+      type SignInSuccessData = NonNullable<
+        Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>['data']
+      >
+      let signInData: SignInSuccessData
+      try {
+        signInData = await attemptSignIn(submittedPassword, true)
+      } catch (signInError: any) {
+        const rawMessage = typeof signInError?.message === 'string' ? signInError.message : ''
+        const msgLower = rawMessage.toLowerCase()
+        console.error('Login error:', signInError)
+        if (msgLower.includes('invalid login credentials')) {
           // 추가: 가입요청 상태 확인 후 메시지 보완
           try {
             const statusRes = await fetch(
-              `/api/auth/signup-request/status?email=${encodeURIComponent(email)}`,
+              `/api/auth/signup-request/status?email=${encodeURIComponent(submittedEmail)}`,
               {
                 cache: 'no-store',
               }
@@ -145,22 +217,19 @@ export default function LoginPage() {
           } catch {
             setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
           }
-          if (
-            process.env.NODE_ENV !== 'production' &&
-            email.toLowerCase() === 'partner@inopnc.com'
-          ) {
+          if (process.env.NODE_ENV !== 'production' && normalizedEmail === 'partner@inopnc.com') {
             setDevHelp('개발 환경에서 파트너 테스트 계정을 생성할 수 있습니다.')
           }
         } else {
-          setError(msg || '로그인에 실패했습니다.')
+          setError(rawMessage || '로그인에 실패했습니다.')
         }
         setIsLoading(false)
         return
       }
 
       // 2) 서버 세션 동기화 (쿠키 세팅)
-      const access_token = data.session?.access_token
-      const refresh_token = data.session?.refresh_token
+      const access_token = signInData.session?.access_token
+      const refresh_token = signInData.session?.refresh_token
       if (!access_token || !refresh_token) {
         setError('세션 토큰이 없습니다. 다시 시도해주세요.')
         setIsLoading(false)
@@ -748,6 +817,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
+                  ref={passwordInputRef}
                   className="form-input"
                   placeholder="비밀번호를 입력하세요"
                   required

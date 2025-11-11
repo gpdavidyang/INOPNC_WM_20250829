@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getMaterialRequests } from '@/app/actions/admin/materials'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,25 +19,11 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     const svc = createServiceRoleClient()
 
     const fetchMaterialRequests = async () => {
-      const base = svc
-        .from('material_requests')
-        .select('id, request_number, status, requested_by, request_date, created_at')
-        .eq('site_id', siteId)
-        .order('created_at', { ascending: false })
-        .limit(10)
-      const { data, error } = await base
-      if (error && error.code === '42703') {
-        const fallback = await svc
-          .from('material_requests')
-          .select('id, request_number, status, requested_by, created_at')
-          .eq('site_id', siteId)
-          .order('created_at', { ascending: false })
-          .limit(10)
-        if (fallback.error) throw fallback.error
-        return (fallback.data || []).map(row => ({ ...row, request_date: row.created_at }))
+      const result = await getMaterialRequests(1, 10, '', undefined, siteId)
+      if (!result.success || !result.data) {
+        return []
       }
-      if (error) throw error
-      return (data || []).map(row => ({ ...row, request_date: row.request_date || row.created_at }))
+      return result.data.requests || []
     }
 
     const [docsRes, reportsRes, assignsRes, requestsData] = await Promise.all([

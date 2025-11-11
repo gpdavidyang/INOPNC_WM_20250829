@@ -376,7 +376,7 @@ export async function createMaterialRequest(requestData: {
 
     if (itemsError) throw itemsError
 
-    revalidatePath('/dashboard/materials/requests')
+    revalidatePath('/dashboard/admin/materials')
     return { success: true, data: request }
   } catch (error: unknown) {
     return { success: false, error: error.message }
@@ -459,7 +459,7 @@ export async function updateMaterialRequestStatus(
 
     if (error) throw error
 
-    revalidatePath('/dashboard/materials/requests')
+    revalidatePath('/dashboard/admin/materials')
     return { success: true, data }
   } catch (error: unknown) {
     return { success: false, error: error.message }

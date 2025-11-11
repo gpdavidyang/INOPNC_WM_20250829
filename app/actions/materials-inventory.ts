@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
+import { DEFAULT_MATERIAL_PRIORITY, MaterialPriorityValue } from '@/lib/materials/priorities'
 
 type Success<T> = { success: true; data: T }
 type Failure = { success: false; error: string; data?: null }
@@ -177,6 +178,7 @@ export async function createMaterialRequest(params: {
   requestDate?: string
   unitId?: string
   notes?: string
+  priority?: MaterialPriorityValue
 }) {
   try {
     const supabase = await createClient()
@@ -201,37 +203,80 @@ export async function createMaterialRequest(params: {
     const timestamp = Date.now().toString().slice(-6)
     const request_number = `MR-${new Date().getFullYear()}-${timestamp}`
 
-    const { data: request, error } = await supabase
-      .from('material_requests')
-      .insert({
-        request_number,
-        site_id: params.siteId,
-        requested_by: auth.userId,
-        status: 'pending',
-        notes: params.notes,
-        requested_at: params.requestDate
-          ? new Date(params.requestDate).toISOString()
-          : new Date().toISOString(),
-      })
-      .select()
-      .single()
+    const normalizedRequestDate = params.requestDate
+      ? new Date(params.requestDate).toISOString()
+      : new Date().toISOString()
+
+    const baseRequestPayload = {
+      request_number,
+      site_id: params.siteId,
+      requested_by: auth.userId,
+      status: 'pending' as const,
+      notes: params.notes,
+      priority: params.priority ?? DEFAULT_MATERIAL_PRIORITY,
+    }
+
+    const attemptRequestInsert = async (dateColumn?: 'request_date' | 'requested_at') => {
+      const payload = dateColumn
+        ? { ...baseRequestPayload, [dateColumn]: normalizedRequestDate }
+        : baseRequestPayload
+      return supabase.from('material_requests').insert(payload).select().single()
+    }
+
+    const isMissingColumnError = (error: any, columnName: string) => {
+      if (!error) return false
+      const message = (error.message || '').toLowerCase()
+      return (
+        message.includes(columnName.toLowerCase()) &&
+        (message.includes('column') || message.includes('schema cache'))
+      )
+    }
+
+    let requestResult = await attemptRequestInsert('request_date')
+    if (requestResult.error && isMissingColumnError(requestResult.error, 'request_date')) {
+      console.warn(
+        '[createMaterialRequest] request_date column missing, retrying with legacy requested_at column'
+      )
+      requestResult = await attemptRequestInsert('requested_at')
+    }
+    if (requestResult.error && isMissingColumnError(requestResult.error, 'requested_at')) {
+      console.warn(
+        '[createMaterialRequest] requested_at column missing, falling back to default timestamps'
+      )
+      requestResult = await attemptRequestInsert()
+    }
+
+    const { data: request, error } = requestResult
 
     if (error) {
       console.error('[createMaterialRequest] Create request error:', error)
       return { success: false, error: error.message }
     }
 
-    const { error: itemError } = await supabase.from('material_request_items').insert({
-      request_id: request.id,
-      material_id: materialId,
-      requested_quantity: params.qty,
-      unit_id: params.unitId ?? null,
-      notes: params.notes,
-    })
+    const insertRequestItem = async (includeUnit: boolean) => {
+      const payload: Record<string, any> = {
+        request_id: request.id,
+        material_id: materialId,
+        requested_quantity: params.qty,
+        notes: params.notes,
+      }
+      if (includeUnit) {
+        payload.unit_id = params.unitId ?? null
+      }
+      return supabase.from('material_request_items').insert(payload)
+    }
 
-    if (itemError) {
-      console.error('[createMaterialRequest] Create request item error:', itemError)
-      return { success: false, error: itemError.message }
+    let itemInsertResult = await insertRequestItem(true)
+    if (itemInsertResult.error && isMissingColumnError(itemInsertResult.error, 'unit_id')) {
+      console.warn(
+        '[createMaterialRequest] unit_id column missing on material_request_items, retrying without unit reference'
+      )
+      itemInsertResult = await insertRequestItem(false)
+    }
+
+    if (itemInsertResult.error) {
+      console.error('[createMaterialRequest] Create request item error:', itemInsertResult.error)
+      return { success: false, error: itemInsertResult.error.message }
     }
 
     return { success: true, data: request }

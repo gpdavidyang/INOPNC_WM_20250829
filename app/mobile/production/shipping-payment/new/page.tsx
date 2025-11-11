@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
-import { QuantityStepper } from '@/modules/mobile/components/production/QuantityStepper'
+import ShipmentItemsFieldArray from '@/modules/mobile/components/production/ShipmentItemsFieldArray'
 import { SelectField, OptionItem } from '@/modules/mobile/components/production/SelectField'
 
 export const metadata: Metadata = { title: '출고 등록' }
@@ -43,9 +43,7 @@ async function submit(formData: FormData) {
   if (!session?.user) redirect('/auth/login')
 
   const site_id = (formData.get('site_id') as string) || ''
-  const material_id = (formData.get('material_id') as string) || ''
   const shipment_date = (formData.get('shipment_date') as string) || ''
-  const quantity = Number(formData.get('quantity') || 0)
   const carrier = ((formData.get('carrier') as string) || '').trim() || null
   const tracking_number = ((formData.get('tracking_number') as string) || '').trim() || null
   const amount_net = Number(formData.get('amount_net') || 0)
@@ -55,13 +53,25 @@ async function submit(formData: FormData) {
     ((formData.get('freight_charge_method_id') as string) || '').trim() || null
   const status = ((formData.get('status') as string) || '').trim() || 'preparing'
 
-  if (!site_id || !material_id || !shipment_date || quantity <= 0) {
-    redirect('/mobile/production/shipping-payment/new')
+  const items = parseShipmentItems(formData)
+  const fallbackItems =
+    items.length === 0 && Number(formData.get('quantity') || 0) > 0
+      ? legacyShipmentItems(formData)
+      : []
+  const effectiveItems = items.length ? items : fallbackItems
+
+  if (!site_id || !shipment_date || effectiveItems.length === 0) {
+    console.error('[ShippingCreate] validation failed', {
+      site_id,
+      shipment_date,
+      itemsLength: effectiveItems.length,
+    })
+    throw new Error('필수 항목을 입력해 주세요.')
   }
 
   const total_amount = Math.max(0, Math.round(amount_net || 0))
 
-  const { data: shipment } = await supabase
+  const { data: shipment, error: shipmentError } = await supabase
     .from('material_shipments')
     .insert({
       site_id,
@@ -80,14 +90,26 @@ async function submit(formData: FormData) {
     .select('id')
     .single()
 
-  if (shipment?.id) {
-    await supabase.from('shipment_items').insert({
-      shipment_id: shipment.id,
-      material_id,
-      quantity,
-      unit_price: null,
-      total_price: null,
-    } as any)
+  if (shipmentError || !shipment) {
+    console.error('[ShippingCreate] insert error', shipmentError)
+    throw new Error('출고 정보를 저장하지 못했습니다.')
+  }
+
+  if (shipment.id) {
+    const { error: itemsError } = await supabase.from('shipment_items').insert(
+      effectiveItems.map(item => ({
+        shipment_id: shipment.id,
+        material_id: item.material_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price:
+          item.unit_price != null ? Number(item.unit_price) * Number(item.quantity || 0) : null,
+        notes: item.notes,
+      })) as any
+    )
+    if (itemsError) {
+      console.error('[ShippingCreate] item insert error (continuing with fallback)', itemsError)
+    }
   }
 
   revalidatePath('/dashboard/admin/materials?tab=shipments')
@@ -104,6 +126,10 @@ export default async function ShippingCreatePage() {
     .select('id, name, code, unit, is_active')
     .eq('is_active', true)
     .order('name')
+  const materialOptions: OptionItem[] = (materials || []).map(m => ({
+    value: m.id,
+    label: `${m.name}${m.code ? ` (${m.code})` : ''}`,
+  }))
   const { data: partners } = await supabase
     .from('partner_companies')
     .select('id, company_name, status')
@@ -175,21 +201,14 @@ export default async function ShippingCreatePage() {
             <p className="text-[#31A3FA] font-semibold text-base">필수입력(*)후 저장</p>
           </div>
           <form action={submit} className="pm-form pm-form--dense space-y-3">
-            {/* 1. 제품명 - 자재선택 (1행1열) */}
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">제품명</label>
-              <SelectField
-                name="material_id"
-                required
-                options={(materials || []).map(m => ({
-                  value: m.id,
-                  label: `${m.name}${m.code ? ` (${m.code})` : ''}`,
-                }))}
-                placeholder="자재 선택"
-              />
+              <label className="block text-sm text-muted-foreground mb-1">
+                출고 품목<span className="req-mark"> *</span>
+              </label>
+              <ShipmentItemsFieldArray materialOptions={materialOptions} />
             </div>
 
-            {/* 2. 출고날짜 + 출고수량 (1행2열) */}
+            {/* 출고날짜 */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">
@@ -201,12 +220,6 @@ export default async function ShippingCreatePage() {
                   className="w-full rounded border px-3 py-2"
                   required
                 />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  출고수량<span className="req-mark"> *</span>
-                </label>
-                <QuantityStepper name="quantity" step={10} min={0} />
               </div>
             </div>
 
@@ -335,4 +348,48 @@ export default async function ShippingCreatePage() {
       </div>
     </MobileLayoutWithAuth>
   )
+}
+
+type ShipmentItemInput = {
+  material_id: string
+  quantity: number
+  unit_price: number | null
+  notes: string | null
+}
+
+function parseShipmentItems(formData: FormData): ShipmentItemInput[] {
+  const buckets = new Map<number, Record<string, string>>()
+  for (const [key, rawValue] of formData.entries()) {
+    if (typeof rawValue !== 'string') continue
+    const match = key.match(/^items\[(\d+)\]\[(\w+)\]$/)
+    if (!match) continue
+    const index = Number(match[1])
+    const field = match[2]
+    if (!buckets.has(index)) buckets.set(index, {})
+    buckets.get(index)![field] = rawValue
+  }
+
+  return Array.from(buckets.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([, value]) => ({
+      material_id: value.material_id || '',
+      quantity: Number(value.quantity || 0),
+      unit_price: value.unit_price ? Number(value.unit_price) : null,
+      notes: value.notes ? value.notes.trim() : null,
+    }))
+    .filter(item => item.material_id && item.quantity > 0)
+}
+
+function legacyShipmentItems(formData: FormData): ShipmentItemInput[] {
+  const legacyMaterial = (formData.get('material_id') as string) || ''
+  const legacyQty = Number(formData.get('quantity') || 0)
+  if (!legacyMaterial || legacyQty <= 0) return []
+  return [
+    {
+      material_id: legacyMaterial,
+      quantity: legacyQty,
+      unit_price: null,
+      notes: null,
+    },
+  ]
 }

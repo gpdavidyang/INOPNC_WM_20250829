@@ -21,6 +21,9 @@ import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import ShipmentsTable from '@/components/admin/materials/ShipmentsTable'
 import EmptyState from '@/components/ui/empty-state'
+import InventorySiteFilterSelect from '@/components/admin/materials/InventorySiteFilterSelect'
+import MaterialFilterSelect from '@/components/admin/materials/MaterialFilterSelect'
+import PriorityFilterSelect from '@/components/admin/materials/PriorityFilterSelect'
 import {
   getMaterialRequests,
   getMaterialShipments,
@@ -28,9 +31,55 @@ import {
   getMaterialInventorySummary,
   getMaterialInventoryList,
 } from '@/app/actions/admin/materials'
+import { INVENTORY_SORT_COLUMNS, type InventorySortKey } from '@/lib/admin/materials/constants'
+import {
+  MATERIAL_PRIORITY_BADGE_VARIANTS,
+  MATERIAL_PRIORITY_LABELS,
+  isMaterialPriorityValue,
+} from '@/lib/materials/priorities'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import {
+  parseProductionMetadata,
+  extractProductionMemo,
+  type ProductionMetadataItem,
+} from '@/lib/materials/production-support'
 
 export const metadata: Metadata = {
   title: '자재 관리',
+}
+
+const numberFormatter = new Intl.NumberFormat('ko-KR')
+
+function summarizeMaterial(items: any[]): string {
+  if (!Array.isArray(items) || items.length === 0) {
+    return '-'
+  }
+  const primary = items[0]
+  const baseLabel = primary.material_name || primary.material_code || '자재'
+  return items.length > 1 ? `${baseLabel} 외 ${items.length - 1}건` : baseLabel
+}
+
+function summarizeQuantity(items: any[]): string {
+  if (!Array.isArray(items) || items.length === 0) {
+    return '-'
+  }
+  const total = items.reduce(
+    (sum: number, item: any) => sum + Number(item.requested_quantity ?? 0),
+    0
+  )
+  if (!total) return '-'
+  const unit = items.length === 1 ? items[0]?.unit || '' : ''
+  const formatted = numberFormatter.format(total)
+  return unit ? `${formatted} ${unit}` : formatted
+}
+
+const PRIORITY_NOTE_TAG_REGEX =
+  /^\s*\[(?:낮음|보통|높음|긴급|일반|최우선|low|normal|high|urgent)\]\s*/i
+
+function cleanPriorityNote(note?: string | null): string {
+  if (!note) return ''
+  return note.replace(PRIORITY_NOTE_TAG_REGEX, '').trim()
 }
 
 export default async function AdminMaterialsPage({
@@ -39,6 +88,7 @@ export default async function AdminMaterialsPage({
   searchParams?: Record<string, string | string[] | undefined>
 }) {
   await requireAdminProfile()
+  const supabase = createClient()
 
   // Inline settings datasets (initialized; populated when tab === 'settings')
   let materialsData: Array<{
@@ -77,28 +127,44 @@ export default async function AdminMaterialsPage({
   const search = ((searchParams?.search as string) || '').trim()
   // 상태 개념 미사용(승인/반려 제거)
   const site_id = ((searchParams?.site_id as string) || '').trim()
-  const status = ((searchParams?.status as string) || '').trim() as
-    | ''
-    | 'pending'
-    | 'approved'
-    | 'ordered'
-    | 'delivered'
-    | 'cancelled'
+  const materialNameFilter = ((searchParams?.material_name as string) || '').trim()
+  const priorityRaw = ((searchParams?.priority as string) || '').trim()
+  const priorityFilter = isMaterialPriorityValue(priorityRaw) ? priorityRaw : ''
   const date_from = ((searchParams?.date_from as string) || '').trim() || undefined
   const date_to = ((searchParams?.date_to as string) || '').trim() || undefined
+  const enableInventorySort = tab === 'inventory'
+  const rawSortBy = enableInventorySort ? (searchParams?.sort_by as string) : undefined
+  const sortBy: InventorySortKey =
+    enableInventorySort &&
+    rawSortBy &&
+    Object.prototype.hasOwnProperty.call(INVENTORY_SORT_COLUMNS, rawSortBy)
+      ? (rawSortBy as InventorySortKey)
+      : 'updated_at'
+  const sortOrder: 'asc' | 'desc' =
+    enableInventorySort && (searchParams?.sort_order as string) === 'asc' ? 'asc' : 'desc'
 
   let requests: any[] = []
   let shipments: any[] = []
   let productions: any[] = []
   let inventorySummary: any | null = null
   let inventoryItems: any[] = []
+  let siteFilterOptions: Array<{ id: string; name: string | null }> = []
+  let materialOptions: Array<{ id: string; name: string | null; code: string | null }> = []
   let total = 0
   let pages = 1
 
   if (tab === 'inventory') {
     const [summaryRes, listRes] = await Promise.all([
       getMaterialInventorySummary(),
-      getMaterialInventoryList(page, limit, search, site_id || undefined),
+      getMaterialInventoryList(
+        page,
+        limit,
+        search,
+        site_id || undefined,
+        undefined,
+        sortBy,
+        sortOrder
+      ),
     ])
     inventorySummary = summaryRes.success ? (summaryRes.data as any) : null
     if (listRes.success && listRes.data) {
@@ -106,17 +172,62 @@ export default async function AdminMaterialsPage({
       total = (listRes.data as any).total || 0
       pages = (listRes.data as any).pages || 1
     }
+
+    const { data: siteOptionsData, error: siteOptionsError } = await supabase
+      .from('sites')
+      .select('id, name, status')
+      .order('name', { ascending: true })
+      .limit(200)
+
+    if (!siteOptionsError && Array.isArray(siteOptionsData)) {
+      siteFilterOptions = siteOptionsData.map((site: { id: string; name: string | null }) => ({
+        id: site.id,
+        name: site.name,
+      }))
+    }
   } else if (tab === 'requests') {
     const res = await getMaterialRequests(
       page,
       limit,
       search,
-      (status || undefined) as any,
-      site_id || undefined
+      site_id || undefined,
+      materialNameFilter || undefined,
+      priorityFilter || undefined,
+      undefined
     )
     requests = res.success && res.data ? (res.data as any).requests : []
     total = res.success && res.data ? (res.data as any).total : 0
     pages = res.success && res.data ? (res.data as any).pages : 1
+
+    const [{ data: materialList }, { data: siteOptionsData, error: siteOptionsError }] =
+      await Promise.all([
+        supabase
+          .from('materials')
+          .select('id, name, code')
+          .eq('is_active', true)
+          .order('name', { ascending: true })
+          .limit(200),
+        supabase
+          .from('sites')
+          .select('id, name, status')
+          .order('name', { ascending: true })
+          .limit(200),
+      ])
+
+    if (Array.isArray(materialList)) {
+      materialOptions = materialList.map((mat: any) => ({
+        id: mat.id,
+        name: mat.name ?? null,
+        code: mat.code ?? null,
+      }))
+    }
+
+    if (!siteOptionsError && Array.isArray(siteOptionsData)) {
+      siteFilterOptions = siteOptionsData.map((site: { id: string; name: string | null }) => ({
+        id: site.id,
+        name: site.name,
+      }))
+    }
   } else if (tab === 'productions') {
     const res = await getMaterialProductions(
       page,
@@ -143,7 +254,6 @@ export default async function AdminMaterialsPage({
     pages = res.success && res.data ? (res.data as any).pages : 1
   } else if (tab === 'settings') {
     // Load compact datasets for inline settings sections
-    const supabase = createClient()
     // Materials (compact list)
     const { data: mData } = await supabase
       .from('materials')
@@ -253,17 +363,64 @@ export default async function AdminMaterialsPage({
 
   const buildQuery = (overrides: Record<string, string>) => {
     const params = new URLSearchParams()
-    params.set('tab', tab)
+    const nextTab = (overrides.tab as string) || tab
+    params.set('tab', nextTab)
     if (search) params.set('search', search)
     if (site_id) params.set('site_id', site_id)
-    if (status) params.set('status', status)
     if (date_from) params.set('date_from', date_from)
     if (date_to) params.set('date_to', date_to)
+    if (nextTab === 'inventory') {
+      const targetSortBy =
+        overrides.sort_by || (tab === 'inventory' && !overrides.tab ? sortBy : 'updated_at')
+      const targetSortOrder =
+        overrides.sort_order || (tab === 'inventory' && !overrides.tab ? sortOrder : 'desc')
+      params.set('sort_by', targetSortBy)
+      params.set('sort_order', targetSortOrder)
+    } else if (nextTab === 'requests') {
+      if (materialNameFilter) params.set('material_name', materialNameFilter)
+      if (priorityFilter) params.set('priority', priorityFilter)
+    }
     // limit 고정(100) → 쿼리 파라미터로 전달하지 않음
     params.set('page', String(page))
     Object.entries(overrides).forEach(([k, v]) => params.set(k, v))
     const qs = params.toString()
     return qs ? `?${qs}` : ''
+  }
+
+  const renderSortableHead = (
+    label: string,
+    key: InventorySortKey,
+    options?: { align?: 'left' | 'right' }
+  ) => {
+    const alignRight = options?.align === 'right'
+    const isActive = tab === 'inventory' && sortBy === key
+    const nextOrder = isActive && sortOrder === 'asc' ? 'desc' : 'asc'
+    const icon = !isActive ? (
+      <ArrowUpDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+    ) : sortOrder === 'asc' ? (
+      <ArrowUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+    ) : (
+      <ArrowDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+    )
+
+    return (
+      <TableHead
+        className={cn(alignRight && 'text-right')}
+        aria-sort={isActive ? (sortOrder === 'asc' ? 'ascending' : 'descending') : 'none'}
+      >
+        <Link
+          href={buildQuery({ page: '1', sort_by: key, sort_order: nextOrder })}
+          className={cn(
+            'inline-flex items-center gap-1 text-sm font-semibold text-foreground',
+            alignRight && 'justify-end w-full'
+          )}
+          scroll={false}
+        >
+          <span>{label}</span>
+          {icon}
+        </Link>
+      </TableHead>
+    )
   }
 
   return (
@@ -284,15 +441,15 @@ export default async function AdminMaterialsPage({
                 label: '현장별 재고현황',
                 href: buildQuery({ tab: 'inventory' }),
               },
-              { key: 'requests', label: '입고요청 관리', href: buildQuery({ tab: 'requests' }) },
+              { key: 'requests', label: '입고요청', href: buildQuery({ tab: 'requests' }) },
               {
                 key: 'productions',
-                label: '생산정보 관리',
+                label: '생산정보',
                 href: buildQuery({ tab: 'productions' }),
               },
               {
                 key: 'shipments',
-                label: '출고·배송·결제 관리',
+                label: '출고배송결제',
                 href: buildQuery({ tab: 'shipments' }),
               },
               {
@@ -314,6 +471,12 @@ export default async function AdminMaterialsPage({
           >
             <input type="hidden" name="tab" value={tab} />
             <input type="hidden" name="page" value="1" />
+            {tab === 'inventory' && (
+              <>
+                <input type="hidden" name="sort_by" value={sortBy} />
+                <input type="hidden" name="sort_order" value={sortOrder} />
+              </>
+            )}
             <div className="lg:col-span-2">
               <label className="block text-sm text-muted-foreground mb-1">검색어</label>
               <Input
@@ -330,23 +493,40 @@ export default async function AdminMaterialsPage({
                 }
               />
             </div>
-            {/* 요청 탭: 상태 필터 추가 */}
-            {tab === 'requests' && (
+            {tab === 'inventory' && (
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">상태</label>
-                <select
-                  name="status"
-                  defaultValue={status}
-                  className="w-full rounded border px-3 py-2 text-sm"
-                >
-                  <option value="">전체</option>
-                  <option value="pending">대기중</option>
-                  <option value="approved">승인</option>
-                  <option value="ordered">발주</option>
-                  <option value="delivered">입고완료</option>
-                  <option value="cancelled">취소</option>
-                </select>
+                <label className="block text-sm text-muted-foreground mb-1">현장별</label>
+                <InventorySiteFilterSelect
+                  sites={siteFilterOptions}
+                  defaultValue={site_id}
+                  placeholder="전체 현장"
+                />
               </div>
+            )}
+            {/* 요청 탭: 현장/자재/긴급도 필터 */}
+            {tab === 'requests' && (
+              <>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">현장</label>
+                  <InventorySiteFilterSelect
+                    sites={siteFilterOptions}
+                    defaultValue={site_id}
+                    placeholder="전체 현장"
+                  />
+                </div>
+                <div className="lg:col-span-2">
+                  <label className="block text-sm text-muted-foreground mb-1">자재명</label>
+                  <MaterialFilterSelect
+                    options={materialOptions}
+                    defaultValue={materialNameFilter}
+                    placeholder="전체 자재"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-muted-foreground mb-1">긴급도</label>
+                  <PriorityFilterSelect defaultValue={priorityFilter || ''} />
+                </div>
+              </>
             )}
             {tab === 'shipments' && (
               <>
@@ -365,13 +545,32 @@ export default async function AdminMaterialsPage({
               <Button type="submit" variant="outline">
                 {t('common.apply')}
               </Button>
-              <Link
-                href={buildQuery({ page: '1', search: '', status: '', site_id: '' })}
-                className={buttonVariants({ variant: 'outline', size: 'standard' })}
-                role="button"
-              >
-                {t('common.reset')}
-              </Link>
+              {(() => {
+                const resetOverrides: Record<string, string> = {
+                  page: '1',
+                  search: '',
+                  site_id: '',
+                }
+                if (tab === 'inventory') {
+                  resetOverrides.sort_by = 'updated_at'
+                  resetOverrides.sort_order = 'desc'
+                } else if (tab === 'requests') {
+                  resetOverrides.material_name = ''
+                  resetOverrides.priority = ''
+                } else if (tab === 'shipments') {
+                  resetOverrides.date_from = ''
+                  resetOverrides.date_to = ''
+                }
+                return (
+                  <Link
+                    href={buildQuery(resetOverrides)}
+                    className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                    role="button"
+                  >
+                    {t('common.reset')}
+                  </Link>
+                )
+              })()}
             </div>
           </form>
         </div>
@@ -388,7 +587,7 @@ export default async function AdminMaterialsPage({
                 엑셀 다운로드
               </a>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <StatsCard
                 label="관리 품목"
                 value={Number(inventorySummary?.total_materials ?? 0)}
@@ -405,11 +604,6 @@ export default async function AdminMaterialsPage({
                 unit="ea"
               />
               <StatsCard
-                label="재고 부족"
-                value={Number(inventorySummary?.low_stock_items ?? 0)}
-                unit="건"
-              />
-              <StatsCard
                 label="재고 없음"
                 value={Number(inventorySummary?.out_of_stock_items ?? 0)}
                 unit="건"
@@ -419,20 +613,17 @@ export default async function AdminMaterialsPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead>현장</TableHead>
-                    <TableHead className="text-right">현재 재고</TableHead>
-                    <TableHead className="text-right">최소 재고</TableHead>
-                    <TableHead className="text-right">예약</TableHead>
-                    <TableHead className="text-right">가용</TableHead>
+                    {renderSortableHead('자재', 'material')}
+                    {renderSortableHead('현장', 'site')}
+                    {renderSortableHead('현재 재고', 'current_stock', { align: 'right' })}
                     <TableHead>상태</TableHead>
-                    <TableHead>업데이트</TableHead>
+                    {renderSortableHead('업데이트', 'updated_at')}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {inventoryItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10">
+                      <TableCell colSpan={5} className="py-10">
                         <EmptyState description="표시할 재고 항목이 없습니다." />
                       </TableCell>
                     </TableRow>
@@ -453,28 +644,11 @@ export default async function AdminMaterialsPage({
                         <TableCell className="text-right">
                           {Number(item.current_stock ?? 0).toLocaleString('ko-KR')}
                         </TableCell>
-                        <TableCell className="text-right">
-                          {item.minimum_stock !== null && item.minimum_stock !== undefined
-                            ? Number(item.minimum_stock).toLocaleString('ko-KR')
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.reserved_stock !== null && item.reserved_stock !== undefined
-                            ? Number(item.reserved_stock).toLocaleString('ko-KR')
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.available_stock !== null && item.available_stock !== undefined
-                            ? Number(item.available_stock).toLocaleString('ko-KR')
-                            : '-'}
-                        </TableCell>
                         <TableCell>
                           {(() => {
                             switch (item.status) {
                               case 'out_of_stock':
                                 return <Badge variant="error">재고 없음</Badge>
-                              case 'low':
-                                return <Badge variant="warning">재고 부족</Badge>
                               default:
                                 return <Badge variant="success">정상</Badge>
                             }
@@ -529,32 +703,32 @@ export default async function AdminMaterialsPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>요청번호</TableHead>
-                    <TableHead>현장</TableHead>
+                    <TableHead>현장명</TableHead>
+                    <TableHead>자재명</TableHead>
+                    <TableHead className="text-right">요청수량</TableHead>
                     <TableHead>요청자</TableHead>
                     <TableHead>요청일</TableHead>
-                    <TableHead>항목수</TableHead>
+                    <TableHead>긴급도</TableHead>
+                    <TableHead>비고</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {requests.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10">
+                      <TableCell colSpan={7} className="py-10">
                         <EmptyState description="표시할 요청이 없습니다." />
                       </TableCell>
                     </TableRow>
                   ) : (
                     requests.map((rq: any) => (
                       <TableRow key={rq.id}>
-                        <TableCell className="font-medium text-foreground">
-                          <a
-                            className="underline"
-                            href={`/dashboard/admin/materials/requests/${rq.id}`}
-                          >
-                            {rq.request_number || rq.id}
-                          </a>
-                        </TableCell>
                         <TableCell>{rq.sites?.name || '-'}</TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          {summarizeMaterial(rq.items || rq.material_request_items || [])}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {summarizeQuantity(rq.items || rq.material_request_items || [])}
+                        </TableCell>
                         <TableCell>
                           {rq.requested_by ? (
                             <a
@@ -574,7 +748,16 @@ export default async function AdminMaterialsPage({
                             : '-'}
                         </TableCell>
                         <TableCell>
-                          {(rq.items || rq.material_request_items || []).length}
+                          {isMaterialPriorityValue(rq.priority) ? (
+                            <Badge variant={MATERIAL_PRIORITY_BADGE_VARIANTS[rq.priority]}>
+                              {MATERIAL_PRIORITY_LABELS[rq.priority]}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-xs truncate">
+                          {cleanPriorityNote(rq.notes) || '-'}
                         </TableCell>
                       </TableRow>
                     ))
@@ -586,43 +769,123 @@ export default async function AdminMaterialsPage({
         )}
 
         {tab === 'productions' && (
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>생산번호</TableHead>
-                  <TableHead>현장</TableHead>
-                  <TableHead className="text-right">수량</TableHead>
-                  <TableHead>생산일</TableHead>
-                  <TableHead>품질상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {productions.length === 0 ? (
+          <div className="space-y-4">
+            {Array.isArray(productions) && productions.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(() => {
+                  const totalQty = productions.reduce(
+                    (sum, row) => sum + Number(row.produced_quantity ?? 0),
+                    0
+                  )
+                  const countByStatus = (status: string) =>
+                    productions.filter(
+                      row => String(row.quality_status || '').toLowerCase() === status
+                    ).length
+                  return (
+                    <>
+                      <StatsCard label="생산건수" value={productions.length} unit="건" />
+                      <StatsCard label="총 생산량" value={totalQty} unit="ea" />
+                      <StatsCard label="승인" value={countByStatus('approved')} unit="건" />
+                      <StatsCard label="대기" value={countByStatus('pending')} unit="건" />
+                    </>
+                  )
+                })()}
+              </div>
+            )}
+            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="py-10">
-                      <EmptyState description="표시할 생산 정보가 없습니다." />
-                    </TableCell>
+                    <TableHead>자재</TableHead>
+                    <TableHead>생산번호</TableHead>
+                    <TableHead>현장</TableHead>
+                    <TableHead className="text-right">생산수량</TableHead>
+                    <TableHead>생산일</TableHead>
+                    <TableHead>품질상태</TableHead>
+                    <TableHead>특이사항</TableHead>
                   </TableRow>
-                ) : (
-                  productions.map((p: any) => (
-                    <TableRow key={p.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {p.production_number || p.id}
+                </TableHeader>
+                <TableBody>
+                  {productions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10">
+                        <EmptyState description="표시할 생산 정보가 없습니다." />
                       </TableCell>
-                      <TableCell>{p.sites?.name || '-'}</TableCell>
-                      <TableCell className="text-right">{p.produced_quantity ?? 0}</TableCell>
-                      <TableCell>
-                        {p.production_date
-                          ? new Date(p.production_date).toLocaleDateString('ko-KR')
-                          : '-'}
-                      </TableCell>
-                      <TableCell>{p.quality_status || '-'}</TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  ) : (
+                    productions.map((p: any) => {
+                      const metadata = parseProductionMetadata(p.quality_notes)
+                      const noteText = extractProductionMemo(p.quality_notes, metadata) || '-'
+                      const fallbackItems: ProductionMetadataItem[] = Array.isArray(
+                        metadata?.fallback_items
+                      )
+                        ? (metadata!.fallback_items as ProductionMetadataItem[]).filter(
+                            item => item && item.material_id
+                          )
+                        : []
+                      const firstItem =
+                        Array.isArray(p.material_production_items) &&
+                        p.material_production_items.length > 0
+                          ? p.material_production_items[0]
+                          : null
+                      const firstFallback =
+                        !firstItem && fallbackItems.length > 0 ? fallbackItems[0] : null
+                      const fallbackSnapshot = firstFallback?.material_snapshot || null
+                      const primaryMaterialName = firstItem
+                        ? firstItem.materials?.name
+                        : fallbackSnapshot?.name || p.materials?.name || '-'
+                      const primaryMaterialCode = firstItem
+                        ? firstItem.materials?.code
+                        : fallbackSnapshot?.code || p.materials?.code || null
+                      const totalItems = firstItem
+                        ? Array.isArray(p.material_production_items)
+                          ? p.material_production_items.length
+                          : 1
+                        : fallbackItems.length || 0
+                      const hasMultiple = totalItems > 1
+                      const extraCount = Math.max(0, totalItems - 1)
+                      return (
+                        <TableRow key={p.id}>
+                          <TableCell className="font-medium text-foreground">
+                            <div className="flex flex-col">
+                              <span>
+                                {primaryMaterialName || '-'}
+                                {hasMultiple && (
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    외 {extraCount}건
+                                  </span>
+                                )}
+                              </span>
+                              {primaryMaterialCode && (
+                                <span className="text-xs text-muted-foreground">
+                                  {primaryMaterialCode}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{p.production_number || p.id}</TableCell>
+                          <TableCell>{p.sites?.name || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            {Number(p.produced_quantity ?? 0).toLocaleString('ko-KR')}
+                          </TableCell>
+                          <TableCell>
+                            {p.production_date
+                              ? new Date(p.production_date).toLocaleDateString('ko-KR')
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {p.quality_status || '대기'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">{noteText}</TableCell>
+                        </TableRow>
+                      )
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
 
@@ -630,7 +893,7 @@ export default async function AdminMaterialsPage({
           <div className="space-y-4">
             {/* Summary */}
             {Array.isArray(shipments) && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
                 {(() => {
                   const total = (shipments as any[]).reduce(
                     (acc, s) => acc + Number((s as any)?.total_amount || 0),
@@ -643,12 +906,24 @@ export default async function AdminMaterialsPage({
                   }, 0)
                   const outstanding = Math.max(0, total - paid)
                   const count = (shipments as any[]).length
+                  const count = (shipments as any[]).length
+                  const getStatusCount = (predicate: (status: string) => boolean) =>
+                    (shipments as any[]).filter(s => predicate(String((s as any)?.status || '')))
+                      .length
+                  const completed = getStatusCount(st =>
+                    ['shipped', 'delivered'].includes(st.toLowerCase())
+                  )
+                  const pending = getStatusCount(
+                    st => !['shipped', 'delivered', 'cancelled'].includes(st.toLowerCase())
+                  )
                   return (
                     <>
                       <StatsCard label="출고건수" value={count} unit="건" />
                       <StatsCard label="금액" value={total} unit="KRW" />
                       <StatsCard label="수금" value={paid} unit="KRW" />
                       <StatsCard label="미수" value={outstanding} unit="KRW" />
+                      <StatsCard label="진행" value={pending} unit="건" />
+                      <StatsCard label="완료" value={completed} unit="건" />
                     </>
                   )
                 })()}

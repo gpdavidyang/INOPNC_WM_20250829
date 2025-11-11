@@ -33,12 +33,13 @@ export default async function ShippingPaymentPage({
     const { data: ext, error: extErr } = await supabase
       .from('material_shipments')
       .select(
-        `id, site_id, shipment_date, status,
+        `id, site_id, shipment_date, status, total_amount,
          sites(name),
          billing_method:payment_methods!material_shipments_billing_method_id_fkey(name),
          shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(name),
          freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(name),
-         shipment_items(quantity, material_id, materials(name, code))`
+         shipment_items(quantity, material_id, materials(name, code)),
+         payments:material_payments(amount)`
       )
       .order('shipment_date', { ascending: false })
       .limit(200)
@@ -48,9 +49,10 @@ export default async function ShippingPaymentPage({
       const { data: basic } = await supabase
         .from('material_shipments')
         .select(
-          `id, site_id, shipment_date, status,
-           sites(name),
-           shipment_items(quantity, material_id, materials(name, code))`
+          `id, site_id, shipment_date, status, total_amount,
+            sites(name),
+           shipment_items(quantity, material_id, materials(name, code)),
+           payments:material_payments(amount)`
         )
         .order('shipment_date', { ascending: false })
         .limit(200)
@@ -178,6 +180,21 @@ export default async function ShippingPaymentPage({
     return true
   })
   const visibleShipments = shipments.slice(0, take)
+  const shipmentStatusCounts = shipments.reduce(
+    (acc, row: any) => {
+      const st = String(row.status || '').toLowerCase()
+      if (['shipped', 'delivered'].includes(st)) acc.completed += 1
+      else if (st === 'cancelled') acc.cancelled += 1
+      else acc.pending += 1
+      const total = Number(row.total_amount || 0)
+      const paid = Array.isArray(row.payments)
+        ? row.payments.reduce((sum: number, p: any) => sum + Number(p?.amount || 0), 0)
+        : 0
+      acc.outstanding += Math.max(0, total - paid)
+      return acc
+    },
+    { pending: 0, completed: 0, cancelled: 0, outstanding: 0 }
+  )
 
   // Build base query preserving filters
   const baseParams = new URLSearchParams()
@@ -258,7 +275,7 @@ export default async function ShippingPaymentPage({
               </button>
             </Link>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="pm-kpi">
               <div className="pm-kpi-label">출고건수</div>
               <div className="pm-kpi-value">{totalShipmentsThisMonth.toLocaleString()}</div>
@@ -270,6 +287,22 @@ export default async function ShippingPaymentPage({
             <div className="pm-kpi pm-kpi--stock">
               <div className="pm-kpi-label">출고금액</div>
               <div className="pm-kpi-value">{totalAmountThisMonth.toLocaleString()}원</div>
+            </div>
+            <div className="pm-kpi pm-kpi--warning">
+              <div className="pm-kpi-label">미수금</div>
+              <div className="pm-kpi-value">
+                {shipmentStatusCounts.outstanding.toLocaleString()}원
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div className="pm-kpi pm-kpi--pending">
+              <div className="pm-kpi-label">진행</div>
+              <div className="pm-kpi-value">{shipmentStatusCounts.pending}</div>
+            </div>
+            <div className="pm-kpi pm-kpi--success">
+              <div className="pm-kpi-label">완료</div>
+              <div className="pm-kpi-value">{shipmentStatusCounts.completed}</div>
             </div>
           </div>
         </div>
@@ -306,6 +339,11 @@ export default async function ShippingPaymentPage({
                 (acc: number, it: any) => acc + Number(it.quantity || 0),
                 0
               )
+              const totalAmount = Number(s.total_amount || 0)
+              const paidAmount = Array.isArray(s.payments)
+                ? s.payments.reduce((acc: number, p: any) => acc + Number(p?.amount || 0), 0)
+                : 0
+              const outstandingAmountRow = Math.max(0, totalAmount - paidAmount)
               const sanitize = (name: string) => name.replace(/\s*\([^)]*\)\s*$/g, '').trim()
               const mats = (s.shipment_items || [])
                 .map((it: any) => sanitize(String(it.materials?.name || '')))
@@ -373,10 +411,16 @@ export default async function ShippingPaymentPage({
                         </span>
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
+                    <div className="text-right flex-shrink-0 min-w-[120px]">
                       <div className="text-sm text-muted-foreground">총 수량</div>
                       <div className="text-2xl font-bold leading-none">
                         {totalQty.toLocaleString()}
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        금액 {totalAmount.toLocaleString()}원
+                      </div>
+                      <div className="text-xs text-rose-600">
+                        미수 {outstandingAmountRow.toLocaleString()}원
                       </div>
                       {(() => {
                         const billing =
@@ -407,7 +451,7 @@ export default async function ShippingPaymentPage({
                         const freightTone: 'green' | 'slate' =
                           freight === '선불' ? 'green' : 'slate'
                         return (
-                          <div className="mt-1 flex items-center justify-end">
+                          <div className="mt-2 flex items-center justify-end">
                             {pill(billing, billingTone)}
                             {pill(shipping, shippingTone)}
                             {pill(freight, freightTone)}

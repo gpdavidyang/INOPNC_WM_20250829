@@ -40,7 +40,16 @@ export const SelectField: React.FC<SelectFieldProps> = ({
 
   return (
     <div className={className}>
-      <input type="hidden" name={name} value={value} required={required} />
+      <input
+        type="text"
+        name={name}
+        value={value}
+        onChange={() => {}}
+        required={required}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="sr-only absolute w-px h-px -m-px overflow-hidden"
+      />
       <CustomSelect value={value} onValueChange={setValue}>
         <PhSelectTrigger>
           <CustomSelectValue placeholder={placeholder}>

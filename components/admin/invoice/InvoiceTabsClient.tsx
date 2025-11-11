@@ -22,6 +22,7 @@ import DocumentVersionsDialog from './DocumentVersionsDialog'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Download, Eye } from 'lucide-react'
+import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
 
 type DocType = {
   code: string
@@ -102,7 +103,16 @@ export default function InvoiceTabsClient() {
   const [siteIdFilter, setSiteIdFilter] = useState('')
   const [sitesCatalog, setSitesCatalog] = useState<Array<{ id: string; name: string }>>([])
   const [docCache, setDocCache] = useState<
-    Record<string, { file_url?: string; file_name?: string }>
+    Record<
+      string,
+      {
+        file_url?: string | null
+        file_name?: string | null
+        storage_path?: string | null
+        storage_bucket?: string | null
+        metadata?: Record<string, any> | null
+      }
+    >
   >({})
   const siteOptions = useMemo(() => {
     const a = (summary.sites || []).map(s => ({ id: s.site_id, name: s.site_name || s.site_id }))
@@ -243,25 +253,49 @@ export default function InvoiceTabsClient() {
       if (!res.ok || json?.error) {
         throw new Error(json?.error || '문서 정보를 불러오지 못했습니다.')
       }
-      const data: { file_url?: string; file_name?: string } = json?.data || {}
+      const data: {
+        file_url?: string | null
+        file_name?: string | null
+        storage_path?: string | null
+        storage_bucket?: string | null
+        metadata?: Record<string, any> | null
+      } = json?.data || {}
       setDocCache(prev => ({ ...prev, [docId]: data }))
       return data
     },
     [docCache]
   )
 
-  const resolveSignedUrl = useCallback(async (url: string) => {
-    try {
-      const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`, {
-        credentials: 'include',
-      })
-      const json = await res.json().catch(() => ({}))
-      if (res.ok && json?.url) return json.url as string
-    } catch {
-      /* ignore */
-    }
-    return url
-  }, [])
+  const resolveSignedUrl = useCallback(
+    async (input: {
+      url?: string | null
+      path?: string | null
+      bucket?: string | null
+      downloadName?: string | null
+    }) => {
+      const params = new URLSearchParams()
+      if (input.url) params.set('url', input.url)
+      if (input.path) params.set('path', input.path)
+      if (input.bucket) params.set('bucket', input.bucket)
+      if (input.downloadName) params.set('download', input.downloadName)
+      if (!input.url && !input.path) {
+        throw new Error('파일 경로가 없습니다.')
+      }
+      try {
+        const qs = params.toString()
+        const res = await fetch(`/api/files/signed-url?${qs}`, {
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.url) return json.url as string
+      } catch {
+        /* ignore */
+      }
+      if (input.url) return input.url
+      throw new Error('파일 경로를 확인할 수 없습니다.')
+    },
+    []
+  )
 
   const handlePreviewDoc = useCallback(
     async (docId: string) => {
@@ -270,7 +304,19 @@ export default function InvoiceTabsClient() {
         if (!doc?.file_url) {
           throw new Error('파일 URL을 찾을 수 없습니다.')
         }
-        const finalUrl = await resolveSignedUrl(doc.file_url)
+        const storagePath =
+          doc.storage_path || doc.metadata?.storage_path || doc.metadata?.storagePath || null
+        const storageBucket =
+          doc.storage_bucket ||
+          doc.metadata?.storage_bucket ||
+          doc.metadata?.storageBucket ||
+          parseSupabaseStorageUrl(doc.file_url || undefined)?.bucket ||
+          null
+        const finalUrl = await resolveSignedUrl({
+          url: doc.file_url,
+          path: storagePath,
+          bucket: storageBucket,
+        })
         window.open(finalUrl, '_blank', 'noopener,noreferrer')
       } catch (error: any) {
         toast({
@@ -290,7 +336,20 @@ export default function InvoiceTabsClient() {
         if (!doc?.file_url) {
           throw new Error('파일 URL을 찾을 수 없습니다.')
         }
-        const finalUrl = await resolveSignedUrl(doc.file_url)
+        const storagePath =
+          doc.storage_path || doc.metadata?.storage_path || doc.metadata?.storagePath || null
+        const storageBucket =
+          doc.storage_bucket ||
+          doc.metadata?.storage_bucket ||
+          doc.metadata?.storageBucket ||
+          parseSupabaseStorageUrl(doc.file_url || undefined)?.bucket ||
+          null
+        const finalUrl = await resolveSignedUrl({
+          url: doc.file_url,
+          path: storagePath,
+          bucket: storageBucket,
+          downloadName: doc.file_name || null,
+        })
         const anchor = document.createElement('a')
         anchor.href = finalUrl
         if (doc.file_name) anchor.download = doc.file_name

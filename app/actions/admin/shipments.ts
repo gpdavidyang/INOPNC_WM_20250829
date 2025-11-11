@@ -131,7 +131,9 @@ function buildAnalytics(series: ShipmentRecord[], period: 'week' | 'month' | 'ye
     .sort((a, b) => (a.period < b.period ? 1 : -1))
 }
 
-export async function processShipment(data: ProcessShipmentInput): Promise<AdminActionResult<ShipmentRecord>> {
+export async function processShipment(
+  data: ProcessShipmentInput
+): Promise<AdminActionResult<ShipmentRecord>> {
   return withAdminAuth(async (supabase, profile) => {
     const auth = profile.auth
 
@@ -281,8 +283,10 @@ export async function updateShipmentInfo(
         updated_at: new Date().toISOString(),
       }
 
-      if (updates.planned_delivery_date !== undefined) updateData.planned_delivery_date = updates.planned_delivery_date
-      if (updates.tracking_number !== undefined) updateData.tracking_number = updates.tracking_number
+      if (updates.planned_delivery_date !== undefined)
+        updateData.planned_delivery_date = updates.planned_delivery_date
+      if (updates.tracking_number !== undefined)
+        updateData.tracking_number = updates.tracking_number
       if (updates.carrier !== undefined) updateData.carrier = updates.carrier
       if (updates.notes !== undefined) updateData.notes = updates.notes
 
@@ -345,7 +349,10 @@ export async function getShipmentHistory(
       if (site_id) {
         query = query.eq('site_id', site_id)
       } else if (accessibleSiteIds) {
-        query = accessibleSiteIds.length > 0 ? query.in('site_id', accessibleSiteIds) : query.eq('site_id', '__none__')
+        query =
+          accessibleSiteIds.length > 0
+            ? query.in('site_id', accessibleSiteIds)
+            : query.eq('site_id', '__none__')
       }
 
       if (filters?.start_date) {
@@ -369,7 +376,9 @@ export async function getShipmentHistory(
       }
 
       const filteredRecords = auth.isRestricted
-        ? (shipmentRecords || []).filter(record => record.sites?.organization_id === requireRestrictedOrgId(auth))
+        ? (shipmentRecords || []).filter(
+            record => record.sites?.organization_id === requireRestrictedOrgId(auth)
+          )
         : shipmentRecords || []
 
       return { success: true, data: filteredRecords as ShipmentRecord[] }
@@ -382,7 +391,9 @@ export async function getShipmentHistory(
 
 export async function getShipmentAnalytics(
   period: 'week' | 'month' | 'year' = 'month'
-): Promise<AdminActionResult<Array<{ period: string; total_quantity: number; shipments: number }>>> {
+): Promise<
+  AdminActionResult<Array<{ period: string; total_quantity: number; shipments: number }>>
+> {
   return withAdminAuth(async (supabase, profile) => {
     const auth = profile.auth
 
@@ -461,12 +472,17 @@ export async function getPendingShipmentRequests(): Promise<AdminActionResult<an
       }
 
       const filteredRequests = auth.isRestricted
-        ? (pendingRequests || []).filter(request => request.sites?.organization_id === requireRestrictedOrgId(auth))
+        ? (pendingRequests || []).filter(
+            request => request.sites?.organization_id === requireRestrictedOrgId(auth)
+          )
         : pendingRequests || []
 
-      const urgentRequests = filteredRequests.filter(request => request.urgency === 'emergency')
-      const highPriorityRequests = filteredRequests.filter(request => request.urgency === 'urgent')
-      const normalRequests = filteredRequests.filter(request => request.urgency === 'normal')
+      const urgentRequests = filteredRequests.filter(request => request.priority === 'urgent')
+      const highPriorityRequests = filteredRequests.filter(request => request.priority === 'high')
+      const normalRequests = filteredRequests.filter(request => {
+        const priority = (request.priority || 'normal') as string
+        return priority === 'normal' || priority === 'low' || priority === ''
+      })
 
       return {
         success: true,

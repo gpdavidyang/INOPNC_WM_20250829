@@ -5,6 +5,9 @@ import { assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
 import type { MaterialInventoryItem, MaterialRequestData } from '@/types/materials'
+import type { MaterialPriorityValue } from '@/lib/materials/priorities'
+import { INVENTORY_SORT_COLUMNS, type InventorySortKey } from '@/lib/admin/materials/constants'
+import { hasProductionItemsTable } from '@/lib/materials/production-support'
 import { withAdminAuth, AdminErrors, type AdminActionResult } from './common'
 
 type AdminSupabaseClient = SupabaseClient<Database>
@@ -230,7 +233,6 @@ export interface MaterialWithStats extends MaterialInventoryItem {
 export interface MaterialInventorySummary {
   total_materials: number
   tracked_sites: number
-  low_stock_items: number
   out_of_stock_items: number
   total_stock_quantity: number
 }
@@ -437,7 +439,6 @@ export async function getMaterialInventorySummary(): Promise<
             data: {
               total_materials: 0,
               tracked_sites: 0,
-              low_stock_items: 0,
               out_of_stock_items: 0,
               total_stock_quantity: 0,
             },
@@ -445,9 +446,9 @@ export async function getMaterialInventorySummary(): Promise<
         }
       }
 
-      let query = supabase
-        .from('material_inventory')
-        .select('id, site_id, material_id, current_stock, minimum_stock', { count: 'exact' })
+      const selectColumns = 'id, site_id, material_id, current_stock'
+
+      let query = supabase.from('material_inventory').select(selectColumns, { count: 'exact' })
 
       if (restrictedSiteIds) {
         query = query.in('site_id', restrictedSiteIds)
@@ -464,7 +465,6 @@ export async function getMaterialInventorySummary(): Promise<
 
       const materialIds = new Set<string>()
       const siteIds = new Set<string>()
-      let lowStock = 0
       let outOfStock = 0
       let totalStock = 0
 
@@ -476,13 +476,10 @@ export async function getMaterialInventorySummary(): Promise<
           siteIds.add(record.site_id as unknown as string)
         }
         const stock = Number(record.current_stock ?? 0)
-        const minimum = record.minimum_stock !== null ? Number(record.minimum_stock) : null
 
         totalStock += stock
         if (stock <= 0) {
           outOfStock += 1
-        } else if (minimum !== null && stock <= minimum) {
-          lowStock += 1
         }
       })
 
@@ -491,7 +488,6 @@ export async function getMaterialInventorySummary(): Promise<
         data: {
           total_materials: materialIds.size,
           tracked_sites: siteIds.size,
-          low_stock_items: lowStock,
           out_of_stock_items: outOfStock,
           total_stock_quantity: totalStock,
         },
@@ -514,7 +510,9 @@ export async function getMaterialInventoryList(
   limit = 10,
   search = '',
   site_id?: string,
-  material_id?: string
+  material_id?: string,
+  sort_by?: InventorySortKey,
+  sort_order?: 'asc' | 'desc'
 ): Promise<AdminActionResult<{ items: AdminInventoryRecord[]; total: number; pages: number }>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
@@ -522,26 +520,24 @@ export async function getMaterialInventoryList(
 
       await ensureSiteAccess(supabase, auth, site_id)
 
-      let query = supabase
-        .from('material_inventory')
-        .select(
-          `
+      let query = supabase.from('material_inventory').select(
+        `
           *,
-          materials(id, name, code, unit, specification),
-          sites(id, name, organization_id)
+          materials:materials!material_inventory_material_id_fkey(
+            id,
+            name,
+            code,
+            unit,
+            specification
+          ),
+          sites:sites!material_inventory_site_id_fkey(
+            id,
+            name,
+            organization_id
+          )
         `,
-          { count: 'exact' }
-        )
-        .order('updated_at', { ascending: false })
-
-      const trimmedSearch = search.trim()
-
-      if (trimmedSearch) {
-        const term = `%${trimmedSearch}%`
-        query = query.or(
-          `material_code.ilike.${term},materials.name.ilike.${term},materials.code.ilike.${term},sites.name.ilike.${term}`
-        )
-      }
+        { count: 'exact' }
+      )
 
       if (site_id) {
         query = query.eq('site_id', site_id)
@@ -549,6 +545,21 @@ export async function getMaterialInventoryList(
 
       if (material_id) {
         query = query.eq('material_id', material_id)
+      }
+
+      const trimmedSearch = search.trim()
+      if (trimmedSearch) {
+        const safe = trimmedSearch.replace(/[,()]/g, ' ').trim()
+        if (safe) {
+          const pattern = `*${safe.replace(/\s+/g, '*')}*`
+          query = query.or(
+            [
+              `materials.name.ilike.${pattern}`,
+              `materials.code.ilike.${pattern}`,
+              `sites.name.ilike.${pattern}`,
+            ].join(',')
+          )
+        }
       }
 
       let restrictedSiteIds: string[] | null = null
@@ -569,9 +580,23 @@ export async function getMaterialInventoryList(
 
       const offset = (page - 1) * limit
       query = query.range(offset, offset + limit - 1)
-
       if (restrictedSiteIds) {
         query = query.in('site_id', restrictedSiteIds)
+      }
+
+      const resolvedSort: InventorySortKey =
+        sort_by && INVENTORY_SORT_COLUMNS[sort_by] ? sort_by : 'updated_at'
+      const ascending = sort_order === 'asc'
+      const sortConfig = INVENTORY_SORT_COLUMNS[resolvedSort]
+
+      query = query.order(sortConfig.column, {
+        ascending,
+        nullsFirst: sortConfig.nullsFirst,
+        foreignTable: sortConfig.foreignTable,
+      })
+
+      if (resolvedSort !== 'updated_at') {
+        query = query.order('updated_at', { ascending: false, nullsFirst: true })
       }
 
       const { data, error, count } = await query
@@ -586,16 +611,7 @@ export async function getMaterialInventoryList(
 
       const mapped: AdminInventoryRecord[] = (data || []).map((record: any) => {
         const currentStock = Number(record.current_stock ?? 0)
-        const minimumStock =
-          record.minimum_stock !== null && record.minimum_stock !== undefined
-            ? Number(record.minimum_stock)
-            : null
-        const status =
-          currentStock <= 0
-            ? 'out_of_stock'
-            : minimumStock !== null && currentStock <= minimumStock
-              ? 'low'
-              : 'normal'
+        const status = currentStock <= 0 ? 'out_of_stock' : 'normal'
 
         return {
           id: record.id,
@@ -607,25 +623,12 @@ export async function getMaterialInventoryList(
           specification: record.specification || record.materials?.specification || null,
           unit: record.unit || record.materials?.unit || '',
           current_stock: currentStock,
-          minimum_stock: minimumStock,
-          maximum_stock:
-            record.maximum_stock !== null && record.maximum_stock !== undefined
-              ? Number(record.maximum_stock)
-              : null,
           last_purchase_date: record.last_purchase_date || null,
           last_purchase_price:
             record.last_purchase_price !== null && record.last_purchase_price !== undefined
               ? Number(record.last_purchase_price)
               : null,
           storage_location: record.storage_location || null,
-          reserved_stock:
-            record.reserved_stock !== null && record.reserved_stock !== undefined
-              ? Number(record.reserved_stock)
-              : undefined,
-          available_stock:
-            record.available_stock !== null && record.available_stock !== undefined
-              ? Number(record.available_stock)
-              : undefined,
           status,
           site_name: record.sites?.name || '',
           updated_at: record.updated_at || null,
@@ -660,8 +663,10 @@ export async function getMaterialRequests(
   page = 1,
   limit = 10,
   search = '',
-  status?: 'pending' | 'approved' | 'ordered' | 'delivered' | 'cancelled',
-  site_id?: string
+  site_id?: string,
+  materialName?: string,
+  priority?: MaterialPriorityValue,
+  status?: 'pending' | 'approved' | 'ordered' | 'delivered' | 'cancelled'
 ): Promise<AdminActionResult<{ requests: MaterialRequestData[]; total: number; pages: number }>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
@@ -676,19 +681,14 @@ export async function getMaterialRequests(
           *,
           requester:profiles!material_requests_requested_by_fkey(full_name),
           approver:profiles!material_requests_approved_by_fkey(full_name),
+          sites:sites!material_requests_site_id_fkey(id,name),
           material_request_items(
             id,
             material_id,
-            material_name,
-            material_code,
-            specification,
-            unit,
             requested_quantity,
             approved_quantity,
-            unit_price,
-            total_price,
-            supplier_name,
-            notes
+            notes,
+            materials:materials!material_request_items_material_id_fkey(id, name, code, specification, unit)
           )
         `,
           { count: 'exact' }
@@ -700,7 +700,12 @@ export async function getMaterialRequests(
         query = query.or(`request_number.ilike.%${search}%,notes.ilike.%${search}%`)
       }
 
-      // Apply status filter
+      const trimmedMaterialName = (materialName || '').trim().toLowerCase()
+      const requiresMaterialFilter = trimmedMaterialName.length > 0
+
+      if (priority) {
+        query = query.eq('priority', priority)
+      }
       if (status) {
         query = query.eq('status', status)
       }
@@ -726,9 +731,10 @@ export async function getMaterialRequests(
         }
       }
 
-      // Apply pagination
-      const offset = (page - 1) * limit
-      query = query.range(offset, offset + limit - 1)
+      if (!requiresMaterialFilter) {
+        const offset = (page - 1) * limit
+        query = query.range(offset, offset + limit - 1)
+      }
 
       if (restrictedSiteIds) {
         query = query.in('site_id', restrictedSiteIds)
@@ -744,25 +750,72 @@ export async function getMaterialRequests(
         }
       }
 
-      const requests = data || []
+      let rows = data || []
       const visibleRequests = auth.isRestricted
-        ? await filterRecordsByOrg(supabase, auth, requests, request => request.site_id)
-        : requests
+        ? await filterRecordsByOrg(supabase, auth, rows, request => request.site_id)
+        : rows
+      rows = visibleRequests
 
-      const transformedRequests =
-        visibleRequests.map((request: unknown) => ({
-          ...request,
-          items: request.material_request_items || [],
-        })) || []
+      if (requiresMaterialFilter) {
+        rows = rows.filter((request: any) => {
+          const rawItems = Array.isArray(request.material_request_items)
+            ? request.material_request_items
+            : []
+          return rawItems.some((item: any) => {
+            const candidate =
+              item?.materials?.name ||
+              item?.materials?.code ||
+              item?.material_name ||
+              item?.material_code ||
+              ''
+            return candidate.toLowerCase().includes(trimmedMaterialName)
+          })
+        })
+      }
 
-      const totalPages = Math.ceil((count || 0) / limit)
+      const normalizedRows =
+        rows.map((request: any) => {
+          const rawItems = Array.isArray(request.material_request_items)
+            ? request.material_request_items
+            : []
+          const mappedItems = rawItems.map((item: any) => ({
+            id: item.id,
+            material_id: item.material_id,
+            requested_quantity: item.requested_quantity,
+            approved_quantity: item.approved_quantity,
+            delivered_quantity: item.delivered_quantity,
+            unit_price: item.unit_price,
+            notes: item.notes,
+            material_name: item.materials?.name || null,
+            material_code: item.materials?.code || null,
+            specification: item.materials?.specification || null,
+            unit: item.materials?.unit || null,
+          }))
+
+          const normalizedRequestDate =
+            request.request_date || request.requested_at || request.created_at || null
+
+          return {
+            ...request,
+            request_date: normalizedRequestDate,
+            items: mappedItems,
+            material_request_items: mappedItems,
+          }
+        }) || []
+
+      const total = requiresMaterialFilter ? normalizedRows.length : count || 0
+      const pages = Math.ceil(total / limit)
+      const pagedRows =
+        requiresMaterialFilter && normalizedRows.length > 0
+          ? normalizedRows.slice((page - 1) * limit, (page - 1) * limit + limit)
+          : normalizedRows
 
       return {
         success: true,
         data: {
-          requests: transformedRequests,
-          total: count || 0,
-          pages: totalPages,
+          requests: pagedRows,
+          total,
+          pages,
         },
       }
     } catch (error) {
@@ -1074,17 +1127,29 @@ export async function getMaterialProductions(
 
       await ensureSiteAccess(supabase, auth, siteId)
 
+      const supportsProductionItems = await hasProductionItemsTable(supabase)
+      const selectColumns = [
+        '*',
+        'sites!site_id(name)',
+        'materials!material_id(name, code)',
+        'approver:profiles!approved_by(name)',
+      ]
+
+      if (supportsProductionItems) {
+        selectColumns.push(`
+          material_production_items(
+            id,
+            produced_quantity,
+            order_quantity,
+            notes,
+            materials:materials!material_production_items_material_id_fkey(name, code, unit)
+          )
+        `)
+      }
+
       let query = supabase
         .from('material_productions')
-        .select(
-          `
-          *,
-          sites!site_id(name),
-          materials!material_id(name, code),
-          approver:profiles!approved_by(name)
-        `,
-          { count: 'exact' }
-        )
+        .select(selectColumns.join(',\n'), { count: 'exact' })
         .order('production_date', { ascending: false })
 
       if (siteId) {
@@ -1269,6 +1334,9 @@ export async function getMaterialShipments(
           *,
           sites!site_id(name),
           creator:profiles!created_by(name),
+          billing_method:payment_methods!material_shipments_billing_method_id_fkey(name),
+          shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(name),
+          freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(name),
           shipment_items(
             id,
             material_id,

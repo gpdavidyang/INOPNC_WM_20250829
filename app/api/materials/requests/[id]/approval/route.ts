@@ -3,13 +3,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
-
 export const dynamic = 'force-dynamic'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
@@ -47,7 +43,7 @@ export async function POST(
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    const canApprove = 
+    const canApprove =
       ['admin', 'system_admin'].includes(profile.role) ||
       (profile.role === 'site_manager' && profile.site_id === materialRequest.site_id)
 
@@ -63,7 +59,7 @@ export async function POST(
         approved_by: authResult.userId,
         approved_at: new Date().toISOString(),
         rejection_reason: status === 'rejected' ? reason : null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', requestId)
       .select()
@@ -75,26 +71,28 @@ export async function POST(
     }
 
     // Create notification for the requester
-    const notificationTitle = status === 'approved' 
-      ? '자재 요청이 승인되었습니다'
-      : '자재 요청이 거부되었습니다'
+    const notificationTitle =
+      status === 'approved' ? '자재 요청이 승인되었습니다' : '자재 요청이 거부되었습니다'
 
-    const notificationBody = status === 'approved'
-      ? `${materialRequest.material_name} 자재 요청이 승인되었습니다. 곧 배송됩니다.`
-      : `${materialRequest.material_name} 자재 요청이 거부되었습니다. 사유: ${reason || '미제공'}`
+    const notificationBody =
+      status === 'approved'
+        ? `${materialRequest.material_name} 자재 요청이 승인되었습니다. 곧 배송됩니다.`
+        : `${materialRequest.material_name} 자재 요청이 거부되었습니다. 사유: ${reason || '미제공'}`
 
-    await supabase
-      .from('notifications')
-      .insert({
-        user_id: materialRequest.requested_by,
-        type: status === 'approved' ? 'success' : 'error',
-        title: notificationTitle,
-        message: notificationBody,
-        related_entity_type: 'material_request',
-        related_entity_id: requestId,
-        action_url: `/dashboard/materials/requests/${requestId}`,
-        created_by: authResult.userId
-      })
+    const requestListPath = `/dashboard/admin/materials?tab=requests${
+      requestId ? `&search=${encodeURIComponent(requestId)}` : ''
+    }`
+
+    await supabase.from('notifications').insert({
+      user_id: materialRequest.requested_by,
+      type: status === 'approved' ? 'success' : 'error',
+      title: notificationTitle,
+      message: notificationBody,
+      related_entity_type: 'material_request',
+      related_entity_id: requestId,
+      action_url: requestListPath,
+      created_by: authResult.userId,
+    })
 
     // Send push notification if the user has push enabled
     if (materialRequest.requested_by && materialRequest.requested_by.push_subscription) {
@@ -103,7 +101,7 @@ export async function POST(
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': request.headers.get('authorization') || ''
+            Authorization: request.headers.get('authorization') || '',
           },
           body: JSON.stringify({
             userIds: [materialRequest.requested_by.id],
@@ -115,10 +113,10 @@ export async function POST(
               data: {
                 requestId,
                 status,
-                materialName: materialRequest.material_name
-              }
-            }
-          })
+                materialName: materialRequest.material_name,
+              },
+            },
+          }),
         })
       } catch (error) {
         console.error('Failed to send push notification:', error)
@@ -128,14 +126,16 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: updatedRequest,
-      message: `Material request ${status} successfully`
+      message: `Material request ${status} successfully`,
     })
-
   } catch (error: unknown) {
     console.error('Material approval error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to process material approval',
-      details: error.message 
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to process material approval',
+        details: error.message,
+      },
+      { status: 500 }
+    )
   }
 }

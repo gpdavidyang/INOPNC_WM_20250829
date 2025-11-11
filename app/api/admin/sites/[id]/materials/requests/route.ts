@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { getMaterialRequests } from '@/app/actions/admin/materials'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,88 +24,27 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const limit = Math.max(1, Math.min(200, Number(searchParams.get('limit') || '21') || 21))
     const offset = Math.max(0, Number(searchParams.get('offset') || '0') || 0)
 
-    const svc = createServiceRoleClient()
+    const page = Math.floor(offset / limit) + 1
+    const result = await getMaterialRequests(
+      page,
+      limit,
+      q,
+      siteId,
+      undefined,
+      undefined,
+      statusParam === 'all' ? undefined : (statusParam as any)
+    )
 
-    const baseSelect = `
-      id,
-      request_number,
-      status,
-      requested_by,
-      request_date,
-      created_at,
-      notes,
-      requester:profiles!material_requests_requested_by_fkey(full_name),
-      material_request_items(
-        id,
-        material_id,
-        material_name,
-        material_code,
-        unit,
-        requested_quantity,
-        approved_quantity
+    if (!result.success) {
+      return NextResponse.json(
+        { success: false, error: result.error || 'Failed to load requests' },
+        { status: 500 }
       )
-    `
-
-    let query = svc
-      .from('material_requests')
-      .select(baseSelect, { count: 'exact' })
-      .eq('site_id', siteId)
-
-    if (statusParam && statusParam !== 'all') {
-      query = query.eq('status', statusParam)
     }
 
-    if (q) {
-      // best-effort filter by request number
-      query = query.or(`request_number.ilike.%${q}%`)
-    }
-
-    const orderBy =
-      sortParam === 'number' ? 'request_number' : sortParam === 'status' ? 'status' : 'request_date'
-    query = query.order(orderBy, { ascending: orderParam === 'asc' })
-
-    const { data, error, count } = await query.range(offset, offset + limit - 1)
-    if (error && error.code === '42703') {
-      // request_date column missing -> fallback to created_at only
-      let fallbackQuery = svc
-        .from('material_requests')
-        .select(
-          `id, request_number, status, requested_by, created_at,
-             requester:profiles!material_requests_requested_by_fkey(full_name)`,
-          { count: 'exact' }
-        )
-        .eq('site_id', siteId)
-
-      if (statusParam && statusParam !== 'all') {
-        fallbackQuery = fallbackQuery.eq('status', statusParam)
-      }
-      if (q) {
-        fallbackQuery = fallbackQuery.or(`request_number.ilike.%${q}%`)
-      }
-
-      const fallbackOrder =
-        sortParam === 'number' ? 'request_number' : sortParam === 'status' ? 'status' : 'created_at'
-      fallbackQuery = fallbackQuery.order(fallbackOrder, { ascending: orderParam === 'asc' })
-
-      const {
-        data: fbData,
-        error: fbError,
-        count: fbCount,
-      } = await fallbackQuery.range(offset, offset + limit - 1)
-      if (fbError) throw fbError
-      const normalized = (fbData || []).map(row => ({ ...row, request_date: row.created_at }))
-      return NextResponse.json({ success: true, data: normalized, total: fbCount || 0 })
-    }
-    if (error) throw error
-
-    const normalized = (data || []).map(row => ({
-      ...row,
-      request_date: row.request_date || row.created_at,
-      material_request_items: Array.isArray(row.material_request_items)
-        ? row.material_request_items
-        : [],
-    }))
-    return NextResponse.json({ success: true, data: normalized, total: count || 0 })
+    const requests = result.data?.requests || []
+    const total = result.data?.total || 0
+    return NextResponse.json({ success: true, data: requests, total })
   } catch (e) {
     console.error('[admin/sites/:id/materials/requests] error:', e)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })

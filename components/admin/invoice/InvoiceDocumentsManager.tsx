@@ -14,6 +14,7 @@ import {
   type UploadSuccessPayload,
 } from '@/components/admin/invoice/InvoiceUploadDialog'
 import { DEFAULT_INVOICE_DOC_TYPES } from '@/lib/invoice/doc-types'
+import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
 
 interface InvoiceDocType {
   code: string
@@ -36,6 +37,8 @@ interface InvoiceDocument {
   created_at?: string
   stage?: StageKey | null
   metadata?: any
+  storage_path?: string | null
+  storage_bucket?: string | null
 }
 
 export interface InvoiceStageProgress {
@@ -160,6 +163,20 @@ const findDocTypesForDocument = (
   return Array.from(codes)
 }
 
+const resolveStorageParams = (doc: InvoiceDocument) => {
+  const metadata = (
+    doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {}
+  ) as Record<string, any>
+  const storagePath = doc.storage_path || metadata?.storage_path || metadata?.storagePath || null
+  const storageBucket =
+    doc.storage_bucket ||
+    metadata?.storage_bucket ||
+    metadata?.storageBucket ||
+    parseSupabaseStorageUrl(doc.file_url || metadata?.file_url || undefined)?.bucket ||
+    null
+  return { storagePath, storageBucket }
+}
+
 const toInvoiceDocumentFromDetail = (
   detail: Record<string, any>,
   fallback?: InvoiceDocument
@@ -187,6 +204,21 @@ const toInvoiceDocumentFromDetail = (
     const d = new Date(createdAt)
     resolvedCreatedAt = Number.isNaN(d.getTime()) ? '' : d.toISOString()
   }
+  const storagePath =
+    detail?.storage_path ||
+    rawMetadata?.storage_path ||
+    rawMetadata?.storagePath ||
+    fallback?.storage_path ||
+    null
+  const storageBucket =
+    detail?.storage_bucket ||
+    rawMetadata?.storage_bucket ||
+    rawMetadata?.storageBucket ||
+    fallback?.storage_bucket ||
+    parseSupabaseStorageUrl(
+      detail?.file_url || rawMetadata?.file_url || fallback?.file_url || undefined
+    )?.bucket ||
+    null
 
   return {
     id: detail?.id || fallback?.id || '',
@@ -211,6 +243,8 @@ const toInvoiceDocumentFromDetail = (
     created_at: resolvedCreatedAt,
     stage: stageCandidate,
     metadata: mergedMetadata,
+    storage_path: storagePath,
+    storage_bucket: storageBucket,
   }
 }
 
@@ -588,16 +622,23 @@ export default function InvoiceDocumentsManager({
     if (!doc?.id) return
     try {
       const resolved = doc.file_url ? doc : await resolveDocumentDetail(doc)
-      let signedUrl = resolved.file_url
+      const { storagePath, storageBucket } = resolveStorageParams(resolved as InvoiceDocument)
+      let signedUrl = resolved.file_url || ''
       try {
-        if (!signedUrl) throw new Error('파일 URL이 없습니다.')
-        const params = new URLSearchParams({ url: signedUrl })
+        if (!signedUrl && !storagePath) throw new Error('파일 URL이 없습니다.')
+        const params = new URLSearchParams()
+        if (signedUrl) params.set('url', signedUrl)
+        if (storagePath) params.set('path', storagePath)
+        if (storageBucket) params.set('bucket', storageBucket)
         if (resolved.file_name) params.set('download', resolved.file_name)
-        const res = await fetch(`/api/files/signed-url?${params.toString()}`, {
-          credentials: 'include',
-        })
-        const json = await res.json()
-        if (json?.url) signedUrl = json.url
+        const qs = params.toString()
+        if (qs) {
+          const res = await fetch(`/api/files/signed-url?${qs}`, {
+            credentials: 'include',
+          })
+          const json = await res.json()
+          if (json?.url) signedUrl = json.url
+        }
       } catch {
         /* ignore signed URL failure */
       }
@@ -632,19 +673,26 @@ export default function InvoiceDocumentsManager({
     if (!doc?.id) return
     try {
       const resolved = doc.file_url ? doc : await resolveDocumentDetail(doc)
-      let finalUrl = resolved.file_url
-      if (!finalUrl) {
-        throw new Error('파일 URL을 찾을 수 없습니다.')
-      }
+      const { storagePath, storageBucket } = resolveStorageParams(resolved as InvoiceDocument)
+      let finalUrl = resolved.file_url || ''
+      if (!finalUrl && !storagePath) throw new Error('파일 URL을 찾을 수 없습니다.')
       try {
-        const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(finalUrl)}`, {
-          credentials: 'include',
-        })
-        const json = await res.json()
-        if (json?.url) finalUrl = json.url
+        const params = new URLSearchParams()
+        if (finalUrl) params.set('url', finalUrl)
+        if (storagePath) params.set('path', storagePath)
+        if (storageBucket) params.set('bucket', storageBucket)
+        const qs = params.toString()
+        if (qs) {
+          const res = await fetch(`/api/files/signed-url?${qs}`, {
+            credentials: 'include',
+          })
+          const json = await res.json()
+          if (json?.url) finalUrl = json.url
+        }
       } catch {
         /* ignore signed URL failure */
       }
+      if (!finalUrl) throw new Error('파일 URL을 찾을 수 없습니다.')
       window.open(finalUrl, '_blank', 'noopener,noreferrer')
       setDocuments(prev => {
         const existing = getDocumentsForType(prev, docType) || []

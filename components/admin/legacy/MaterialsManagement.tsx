@@ -97,6 +97,9 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
         currentPage,
         pageSize,
         searchTerm,
+        undefined,
+        undefined,
+        undefined,
         statusFilter as unknown
       )
 
