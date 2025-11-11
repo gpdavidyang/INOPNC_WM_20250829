@@ -163,17 +163,6 @@ export default async function ProductionManagePage({
   })
 
   const visibleProductions = productions.slice(0, take)
-  const productionStatusCounts = productions.reduce(
-    (acc, row: any) => {
-      const status = String(row.quality_status || 'pending').toLowerCase()
-      if (status === 'approved') acc.approved += 1
-      else if (status === 'rejected') acc.rejected += 1
-      else acc.pending += 1
-      return acc
-    },
-    { approved: 0, pending: 0, rejected: 0 }
-  )
-
   // Build next link (preserve filters)
   const baseParams = new URLSearchParams()
   if (q) baseParams.set('q', q)
@@ -274,20 +263,6 @@ export default async function ProductionManagePage({
             <div className="pm-kpi pm-kpi--stock">
               <div className="pm-kpi-label">순증량</div>
               <div className="pm-kpi-value">{netChangeThisMonth.toLocaleString()}</div>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="pm-kpi pm-kpi--pending">
-              <div className="pm-kpi-label">대기</div>
-              <div className="pm-kpi-value">{productionStatusCounts.pending}</div>
-            </div>
-            <div className="pm-kpi pm-kpi--success">
-              <div className="pm-kpi-label">승인</div>
-              <div className="pm-kpi-value">{productionStatusCounts.approved}</div>
-            </div>
-            <div className="pm-kpi pm-kpi--warning">
-              <div className="pm-kpi-label">반려</div>
-              <div className="pm-kpi-value">{productionStatusCounts.rejected}</div>
             </div>
           </div>
         </div>

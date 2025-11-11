@@ -7,7 +7,10 @@ import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileL
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import ProductionItemsFieldArray from '@/modules/mobile/components/production/ProductionItemsFieldArray'
 import type { OptionItem } from '@/modules/mobile/components/production/SelectField'
-import { hasProductionItemsTable } from '@/lib/materials/production-support'
+import {
+  hasProductionItemsTable,
+  hasMaterialProductionColumn,
+} from '@/lib/materials/production-support'
 
 export const metadata: Metadata = { title: '생산 정보 입력' }
 
@@ -66,19 +69,32 @@ async function submit(formData: FormData) {
     0
   )
 
+  const insertPayload: Record<string, any> = {
+    site_id,
+    material_id: effectiveItems[0]?.material_id || null,
+    production_date,
+    produced_quantity: totalProduced,
+    quality_status: 'pending',
+    quality_notes: notes ? `${notes}\n${JSON.stringify(extended)}` : JSON.stringify(extended),
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+
+  const supportsCreatedBy = await hasMaterialProductionColumn(supabase, 'created_by')
+  if (supportsCreatedBy) insertPayload.created_by = session.user.id
+
+  const supportsProductionNumber = await hasMaterialProductionColumn(supabase, 'production_number')
+  if (supportsProductionNumber) {
+    insertPayload.production_number = await generateProductionNumber(supabase)
+  }
+  const supportsStatusCol = await hasMaterialProductionColumn(supabase, 'status')
+  if (supportsStatusCol) {
+    insertPayload.status = 'pending'
+  }
+
   const { data: production, error: productionError } = await supabase
     .from('material_productions')
-    .insert({
-      site_id,
-      material_id: effectiveItems[0]?.material_id || null,
-      production_date,
-      produced_quantity: totalProduced,
-      quality_status: 'pending',
-      quality_notes: notes ? `${notes}\n${JSON.stringify(extended)}` : JSON.stringify(extended),
-      created_by: session.user.id,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    } as any)
+    .insert(insertPayload as any)
     .select('id')
     .single()
 
@@ -276,6 +292,41 @@ async function persistFallbackItemsMetadata(
       .eq('id', productionId)
   } catch (fallbackError) {
     console.error('[ProductionCreate] fallback metadata update failed', fallbackError)
+  }
+}
+
+async function generateProductionNumber(supabase: any): Promise<string> {
+  const today = new Date()
+  const datePart = today.toISOString().slice(0, 10).replace(/-/g, '')
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
+  const endOfDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() + 1
+  ).toISOString()
+  try {
+    const { data } = await supabase
+      .from('material_productions')
+      .select('production_number')
+      .gte('production_date', startOfDay)
+      .lt('production_date', endOfDay)
+      .limit(1000)
+    const usedSequences = new Set<string>()
+    for (const row of data || []) {
+      const value = typeof row.production_number === 'string' ? row.production_number : ''
+      const parts = value.split('-')
+      const seq = parts[1]
+      if (seq) usedSequences.add(seq)
+    }
+    let seqNumber = 1
+    while (usedSequences.has(String(seqNumber).padStart(3, '0'))) {
+      seqNumber += 1
+    }
+    const sequence = String(seqNumber).padStart(3, '0')
+    return `P${datePart}-${sequence}`
+  } catch (error) {
+    console.error('[ProductionCreate] failed to generate production number', error)
+    return `P${datePart}-${Date.now()}`
   }
 }
 

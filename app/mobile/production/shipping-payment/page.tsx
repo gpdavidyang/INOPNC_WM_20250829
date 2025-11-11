@@ -180,21 +180,6 @@ export default async function ShippingPaymentPage({
     return true
   })
   const visibleShipments = shipments.slice(0, take)
-  const shipmentStatusCounts = shipments.reduce(
-    (acc, row: any) => {
-      const st = String(row.status || '').toLowerCase()
-      if (['shipped', 'delivered'].includes(st)) acc.completed += 1
-      else if (st === 'cancelled') acc.cancelled += 1
-      else acc.pending += 1
-      const total = Number(row.total_amount || 0)
-      const paid = Array.isArray(row.payments)
-        ? row.payments.reduce((sum: number, p: any) => sum + Number(p?.amount || 0), 0)
-        : 0
-      acc.outstanding += Math.max(0, total - paid)
-      return acc
-    },
-    { pending: 0, completed: 0, cancelled: 0, outstanding: 0 }
-  )
 
   // Build base query preserving filters
   const baseParams = new URLSearchParams()
@@ -275,7 +260,7 @@ export default async function ShippingPaymentPage({
               </button>
             </Link>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="pm-kpi">
               <div className="pm-kpi-label">출고건수</div>
               <div className="pm-kpi-value">{totalShipmentsThisMonth.toLocaleString()}</div>
@@ -287,22 +272,6 @@ export default async function ShippingPaymentPage({
             <div className="pm-kpi pm-kpi--stock">
               <div className="pm-kpi-label">출고금액</div>
               <div className="pm-kpi-value">{totalAmountThisMonth.toLocaleString()}원</div>
-            </div>
-            <div className="pm-kpi pm-kpi--warning">
-              <div className="pm-kpi-label">미수금</div>
-              <div className="pm-kpi-value">
-                {shipmentStatusCounts.outstanding.toLocaleString()}원
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            <div className="pm-kpi pm-kpi--pending">
-              <div className="pm-kpi-label">진행</div>
-              <div className="pm-kpi-value">{shipmentStatusCounts.pending}</div>
-            </div>
-            <div className="pm-kpi pm-kpi--success">
-              <div className="pm-kpi-label">완료</div>
-              <div className="pm-kpi-value">{shipmentStatusCounts.completed}</div>
             </div>
           </div>
         </div>

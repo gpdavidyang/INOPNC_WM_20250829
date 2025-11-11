@@ -5,6 +5,7 @@ type GenericSupabaseClient = SupabaseClient<any, 'public', any>
 
 let cachedSupport: boolean | null = null
 let lastChecked = 0
+const columnCache = new Map<string, { exists: boolean; checkedAt: number }>()
 
 export type ProductionMetadataItem = {
   material_id?: string
@@ -98,4 +99,45 @@ export function extractProductionMemo(raw: unknown, metadata?: ProductionMetadat
   const rawText = typeof raw === 'string' ? raw.trim() : ''
   if (!rawText) return null
   return rawText.split('\n')[0] || null
+}
+
+/**
+ * Checks whether a specific column exists on material_productions.
+ */
+export async function hasMaterialProductionColumn(
+  supabase: Pick<GenericSupabaseClient, 'from'>,
+  columnName: string
+): Promise<boolean> {
+  const key = columnName.toLowerCase()
+  const cached = columnCache.get(key)
+  if (cached && Date.now() - cached.checkedAt < 60_000) {
+    return cached.exists
+  }
+
+  let exists = false
+  try {
+    const { data, error } = await supabase
+      .from('information_schema.columns')
+      .select('column_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', 'material_productions')
+      .eq('column_name', columnName)
+      .maybeSingle()
+    if (!error) {
+      exists = !!data
+    } else {
+      // fall back to probing via select in case information_schema is blocked
+      const { error: columnErr } = await supabase
+        .from('material_productions')
+        .select(columnName, { head: true, count: 'exact' })
+        .limit(1)
+      exists = !columnErr
+    }
+  } catch (error) {
+    console.error('[materials] Failed to probe material_productions column', columnName, error)
+    exists = true
+  }
+
+  columnCache.set(key, { exists, checkedAt: Date.now() })
+  return exists
 }

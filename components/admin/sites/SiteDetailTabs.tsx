@@ -783,12 +783,13 @@ export default function SiteDetailTabs({
 
   type RequestDisplayRow = {
     id: string
-    number: ReactNode
-    items: ReactNode
+    site: ReactNode
+    material: ReactNode
     quantity: ReactNode
     requester: ReactNode
-    status: ReactNode
     date: string
+    priority: ReactNode
+    notes: ReactNode
   }
 
   type ShipmentDisplayRow = {
@@ -819,12 +820,13 @@ export default function SiteDetailTabs({
   ]
 
   const requestColumns: Column<RequestDisplayRow>[] = [
-    { key: 'number', header: '요청번호', render: row => row.number },
-    { key: 'items', header: '품목', render: row => row.items },
-    { key: 'quantity', header: '수량', align: 'right', render: row => row.quantity },
+    { key: 'site', header: '현장명', render: row => row.site },
+    { key: 'material', header: '자재명', render: row => row.material },
+    { key: 'quantity', header: '요청수량', align: 'right', render: row => row.quantity },
     { key: 'requester', header: '요청자', render: row => row.requester },
-    { key: 'status', header: '상태', render: row => row.status },
     { key: 'date', header: '요청일', accessor: row => row.date },
+    { key: 'priority', header: '긴급도', render: row => row.priority },
+    { key: 'notes', header: '비고', render: row => row.notes },
   ]
 
   const shipmentColumns: Column<ShipmentDisplayRow>[] = [
@@ -894,12 +896,38 @@ export default function SiteDetailTabs({
     })
   }, [filteredInventory, siteId])
 
-  const requestTableRows: RequestDisplayRow[] = useMemo(
-    () =>
-      (reqRows || []).map((rq: any, idx?: number) => ({
-        id: rq?.id || String(idx ?? ''),
-        number: rq?.request_number || rq?.id || '-',
-        items: renderRequestItemsCell(rq?.material_request_items),
+  const requestTableRows: RequestDisplayRow[] = useMemo(() => {
+    return (reqRows || []).map((rq: any, idx?: number) => {
+      const requestId = rq?.id || String(idx ?? '')
+      const requestNumber = rq?.request_number || requestId
+      const siteName = rq?.sites?.name || fallbackSiteName
+      const materialSummary = renderRequestItemsCell(rq?.material_request_items)
+      const detailLink = (
+        <a
+          className="text-xs text-primary underline-offset-2 hover:underline"
+          href={`/dashboard/admin/materials/requests/${requestId}`}
+        >
+          요청 상세
+        </a>
+      )
+      const priorityValue = isMaterialPriorityValue(rq?.priority)
+        ? (rq.priority as MaterialPriorityValue)
+        : null
+      const notes = cleanPriorityNote(rq?.notes)
+      return {
+        id: requestId,
+        site: (
+          <div className="flex flex-col">
+            <span className="font-medium text-foreground">{siteName}</span>
+            <span className="text-xs text-muted-foreground">{requestNumber}</span>
+          </div>
+        ),
+        material: (
+          <div className="flex flex-col gap-1">
+            {materialSummary}
+            {detailLink}
+          </div>
+        ),
         quantity: renderRequestQuantityCell(rq?.material_request_items),
         requester: rq?.requested_by ? (
           <a
@@ -912,11 +940,20 @@ export default function SiteDetailTabs({
         ) : (
           <span>{rq?.requester?.full_name || '-'}</span>
         ),
-        status: renderStatusBadge(rq?.status),
         date: rq?.request_date ? new Date(rq.request_date).toLocaleDateString('ko-KR') : '-',
-      })),
-    [reqRows]
-  )
+        priority: priorityValue ? (
+          <Badge variant={MATERIAL_PRIORITY_BADGE_VARIANTS[priorityValue]}>
+            {MATERIAL_PRIORITY_LABELS[priorityValue]}
+          </Badge>
+        ) : (
+          <span className="text-muted-foreground">-</span>
+        ),
+        notes: (
+          <span className="text-sm text-foreground max-w-[200px] truncate">{notes || '-'}</span>
+        ),
+      }
+    })
+  }, [reqRows, fallbackSiteName])
 
   const filteredShipments = useMemo(() => {
     return (Array.isArray(shipments) ? shipments : []).filter((s: any) => {

@@ -906,7 +906,6 @@ export default async function AdminMaterialsPage({
                   }, 0)
                   const outstanding = Math.max(0, total - paid)
                   const count = (shipments as any[]).length
-                  const count = (shipments as any[]).length
                   const getStatusCount = (predicate: (status: string) => boolean) =>
                     (shipments as any[]).filter(s => predicate(String((s as any)?.status || '')))
                       .length
