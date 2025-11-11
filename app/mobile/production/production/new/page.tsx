@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
@@ -22,7 +23,7 @@ async function submit(formData: FormData) {
   } = await supabase.auth.getSession()
   if (!session?.user) redirect('/auth/login')
 
-  const site_id = (formData.get('site_id') as string) || ''
+  const rawSiteId = ((formData.get('site_id') as string) || '').trim()
   const production_date = (formData.get('production_date') as string) || ''
   const notes = ((formData.get('notes') as string) || '').trim() || null
 
@@ -42,7 +43,7 @@ async function submit(formData: FormData) {
   const fallbackItems = items.length === 0 ? material_idFromLegacy(formData) : []
   const effectiveItems = items.length ? items : fallbackItems
 
-  if (!site_id || !production_date || effectiveItems.length === 0) {
+  if (!production_date || effectiveItems.length === 0) {
     console.error('[ProductionCreate] validation failed', {
       site_id,
       production_date,
@@ -70,7 +71,7 @@ async function submit(formData: FormData) {
   )
 
   const insertPayload: Record<string, any> = {
-    site_id,
+    site_id: rawSiteId || null,
     material_id: effectiveItems[0]?.material_id || null,
     production_date,
     produced_quantity: totalProduced,
@@ -83,20 +84,21 @@ async function submit(formData: FormData) {
   const supportsCreatedBy = await hasMaterialProductionColumn(supabase, 'created_by')
   if (supportsCreatedBy) insertPayload.created_by = session.user.id
 
-  const supportsProductionNumber = await hasMaterialProductionColumn(supabase, 'production_number')
-  if (supportsProductionNumber) {
-    insertPayload.production_number = await generateProductionNumber(supabase)
-  }
+  insertPayload.production_number = await generateProductionNumber(
+    supabase,
+    typeof insertPayload.production_date === 'string'
+      ? insertPayload.production_date
+      : production_date
+  )
   const supportsStatusCol = await hasMaterialProductionColumn(supabase, 'status')
   if (supportsStatusCol) {
     insertPayload.status = 'pending'
   }
 
-  const { data: production, error: productionError } = await supabase
-    .from('material_productions')
-    .insert(insertPayload as any)
-    .select('id')
-    .single()
+  const { data: production, error: productionError } = await insertProductionRecord(
+    supabase,
+    insertPayload
+  )
 
   if (productionError || !production) {
     console.error('[ProductionCreate] insert error', productionError)
@@ -140,6 +142,7 @@ async function submit(formData: FormData) {
     }
   }
 
+  revalidatePath('/dashboard/admin/materials?tab=productions')
   revalidatePath('/dashboard/admin/materials?tab=production')
   revalidatePath('/mobile/production/production')
   redirect('/mobile/production/production')
@@ -295,28 +298,27 @@ async function persistFallbackItemsMetadata(
   }
 }
 
-async function generateProductionNumber(supabase: any): Promise<string> {
-  const today = new Date()
-  const datePart = today.toISOString().slice(0, 10).replace(/-/g, '')
-  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
-  const endOfDay = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate() + 1
-  ).toISOString()
+async function generateProductionNumber(
+  supabase: any,
+  productionDate?: string | null
+): Promise<string> {
+  const normalizedDate =
+    typeof productionDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(productionDate)
+      ? productionDate
+      : new Date().toISOString().slice(0, 10)
+  const datePart = normalizedDate.replace(/-/g, '')
   try {
-    const { data } = await supabase
+    const counterClient = createServiceRoleClient()
+    const { data } = await counterClient
       .from('material_productions')
       .select('production_number')
-      .gte('production_date', startOfDay)
-      .lt('production_date', endOfDay)
+      .ilike('production_number', `P${datePart}-%`)
       .limit(1000)
     const usedSequences = new Set<string>()
     for (const row of data || []) {
       const value = typeof row.production_number === 'string' ? row.production_number : ''
-      const parts = value.split('-')
-      const seq = parts[1]
-      if (seq) usedSequences.add(seq)
+      const match = value.match(/^P\d{8}-(\d{3})$/)
+      if (match) usedSequences.add(match[1])
     }
     let seqNumber = 1
     while (usedSequences.has(String(seqNumber).padStart(3, '0'))) {
@@ -328,6 +330,75 @@ async function generateProductionNumber(supabase: any): Promise<string> {
     console.error('[ProductionCreate] failed to generate production number', error)
     return `P${datePart}-${Date.now()}`
   }
+}
+
+async function insertProductionRecord(
+  supabase: any,
+  payload: Record<string, any>
+): Promise<{ data: { id: string } | null; error: any }> {
+  const attemptPayload = await pruneMissingProductionColumns(supabase, payload)
+  const maxAttempts = Object.keys(attemptPayload).length + 5
+  let lastError: any = null
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const { data, error } = await supabase
+      .from('material_productions')
+      .insert(attemptPayload as any)
+      .select('id')
+      .single()
+
+    if (!error) {
+      return { data, error: null }
+    }
+
+    lastError = error
+    const missingColumn = parseMissingColumn(error)
+    if (missingColumn && Object.prototype.hasOwnProperty.call(attemptPayload, missingColumn)) {
+      delete attemptPayload[missingColumn]
+      continue
+    }
+
+    if (isProductionNumberConflict(error)) {
+      const targetDate =
+        typeof attemptPayload.production_date === 'string' ? attemptPayload.production_date : null
+      attemptPayload.production_number = await generateProductionNumber(supabase, targetDate)
+      continue
+    }
+
+    return { data: null, error }
+  }
+
+  return { data: null, error: lastError || new Error('Failed to insert material production') }
+}
+
+function parseMissingColumn(error: any): string | null {
+  const message = String(error?.message || '')
+  const match = message.match(/column\s+"([^"]+)"\s+does\s+not\s+exist/i)
+  return match ? match[1] : null
+}
+
+function isProductionNumberConflict(error: any): boolean {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes('material_productions_production_number_key') ||
+    (message.includes('production_number') && message.includes('duplicate'))
+  )
+}
+
+const REQUIRED_COLUMNS = new Set(['site_id', 'production_date', 'produced_quantity'])
+
+async function pruneMissingProductionColumns(
+  supabase: any,
+  payload: Record<string, any>
+): Promise<Record<string, any>> {
+  const sanitized: Record<string, any> = { ...payload }
+  for (const key of Object.keys(payload)) {
+    if (REQUIRED_COLUMNS.has(key)) continue
+    const exists = await hasMaterialProductionColumn(supabase, key)
+    if (!exists) {
+      delete sanitized[key]
+    }
+  }
+  return sanitized
 }
 
 function parseProductionItems(formData: FormData): ProductionItemInput[] {

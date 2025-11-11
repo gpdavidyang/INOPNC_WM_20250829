@@ -329,29 +329,21 @@ export default async function AdminMaterialsPage({
     } catch {
       // best-effort; leave as empty
     }
-    // Partners quick count (best-effort)
+    // Partners quick count (best-effort) — use Supabase directly to avoid stale stub data
     try {
-      const apiUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/api/admin/partner-companies`
-      const res = await fetch(apiUrl, { cache: 'no-store', credentials: 'include' })
-      if (res.ok) {
-        const json = await res.json()
-        const list = (json?.data?.partner_companies || []) as Array<any>
-        partnersCount = Number(json?.data?.total ?? list.length)
-        partnersPreview = list.slice(0, 10).map((p: any) => ({
-          id: p.id,
-          company_name: p.company_name,
-          status: p.status ?? null,
-        }))
-      } else {
-        // API 실패 시 스텁으로 폴백
-        partnersCount = ADMIN_PARTNER_COMPANIES_STUB.length
-        partnersPreview = ADMIN_PARTNER_COMPANIES_STUB.slice(0, 10).map((p: any) => ({
-          id: p.id,
-          company_name: p.company_name,
-          status: p.status ?? null,
-        }))
-      }
-    } catch {
+      const { data: partnersData, error: partnersError } = await supabase
+        .from('partner_companies')
+        .select('id, company_name, status')
+        .order('company_name', { ascending: true })
+      if (partnersError) throw partnersError
+      partnersCount = partnersData?.length ?? 0
+      partnersPreview = (partnersData || []).slice(0, 10).map((p: any) => ({
+        id: p.id,
+        company_name: p.company_name,
+        status: p.status ?? null,
+      }))
+    } catch (error) {
+      console.error('[AdminMaterials] partner_companies query failed, using stub:', error)
       partnersCount = ADMIN_PARTNER_COMPANIES_STUB.length
       partnersPreview = ADMIN_PARTNER_COMPANIES_STUB.slice(0, 10).map((p: any) => ({
         id: p.id,
@@ -796,19 +788,16 @@ export default async function AdminMaterialsPage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead>생산번호</TableHead>
-                    <TableHead>현장</TableHead>
-                    <TableHead className="text-right">생산수량</TableHead>
-                    <TableHead>생산일</TableHead>
-                    <TableHead>품질상태</TableHead>
-                    <TableHead>특이사항</TableHead>
+                    <TableHead className="min-w-[220px]">자재</TableHead>
+                    <TableHead className="w-[120px] text-right">생산수량</TableHead>
+                    <TableHead className="w-[140px] whitespace-nowrap">생산일</TableHead>
+                    <TableHead className="min-w-[260px]">메모</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {productions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10">
+                      <TableCell colSpan={4} className="py-10">
                         <EmptyState description="표시할 생산 정보가 없습니다." />
                       </TableCell>
                     </TableRow>
@@ -846,7 +835,7 @@ export default async function AdminMaterialsPage({
                       const extraCount = Math.max(0, totalItems - 1)
                       return (
                         <TableRow key={p.id}>
-                          <TableCell className="font-medium text-foreground">
+                          <TableCell className="font-medium text-foreground min-w-[220px]">
                             <div className="flex flex-col">
                               <span>
                                 {primaryMaterialName || '-'}
@@ -863,22 +852,17 @@ export default async function AdminMaterialsPage({
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>{p.production_number || p.id}</TableCell>
-                          <TableCell>{p.sites?.name || '-'}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-right w-[120px] whitespace-nowrap">
                             {Number(p.produced_quantity ?? 0).toLocaleString('ko-KR')}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="w-[140px] whitespace-nowrap">
                             {p.production_date
                               ? new Date(p.production_date).toLocaleDateString('ko-KR')
                               : '-'}
                           </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="capitalize">
-                              {p.quality_status || '대기'}
-                            </Badge>
+                          <TableCell className="max-w-md min-w-[260px] truncate">
+                            {noteText}
                           </TableCell>
-                          <TableCell className="max-w-xs truncate">{noteText}</TableCell>
                         </TableRow>
                       )
                     })

@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react'
 import { SelectField, type OptionItem } from '@/modules/mobile/components/production/SelectField'
+import MaterialPartnerSelect from '@/modules/mobile/components/production/MaterialPartnerSelect'
+import type { MaterialPartnerOption } from '@/modules/mobile/types/material-partner'
 
 interface ProductionSearchSectionProps {
   materialOptions: OptionItem[]
   siteOptions: OptionItem[]
-  partnerOptions: OptionItem[]
+  partnerOptions: MaterialPartnerOption[]
   defaultPeriod?: string
   defaultMaterialId?: string
   defaultSiteId?: string
@@ -19,6 +21,8 @@ interface ProductionSearchSectionProps {
   defaultStatus?: string
   statusLabel?: string
   statusName?: string
+  partnerFieldLabel?: string
+  partnerPlaceholder?: string
 }
 
 export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = ({
@@ -41,6 +45,8 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
   defaultStatus = 'all',
   statusLabel = '상태',
   statusName = 'status',
+  partnerFieldLabel = '자재거래처',
+  partnerPlaceholder = '자재거래처 선택',
 }) => {
   const [collapsed, setCollapsed] = useState(true)
 
@@ -102,12 +108,14 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
               />
             </div>
             <div>
-              <label className="block text-xs text-muted-foreground mb-1">거래처 선택</label>
-              <SelectField
+              <label className="block text-xs text-muted-foreground mb-1">
+                {partnerFieldLabel}
+              </label>
+              <MaterialPartnerSelect
                 name="partner_company_id"
                 options={partnerOptions}
                 defaultValue={defaultPartnerCompanyId || 'all'}
-                placeholder="거래처 선택"
+                placeholder={partnerPlaceholder}
               />
             </div>
           </div>

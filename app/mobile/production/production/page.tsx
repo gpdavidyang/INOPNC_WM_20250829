@@ -5,6 +5,7 @@ import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import type { OptionItem } from '@/modules/mobile/components/production/SelectField'
+import type { MaterialPartnerOption } from '@/modules/mobile/types/material-partner'
 import { ProductionSearchSection } from '@/modules/mobile/components/production/ProductionSearchSection'
 import {
   hasProductionItemsTable,
@@ -12,6 +13,8 @@ import {
   extractProductionMemo,
   type ProductionMetadataItem,
 } from '@/lib/materials/production-support'
+import { buildMaterialPartnerOptions } from '@/modules/mobile/utils/material-partners'
+import { loadMaterialPartnerRows } from '@/modules/mobile/services/material-partner-service'
 
 export const metadata: Metadata = { title: '생산정보 관리' }
 
@@ -114,10 +117,7 @@ export default async function ProductionManagePage({
     .select('id, name, is_deleted')
     .eq('is_deleted', false)
     .order('name', { ascending: true })
-  const { data: partnerRows } = await supabase
-    .from('partner_companies')
-    .select('id, company_name, status')
-    .order('company_name', { ascending: true })
+  const partnerRows = await loadMaterialPartnerRows('active')
 
   // For partner filter, resolve allowed site ids
   let allowedSites: Set<string> | null = null
@@ -174,24 +174,6 @@ export default async function ProductionManagePage({
   const nextTake = Math.min(take + 20, 200)
 
   // Build partner name map by site (first active mapping)
-  const siteIdsForPartner = Array.from(
-    new Set((productions || []).map((p: any) => p.site_id).filter(Boolean))
-  ) as string[]
-  const partnerBySite = new Map<string, string>()
-  if (siteIdsForPartner.length > 0) {
-    const { data: mappings } = await supabase
-      .from('partner_site_mappings')
-      .select('site_id, partner_companies(company_name)')
-      .in('site_id', siteIdsForPartner)
-      .eq('is_active', true)
-    ;(mappings || []).forEach((m: any) => {
-      const name = m.partner_companies?.company_name || ''
-      if (m.site_id && name && !partnerBySite.has(String(m.site_id))) {
-        partnerBySite.set(String(m.site_id), name)
-      }
-    })
-  }
-
   // Build Select options
   const materialMap = new Map<string, { name: string | null; code: string | null }>()
   ;(materialRows || []).forEach((m: any) => {
@@ -215,13 +197,10 @@ export default async function ProductionManagePage({
       label: String((s as any).name || '-'),
     })),
   ]
-  const partnerOptions: OptionItem[] = [
-    { value: 'all', label: '전체 거래처' },
-    ...(partnerRows || []).map(p => ({
-      value: String((p as any).id),
-      label: String((p as any).company_name || '-'),
-    })),
-  ]
+  const partnerOptions: MaterialPartnerOption[] = buildMaterialPartnerOptions(partnerRows, {
+    includeAllOption: true,
+    allLabel: '전체 자재거래처',
+  })
 
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="production" />}>
@@ -292,8 +271,6 @@ export default async function ProductionManagePage({
           )}
           <div className="space-y-3">
             {(visibleProductions || []).map((p: any) => {
-              const siteText = p.sites?.name || '-'
-              const partnerName = partnerBySite.get(String(p.site_id)) || '-'
               const dateText = p.production_date
                 ? new Date(p.production_date).toLocaleDateString('ko-KR')
                 : '-'
@@ -316,8 +293,12 @@ export default async function ProductionManagePage({
                 firstFallback?.material_id && materialMap.has(String(firstFallback.material_id))
                   ? materialMap.get(String(firstFallback.material_id))
                   : null
-              const formatMaterial = (name?: string | null, code?: string | null) =>
-                `${name || '-'}${code ? ` (${code})` : ''}`
+              const formatMaterial = (name?: string | null, code?: string | null) => {
+                const normalizedName = (name || '').toString().trim()
+                if (normalizedName) return normalizedName
+                const normalizedCode = (code || '').toString().trim()
+                return normalizedCode || '-'
+              }
               const baseMaterialLabel = firstItem
                 ? formatMaterial(firstItem.materials?.name, firstItem.materials?.code)
                 : firstFallback
@@ -339,12 +320,11 @@ export default async function ProductionManagePage({
               const memo = extractProductionMemo(p.quality_notes, metadata)
               return (
                 <div key={p.id} className="block rounded-lg border p-4 bg-white">
-                  {/* Top row: Site and Quantity (match 요청 리스트 style) */}
+                  {/* Top row: Production number and quantity */}
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 pr-3">
-                      <div className="text-lg font-bold truncate">{siteText}</div>
-                      <div className="mt-0.5 text-sm text-muted-foreground truncate">
-                        거래처 {partnerName}
+                      <div className="text-lg font-bold truncate">
+                        {p.production_number || `생산ID ${String(p.id).slice(0, 8)}`}
                       </div>
                       <div className="mt-1 flex items-center text-base text-muted-foreground">
                         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700">

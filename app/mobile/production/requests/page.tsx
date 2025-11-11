@@ -188,7 +188,8 @@ export default async function ProductionRequestsPage({
   const reqIds = (requests || []).map(r => r.id)
   let qtyMap: Record<string, number> = {}
   let itemMatIdsByReq: Record<string, string[]> = {}
-  let materialNameMap: Record<string, string> = {}
+  type MaterialInfo = { display: string; search: string }
+  let materialInfoMap: Record<string, MaterialInfo> = {}
   if (reqIds.length > 0) {
     const { data: itemRows, error: itemErr } = await supabase
       .from('material_request_items')
@@ -218,8 +219,15 @@ export default async function ProductionRequestsPage({
           .from('materials')
           .select('id, name, code')
           .in('id', uniqueMatIds)
-        materialNameMap = Object.fromEntries(
-          (mats || []).map((m: any) => [m.id as string, `${m.name || ''} ${m.code || ''}`.trim()])
+        materialInfoMap = Object.fromEntries(
+          (mats || []).map((m: any) => {
+            const id = m.id as string
+            const name = (m.name as string) || ''
+            const code = (m.code as string) || ''
+            const display = name || code || '-'
+            const search = `${name} ${code}`.trim() || display
+            return [id, { display, search }]
+          })
         )
       }
     }
@@ -267,7 +275,7 @@ export default async function ProductionRequestsPage({
             .includes(lower)
           const matIds = itemMatIdsByReq[rq.id] || []
           const inMaterials = matIds.some(mid =>
-            (materialNameMap[mid] || '').toLowerCase().includes(lower)
+            (materialInfoMap[mid]?.search || '').toLowerCase().includes(lower)
           )
           if (!(inRequestNo || inNotes || inSite || inMaterials)) return false
         }
@@ -452,7 +460,9 @@ export default async function ProductionRequestsPage({
                   : '-'
                 const siteText = siteNameMap[rq.site_id] || '-'
                 const matIds = itemMatIdsByReq[rq.id] || []
-                const matNames = matIds.map(mid => materialNameMap[mid] || '').filter(Boolean)
+                const matNames = matIds
+                  .map(mid => materialInfoMap[mid]?.display || '')
+                  .filter(Boolean)
                 const matSummary =
                   matNames.length === 0
                     ? '-'
