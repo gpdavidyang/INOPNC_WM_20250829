@@ -7,6 +7,9 @@ import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileL
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import ShipmentItemsFieldArray from '@/modules/mobile/components/production/ShipmentItemsFieldArray'
 import { SelectField, OptionItem } from '@/modules/mobile/components/production/SelectField'
+import MaterialPartnerSelect from '@/modules/mobile/components/production/MaterialPartnerSelect'
+import { buildMaterialPartnerOptions } from '@/modules/mobile/utils/material-partners'
+import { loadMaterialPartnerRows } from '@/modules/mobile/services/material-partner-service'
 
 export const metadata: Metadata = { title: '출고 등록' }
 
@@ -130,10 +133,8 @@ export default async function ShippingCreatePage() {
     value: m.id,
     label: `${m.name}${m.code ? ` (${m.code})` : ''}`,
   }))
-  const { data: partners } = await supabase
-    .from('partner_companies')
-    .select('id, company_name, status')
-    .order('company_name', { ascending: true })
+  const partnerRows = await loadMaterialPartnerRows('active')
+  const materialPartnerOptions = buildMaterialPartnerOptions(partnerRows)
 
   let billingOptions: OptionItem[] = []
   let shippingOptions: OptionItem[] = []
@@ -238,16 +239,13 @@ export default async function ShippingCreatePage() {
 
             <input type="hidden" name="carrier" value="" />
 
-            {/* 4. 거래처 선택 (1행1열) */}
+            {/* 4. 자재거래처 선택 (1행1열) */}
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">거래처 선택</label>
-              <SelectField
+              <label className="block text-sm text-muted-foreground mb-1">자재거래처</label>
+              <MaterialPartnerSelect
                 name="partner_company_id"
-                options={(partners || []).map(p => ({
-                  value: (p as any).id,
-                  label: (p as any).company_name,
-                }))}
-                placeholder="거래처 선택"
+                options={materialPartnerOptions}
+                placeholder="자재거래처 선택"
               />
             </div>
 

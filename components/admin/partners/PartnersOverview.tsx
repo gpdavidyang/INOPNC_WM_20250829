@@ -55,6 +55,7 @@ function PartnersOverview() {
       const response = await fetch(`/api/admin/partner-companies?${params.toString()}`, {
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
+        credentials: 'include',
       })
       if (!response.ok)
         throw new Error(`파트너 정보를 불러오지 못했습니다. (HTTP ${response.status})`)
@@ -134,11 +135,21 @@ function PartnersOverview() {
         method: 'DELETE',
         credentials: 'include',
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const payload = await res.json().catch(() => ({}))
+        if (res.status === 409) {
+          throw new Error(
+            payload?.error ||
+              '다른 데이터와 연결된 거래처입니다. 관련 현장·요청 정보를 먼저 삭제한 뒤 다시 시도해 주세요.'
+          )
+        }
+        const message = payload?.error || `HTTP ${res.status}`
+        throw new Error(message)
+      }
       void loadPartners()
     } catch (err) {
       console.error('[PartnersOverview] delete error:', err)
-      setError('삭제하지 못했습니다.')
+      setError(err instanceof Error ? err.message : '삭제하지 못했습니다.')
     }
   }
 

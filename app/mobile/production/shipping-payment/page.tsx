@@ -5,7 +5,10 @@ import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import type { OptionItem } from '@/modules/mobile/components/production/SelectField'
+import type { MaterialPartnerOption } from '@/modules/mobile/types/material-partner'
 import { ProductionSearchSection } from '@/modules/mobile/components/production/ProductionSearchSection'
+import { buildMaterialPartnerOptions } from '@/modules/mobile/utils/material-partners'
+import { loadMaterialPartnerRows } from '@/modules/mobile/services/material-partner-service'
 
 export const metadata: Metadata = { title: '출고배송 관리' }
 
@@ -71,10 +74,7 @@ export default async function ShippingPaymentPage({
     .select('id, name, is_deleted')
     .eq('is_deleted', false)
     .order('name', { ascending: true })
-  const { data: partnerRows } = await supabase
-    .from('partner_companies')
-    .select('id, company_name, status')
-    .order('company_name', { ascending: true })
+  const partnerRows = await loadMaterialPartnerRows('active')
 
   const materialOptions: OptionItem[] = [
     { value: 'all', label: '전체 자재' },
@@ -90,13 +90,10 @@ export default async function ShippingPaymentPage({
       label: String((s as any).name || '-'),
     })),
   ]
-  const partnerOptions: OptionItem[] = [
-    { value: 'all', label: '전체 거래처' },
-    ...(partnerRows || []).map(p => ({
-      value: String((p as any).id),
-      label: String((p as any).company_name || '-'),
-    })),
-  ]
+  const partnerOptions: MaterialPartnerOption[] = buildMaterialPartnerOptions(partnerRows, {
+    includeAllOption: true,
+    allLabel: '전체 자재거래처',
+  })
 
   const q = (searchParams?.q || '').trim()
   const period = (searchParams?.period || '').trim()

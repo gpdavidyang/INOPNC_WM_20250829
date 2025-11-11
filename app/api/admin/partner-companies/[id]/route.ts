@@ -41,7 +41,12 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     return NextResponse.json({
       success: true,
-      partner,
+      partner: {
+        ...partner,
+        contact_name: partner.contact_person || partner.representative_name || null,
+        contact_phone: partner.phone || null,
+        contact_email: partner.email || null,
+      },
       related: ADMIN_PARTNER_RELATIONS[params.id] ?? { sites: [], contacts: [] },
     })
   } catch (error) {
@@ -86,9 +91,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       ...(company_name !== undefined ? { company_name } : {}),
       ...(company_type !== undefined ? { company_type } : {}),
       ...(status !== undefined ? { status } : {}),
-      ...(contact_name !== undefined ? { contact_name } : {}),
-      ...(contact_phone !== undefined ? { contact_phone } : {}),
-      ...(contact_email !== undefined ? { contact_email } : {}),
+      ...(contact_name !== undefined ? { contact_person: contact_name } : {}),
+      ...(contact_phone !== undefined ? { phone: contact_phone } : {}),
+      ...(contact_email !== undefined ? { email: contact_email } : {}),
       ...(address !== undefined ? { address } : {}),
     }))(body as Record<string, string | undefined>)
 
@@ -114,7 +119,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       ...allowedFields,
     }
 
-    return NextResponse.json({ success: true, partner })
+    return NextResponse.json({
+      success: true,
+      partner: {
+        ...partner,
+        contact_name:
+          partner?.contact_person || partner?.representative_name || body.contact_name || null,
+        contact_phone: partner?.phone || body.contact_phone || null,
+        contact_email: partner?.email || body.contact_email || null,
+      },
+    })
   } catch (error) {
     console.error('Partner company update error:', error)
 
@@ -148,10 +162,18 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
   try {
     const { error } = await (supabase as any).from('partner_companies').delete().eq('id', params.id)
-    if (error) throw error
+    if (error) {
+      if (error.code === '23503') {
+        return NextResponse.json(
+          { error: '연결된 데이터가 있어 삭제할 수 없습니다. 관련 정보를 먼저 정리해 주세요.' },
+          { status: 409 }
+        )
+      }
+      throw error
+    }
     return NextResponse.json({ success: true })
   } catch (e) {
     console.error('[partner-companies][DELETE] error:', e)
-    return NextResponse.json({ error: 'Failed to delete partner' }, { status: 500 })
+    return NextResponse.json({ error: '거래처를 삭제하지 못했습니다.' }, { status: 500 })
   }
 }

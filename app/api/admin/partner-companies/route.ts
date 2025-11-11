@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
   try {
     let query = supabase
       .from('partner_companies')
-      .select('id, company_name, company_type, status, contact_name, contact_phone, address')
+      .select(
+        'id, company_name, company_type, status, representative_name, contact_person, phone, email, address'
+      )
       .order('company_name', { ascending: true })
 
     if (status && status !== 'all') {
@@ -45,12 +47,19 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await query
     if (error) throw error
+    const normalized =
+      data?.map(row => ({
+        ...row,
+        contact_name: row.contact_person || row.representative_name || null,
+        contact_phone: row.phone || null,
+        contact_email: row.email || null,
+      })) || []
 
     return NextResponse.json({
       success: true,
       data: {
-        partner_companies: data || [],
-        total: data?.length || 0,
+        partner_companies: normalized,
+        total: normalized.length,
       },
     })
   } catch (e) {
@@ -105,17 +114,25 @@ export async function POST(request: NextRequest) {
         company_name,
         company_type,
         status,
-        contact_name,
-        contact_phone,
-        contact_email,
+        contact_person: contact_name,
+        phone: contact_phone,
+        email: contact_email,
         address,
       })
       .select(
-        'id, company_name, company_type, status, contact_name, contact_phone, contact_email, address'
+        'id, company_name, company_type, status, representative_name, contact_person, phone, email, address'
       )
       .single()
     if (error) throw error
-    return NextResponse.json({ success: true, partner: data })
+    return NextResponse.json({
+      success: true,
+      partner: {
+        ...data,
+        contact_name: data?.contact_person || data?.representative_name || null,
+        contact_phone: data?.phone || null,
+        contact_email: data?.email || null,
+      },
+    })
   } catch (e) {
     console.error('[partner-companies][POST] error:', e)
     return NextResponse.json({ error: 'Failed to create partner' }, { status: 500 })

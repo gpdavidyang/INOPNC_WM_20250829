@@ -6,6 +6,9 @@ import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileL
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import { QuantityStepper } from '@/modules/mobile/components/production/QuantityStepper'
 import { SelectField, type OptionItem } from '@/modules/mobile/components/production/SelectField'
+import MaterialPartnerSelect from '@/modules/mobile/components/production/MaterialPartnerSelect'
+import { buildMaterialPartnerOptions } from '@/modules/mobile/utils/material-partners'
+import { loadMaterialPartnerRows } from '@/modules/mobile/services/material-partner-service'
 
 export const metadata: Metadata = { title: '출고 수정 입력' }
 
@@ -131,7 +134,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
       const { data: basic } = await supabase
         .from('material_shipments')
         .select(
-          'id, site_id, shipment_date, status, shipment_items(id, material_id, quantity), sites(name)'
+          'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity), sites(name)'
         )
         .eq('id', id)
         .maybeSingle()
@@ -141,7 +144,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     const { data: basic } = await supabase
       .from('material_shipments')
       .select(
-        'id, site_id, shipment_date, status, shipment_items(id, material_id, quantity), sites(name)'
+        'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity), sites(name)'
       )
       .eq('id', id)
       .maybeSingle()
@@ -154,10 +157,8 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     .select('id, name, code, unit, is_active')
     .eq('is_active', true)
     .order('name')
-  const { data: partners } = await supabase
-    .from('partner_companies')
-    .select('id, company_name, status')
-    .order('company_name', { ascending: true })
+  const partnerRows = await loadMaterialPartnerRows('active')
+  const materialPartnerOptions = buildMaterialPartnerOptions(partnerRows)
 
   let billingOptions: OptionItem[] = []
   let shippingOptions: OptionItem[] = []
@@ -223,6 +224,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     : null
   const defaultMaterialId = firstItem?.material_id ? String(firstItem.material_id) : ''
   const defaultQuantity = Number(firstItem?.quantity || 0)
+  const defaultPartnerCompanyId = String((shipment as any)?.partner_company_id || '')
 
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="shipping" />}>
@@ -290,16 +292,14 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
 
             <input type="hidden" name="carrier" value={(shipment as any)?.carrier || ''} />
 
-            {/* 4. 거래처 선택 (1행1열) */}
+            {/* 4. 자재거래처 선택 (1행1열) */}
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">거래처 선택</label>
-              <SelectField
+              <label className="block text-sm text-muted-foreground mb-1">자재거래처</label>
+              <MaterialPartnerSelect
                 name="partner_company_id"
-                options={(partners || []).map(p => ({
-                  value: (p as any).id,
-                  label: (p as any).company_name,
-                }))}
-                placeholder="거래처 선택"
+                options={materialPartnerOptions}
+                placeholder="자재거래처 선택"
+                defaultValue={defaultPartnerCompanyId}
               />
             </div>
 

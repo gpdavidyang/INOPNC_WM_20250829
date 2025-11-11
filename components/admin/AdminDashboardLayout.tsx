@@ -146,6 +146,12 @@ const menuCategories = [
         icon: Shield,
         href: '/dashboard/admin/organizations',
       },
+      {
+        id: 'material-partners',
+        label: '자재거래처 관리',
+        icon: FolderOpen,
+        href: '/dashboard/admin/partners',
+      },
       // 공급업체 관리는 UI에서 노출하지 않음 (혼선 방지)
     ],
   },

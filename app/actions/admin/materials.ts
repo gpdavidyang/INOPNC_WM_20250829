@@ -1128,12 +1128,7 @@ export async function getMaterialProductions(
       await ensureSiteAccess(supabase, auth, siteId)
 
       const supportsProductionItems = await hasProductionItemsTable(supabase)
-      const selectColumns = [
-        '*',
-        'sites!site_id(name)',
-        'materials!material_id(name, code)',
-        'approver:profiles!approved_by(name)',
-      ]
+      const selectColumns = ['*', 'sites!site_id(name)', 'materials!material_id(name, code)']
 
       if (supportsProductionItems) {
         selectColumns.push(`
