@@ -123,8 +123,9 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
         key: 'actions',
         header: '작업',
         sortable: false,
+        className: 'min-w-[320px]',
         render: (r: any) => (
-          <div className="flex gap-1">
+          <div className="flex flex-nowrap gap-1 overflow-x-auto [&>*]:shrink-0">
             <AdminActionButtons
               size="compact"
               detailHref={`/dashboard/admin/signup-requests/${r.id}`}
@@ -136,6 +137,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="shrink-0"
                   disabled={busyId === r.id}
                   onClick={() => approve(r.id)}
                 >
@@ -144,6 +146,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
                 <Button
                   size="sm"
                   variant="outline"
+                  className="shrink-0"
                   disabled={busyId === r.id}
                   onClick={() => setRejectId(r.id)}
                 >

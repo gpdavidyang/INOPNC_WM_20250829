@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +54,17 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     }
 
     const metadata = parseMetadata((row as any)?.metadata)
+    const storageFromMetadata =
+      (metadata?.storage_path as string | undefined) ||
+      (metadata?.storagePath as string | undefined) ||
+      null
+    const storageBucketFromMetadata =
+      (metadata?.storage_bucket as string | undefined) ||
+      (metadata?.storageBucket as string | undefined) ||
+      null
+    const storageFromUrl = parseSupabaseStorageUrl(row.file_url || metadata?.file_url || null)
+    const storage_path = storageFromMetadata || storageFromUrl?.objectPath || null
+    const storage_bucket = storageBucketFromMetadata || storageFromUrl?.bucket || null
     const payload = {
       id: row.id,
       title: row.title || metadata?.title || null,
@@ -62,6 +74,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       created_at: row.created_at || metadata?.created_at || null,
       uploader_name: (row as any)?.uploader?.full_name || metadata?.uploader_name || null,
       metadata,
+      storage_path,
+      storage_bucket,
     }
 
     return NextResponse.json({ success: true, data: payload })

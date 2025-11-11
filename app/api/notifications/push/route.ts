@@ -7,19 +7,14 @@ import webpush from 'web-push'
 
 export const dynamic = 'force-dynamic'
 
-
 // Configure VAPID details
 const vapidDetails = {
   subject: process.env.VAPID_SUBJECT || 'mailto:admin@inopnc.com',
   publicKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  privateKey: process.env.VAPID_PRIVATE_KEY!
+  privateKey: process.env.VAPID_PRIVATE_KEY!,
 }
 
-webpush.setVapidDetails(
-  vapidDetails.subject,
-  vapidDetails.publicKey,
-  vapidDetails.privateKey
-)
+webpush.setVapidDetails(vapidDetails.subject, vapidDetails.publicKey, vapidDetails.privateKey)
 
 interface PushNotificationPayload {
   title: string
@@ -46,7 +41,12 @@ interface NotificationRequest {
   roles?: string[]
   payload: PushNotificationPayload
   scheduleAt?: string
-  notificationType: 'material_approval' | 'daily_report_reminder' | 'safety_alert' | 'equipment_maintenance' | 'site_announcement'
+  notificationType:
+    | 'material_approval'
+    | 'daily_report_reminder'
+    | 'safety_alert'
+    | 'equipment_maintenance'
+    | 'site_announcement'
 }
 
 export async function POST(request: NextRequest) {
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
           notification_type: notificationType,
           scheduled_at: scheduleAt,
           created_by: authResult.userId,
-          organization_id: profile.organization_id
+          organization_id: profile.organization_id,
         })
         .select()
 
@@ -99,10 +99,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to schedule notification' }, { status: 500 })
       }
 
-      return NextResponse.json({ 
-        success: true, 
+      return NextResponse.json({
+        success: true,
         message: 'Notification scheduled successfully',
-        scheduledId: scheduledNotification[0]?.id 
+        scheduledId: scheduledNotification[0]?.id,
       })
     }
 
@@ -144,8 +144,11 @@ export async function POST(request: NextRequest) {
       .from('notification_logs')
       .select('user_id')
       .gte('sent_at', oneHourAgo)
-      .in('user_id', targetUsers.map((u: unknown) => u.id))
-    
+      .in(
+        'user_id',
+        targetUsers.map((u: unknown) => u.id)
+      )
+
     // Count notifications per user
     const notificationCounts: Record<string, number> = {}
     recentNotifications?.forEach((log: unknown) => {
@@ -155,24 +158,24 @@ export async function POST(request: NextRequest) {
     // Filter users based on their notification preferences
     const eligibleUsers = targetUsers.filter((user: unknown) => {
       if (!user.push_subscription) return false
-      
+
       const prefs = user.notification_preferences || {}
-      
+
       // Check if push notifications are enabled
       if (!prefs.push_enabled) return false
-      
+
       // Check if this notification type is enabled globally
       const typeMap: Record<string, string> = {
-        'material_approval': 'material_approvals',
-        'daily_report_reminder': 'daily_report_reminders',
-        'safety_alert': 'safety_alerts',
-        'equipment_maintenance': 'equipment_maintenance',
-        'site_announcement': 'site_announcements'
+        material_approval: 'material_approvals',
+        daily_report_reminder: 'daily_report_reminders',
+        safety_alert: 'safety_alerts',
+        equipment_maintenance: 'equipment_maintenance',
+        site_announcement: 'site_announcements',
       }
-      
+
       const prefKey = typeMap[notificationType]
       if (prefKey && prefs[prefKey] === false) return false
-      
+
       // Check site-specific preferences
       if (user.site_id && prefs.site_preferences?.[user.site_id]) {
         const sitePrefs = prefs.site_preferences[user.site_id]
@@ -180,38 +183,42 @@ export async function POST(request: NextRequest) {
           return false
         }
       }
-      
+
       // Check notification rate limit
       const maxPerHour = prefs.max_notifications_per_hour || 10
       if ((notificationCounts[user.id] || 0) >= maxPerHour && payload.urgency !== 'critical') {
         console.log(`User ${user.id} has reached notification limit (${maxPerHour}/hour)`)
         return false
       }
-      
+
       // Check daily report reminder frequency
       if (notificationType === 'daily_report_reminder') {
         const frequency = prefs.daily_report_reminder_frequency || 'daily'
         const now = new Date()
         const dayOfWeek = now.getDay()
-        
+
         if (frequency === 'weekdays' && (dayOfWeek === 0 || dayOfWeek === 6)) {
           return false // Skip weekends
         }
         // Custom frequency would be handled by the scheduled_notifications table
       }
-      
+
       // Check quiet hours for non-critical notifications
       if (payload.urgency !== 'critical' && prefs.quiet_hours_enabled) {
         const now = new Date()
         const currentHour = now.getHours()
         const currentMinutes = now.getMinutes()
         const currentTime = currentHour * 60 + currentMinutes
-        
-        const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map((x: unknown) => Number(x))
-        const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map((x: unknown) => Number(x))
+
+        const [startHour, startMin] = (prefs.quiet_hours_start || '22:00')
+          .split(':')
+          .map((x: unknown) => Number(x))
+        const [endHour, endMin] = (prefs.quiet_hours_end || '08:00')
+          .split(':')
+          .map((x: unknown) => Number(x))
         const startTime = startHour * 60 + startMin
         const endTime = endHour * 60 + endMin
-        
+
         // Handle overnight quiet hours (e.g., 22:00 to 08:00)
         if (startTime > endTime) {
           if (currentTime >= startTime || currentTime <= endTime) {
@@ -223,7 +230,7 @@ export async function POST(request: NextRequest) {
           }
         }
       }
-      
+
       return true
     })
 
@@ -232,7 +239,7 @@ export async function POST(request: NextRequest) {
       try {
         const subscription = JSON.parse(user.push_subscription)
         const prefs = user.notification_preferences || {}
-        
+
         // Customize payload based on user preferences
         const customizedPayload = {
           ...payload,
@@ -241,10 +248,10 @@ export async function POST(request: NextRequest) {
             ...payload.data,
             notificationType,
             userId: user.id,
-            url: getNotificationUrl(notificationType, payload.data)
-          }
+            url: getNotificationUrl(notificationType, payload.data),
+          },
         }
-        
+
         // Apply user preferences
         if (!prefs.sound_enabled) {
           customizedPayload.silent = true
@@ -261,55 +268,50 @@ export async function POST(request: NextRequest) {
           JSON.stringify(customizedPayload),
           {
             urgency: payload.urgency || 'normal',
-            TTL: payload.urgency === 'critical' ? 86400 : 3600 // 24h for critical, 1h for others
+            TTL: payload.urgency === 'critical' ? 86400 : 3600, // 24h for critical, 1h for others
           }
         )
 
         // Log successful delivery
-        await supabase
-          .from('notification_logs')
-          .insert({
-            user_id: user.id,
-            notification_type: notificationType,
-            title: payload.title,
-            body: payload.body,
-            status: 'delivered',
-            sent_at: new Date().toISOString(),
-        sent_by: authResult.userId
-          })
+        await supabase.from('notification_logs').insert({
+          user_id: user.id,
+          notification_type: notificationType,
+          title: payload.title,
+          body: payload.body,
+          status: 'delivered',
+          sent_at: new Date().toISOString(),
+          sent_by: authResult.userId,
+        })
 
         return { success: true, userId: user.id }
       } catch (error: unknown) {
         console.error(`Failed to send notification to user ${user.id}:`, error)
-        
+
         // Handle expired subscriptions
         if (error.statusCode === 410 || error.statusCode === 404) {
-          await supabase
-            .from('profiles')
-            .update({ push_subscription: null })
-            .eq('id', user.id)
+          await supabase.from('profiles').update({ push_subscription: null }).eq('id', user.id)
         }
 
         // Log failed delivery
-        await supabase
-          .from('notification_logs')
-          .insert({
-            user_id: user.id,
-            notification_type: notificationType,
-            title: payload.title,
-            body: payload.body,
-            status: 'failed',
-            error_message: error.message,
-            sent_at: new Date().toISOString(),
-            sent_by: user.id
-          })
+        await supabase.from('notification_logs').insert({
+          user_id: user.id,
+          notification_type: notificationType,
+          title: payload.title,
+          body: payload.body,
+          status: 'failed',
+          error_message: error.message,
+          sent_at: new Date().toISOString(),
+          sent_by: user.id,
+        })
 
         return { success: false, userId: user.id, error: error.message }
       }
     })
 
     const results = await Promise.allSettled(notificationPromises)
-    const successCount = results.filter((r: unknown) => r.status === 'fulfilled' && r.value.success).length
+    const successCount = results.filter(
+      (r: unknown) => r.status === 'fulfilled' && r.value.success
+    ).length
     const failureCount = results.length - successCount
 
     return NextResponse.json({
@@ -319,25 +321,29 @@ export async function POST(request: NextRequest) {
         total: eligibleUsers.length,
         successful: successCount,
         failed: failureCount,
-        excluded: targetUsers.length - eligibleUsers.length
-      }
+        excluded: targetUsers.length - eligibleUsers.length,
+      },
     })
-
   } catch (error: unknown) {
     console.error('Push notification error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to send push notification',
-      details: error.message 
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: 'Failed to send push notification',
+        details: error.message,
+      },
+      { status: 500 }
+    )
   }
 }
 
 function getNotificationUrl(type: string, data?: unknown): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
-  
+
   switch (type) {
     case 'material_approval':
-      return `${baseUrl}/dashboard/materials/requests${data?.requestId ? `/${data.requestId}` : ''}`
+      return `${baseUrl}/dashboard/admin/materials?tab=requests${
+        data?.requestId ? `&search=${encodeURIComponent(data.requestId)}` : ''
+      }`
     case 'daily_report_reminder':
       return `${baseUrl}/dashboard/daily-reports/new`
     case 'safety_alert':

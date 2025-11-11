@@ -6,6 +6,12 @@ import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileL
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import type { OptionItem } from '@/modules/mobile/components/production/SelectField'
 import { ProductionSearchSection } from '@/modules/mobile/components/production/ProductionSearchSection'
+import {
+  hasProductionItemsTable,
+  parseProductionMetadata,
+  extractProductionMemo,
+  type ProductionMetadataItem,
+} from '@/lib/materials/production-support'
 
 export const metadata: Metadata = { title: '생산정보 관리' }
 
@@ -23,6 +29,7 @@ export default async function ProductionManagePage({
 }) {
   await requireAuth('/mobile/production')
   const supabase = createClient()
+  const supportsProductionItems = await hasProductionItemsTable(supabase)
 
   // 입력 폼은 별도 페이지로 분리됨
 
@@ -55,11 +62,27 @@ export default async function ProductionManagePage({
   const netChangeThisMonth = totalProducedThisMonth - totalShippedThisMonth
 
   // 최근 생산기록 100건 (검색어 적용)
+  const productionSelect = [
+    'id',
+    'site_id',
+    'production_date',
+    'produced_quantity',
+    'quality_status',
+    'quality_notes',
+    'sites(name)',
+    'materials(name, code)',
+  ]
+  if (supportsProductionItems) {
+    productionSelect.push(`
+      material_production_items(
+        produced_quantity,
+        materials(name, code)
+      )
+    `)
+  }
   const { data: productionsRaw } = await supabase
     .from('material_productions')
-    .select(
-      'id, site_id, material_id, production_date, produced_quantity, quality_status, quality_notes, sites(name), materials(name, code)'
-    )
+    .select(productionSelect.join(',\n'))
     .order('production_date', { ascending: false })
     .limit(200)
 
@@ -83,7 +106,7 @@ export default async function ProductionManagePage({
   // Load filter options
   const { data: materialRows } = await supabase
     .from('materials')
-    .select('id, name, is_active')
+    .select('id, name, code, is_active')
     .eq('is_active', true)
     .order('name', { ascending: true })
   const { data: siteRows } = await supabase
@@ -140,6 +163,16 @@ export default async function ProductionManagePage({
   })
 
   const visibleProductions = productions.slice(0, take)
+  const productionStatusCounts = productions.reduce(
+    (acc, row: any) => {
+      const status = String(row.quality_status || 'pending').toLowerCase()
+      if (status === 'approved') acc.approved += 1
+      else if (status === 'rejected') acc.rejected += 1
+      else acc.pending += 1
+      return acc
+    },
+    { approved: 0, pending: 0, rejected: 0 }
+  )
 
   // Build next link (preserve filters)
   const baseParams = new URLSearchParams()
@@ -171,6 +204,14 @@ export default async function ProductionManagePage({
   }
 
   // Build Select options
+  const materialMap = new Map<string, { name: string | null; code: string | null }>()
+  ;(materialRows || []).forEach((m: any) => {
+    materialMap.set(String(m.id), {
+      name: (m.name as string | null) ?? null,
+      code: (m.code as string | null) ?? null,
+    })
+  })
+
   const materialOptions: OptionItem[] = [
     { value: 'all', label: '전체 자재' },
     ...(materialRows || []).map(m => ({
@@ -235,6 +276,20 @@ export default async function ProductionManagePage({
               <div className="pm-kpi-value">{netChangeThisMonth.toLocaleString()}</div>
             </div>
           </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="pm-kpi pm-kpi--pending">
+              <div className="pm-kpi-label">대기</div>
+              <div className="pm-kpi-value">{productionStatusCounts.pending}</div>
+            </div>
+            <div className="pm-kpi pm-kpi--success">
+              <div className="pm-kpi-label">승인</div>
+              <div className="pm-kpi-value">{productionStatusCounts.approved}</div>
+            </div>
+            <div className="pm-kpi pm-kpi--warning">
+              <div className="pm-kpi-label">반려</div>
+              <div className="pm-kpi-value">{productionStatusCounts.rejected}</div>
+            </div>
+          </div>
         </div>
 
         {/* 1.2 생산 검색 (요청 검색과 동일한 구성, 접기 기본) */}
@@ -268,19 +323,45 @@ export default async function ProductionManagePage({
                 ? new Date(p.production_date).toLocaleDateString('ko-KR')
                 : '-'
               const qty = p.produced_quantity ?? 0
-              const materialText = `${p.materials?.name || '-'}${p.materials?.code ? ` (${p.materials.code})` : ''}`
-              let memo: string | null = null
-              if (p.quality_notes) {
-                const qn = String(p.quality_notes)
-                // Try to extract memo from JSON if present; else show raw
-                try {
-                  const obj = JSON.parse(qn)
-                  memo = obj?.memo || null
-                } catch {
-                  // If quality_notes contains a combined note + JSON, show the first line as memo
-                  memo = qn.split('\n')[0] || null
-                }
-              }
+              const metadata = parseProductionMetadata(p.quality_notes)
+              const fallbackItems: ProductionMetadataItem[] = Array.isArray(
+                metadata?.fallback_items
+              )
+                ? (metadata!.fallback_items as ProductionMetadataItem[]).filter(
+                    item => item && item.material_id
+                  )
+                : []
+              const firstItem =
+                Array.isArray(p.material_production_items) && p.material_production_items.length > 0
+                  ? p.material_production_items[0]
+                  : null
+              const firstFallback = !firstItem && fallbackItems.length > 0 ? fallbackItems[0] : null
+              const fallbackSnapshot = firstFallback?.material_snapshot || null
+              const fallbackMaterialInfo =
+                firstFallback?.material_id && materialMap.has(String(firstFallback.material_id))
+                  ? materialMap.get(String(firstFallback.material_id))
+                  : null
+              const formatMaterial = (name?: string | null, code?: string | null) =>
+                `${name || '-'}${code ? ` (${code})` : ''}`
+              const baseMaterialLabel = firstItem
+                ? formatMaterial(firstItem.materials?.name, firstItem.materials?.code)
+                : firstFallback
+                  ? formatMaterial(
+                      fallbackSnapshot?.name ?? fallbackMaterialInfo?.name ?? null,
+                      fallbackSnapshot?.code ?? fallbackMaterialInfo?.code ?? null
+                    )
+                  : formatMaterial(p.materials?.name, p.materials?.code)
+              const extraItems = firstItem
+                ? Math.max(
+                    0,
+                    Array.isArray(p.material_production_items)
+                      ? p.material_production_items.length - 1
+                      : 0
+                  )
+                : Math.max(0, fallbackItems.length - 1)
+              const materialText =
+                extraItems > 0 ? `${baseMaterialLabel} 외 ${extraItems}건` : baseMaterialLabel
+              const memo = extractProductionMemo(p.quality_notes, metadata)
               return (
                 <div key={p.id} className="block rounded-lg border p-4 bg-white">
                   {/* Top row: Site and Quantity (match 요청 리스트 style) */}
@@ -290,7 +371,7 @@ export default async function ProductionManagePage({
                       <div className="mt-0.5 text-sm text-muted-foreground truncate">
                         거래처 {partnerName}
                       </div>
-                      <div className="mt-1 flex items-center gap-2 text-base text-muted-foreground">
+                      <div className="mt-1 flex items-center text-base text-muted-foreground">
                         <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700">
                           {dateText}
                         </span>

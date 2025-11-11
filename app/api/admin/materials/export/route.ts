@@ -5,6 +5,8 @@ import {
   getMaterialShipments,
   getMaterialInventoryList,
 } from '@/app/actions/admin/materials'
+import { INVENTORY_SORT_COLUMNS, type InventorySortKey } from '@/lib/admin/materials/constants'
+import { MATERIAL_PRIORITY_LABELS, isMaterialPriorityValue } from '@/lib/materials/priorities'
 import * as XLSX from 'xlsx'
 
 export const dynamic = 'force-dynamic'
@@ -24,12 +26,21 @@ export async function GET(request: NextRequest) {
     const wb = XLSX.utils.book_new()
 
     if (tab === 'inventory') {
+      const sortByParam = searchParams.get('sort_by')
+      const sortOrderParam = searchParams.get('sort_order') === 'asc' ? 'asc' : 'desc'
+      const sortBy =
+        sortByParam && sortByParam in INVENTORY_SORT_COLUMNS
+          ? (sortByParam as InventorySortKey)
+          : undefined
+
       const res = await getMaterialInventoryList(
         1,
         10000,
-        (searchParams.get('search') || '') as any,
+        searchParams.get('search') || '',
         undefined,
-        undefined
+        undefined,
+        sortBy,
+        sortOrderParam
       )
       const rows = (res.success && res.data ? (res.data as any).items : []) as any[]
       const data = rows.map(r => ({
@@ -37,7 +48,6 @@ export async function GET(request: NextRequest) {
         코드: r.material_code || '',
         현장: r.site_name || r.site_id || '-',
         '현재 재고': r.current_stock ?? 0,
-        '최소 재고': r.minimum_stock ?? '',
         단위: r.unit || '',
         상태: r.status || '-',
         업데이트: r.updated_at ? new Date(r.updated_at).toLocaleString('ko-KR') : '',
@@ -47,7 +57,19 @@ export async function GET(request: NextRequest) {
     }
 
     if (tab === 'requests') {
-      const res = await getMaterialRequests(1, 10000, (searchParams.get('search') || '') as any)
+      const priorityRaw = (searchParams.get('priority') || '').trim()
+      const priorityFilter = isMaterialPriorityValue(priorityRaw) ? priorityRaw : undefined
+      const statusRaw = (searchParams.get('status') || '').trim()
+      const statusFilter = statusRaw ? (statusRaw as any) : undefined
+      const res = await getMaterialRequests(
+        1,
+        10000,
+        (searchParams.get('search') || '') as any,
+        (searchParams.get('site_id') || undefined) as string | undefined,
+        (searchParams.get('material_name') || '').trim() || undefined,
+        priorityFilter,
+        statusFilter
+      )
       const rows = (res.success && res.data ? (res.data as any).requests : []) as any[]
       const data = rows.map(r => ({
         요청번호: r.request_number || r.id,
@@ -55,7 +77,9 @@ export async function GET(request: NextRequest) {
         요청자: r.requester?.full_name || '-',
         상태: r.status || '-',
         요청일: r.request_date || '-',
+        긴급도: isMaterialPriorityValue(r.priority) ? MATERIAL_PRIORITY_LABELS[r.priority] : '',
         항목수: (r.items || r.material_request_items || []).length,
+        비고: r.notes || '',
       }))
       const ws = XLSX.utils.json_to_sheet(data)
       XLSX.utils.book_append_sheet(wb, ws, '입고요청')

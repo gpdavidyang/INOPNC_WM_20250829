@@ -202,29 +202,30 @@ export default function SignupRequestDetailClient({ request }: { request: any })
 
   return (
     <div className="rounded-lg border bg-card p-4 shadow-sm space-y-4 max-w-3xl">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div className="text-sm text-muted-foreground">
           상태:{' '}
           <span className="font-medium text-foreground">
             {STATUS_KO[String(request?.status || '').toLowerCase()] || '-'}
           </span>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={save} disabled={busy}>
+        <div className="flex flex-nowrap gap-2 overflow-x-auto [&>*]:shrink-0">
+          <Button variant="outline" onClick={save} disabled={busy} className="shrink-0">
             저장
           </Button>
-          <Button onClick={approve} disabled={busy}>
+          <Button onClick={approve} disabled={busy} className="shrink-0">
             승인
           </Button>
           <Button
             variant="destructive"
             onClick={reject}
             disabled={busy || request?.status !== 'pending'}
+            className="shrink-0"
           >
             거절
           </Button>
           {['pending', 'rejected'].includes(String(request?.status || '').toLowerCase()) && (
-            <Button variant="destructive" onClick={remove} disabled={busy}>
+            <Button variant="destructive" onClick={remove} disabled={busy} className="shrink-0">
               삭제
             </Button>
           )}

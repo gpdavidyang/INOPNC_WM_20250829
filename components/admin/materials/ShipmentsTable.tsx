@@ -19,8 +19,15 @@ type Shipment = {
   shipment_date?: string | null
   carrier?: string | null
   total_amount?: number | null
-  shipment_items?: any[]
+  shipment_items?: Array<{
+    material_id?: string
+    quantity?: number
+    materials?: { name?: string | null; code?: string | null; unit?: string | null }
+  }>
   payments?: Array<{ amount?: number | null }>
+  billing_method?: { name?: string | null }
+  shipping_method?: { name?: string | null }
+  freight_method?: { name?: string | null }
 }
 
 export default function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
@@ -49,6 +56,22 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
     return raw
   }
 
+  const summarizeItems = (items?: Shipment['shipment_items']) => {
+    const list = Array.isArray(items) ? items : []
+    if (list.length === 0) return { label: '-', count: 0, quantity: 0 }
+    const primary = list[0]
+    const name = primary?.materials?.name || primary?.materials?.code || '자재'
+    const label =
+      list.length > 1
+        ? `${name} 외 ${list.length - 1}건`
+        : `${name}${primary?.materials?.code ? ` (${primary.materials.code})` : ''}`
+    const quantity = list.reduce((sum, item) => sum + Number(item?.quantity ?? 0), 0)
+    return { label, count: list.length, quantity }
+  }
+
+  const formatCurrency = (value?: number | null) =>
+    typeof value === 'number' ? value.toLocaleString('ko-KR') : '-'
+
   return (
     <DataTable<Shipment>
       data={shipments}
@@ -61,12 +84,32 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
             header: '출고번호',
             sortable: true,
             render: sp => (
-              <a className="underline" href={`/dashboard/admin/materials/shipments/${sp.id}`}>
-                {sp.shipment_number || sp.id}
-              </a>
+              <div className="flex flex-col">
+                <a className="underline" href={`/dashboard/admin/materials/shipments/${sp.id}`}>
+                  {sp.shipment_number || sp.id}
+                </a>
+                <span className="text-xs text-muted-foreground">{sp.sites?.name || '-'}</span>
+              </div>
             ),
           },
-          { key: 'site', header: '현장', sortable: true, render: sp => sp.sites?.name || '-' },
+          {
+            key: 'items',
+            header: '출고품목',
+            sortable: false,
+            render: sp => {
+              const summary = summarizeItems(sp.shipment_items)
+              return (
+                <div className="flex flex-col">
+                  <span className="font-medium text-foreground">{summary.label}</span>
+                  {summary.count > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      총 {summary.quantity.toLocaleString('ko-KR')} ea
+                    </span>
+                  )}
+                </div>
+              )
+            },
+          },
           {
             key: 'status',
             header: '상태',
@@ -109,38 +152,28 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
               sp.shipment_date ? new Date(sp.shipment_date).toLocaleDateString('ko-KR') : '-',
           },
           {
-            key: 'carrier',
-            header: '배송방식',
-            sortable: true,
-            render: sp => (
-              <CustomSelect
-                defaultValue={labelFromCarrier(sp.carrier)}
-                onValueChange={value => save(sp.id, value)}
-                disabled={savingId === sp.id}
-              >
-                <CustomSelectTrigger className="w-[120px]">
-                  <CustomSelectValue placeholder="선택" />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  <CustomSelectItem value="택배">택배</CustomSelectItem>
-                  <CustomSelectItem value="화물">화물</CustomSelectItem>
-                  <CustomSelectItem value="기타">기타</CustomSelectItem>
-                </CustomSelectContent>
-              </CustomSelect>
-            ),
+            key: 'delivery',
+            header: '배송/결제',
+            sortable: false,
+            render: sp => {
+              const deliveryLabel = labelFromCarrier(sp.carrier)
+              return (
+                <div className="flex flex-col text-sm text-muted-foreground">
+                  <span>{deliveryLabel}</span>
+                  <span>
+                    {sp.billing_method?.name
+                      ? sp.billing_method.name
+                      : sp.shipping_method?.name || '결제방식 미지정'}
+                  </span>
+                </div>
+              )
+            },
           },
           {
             key: 'total_amount',
             header: '금액(KRW)',
             sortable: true,
-            render: sp =>
-              typeof sp.total_amount === 'number' ? sp.total_amount.toLocaleString('ko-KR') : '-',
-          },
-          {
-            key: 'items',
-            header: '항목수',
-            sortable: true,
-            render: sp => (sp.shipment_items || []).length,
+            render: sp => formatCurrency(sp.total_amount),
           },
           {
             key: 'paid',
@@ -151,7 +184,7 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
                 (acc, p: any) => acc + (Number(p?.amount) || 0),
                 0
               )
-              return sum ? sum.toLocaleString('ko-KR') : '-'
+              return formatCurrency(sum)
             },
           },
           {

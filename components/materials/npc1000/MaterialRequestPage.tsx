@@ -1,18 +1,23 @@
 'use client'
 
 import { getSessionUser } from '@/lib/supabase/session'
+import {
+  DEFAULT_MATERIAL_PRIORITY,
+  MATERIAL_PRIORITY_OPTIONS,
+  MaterialPriorityValue,
+} from '@/lib/materials/priorities'
 
 export default function MaterialRequestPage() {
   const router = useRouter()
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
-  
+
   // State
   const [saving, setSaving] = useState(false)
   const [requestTitle, setRequestTitle] = useState('')
   const [requestNotes, setRequestNotes] = useState('')
   const [quantity, setQuantity] = useState('')
-  const [urgency, setUrgency] = useState<'normal' | 'urgent' | 'emergency'>('normal')
+  const [urgency, setUrgency] = useState<MaterialPriorityValue>(DEFAULT_MATERIAL_PRIORITY)
   const [siteId, setSiteId] = useState<string>('')
   const [siteName, setSiteName] = useState<string>('')
 
@@ -61,7 +66,7 @@ export default function MaterialRequestPage() {
     setSaving(true)
     try {
       const supabase = createClient()
-      
+
       // Get current user session
       if (!(await getSessionUser(supabase))) throw new Error('로그인이 필요합니다.')
 
@@ -82,16 +87,17 @@ export default function MaterialRequestPage() {
         materialCode: 'NPC-1000',
         requestedQuantity: quantityNum,
         requestDate: new Date().toISOString(),
-        notes: `${urgency === 'emergency' ? '[긴급] ' : urgency === 'urgent' ? '[급함] ' : ''}${requestNotes || ''}`
+        priority: urgency,
+        notes: requestNotes || undefined,
       })
 
       if (result.success) {
         toast.success('NPC-1000 요청이 성공적으로 제출되었습니다.')
+        setUrgency(DEFAULT_MATERIAL_PRIORITY)
         router.back()
       } else {
         throw new Error(result.error || '요청 제출에 실패했습니다.')
       }
-      
     } catch (error) {
       console.error('Error submitting request:', error)
       toast.error('요청 제출에 실패했습니다.')
@@ -118,7 +124,9 @@ export default function MaterialRequestPage() {
               NPC-1000 자재 요청
             </h1>
             {siteName && (
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
+              <p
+                className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}
+              >
                 현장: {siteName}
               </p>
             )}
@@ -138,11 +146,11 @@ export default function MaterialRequestPage() {
                 id="title"
                 placeholder="예: 콘크리트 자재 긴급 요청"
                 value={requestTitle}
-                onChange={(e) => setRequestTitle(e.target.value)}
+                onChange={e => setRequestTitle(e.target.value)}
                 className={`mt-1 ${getFullTypographyClass('body', 'sm', isLargeFont)}`}
               />
             </div>
-            
+
             <div>
               <Label htmlFor="notes" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
                 요청 사유
@@ -151,7 +159,7 @@ export default function MaterialRequestPage() {
                 id="notes"
                 placeholder="요청 배경이나 특별한 요구사항을 입력하세요"
                 value={requestNotes}
-                onChange={(e) => setRequestNotes(e.target.value)}
+                onChange={e => setRequestNotes(e.target.value)}
                 rows={3}
                 className={`mt-1 ${getFullTypographyClass('body', 'sm', isLargeFont)}`}
               />
@@ -167,12 +175,10 @@ export default function MaterialRequestPage() {
               NPC-1000 수량 정보
             </h3>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>
-                수량 *
-              </Label>
+              <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>수량 *</Label>
               <div className="flex gap-2 mt-1">
                 <Input
                   type="number"
@@ -180,11 +186,13 @@ export default function MaterialRequestPage() {
                   min="0"
                   placeholder="0"
                   value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
+                  onChange={e => setQuantity(e.target.value)}
                   className="flex-1"
                 />
                 <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
-                  <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
+                  <span
+                    className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}
+                  >
                     말
                   </span>
                 </div>
@@ -193,14 +201,19 @@ export default function MaterialRequestPage() {
 
             <div>
               <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>긴급도</Label>
-              <Select value={urgency} onValueChange={(value: 'normal' | 'urgent' | 'emergency') => setUrgency(value)}>
+              <Select
+                value={urgency}
+                onValueChange={(value: MaterialPriorityValue) => setUrgency(value)}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="normal">보통</SelectItem>
-                  <SelectItem value="urgent">급함</SelectItem>
-                  <SelectItem value="emergency">긴급</SelectItem>
+                  {MATERIAL_PRIORITY_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

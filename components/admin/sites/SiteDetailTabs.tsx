@@ -28,6 +28,12 @@ import {
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import StatsCard from '@/components/ui/stats-card'
 import {
+  MATERIAL_PRIORITY_BADGE_VARIANTS,
+  MATERIAL_PRIORITY_LABELS,
+  isMaterialPriorityValue,
+  type MaterialPriorityValue,
+} from '@/lib/materials/priorities'
+import {
   Table,
   TableBody,
   TableCell,
@@ -35,6 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import EmptyState from '@/components/ui/empty-state'
 import { useRouter, useSearchParams } from 'next/navigation'
 import InvoiceDocumentsManager, {
   InvoiceStageProgress,
@@ -67,6 +74,76 @@ const INVOICE_STAGE_LABELS: Record<InvoiceStageKey, string> = {
   start: '착수 단계',
   progress: '진행 단계',
   completion: '완료 단계',
+}
+
+const PRIORITY_NOTE_TAG_REGEX =
+  /^\s*\[(?:낮음|보통|높음|긴급|일반|최우선|low|normal|high|urgent)\]\s*/i
+
+const cleanPriorityNote = (note?: string | null): string => {
+  if (!note) return ''
+  return note.replace(PRIORITY_NOTE_TAG_REGEX, '').trim()
+}
+
+const numberFormatter = new Intl.NumberFormat('ko-KR')
+
+const normalizeRequestItems = (rawItems: any[]): any[] => {
+  if (!Array.isArray(rawItems)) return []
+  return rawItems.map(item => ({
+    id: item.id,
+    material_id: item.material_id,
+    requested_quantity: item.requested_quantity,
+    approved_quantity: item.approved_quantity,
+    delivered_quantity: item.delivered_quantity,
+    unit_price: item.unit_price,
+    notes: item.notes,
+    material_name: item.material_name || item.materials?.name || null,
+    material_code: item.material_code || item.materials?.code || null,
+    specification: item.specification || item.materials?.specification || null,
+    unit: item.unit || item.materials?.unit || null,
+  }))
+}
+
+const normalizeRequests = (rows: any[], fallbackSiteName: string): Array<any> => {
+  if (!Array.isArray(rows)) return []
+  return rows.map(row => {
+    const normalizedItems = normalizeRequestItems(row.items || row.material_request_items || [])
+    const priorityValue = isMaterialPriorityValue(row?.priority)
+      ? (row.priority as MaterialPriorityValue)
+      : null
+    return {
+      ...row,
+      priority: priorityValue,
+      request_date: row.request_date || row.created_at || null,
+      items: normalizedItems,
+      material_request_items: normalizedItems,
+      sites:
+        row.sites && row.sites.name
+          ? row.sites
+          : {
+              id: row.site_id || null,
+              name: row.site_name || fallbackSiteName,
+            },
+    }
+  })
+}
+
+const summarizeMaterial = (items: any[]): string => {
+  if (!Array.isArray(items) || items.length === 0) return '-'
+  const primary = items[0]
+  const baseLabel = primary.material_name || primary.material_code || '자재'
+  return items.length > 1 ? `${baseLabel} 외 ${items.length - 1}건` : baseLabel
+}
+
+const summarizeQuantity = (items: any[]): string => {
+  if (!Array.isArray(items) || items.length === 0) return '-'
+  const total = items.reduce(
+    (sum: number, item: any) => sum + Number(item.requested_quantity ?? 0),
+    0
+  )
+  if (!total) return '-'
+  const unit = items.length === 1 ? items[0]?.unit || '' : ''
+  const formatted = numberFormatter.format(total)
+  return unit ? `${formatted} ${unit}` : formatted
 }
 
 const DEFAULT_SHARED_CATEGORY_LABEL_MAP = DEFAULT_SHARED_DOCUMENT_CATEGORIES.reduce(
@@ -289,6 +366,7 @@ export default function SiteDetailTabs({
     },
     [sharedCategoryLabelMap]
   )
+  const fallbackSiteName = (site?.name as string | undefined) || '-'
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   // Reports tab state
   const [reportsQuery, setReportsQuery] = useState('')
@@ -300,7 +378,9 @@ export default function SiteDetailTabs({
   const [reportsHasNext, setReportsHasNext] = useState(false)
   const [reportsTotal, setReportsTotal] = useState<number | null>(null)
   const [recentAssignments, setRecentAssignments] = useState<any[]>(initialAssignments || [])
-  const [recentRequests, setRecentRequests] = useState<any[]>(initialRequests || [])
+  const [recentRequests, setRecentRequests] = useState<any[]>(
+    normalizeRequests(initialRequests || [], fallbackSiteName)
+  )
   const [laborByUser, setLaborByUser] = useState<Record<string, number>>({})
   const [globalLaborByUser, setGlobalLaborByUser] = useState<Record<string, number>>({})
   const [sharedView, setSharedView] = useState<'drawings' | 'documents'>('documents')
@@ -818,15 +898,7 @@ export default function SiteDetailTabs({
     () =>
       (reqRows || []).map((rq: any, idx?: number) => ({
         id: rq?.id || String(idx ?? ''),
-        number: (
-          <a
-            href={`/dashboard/admin/materials/requests/${rq.id}`}
-            className="underline text-blue-600"
-            title="요청 상세 보기"
-          >
-            {rq?.request_number || rq?.id}
-          </a>
-        ),
+        number: rq?.request_number || rq?.id || '-',
         items: renderRequestItemsCell(rq?.material_request_items),
         quantity: renderRequestQuantityCell(rq?.material_request_items),
         requester: rq?.requested_by ? (
@@ -1252,14 +1324,15 @@ export default function SiteDetailTabs({
           { cache: 'no-store', credentials: 'include' }
         )
         const json = await res.json().catch(() => ({}))
-        if (res.ok && json?.success && Array.isArray(json.data)) setRecentRequests(json.data)
+        if (res.ok && json?.success && Array.isArray(json.data))
+          setRecentRequests(normalizeRequests(json.data, fallbackSiteName))
       } catch {
         void 0
       } finally {
         setRequestsLoading(false)
       }
     })()
-  }, [siteId, fetchSharedDocs])
+  }, [siteId, fetchSharedDocs, fallbackSiteName])
 
   // Reports tab: server-backed search/sort/pagination
   useEffect(() => {
@@ -1897,58 +1970,93 @@ export default function SiteDetailTabs({
               {requestsLoading && recentRequests.length === 0 ? (
                 <TableSkeleton rows={5} />
               ) : (
-                <DataTable<any>
-                  data={recentRequests}
-                  rowKey={(rq: any, idx?: number) => rq.id || rq.request_number || idx || 'req'}
-                  stickyHeader
-                  emptyMessage="요청 내역이 없습니다."
-                  columns={
-                    [
-                      {
-                        key: 'number',
-                        header: '요청번호',
-                        sortable: true,
-                        accessor: (rq: any) => rq?.request_number || rq?.id || '',
-                        render: (rq: any) => rq?.request_number || rq?.id,
-                      },
-                      {
-                        key: 'requester',
-                        header: '요청자',
-                        sortable: true,
-                        accessor: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '',
-                        render: (rq: any) =>
-                          rq?.requested_by ? (
-                            <a
-                              href={`/dashboard/admin/users/${rq.requested_by}`}
-                              className="underline-offset-2 hover:underline"
-                              title="사용자 상세 보기"
-                            >
-                              {rq?.requester?.full_name || rq?.requested_by}
-                            </a>
-                          ) : (
-                            <span>{rq?.requester?.full_name || '-'}</span>
-                          ),
-                      },
-                      {
-                        key: 'status',
-                        header: '상태',
-                        sortable: true,
-                        accessor: (rq: any) => rq?.status || '',
-                        render: (rq: any) => rq?.status || '-',
-                      },
-                      {
-                        key: 'date',
-                        header: '요청일',
-                        sortable: true,
-                        accessor: (rq: any) => rq?.request_date || '',
-                        render: (rq: any) =>
-                          rq?.request_date
-                            ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                            : '-',
-                      },
-                    ] as Column<any>[]
-                  }
-                />
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>현장명</TableHead>
+                      <TableHead>자재명</TableHead>
+                      <TableHead className="text-right">요청수량</TableHead>
+                      <TableHead>요청자</TableHead>
+                      <TableHead>요청일</TableHead>
+                      <TableHead>긴급도</TableHead>
+                      <TableHead>비고</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recentRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-10">
+                          <EmptyState description="표시할 요청이 없습니다." />
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      recentRequests.map((rq: any) => {
+                        const requesterName = rq?.requester?.full_name || rq?.requested_by || '-'
+                        const requesterLink = rq?.requested_by
+                          ? `/dashboard/admin/users/${rq.requested_by}`
+                          : null
+                        const items = Array.isArray(rq.items)
+                          ? rq.items
+                          : Array.isArray(rq.material_request_items)
+                            ? rq.material_request_items
+                            : []
+                        const siteLabel =
+                          rq?.sites?.name || (site?.name as string | undefined) || '-'
+                        const materialSummary = summarizeMaterial(items)
+                        const quantitySummary = summarizeQuantity(items)
+                        const priorityValue = isMaterialPriorityValue(rq?.priority)
+                          ? (rq.priority as MaterialPriorityValue)
+                          : null
+                        const notes = cleanPriorityNote(rq?.notes)
+
+                        return (
+                          <TableRow key={rq.id || rq.request_number}>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-foreground">{siteLabel}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {rq?.request_number || rq?.id || ''}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium text-foreground">
+                              {materialSummary}
+                            </TableCell>
+                            <TableCell className="text-right">{quantitySummary}</TableCell>
+                            <TableCell>
+                              {requesterLink ? (
+                                <a
+                                  href={requesterLink}
+                                  className="underline-offset-2 hover:underline"
+                                  title="사용자 상세 보기"
+                                >
+                                  {requesterName}
+                                </a>
+                              ) : (
+                                <span>{requesterName}</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {rq?.request_date
+                                ? new Date(rq.request_date).toLocaleDateString('ko-KR')
+                                : '-'}
+                            </TableCell>
+                            <TableCell>
+                              {priorityValue ? (
+                                <Badge variant={MATERIAL_PRIORITY_BADGE_VARIANTS[priorityValue]}>
+                                  {MATERIAL_PRIORITY_LABELS[priorityValue]}
+                                </Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="max-w-[180px] truncate">{notes || '-'}</TableCell>
+                          </TableRow>
+                        )
+                      })
+                    )}
+                  </TableBody>
+                </Table>
               )}
             </div>
           </section>

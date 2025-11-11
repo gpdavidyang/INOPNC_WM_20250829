@@ -3,7 +3,6 @@
  * Handles navigation from notification clicks to specific app sections
  */
 
-
 export interface DeepLinkParams {
   url: string
   type?: string
@@ -50,18 +49,21 @@ export class DeepLinkHandler {
 
     // Handle special navigation cases based on type
     switch (type) {
-      case 'material_approval':
-        targetUrl = id ? `/dashboard/materials/requests/${id}` : '/dashboard/materials/requests'
+      case 'material_approval': {
+        const searchParam = id ? `&search=${encodeURIComponent(id)}` : ''
+        targetUrl = `/dashboard/admin/materials?tab=requests${searchParam}`
         break
-      
+      }
+
       case 'daily_report_reminder':
-        targetUrl = action === 'create' ? '/dashboard/daily-reports/new' : '/dashboard/daily-reports'
+        targetUrl =
+          action === 'create' ? '/dashboard/daily-reports/new' : '/dashboard/daily-reports'
         break
-      
+
       case 'safety_alert':
         targetUrl = id ? `/dashboard/safety/alerts/${id}` : '/dashboard/safety'
         break
-      
+
       case 'equipment_maintenance':
         if (action === 'schedule' && queryParams?.equipmentId) {
           targetUrl = `/dashboard/equipment/maintenance/schedule?equipment=${queryParams.equipmentId}`
@@ -71,7 +73,7 @@ export class DeepLinkHandler {
           targetUrl = '/dashboard/equipment'
         }
         break
-      
+
       case 'site_announcement':
         targetUrl = id ? `/dashboard/notifications/${id}` : '/dashboard/notifications'
         break
@@ -104,15 +106,19 @@ export class DeepLinkHandler {
     try {
       const urlObj = new URL(url, window.location.origin)
       const pathParts = urlObj.pathname.split('/').filter(Boolean)
-      
+
       // Extract type and ID from URL path
       let type: string | undefined
       let id: string | undefined
-      
+
+      const tabParam = urlObj.searchParams.get('tab')
       if (pathParts.includes('materials') && pathParts.includes('requests')) {
         type = 'material_approval'
         const idIndex = pathParts.indexOf('requests') + 1
         id = pathParts[idIndex]
+      } else if (pathParts.includes('materials') && tabParam === 'requests') {
+        type = 'material_approval'
+        id = urlObj.searchParams.get('search') || undefined
       } else if (pathParts.includes('daily-reports')) {
         type = 'daily_report_reminder'
       } else if (pathParts.includes('safety') && pathParts.includes('alerts')) {
@@ -128,18 +134,18 @@ export class DeepLinkHandler {
         const idIndex = pathParts.indexOf('notifications') + 1
         id = pathParts[idIndex]
       }
-      
+
       // Extract query parameters
       const params: Record<string, unknown> = {}
       urlObj.searchParams.forEach((value, key) => {
         params[key] = value
       })
-      
+
       return {
         url: urlObj.pathname,
         type,
         id,
-        params: Object.keys(params).length > 0 ? params : undefined
+        params: Object.keys(params).length > 0 ? params : undefined,
       }
     } catch (error) {
       console.error('Failed to parse deep link URL:', error)
@@ -157,7 +163,7 @@ export class DeepLinkHandler {
         notification_type: params.type,
         notification_id: params.id,
         action: params.action,
-        target_url: params.url
+        target_url: params.url,
       })
     }
 
@@ -168,7 +174,7 @@ export class DeepLinkHandler {
       notificationId: params.id,
       action: params.action,
       targetUrl: params.url,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
   }
 
@@ -180,9 +186,9 @@ export class DeepLinkHandler {
       await fetch('/api/notifications/analytics/engagement', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
       })
     } catch (error) {
       console.error('Failed to log notification engagement:', error)
@@ -195,7 +201,7 @@ export class DeepLinkHandler {
   handleForegroundNotification(notification: unknown): void {
     // Show in-app notification UI
     const event = new CustomEvent('foregroundNotification', {
-      detail: notification
+      detail: notification,
     })
     window.dispatchEvent(event)
 
@@ -204,7 +210,7 @@ export class DeepLinkHandler {
       type: 'notification_received_foreground',
       notificationType: notification.data?.type,
       notificationId: notification.data?.id,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
   }
 }

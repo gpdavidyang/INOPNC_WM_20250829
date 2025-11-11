@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
+import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
 
 interface Version {
   id: string
@@ -106,37 +107,56 @@ export default function DocumentVersionsDialog({
     load()
   }, [open, siteId, docType])
 
-  const preview = async (url?: string) => {
-    if (!url) return
+  const buildSignedUrlParams = (version: Version) => {
+    const params = new URLSearchParams()
+    const storagePath = version.metadata?.storage_path || version.metadata?.storagePath || null
+    const storageBucket =
+      version.metadata?.storage_bucket ||
+      version.metadata?.storageBucket ||
+      parseSupabaseStorageUrl(version.file_url || undefined)?.bucket ||
+      null
+    if (version.file_url) params.set('url', version.file_url)
+    if (storagePath) params.set('path', storagePath)
+    if (storageBucket) params.set('bucket', storageBucket)
+    return { params, hasReference: Boolean(version.file_url || storagePath) }
+  }
+
+  const preview = async (version: Version) => {
     try {
-      let final = url
+      const { params, hasReference } = buildSignedUrlParams(version)
+      if (!hasReference) throw new Error('파일 정보가 없습니다.')
+      let final = version.file_url || ''
       try {
-        const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-        const j = await r.json()
-        if (j?.url) final = j.url
+        const res = await fetch(`/api/files/signed-url?${params.toString()}`)
+        const json = await res.json()
+        if (json?.url) final = json.url
       } catch {
         /* ignore */
       }
+      if (!final) throw new Error('파일 경로를 확인할 수 없습니다.')
       window.open(final, '_blank')
     } catch {
       toast({ title: '미리보기 실패', variant: 'destructive' })
     }
   }
 
-  const download = async (url?: string) => {
-    if (!url) return
+  const download = async (version: Version) => {
     try {
-      let final = url
+      const { params, hasReference } = buildSignedUrlParams(version)
+      if (!hasReference) throw new Error('파일 정보가 없습니다.')
+      if (version.file_name) params.set('download', version.file_name)
+      let final = version.file_url || ''
       try {
-        const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-        const j = await r.json()
-        if (j?.url) final = j.url
+        const res = await fetch(`/api/files/signed-url?${params.toString()}`)
+        const json = await res.json()
+        if (json?.url) final = json.url
       } catch {
         /* ignore */
       }
+      if (!final) throw new Error('파일 경로를 확인할 수 없습니다.')
       const a = document.createElement('a')
       a.href = final
-      a.download = ''
+      a.download = version.file_name || ''
       a.click()
     } catch {
       toast({ title: '다운로드 실패', variant: 'destructive' })
@@ -185,10 +205,10 @@ export default function DocumentVersionsDialog({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={() => preview(v.file_url)}>
+                  <Button variant="outline" size="sm" onClick={() => preview(v)}>
                     보기
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => download(v.file_url)}>
+                  <Button variant="outline" size="sm" onClick={() => download(v)}>
                     다운로드
                   </Button>
                   {!v?.metadata?.is_current && (

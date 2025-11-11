@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -18,6 +19,7 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
+    const adminSupabase = createServiceClient()
 
     // Parse request body
     const body = await request.json()
@@ -38,22 +40,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Site not found' }, { status: 404 })
     }
 
+    const now = new Date()
+    const nowIso = now.toISOString()
+    const today = nowIso.split('T')[0]
+
     // Start a transaction by deactivating all current assignments
-    const { error: deactivateError } = await supabase
+    const { error: deactivateError } = await adminSupabase
       .from('site_assignments')
       .update({
         is_active: false,
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
       })
       .eq('user_id', authResult.userId)
       .eq('is_active', true)
 
     if (deactivateError) {
-      throw deactivateError
+      const message = deactivateError.message?.toLowerCase() ?? ''
+      if (message.includes('updated_at')) {
+        const retry = await adminSupabase
+          .from('site_assignments')
+          .update({
+            is_active: false,
+          })
+          .eq('user_id', authResult.userId)
+          .eq('is_active', true)
+        if (retry.error) {
+          throw retry.error
+        }
+      } else {
+        throw deactivateError
+      }
     }
 
     // Check if user already has an assignment to this site
-    const { data: existingAssignment } = await supabase
+    const { data: existingAssignment } = await adminSupabase
       .from('site_assignments')
       .select('id')
       .eq('user_id', authResult.userId)
@@ -62,28 +82,51 @@ export async function POST(request: NextRequest) {
 
     if (existingAssignment) {
       // Reactivate existing assignment
-      const { error: reactivateError } = await supabase
+      const { error: reactivateError } = await adminSupabase
         .from('site_assignments')
         .update({
           is_active: true,
-          updated_at: new Date().toISOString(),
+          updated_at: nowIso,
         })
         .eq('id', existingAssignment.id)
 
       if (reactivateError) {
-        throw reactivateError
+        if (reactivateError.message?.toLowerCase().includes('updated_at')) {
+          const retry = await adminSupabase
+            .from('site_assignments')
+            .update({ is_active: true })
+            .eq('id', existingAssignment.id)
+          if (retry.error) {
+            throw retry.error
+          }
+        } else {
+          throw reactivateError
+        }
       }
     } else {
       // Create new assignment
-      const { error: insertError } = await supabase.from('site_assignments').insert({
+      const { error: insertError } = await adminSupabase.from('site_assignments').insert({
         user_id: authResult.userId,
         site_id: siteId,
-        assigned_date: new Date().toISOString().split('T')[0],
+        assigned_date: today,
         is_active: true,
+        updated_at: nowIso,
       })
 
       if (insertError) {
-        throw insertError
+        if (insertError.message?.toLowerCase().includes('updated_at')) {
+          const retry = await adminSupabase.from('site_assignments').insert({
+            user_id: authResult.userId,
+            site_id: siteId,
+            assigned_date: today,
+            is_active: true,
+          })
+          if (retry.error) {
+            throw retry.error
+          }
+        } else {
+          throw insertError
+        }
       }
     }
 

@@ -24,7 +24,12 @@ interface SendNotificationOptions {
   roles?: string[]
   payload: PushNotificationPayload
   scheduleAt?: string
-  notificationType: 'material_approval' | 'daily_report_reminder' | 'safety_alert' | 'equipment_maintenance' | 'site_announcement'
+  notificationType:
+    | 'material_approval'
+    | 'daily_report_reminder'
+    | 'safety_alert'
+    | 'equipment_maintenance'
+    | 'site_announcement'
 }
 
 class PushNotificationService {
@@ -32,7 +37,8 @@ class PushNotificationService {
   private publicVapidKey: string | null = null
 
   constructor() {
-    this.supported = typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
+    this.supported =
+      typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window
   }
 
   /**
@@ -46,13 +52,16 @@ class PushNotificationService {
 
     // Check for authentication cookies before making API calls
     if (typeof document !== 'undefined') {
-      const hasAuthCookies = document.cookie.includes('supabase-auth-token') || 
-                            document.cookie.includes('sb-') ||
-                            document.cookie.includes('supabase.auth.token') ||
-                            document.cookie.includes('auth-token')
-      
+      const hasAuthCookies =
+        document.cookie.includes('supabase-auth-token') ||
+        document.cookie.includes('sb-') ||
+        document.cookie.includes('supabase.auth.token') ||
+        document.cookie.includes('auth-token')
+
       if (!hasAuthCookies) {
-        console.log('[PushNotification] No authentication cookies found, skipping VAPID initialization')
+        console.log(
+          '[PushNotification] No authentication cookies found, skipping VAPID initialization'
+        )
         return false
       }
     }
@@ -62,13 +71,13 @@ class PushNotificationService {
       const response = await fetch('/api/notifications/vapid', {
         method: 'GET',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
           'Content-Type': 'application/json',
         },
         timeout: 5000, // 5 second timeout
-        credentials: 'include' // Include cookies for authentication
+        credentials: 'include', // Include cookies for authentication
       })
-      
+
       if (!response.ok) {
         throw new Error(`VAPID API responded with ${response.status}: ${response.statusText}`)
       }
@@ -76,11 +85,13 @@ class PushNotificationService {
       const contentType = response.headers.get('content-type')
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text()
-        throw new Error(`Expected JSON response but got: ${contentType}. Response: ${text.slice(0, 100)}...`)
+        throw new Error(
+          `Expected JSON response but got: ${contentType}. Response: ${text.slice(0, 100)}...`
+        )
       }
 
       const data = await response.json()
-      
+
       if (!data.success || !data.publicKey) {
         throw new Error(`VAPID API error: ${data.error || 'Unknown error'}`)
       }
@@ -116,11 +127,11 @@ class PushNotificationService {
     if (!this.supported) return 'denied'
 
     const permission = await Notification.requestPermission()
-    
+
     if (permission === 'granted') {
       await this.subscribeToPush()
     }
-    
+
     return permission
   }
 
@@ -135,10 +146,10 @@ class PushNotificationService {
 
     try {
       const registration = await navigator.serviceWorker.ready
-      
+
       // Check for existing subscription
       let subscription = await registration.pushManager.getSubscription()
-      
+
       if (subscription) {
         // Update existing subscription
         await this.updateSubscription(subscription)
@@ -148,12 +159,11 @@ class PushNotificationService {
       // Create new subscription
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.publicVapidKey)
+        applicationServerKey: this.urlBase64ToUint8Array(this.publicVapidKey),
       })
 
       await this.updateSubscription(subscription)
       return subscription
-
     } catch (error) {
       console.error('Failed to subscribe to push notifications:', error)
       return null
@@ -192,7 +202,7 @@ class PushNotificationService {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(options)
+      body: JSON.stringify(options),
     })
 
     if (!response.ok) {
@@ -218,8 +228,8 @@ class PushNotificationService {
       tag: 'test-notification',
       data: {
         url: '/dashboard',
-        timestamp: Date.now()
-      }
+        timestamp: Date.now(),
+      },
     })
   }
 
@@ -237,10 +247,10 @@ class PushNotificationService {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      
+
       return {
         isSubscribed: !!subscription,
-        subscription
+        subscription,
       }
     } catch (error) {
       console.error('Failed to get subscription status:', error)
@@ -259,8 +269,8 @@ class PushNotificationService {
       },
       body: JSON.stringify({
         subscription: subscription.toJSON(),
-        userAgent: navigator.userAgent
-      })
+        userAgent: navigator.userAgent,
+      }),
     })
 
     if (!response.ok) {
@@ -277,7 +287,7 @@ class PushNotificationService {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
     })
 
     if (!response.ok) {
@@ -290,10 +300,8 @@ class PushNotificationService {
    * Convert VAPID key to Uint8Array
    */
   private urlBase64ToUint8Array(base64String: string): Uint8Array {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4)
-    const base64 = (base64String + padding)
-      .replace(/\-/g, '+')
-      .replace(/_/g, '/')
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+    const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/')
 
     const rawData = window.atob(base64)
     const outputArray = new Uint8Array(rawData.length)
@@ -327,14 +335,16 @@ export const notificationHelpers = {
         actions: [
           { action: 'approve', title: '승인', icon: '/icons/approve-icon.png' },
           { action: 'reject', title: '거부', icon: '/icons/reject-icon.png' },
-          { action: 'view', title: '상세보기' }
+          { action: 'view', title: '상세보기' },
         ],
         data: {
           requestId,
           type: 'material_approval',
-          url: `/dashboard/materials/requests/${requestId}`
-        }
-      }
+          url: `/dashboard/admin/materials?tab=requests${
+            requestId ? `&search=${encodeURIComponent(requestId)}` : ''
+          }`,
+        },
+      },
     })
   },
 
@@ -353,9 +363,9 @@ export const notificationHelpers = {
         urgency: 'medium',
         data: {
           type: 'daily_report_reminder',
-          url: '/dashboard/daily-reports/new'
-        }
-      }
+          url: '/dashboard/daily-reports/new',
+        },
+      },
     })
   },
 
@@ -376,14 +386,14 @@ export const notificationHelpers = {
         vibrate: [500, 200, 500, 200, 500],
         actions: [
           { action: 'acknowledge', title: '확인', icon: '/icons/acknowledge-icon.png' },
-          { action: 'details', title: '상세정보' }
+          { action: 'details', title: '상세정보' },
         ],
         data: {
           alertId,
           type: 'safety_alert',
-          url: `/dashboard/safety/alerts/${alertId}`
-        }
-      }
+          url: `/dashboard/safety/alerts/${alertId}`,
+        },
+      },
     })
   },
 
@@ -404,8 +414,11 @@ export const notificationHelpers = {
       payload: {
         title: isUrgent ? '🚨 긴급 장비 점검' : '🔧 장비 점검 일정',
         body: `${equipmentName} - ${new Date(scheduledDate).toLocaleDateString('ko-KR')} ${
-          maintenanceType === 'routine' ? '정기 점검' : 
-          maintenanceType === 'urgent' ? '긴급 점검' : '특별 점검'
+          maintenanceType === 'routine'
+            ? '정기 점검'
+            : maintenanceType === 'urgent'
+              ? '긴급 점검'
+              : '특별 점검'
         }`,
         icon: '/icons/maintenance-icon.png',
         badge: '/icons/badge-maintenance.png',
@@ -413,7 +426,7 @@ export const notificationHelpers = {
         requireInteraction: isUrgent,
         actions: [
           { action: 'schedule', title: '일정잡기' },
-          { action: 'view', title: '상세보기' }
+          { action: 'view', title: '상세보기' },
         ],
         data: {
           maintenanceId,
@@ -421,9 +434,9 @@ export const notificationHelpers = {
           maintenanceType,
           scheduledDate,
           type: 'equipment_maintenance',
-          url: `/dashboard/equipment/maintenance/${maintenanceId}`
-        }
-      }
+          url: `/dashboard/equipment/maintenance/${maintenanceId}`,
+        },
+      },
     })
   },
 
@@ -450,17 +463,17 @@ export const notificationHelpers = {
         requireInteraction: isUrgent,
         actions: [
           { action: 'read', title: '읽기' },
-          { action: 'dismiss', title: '무시' }
+          { action: 'dismiss', title: '무시' },
         ],
         data: {
           announcementId,
           priority,
           type: 'site_announcement',
-          url: `/dashboard/announcements/${announcementId}`
-        }
-      }
+          url: `/dashboard/announcements/${announcementId}`,
+        },
+      },
     })
-  }
+  },
 }
 
 export default pushNotificationService

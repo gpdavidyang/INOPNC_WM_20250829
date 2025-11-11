@@ -5,7 +5,6 @@ import '@/modules/mobile/styles/attendance.css'
 import { TMap } from '@/lib/external-apps'
 import { Download, Search, X } from 'lucide-react'
 import {
-  createMaterialRequest as createNpcMaterialRequest,
   recordInventoryTransaction,
   getMaterialsData as getNPCMaterialsData,
   getActiveMaterials,
@@ -19,6 +18,12 @@ import {
   CustomSelectValue,
   PhSelectTrigger,
 } from '@/components/ui/custom-select'
+import {
+  DEFAULT_MATERIAL_PRIORITY,
+  MATERIAL_PRIORITY_OPTIONS,
+  MaterialPriorityValue,
+  formatMaterialPriority,
+} from '@/lib/materials/priorities'
 
 type ManagerRole = 'construction_manager' | 'assistant_manager' | 'safety_manager'
 
@@ -174,6 +179,40 @@ const formatDateDisplay = (value?: string | null) => {
   return `${year}.${month}.${day}`
 }
 
+const parseActiveFlag = (flag: unknown): boolean => {
+  if (typeof flag === 'boolean') return flag
+  if (typeof flag === 'number') return flag === 1
+  if (typeof flag === 'string') {
+    const normalized = flag.trim().toUpperCase()
+    if (!normalized) return false
+    return (
+      normalized === 'Y' ||
+      normalized === 'YES' ||
+      normalized === 'TRUE' ||
+      normalized === 'T' ||
+      normalized === '1'
+    )
+  }
+  return !!flag
+}
+
+const normalizeActiveMaterialOptions = (rows?: Array<any>) => {
+  const map = new Map<string, { code: string; name: string }>()
+  ;(rows || []).forEach(row => {
+    const code = typeof row?.code === 'string' ? row.code.trim() : ''
+    if (!code) return
+    if (!parseActiveFlag(row?.is_active ?? true)) return
+    const nameValue = typeof row?.name === 'string' ? row.name.trim() : ''
+    const name = nameValue || code
+    if (!map.has(code)) {
+      map.set(code, { code, name })
+    }
+  })
+  return Array.from(map.values()).sort((a, b) =>
+    (a.name || a.code).localeCompare(b.name || b.code, 'ko')
+  )
+}
+
 // Home search style: include weekday like 2025.09.21(토)
 const formatDateDisplayWithWeekday = (value?: string | null) => {
   if (!value) return '-'
@@ -250,8 +289,10 @@ async function loadSiteAttachments(siteId: string): Promise<AttachmentBuckets> {
       drawings: [],
       ptw: [],
       photos: [],
-    }(data || []).forEach(doc => {
-      if (!doc?.file_url || !doc?.file_name) return
+    }
+
+    for (const doc of data || []) {
+      if (!doc?.file_url || !doc?.file_name) continue
 
       const attachment: AttachmentFile = {
         id: doc.id,
@@ -268,22 +309,22 @@ async function loadSiteAttachments(siteId: string): Promise<AttachmentBuckets> {
 
       if (lowerType === 'blueprint' || lowerType === 'drawing' || lowerTitle.includes('도면')) {
         buckets.drawings.push(attachment)
-        return
+        continue
       }
 
       if (lowerType === 'ptw' || lowerTitle.includes('ptw') || lowerTitle.includes('작업허가')) {
         buckets.ptw.push(attachment)
-        return
+        continue
       }
 
       if (lowerType.includes('photo') || lowerType.includes('image')) {
         buckets.photos.push(attachment)
-        return
+        continue
       }
 
       // Fallback: put into drawings for blueprint-like documents
       buckets.drawings.push(attachment)
-    })
+    }
 
     return buckets
   } catch (error) {
@@ -560,7 +601,15 @@ export default function SiteInfoPage() {
   const [isSubmittingRecord, setIsSubmittingRecord] = useState(false)
   const [requestQuantity, setRequestQuantity] = useState('')
   const [requestNotes, setRequestNotes] = useState('')
-  const [requestUrgency, setRequestUrgency] = useState<'normal' | 'urgent' | 'emergency'>('normal')
+  const [requestUrgency, setRequestUrgency] =
+    useState<MaterialPriorityValue>(DEFAULT_MATERIAL_PRIORITY)
+  const [recentRequestInfo, setRecentRequestInfo] = useState<{
+    requestNumber?: string | null
+    materialCode: string
+    quantity: number
+    siteName: string
+    recordedAt: string
+  } | null>(null)
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
 
   const todayDisplay = useMemo(() => todayISO(), [])
@@ -613,30 +662,29 @@ export default function SiteInfoPage() {
       const inventory = (result.data?.inventory ?? []) as Array<{
         materials?: { code?: string | null; name?: string | null }
       }>
-      // Fetch catalog materials to include items without inventory rows
+      // Fetch catalog materials (active only)
       const catalogRes = await getActiveMaterials()
-      const catalog = ((catalogRes?.success ? catalogRes.data : []) as any[]).map(m => ({
-        code: m.code || '',
-        name: m.name || '',
-      }))
-
-      const mergedMap = new Map<string, { code: string; name: string }>()
-      for (const m of catalog) if (m.code) mergedMap.set(m.code, { code: m.code, name: m.name })
-      for (const i of inventory) {
-        const code = i.materials?.code || ''
-        const name = i.materials?.name || ''
-        if (code && !mergedMap.has(code)) mergedMap.set(code, { code, name })
-      }
-      const options = Array.from(mergedMap.values()).sort((a, b) =>
-        (a.name || a.code).localeCompare(b.name || b.code, 'ko')
+      const catalogOptions = normalizeActiveMaterialOptions(
+        ((catalogRes?.success ? catalogRes.data : []) as any[]) || []
       )
 
-      setMaterialsOptions(options)
-      // Prefer NPC-1000 if present, otherwise first option, otherwise ALL
-      const defaultCode = options.find(o => o.code === 'NPC-1000')?.code || options[0]?.code
-      setSelectedLogMaterialCode(prev => (prev === 'ALL' ? defaultCode || 'ALL' : prev))
-      setRecordMaterialCode(defaultCode || 'NPC-1000')
-      setRequestMaterialCode(defaultCode || 'NPC-1000')
+      setMaterialsOptions(catalogOptions)
+      const preferredCode =
+        catalogOptions.find(option => option.code === 'NPC-1000')?.code ||
+        catalogOptions[0]?.code ||
+        null
+
+      setSelectedLogMaterialCode(prev => {
+        if (!catalogOptions.length) {
+          return 'ALL'
+        }
+        if (prev !== 'ALL' && catalogOptions.some(option => option.code === prev)) {
+          return prev
+        }
+        return preferredCode || 'ALL'
+      })
+      setRecordMaterialCode(preferredCode || 'NPC-1000')
+      setRequestMaterialCode(preferredCode || 'NPC-1000')
 
       // keep raw
       setAllTransactions(
@@ -743,7 +791,7 @@ export default function SiteInfoPage() {
       const city = extractCityFromAddress(site.address.full_address)
       setTodayWeather(label ? `${city ? city + ' ' : ''}${label}` : city || '')
 
-      // Load inventory + transactions for KPI/list/options + include catalog materials
+      // Load inventory + transactions for KPI/list/options
       try {
         setIsLoadingInventory(true)
         const [res, cat] = await Promise.all([
@@ -758,27 +806,26 @@ export default function SiteInfoPage() {
 
           setInventoryItems(inventory)
 
-          const catalog = ((cat?.success ? cat.data : []) as any[]).map(m => ({
-            code: m.code || '',
-            name: m.name || '',
-          }))
-          const mergedMap = new Map<string, { code: string; name: string }>()
-          for (const m of catalog) if (m.code) mergedMap.set(m.code, { code: m.code, name: m.name })
-          for (const i of inventory) {
-            const code = i.materials?.code || ''
-            const name = i.materials?.name || ''
-            if (code && !mergedMap.has(code)) mergedMap.set(code, { code, name })
-          }
-          const options = Array.from(mergedMap.values()).sort((a, b) =>
-            (a.name || a.code).localeCompare(b.name || b.code, 'ko')
+          const catalogOptions = normalizeActiveMaterialOptions(
+            ((cat?.success ? cat.data : []) as any[]) || []
           )
-          setMaterialsOptions(options)
-          const defaultCode = options.find(o => o.code === 'NPC-1000')?.code || options[0]?.code
-          if (defaultCode) {
-            setRecordMaterialCode(defaultCode)
-            setRequestMaterialCode(defaultCode)
-            setSelectedLogMaterialCode(defaultCode)
-          }
+          setMaterialsOptions(catalogOptions)
+          const preferredCode =
+            catalogOptions.find(option => option.code === 'NPC-1000')?.code ||
+            catalogOptions[0]?.code ||
+            null
+
+          setSelectedLogMaterialCode(prev => {
+            if (!catalogOptions.length) {
+              return 'ALL'
+            }
+            if (prev !== 'ALL' && catalogOptions.some(option => option.code === prev)) {
+              return prev
+            }
+            return preferredCode || 'ALL'
+          })
+          setRecordMaterialCode(preferredCode || 'NPC-1000')
+          setRequestMaterialCode(preferredCode || 'NPC-1000')
 
           setAllTransactions(
             transactions.map(tx => ({
@@ -1352,27 +1399,42 @@ export default function SiteInfoPage() {
 
     setIsSubmittingRequest(true)
     try {
-      const urgencyLabel =
-        requestUrgency === 'normal' ? '일반' : requestUrgency === 'urgent' ? '긴급' : '최우선'
-      const combinedNotes = [`[${urgencyLabel}]`, requestNotes.trim()].filter(Boolean).join(' ')
+      const priorityLabel = formatMaterialPriority(requestUrgency)
+      const trimmedNotes = requestNotes.trim()
 
-      const result = await createNpcMaterialRequest({
-        siteId: currentSite.id,
-        materialCode: requestMaterialCode,
-        qty: quantityValue,
-        requestDate: new Date().toISOString(),
-        notes: combinedNotes || undefined,
+      const response = await fetch('/api/mobile/material-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteId: currentSite.id,
+          materialCode: requestMaterialCode,
+          qty: quantityValue,
+          requestDate: new Date().toISOString(),
+          priority: requestUrgency,
+          notes: trimmedNotes || undefined,
+        }),
       })
+      const payload = await response.json().catch(() => ({}))
 
-      if (!result?.success) {
-        throw new Error(result?.error || '자재 요청을 저장하지 못했습니다.')
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || '자재 요청을 저장하지 못했습니다.')
       }
 
       toast({
         title: '자재 요청이 등록되었습니다.',
-        description: `${currentSite.name}에 ${requestMaterialCode} ${quantityValue.toLocaleString()}말 요청이 본사로 전달되었습니다.`,
+        description: `${currentSite.name}에 ${requestMaterialCode} ${quantityValue.toLocaleString()}말 요청이 본사로 전달되었습니다. (긴급도: ${priorityLabel})`,
         variant: 'success',
       })
+      setRecentRequestInfo({
+        requestNumber: (payload.data as any)?.request_number || (payload.data as any)?.id || null,
+        materialCode: requestMaterialCode,
+        quantity: quantityValue,
+        siteName: currentSite.name,
+        recordedAt: new Date().toISOString(),
+      })
+      setRequestQuantity('')
+      setRequestNotes('')
+      setRequestUrgency(DEFAULT_MATERIAL_PRIORITY)
 
       setShowNpcRequestSheet(false)
     } catch (error) {
@@ -1488,6 +1550,37 @@ export default function SiteInfoPage() {
           color: var(--text);
           padding: 20px;
           padding-bottom: 80px;
+        }
+
+        .request-success-banner {
+          border: 1px solid rgba(34, 197, 94, 0.4);
+          background: rgba(34, 197, 94, 0.12);
+          color: #14532d;
+          border-radius: 16px;
+          padding: 14px 16px;
+          margin-bottom: 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .request-success-meta {
+          font-size: 13px;
+          color: #14532d;
+        }
+
+        .request-success-actions {
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .request-success-actions button {
+          border: none;
+          background: transparent;
+          color: #15803d;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
         }
 
         .site-header {
@@ -3084,6 +3177,7 @@ export default function SiteInfoPage() {
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
           width: 100%;
+          margin-top: 16px;
         }
 
         .npc-btn {
@@ -4358,6 +4452,7 @@ export default function SiteInfoPage() {
           grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
           gap: 8px !important;
           width: 100% !important;
+          margin-top: 16px !important;
         }
       `}</style>
 
@@ -4382,6 +4477,23 @@ export default function SiteInfoPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {recentRequestInfo && (
+        <div className="request-success-banner" role="status" aria-live="polite">
+          <div style={{ fontWeight: 700, fontSize: 15 }}>자재 요청이 접수되었습니다.</div>
+          <div className="request-success-meta">
+            {recentRequestInfo.siteName} · {recentRequestInfo.materialCode}{' '}
+            {recentRequestInfo.quantity.toLocaleString('ko-KR')}말{' '}
+            {recentRequestInfo.requestNumber ? `(${recentRequestInfo.requestNumber}) ` : ''}
+            {new Date(recentRequestInfo.recordedAt).toLocaleString('ko-KR')}
+          </div>
+          <div className="request-success-actions">
+            <button type="button" onClick={() => setRecentRequestInfo(null)}>
+              닫기
+            </button>
+          </div>
         </div>
       )}
 
@@ -5322,9 +5434,7 @@ export default function SiteInfoPage() {
                   </label>
                   <CustomSelect
                     value={requestUrgency}
-                    onValueChange={(value: 'normal' | 'urgent' | 'emergency') =>
-                      setRequestUrgency(value)
-                    }
+                    onValueChange={(value: MaterialPriorityValue) => setRequestUrgency(value)}
                   >
                     <CustomSelectTrigger
                       id="npc-request-urgency"
@@ -5334,15 +5444,15 @@ export default function SiteInfoPage() {
                       <CustomSelectValue placeholder="선택" />
                     </CustomSelectTrigger>
                     <CustomSelectContent className="modal-select-content" align="start">
-                      <CustomSelectItem className="modal-select-item" value="normal">
-                        일반
-                      </CustomSelectItem>
-                      <CustomSelectItem className="modal-select-item" value="urgent">
-                        긴급
-                      </CustomSelectItem>
-                      <CustomSelectItem className="modal-select-item" value="emergency">
-                        최우선
-                      </CustomSelectItem>
+                      {MATERIAL_PRIORITY_OPTIONS.map(option => (
+                        <CustomSelectItem
+                          key={option.value}
+                          className="modal-select-item"
+                          value={option.value}
+                        >
+                          {option.label}
+                        </CustomSelectItem>
+                      ))}
                     </CustomSelectContent>
                   </CustomSelect>
                 </div>

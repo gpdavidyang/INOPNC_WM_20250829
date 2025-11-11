@@ -2,8 +2,56 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
+
+type ProfileRow = {
+  id: string
+  role?: string | null
+  full_name?: string | null
+  customer_company_id?: string | null
+}
+
+async function loadProfileWithCompany(
+  supabase: SupabaseClient<Database>,
+  userId: string
+): Promise<{ profile: ProfileRow | null; error: Error | null; companyId: string | null }> {
+  const baseColumns = 'id, role, full_name'
+  const preferredColumns = `${baseColumns}, customer_company_id`
+  const fallbackColumns = `${baseColumns}, organization_id`
+
+  const fetchProfile = (columns: string) =>
+    supabase.from('profiles').select(columns).eq('id', userId).maybeSingle()
+
+  let { data, error } = await fetchProfile(preferredColumns)
+  if (error) {
+    const message = error.message?.toLowerCase() ?? ''
+    if (message.includes('customer_company_id')) {
+      const retry = await fetchProfile(fallbackColumns)
+      if (retry.data) {
+        const normalized = {
+          ...retry.data,
+          customer_company_id: (retry.data as any)?.organization_id ?? null,
+        }
+        return {
+          profile: normalized,
+          error: null,
+          companyId: normalized.customer_company_id ?? null,
+        }
+      }
+      return { profile: null, error: retry.error ?? error, companyId: null }
+    }
+    return { profile: null, error, companyId: null }
+  }
+
+  return {
+    profile: (data as ProfileRow) ?? null,
+    error: null,
+    companyId: (data as ProfileRow | null)?.customer_company_id ?? null,
+  }
+}
 
 // GET /api/unified-documents/v2 - 통합 문서 목록 조회
 export async function GET(request: NextRequest) {
@@ -16,17 +64,22 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient()
 
-    // 사용자 프로필 및 역할 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, role, customer_company_id, full_name')
-      .eq('id', authResult.userId)
-      .single()
-    const role = profile.role || authResult.role || ''
+    const {
+      profile,
+      error: profileError,
+      companyId: resolvedCompanyId,
+    } = await loadProfileWithCompany(supabase, authResult.userId)
+
+    if (profileError) {
+      console.error('Unified documents profile lookup failed:', profileError)
+      return NextResponse.json({ error: 'Profile lookup failed' }, { status: 500 })
+    }
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
+
+    const role = profile.role || authResult.role || ''
 
     // 쿼리 파라미터
     const page = parseInt(searchParams.get('page') || '1')
@@ -42,10 +95,84 @@ export async function GET(request: NextRequest) {
     const organizationId = searchParams.get('organization_id') || undefined
 
     const offset = (page - 1) * limit
+    const ascending = sortOrder === 'asc'
+    let customerCompanyColumnAvailable = true
+    {
+      const { error: columnCheckError } = await supabase
+        .from('unified_documents')
+        .select('customer_company_id')
+        .limit(1)
+      if (
+        columnCheckError &&
+        columnCheckError.message?.toLowerCase().includes('customer_company_id')
+      ) {
+        customerCompanyColumnAvailable = false
+        console.warn(
+          '[Unified documents] customer_company_id column missing; company-specific filters disabled'
+        )
+      }
+    }
+    let loggedMissingCompanyFilter = false
 
-    // 기본 쿼리 생성 (관계 선택 포함). 스키마 불일치 시 최소 필드로 폴백.
-    let query = supabase.from('unified_documents').select(
-      `
+    const applyFilters = (builder: any) => {
+      let q = builder
+
+      if (role === 'customer_manager') {
+        if (customerCompanyColumnAvailable && resolvedCompanyId) {
+          q = q.or(`customer_company_id.eq.${resolvedCompanyId},is_public.eq.true`)
+        } else {
+          q = q.eq('is_public', true)
+        }
+      }
+
+      if (status !== 'all') {
+        if (status === 'active') {
+          q = q.in('status', ['active', 'draft', 'pending'])
+        } else {
+          q = q.eq('status', status)
+        }
+      }
+
+      if (categoryType && categoryType !== 'all') {
+        q = q.eq('category_type', categoryType)
+      }
+
+      if (organizationId && organizationId !== 'all') {
+        if (customerCompanyColumnAvailable) {
+          q = q.eq('customer_company_id', organizationId)
+        } else if (!loggedMissingCompanyFilter) {
+          console.warn(
+            '[Unified documents] organization filter skipped because customer_company_id column is unavailable'
+          )
+          loggedMissingCompanyFilter = true
+        }
+      }
+
+      if (documentType && documentType !== 'all') {
+        q = q.eq('document_type', documentType)
+      }
+
+      if (siteId && siteId !== 'all') {
+        q = q.eq('site_id', siteId)
+      }
+
+      if (search) {
+        q = q.or(
+          `title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`
+        )
+      }
+
+      return q.order(sortBy, { ascending })
+    }
+
+    const customerCompanySelect = customerCompanyColumnAvailable
+      ? `,
+        customer_company:customer_company_id (
+          id
+        )`
+      : ''
+
+    const richSelect = `
         *,
         uploader:uploaded_by (
           id,
@@ -58,96 +185,38 @@ export async function GET(request: NextRequest) {
           name,
           address,
           status
-        ),
-        customer_company:customer_company_id (
-          id
-        ),
+        )${customerCompanySelect},
         daily_report:daily_report_id (
           id,
           report_date,
           status
         )
-      `,
-      { count: 'exact' }
-    )
+      `
 
-    // 역할 기반 필터링
-    if (role === 'customer_manager') {
-      // 제한 계정(시공업체 담당): 자사 문서 + 공개 문서(회사서류함 등) 열람 허용
-      // profile.customer_company_id가 없을 경우 공개 문서만 허용
-      const companyId = (profile as any)?.customer_company_id
-      if (companyId) {
-        query = query.or(`customer_company_id.eq.${companyId},is_public.eq.true`)
-      } else {
-        query = query.eq('is_public', true)
-      }
-    }
-    // 작업자, 현장관리자, 관리자는 모든 문서 접근 가능 (필터링 없음)
-
-    // 상태 필터
-    if (status !== 'all') {
-      if (status === 'active') {
-        query = query.in('status', ['active', 'draft', 'pending'])
-      } else {
-        query = query.eq('status', status)
-      }
-    }
-
-    // 카테고리 필터
-    if (categoryType && categoryType !== 'all') {
-      query = query.eq('category_type', categoryType)
-    }
-
-    // 조직(시공사) 필터
-    if (organizationId && organizationId !== 'all') {
-      query = query.eq('customer_company_id', organizationId)
-    }
-
-    // 문서 타입 필터
-    if (documentType && documentType !== 'all') {
-      query = query.eq('document_type', documentType)
-    }
-
-    // 현장 필터
-    if (siteId && siteId !== 'all') {
-      query = query.eq('site_id', siteId)
-    }
-
-    // 검색어 필터
-    if (search) {
-      query = query.or(`
-        title.ilike.%${search}%,
-        description.ilike.%${search}%,
-        file_name.ilike.%${search}%
-      `)
-    }
-
-    // 정렬
-    const ascending = sortOrder === 'asc'
-    query = query.order(sortBy, { ascending })
-
-    // 페이지네이션
-    query = query.range(offset, offset + limit - 1)
+    const buildQuery = (selectClause: string) =>
+      applyFilters(
+        supabase.from('unified_documents').select(selectClause, { count: 'exact' })
+      ).range(offset, offset + limit - 1)
 
     let documents: any[] | null = null
     let count: number | null = null
     {
-      const { data, error, count: c } = await query
+      const { data, error, count: c } = await buildQuery(richSelect)
       if (error) {
         console.warn(
           'Unified documents: relationship select failed, falling back to minimal fields.',
           error?.message || error
         )
-        // 1차 폴백: 동일 테이블 최소 셀렉트
-        const fallback = await supabase.from('unified_documents').select('*', { count: 'exact' })
-        if (!fallback.error) {
-          documents = fallback.data || []
-          count = fallback.count || 0
+        // 1차 폴백: 동일 테이블 최소 셀렉트 (동일 필터 유지)
+        const fallbackQuery = await buildQuery('*')
+        if (!fallbackQuery.error) {
+          documents = fallbackQuery.data || []
+          count = fallbackQuery.count || 0
         } else {
           // 2차 폴백: 레거시 unified_document_system에서 호환 필드 구성
           console.warn(
             'Unified documents primary fallback failed, trying unified_document_system',
-            fallback.error?.message || fallback.error
+            fallbackQuery.error?.message || fallbackQuery.error
           )
           const legacy = await supabase
             .from('unified_document_system')
@@ -197,15 +266,20 @@ export async function GET(request: NextRequest) {
       try {
         let cq = supabase.from('unified_documents').select('*', { count: 'exact', head: true })
         if (role === 'customer_manager') {
-          const companyId = (profile as any)?.customer_company_id
-          if (companyId) cq = cq.eq('customer_company_id', companyId)
-          else cq = cq.eq('is_public', true)
+          if (customerCompanyColumnAvailable && resolvedCompanyId) {
+            cq = cq.eq('customer_company_id', resolvedCompanyId)
+          } else {
+            cq = cq.eq('is_public', true)
+          }
         }
         if (statusValue) cq = cq.eq('status', statusValue)
         if (categoryType && categoryType !== 'all') cq = cq.eq('category_type', categoryType)
         if (documentType && documentType !== 'all') cq = cq.eq('document_type', documentType)
-        if (organizationId && organizationId !== 'all')
-          cq = cq.eq('customer_company_id', organizationId)
+        if (organizationId && organizationId !== 'all') {
+          if (customerCompanyColumnAvailable) {
+            cq = cq.eq('customer_company_id', organizationId)
+          }
+        }
         if (siteId && siteId !== 'all') cq = cq.eq('site_id', siteId)
         if (search)
           cq = cq.or(
@@ -252,7 +326,7 @@ export async function GET(request: NextRequest) {
         id: profile.id,
         role,
         name: profile.full_name,
-        company_id: profile.customer_company_id,
+        company_id: resolvedCompanyId,
       },
     })
   } catch (error) {
@@ -271,12 +345,16 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient()
 
-    // 사용자 프로필 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, role, customer_company_id')
-      .eq('id', authResult.userId)
-      .single()
+    const {
+      profile,
+      error: profileError,
+      companyId: resolvedCompanyId,
+    } = await loadProfileWithCompany(supabase, authResult.userId)
+
+    if (profileError) {
+      console.error('Document creation profile lookup failed:', profileError)
+      return NextResponse.json({ error: 'Profile lookup failed' }, { status: 500 })
+    }
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -286,7 +364,7 @@ export async function POST(request: NextRequest) {
 
     // 제한 계정(시공업체 담당)인 경우 자사 문서만 생성 가능
     if (profile.role === 'customer_manager') {
-      body.customer_company_id = profile.customer_company_id
+      body.customer_company_id = resolvedCompanyId
     }
 
     // 필수 필드 설정

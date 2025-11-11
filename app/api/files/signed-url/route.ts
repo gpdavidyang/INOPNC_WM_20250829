@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { resolveStorageReference } from '@/lib/storage/paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,47 +8,30 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const rawUrl = (searchParams.get('url') || '').trim()
+  const pathParam = (
+    searchParams.get('path') ||
+    searchParams.get('storage_path') ||
+    searchParams.get('object') ||
+    ''
+  ).trim()
+  const bucketParam = (
+    searchParams.get('bucket') ||
+    searchParams.get('storage_bucket') ||
+    ''
+  ).trim()
   // support alias `filename`
   const downloadName = (searchParams.get('download') || searchParams.get('filename') || '').trim()
-  if (!rawUrl) {
-    return NextResponse.json({ success: false, error: 'Missing url' }, { status: 400 })
-  }
-
-  // Helper to extract bucket/objectPath from any Supabase storage object URL
-  const extractBucketPath = (input: string): { bucket: string; objectPath: string } | null => {
-    try {
-      const supabaseUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '')
-      // Normalize into a pathname starting from '/storage/v1/object/...'
-      let pathname = ''
-      if (input.startsWith('http')) {
-        // absolute URL
-        const u = new URL(input)
-        pathname = u.pathname
-      } else {
-        // relative path
-        pathname = input
-      }
-      const marker = '/storage/v1/object/'
-      const idx = pathname.indexOf(marker)
-      if (idx === -1) return null
-      const after = pathname.slice(idx + marker.length)
-      const parts = after.split('/').filter(Boolean)
-      if (parts.length < 2) return null
-      // Skip leading segment if it's one of public/sign/auth
-      const first = parts[0]
-      const offset = first === 'public' || first === 'sign' || first === 'auth' ? 1 : 0
-      const bucket = parts[offset]
-      const objectPath = parts.slice(offset + 1).join('/')
-      if (!bucket || !objectPath) return null
-      return { bucket, objectPath }
-    } catch {
-      return null
-    }
+  if (!rawUrl && !pathParam) {
+    return NextResponse.json({ success: false, error: 'Missing file reference' }, { status: 400 })
   }
 
   // Try to generate a fresh short-lived signed URL using service role
   try {
-    const parsed = extractBucketPath(rawUrl)
+    const parsed = resolveStorageReference({
+      url: rawUrl || undefined,
+      path: pathParam || undefined,
+      bucket: bucketParam || undefined,
+    })
     if (parsed) {
       const svc = createServiceRoleClient()
       const options = downloadName ? { download: downloadName } : undefined
@@ -63,5 +47,11 @@ export async function GET(request: NextRequest) {
   }
 
   // Fallback: return original URL unchanged
-  return NextResponse.json({ success: true, url: rawUrl })
+  if (rawUrl) {
+    return NextResponse.json({ success: true, url: rawUrl })
+  }
+  return NextResponse.json(
+    { success: false, error: 'Unable to resolve storage path' },
+    { status: 422 }
+  )
 }

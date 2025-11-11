@@ -358,22 +358,27 @@ async function handleNotificationAction(action, data, type) {
   
   // Handle specific actions based on notification type
   switch (type) {
-    case 'MATERIAL_APPROVAL':
+    case 'MATERIAL_APPROVAL': {
+      const requestQuery = data.materialRequestId
+        ? `?tab=requests&search=${encodeURIComponent(data.materialRequestId)}`
+        : '?tab=requests'
+      const requestListUrl = `${baseUrl}/dashboard/admin/materials${requestQuery}`
       switch (action) {
         case 'approve':
           await handleMaterialApproval(data.materialRequestId, 'approved')
-          targetUrl = `${baseUrl}/dashboard/materials/requests/${data.materialRequestId}`
+          targetUrl = requestListUrl
           break
         case 'reject':
           await handleMaterialApproval(data.materialRequestId, 'rejected')
-          targetUrl = `${baseUrl}/dashboard/materials/requests/${data.materialRequestId}`
+          targetUrl = requestListUrl
           break
         case 'view':
         default:
-          targetUrl = `${baseUrl}/dashboard/materials/requests/${data.materialRequestId || ''}`
+          targetUrl = requestListUrl
           break
       }
       break
+    }
       
     case 'DAILY_REPORT_REMINDER':
       switch (action) {

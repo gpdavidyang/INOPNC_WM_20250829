@@ -8,6 +8,18 @@ import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/Pr
 type OptionItem = { value: string; label: string }
 import { SelectField } from '@/modules/mobile/components/production/SelectField'
 // no dynamic imports needed on this page
+import {
+  MATERIAL_PRIORITY_LABELS,
+  normalizeMaterialPriority,
+  type MaterialPriorityValue,
+} from '@/lib/materials/priorities'
+
+const PRIORITY_BADGE_CLASSES: Record<MaterialPriorityValue, string> = {
+  low: 'bg-slate-100 text-slate-600 border border-slate-200',
+  normal: 'bg-gray-100 text-gray-600 border border-gray-200',
+  high: 'bg-amber-50 text-amber-700 border border-amber-200',
+  urgent: 'bg-rose-50 text-rose-700 border border-rose-200',
+}
 
 export const metadata: Metadata = { title: '주문요청 조회' }
 
@@ -91,6 +103,7 @@ export default async function ProductionRequestsPage({
       requested_by,
       request_number,
       status,
+      priority,
       created_at,
       notes
     `
@@ -447,6 +460,9 @@ export default async function ProductionRequestsPage({
                       ? matNames[0]
                       : `${matNames[0]} 외 ${matNames.length - 1}건`
                 const partnerName = userPartnerNameMap[rq.requested_by as string] || '-'
+                const priorityValue = normalizeMaterialPriority(rq.priority as string | null)
+                const priorityLabel = MATERIAL_PRIORITY_LABELS[priorityValue]
+                const priorityClass = PRIORITY_BADGE_CLASSES[priorityValue]
                 return (
                   <div key={rq.id} className="block rounded-lg border p-4 bg-white">
                     {/* Top row: Site and Quantity */}
@@ -459,6 +475,11 @@ export default async function ProductionRequestsPage({
                         <div className="mt-1 flex items-center gap-2 text-base text-muted-foreground">
                           <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700">
                             {dateText}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${priorityClass}`}
+                          >
+                            {priorityLabel}
                           </span>
                         </div>
                       </div>
