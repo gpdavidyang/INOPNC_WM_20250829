@@ -137,7 +137,8 @@ export interface ProductionRecord {
 export interface ShipmentRecord {
   id: string
   shipment_date: string
-  site_id: string
+  site_id: string | null
+  partner_company_id?: string | null
   material_request_id?: string | null
   quantity_shipped: number
   planned_delivery_date?: string | null

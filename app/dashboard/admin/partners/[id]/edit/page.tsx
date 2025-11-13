@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { PartnerEditForm } from '@/components/admin/partners/PartnerEditForm'
 import { PageHeader } from '@/components/ui/page-header'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: '자재거래처 수정',
@@ -14,28 +14,26 @@ interface PartnerEditPageProps {
 
 export default async function AdminPartnerEditPage({ params }: PartnerEditPageProps) {
   await requireAdminProfile()
-
-  const cookieHeader = cookies()
-    .getAll()
-    .map(({ name, value }) => `${name}=${value}`)
-    .join('; ')
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/api/admin/partner-companies/${params.id}`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      },
-    }
-  )
+  const supabase = createClient()
 
   let partner: Record<string, unknown> | null = null
+  const { data, error } = await supabase
+    .from('material_suppliers')
+    .select('id, name, is_active, contact_person, phone, email, address, business_number')
+    .eq('id', params.id)
+    .maybeSingle()
 
-  if (response.ok) {
-    const data = await response.json()
-    partner = data.partner ?? data.data?.partner ?? null
+  if (!error && data) {
+    partner = {
+      id: data.id,
+      company_name: data.name,
+      status: data.is_active === false ? 'inactive' : 'active',
+      contact_name: data.contact_person,
+      contact_phone: data.phone,
+      contact_email: data.email,
+      address: data.address,
+      business_number: data.business_number,
+    }
   }
 
   return (

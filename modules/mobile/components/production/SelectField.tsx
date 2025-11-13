@@ -22,6 +22,7 @@ interface SelectFieldProps {
   required?: boolean
   className?: string
   defaultValue?: string
+  labelFieldName?: string
 }
 
 export const SelectField: React.FC<SelectFieldProps> = ({
@@ -31,12 +32,15 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   required = false,
   className,
   defaultValue = '',
+  labelFieldName,
 }) => {
   const [value, setValue] = useState<string>(defaultValue)
 
   useEffect(() => {
     setValue(defaultValue)
   }, [defaultValue])
+
+  const currentLabel = options.find(o => o.value === value)?.label || ''
 
   return (
     <div className={className}>
@@ -50,10 +54,21 @@ export const SelectField: React.FC<SelectFieldProps> = ({
         aria-hidden="true"
         className="sr-only absolute w-px h-px -m-px overflow-hidden"
       />
+      {labelFieldName ? (
+        <input
+          type="text"
+          name={labelFieldName}
+          value={currentLabel}
+          readOnly
+          tabIndex={-1}
+          aria-hidden="true"
+          className="sr-only absolute w-px h-px -m-px overflow-hidden"
+        />
+      ) : null}
       <CustomSelect value={value} onValueChange={setValue}>
         <PhSelectTrigger>
           <CustomSelectValue placeholder={placeholder}>
-            {options.find(o => o.value === value)?.label || placeholder}
+            {currentLabel || placeholder}
           </CustomSelectValue>
         </PhSelectTrigger>
         <CustomSelectContent align="start" className="custom-select-content">

@@ -43,7 +43,7 @@ async function main() {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  console.log('🧪 도면문서함 데이터/매핑 테스트 시작')
+  console.log('🧪 현장공유함(도면 등) 데이터/매핑 테스트 시작')
 
   // 1) site_documents 내 도면 데이터 존재 여부
   let allDocs: any[] | null = null
@@ -157,7 +157,7 @@ async function main() {
 
     console.log('\n👉 UI 검증 가이드:')
     console.log('   1) 파트너 계정으로 로그인')
-    console.log('   2) 도면문서함 탭에서 현장을 위 site_id로 선택')
+    console.log('   2) 현장공유함(도면 등) 탭에서 현장을 위 site_id로 선택')
     if (usedTable === 'documents') {
       console.log(
         '      ※ 현재 DB에 site_documents 테이블이 없어, 구(legacy) documents에서만 도면이 있습니다.'

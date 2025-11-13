@@ -3,6 +3,7 @@ import Link from 'next/link'
 import PillTabLinks from '@/components/ui/pill-tab-links'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { ADMIN_PARTNER_COMPANIES_STUB } from '@/lib/admin/stub-data'
 import {
   Table,
@@ -329,21 +330,33 @@ export default async function AdminMaterialsPage({
     } catch {
       // best-effort; leave as empty
     }
-    // Partners quick count (best-effort) — use Supabase directly to avoid stale stub data
+    // Material suppliers quick count sourced directly from material_suppliers
     try {
-      const { data: partnersData, error: partnersError } = await supabase
-        .from('partner_companies')
-        .select('id, company_name, status')
-        .order('company_name', { ascending: true })
-      if (partnersError) throw partnersError
-      partnersCount = partnersData?.length ?? 0
-      partnersPreview = (partnersData || []).slice(0, 10).map((p: any) => ({
-        id: p.id,
-        company_name: p.company_name,
-        status: p.status ?? null,
+      const supplierClient = (() => {
+        try {
+          return createServiceRoleClient()
+        } catch {
+          return supabase
+        }
+      })()
+
+      const { data: suppliersData, error: suppliersError } = await supplierClient
+        .from('material_suppliers')
+        .select('id, name, is_active')
+        .order('name', { ascending: true })
+      if (suppliersError) throw suppliersError
+
+      partnersCount = suppliersData?.length ?? 0
+      partnersPreview = (suppliersData || []).slice(0, 10).map(item => ({
+        id: item.id,
+        company_name: item.name || '-',
+        status: item.is_active === false ? 'inactive' : 'active',
       }))
-    } catch (error) {
-      console.error('[AdminMaterials] partner_companies query failed, using stub:', error)
+    } catch (apiError) {
+      console.error(
+        '[AdminMaterials] material_suppliers query failed, falling back to stub:',
+        apiError
+      )
       partnersCount = ADMIN_PARTNER_COMPANIES_STUB.length
       partnersPreview = ADMIN_PARTNER_COMPANIES_STUB.slice(0, 10).map((p: any) => ({
         id: p.id,

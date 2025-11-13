@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
@@ -202,6 +203,19 @@ export default async function ProductionManagePage({
     allLabel: '전체 자재거래처',
   })
 
+  async function deleteProduction(formData: FormData) {
+    'use server'
+    const supabase = createClient()
+    const id = (formData.get('production_id') as string) || ''
+    if (!id) return
+    const supportsItems = supportsProductionItems
+    if (supportsItems) {
+      await supabase.from('material_production_items').delete().eq('production_id', id)
+    }
+    await supabase.from('material_productions').delete().eq('id', id)
+    revalidatePath('/mobile/production/production')
+  }
+
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="production" />}>
       <div className="p-5 space-y-5">
@@ -348,6 +362,23 @@ export default async function ProductionManagePage({
                   {memo && (
                     <div className="mt-2 text-sm text-muted-foreground truncate">메모: {memo}</div>
                   )}
+                  <div className="mt-2 flex items-center justify-end gap-2">
+                    <Link
+                      href={`/mobile/production/production/${encodeURIComponent(p.id)}/edit`}
+                      className="rounded border px-2 py-1 text-xs"
+                    >
+                      수정
+                    </Link>
+                    <form action={deleteProduction}>
+                      <input type="hidden" name="production_id" value={p.id} />
+                      <button
+                        type="submit"
+                        className="rounded border px-2 py-1 text-xs text-red-600"
+                      >
+                        삭제
+                      </button>
+                    </form>
+                  </div>
                 </div>
               )
             })}

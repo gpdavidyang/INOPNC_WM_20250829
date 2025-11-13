@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
@@ -9,6 +10,7 @@ import type { MaterialPartnerOption } from '@/modules/mobile/types/material-part
 import { ProductionSearchSection } from '@/modules/mobile/components/production/ProductionSearchSection'
 import { buildMaterialPartnerOptions } from '@/modules/mobile/utils/material-partners'
 import { loadMaterialPartnerRows } from '@/modules/mobile/services/material-partner-service'
+import { parseMetadataSnapshot } from '@/modules/mobile/utils/shipping-form'
 
 export const metadata: Metadata = { title: '출고배송 관리' }
 
@@ -31,37 +33,33 @@ export default async function ShippingPaymentPage({
 
   // 최근 출고 이력 (간단 검색 포함)
   let shipmentsRaw: any[] = []
-  {
-    // Try extended fields first (payment method relations). Fallback to minimal if schema differs.
-    const { data: ext, error: extErr } = await supabase
+  const missingSelectParts = new Set<ShipmentSelectPart>()
+  let selectResolved = false
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const { data, error } = await supabase
       .from('material_shipments')
-      .select(
-        `id, site_id, shipment_date, status, total_amount,
-         sites(name),
-         billing_method:payment_methods!material_shipments_billing_method_id_fkey(name),
-         shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(name),
-         freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(name),
-         shipment_items(quantity, material_id, materials(name, code)),
-         payments:material_payments(amount)`
-      )
+      .select(buildShipmentSelectClause(missingSelectParts))
       .order('shipment_date', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(200)
-    if (!extErr && ext) {
-      shipmentsRaw = ext as any[]
-    } else {
-      const { data: basic } = await supabase
-        .from('material_shipments')
-        .select(
-          `id, site_id, shipment_date, status, total_amount,
-            sites(name),
-           shipment_items(quantity, material_id, materials(name, code)),
-           payments:material_payments(amount)`
-        )
-        .order('shipment_date', { ascending: false })
-        .limit(200)
-      shipmentsRaw = (basic as any[]) || []
+    if (!error) {
+      shipmentsRaw = (data as any[]) || []
+      selectResolved = true
+      break
     }
+    const missingParts = getMissingPartsFromError(error)
+    if (missingParts.length > 0) {
+      missingParts.forEach(part => missingSelectParts.add(part))
+      continue
+    }
+    OPTIONAL_SHIPMENT_SELECT_PARTS.forEach(part => missingSelectParts.add(part))
   }
+  if (!selectResolved) {
+    shipmentsRaw = shipmentsRaw || []
+  }
+  const partnerColumnAvailable = !missingSelectParts.has('partner')
+  const totalColumnAvailable = !missingSelectParts.has('total')
+  const flagsAvailable = !missingSelectParts.has('flags')
 
   // Load filter options
   const { data: materialRows } = await supabase
@@ -75,6 +73,28 @@ export default async function ShippingPaymentPage({
     .eq('is_deleted', false)
     .order('name', { ascending: true })
   const partnerRows = await loadMaterialPartnerRows('active')
+
+  const shipmentPartnerIds = partnerColumnAvailable
+    ? (Array.from(
+        new Set(
+          ((shipmentsRaw || []) as any[])
+            .map((s: any) => s.partner_company_id)
+            .filter((id: any) => typeof id === 'string' && id.length > 0)
+        )
+      ) as string[])
+    : []
+  const partnerNameById = new Map<string, string>()
+  if (shipmentPartnerIds.length > 0) {
+    const { data: partnerNameRows } = await supabase
+      .from('partner_companies')
+      .select('id, company_name')
+      .in('id', shipmentPartnerIds)
+    ;(partnerNameRows || []).forEach((row: any) => {
+      if (row?.id) {
+        partnerNameById.set(String(row.id), row.company_name || '-')
+      }
+    })
+  }
 
   const materialOptions: OptionItem[] = [
     { value: 'all', label: '전체 자재' },
@@ -94,7 +114,6 @@ export default async function ShippingPaymentPage({
     includeAllOption: true,
     allLabel: '전체 자재거래처',
   })
-
   const q = (searchParams?.q || '').trim()
   const period = (searchParams?.period || '').trim()
   const selectedMaterialId = (searchParams?.material_id || '').trim() || 'all'
@@ -109,6 +128,10 @@ export default async function ShippingPaymentPage({
   const selectedSiteId = siteIdRaw && siteIdRaw !== 'all' ? siteIdRaw : ''
   const selectedPartnerCompanyId =
     partnerCompanyIdRaw && partnerCompanyIdRaw !== 'all' ? partnerCompanyIdRaw : ''
+  const selectedPartnerLabel =
+    !partnerColumnAvailable && selectedPartnerCompanyId
+      ? partnerOptions.find(opt => opt.value === selectedPartnerCompanyId)?.label || ''
+      : ''
 
   let periodStartISO: string | null = null
   let periodEndISO: string | null = null
@@ -145,16 +168,36 @@ export default async function ShippingPaymentPage({
       .from('partner_site_mappings')
       .select('site_id')
       .eq('partner_company_id', selectedPartnerCompanyId)
-    allowedSites = new Set(((mappings || []) as any[]).map(m => String((m as any).site_id)))
+    allowedSites = new Set(
+      ((mappings || []) as any[]).map(m => String((m as any).site_id || '')).filter(Boolean)
+    )
   }
 
   // Apply filters in memory
   const shipments = (shipmentsRaw || []).filter((s: any) => {
+    const metadata = (s as any).__meta || parseMetadataSnapshot((s as any)?.notes || null) || null
+    ;(s as any).__meta = metadata
     if (q) {
       const lower = q.toLowerCase()
       const site = String(s.sites?.name || '').toLowerCase()
-      const partner = String(partnerBySite.get(String(s.site_id)) || '').toLowerCase()
-      const matchKeyword = site.includes(lower) || partner.includes(lower)
+      const mappedPartner =
+        s.site_id && partnerBySite.has(String(s.site_id))
+          ? String(partnerBySite.get(String(s.site_id)) || '').toLowerCase()
+          : ''
+      const directPartner =
+        partnerColumnAvailable &&
+        s.partner_company_id &&
+        partnerNameById.has(String(s.partner_company_id))
+          ? String(partnerNameById.get(String(s.partner_company_id)) || '').toLowerCase()
+          : ''
+      const metadataPartner = metadata?.partner_company_label
+        ? metadata.partner_company_label.toLowerCase()
+        : ''
+      const matchKeyword =
+        site.includes(lower) ||
+        mappedPartner.includes(lower) ||
+        directPartner.includes(lower) ||
+        metadataPartner.includes(lower)
       if (!matchKeyword) return false
     }
     if (periodStartISO && periodEndISO) {
@@ -167,7 +210,17 @@ export default async function ShippingPaymentPage({
       if (!hasMaterial) return false
     }
     if (selectedSiteId && String(s.site_id) !== selectedSiteId) return false
-    if (allowedSites && !allowedSites.has(String(s.site_id))) return false
+    if (selectedPartnerCompanyId) {
+      if (partnerColumnAvailable) {
+        const matchesDirect = String(s.partner_company_id || '') === selectedPartnerCompanyId
+        const matchesMapped = s.site_id ? Boolean(allowedSites?.has(String(s.site_id))) : false
+        if (!matchesDirect && !matchesMapped) return false
+      } else if (selectedPartnerLabel) {
+        const matchesMetadata = metadata?.partner_company_label === selectedPartnerLabel
+        const matchesMapped = s.site_id ? Boolean(allowedSites?.has(String(s.site_id))) : false
+        if (!matchesMetadata && !matchesMapped) return false
+      }
+    }
     if (statusFilter && statusFilter !== 'all') {
       const st = String(s.status || '').toLowerCase()
       const isCompleted = st === 'shipped' || st === 'delivered'
@@ -202,14 +255,27 @@ export default async function ShippingPaymentPage({
     const items = s.shipment_items || []
     return acc + items.reduce((a: number, it: any) => a + Number(it.quantity || 0), 0)
   }, 0)
-  const totalAmountThisMonth = monthlyShipments.reduce(
-    (acc: number, s: any) => acc + Number((s as any).total_amount || 0),
-    0
-  )
+  const totalAmountThisMonth = monthlyShipments.reduce((acc: number, s: any) => {
+    const metadata = parseMetadataSnapshot((s as any)?.notes || null)
+    const storedAmount = totalColumnAvailable
+      ? Number((s as any)?.total_amount || 0)
+      : metadata?.total_amount_input || 0
+    if (storedAmount > 0) return acc + storedAmount
+    const items = Array.isArray(s.shipment_items) ? s.shipment_items : []
+    const derived = items.reduce((sum: number, it: any) => {
+      const totalPrice = Number((it as any)?.total_price || 0)
+      if (totalPrice > 0) return sum + totalPrice
+      const qty = Number(it.quantity || 0)
+      const unitPrice = Number((it as any)?.unit_price || 0)
+      if (qty > 0 && unitPrice > 0) return sum + qty * unitPrice
+      return sum
+    }, 0)
+    return acc + Math.max(0, derived)
+  }, 0)
 
   async function toggleShipmentStatus(formData: FormData) {
     'use server'
-    const supabase = (await import('@/lib/supabase/server')).createClient()
+    const supabase = createClient()
     const id = (formData.get('shipment_id') as string) || ''
     const next = (formData.get('next_status') as string) || ''
     if (!id || !next) return
@@ -222,11 +288,71 @@ export default async function ShippingPaymentPage({
 
   async function deleteShipment(formData: FormData) {
     'use server'
-    const supabase = (await import('@/lib/supabase/server')).createClient()
+    const supabase = createClient()
+    let admin: ReturnType<typeof createServiceClient> | null = null
+    try {
+      admin = createServiceClient()
+    } catch (error) {
+      console.error(
+        '[ShippingDelete] Unable to create service client, falling back to session client',
+        error
+      )
+    }
+    const db = admin ?? supabase
     const id = (formData.get('shipment_id') as string) || ''
     if (!id) return
-    await supabase.from('shipment_items').delete().eq('shipment_id', id)
-    await supabase.from('material_shipments').delete().eq('id', id)
+    const deleteByShipmentId = async (
+      table: string,
+      column: string = 'shipment_id'
+    ): Promise<void> => {
+      const { error } = await db.from(table).delete().eq(column, id)
+      if (!error || error.code === 'PGRST116') return
+      const code = String(error.code || '')
+      const message = String(error.message || '').toLowerCase()
+      const mentionsMissing =
+        message.includes('does not exist') ||
+        message.includes('unknown') ||
+        message.includes('missing')
+      const isMissingColumn =
+        code === '42703' ||
+        code === '42P01' ||
+        code === 'PGRST204' ||
+        (mentionsMissing && (message.includes('column') || message.includes('relation')))
+      if (isMissingColumn) {
+        console.warn('[ShippingDelete] Skipping delete due to missing schema part', {
+          table,
+          column,
+          message: error.message,
+        })
+        return
+      }
+      const isPermissionDenied =
+        code === '42501' ||
+        code === 'PGRST401' ||
+        code === 'PGRST403' ||
+        message.includes('permission denied')
+      if (isPermissionDenied) {
+        console.warn('[ShippingDelete] Skipping delete due to insufficient permissions', {
+          table,
+          column,
+          message: error.message,
+        })
+        return
+      }
+      throw error
+    }
+    const deleteTasks: Array<Promise<void>> = [
+      deleteByShipmentId('material_payments'),
+      deleteByShipmentId('shipment_items'),
+    ]
+    try {
+      await Promise.all(deleteTasks)
+      const { error: shipmentError } = await db.from('material_shipments').delete().eq('id', id)
+      if (shipmentError) throw shipmentError
+    } catch (error) {
+      console.error('[ShippingDelete] Failed to delete shipment', { shipmentId: id, error })
+      return
+    }
     ;(await import('next/cache')).revalidatePath('/mobile/production/shipping-payment')
   }
 
@@ -301,17 +427,27 @@ export default async function ShippingPaymentPage({
           )}
           <div className="space-y-2">
             {(visibleShipments || []).map((s: any) => {
-              const totalQty = (s.shipment_items || []).reduce(
+              const metadata = (s as any).__meta ?? parseMetadataSnapshot((s as any)?.notes || null)
+              const items = Array.isArray(s.shipment_items) ? s.shipment_items : []
+              const totalQty = items.reduce(
                 (acc: number, it: any) => acc + Number(it.quantity || 0),
                 0
               )
-              const totalAmount = Number(s.total_amount || 0)
-              const paidAmount = Array.isArray(s.payments)
-                ? s.payments.reduce((acc: number, p: any) => acc + Number(p?.amount || 0), 0)
-                : 0
-              const outstandingAmountRow = Math.max(0, totalAmount - paidAmount)
+              const derivedAmount = items.reduce((acc: number, it: any) => {
+                const totalPrice = Number((it as any)?.total_price || 0)
+                if (totalPrice > 0) return acc + totalPrice
+                const qty = Number(it.quantity || 0)
+                const unitPrice = Number((it as any)?.unit_price || 0)
+                if (qty > 0 && unitPrice > 0) return acc + qty * unitPrice
+                return acc
+              }, 0)
+              const storedTotalAmount = totalColumnAvailable
+                ? Number((s as any)?.total_amount || 0)
+                : metadata?.total_amount_input || 0
+              const totalAmount =
+                storedTotalAmount > 0 ? storedTotalAmount : Math.max(0, derivedAmount)
               const sanitize = (name: string) => name.replace(/\s*\([^)]*\)\s*$/g, '').trim()
-              const mats = (s.shipment_items || [])
+              const mats = items
                 .map((it: any) => sanitize(String(it.materials?.name || '')))
                 .filter(Boolean)
               const matSummary =
@@ -320,22 +456,59 @@ export default async function ShippingPaymentPage({
                   : mats.length === 1
                     ? mats[0]
                     : `${mats[0]} 외 ${mats.length - 1}건`
+              const itemNoteLines: string[] = []
+              const noteKeys = new Set<string>()
+              const pushNote = (text: string) => {
+                const trimmed = text.trim()
+                if (!trimmed) return
+                if (noteKeys.has(trimmed)) return
+                noteKeys.add(trimmed)
+                itemNoteLines.push(trimmed)
+              }
+              items.forEach((it: any) => {
+                const text = typeof it.notes === 'string' ? it.notes.trim() : ''
+                pushNote(text)
+              })
+              if (metadata?.item_notes?.length) {
+                metadata.item_notes.forEach(entry => {
+                  const text = typeof entry.note === 'string' ? entry.note : ''
+                  pushNote(text)
+                })
+              }
               const isCompleted = ['shipped', 'delivered'].includes(
                 String(s.status || '').toLowerCase()
               )
               const nextStatus = isCompleted ? 'preparing' : 'delivered'
-              const partnerName = partnerBySite.get(String(s.site_id)) || ''
+              const partnerName =
+                (partnerColumnAvailable &&
+                  s.partner_company_id &&
+                  partnerNameById.get(String(s.partner_company_id))) ||
+                metadata?.partner_company_label ||
+                (s.site_id ? partnerBySite.get(String(s.site_id)) : '') ||
+                ''
+              const siteName = metadata?.site_autofilled ? '' : s.sites?.name || ''
+              const title = partnerName || siteName || '-'
               const dateText = s.shipment_date
                 ? new Date(s.shipment_date).toLocaleDateString('ko-KR')
                 : '-'
-              const title = s.sites?.name || partnerName || '-'
-              const billingName = (s as any)?.billing_method?.name || '-'
-              const shippingName = (s as any)?.shipping_method?.name || '-'
-              const freightName = (s as any)?.freight_method?.name || '-'
-              const flagEtax = Boolean((s as any)?.flag_etax)
-              const flagStatement = Boolean((s as any)?.flag_statement)
-              const flagFreightPaid = Boolean((s as any)?.flag_freight_paid)
-              const flagBillAmount = Boolean((s as any)?.flag_bill_amount)
+              const billingName =
+                (s as any)?.billing_method?.name || metadata?.billing_method_label || '-'
+              const shippingName =
+                (s as any)?.shipping_method?.name || metadata?.shipping_method_label || '-'
+              const freightName =
+                (s as any)?.freight_method?.name || metadata?.freight_method_label || '-'
+              const flagEtax = flagsAvailable
+                ? Boolean((s as any)?.flag_etax)
+                : Boolean(metadata?.flags?.flag_etax)
+              const flagStatement = flagsAvailable
+                ? Boolean((s as any)?.flag_statement)
+                : Boolean(metadata?.flags?.flag_statement)
+              const flagFreightPaid = flagsAvailable
+                ? Boolean((s as any)?.flag_freight_paid)
+                : Boolean(metadata?.flags?.flag_freight_paid)
+              const flagBillAmount = flagsAvailable
+                ? Boolean((s as any)?.flag_bill_amount)
+                : Boolean(metadata?.flags?.flag_bill_amount)
               return (
                 <div key={s.id} className="rounded-lg border p-4 bg-white">
                   <div className="flex items-start justify-between">
@@ -368,7 +541,12 @@ export default async function ShippingPaymentPage({
                       </div>
                       {partnerName && (
                         <div className="mt-0.5 text-sm text-muted-foreground truncate">
-                          거래처 {partnerName}
+                          거래처: {partnerName}
+                        </div>
+                      )}
+                      {siteName && (!partnerName || partnerName !== siteName) && (
+                        <div className="text-sm text-muted-foreground truncate">
+                          현장: {siteName}
                         </div>
                       )}
                       <div className="mt-1 flex items-center gap-2 text-base text-muted-foreground">
@@ -384,9 +562,6 @@ export default async function ShippingPaymentPage({
                       </div>
                       <div className="mt-1 text-sm text-muted-foreground">
                         금액 {totalAmount.toLocaleString()}원
-                      </div>
-                      <div className="text-xs text-rose-600">
-                        미수 {outstandingAmountRow.toLocaleString()}원
                       </div>
                       {(() => {
                         const billing =
@@ -430,7 +605,11 @@ export default async function ShippingPaymentPage({
                     <span className="text-muted-foreground">자재</span>:{' '}
                     <span className="font-semibold">{matSummary}</span>
                   </div>
-                  {/* 방식 배지는 상단 우측 총수량 아래로 이동 */}
+                  {itemNoteLines.length > 0 && (
+                    <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                      메모: {itemNoteLines.join(' / ')}
+                    </div>
+                  )}
                   <div className="mt-2 grid grid-cols-2 gap-2 text-base">
                     <label className="inline-flex items-center gap-1 justify-start">
                       <input type="checkbox" disabled checked={flagEtax} />{' '}
@@ -486,4 +665,92 @@ export default async function ShippingPaymentPage({
       </div>
     </MobileLayoutWithAuth>
   )
+}
+
+type ShipmentSelectPart =
+  | 'partner'
+  | 'total'
+  | 'billing'
+  | 'shipping'
+  | 'freight'
+  | 'payments'
+  | 'flags'
+  | 'itemNotes'
+const OPTIONAL_SHIPMENT_SELECT_PARTS: ShipmentSelectPart[] = [
+  'partner',
+  'total',
+  'billing',
+  'shipping',
+  'freight',
+  'payments',
+  'flags',
+  'itemNotes',
+]
+
+function buildShipmentSelectClause(missingParts: Set<ShipmentSelectPart>): string {
+  const baseFields = ['id', 'site_id', 'created_at']
+  if (!missingParts.has('partner')) baseFields.push('partner_company_id')
+  baseFields.push('shipment_date', 'status', 'notes')
+  if (!missingParts.has('total')) baseFields.push('total_amount')
+  if (!missingParts.has('flags')) {
+    baseFields.push('flag_etax', 'flag_statement', 'flag_freight_paid', 'flag_bill_amount')
+  }
+
+  const relations = ['sites(name)']
+  const itemFields = ['quantity', 'unit_price', 'total_price', 'material_id']
+  if (!missingParts.has('itemNotes')) {
+    itemFields.push('notes')
+  }
+  itemFields.push('materials(name, code)')
+  relations.push(`shipment_items(${itemFields.join(', ')})`)
+  if (!missingParts.has('billing')) {
+    relations.push('billing_method:payment_methods!material_shipments_billing_method_id_fkey(name)')
+  }
+  if (!missingParts.has('shipping')) {
+    relations.push(
+      'shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(name)'
+    )
+  }
+  if (!missingParts.has('freight')) {
+    relations.push(
+      'freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(name)'
+    )
+  }
+  if (!missingParts.has('payments')) {
+    relations.push('payments:material_payments(amount)')
+  }
+
+  const selectParts = [...baseFields, ...relations]
+  return `
+        ${selectParts.join(',\n        ')}
+      `
+}
+
+function getMissingPartsFromError(error: any): ShipmentSelectPart[] {
+  if (!error) return []
+  const message = String(error.message || '').toLowerCase()
+  const parts: ShipmentSelectPart[] = []
+  if (message.includes('partner_company_id')) parts.push('partner')
+  if (message.includes('total_amount')) parts.push('total')
+  if (message.includes('billing_method_id')) parts.push('billing')
+  if (message.includes('shipping_method_id')) parts.push('shipping')
+  if (message.includes('freight_charge_method_id')) parts.push('freight')
+  if (
+    message.includes('flag_etax') ||
+    message.includes('flag_statement') ||
+    message.includes('flag_freight_paid') ||
+    message.includes('flag_bill_amount')
+  ) {
+    parts.push('flags')
+  }
+  if (message.includes('payment_methods')) parts.push('billing', 'shipping', 'freight')
+  if (message.includes('material_payments')) parts.push('payments')
+  if (
+    message.includes('shipment_items') &&
+    message.includes('notes') &&
+    (message.includes('column') || message.includes('does not exist'))
+  ) {
+    parts.push('itemNotes')
+  }
+  return parts
 }

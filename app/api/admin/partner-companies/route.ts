@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('partner_companies')
       .select(
-        'id, company_name, company_type, status, representative_name, contact_person, phone, email, address'
+        'id, company_name, status, representative_name, contact_person, phone, email, address'
       )
       .order('company_name', { ascending: true })
 
@@ -97,7 +97,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}))
     const company_name = (body.company_name || '').trim()
-    const company_type = (body.company_type || '').trim() || null
     const status = (body.status || 'active').trim()
     const contact_name = (body.contact_name || '').trim() || null
     const contact_phone = (body.contact_phone || '').trim() || null
@@ -112,7 +111,6 @@ export async function POST(request: NextRequest) {
       .from('partner_companies')
       .insert({
         company_name,
-        company_type,
         status,
         contact_person: contact_name,
         phone: contact_phone,
@@ -120,7 +118,7 @@ export async function POST(request: NextRequest) {
         address,
       })
       .select(
-        'id, company_name, company_type, status, representative_name, contact_person, phone, email, address'
+        'id, company_name, status, representative_name, contact_person, phone, email, address'
       )
       .single()
     if (error) throw error

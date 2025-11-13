@@ -52,8 +52,7 @@ export function MaterialPartnerSelect({
     ]
   }, [options])
 
-  const hasEnabledOption = resolvedOptions.some(opt => !opt.disabled)
-  const effectiveDisabled = disabled || !hasEnabledOption
+  const effectiveDisabled = disabled
 
   const findLabel = (val: string) => resolvedOptions.find(opt => opt.value === val)?.label
 
@@ -62,6 +61,8 @@ export function MaterialPartnerSelect({
     const key = status.toLowerCase()
     return STATUS_LABEL[key] || status
   }
+
+  const partnerLabelValue = findLabel(value) || ''
 
   return (
     <div className={cn('relative', className)}>
@@ -75,6 +76,7 @@ export function MaterialPartnerSelect({
         aria-hidden="true"
         className="sr-only absolute w-px h-px -m-px overflow-hidden"
       />
+      <input type="hidden" name={`${name}_label`} value={partnerLabelValue} />
       <CustomSelect value={value} onValueChange={setValue} disabled={effectiveDisabled}>
         <PhSelectTrigger className="w-full h-10 rounded-[14px] border border-[#E5EAF3] bg-white">
           <CustomSelectValue placeholder={placeholder}>
