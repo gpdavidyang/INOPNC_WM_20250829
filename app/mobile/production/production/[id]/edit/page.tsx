@@ -109,19 +109,24 @@ export default async function ProductionEditPage({ params }: { params: { id: str
 
   const supportsProductionItems = await hasProductionItemsTable(supabase)
 
+  const selectColumns = [
+    'id',
+    'site_id',
+    'production_date',
+    'produced_quantity',
+    'quality_notes',
+    'production_number',
+    'sites(name)',
+  ]
+  if (supportsProductionItems) {
+    selectColumns.push(
+      'material_production_items(material_id, produced_quantity, order_quantity, notes)'
+    )
+  }
+
   const { data: production } = await supabase
     .from('material_productions')
-    .select(
-      `
-        id,
-        site_id,
-        production_date,
-        quality_notes,
-        production_number,
-        sites(name),
-        material_production_items(material_id, produced_quantity, order_quantity, notes)
-      `
-    )
+    .select(selectColumns.join(',\n'))
     .eq('id', id)
     .maybeSingle()
 

@@ -206,13 +206,34 @@ export default async function ProductionManagePage({
   async function deleteProduction(formData: FormData) {
     'use server'
     const supabase = createClient()
+    let serviceClient: ReturnType<
+      typeof import('@/lib/supabase/service').createServiceClient
+    > | null = null
+    try {
+      const { createServiceClient } = await import('@/lib/supabase/service')
+      serviceClient = createServiceClient()
+    } catch (error) {
+      console.warn('[ProductionDelete] service client unavailable, using session client', error)
+    }
+    const db = serviceClient ?? supabase
     const id = (formData.get('production_id') as string) || ''
     if (!id) return
     const supportsItems = supportsProductionItems
     if (supportsItems) {
-      await supabase.from('material_production_items').delete().eq('production_id', id)
+      const { error: itemsError } = await db
+        .from('material_production_items')
+        .delete()
+        .eq('production_id', id)
+      if (itemsError && itemsError.code !== 'PGRST116') {
+        console.error('[ProductionDelete] failed to delete production items', itemsError)
+        throw new Error('생산 품목 삭제에 실패했습니다.')
+      }
     }
-    await supabase.from('material_productions').delete().eq('id', id)
+    const { error } = await db.from('material_productions').delete().eq('id', id)
+    if (error) {
+      console.error('[ProductionDelete] failed to delete production', error)
+      throw new Error('생산 정보를 삭제하지 못했습니다.')
+    }
     revalidatePath('/mobile/production/production')
   }
 
