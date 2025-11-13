@@ -8,6 +8,10 @@ import type { MaterialInventoryItem, MaterialRequestData } from '@/types/materia
 import type { MaterialPriorityValue } from '@/lib/materials/priorities'
 import { INVENTORY_SORT_COLUMNS, type InventorySortKey } from '@/lib/admin/materials/constants'
 import { hasProductionItemsTable } from '@/lib/materials/production-support'
+import {
+  parseMetadataSnapshot,
+  type ShipmentMetadataSnapshot,
+} from '@/modules/mobile/utils/shipping-form'
 import { withAdminAuth, AdminErrors, type AdminActionResult } from './common'
 
 type AdminSupabaseClient = SupabaseClient<Database>
@@ -224,6 +228,325 @@ async function getAccessibleSiteIds(
   return (data || []).map(site => site.id)
 }
 
+type PostgrestErrorLike = {
+  code?: string
+  message?: string
+  details?: string
+}
+
+function shouldRetryWithBasicShipmentSelect(error: PostgrestErrorLike | null): boolean {
+  if (!error) return false
+  const code = String(error.code || '').toUpperCase()
+  if (code === 'PGRST200' || code === '42703') {
+    return true
+  }
+  const merged = `${error.message || ''} ${error.details || ''}`.toLowerCase()
+  return merged.includes('relationship') || merged.includes('column')
+}
+
+async function hydrateShipmentRelations(
+  supabase: AdminSupabaseClient,
+  shipments: Array<Record<string, any>>
+): Promise<void> {
+  if (shipments.length === 0) {
+    return
+  }
+
+  const missingPaymentShipments = shipments.filter(
+    shipment => shipment.payments == null && shipment.id
+  )
+
+  if (missingPaymentShipments.length > 0) {
+    const shipmentIds = Array.from(
+      new Set(missingPaymentShipments.map(shipment => String(shipment.id)))
+    )
+    const { data: paymentRows } = await supabase
+      .from('material_payments')
+      .select('id, shipment_id, amount')
+      .in('shipment_id', shipmentIds)
+
+    const groupedPayments = new Map<string, Array<{ amount?: number | null }>>()
+    for (const payment of paymentRows || []) {
+      const shipmentId = String(payment.shipment_id)
+      if (!groupedPayments.has(shipmentId)) {
+        groupedPayments.set(shipmentId, [])
+      }
+      groupedPayments.get(shipmentId)!.push({ amount: payment.amount ?? 0 })
+    }
+
+    for (const shipment of shipments) {
+      if (shipment.payments == null && shipment.id) {
+        shipment.payments = groupedPayments.get(String(shipment.id)) || []
+      }
+    }
+  }
+
+  const paymentMethodIds = new Set<string>()
+  let needsPaymentLookup = false
+
+  for (const shipment of shipments) {
+    const billingName = shipment?.billing_method?.name
+    const shippingName = shipment?.shipping_method?.name
+    const freightName = shipment?.freight_method?.name
+
+    if (!billingName && shipment?.billing_method_id) {
+      paymentMethodIds.add(String(shipment.billing_method_id))
+      needsPaymentLookup = true
+    }
+    if (!shippingName && shipment?.shipping_method_id) {
+      paymentMethodIds.add(String(shipment.shipping_method_id))
+      needsPaymentLookup = true
+    }
+    if (!freightName && shipment?.freight_charge_method_id) {
+      paymentMethodIds.add(String(shipment.freight_charge_method_id))
+      needsPaymentLookup = true
+    }
+  }
+
+  if (needsPaymentLookup && paymentMethodIds.size > 0) {
+    const { data: paymentRows } = await supabase
+      .from('payment_methods')
+      .select('id, name')
+      .in('id', Array.from(paymentMethodIds))
+
+    const paymentMap = new Map<string, { id: string; name: string | null }>()
+    for (const row of paymentRows || []) {
+      paymentMap.set(String(row.id), { id: row.id, name: row.name ?? null })
+    }
+
+    for (const shipment of shipments) {
+      if (!shipment.billing_method?.name && shipment?.billing_method_id) {
+        const method = paymentMap.get(String(shipment.billing_method_id))
+        if (method) {
+          shipment.billing_method = { name: method.name }
+        }
+      }
+      if (!shipment.shipping_method?.name && shipment?.shipping_method_id) {
+        const method = paymentMap.get(String(shipment.shipping_method_id))
+        if (method) {
+          shipment.shipping_method = { name: method.name }
+        }
+      }
+      if (!shipment.freight_method?.name && shipment?.freight_charge_method_id) {
+        const method = paymentMap.get(String(shipment.freight_charge_method_id))
+        if (method) {
+          shipment.freight_method = { name: method.name }
+        }
+      }
+    }
+  }
+
+  const needsSiteLookup = shipments.some(shipment => !shipment?.sites?.name && shipment?.site_id)
+
+  if (needsSiteLookup) {
+    const siteIds = Array.from(
+      new Set(
+        shipments
+          .map(shipment => shipment?.site_id)
+          .filter((siteId): siteId is string => Boolean(siteId))
+      )
+    )
+
+    if (siteIds.length > 0) {
+      const { data: siteRows } = await supabase.from('sites').select('id, name').in('id', siteIds)
+      const siteMap = new Map<string, { id: string; name: string | null }>()
+      for (const site of siteRows || []) {
+        siteMap.set(site.id, { id: site.id, name: site.name ?? null })
+      }
+
+      for (const shipment of shipments) {
+        if ((!shipment.sites || !shipment.sites.name) && shipment.site_id) {
+          const site = siteMap.get(String(shipment.site_id))
+          if (site) {
+            shipment.sites = { ...(shipment.sites || {}), name: site.name }
+          }
+        }
+      }
+    }
+  }
+
+  const partnerIds = Array.from(
+    new Set(
+      shipments
+        .map(shipment => shipment?.partner_company_id)
+        .filter((partnerId): partnerId is string => Boolean(partnerId))
+        .map(id => String(id))
+    )
+  )
+
+  const partnerMap = new Map<string, { id: string; name: string | null }>()
+  if (partnerIds.length > 0) {
+    const { data: partnerRows, error: partnerError } = await supabase
+      .from('material_partners')
+      .select('id, name')
+      .in('id', partnerIds)
+
+    if (!partnerError) {
+      for (const partner of partnerRows || []) {
+        partnerMap.set(String(partner.id), {
+          id: partner.id,
+          name: partner.name ?? null,
+        })
+      }
+    } else if (partnerError.code !== '42P01' && partnerError.code !== 'PGRST204') {
+      console.warn('[hydrateShipmentRelations] partner lookup failed', partnerError)
+    }
+  }
+
+  for (const shipment of shipments) {
+    decorateShipmentDisplayFields(shipment, partnerMap)
+  }
+}
+
+type ShipmentFlagKey = 'flag_etax' | 'flag_statement' | 'flag_freight_paid' | 'flag_bill_amount'
+
+function booleanFromUnknown(value: unknown): boolean {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (!normalized) return false
+    return normalized === 'true' || normalized === '1' || normalized === 'y' || normalized === 'yes'
+  }
+  return false
+}
+
+function getFlagValue(
+  shipment: Record<string, any>,
+  metadata: ShipmentMetadataSnapshot | null,
+  key: ShipmentFlagKey
+): boolean {
+  if (Object.prototype.hasOwnProperty.call(shipment, key)) {
+    return booleanFromUnknown(shipment[key])
+  }
+  const fallback = metadata?.flags?.[key]
+  return typeof fallback === 'boolean' ? fallback : Boolean(fallback)
+}
+
+function summarizeShipmentItemsForDisplay(
+  shipment: Record<string, any>,
+  metadata: ShipmentMetadataSnapshot | null
+): { materialSummary: string; totalQuantity: number; noteLines: string[] } {
+  const items = Array.isArray(shipment.shipment_items) ? shipment.shipment_items : []
+  const totalQuantity = items.reduce(
+    (acc: number, item: any) => acc + Number(item?.quantity || 0),
+    0
+  )
+  const materialNames = items
+    .map((item: any) => String(item?.materials?.name || item?.materials?.code || '').trim())
+    .filter(Boolean)
+
+  const materialSummary =
+    materialNames.length === 0
+      ? '-'
+      : materialNames.length === 1
+        ? materialNames[0]
+        : `${materialNames[0]} 외 ${materialNames.length - 1}건`
+
+  const noteLines: string[] = []
+  const noteSet = new Set<string>()
+  const pushNote = (note?: string | null) => {
+    if (!note) return
+    const trimmed = note.trim()
+    if (!trimmed) return
+    if (noteSet.has(trimmed)) return
+    noteSet.add(trimmed)
+    noteLines.push(trimmed)
+  }
+
+  items.forEach((item: any) => pushNote(typeof item?.notes === 'string' ? item.notes : ''))
+  metadata?.item_notes?.forEach(entry => pushNote(entry?.note))
+
+  return { materialSummary, totalQuantity, noteLines }
+}
+
+function computeShipmentAmountSummary(
+  shipment: Record<string, any>,
+  metadata: ShipmentMetadataSnapshot | null
+): { totalAmount: number; totalPaid: number; outstanding: number } {
+  const items = Array.isArray(shipment.shipment_items) ? shipment.shipment_items : []
+  const derivedAmount = items.reduce((acc: number, item: any) => {
+    const totalPrice = Number(item?.total_price || 0)
+    if (totalPrice > 0) {
+      return acc + totalPrice
+    }
+    const qty = Number(item?.quantity || 0)
+    const unitPrice = Number(item?.unit_price || 0)
+    if (qty > 0 && unitPrice > 0) {
+      return acc + qty * unitPrice
+    }
+    return acc
+  }, 0)
+
+  const storedAmount =
+    typeof shipment.total_amount === 'number'
+      ? Number(shipment.total_amount || 0)
+      : Number(metadata?.total_amount_input || 0)
+
+  const totalAmount =
+    storedAmount && storedAmount > 0 ? storedAmount : derivedAmount > 0 ? derivedAmount : 0
+
+  const totalPaid = Array.isArray(shipment.payments)
+    ? shipment.payments.reduce((acc: number, payment: any) => acc + Number(payment?.amount || 0), 0)
+    : 0
+
+  const outstanding = Math.max(0, totalAmount - totalPaid)
+
+  return { totalAmount, totalPaid, outstanding }
+}
+
+function decorateShipmentDisplayFields(
+  shipment: Record<string, any>,
+  partnerMap: Map<string, { id: string; name: string | null }>
+): void {
+  const metadata: ShipmentMetadataSnapshot | null =
+    shipment.__meta ?? parseMetadataSnapshot(shipment?.notes || null)
+  if (metadata) {
+    shipment.__meta = metadata
+  }
+
+  const partnerName =
+    shipment.partner_name ||
+    (shipment.partner_company_id && partnerMap.get(String(shipment.partner_company_id))?.name) ||
+    metadata?.partner_company_label ||
+    null
+
+  shipment.display_partner_name = partnerName || null
+  shipment.display_site_name = shipment?.sites?.name || null
+
+  const ensureLabel = (value?: string | null) => {
+    if (!value) return null
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  shipment.display_billing_label =
+    ensureLabel(shipment?.billing_method?.name) || ensureLabel(metadata?.billing_method_label)
+  shipment.display_shipping_label =
+    ensureLabel(shipment?.shipping_method?.name) || ensureLabel(metadata?.shipping_method_label)
+  shipment.display_freight_label =
+    ensureLabel(shipment?.freight_method?.name) || ensureLabel(metadata?.freight_method_label)
+
+  shipment.display_flag_etax = getFlagValue(shipment, metadata, 'flag_etax')
+  shipment.display_flag_statement = getFlagValue(shipment, metadata, 'flag_statement')
+  shipment.display_flag_freight_paid = getFlagValue(shipment, metadata, 'flag_freight_paid')
+  shipment.display_flag_bill_amount = getFlagValue(shipment, metadata, 'flag_bill_amount')
+
+  const { materialSummary, totalQuantity, noteLines } = summarizeShipmentItemsForDisplay(
+    shipment,
+    metadata
+  )
+
+  shipment.display_material_summary = materialSummary
+  shipment.display_total_quantity = totalQuantity
+  shipment.display_item_notes = noteLines
+
+  const { totalAmount, totalPaid, outstanding } = computeShipmentAmountSummary(shipment, metadata)
+  shipment.display_total_amount = totalAmount
+  shipment.display_total_paid = totalPaid
+  shipment.display_outstanding_amount = outstanding
+}
+
 export interface MaterialWithStats extends MaterialInventoryItem {
   total_requests?: number
   recent_transactions?: number
@@ -284,6 +607,21 @@ export interface MaterialShipment {
   created_by: string
   created_at: string
   updated_at: string
+  display_partner_name?: string | null
+  display_site_name?: string | null
+  display_material_summary?: string | null
+  display_total_quantity?: number | null
+  display_item_notes?: string[] | null
+  display_billing_label?: string | null
+  display_shipping_label?: string | null
+  display_freight_label?: string | null
+  display_flag_etax?: boolean
+  display_flag_statement?: boolean
+  display_flag_freight_paid?: boolean
+  display_flag_bill_amount?: boolean
+  display_total_amount?: number | null
+  display_total_paid?: number | null
+  display_outstanding_amount?: number | null
 }
 
 export interface ShipmentItem {
@@ -1323,45 +1661,35 @@ export async function getMaterialShipments(
 
       await ensureSiteAccess(supabase, auth, siteId)
 
-      let query = supabase
-        .from('material_shipments')
-        .select(
-          `
-          *,
-          sites!site_id(name),
-          creator:profiles!created_by(name),
-          billing_method:payment_methods!material_shipments_billing_method_id_fkey(name),
-          shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(name),
-          freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(name),
-          shipment_items(
-            id,
-            material_id,
-            quantity,
-            unit_price,
-            total_price,
-            materials(name, code, unit)
-          ),
-          payments:material_payments(amount)
-        `,
-          { count: 'exact' }
+      const relationalSelect = `
+        *,
+        sites!material_shipments_site_id_fkey(name),
+        billing_method:payment_methods!material_shipments_billing_method_id_fkey(id, name),
+        shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(id, name),
+        freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(id, name),
+        shipment_items(
+          id,
+          material_id,
+          quantity,
+          unit_price,
+          total_price,
+          materials(name, code, unit)
+        ),
+        payments:material_payments(amount)
+      `
+
+      const fallbackSelect = `
+        *,
+        sites(name),
+        shipment_items(
+          id,
+          material_id,
+          quantity,
+          unit_price,
+          total_price,
+          materials(name, code, unit)
         )
-        .order('shipment_date', { ascending: false })
-
-      if (siteId) {
-        query = query.eq('site_id', siteId)
-      }
-
-      if (status) {
-        query = query.eq('status', status)
-      }
-
-      if (startDate) {
-        query = query.gte('shipment_date', startDate)
-      }
-
-      if (endDate) {
-        query = query.lte('shipment_date', endDate)
-      }
+      `
 
       let restrictedSiteIds: string[] | null = null
       if (auth.isRestricted && !siteId) {
@@ -1378,22 +1706,67 @@ export async function getMaterialShipments(
           }
         }
       }
-
       const offset = (page - 1) * limit
-      query = query.range(offset, offset + limit - 1)
 
-      if (restrictedSiteIds) {
-        query = query.in('site_id', restrictedSiteIds)
+      const buildShipmentQuery = (selectColumns: string) => {
+        let query = supabase
+          .from('material_shipments')
+          .select(selectColumns, { count: 'exact' })
+          .order('shipment_date', { ascending: false })
+
+        if (siteId) {
+          query = query.eq('site_id', siteId)
+        }
+
+        if (status) {
+          query = query.eq('status', status)
+        }
+
+        if (startDate) {
+          query = query.gte('shipment_date', startDate)
+        }
+
+        if (endDate) {
+          query = query.lte('shipment_date', endDate)
+        }
+
+        query = query.range(offset, offset + limit - 1)
+
+        if (restrictedSiteIds) {
+          query = query.in('site_id', restrictedSiteIds)
+        }
+
+        return query
       }
 
-      const { data, error, count } = await query
+      const runShipmentQuery = (selectColumns: string) => buildShipmentQuery(selectColumns)
+
+      let { data, error, count } = await runShipmentQuery(relationalSelect)
+
+      if (error && shouldRetryWithBasicShipmentSelect(error)) {
+        console.warn(
+          '[getMaterialShipments] relational select failed, retrying with fallback select',
+          error
+        )
+        const fallbackResult = await runShipmentQuery(fallbackSelect)
+        if (fallbackResult.error) {
+          console.error('Error fetching shipments with fallback select:', fallbackResult.error)
+          return { success: false, error: AdminErrors.DATABASE_ERROR }
+        }
+        data = fallbackResult.data
+        count = fallbackResult.count
+        error = null
+      }
 
       if (error) {
         console.error('Error fetching shipments:', error)
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      const shipments = data || []
+      const shipments = (data || []) as Array<Record<string, any>>
+
+      await hydrateShipmentRelations(supabase, shipments)
+
       const visibleShipments = auth.isRestricted
         ? await filterRecordsByOrg(supabase, auth, shipments, shipment => shipment.site_id)
         : shipments
@@ -1568,6 +1941,49 @@ export async function updateShipmentDeliveryMethod(
       return { success: true }
     } catch (error) {
       console.error('Shipment delivery method update error:', error)
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
+    }
+  })
+}
+
+/**
+ * Delete shipment (and related payments/items)
+ */
+export async function deleteMaterialShipment(shipmentId: string): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const auth = profile.auth
+
+      await ensureShipmentAccess(supabase, auth, [shipmentId])
+
+      const cleanupTables: Array<{ table: string; column: string }> = [
+        { table: 'material_payments', column: 'shipment_id' },
+        { table: 'shipment_items', column: 'shipment_id' },
+      ]
+
+      for (const { table, column } of cleanupTables) {
+        const { error } = await supabase
+          .from(table as any)
+          .delete()
+          .eq(column, shipmentId)
+        if (error && error.code !== '42P01') {
+          console.error(`Error deleting related records from ${String(table)}:`, error)
+          return { success: false, error: AdminErrors.DATABASE_ERROR }
+        }
+      }
+
+      const { error } = await supabase.from('material_shipments').delete().eq('id', shipmentId)
+      if (error) {
+        console.error('Error deleting shipment:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return { success: true, message: '출고 정보가 삭제되었습니다.' }
+    } catch (error) {
+      console.error('Shipment delete error:', error)
       return {
         success: false,
         error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
