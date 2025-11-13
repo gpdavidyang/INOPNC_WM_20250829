@@ -1,27 +1,31 @@
 import { createClient } from '@/lib/supabase/server'
 
-type PartnerRow = {
+type SupplierRow = {
   id: string
   company_name?: string | null
   status?: string | null
-  company_type?: string | null
+  contact_name?: string | null
+  contact_phone?: string | null
 }
 
-type PartnerApiResponse = {
-  data?: { partner_companies?: PartnerRow[] }
+type SupplierApiResponse = {
+  data?: { material_suppliers?: SupplierRow[] }
 }
 
 const STATUS_QUERY = {
   active: 'active',
+  inactive: 'inactive',
   all: 'all',
 } as const
 
+const API_PATH = '/api/admin/material-suppliers'
+
 export async function loadMaterialPartnerRows(
   status: keyof typeof STATUS_QUERY = 'active'
-): Promise<PartnerRow[]> {
+): Promise<SupplierRow[]> {
   const queryString = status === 'all' ? '' : `?status=${STATUS_QUERY[status]}`
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
-  const apiUrl = `${baseUrl}/api/admin/partner-companies${queryString}`
+  const apiUrl = `${baseUrl}${API_PATH}${queryString}`
 
   try {
     const res = await fetch(apiUrl, {
@@ -31,9 +35,9 @@ export async function loadMaterialPartnerRows(
       credentials: 'include',
     })
     if (res.ok) {
-      const json = (await res.json()) as PartnerApiResponse
-      if (Array.isArray(json?.data?.partner_companies)) {
-        return json.data.partner_companies
+      const json = (await res.json()) as SupplierApiResponse
+      if (Array.isArray(json?.data?.material_suppliers)) {
+        return json.data.material_suppliers
       }
     } else {
       console.warn('[loadMaterialPartnerRows] API error:', res.status, res.statusText)
@@ -44,12 +48,14 @@ export async function loadMaterialPartnerRows(
 
   const supabase = createClient()
   let query = supabase
-    .from('partner_companies')
-    .select('id, company_name, status, company_type')
-    .order('company_name', { ascending: true })
+    .from('material_suppliers')
+    .select('id, name, is_active, contact_person, phone')
+    .order('name', { ascending: true })
 
   if (status === 'active') {
-    query = query.eq('status', 'active')
+    query = query.eq('is_active', true)
+  } else if (status === 'inactive') {
+    query = query.eq('is_active', false)
   }
 
   const { data, error } = await query
@@ -57,5 +63,14 @@ export async function loadMaterialPartnerRows(
     console.error('[loadMaterialPartnerRows] supabase fallback error', error)
     return []
   }
-  return data || []
+
+  return (
+    data?.map(row => ({
+      id: row.id,
+      company_name: row.name,
+      status: row.is_active === false ? 'inactive' : 'active',
+      contact_name: row.contact_person ?? null,
+      contact_phone: row.phone ?? null,
+    })) ?? []
+  )
 }

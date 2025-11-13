@@ -1,14 +1,31 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
-import { QuantityStepper } from '@/modules/mobile/components/production/QuantityStepper'
+import ShipmentItemsFieldArray from '@/modules/mobile/components/production/ShipmentItemsFieldArray'
+import ShipmentAmountInput from '@/modules/mobile/components/production/ShipmentAmountInput'
 import { SelectField, type OptionItem } from '@/modules/mobile/components/production/SelectField'
 import MaterialPartnerSelect from '@/modules/mobile/components/production/MaterialPartnerSelect'
 import { buildMaterialPartnerOptions } from '@/modules/mobile/utils/material-partners'
 import { loadMaterialPartnerRows } from '@/modules/mobile/services/material-partner-service'
+import {
+  parseShipmentItems,
+  legacyShipmentItems,
+  missingShipmentColumns,
+  OPTIONAL_COLUMN_KEYS,
+  resolveSiteForPartner,
+  buildMetadataSnapshot,
+  encodeMetadataSnapshot,
+  insertShipmentItems,
+  extractMissingColumnName,
+  parseMetadataSnapshot,
+  type OptionalShipmentColumn,
+  type SnapshotItemNote,
+  type ShipmentItemInput,
+} from '@/modules/mobile/utils/shipping-form'
 
 export const metadata: Metadata = { title: '출고 수정 입력' }
 
@@ -38,71 +55,199 @@ function decodeLegacyName(raw: string): { category: PaymentCategory; name: strin
 
 async function updateShipment(id: string, formData: FormData) {
   'use server'
-  const supabase = (await import('@/lib/supabase/server')).createClient()
+  const supabase = createClient()
   const {
     data: { session },
   } = await supabase.auth.getSession()
   if (!session?.user) redirect('/auth/login')
 
-  const site_id = (formData.get('site_id') as string) || ''
-  const material_id = (formData.get('material_id') as string) || ''
+  const site_id_raw = ((formData.get('site_id') as string) || '').trim() || null
   const shipment_date = (formData.get('shipment_date') as string) || ''
-  const quantity = Number(formData.get('quantity') || 0)
   const carrier = ((formData.get('carrier') as string) || '').trim() || null
   const tracking_number = ((formData.get('tracking_number') as string) || '').trim() || null
   const amount_net = Number(formData.get('amount_net') || 0)
+  const partner_company_id = ((formData.get('partner_company_id') as string) || '').trim() || null
+  const partner_company_label =
+    ((formData.get('partner_company_id_label') as string) || '').trim() || ''
   const billing_method_id = ((formData.get('billing_method_id') as string) || '').trim() || null
+  const billing_method_label = ((formData.get('billing_method_label') as string) || '').trim() || ''
   const shipping_method_id = ((formData.get('shipping_method_id') as string) || '').trim() || null
+  const shipping_method_label =
+    ((formData.get('shipping_method_label') as string) || '').trim() || ''
   const freight_charge_method_id =
     ((formData.get('freight_charge_method_id') as string) || '').trim() || null
-  const status = ((formData.get('status') as string) || '').trim() || undefined
+  const freight_charge_method_label =
+    ((formData.get('freight_charge_method_label') as string) || '').trim() || ''
+  const status = ((formData.get('status') as string) || '').trim() || 'preparing'
+  const parseCheckbox = (name: string) => formData.get(name) === 'on'
+  const flag_etax = parseCheckbox('flag_etax')
+  const flag_statement = parseCheckbox('flag_statement')
+  const flag_freight_paid = parseCheckbox('flag_freight_paid')
+  const flag_bill_amount = parseCheckbox('flag_bill_amount')
 
-  if (!site_id || !material_id || !shipment_date || quantity <= 0) {
-    redirect(`/mobile/production/shipping-payment/${encodeURIComponent(id)}/edit`)
+  const items = parseShipmentItems(formData)
+  const fallbackItems =
+    items.length === 0 && Number(formData.get('quantity') || 0) > 0
+      ? legacyShipmentItems(formData)
+      : []
+  const effectiveItems = items.length ? items : fallbackItems
+  const partnerColumnUnavailable = missingShipmentColumns.has('partner_company_id')
+  let resolvedSiteId = site_id_raw
+  let siteWasAutofilled = false
+  if (!resolvedSiteId && partner_company_id && partnerColumnUnavailable) {
+    resolvedSiteId = await resolveSiteForPartner(supabase, partner_company_id)
+    siteWasAutofilled = Boolean(resolvedSiteId)
+  }
+  const hasSite = Boolean(resolvedSiteId)
+  const hasPartner = Boolean(partner_company_id)
+  const partnerCanSatisfyRequirement = hasPartner && !partnerColumnUnavailable
+
+  if (!hasSite && !partnerCanSatisfyRequirement) {
+    if (partnerColumnUnavailable && hasPartner) {
+      throw new Error(
+        '현재 환경에서는 현장을 함께 선택해야 합니다. 현장을 지정한 뒤 다시 시도해 주세요.'
+      )
+    }
+    throw new Error('현장명 또는 자재거래처 중 하나를 선택해 주세요.')
   }
 
-  const total_amount = Math.max(0, Math.round(amount_net || 0))
+  if (!shipment_date || effectiveItems.length === 0) {
+    throw new Error('필수 항목을 입력해 주세요.')
+  }
 
-  await supabase
-    .from('material_shipments')
-    .update({
-      site_id,
+  const derivedTotal = effectiveItems.reduce((sum, item) => {
+    const qty = Number(item.quantity || 0)
+    const unit = Number(item.unit_price || 0)
+    if (!Number.isFinite(qty) || !Number.isFinite(unit)) return sum
+    return sum + qty * unit
+  }, 0)
+  const total_amount = Math.max(0, Math.round(derivedTotal > 0 ? derivedTotal : amount_net || 0))
+
+  const noteEntriesRaw = effectiveItems
+    .map(item => ({
+      material_id: item.material_id || '',
+      material_label: (item.material_label || '').trim(),
+      note: (item.notes || '').trim(),
+    }))
+    .filter(entry => entry.note)
+  let itemNotesForSnapshot: SnapshotItemNote[] = []
+  if (noteEntriesRaw.length > 0) {
+    itemNotesForSnapshot = noteEntriesRaw.map(entry => ({
+      material_id: entry.material_id || undefined,
+      material_label: entry.material_label || undefined,
+      note: entry.note,
+    }))
+  }
+
+  const optionalFieldValues: Partial<
+    Record<OptionalShipmentColumn, string | number | boolean | null | undefined>
+  > = {
+    partner_company_id,
+    billing_method_id,
+    shipping_method_id,
+    freight_charge_method_id,
+    total_amount,
+    flag_etax,
+    flag_statement,
+    flag_freight_paid,
+    flag_bill_amount,
+    updated_at: new Date().toISOString(),
+    carrier,
+    tracking_number,
+  }
+
+  const billingLabel = billing_method_label
+  const shippingLabel = shipping_method_label
+  const freightLabel = freight_charge_method_label
+
+  const buildPayload = (omit: Set<OptionalShipmentColumn>) => {
+    const payload: Record<string, any> = {
+      site_id: resolvedSiteId,
       shipment_date,
-      carrier,
-      tracking_number,
-      billing_method_id,
-      shipping_method_id,
-      freight_charge_method_id,
-      total_amount,
       status,
-      updated_at: new Date().toISOString(),
-    } as any)
-    .eq('id', id)
-
-  // Upsert first shipment item (single-item UI)
-  const { data: existingItems } = await supabase
-    .from('shipment_items')
-    .select('id')
-    .eq('shipment_id', id)
-    .order('created_at', { ascending: true })
-
-  if (existingItems && existingItems.length > 0) {
-    const firstId = (existingItems[0] as any).id
-    await supabase
-      .from('shipment_items')
-      .update({ material_id, quantity } as any)
-      .eq('id', firstId)
-  } else {
-    await supabase.from('shipment_items').insert({
-      shipment_id: id,
-      material_id,
-      quantity,
-      unit_price: null,
-      total_price: null,
-    } as any)
+    }
+    for (const key of OPTIONAL_COLUMN_KEYS) {
+      if (omit.has(key)) continue
+      if (!(key in optionalFieldValues)) continue
+      const value = optionalFieldValues[key]
+      if (typeof value === 'undefined') continue
+      payload[key] = value
+    }
+    const metadataSnapshot = encodeMetadataSnapshot(
+      buildMetadataSnapshot({
+        omit,
+        partnerLabel: partner_company_label,
+        totalAmount: total_amount,
+        flags: {
+          flag_etax,
+          flag_statement,
+          flag_freight_paid,
+          flag_bill_amount,
+        },
+        siteAutofilled: siteWasAutofilled,
+        billingLabel,
+        shippingLabel,
+        freightLabel,
+        itemNotes: itemNotesForSnapshot,
+      })
+    )
+    if (metadataSnapshot) {
+      payload.notes = metadataSnapshot
+    }
+    return payload
   }
 
-  ;(await import('next/cache')).revalidatePath('/mobile/production/shipping-payment')
+  const detectedMissing = new Set<OptionalShipmentColumn>(missingShipmentColumns)
+  let updateError: any = null
+  let updated = false
+  for (let attempt = 0; attempt < OPTIONAL_COLUMN_KEYS.length + 1; attempt++) {
+    const payload = buildPayload(detectedMissing)
+    const { error } = await supabase
+      .from('material_shipments')
+      .update(payload as any)
+      .eq('id', id)
+    if (!error) {
+      updated = true
+      break
+    }
+    updateError = error
+    const missingColumn = extractMissingColumnName(error)
+    if (missingColumn && OPTIONAL_COLUMN_KEYS.includes(missingColumn)) {
+      if (missingColumn === 'partner_company_id' && !resolvedSiteId && partner_company_id) {
+        resolvedSiteId = await resolveSiteForPartner(supabase, partner_company_id)
+        if (!resolvedSiteId) {
+          throw new Error(
+            '현재 환경에서는 현장을 함께 선택해야 합니다. 현장을 지정한 뒤 다시 시도해 주세요.'
+          )
+        }
+        siteWasAutofilled = true
+      }
+      detectedMissing.add(missingColumn)
+      missingShipmentColumns.add(missingColumn)
+      continue
+    }
+    break
+  }
+
+  if (!updated) {
+    console.error('[ShippingEdit] update error', updateError)
+    throw new Error('출고 정보를 수정하지 못했습니다.')
+  }
+
+  const { error: deleteError } = await supabase
+    .from('shipment_items')
+    .delete()
+    .eq('shipment_id', id)
+  if (deleteError) {
+    console.error('[ShippingEdit] failed to remove existing shipment items', deleteError)
+    throw new Error('출고 품목을 갱신하지 못했습니다.')
+  }
+  if (effectiveItems.length > 0) {
+    await insertShipmentItems(supabase, id, effectiveItems)
+  }
+
+  revalidatePath('/dashboard/admin/materials?tab=shipments')
+  revalidatePath('/mobile/production/shipping-payment')
   redirect('/mobile/production/shipping-payment')
 }
 
@@ -120,7 +265,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
         `
           *,
           sites(name),
-          shipment_items(id, material_id, quantity, materials(name, code)),
+          shipment_items(id, material_id, quantity, unit_price, notes, materials(name, code)),
           billing_method:payment_methods!material_shipments_billing_method_id_fkey(id, name),
           shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(id, name),
           freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(id, name)
@@ -151,12 +296,21 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     shipment = basic
   }
 
+  if (!shipment) {
+    redirect('/mobile/production/shipping-payment')
+  }
+
+  const metadata = parseMetadataSnapshot((shipment as any)?.notes || null)
   const { data: sites } = await supabase.from('sites').select('id, name').order('name')
   const { data: materials } = await supabase
     .from('materials')
     .select('id, name, code, unit, is_active')
     .eq('is_active', true)
     .order('name')
+  const materialOptions: OptionItem[] = (materials || []).map(m => ({
+    value: m.id,
+    label: `${m.name}${m.code ? ` (${m.code})` : ''}`,
+  }))
   const partnerRows = await loadMaterialPartnerRows('active')
   const materialPartnerOptions = buildMaterialPartnerOptions(partnerRows)
 
@@ -171,6 +325,12 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
       seen.add(key)
       return true
     })
+  }
+
+  const pickDefaultValue = (options: OptionItem[], preferredLabel: string): string => {
+    const preferred = options.find(opt => opt.label === preferredLabel)
+    if (preferred) return preferred.value
+    return options[0]?.value || ''
   }
 
   const categories: PaymentCategory[] = ['billing', 'shipping', 'freight']
@@ -219,12 +379,147 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     }
   }
 
-  const firstItem = Array.isArray((shipment as any)?.shipment_items)
-    ? (shipment as any)?.shipment_items?.[0]
-    : null
-  const defaultMaterialId = firstItem?.material_id ? String(firstItem.material_id) : ''
-  const defaultQuantity = Number(firstItem?.quantity || 0)
-  const defaultPartnerCompanyId = String((shipment as any)?.partner_company_id || '')
+  const fallbackBillingValue = billingOptions.length
+    ? pickDefaultValue(billingOptions, '월말청구')
+    : ''
+  const fallbackShippingValue = shippingOptions.length
+    ? pickDefaultValue(shippingOptions, '택배')
+    : ''
+  const fallbackFreightValue = freightOptions.length ? pickDefaultValue(freightOptions, '선불') : ''
+
+  const legacyBillingValue =
+    (
+      (shipment as any)?.billing_method?.id ||
+      (shipment as any)?.billing_method_id ||
+      null
+    )?.toString() || ''
+
+  const legacyShippingValue =
+    (
+      (shipment as any)?.shipping_method?.id ||
+      (shipment as any)?.shipping_method_id ||
+      null
+    )?.toString() || ''
+
+  const legacyFreightValue =
+    (
+      (shipment as any)?.freight_method?.id ||
+      (shipment as any)?.freight_charge_method_id ||
+      null
+    )?.toString() || ''
+
+  const matchOptionByLabel = (options: OptionItem[], label?: string | null) => {
+    if (!label) return ''
+    const normalized = label.trim().toLowerCase()
+    if (!normalized) return ''
+    const found = options.find(opt => opt.label.trim().toLowerCase() === normalized)
+    return found?.value || ''
+  }
+
+  const matchPartnerByLabel = (label?: string | null) => {
+    if (!label) return ''
+    const normalized = label.trim().toLowerCase()
+    if (!normalized) return ''
+    const found = materialPartnerOptions.find(opt => opt.label.trim().toLowerCase() === normalized)
+    return found?.value || ''
+  }
+
+  const defaultPartnerCompanyId =
+    String((shipment as any)?.partner_company_id || '') ||
+    matchPartnerByLabel(metadata?.partner_company_label)
+
+  const resolvedBillingValue =
+    legacyBillingValue ||
+    matchOptionByLabel(billingOptions, metadata?.billing_method_label) ||
+    fallbackBillingValue
+
+  const resolvedShippingValue =
+    legacyShippingValue ||
+    matchOptionByLabel(shippingOptions, metadata?.shipping_method_label) ||
+    fallbackShippingValue
+
+  const resolvedFreightValue =
+    legacyFreightValue ||
+    matchOptionByLabel(freightOptions, metadata?.freight_method_label) ||
+    fallbackFreightValue
+
+  const metadataNotes = metadata?.item_notes || []
+  const metadataNotesByMaterial = new Map<string, SnapshotItemNote>()
+  const metadataNotesByLabel = new Map<string, SnapshotItemNote>()
+  metadataNotes.forEach(note => {
+    if (note.material_id) {
+      metadataNotesByMaterial.set(note.material_id, note)
+    }
+    if (note.material_label) {
+      metadataNotesByLabel.set(note.material_label.trim().toLowerCase(), note)
+    }
+  })
+
+  const shipmentItems: ShipmentItemInput[] = Array.isArray((shipment as any)?.shipment_items)
+    ? (((shipment as any)?.shipment_items || [])
+        .map((item: any) => {
+          const materialId = item?.material_id ? String(item.material_id) : ''
+          if (!materialId) return null
+          const materialName = item?.materials?.name || ''
+          const materialCode = item?.materials?.code || ''
+          const formattedLabel = materialName
+            ? `${materialName}${materialCode ? ` (${materialCode})` : ''}`
+            : metadataNotesByMaterial.get(materialId)?.material_label || ''
+          const metadataNote =
+            metadataNotesByMaterial.get(materialId) ||
+            metadataNotesByLabel.get(formattedLabel.trim().toLowerCase())
+          return {
+            material_id: materialId,
+            material_label: formattedLabel,
+            quantity: Number(item?.quantity || 0),
+            unit_price: typeof item?.unit_price === 'number' ? Number(item.unit_price) : null,
+            notes: typeof item?.notes === 'string' ? item.notes : metadataNote?.note || null,
+          }
+        })
+        .filter(Boolean) as ShipmentItemInput[])
+    : []
+
+  const defaultItems = shipmentItems.length
+    ? shipmentItems
+    : (metadataNotes
+        .map(note => {
+          if (!note.material_id) return null
+          return {
+            material_id: note.material_id,
+            material_label: note.material_label,
+            quantity: 0,
+            unit_price: null,
+            notes: note.note,
+          }
+        })
+        .filter(Boolean) as ShipmentItemInput[])
+
+  const derivedItemsTotal = defaultItems.reduce((sum, item) => {
+    const qty = Number(item.quantity || 0)
+    const unit = Number(item.unit_price || 0)
+    if (!Number.isFinite(qty) || !Number.isFinite(unit)) return sum
+    return sum + qty * unit
+  }, 0)
+
+  const defaultAmountNet = (() => {
+    const explicit = Number((shipment as any)?.total_amount)
+    if (Number.isFinite(explicit) && explicit > 0) return explicit
+    const snapshotAmount = Number(metadata?.total_amount_input)
+    if (Number.isFinite(snapshotAmount) && snapshotAmount > 0) return snapshotAmount
+    return derivedItemsTotal
+  })()
+
+  type FlagKey = 'flag_etax' | 'flag_statement' | 'flag_freight_paid' | 'flag_bill_amount'
+  const defaultFlag = (key: FlagKey) => {
+    if (typeof (shipment as any)?.[key] === 'boolean') return Boolean((shipment as any)?.[key])
+    return Boolean(metadata?.flags?.[key])
+  }
+
+  const defaultShipmentDate = (shipment as any)?.shipment_date
+    ? String((shipment as any)?.shipment_date).slice(0, 10)
+    : ''
+  const defaultSiteId = String((shipment as any)?.site_id || '')
+  const defaultStatus = String((shipment as any)?.status || 'preparing')
 
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="shipping" />}>
@@ -235,22 +530,16 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
             <p className="text-[#31A3FA] font-semibold text-base">필수입력(*)후 저장</p>
           </div>
           <form action={updateShipment.bind(null, id)} className="pm-form pm-form--dense space-y-3">
-            {/* 1. 제품명 - 자재선택 (1행1열) */}
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">제품명</label>
-              <SelectField
-                name="material_id"
-                required
-                options={(materials || []).map(m => ({
-                  value: m.id,
-                  label: `${m.name}${m.code ? ` (${m.code})` : ''}`,
-                }))}
-                defaultValue={defaultMaterialId}
-                placeholder="자재 선택"
+              <label className="block text-sm text-muted-foreground mb-1">
+                출고 품목<span className="req-mark"> *</span>
+              </label>
+              <ShipmentItemsFieldArray
+                materialOptions={materialOptions}
+                defaultItems={defaultItems}
               />
             </div>
 
-            {/* 2. 출고날짜 + 출고수량 (1행2열) */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">
@@ -260,37 +549,29 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                   type="date"
                   name="shipment_date"
                   className="w-full rounded border px-3 py-2"
-                  defaultValue={
-                    (shipment as any)?.shipment_date
-                      ? String((shipment as any).shipment_date).slice(0, 10)
-                      : ''
-                  }
+                  defaultValue={defaultShipmentDate}
                   required
                 />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  출고수량<span className="req-mark"> *</span>
-                </label>
-                <QuantityStepper name="quantity" step={10} min={0} defaultValue={defaultQuantity} />
               </div>
             </div>
 
             {/* 3. 현장명 선택 (1행1열) */}
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">
-                현장명 선택<span className="req-mark"> *</span>
-              </label>
+              <label className="block text-sm text-muted-foreground mb-1">현장명 선택</label>
               <SelectField
                 name="site_id"
-                required
                 options={(sites || []).map(s => ({ value: s.id, label: s.name }))}
-                defaultValue={String((shipment as any)?.site_id || '')}
+                defaultValue={defaultSiteId}
                 placeholder="현장 선택"
               />
             </div>
 
             <input type="hidden" name="carrier" value={(shipment as any)?.carrier || ''} />
+            <input
+              type="hidden"
+              name="tracking_number"
+              value={(shipment as any)?.tracking_number || ''}
+            />
 
             {/* 4. 자재거래처 선택 (1행1열) */}
             <div>
@@ -305,17 +586,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
 
             {/* 5. 출고금액 + 상태 (1행2열) */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">출고금액(원)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  name="amount_net"
-                  defaultValue={Number((shipment as any)?.total_amount || 0)}
-                  className="w-full rounded border px-3 py-2"
-                />
-              </div>
+              <ShipmentAmountInput name="amount_net" defaultValue={defaultAmountNet} />
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">
                   상태<span className="req-mark"> *</span>
@@ -326,7 +597,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                     { value: 'preparing', label: '대기' },
                     { value: 'delivered', label: '완료' },
                   ]}
-                  defaultValue={String((shipment as any)?.status || 'preparing')}
+                  defaultValue={defaultStatus}
                   placeholder="상태 선택"
                   required
                 />
@@ -341,10 +612,9 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                 </label>
                 <SelectField
                   name="billing_method_id"
+                  labelFieldName="billing_method_label"
                   options={billingOptions}
-                  defaultValue={String(
-                    (shipment as any)?.billing_method?.id || billingOptions[0]?.value || ''
-                  )}
+                  defaultValue={resolvedBillingValue}
                   placeholder="선택"
                   required
                 />
@@ -355,10 +625,9 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                 </label>
                 <SelectField
                   name="shipping_method_id"
+                  labelFieldName="shipping_method_label"
                   options={shippingOptions}
-                  defaultValue={String(
-                    (shipment as any)?.shipping_method?.id || shippingOptions[0]?.value || ''
-                  )}
+                  defaultValue={resolvedShippingValue}
                   placeholder="선택"
                   required
                 />
@@ -369,10 +638,9 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                 </label>
                 <SelectField
                   name="freight_charge_method_id"
+                  labelFieldName="freight_charge_method_label"
                   options={freightOptions}
-                  defaultValue={String(
-                    (shipment as any)?.freight_method?.id || freightOptions[0]?.value || ''
-                  )}
+                  defaultValue={resolvedFreightValue}
                   placeholder="선택"
                   required
                 />
@@ -382,18 +650,14 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
             {/* 7~8. 결제 옵션 (2행2열) */}
             <div className="grid grid-cols-2 gap-x-2 gap-y-0">
               <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  name="flag_etax"
-                  defaultChecked={Boolean((shipment as any)?.flag_etax)}
-                />{' '}
+                <input type="checkbox" name="flag_etax" defaultChecked={defaultFlag('flag_etax')} />{' '}
                 <span>전자세금계산서</span>
               </label>
               <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                 <input
                   type="checkbox"
                   name="flag_statement"
-                  defaultChecked={Boolean((shipment as any)?.flag_statement)}
+                  defaultChecked={defaultFlag('flag_statement')}
                 />{' '}
                 <span>거래명세서</span>
               </label>
@@ -401,7 +665,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                 <input
                   type="checkbox"
                   name="flag_freight_paid"
-                  defaultChecked={Boolean((shipment as any)?.flag_freight_paid)}
+                  defaultChecked={defaultFlag('flag_freight_paid')}
                 />{' '}
                 <span>운임비 지불</span>
               </label>
@@ -409,7 +673,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
                 <input
                   type="checkbox"
                   name="flag_bill_amount"
-                  defaultChecked={Boolean((shipment as any)?.flag_bill_amount)}
+                  defaultChecked={defaultFlag('flag_bill_amount')}
                 />{' '}
                 <span>금액 청구</span>
               </label>

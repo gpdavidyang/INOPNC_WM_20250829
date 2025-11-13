@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
-import { cookies } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { PartnerDetail } from '@/components/admin/partners/PartnerDetail'
 import { PageHeader } from '@/components/ui/page-header'
+import { createClient } from '@/lib/supabase/server'
 
 export const metadata: Metadata = {
   title: '자재거래처 상세',
@@ -14,30 +14,26 @@ interface PartnerDetailPageProps {
 
 export default async function AdminPartnerDetailPage({ params }: PartnerDetailPageProps) {
   await requireAdminProfile()
-
-  const cookieHeader = cookies()
-    .getAll()
-    .map(({ name, value }) => `${name}=${value}`)
-    .join('; ')
-
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/api/admin/partner-companies/${params.id}`,
-    {
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      },
-    }
-  )
+  const supabase = createClient()
 
   let partner: Record<string, unknown> | null = null
-  let related: { sites: unknown[]; contacts: unknown[] } = { sites: [], contacts: [] }
+  const { data, error } = await supabase
+    .from('material_suppliers')
+    .select('id, name, is_active, contact_person, phone, email, address, business_number')
+    .eq('id', params.id)
+    .maybeSingle()
 
-  if (response.ok) {
-    const data = await response.json()
-    partner = data.partner ?? data.data?.partner ?? null
-    related = data.related ?? related
+  if (!error && data) {
+    partner = {
+      id: data.id,
+      company_name: data.name,
+      status: data.is_active === false ? 'inactive' : 'active',
+      contact_name: data.contact_person,
+      contact_phone: data.phone,
+      contact_email: data.email,
+      address: data.address,
+      business_number: data.business_number,
+    }
   }
 
   return (
@@ -54,11 +50,7 @@ export default async function AdminPartnerDetailPage({ params }: PartnerDetailPa
       />
       <div className="px-4 py-8 sm:px-6 lg:px-8">
         {partner ? (
-          <PartnerDetail
-            partner={partner as any}
-            sites={related.sites as any}
-            contacts={related.contacts as any}
-          />
+          <PartnerDetail partner={partner as any} />
         ) : (
           <p className="rounded-md border border-dashed border-muted-foreground/40 px-4 py-10 text-center text-sm text-muted-foreground">
             업체 정보를 불러오지 못했습니다. 업체가 존재하지 않거나 권한이 없습니다.

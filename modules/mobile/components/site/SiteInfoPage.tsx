@@ -18,6 +18,7 @@ import {
   CustomSelectValue,
   PhSelectTrigger,
 } from '@/components/ui/custom-select'
+import { matchesSharedDocCategory } from '@/lib/documents/shared-documents'
 import {
   DEFAULT_MATERIAL_PRIORITY,
   MATERIAL_PRIORITY_OPTIONS,
@@ -93,10 +94,13 @@ interface AttachmentFile {
   date?: string
   type?: string
   rawType?: string
+  uploader?: string
+  metadata?: Record<string, any>
 }
 
 interface AttachmentBuckets {
-  drawings: AttachmentFile[]
+  construction: AttachmentFile[]
+  progress: AttachmentFile[]
   ptw: AttachmentFile[]
   photos: AttachmentFile[]
 }
@@ -145,7 +149,8 @@ interface NpcTransaction {
 }
 
 const EMPTY_ATTACHMENTS: AttachmentBuckets = {
-  drawings: [],
+  construction: [],
+  progress: [],
   ptw: [],
   photos: [],
 }
@@ -276,8 +281,9 @@ async function loadSiteAttachments(siteId: string): Promise<AttachmentBuckets> {
   try {
     const params = new URLSearchParams({
       site_id: siteId,
-      limit: '50',
+      limit: '200',
       status: 'active',
+      category_type: 'shared',
     })
 
     const { data } = await fetchJSON<{ data: Array<any> }>(
@@ -286,45 +292,56 @@ async function loadSiteAttachments(siteId: string): Promise<AttachmentBuckets> {
     )
 
     const buckets: AttachmentBuckets = {
-      drawings: [],
+      construction: [],
+      progress: [],
       ptw: [],
       photos: [],
     }
 
-    for (const doc of data || []) {
-      if (!doc?.file_url || !doc?.file_name) continue
+    const pushSorted = (files: AttachmentFile[]) =>
+      files.sort((a, b) => {
+        const ad = a.date ? new Date(a.date).getTime() : 0
+        const bd = b.date ? new Date(b.date).getTime() : 0
+        return bd - ad
+      })
 
+    for (const doc of data || []) {
+      if (!doc?.file_url) continue
       const attachment: AttachmentFile = {
         id: doc.id,
-        name: doc.title || doc.file_name,
+        name: doc.title || doc.file_name || '문서',
         url: doc.file_url,
         size: doc.file_size ? `${doc.file_size}KB` : undefined,
         date: doc.created_at,
         type: doc.document_type,
         rawType: doc.sub_type,
+        uploader: doc?.profiles?.full_name || doc?.uploaded_by_name || '',
+        metadata: doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : undefined,
       }
 
-      const lowerType = (doc.document_type || '').toLowerCase()
-      const lowerTitle = (doc.title || '').toLowerCase()
-
-      if (lowerType === 'blueprint' || lowerType === 'drawing' || lowerTitle.includes('도면')) {
-        buckets.drawings.push(attachment)
+      if (matchesSharedDocCategory(doc, 'construction')) {
+        buckets.construction.push(attachment)
         continue
       }
-
-      if (lowerType === 'ptw' || lowerTitle.includes('ptw') || lowerTitle.includes('작업허가')) {
+      if (matchesSharedDocCategory(doc, 'progress')) {
+        buckets.progress.push(attachment)
+        continue
+      }
+      if (matchesSharedDocCategory(doc, 'ptw')) {
         buckets.ptw.push(attachment)
         continue
       }
 
+      const lowerType = (doc.document_type || doc.mime_type || '').toLowerCase()
       if (lowerType.includes('photo') || lowerType.includes('image')) {
         buckets.photos.push(attachment)
-        continue
       }
-
-      // Fallback: put into drawings for blueprint-like documents
-      buckets.drawings.push(attachment)
     }
+
+    pushSorted(buckets.construction)
+    pushSorted(buckets.progress)
+    pushSorted(buckets.ptw)
+    pushSorted(buckets.photos)
 
     return buckets
   } catch (error) {
@@ -544,7 +561,9 @@ export default function SiteInfoPage() {
   const [showSiteBottomSheet, setShowSiteBottomSheet] = useState(false)
 
   const [showAttachmentPopup, setShowAttachmentPopup] = useState(false)
-  const [attachmentFocus, setAttachmentFocus] = useState<'drawings' | 'ptw' | 'photos' | null>(null)
+  const [attachmentFocus, setAttachmentFocus] = useState<
+    'construction' | 'progress' | 'ptw' | 'photos' | null
+  >(null)
 
   const { toast } = useToast()
 
@@ -954,7 +973,9 @@ export default function SiteInfoPage() {
     return npcSiteOptions[0].id
   }, [npcSiteOptions, currentSite?.id])
 
-  const handleAttachmentOpen = (category: 'drawings' | 'ptw' | 'photos' | null) => {
+  const handleAttachmentOpen = (
+    category: 'construction' | 'progress' | 'ptw' | 'photos' | null
+  ) => {
     setAttachmentFocus(category)
     setShowAttachmentPopup(true)
   }
@@ -1271,6 +1292,21 @@ export default function SiteInfoPage() {
     document.body.removeChild(link)
   }
 
+  const openAttachmentPreview = async (file: AttachmentFile) => {
+    if (!file?.url) return
+    let finalUrl = file.url
+    try {
+      const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(file.url)}`)
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.url) {
+        finalUrl = json.url
+      }
+    } catch {
+      /* ignore — fallback to original URL */
+    }
+    window.open(finalUrl, '_blank', 'noopener,noreferrer')
+  }
+
   const handleOpenNpcRecord = () => {
     if (!currentSite) {
       toast({
@@ -1451,7 +1487,8 @@ export default function SiteInfoPage() {
 
   const attachmentCategories = useMemo(() => {
     return [
-      { key: 'drawings' as const, title: '현장 공도면', files: attachments.drawings },
+      { key: 'construction' as const, title: '공도면', files: attachments.construction },
+      { key: 'progress' as const, title: '진행도면', files: attachments.progress },
       { key: 'ptw' as const, title: 'PTW', files: attachments.ptw },
       { key: 'photos' as const, title: '현장 사진', files: attachments.photos },
     ]
@@ -1949,10 +1986,98 @@ export default function SiteInfoPage() {
           color: #1a254f;
         }
 
-        .action-buttons {
-          display: flex;
-          gap: 12px;
+        .document-links {
           margin-top: 12px;
+        }
+
+        .document-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        @media (max-width: 640px) {
+          .document-grid {
+            grid-template-columns: repeat(3, minmax(120px, 1fr));
+            overflow-x: auto;
+          }
+        }
+
+        .document-card {
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 12px;
+          background: #f9fafb;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .document-card-button {
+          width: 100%;
+          height: 44px;
+          border-radius: 10px;
+          border: none;
+          background: #1a254f;
+          color: #fff;
+          font-weight: 600;
+          font-size: 15px;
+          cursor: pointer;
+        }
+
+        .document-card-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .document-card-item {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 8px 10px;
+          border: 1px solid #e5e7eb;
+          border-radius: 10px;
+          background: #fff;
+        }
+
+        .document-card-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .document-card-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .document-card-meta {
+          font-size: 11px;
+          color: #6b7280;
+        }
+
+        .document-card-view {
+          border: 1px solid #1a254f;
+          background: transparent;
+          color: #1a254f;
+          border-radius: 8px;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .document-card-empty {
+          border: 1px dashed #d1d5db;
+          border-radius: 10px;
+          padding: 10px;
+          font-size: 12px;
+          color: #6b7280;
+          text-align: center;
+          background: #fff;
         }
 
         .btn {
@@ -4675,26 +4800,73 @@ export default function SiteInfoPage() {
                     </div>
                     <div className="upload-item">
                       <div className="upload-label">도면 업로드 현황</div>
-                      <div className="upload-status">{attachments.drawings.length}건</div>
+                      <div className="upload-status">
+                        {attachments.construction.length + attachments.progress.length}건
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="action-buttons">
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={handleOpenLatestProgressDrawing}
-                  >
-                    진행도면
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => handleAttachmentOpen('ptw')}
-                  >
-                    PTW
-                  </button>
+                <div className="document-links">
+                  <div className="document-grid">
+                    {[
+                      {
+                        key: 'construction',
+                        title: '공도면',
+                        files: attachments.construction,
+                        emptyText: '공유자료에 공도면 문서가 없습니다.',
+                        onClick: () => handleAttachmentOpen('construction'),
+                      },
+                      {
+                        key: 'progress',
+                        title: '진행도면',
+                        files: attachments.progress,
+                        emptyText: '공유자료에 진행도면 문서가 없습니다.',
+                        onClick: handleOpenLatestProgressDrawing,
+                      },
+                      {
+                        key: 'ptw',
+                        title: 'PTW',
+                        files: attachments.ptw,
+                        emptyText: '공유자료에 PTW 문서가 없습니다.',
+                        onClick: () => handleAttachmentOpen('ptw'),
+                      },
+                    ].map(block => (
+                      <div key={block.key} className="document-card">
+                        <button
+                          type="button"
+                          className="document-card-button"
+                          onClick={block.onClick}
+                        >
+                          {block.title}
+                        </button>
+                        <div className="document-card-list">
+                          {block.files.length ? (
+                            block.files.map(file => (
+                              <div key={file.id} className="document-card-item">
+                                <div className="document-card-info">
+                                  <div className="document-card-name">{file.name}</div>
+                                  <div className="document-card-meta">
+                                    {file.date ? formatDateDisplay(file.date) : '-'}
+                                    {file.uploader ? ` · ${file.uploader}` : ''}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="document-card-view"
+                                  onClick={() => openAttachmentPreview(file)}
+                                >
+                                  보기
+                                </button>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="document-card-empty">{block.emptyText}</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

@@ -1,6 +1,15 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { resolveSharedDocCategoryLabel } from '@/lib/documents/shared-documents'
+import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 
 type TabKey = 'mine' | 'company' | 'drawings' | 'photos'
@@ -32,6 +41,12 @@ const COMPANY_LIST: Array<{ key: string; title: string }> = [
   { key: 'npc1000_form', title: 'NPC-1000 공급승인서(양식)' },
   { key: 'completion_form', title: '작업완료확인서(양식)' },
 ]
+
+const DRAWING_CATEGORY_LABELS: Record<string, string> = {
+  plan: '공도면',
+  progress: '진행도면',
+  other: '기타',
+}
 
 export default function DocumentHubPage() {
   const [active, setActive] = useState<TabKey>('mine')
@@ -76,7 +91,7 @@ export default function DocumentHubPage() {
             className={`document-tab ${active === 'drawings' ? 'active' : ''}`}
             onClick={() => setActive('drawings')}
           >
-            도면문서함
+            현장공유함(도면 등)
           </button>
           <button
             className={`document-tab ${active === 'photos' ? 'active' : ''}`}
@@ -148,6 +163,54 @@ export default function DocumentHubPage() {
           color: var(--text);
           font-weight: 600;
         }
+        .doc-meta-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-top: 6px;
+        }
+        .doc-category-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1px 7px;
+          font-size: 10px;
+          font-weight: 600;
+          line-height: 1.2;
+          color: #374151;
+          background: #f3f4f6;
+          border: 1px solid #e5e7eb;
+          border-radius: 999px;
+        }
+        .doc-category-plan {
+          color: #374151;
+          background: #f3f4f6;
+          border-color: #e5e7eb;
+        }
+        .doc-category-progress {
+          color: #7c2d12;
+          background: rgba(251, 146, 60, 0.15);
+          border-color: rgba(251, 146, 60, 0.35);
+        }
+        .doc-category-other {
+          color: #4338ca;
+          background: rgba(165, 180, 252, 0.2);
+          border-color: rgba(129, 140, 248, 0.35);
+        }
+        .doc-meta-date {
+          font-size: 10px;
+          font-weight: 500;
+          color: #6b7280;
+        }
+        .upload-actions {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+        .upload-select {
+          min-width: 150px;
+        }
         .upload-btn {
           border: 1px solid var(--line, #e5e7eb);
           background: var(--card, #fff);
@@ -192,6 +255,17 @@ export default function DocumentHubPage() {
           color: var(--text, #1f2937);
           border-radius: 10px;
           padding: 8px 10px;
+        }
+        :global(.doc-hub .filters .doc-filter-trigger) {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #fff);
+          color: var(--text, #1f2937);
+          border-radius: 10px;
+          min-height: 44px;
+          padding: 0 12px;
+          font-weight: 600;
+          font-size: 14px;
+          text-align: left;
         }
         .grid-thumbs .thumb {
           background: var(--card, #fff);
@@ -239,6 +313,34 @@ export default function DocumentHubPage() {
           background: #11151b !important;
           color: #e9eef5 !important;
         }
+        :global([data-theme='dark']) .doc-hub .doc-category-badge,
+        :global(html.dark) .doc-hub .doc-category-badge {
+          border-color: #475569 !important;
+          background: #1f2937 !important;
+          color: #e2e8f0 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-category-plan,
+        :global(html.dark) .doc-hub .doc-category-plan {
+          border-color: #475569 !important;
+          background: #1f2937 !important;
+          color: #e2e8f0 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-category-progress,
+        :global(html.dark) .doc-hub .doc-category-progress {
+          border-color: rgba(249, 115, 22, 0.4) !important;
+          background: rgba(249, 115, 22, 0.15) !important;
+          color: #ffedd5 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-category-other,
+        :global(html.dark) .doc-hub .doc-category-other {
+          border-color: rgba(129, 140, 248, 0.4) !important;
+          background: rgba(129, 140, 248, 0.15) !important;
+          color: #e0e7ff !important;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-meta-date,
+        :global(html.dark) .doc-hub .doc-meta-date {
+          color: #a3b4d7 !important;
+        }
         :global([data-theme='dark']) .doc-hub .upload-btn.uploaded,
         :global(html.dark) .doc-hub .upload-btn.uploaded {
           border-color: #22c55e !important;
@@ -265,8 +367,10 @@ export default function DocumentHubPage() {
         }
         :global([data-theme='dark']) .doc-hub .filters .select,
         :global([data-theme='dark']) .doc-hub .filters .input,
+        :global([data-theme='dark']) .doc-hub .filters .doc-filter-trigger,
         :global(html.dark) .doc-hub .filters .select,
-        :global(html.dark) .doc-hub .filters .input {
+        :global(html.dark) .doc-hub .filters .input,
+        :global(html.dark) .doc-hub .filters .doc-filter-trigger {
           border-color: #3a4048 !important;
           background: #11151b !important;
           color: #f8fafc !important;
@@ -744,9 +848,17 @@ function DrawingsTab() {
   const { toast } = useToast()
   const [site, setSite] = useState<string>('')
   const [category, setCategory] = useState<'plan' | 'progress' | 'other' | ''>('')
+  const [uploadCategory, setUploadCategory] = useState<'plan' | 'progress' | 'other'>('plan')
   const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
   const [items, setItems] = useState<
-    Array<{ id: string; url: string; title?: string; category?: string; createdAt?: string }>
+    Array<{
+      id: string
+      url: string
+      title?: string
+      category?: string
+      categoryLabel?: string
+      createdAt?: string
+    }>
   >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const fileInput = useRef<HTMLInputElement>(null)
@@ -762,6 +874,11 @@ function DrawingsTab() {
   const [isRestricted, setIsRestricted] = useState(false)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [authLoaded, setAuthLoaded] = useState(false)
+  const siteSelectLabel = useMemo(() => {
+    if (!site) return '현장 전체'
+    return siteOptions.find(s => s.id === site)?.name || '현장 선택'
+  }, [site, siteOptions])
+  const handleSiteChange = (value: string) => setSite(value === 'all' ? '' : value)
 
   // URL 프리셋 적용 플래그(한 번만 적용)
   const presetRef = useRef(false)
@@ -794,13 +911,17 @@ function DrawingsTab() {
       const json = await res.json()
       if (res.ok && json?.success) {
         setItems(
-          (json.data || []).map((d: any) => ({
-            id: String(d.id),
-            url: String(d.url),
-            title: typeof d.title === 'string' ? d.title : undefined,
-            category: typeof d.category === 'string' ? d.category : undefined,
-            createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
-          }))
+          (json.data || []).map((d: any) => {
+            const cat = typeof d.category === 'string' ? d.category : undefined
+            return {
+              id: String(d.id),
+              url: String(d.url),
+              title: typeof d.title === 'string' ? d.title : undefined,
+              category: cat,
+              categoryLabel: cat ? DRAWING_CATEGORY_LABELS[cat] || '기타' : '기타',
+              createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
+            }
+          })
         )
         if (json.pagination) setTotalPages(json.pagination.totalPages || 1)
       } else {
@@ -820,6 +941,8 @@ function DrawingsTab() {
               id: `shared-${d.id}`,
               url: String(d.file_url || ''),
               title: String(d.title || d.file_name || '공도면'),
+              categoryLabel: resolveSharedDocCategoryLabel(d),
+              createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
             }))
           setItems(prev => {
             const ids = new Set(prev.map(p => p.id))
@@ -903,24 +1026,55 @@ function DrawingsTab() {
       return
     }
     const docType =
-      category === 'plan' ? 'blueprint' : category === 'other' ? 'other' : 'progress_drawing'
+      uploadCategory === 'plan'
+        ? 'blueprint'
+        : uploadCategory === 'progress'
+          ? 'progress_drawing'
+          : 'other'
+    const selectedLabel = DRAWING_CATEGORY_LABELS[uploadCategory] || '도면'
+    let successCount = 0
     for (const f of Array.from(files)) {
       try {
         const form = new FormData()
         form.append('file', f)
         form.append('siteId', site)
         form.append('documentType', docType)
-        const res = await fetch('/api/site-documents/upload', { method: 'POST', body: form })
-        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || '업로드 실패')
-      } catch {
-        // 오프라인/에러 시 대기열 저장 (IndexedDB)
-        await addToUploadQueue({
-          endpoint: '/api/site-documents/upload',
-          fields: { siteId: site, documentType: docType },
-          file: f,
+        const res = await fetch('/api/site-documents/upload', {
+          method: 'POST',
+          body: form,
+          credentials: 'include',
         })
-        setQueue(prev => [...prev, { file: f, siteId: site, category: category || 'plan' }])
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || json?.error) {
+          console.error('upload failed', res.status, json)
+          throw new Error(json?.error || `업로드 실패 (code: ${res.status})`)
+        }
+        successCount += 1
+      } catch (error: any) {
+        const networkFailed =
+          navigator.onLine === false ||
+          (typeof error?.message === 'string' && error.message.toLowerCase().includes('fetch'))
+        if (networkFailed) {
+          await addToUploadQueue({
+            endpoint: '/api/site-documents/upload',
+            fields: { siteId: site, documentType: docType },
+            file: f,
+          })
+          setQueue(prev => [...prev, { file: f, siteId: site, category: uploadCategory }])
+        } else {
+          toast({
+            title: '업로드 실패',
+            description: error?.message || '파일을 업로드하지 못했습니다.',
+            variant: 'destructive',
+          })
+        }
       }
+    }
+    if (successCount > 0) {
+      toast({
+        title: '업로드 완료',
+        description: `${selectedLabel} ${successCount}개 업로드 완료`,
+      })
     }
     fetchList()
   }
@@ -1002,14 +1156,22 @@ function DrawingsTab() {
         </div>
       )}
       <div className="filters">
-        <select className="select" value={site} onChange={e => setSite(e.target.value)}>
-          <option value="">현장 전체</option>
-          {siteOptions.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
+          <CustomSelectTrigger
+            className="doc-filter-trigger min-w-[150px] w-full"
+            aria-label="현장 선택"
+          >
+            <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
+          </CustomSelectTrigger>
+          <CustomSelectContent>
+            <CustomSelectItem value="all">현장 전체</CustomSelectItem>
+            {siteOptions.map(s => (
+              <CustomSelectItem key={s.id} value={s.id}>
+                {s.name}
+              </CustomSelectItem>
+            ))}
+          </CustomSelectContent>
+        </CustomSelect>
         <select
           className="select"
           value={category}
@@ -1035,9 +1197,20 @@ function DrawingsTab() {
         >
           검색
         </button>
-        <button className="btn" onClick={onUpload}>
-          업로드
-        </button>
+        <div className="upload-actions">
+          <select
+            className="select upload-select"
+            value={uploadCategory}
+            onChange={e => setUploadCategory(e.target.value as 'plan' | 'progress' | 'other')}
+          >
+            <option value="plan">공도면 업로드</option>
+            <option value="progress">진행도면 업로드</option>
+            <option value="other">기타 업로드</option>
+          </select>
+          <button className="btn" onClick={onUpload}>
+            업로드
+          </button>
+        </div>
         <button className="btn" onClick={openMarkupTool}>
           마킹 도구
         </button>
@@ -1108,15 +1281,27 @@ function DrawingsTab() {
             >
               <div className="doc-selection-content">
                 <div className="doc-selection-title">{it.title || '도면'}</div>
-                {it.category || it.createdAt ? (
-                  <div style={{ fontSize: 12, color: '#6B7280' }}>
-                    {it.category === 'plan'
-                      ? '공도면'
-                      : it.category === 'progress'
-                        ? '진행도면'
-                        : '기타'}
-                    {it.category && it.createdAt ? ' · ' : ''}
-                    {it.createdAt ? new Date(it.createdAt).toLocaleDateString('ko-KR') : ''}
+                {it.categoryLabel || it.createdAt ? (
+                  <div className="doc-meta-row">
+                    {it.categoryLabel ? (
+                      <span
+                        className={cn(
+                          'doc-category-badge',
+                          it.category === 'plan'
+                            ? 'doc-category-plan'
+                            : it.category === 'progress'
+                              ? 'doc-category-progress'
+                              : 'doc-category-other'
+                        )}
+                      >
+                        {it.categoryLabel}
+                      </span>
+                    ) : null}
+                    {it.createdAt ? (
+                      <span className="doc-meta-date">
+                        {new Date(it.createdAt).toLocaleDateString('ko-KR')}
+                      </span>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1272,6 +1457,11 @@ function PhotosTab() {
   const [queue, setQueue] = useState<
     Array<{ file: File; siteId: string; category: 'before' | 'after' | 'other' }>
   >([])
+  const siteSelectLabel = useMemo(() => {
+    if (!site) return '현장 전체'
+    return siteOptions.find(s => s.id === site)?.name || '현장 선택'
+  }, [site, siteOptions])
+  const handleSiteChange = (value: string) => setSite(value === 'all' ? '' : value)
 
   const onUpload = () => inputRef.current?.click()
   const onFiles = async (files: FileList | null) => {
@@ -1353,14 +1543,22 @@ function PhotosTab() {
   return (
     <div>
       <div className="filters">
-        <select className="select" value={site} onChange={e => setSite(e.target.value)}>
-          <option value="">현장 전체</option>
-          {siteOptions.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
+          <CustomSelectTrigger
+            className="doc-filter-trigger min-w-[150px] w-full"
+            aria-label="현장 선택"
+          >
+            <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
+          </CustomSelectTrigger>
+          <CustomSelectContent>
+            <CustomSelectItem value="all">현장 전체</CustomSelectItem>
+            {siteOptions.map(s => (
+              <CustomSelectItem key={s.id} value={s.id}>
+                {s.name}
+              </CustomSelectItem>
+            ))}
+          </CustomSelectContent>
+        </CustomSelect>
         <select
           className="select"
           value={category}

@@ -14,6 +14,7 @@ import {
   CustomSelectItem,
 } from '@/components/ui/custom-select'
 import { ChevronDown } from 'lucide-react'
+import { matchesSharedDocCategory } from '@/lib/documents/shared-documents'
 import { cn } from '@/lib/utils'
 import type { Site } from '@/types'
 
@@ -75,9 +76,9 @@ const Field = ({ label, htmlFor, children, className, hint, required }: FieldPro
 export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [ptwFile, setPtwFile] = useState<File | null>(null)
-  const [ptwUploading, setPtwUploading] = useState(false)
-  const [blueprintFile, setBlueprintFile] = useState<File | null>(null)
+  const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
+  const [sharedDocsError, setSharedDocsError] = useState<string | null>(null)
+  const [sharedDocs, setSharedDocs] = useState<Array<Record<string, any>>>([])
 
   const [form, setForm] = useState<FormState>(() => ({
     name: initial?.name || '',
@@ -100,7 +101,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     accommodation_phone: String((initial as any)?.accommodation_phone || ''),
   }))
 
-  const canUploadPTW = mode === 'edit' && !!siteId
+  const canViewSharedDocs = mode === 'edit' && !!siteId
 
   const initialExtrasExpanded = useMemo(
     () =>
@@ -117,6 +118,129 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     () =>
       Boolean(form.accommodation_address || form.accommodation_name || form.accommodation_phone),
     [form]
+  )
+  useEffect(() => {
+    if (!canViewSharedDocs) return
+    let active = true
+    setSharedDocsLoading(true)
+    setSharedDocsError(null)
+    ;(async () => {
+      try {
+        const params = new URLSearchParams({ category: 'shared', limit: '200' })
+        const res = await fetch(`/api/admin/sites/${siteId}/documents?${params.toString()}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && json?.success && Array.isArray(json.data)) {
+          setSharedDocs(json.data as Array<Record<string, any>>)
+        } else {
+          setSharedDocs([])
+          setSharedDocsError('공유자료 목록을 불러오지 못했습니다.')
+        }
+      } catch {
+        if (!active) return
+        setSharedDocs([])
+        setSharedDocsError('공유자료 목록을 불러오지 못했습니다.')
+      } finally {
+        if (active) setSharedDocsLoading(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [canViewSharedDocs, siteId])
+  const sharedDocsByCategory = useMemo(() => {
+    const buckets = {
+      ptw: [] as Array<Record<string, any>>,
+      construction: [] as Array<Record<string, any>>,
+      progress: [] as Array<Record<string, any>>,
+    }
+    sharedDocs.forEach(doc => {
+      if (matchesSharedDocCategory(doc, 'ptw')) {
+        buckets.ptw.push(doc)
+        return
+      }
+      if (matchesSharedDocCategory(doc, 'construction')) {
+        buckets.construction.push(doc)
+        return
+      }
+      if (matchesSharedDocCategory(doc, 'progress')) {
+        buckets.progress.push(doc)
+      }
+    })
+    return buckets
+  }, [sharedDocs])
+  const openSharedDoc = useCallback(async (doc: Record<string, any>) => {
+    if (typeof window === 'undefined') return
+    const baseUrl = doc?.file_url || doc?.fileUrl || doc?.url
+    if (!baseUrl) return
+    let finalUrl = baseUrl
+    try {
+      const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(baseUrl)}`)
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.url) finalUrl = json.url
+    } catch {
+      /* ignore - fallback to original url */
+    }
+    const opened = window.open(finalUrl, '_blank', 'noopener,noreferrer')
+    if (!opened) {
+      const link = document.createElement('a')
+      link.href = finalUrl
+      link.target = '_blank'
+      link.rel = 'noreferrer'
+      link.click()
+    }
+  }, [])
+  const renderSharedDocList = (
+    label: string,
+    docs: Array<Record<string, any>>,
+    emptyText: string
+  ) => (
+    <div className="space-y-2">
+      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      {docs.length === 0 ? (
+        <div className="rounded-md border border-dashed border-border/50 bg-muted/10 px-3 py-2 text-xs text-muted-foreground">
+          {emptyText}
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {docs.map(doc => {
+            const key = doc?.id ? String(doc.id) : doc?.file_url || doc?.url || label
+            const title = doc?.title || doc?.file_name || doc?.fileName || '문서'
+            const uploader = doc?.profiles?.full_name || doc?.uploaded_by_name || ''
+            const created =
+              typeof doc?.created_at === 'string'
+                ? new Date(doc.created_at).toLocaleDateString('ko-KR')
+                : ''
+            return (
+              <li
+                key={key}
+                className="flex items-start justify-between gap-3 rounded-md border border-border/60 bg-background px-3 py-2"
+              >
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">{title}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {created || '등록일 미확인'}
+                    {uploader ? ` · ${uploader}` : ''}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 text-xs"
+                  onClick={() => openSharedDoc(doc)}
+                >
+                  보기
+                </Button>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
   )
 
   useEffect(() => {
@@ -182,26 +306,6 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     },
     [submit]
   )
-
-  const uploadPTW = useCallback(async () => {
-    if (!canUploadPTW || !ptwFile) return
-    setPtwUploading(true)
-    setError(null)
-    try {
-      const fd = new FormData()
-      fd.set('file', ptwFile)
-      fd.set('siteId', String(siteId))
-      fd.set('documentType', 'ptw')
-      const res = await fetch('/api/site-documents/upload', { method: 'POST', body: fd })
-      const j = await res.json().catch(() => ({}))
-      if (!res.ok || j?.error) throw new Error(j?.error || 'PTW 업로드 실패')
-      setPtwFile(null)
-    } catch (e: any) {
-      setError(e?.message || 'PTW 업로드 실패')
-    } finally {
-      setPtwUploading(false)
-    }
-  }, [canUploadPTW, ptwFile, siteId])
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
@@ -414,59 +518,45 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
           <div className="rounded-md border border-dashed border-border/60 bg-background/60 p-4">
             <div className="mb-3 flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">문서 업로드/링크</p>
+                <p className="text-sm font-medium text-foreground">문서 링크</p>
                 <p className="text-xs text-muted-foreground">
-                  PTW 또는 공도면 파일을 간단히 첨부하세요.
+                  공유자료 탭에 등록된 PTW·공도면·진행도면을 바로 확인하세요.
                 </p>
               </div>
-              {!canUploadPTW ? (
+              {!canViewSharedDocs ? (
                 <span className="text-[11px] text-muted-foreground/70">
                   현장을 생성한 후 이용 가능합니다
                 </span>
               ) : null}
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">PTW(작업허가서)</Label>
-                {canUploadPTW ? (
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                    <Input
-                      type="file"
-                      accept="application/pdf,image/*"
-                      onChange={e => setPtwFile(e.target.files?.[0] || null)}
-                    />
-                    <Button
-                      type="button"
-                      onClick={uploadPTW}
-                      disabled={!ptwFile || ptwUploading}
-                      className="whitespace-nowrap"
-                    >
-                      {ptwUploading ? '업로드 중…' : '업로드'}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground">
-                    현장 생성 후 업로드할 수 있습니다.
-                  </div>
+            {!canViewSharedDocs ? (
+              <div className="text-xs text-muted-foreground">
+                현장을 저장한 뒤 공유자료 탭에서 문서를 등록하면 이곳에서 목록으로 확인할 수
+                있습니다.
+              </div>
+            ) : sharedDocsError ? (
+              <div className="text-xs text-destructive">{sharedDocsError}</div>
+            ) : sharedDocsLoading ? (
+              <div className="text-xs text-muted-foreground">공유자료를 불러오는 중입니다…</div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {renderSharedDocList(
+                  'PTW(작업허가서)',
+                  sharedDocsByCategory.ptw,
+                  '공유자료에 PTW 문서가 없습니다.'
+                )}
+                {renderSharedDocList(
+                  '공도면',
+                  sharedDocsByCategory.construction,
+                  '공유자료에 공도면 문서가 없습니다.'
+                )}
+                {renderSharedDocList(
+                  '진행도면',
+                  sharedDocsByCategory.progress,
+                  '공유자료에 진행도면 문서가 없습니다.'
                 )}
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">공도면</Label>
-                {canUploadPTW ? (
-                  <Input
-                    type="file"
-                    accept="application/pdf,image/*"
-                    onChange={e => setBlueprintFile(e.target.files?.[0] || null)}
-                  />
-                ) : (
-                  <div className="text-xs text-muted-foreground">
-                    현장 생성 후 링크를 사용할 수 있습니다.
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
         </div>
         <div

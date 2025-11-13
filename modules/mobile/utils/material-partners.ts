@@ -1,16 +1,11 @@
 import type { MaterialPartnerOption } from '@/modules/mobile/types/material-partner'
 
-const PARTNER_TYPE_LABEL: Record<string, string> = {
-  npc: '원도급사',
-  subcontractor: '협력업체',
-  supplier: '자재거래처',
-}
-
-type PartnerRow = {
+type SupplierRow = {
   id: string
   company_name?: string | null
   status?: string | null
-  company_type?: string | null
+  contact_name?: string | null
+  contact_phone?: string | null
 }
 
 interface BuildOptionsConfig {
@@ -20,7 +15,7 @@ interface BuildOptionsConfig {
 }
 
 export function buildMaterialPartnerOptions(
-  rows: PartnerRow[] | null | undefined,
+  rows: SupplierRow[] | null | undefined,
   config: BuildOptionsConfig = {}
 ): MaterialPartnerOption[] {
   const list =
@@ -28,9 +23,7 @@ export function buildMaterialPartnerOptions(
       value: String(row.id),
       label: row.company_name || '-',
       status: row.status || null,
-      description: row.company_type
-        ? PARTNER_TYPE_LABEL[row.company_type] || row.company_type
-        : null,
+      description: row.contact_name || row.contact_phone || null,
     })) || []
 
   if (!config.includeAllOption) {
@@ -41,5 +34,3 @@ export function buildMaterialPartnerOptions(
   const allValue = config.allValue ?? 'all'
   return [{ value: allValue, label: allLabel }, ...list]
 }
-
-export { PARTNER_TYPE_LABEL }

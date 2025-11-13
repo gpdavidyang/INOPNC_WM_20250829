@@ -15,6 +15,13 @@ import { useConfirm } from '@/components/ui/use-confirm'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,6 +32,7 @@ import {
   DEFAULT_SHARED_DOCUMENT_CATEGORIES,
   type SharedDocumentCategoryOption,
 } from '@/lib/constants/shared-document-categories'
+import { resolveSharedDocCategoryLabel } from '@/lib/documents/shared-documents'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import StatsCard from '@/components/ui/stats-card'
 import {
@@ -317,6 +325,9 @@ export default function SiteDetailTabs({
   const [sharedCategoryOptions, setSharedCategoryOptions] = useState<
     SharedDocumentCategoryOption[]
   >(DEFAULT_SHARED_DOCUMENT_CATEGORIES)
+  const [sharedSearch, setSharedSearch] = useState('')
+  const [sharedDateFrom, setSharedDateFrom] = useState('')
+  const [sharedDateTo, setSharedDateTo] = useState('')
   const [sharedStats, setSharedStats] = useState<{
     total_documents: number
     by_type?: Record<string, number>
@@ -339,31 +350,11 @@ export default function SiteDetailTabs({
     () => [{ value: 'all', label: '전체' }, ...sharedCategoryOptions],
     [sharedCategoryOptions]
   )
+  const sharedSubCategoryLabel = useMemo(() => {
+    return sharedFilterOptions.find(option => option.value === sharedSubCategory)?.label || '전체'
+  }, [sharedFilterOptions, sharedSubCategory])
   const resolveSharedCategoryLabel = useCallback(
-    (doc: any) => {
-      const meta =
-        doc?.metadata && typeof doc.metadata === 'object'
-          ? (doc.metadata as Record<string, unknown>)
-          : {}
-      const subRaw =
-        doc?.sub_category ||
-        doc?.subCategory ||
-        meta?.sub_category ||
-        meta?.subcategory ||
-        meta?.category ||
-        ''
-      const catRaw = doc?.category_type || doc?.categoryType || meta?.category_type || ''
-      const sub = String(subRaw || '').toLowerCase()
-      const cat = String(catRaw || '').toLowerCase()
-
-      if (sub && sharedCategoryLabelMap[sub]) return sharedCategoryLabelMap[sub]
-      if (cat && sharedCategoryLabelMap[cat]) return sharedCategoryLabelMap[cat]
-      if (sub && CATEGORY_LABELS[sub]) return CATEGORY_LABELS[sub]
-      if (cat && CATEGORY_LABELS[cat]) return CATEGORY_LABELS[cat]
-      if (sub) return sub
-      if (cat) return cat
-      return '기타'
-    },
+    (doc: any) => resolveSharedDocCategoryLabel(doc, sharedCategoryLabelMap),
     [sharedCategoryLabelMap]
   )
   const fallbackSiteName = (site?.name as string | undefined) || '-'
@@ -770,6 +761,26 @@ export default function SiteDetailTabs({
   const sharedTotalDocuments = sharedStats?.total_documents ?? sharedDocs.length
   const sharedDocumentCount = sharedStats?.by_type?.document ?? null
   const sharedPhotoCount = sharedStats?.by_type?.photo ?? null
+  const normalizedSharedSearch = sharedSearch.trim().toLowerCase()
+  const filteredSharedDocs = useMemo(() => {
+    return sharedDocs.filter(doc => {
+      const title = String(doc?.title || doc?.file_name || '').toLowerCase()
+      const description = String(doc?.description || '').toLowerCase()
+      const uploader = String(doc?.profiles?.full_name || '').toLowerCase()
+      const categoryLabel = resolveSharedCategoryLabel(doc).toLowerCase()
+      const searchTarget = `${title} ${description} ${uploader} ${categoryLabel}`
+      const matchesSearch = normalizedSharedSearch
+        ? searchTarget.includes(normalizedSharedSearch)
+        : true
+
+      const createdAt = typeof doc?.created_at === 'string' ? doc.created_at.slice(0, 10) : ''
+      const matchesFrom = sharedDateFrom ? createdAt >= sharedDateFrom : true
+      const matchesTo = sharedDateTo ? createdAt <= sharedDateTo : true
+
+      return matchesSearch && matchesFrom && matchesTo
+    })
+  }, [normalizedSharedSearch, resolveSharedCategoryLabel, sharedDateFrom, sharedDateTo, sharedDocs])
+  const filteredSharedCount = filteredSharedDocs.length
 
   type InventoryDisplayRow = {
     id: string
@@ -3131,7 +3142,8 @@ export default function SiteDetailTabs({
                     ) : null}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    전체 {sharedTotalDocuments}건 · 최신 {sharedDocs.length}건 표시
+                    전체 {sharedTotalDocuments}건 · 최신 {sharedDocs.length}건 표시 · 필터 적용{' '}
+                    {filteredSharedCount}건
                   </p>
                   {sharedDocumentCount !== null || sharedPhotoCount !== null ? (
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
@@ -3142,23 +3154,48 @@ export default function SiteDetailTabs({
                     </div>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={sharedSubCategory}
-                    onChange={event => setSharedSubCategory(event.target.value)}
-                    className="h-9 min-w-[140px] rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    {sharedFilterOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                <div className="grid w-full gap-2 grid-cols-1 md:grid-cols-5">
+                  <Input
+                    value={sharedSearch}
+                    onChange={event => setSharedSearch(event.target.value)}
+                    placeholder="검색어 (제목·설명·업로더)"
+                    aria-label="공유자료 검색어"
+                    className="h-9 w-full"
+                  />
+                  <Input
+                    type="date"
+                    value={sharedDateFrom}
+                    onChange={event => setSharedDateFrom(event.target.value)}
+                    aria-label="조회 시작 일자"
+                    className="h-9 w-full"
+                  />
+                  <Input
+                    type="date"
+                    value={sharedDateTo}
+                    onChange={event => setSharedDateTo(event.target.value)}
+                    aria-label="조회 종료 일자"
+                    className="h-9 w-full"
+                  />
+                  <CustomSelect value={sharedSubCategory} onValueChange={setSharedSubCategory}>
+                    <CustomSelectTrigger
+                      aria-label="분류 필터"
+                      className="h-9 min-h-0 w-full rounded-md border border-input bg-background px-3 text-left text-sm"
+                    >
+                      <CustomSelectValue>{sharedSubCategoryLabel}</CustomSelectValue>
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {sharedFilterOptions.map(option => (
+                        <CustomSelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="gap-1"
+                    className="gap-1 h-9 w-full md:h-9"
                     onClick={() => fetchSharedDocs({ silent: true })}
                     disabled={sharedDocsRefreshing}
                   >
@@ -3176,6 +3213,10 @@ export default function SiteDetailTabs({
                   <TableSkeleton rows={5} />
                 ) : sharedDocs.length === 0 ? (
                   <div className="text-sm text-muted-foreground">등록된 공유문서가 없습니다.</div>
+                ) : filteredSharedCount === 0 ? (
+                  <div className="text-sm text-muted-foreground">
+                    선택한 조건에 해당하는 공유문서가 없습니다.
+                  </div>
                 ) : (
                   <Table className="min-w-[720px] text-sm">
                     <TableHeader>
@@ -3201,7 +3242,7 @@ export default function SiteDetailTabs({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {sharedDocs.map((doc: any, idx: number) => {
+                      {filteredSharedDocs.map((doc: any, idx: number) => {
                         const docId = doc?.id ? String(doc.id) : `${idx}`
                         const uploader =
                           doc?.profiles?.full_name ||

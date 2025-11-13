@@ -271,7 +271,8 @@ export interface MaterialProduction {
 export interface MaterialShipment {
   id: string
   shipment_number: string
-  site_id: string
+  site_id: string | null
+  partner_company_id: string | null
   request_id: string | null
   status: 'preparing' | 'shipped' | 'delivered' | 'cancelled'
   carrier: string | null

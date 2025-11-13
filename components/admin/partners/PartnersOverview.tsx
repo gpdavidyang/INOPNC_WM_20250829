@@ -11,24 +11,19 @@ import EmptyState from '@/components/ui/empty-state'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import { t } from '@/lib/ui/strings'
 
-interface PartnerCompany {
+interface MaterialSupplier {
   id: string
   company_name: string
-  company_type?: 'npc' | 'subcontractor' | 'supplier'
   status?: 'active' | 'inactive'
   contact_name?: string
   contact_phone?: string
+  contact_email?: string
   address?: string
-}
-
-const COMPANY_TYPE_LABEL: Record<string, string> = {
-  npc: '원도급사',
-  subcontractor: '협력업체',
-  supplier: '자재업체',
+  business_number?: string
 }
 
 function PartnersOverview() {
-  const [partners, setPartners] = useState<PartnerCompany[]>([])
+  const [partners, setPartners] = useState<MaterialSupplier[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [keyword, setKeyword] = useState('')
@@ -38,12 +33,12 @@ function PartnersOverview() {
   const [creating, setCreating] = useState(false)
   const [createForm, setCreateForm] = useState({
     company_name: '',
-    company_type: '',
     status: 'active',
     contact_name: '',
     contact_phone: '',
     contact_email: '',
     address: '',
+    business_number: '',
   })
 
   const loadPartners = useCallback(async () => {
@@ -52,7 +47,7 @@ function PartnersOverview() {
       setError(null)
       const params = new URLSearchParams()
       if (statusFilter !== 'all') params.set('status', statusFilter)
-      const response = await fetch(`/api/admin/partner-companies?${params.toString()}`, {
+      const response = await fetch(`/api/admin/material-suppliers?${params.toString()}`, {
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
         credentials: 'include',
@@ -60,7 +55,7 @@ function PartnersOverview() {
       if (!response.ok)
         throw new Error(`파트너 정보를 불러오지 못했습니다. (HTTP ${response.status})`)
       const data = await response.json()
-      const list: PartnerCompany[] = data.data?.partner_companies || []
+      const list: MaterialSupplier[] = data.data?.material_suppliers || []
       setPartners(list)
     } catch (err) {
       console.error('[PartnersOverview] load error:', err)
@@ -82,9 +77,10 @@ function PartnersOverview() {
     return partners.filter(partner => {
       const haystack = [
         partner.company_name,
-        partner.company_type,
         partner.contact_name,
         partner.contact_phone,
+        partner.contact_email,
+        partner.business_number,
       ]
         .filter(Boolean)
         .join(' ')
@@ -102,22 +98,30 @@ function PartnersOverview() {
     if (!createForm.company_name.trim()) return
     try {
       setCreating(true)
-      const res = await fetch('/api/admin/partner-companies', {
+      const res = await fetch('/api/admin/material-suppliers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(createForm),
+        body: JSON.stringify({
+          name: createForm.company_name,
+          status: createForm.status,
+          contact_name: createForm.contact_name,
+          contact_phone: createForm.contact_phone,
+          contact_email: createForm.contact_email,
+          address: createForm.address,
+          business_number: createForm.business_number,
+        }),
         credentials: 'include',
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       setShowCreate(false)
       setCreateForm({
         company_name: '',
-        company_type: '',
         status: 'active',
         contact_name: '',
         contact_phone: '',
         contact_email: '',
         address: '',
+        business_number: '',
       })
       void loadPartners()
     } catch (err) {
@@ -131,7 +135,7 @@ function PartnersOverview() {
   const handleDelete = async (id: string) => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return
     try {
-      const res = await fetch(`/api/admin/partner-companies/${id}`, {
+      const res = await fetch(`/api/admin/material-suppliers/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -140,7 +144,7 @@ function PartnersOverview() {
         if (res.status === 409) {
           throw new Error(
             payload?.error ||
-              '다른 데이터와 연결된 거래처입니다. 관련 현장·요청 정보를 먼저 삭제한 뒤 다시 시도해 주세요.'
+              '다른 데이터와 연결된 거래처입니다. 관련 정보를 먼저 삭제한 뒤 다시 시도해 주세요.'
           )
         }
         const message = payload?.error || `HTTP ${res.status}`
@@ -218,7 +222,7 @@ function PartnersOverview() {
       ) : (
         <Card>
           <CardContent className="px-0">
-            <DataTable<PartnerCompany>
+            <DataTable<MaterialSupplier>
               data={filteredPartners}
               rowKey={p => p.id}
               stickyHeader
@@ -229,9 +233,14 @@ function PartnersOverview() {
                     header: '업체명',
                     sortable: true,
                     width: '34%',
-                    render: (p: PartnerCompany) => (
+                    render: (p: MaterialSupplier) => (
                       <div className="flex flex-col">
                         <div className="font-medium text-foreground">{p.company_name}</div>
+                        {p.business_number ? (
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            사업자번호: {p.business_number}
+                          </div>
+                        ) : null}
                         {p.address ? (
                           <div
                             className="text-xs text-muted-foreground mt-0.5 truncate"
@@ -244,25 +253,11 @@ function PartnersOverview() {
                     ),
                   },
                   {
-                    key: 'company_type',
-                    header: '유형',
-                    sortable: true,
-                    width: '12%',
-                    render: (p: PartnerCompany) =>
-                      p.company_type ? (
-                        <Badge variant="outline">
-                          {COMPANY_TYPE_LABEL[p.company_type] || p.company_type}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      ),
-                  },
-                  {
                     key: 'contact_name',
                     header: '담당자',
                     sortable: true,
                     width: '12%',
-                    render: (p: PartnerCompany) =>
+                    render: (p: MaterialSupplier) =>
                       p.contact_name ? (
                         <div className="flex items-center gap-2 text-sm">
                           <Users className="h-4 w-4 text-muted-foreground" />
@@ -277,7 +272,7 @@ function PartnersOverview() {
                     header: '연락처',
                     sortable: false,
                     width: '24%',
-                    render: (p: PartnerCompany) => (
+                    render: (p: MaterialSupplier) => (
                       <div className="space-y-1 text-sm">
                         {p.contact_phone ? (
                           <div className="flex items-center gap-1">
@@ -285,13 +280,13 @@ function PartnersOverview() {
                             {p.contact_phone}
                           </div>
                         ) : null}
-                        {p.contact_name ? (
+                        {p.contact_email ? (
                           <div className="flex items-center gap-1">
                             <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            담당: {p.contact_name}
+                            {p.contact_email}
                           </div>
                         ) : null}
-                        {!p.contact_phone && !p.contact_name ? (
+                        {!p.contact_phone && !p.contact_email ? (
                           <span className="text-xs text-muted-foreground">등록된 연락처 없음</span>
                         ) : null}
                       </div>
@@ -303,7 +298,7 @@ function PartnersOverview() {
                     sortable: true,
                     width: '8%',
                     align: 'right',
-                    render: (p: PartnerCompany) => (
+                    render: (p: MaterialSupplier) => (
                       <Badge variant={p.status === 'active' ? 'secondary' : 'outline'}>
                         {p.status === 'active' ? '활성' : '비활성'}
                       </Badge>
@@ -314,7 +309,7 @@ function PartnersOverview() {
                     header: '동작',
                     width: '10%',
                     align: 'right',
-                    render: (p: PartnerCompany) => (
+                    render: (p: MaterialSupplier) => (
                       <div className="flex items-center justify-end gap-2">
                         <Button
                           asChild
@@ -335,7 +330,7 @@ function PartnersOverview() {
                       </div>
                     ),
                   },
-                ] as Column<PartnerCompany>[]
+                ] as Column<MaterialSupplier>[]
               }
             />
           </CardContent>
@@ -367,14 +362,6 @@ function PartnersOverview() {
                 />
               </div>
               <div>
-                <Label>유형</Label>
-                <Input
-                  value={createForm.company_type}
-                  onChange={e => setCreateForm(prev => ({ ...prev, company_type: e.target.value }))}
-                  placeholder="예: supplier"
-                />
-              </div>
-              <div>
                 <Label>상태</Label>
                 <select
                   className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm shadow-sm"
@@ -384,6 +371,16 @@ function PartnersOverview() {
                   <option value="active">활성</option>
                   <option value="inactive">비활성</option>
                 </select>
+              </div>
+              <div>
+                <Label>사업자등록번호</Label>
+                <Input
+                  value={createForm.business_number}
+                  onChange={e =>
+                    setCreateForm(prev => ({ ...prev, business_number: e.target.value }))
+                  }
+                  placeholder="000-00-00000"
+                />
               </div>
               <div className="md:col-span-2">
                 <Label>주소</Label>
