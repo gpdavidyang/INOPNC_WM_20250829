@@ -19,22 +19,25 @@ export async function GET() {
     if (auth instanceof NextResponse) return auth
 
     const supabase = createClient()
+    let role = auth.role || ''
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', auth.userId)
-      .maybeSingle()
+    if (!role) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', auth.userId)
+        .maybeSingle()
 
-    if (profileError) {
-      console.error('[mobile/materials] profile lookup error:', profileError)
-      return NextResponse.json(
-        { success: false, error: '권한 확인에 실패했습니다.' },
-        { status: 500 }
-      )
+      if (profileError) {
+        console.error('[mobile/materials] profile lookup error:', profileError)
+        return NextResponse.json(
+          { success: false, error: '권한 확인에 실패했습니다.' },
+          { status: 500 }
+        )
+      }
+      role = profile?.role || ''
     }
 
-    const role = profile?.role || auth.role || ''
     if (role && !ALLOWED_ROLES.has(role)) {
       return NextResponse.json({ success: false, error: '접근 권한이 없습니다.' }, { status: 403 })
     }

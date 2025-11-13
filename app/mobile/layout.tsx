@@ -1,7 +1,6 @@
 import { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { AuthProvider } from '@/modules/mobile/providers/AuthProvider'
 import { mockProfile, mockSession } from '@/lib/dev-auth'
 import { Toaster } from 'sonner'
@@ -23,38 +22,26 @@ export default async function MobileRootLayout({ children }: MobileLayoutProps) 
   const isDevBypass =
     process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'
 
-  if (isDevBypass) {
-    console.warn('⚠️ [DEV] Using mock authentication data for mobile layout')
-    initialSession = mockSession as Session
-    initialProfile = mockProfile
-  } else {
-    const supabase = createClient()
+  const supabase = createClient()
 
-    try {
-      const auth = await getAuthForClient(supabase)
+  try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
 
-      if (!auth) {
+    if (sessionError) {
+      console.error('[mobile layout] Failed to load Supabase session:', sessionError)
+      if (!isDevBypass) {
         redirect('/auth/login')
       }
+    }
 
-      const {
-        data: { session },
-        error: sessionError,
-      } = await supabase.auth.getSession()
-
-      if (sessionError) {
-        console.error('[mobile layout] Failed to load Supabase session:', sessionError)
-        redirect('/auth/login')
-      }
-
-      if (!session || !session.user) {
-        redirect('/auth/login')
-      }
-
+    if (session?.user) {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, role, full_name, email, site_id')
-        .eq('id', auth.userId)
+        .eq('id', session.user.id)
         .maybeSingle()
 
       if (profileError || !profile) {
@@ -77,10 +64,21 @@ export default async function MobileRootLayout({ children }: MobileLayoutProps) 
         )
       }
 
-      initialSession = session
+      initialSession = session as Session
       initialProfile = profile
-    } catch (error) {
-      console.error('[mobile layout] Authentication bootstrap error:', error)
+    } else if (isDevBypass) {
+      console.warn('⚠️ [DEV] Using mock authentication data for mobile layout')
+      initialSession = mockSession as Session
+      initialProfile = mockProfile
+    } else {
+      redirect('/auth/login')
+    }
+  } catch (error) {
+    console.error('[mobile layout] Authentication bootstrap error:', error)
+    if (isDevBypass) {
+      initialSession = mockSession as Session
+      initialProfile = mockProfile
+    } else {
       redirect('/auth/login')
     }
   }

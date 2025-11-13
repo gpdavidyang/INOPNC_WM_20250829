@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { NextResponse } from 'next/server'
 import type { Database } from '@/types/database'
 import { AppError, ErrorType } from '@/lib/error-handling'
+import { isDevelopmentAuthBypass, mockProfile } from '@/lib/dev-auth'
 
 export { UI_TRACK_COOKIE_MAX_AGE, UI_TRACK_COOKIE_NAME } from './constants'
 
@@ -32,13 +33,23 @@ export interface SimpleAuth {
 // 1. 인증 체크 (15줄)
 export async function getAuth(): Promise<SimpleAuth | null> {
   const supabase = createClient()
-  return fetchSimpleAuth(supabase)
+  const auth = await fetchSimpleAuth(supabase)
+  if (auth) return auth
+  if (isDevelopmentAuthBypass()) {
+    return buildDevSimpleAuth()
+  }
+  return null
 }
 
 export async function getAuthForClient(
   supabase: SupabaseClient<Database>
 ): Promise<SimpleAuth | null> {
-  return fetchSimpleAuth(supabase)
+  const auth = await fetchSimpleAuth(supabase)
+  if (auth) return auth
+  if (isDevelopmentAuthBypass()) {
+    return buildDevSimpleAuth()
+  }
+  return null
 }
 
 async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<SimpleAuth | null> {
@@ -49,8 +60,8 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
     } = await supabase.auth.getUser()
 
     if (error) {
-      // 토큰 만료 등으로 InvalidJWT 발생 시 null 처리하여 재인증을 유도
-      if (error.message?.toLowerCase().includes('invalid') && error.message?.includes('JWT')) {
+      if (isRecoverableAuthError(error)) {
+        console.warn('[auth] recoverable Supabase auth error detected, forcing re-authentication')
         return null
       }
       throw error
@@ -58,11 +69,19 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
 
     if (!user) return null
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, organization_id, partner_company_id, full_name, site_id, status')
       .eq('id', user.id)
       .single()
+
+    if (profileError) {
+      if (isRecoverableAuthError(profileError)) {
+        console.warn('[auth] recoverable profile lookup error, forcing re-authentication')
+        return null
+      }
+      throw profileError
+    }
 
     const normalizedRole = normalizeUserRole(profile?.role)
 
@@ -77,6 +96,10 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
       role: normalizedRole,
     }
   } catch (error) {
+    if (isRecoverableAuthError(error)) {
+      console.warn('[auth] recoverable Supabase auth exception, returning null session')
+      return null
+    }
     if (error instanceof Error) {
       if (error.name === 'AuthSessionMissingError') {
         return null
@@ -88,6 +111,38 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
     }
     throw error
   }
+}
+
+function buildDevSimpleAuth(): SimpleAuth {
+  const normalizedRole = normalizeUserRole(mockProfile.role)
+  return {
+    userId: mockProfile.id,
+    email: mockProfile.email,
+    isRestricted: normalizedRole === 'customer_manager',
+    restrictedOrgId:
+      (mockProfile as any)?.partner_company_id || mockProfile.organization_id || undefined,
+    uiTrack: getUITrack(normalizedRole),
+    role: normalizedRole,
+  }
+}
+
+function isRecoverableAuthError(error: unknown): boolean {
+  if (!error) return false
+  const code = typeof (error as any)?.code === 'string' ? String((error as any).code) : ''
+  if (code.toLowerCase().includes('refresh_token') || code === 'session_not_found') {
+    return true
+  }
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+    return (
+      message.includes('refresh token') ||
+      message.includes('session not found') ||
+      message.includes('session missing') ||
+      message.includes('invalid jwt') ||
+      message.includes('jwt expired')
+    )
+  }
+  return false
 }
 
 // 2. UI 트랙 결정 (5줄)

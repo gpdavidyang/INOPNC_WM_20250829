@@ -85,23 +85,31 @@ export const AppBar: React.FC<AppBarProps> = ({
   const displayCount =
     typeof notificationCountOverride === 'number' ? notificationCountOverride : notificationCount
 
+  const handleBrandClick = () => {
+    const destination =
+      profile?.role === 'production_manager'
+        ? '/mobile/production/production'
+        : profile?.role === 'customer_manager' || profile?.role === 'partner'
+          ? '/mobile/partner'
+          : '/mobile'
+
+    window.location.href = destination
+  }
+
   return (
     <header className="app-header">
       <div className="header-content">
         <div className="header-left">
-          <h1
-            className="brand-title"
-            onClick={() =>
-              (window.location.href =
-                profile?.role === 'production_manager'
-                  ? '/mobile/production/production'
-                  : profile?.role === 'customer_manager' || profile?.role === 'partner'
-                    ? '/mobile/partner'
-                    : '/mobile')
-            }
+          <button
+            type="button"
+            className="brand-logo"
+            onClick={handleBrandClick}
+            aria-label={`${titleText} 홈으로 이동`}
           >
-            {titleText}
-          </h1>
+            <span className="brand-wordmark" aria-hidden="true">
+              INOPNC
+            </span>
+          </button>
         </div>
 
         <div className="header-center">{/* 중앙 영역은 비워둠 */}</div>
@@ -196,6 +204,30 @@ export const AppBar: React.FC<AppBarProps> = ({
 
       <style jsx>{`
         .brand-logo {
+          border: none;
+          background: transparent;
+          padding: 0;
+          display: inline-flex;
+          align-items: center;
+          justify-content: flex-start;
+          cursor: pointer;
+          transition: transform 0.2s ease;
+          flex: 0 1 auto;
+          max-width: 70vw;
+        }
+
+        .brand-logo:hover,
+        .brand-logo:focus-visible {
+          transform: translateY(-1px);
+        }
+
+        .brand-logo:focus-visible {
+          outline: 2px solid #31a3fa;
+          outline-offset: 3px;
+          border-radius: 6px;
+        }
+
+        .brand-wordmark {
           font-family:
             'Poppins',
             'Inter',
@@ -203,21 +235,21 @@ export const AppBar: React.FC<AppBarProps> = ({
             'Noto Sans KR',
             system-ui,
             -apple-system,
-            Segoe UI,
+            'Segoe UI',
             Roboto,
             sans-serif;
-          font-weight: 800;
-          font-size: 20px;
+          font-weight: 700;
+          font-size: 24px;
           line-height: 1;
-          letter-spacing: 0.2px;
+          letter-spacing: 0.3px;
+          color: #1a254f;
+          text-transform: uppercase;
           -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-          text-rendering: optimizeLegibility;
-          color: var(--text);
-          text-decoration: none;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          flex-shrink: 0;
+          display: inline-block;
+        }
+
+        [data-theme='dark'] .brand-wordmark {
+          color: #ffffff;
         }
 
         .actions {
