@@ -22,21 +22,19 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Use mock data if development bypass is enabled
   const isDevBypass = isDevelopmentAuthBypass()
 
-  const [user, setUser] = useState<User | null>(isDevBypass ? (mockUser as any) : null)
-  const [session, setSession] = useState<Session | null>(isDevBypass ? (mockSession as any) : null)
-  const [loading, setLoading] = useState(!isDevBypass)
+  const [useDevMock, setUseDevMock] = useState(false)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
-  const supabase = isDevBypass ? null : createClient()
+  const supabase = createClient()
 
   const refreshSession = async () => {
     // Skip refresh if development bypass is enabled or supabase is null
-    if (isDevBypass || !supabase) {
-      if (isDevBypass) {
-        console.log('🔓 [DEV] Skipping session refresh (bypass enabled)')
-      }
+    if (useDevMock) {
+      console.log('🔓 [DEV] Skipping session refresh (mock session active)')
       return
     }
 
@@ -62,19 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    // Skip auth initialization if development bypass is enabled
-    if (isDevBypass) {
-      console.log('🔓 [DEV] Using mock authentication')
-      setLoading(false)
-      return
-    }
-
-    // Ensure supabase is not null before proceeding
-    if (!supabase) {
-      setLoading(false)
-      return
-    }
-
     // Get initial session with session bridging
     const initializeAuth = async () => {
       try {
@@ -87,12 +72,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Session found
           setSession(initialSession)
           setUser(initialSession.user)
+          setUseDevMock(false)
 
           // Verify the session is still valid
-            const {
-              data: { session: verifiedSession },
-              error: verifyError,
-            } = await supabase.auth.getSession()
+          const {
+            data: { session: verifiedSession },
+            error: verifyError,
+          } = await supabase.auth.getSession()
 
           if (verifyError) {
             console.error('Failed to verify session:', verifyError)
@@ -148,7 +134,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 // Session not yet accessible with fresh client
               }
             } else {
-              // No session available - this is OK for public pages
+              if (isDevBypass) {
+                console.log('🔓 [DEV] Falling back to mock authentication')
+                setSession(mockSession as any)
+                setUser(mockUser as any)
+                setUseDevMock(true)
+              } else {
+                // No session available - this is OK for public pages
+              }
             }
           } else {
             // On public page - no need to bridge session
@@ -219,7 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase, isDevBypass])
+  }, [router, supabase, isDevBypass, useDevMock])
 
   return (
     <AuthContext.Provider value={{ user, session, loading, refreshSession }}>

@@ -8,20 +8,15 @@ import { isDevelopmentAuthBypass, mockUser, mockProfile } from '@/lib/dev-auth'
 
 export function useAuth() {
   const isDevBypass = isDevelopmentAuthBypass()
-  const [user, setUser] = useState<User | null>(isDevBypass ? (mockUser as any) : null)
-  const [profile, setProfile] = useState(isDevBypass ? mockProfile : null)
-  const [loading, setLoading] = useState(!isDevBypass)
+  const [user, setUser] = useState<User | null>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    // Skip if development bypass is enabled
-    if (isDevBypass) {
-      console.log('🔓 [DEV] Using mock authentication in useAuth hook')
-      return
-    }
+    let isMounted = true
 
-    // Get initial session
     const getInitialSession = async () => {
       try {
         const {
@@ -33,11 +28,23 @@ export function useAuth() {
           console.error('Error getting session:', sessionError)
         }
 
-        setUser(session?.user ?? null)
+        if (!isMounted) return
+
+        if (session?.user) {
+          setUser(session.user)
+        } else if (isDevBypass) {
+          console.log('🔓 [DEV] Using mock authentication in useAuth hook')
+          setUser(mockUser as any)
+          setProfile(mockProfile)
+        } else {
+          setUser(null)
+        }
       } catch (error) {
         console.error('Error getting session:', error)
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
@@ -64,7 +71,11 @@ export function useAuth() {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase.auth])
+
+    return () => {
+      isMounted = false
+    }
+  }, [router, supabase.auth, isDevBypass])
 
   return { user, profile, loading }
 }

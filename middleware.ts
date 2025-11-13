@@ -72,11 +72,16 @@ export async function middleware(request: NextRequest) {
 
     // Development authentication bypass - ONLY for local development
     // CRITICAL: This should NEVER be enabled in production environments!
-    if (
+    const devBypassEnabled =
       process.env.NODE_ENV === 'development' &&
       process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true' &&
       request.url.includes('localhost')
-    ) {
+
+    const hasSupabaseAuthCookie = request.cookies
+      .getAll()
+      .some(cookie => cookie.name.startsWith('sb-') || cookie.name.endsWith('-auth-token'))
+
+    if (devBypassEnabled && !hasSupabaseAuthCookie) {
       console.warn('⚠️ [DEV] Authentication bypassed for LOCAL development only:', pathname)
       return response
     }

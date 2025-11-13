@@ -163,8 +163,8 @@ textarea {
 .header-left {
   display: flex;
   align-items: center;
-  flex: 0 0 auto;
-  min-width: 120px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .header-center {
@@ -174,10 +174,11 @@ textarea {
 .header-right {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 4px;
   flex: 0 0 auto;
   width: auto;
   min-width: 0;
+  justify-content: flex-end;
 }
 
 /* Brand Title */
