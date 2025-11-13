@@ -1,9 +1,11 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireAuth } from '@/lib/auth/ultra-simple'
+import { getAuth } from '@/lib/auth/ultra-simple'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
 import ShipmentItemsFieldArray from '@/modules/mobile/components/production/ShipmentItemsFieldArray'
@@ -32,6 +34,9 @@ export const metadata: Metadata = { title: '출고 수정 입력' }
 
 type PaymentCategory = 'billing' | 'shipping' | 'freight'
 
+const MOBILE_SHIPMENT_LIST_PATH = '/mobile/production/shipping-payment'
+const ADMIN_SHIPMENT_LIST_PATH = '/dashboard/admin/materials?tab=shipments'
+
 function decodeLegacyName(raw: string): { category: PaymentCategory; name: string } {
   const markerIndex = raw.indexOf('::')
   if (markerIndex > 0) {
@@ -53,6 +58,15 @@ function decodeLegacyName(raw: string): { category: PaymentCategory; name: strin
   const inferred = LEGACY_DEFAULT[raw] ?? 'billing'
   return { category: inferred, name: raw }
 }
+
+function resolveShipmentListPath(track?: string | null): string {
+  if (track?.includes('/dashboard/admin')) {
+    return ADMIN_SHIPMENT_LIST_PATH
+  }
+  return MOBILE_SHIPMENT_LIST_PATH
+}
+
+type ShippingEditContext = 'mobile' | 'admin'
 
 async function updateShipment(id: string, formData: FormData) {
   'use server'
@@ -247,14 +261,42 @@ async function updateShipment(id: string, formData: FormData) {
     await insertShipmentItems(supabase, id, effectiveItems)
   }
 
-  revalidatePath('/dashboard/admin/materials?tab=shipments')
-  revalidatePath('/mobile/production/shipping-payment')
-  redirect('/mobile/production/shipping-payment')
+  const auth = await getAuth()
+  const redirectPath = resolveShipmentListPath(auth?.uiTrack)
+  revalidatePath(ADMIN_SHIPMENT_LIST_PATH)
+  revalidatePath(MOBILE_SHIPMENT_LIST_PATH)
+  redirect(redirectPath)
+}
+
+async function ensureShippingEditAccess(): Promise<{
+  track: string
+  context: ShippingEditContext
+}> {
+  const auth = await getAuth()
+  if (!auth) {
+    redirect('/auth/login')
+  }
+
+  const track = auth.uiTrack || ''
+  const isProductionTrack =
+    track.includes('/mobile/production') || track === '/mobile' || track.startsWith('/mobile/')
+  if (isProductionTrack) {
+    return { track, context: 'mobile' }
+  }
+
+  const isAdminTrack = track.includes('/dashboard/admin')
+  if (isAdminTrack) {
+    await requireAdminProfile()
+    return { track, context: 'admin' }
+  }
+
+  redirect(track || '/auth/login')
 }
 
 export default async function ShippingEditPage({ params }: { params: { id: string } }) {
   console.log('[ShippingEditPage] render start', params?.id)
-  await requireAuth('/mobile/production')
+  const { track, context } = await ensureShippingEditAccess()
+  const listPath = resolveShipmentListPath(track)
   const supabase = createClient()
   let serviceClient: ReturnType<typeof createServiceClient> | null = null
   try {
@@ -268,6 +310,44 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
   const id = params.id
 
   // Load shipment with robust fallback (schema-independent)
+  const buildBasicSelect = (includeNotes: boolean) =>
+    `
+      id,
+      site_id,
+      partner_company_id,
+      request_id,
+      status,
+      shipment_date,
+      delivery_date,
+      total_amount,
+      notes,
+      shipment_items(
+        id,
+        material_id,
+        quantity,
+        unit_price,
+        total_price${includeNotes ? ', notes' : ''},
+        materials(name, code)
+      ),
+      sites(name)
+    `
+
+  const fetchBasicShipment = async (
+    client: SupabaseClient<any, 'public', any>,
+    includeNotes = true
+  ) =>
+    client
+      .from('material_shipments')
+      .select(buildBasicSelect(includeNotes))
+      .eq('id', id)
+      .maybeSingle()
+
+  const isMissingNotesError = (error: any) => {
+    if (!error) return false
+    const message = String(error.message || '').toLowerCase()
+    return message.includes('shipment_items') && message.includes('notes')
+  }
+
   let shipment: any = null
   try {
     const { data, error } = await supabase
@@ -287,24 +367,22 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     if (!error && data) {
       shipment = data
     } else {
-      const { data: basic } = await supabase
-        .from('material_shipments')
-        .select(
-          'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity, unit_price, total_price, notes), sites(name)'
-        )
-        .eq('id', id)
-        .maybeSingle()
-      shipment = basic
+      const basicAttempt = await fetchBasicShipment(supabase)
+      if (basicAttempt.error && isMissingNotesError(basicAttempt.error)) {
+        const retry = await fetchBasicShipment(supabase, false)
+        shipment = retry.data
+      } else {
+        shipment = basicAttempt.data
+      }
     }
   } catch {
-    const { data: basic } = await supabase
-      .from('material_shipments')
-      .select(
-        'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity, unit_price, total_price, notes), sites(name)'
-      )
-      .eq('id', id)
-      .maybeSingle()
-    shipment = basic
+    const basicAttempt = await fetchBasicShipment(supabase)
+    if (basicAttempt.error && isMissingNotesError(basicAttempt.error)) {
+      const retry = await fetchBasicShipment(supabase, false)
+      shipment = retry.data
+    } else {
+      shipment = basicAttempt.data
+    }
   }
 
   if (!shipment && serviceClient) {
@@ -316,8 +394,21 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
       shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(id, name),
       freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(id, name)
     `
-    const basicSelect =
-      'id, site_id, request_id, status, shipment_date, delivery_date, total_weight, driver_name, driver_phone, notes, shipment_items(id, material_id, quantity, unit_price, total_price, notes), sites(name)'
+    const basicSelect = (includeNotes: boolean) =>
+      `
+        id,
+        site_id,
+        request_id,
+        status,
+        shipment_date,
+        delivery_date,
+        total_weight,
+        driver_name,
+        driver_phone,
+        notes,
+        shipment_items(id, material_id, quantity, unit_price, total_price${includeNotes ? ', notes' : ''}),
+        sites(name)
+      `
 
     let svcShipment: any = null
     try {
@@ -332,25 +423,52 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
         if (error) {
           console.warn('[ShippingEditPage] service client relational fetch failed', error)
         }
-        const { data: basic, error: basicError } = await serviceClient
+        const basicAttempt = await serviceClient
           .from('material_shipments')
-          .select(basicSelect)
+          .select(basicSelect(true))
           .eq('id', id)
           .maybeSingle()
-        if (basic) {
-          svcShipment = basic
-        } else if (basicError) {
-          console.warn('[ShippingEditPage] service client fallback fetch failed', basicError)
+        if (basicAttempt.data) {
+          svcShipment = basicAttempt.data
+        } else if (basicAttempt.error) {
+          if (isMissingNotesError(basicAttempt.error)) {
+            const retry = await serviceClient
+              .from('material_shipments')
+              .select(basicSelect(false))
+              .eq('id', id)
+              .maybeSingle()
+            if (retry.data) {
+              svcShipment = retry.data
+            } else if (retry.error) {
+              console.warn('[ShippingEditPage] service client fallback fetch failed', retry.error)
+            }
+          } else {
+            console.warn(
+              '[ShippingEditPage] service client fallback fetch failed',
+              basicAttempt.error
+            )
+          }
         }
       }
     } catch (svcError) {
       console.warn('[ShippingEditPage] service client fetch threw', svcError)
-      const { data: basic } = await serviceClient
+      const basicAttempt = await serviceClient
         .from('material_shipments')
-        .select(basicSelect)
+        .select(basicSelect(true))
         .eq('id', id)
         .maybeSingle()
-      svcShipment = basic
+      if (basicAttempt?.data) {
+        svcShipment = basicAttempt.data
+      } else if (basicAttempt?.error && isMissingNotesError(basicAttempt.error)) {
+        const retry = await serviceClient
+          .from('material_shipments')
+          .select(basicSelect(false))
+          .eq('id', id)
+          .maybeSingle()
+        svcShipment = retry.data
+      } else {
+        svcShipment = basicAttempt?.data
+      }
     }
 
     if (svcShipment) {
@@ -360,7 +478,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
 
   if (!shipment) {
     console.warn('[ShippingEditPage] shipment not found, redirecting', id)
-    redirect('/mobile/production/shipping-payment')
+    redirect(listPath)
   }
 
   const metadata = parseMetadataSnapshot((shipment as any)?.notes || null)
@@ -584,176 +702,202 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
   const defaultSiteId = String((shipment as any)?.site_id || '')
   const defaultStatus = String((shipment as any)?.status || 'preparing')
 
-  return (
-    <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="shipping" />}>
-      <div className="p-5 space-y-5">
-        <div className="rounded-lg border p-4 bg-white">
-          <div className="flex items-center justify-between mb-3">
-            <div className="pm-section-title">출고 수정 입력</div>
-            <p className="text-[#31A3FA] font-semibold text-base">필수입력(*)후 저장</p>
+  const actionClasses = context === 'admin' ? 'flex justify-end gap-3 pt-4' : 'pm-form-actions'
+  const cancelButtonClass =
+    context === 'admin'
+      ? 'inline-flex items-center rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50'
+      : 'pm-btn pm-btn-secondary'
+  const saveButtonClass =
+    context === 'admin'
+      ? 'inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500'
+      : 'pm-btn pm-btn-primary'
+
+  const formContent = (
+    <div className="p-5 space-y-5">
+      <div className="rounded-lg border p-4 bg-white">
+        <div className="mb-5">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">출고 관리</p>
+            <h1 className="text-xl font-semibold text-foreground">출고 수정 입력</h1>
           </div>
-          <form action={updateShipment.bind(null, id)} className="pm-form pm-form--dense space-y-3">
+        </div>
+        <form action={updateShipment.bind(null, id)} className="pm-form pm-form--dense space-y-3">
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">
+              출고 품목<span className="req-mark"> *</span>
+            </label>
+            <ShipmentItemsFieldArray
+              materialOptions={materialOptions}
+              defaultItems={defaultItems}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm text-muted-foreground mb-1">
-                출고 품목<span className="req-mark"> *</span>
+                출고일<span className="req-mark"> *</span>
               </label>
-              <ShipmentItemsFieldArray
-                materialOptions={materialOptions}
-                defaultItems={defaultItems}
+              <input
+                type="date"
+                name="shipment_date"
+                className="w-full rounded border px-3 py-2"
+                defaultValue={defaultShipmentDate}
+                required
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  출고일<span className="req-mark"> *</span>
-                </label>
-                <input
-                  type="date"
-                  name="shipment_date"
-                  className="w-full rounded border px-3 py-2"
-                  defaultValue={defaultShipmentDate}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* 3. 현장명 선택 (1행1열) */}
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">현장명 선택</label>
-              <SelectField
-                name="site_id"
-                options={(sites || []).map(s => ({ value: s.id, label: s.name }))}
-                defaultValue={defaultSiteId}
-                placeholder="현장 선택"
-              />
-            </div>
-
-            <input type="hidden" name="carrier" value={(shipment as any)?.carrier || ''} />
-            <input
-              type="hidden"
-              name="tracking_number"
-              value={(shipment as any)?.tracking_number || ''}
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">현장명 선택</label>
+            <SelectField
+              name="site_id"
+              options={(sites || []).map(s => ({ value: s.id, label: s.name }))}
+              defaultValue={defaultSiteId}
+              placeholder="현장 선택"
             />
+          </div>
 
-            {/* 4. 자재거래처 선택 (1행1열) */}
+          <input type="hidden" name="carrier" value={(shipment as any)?.carrier || ''} />
+          <input
+            type="hidden"
+            name="tracking_number"
+            value={(shipment as any)?.tracking_number || ''}
+          />
+
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">자재거래처</label>
+            <MaterialPartnerSelect
+              name="partner_company_id"
+              options={materialPartnerOptions}
+              placeholder="자재거래처 선택"
+              defaultValue={defaultPartnerCompanyId}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <ShipmentAmountInput name="amount_net" defaultValue={defaultAmountNet} />
             <div>
-              <label className="block text-sm text-muted-foreground mb-1">자재거래처</label>
-              <MaterialPartnerSelect
-                name="partner_company_id"
-                options={materialPartnerOptions}
-                placeholder="자재거래처 선택"
-                defaultValue={defaultPartnerCompanyId}
+              <label className="block text-sm text-muted-foreground mb-1">
+                상태<span className="req-mark"> *</span>
+              </label>
+              <SelectField
+                name="status"
+                options={[
+                  { value: 'preparing', label: '대기' },
+                  { value: 'delivered', label: '완료' },
+                ]}
+                defaultValue={defaultStatus}
+                placeholder="상태 선택"
+                required
               />
             </div>
+          </div>
 
-            {/* 5. 출고금액 + 상태 (1행2열) */}
-            <div className="grid grid-cols-2 gap-3">
-              <ShipmentAmountInput name="amount_net" defaultValue={defaultAmountNet} />
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  상태<span className="req-mark"> *</span>
-                </label>
-                <SelectField
-                  name="status"
-                  options={[
-                    { value: 'preparing', label: '대기' },
-                    { value: 'delivered', label: '완료' },
-                  ]}
-                  defaultValue={defaultStatus}
-                  placeholder="상태 선택"
-                  required
-                />
-              </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">
+                청구방식<span className="req-mark"> *</span>
+              </label>
+              <SelectField
+                name="billing_method_id"
+                labelFieldName="billing_method_label"
+                options={billingOptions}
+                defaultValue={resolvedBillingValue}
+                placeholder="선택"
+                required
+              />
             </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">
+                배송방식<span className="req-mark"> *</span>
+              </label>
+              <SelectField
+                name="shipping_method_id"
+                labelFieldName="shipping_method_label"
+                options={shippingOptions}
+                defaultValue={resolvedShippingValue}
+                placeholder="선택"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">
+                선불/착불<span className="req-mark"> *</span>
+              </label>
+              <SelectField
+                name="freight_charge_method_id"
+                labelFieldName="freight_charge_method_label"
+                options={freightOptions}
+                defaultValue={resolvedFreightValue}
+                placeholder="선택"
+                required
+              />
+            </div>
+          </div>
 
-            {/* 6. 청구방식 + 배송방식 + 선불/착불 (1행3열) */}
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  청구방식<span className="req-mark"> *</span>
-                </label>
-                <SelectField
-                  name="billing_method_id"
-                  labelFieldName="billing_method_label"
-                  options={billingOptions}
-                  defaultValue={resolvedBillingValue}
-                  placeholder="선택"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  배송방식<span className="req-mark"> *</span>
-                </label>
-                <SelectField
-                  name="shipping_method_id"
-                  labelFieldName="shipping_method_label"
-                  options={shippingOptions}
-                  defaultValue={resolvedShippingValue}
-                  placeholder="선택"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  선불/착불<span className="req-mark"> *</span>
-                </label>
-                <SelectField
-                  name="freight_charge_method_id"
-                  labelFieldName="freight_charge_method_label"
-                  options={freightOptions}
-                  defaultValue={resolvedFreightValue}
-                  placeholder="선택"
-                  required
-                />
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="inline-flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                name="flag_etax"
+                className="h-4 w-4"
+                defaultChecked={defaultFlag('flag_etax')}
+              />{' '}
+              <span>전자세금계산서</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                name="flag_statement"
+                className="h-4 w-4"
+                defaultChecked={defaultFlag('flag_statement')}
+              />{' '}
+              <span>거래명세서</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                name="flag_freight_paid"
+                className="h-4 w-4"
+                defaultChecked={defaultFlag('flag_freight_paid')}
+              />{' '}
+              <span>운임비 지불</span>
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                name="flag_bill_amount"
+                className="h-4 w-4"
+                defaultChecked={defaultFlag('flag_bill_amount')}
+              />{' '}
+              <span>금액 청구</span>
+            </label>
+          </div>
 
-            {/* 7~8. 결제 옵션 (2행2열) */}
-            <div className="grid grid-cols-2 gap-x-2 gap-y-0">
-              <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input type="checkbox" name="flag_etax" defaultChecked={defaultFlag('flag_etax')} />{' '}
-                <span>전자세금계산서</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  name="flag_statement"
-                  defaultChecked={defaultFlag('flag_statement')}
-                />{' '}
-                <span>거래명세서</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  name="flag_freight_paid"
-                  defaultChecked={defaultFlag('flag_freight_paid')}
-                />{' '}
-                <span>운임비 지불</span>
-              </label>
-              <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  name="flag_bill_amount"
-                  defaultChecked={defaultFlag('flag_bill_amount')}
-                />{' '}
-                <span>금액 청구</span>
-              </label>
-            </div>
-
-            {/* 9. 취소 & 저장 (1행2열) */}
-            <div className="pm-form-actions">
-              <a href="/mobile/production/shipping-payment" className="pm-btn pm-btn-secondary">
-                취소
-              </a>
-              <button type="submit" className="pm-btn pm-btn-primary">
-                저장
-              </button>
-            </div>
-          </form>
-        </div>
+          <div className={actionClasses}>
+            <a href={listPath} className={cancelButtonClass}>
+              취소
+            </a>
+            <button type="submit" className={saveButtonClass}>
+              저장
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
+  )
+
+  if (context === 'admin') {
+    return (
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-4xl">{formContent}</div>
+      </div>
+    )
+  }
+
+  return (
+    <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="shipping" />}>
+      {formContent}
     </MobileLayoutWithAuth>
   )
 }

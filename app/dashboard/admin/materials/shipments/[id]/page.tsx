@@ -3,7 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import DataTable, { type Column } from '@/components/admin/DataTable'
+import ShipmentItemsClientTable from '@/components/admin/materials/ShipmentItemsClientTable'
 
 export const metadata: Metadata = { title: '출고 상세' }
 
@@ -132,44 +132,7 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
             <CardDescription>총 {(shipment?.shipment_items || []).length}개</CardDescription>
           </CardHeader>
           <CardContent>
-            <DataTable<any>
-              data={shipment?.shipment_items || []}
-              rowKey="id"
-              stickyHeader
-              columns={
-                [
-                  {
-                    key: 'name',
-                    header: '자재',
-                    sortable: true,
-                    render: (it: any) => (
-                      <span className="font-medium text-foreground">
-                        {it?.materials?.name || '-'}
-                      </span>
-                    ),
-                  },
-                  {
-                    key: 'code',
-                    header: '코드',
-                    sortable: true,
-                    render: (it: any) => it?.materials?.code || '-',
-                  },
-                  {
-                    key: 'quantity',
-                    header: '수량',
-                    sortable: true,
-                    align: 'right',
-                    render: (it: any) => it?.quantity ?? 0,
-                  },
-                  {
-                    key: 'unit',
-                    header: '단위',
-                    sortable: true,
-                    render: (it: any) => it?.materials?.unit || '-',
-                  },
-                ] as Column<any>[]
-              }
-            />
+            <ShipmentItemsClientTable items={(shipment?.shipment_items || []) as any} />
           </CardContent>
         </Card>
 

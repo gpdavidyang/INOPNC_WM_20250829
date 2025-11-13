@@ -931,38 +931,24 @@ export default async function AdminMaterialsPage({
               <div className="overflow-x-auto">
                 <div className="flex gap-3 min-w-max">
                   {(() => {
-                    const map = new Map<string, { total: number; paid: number; count: number }>()
+                    const map = new Map<string, { total: number; count: number }>()
                     ;(shipments as any[]).forEach((s: any) => {
                       const site = s.sites?.name || '-'
                       const total = Number(s.total_amount || 0)
-                      const paid = Array.isArray(s.payments)
-                        ? s.payments.reduce(
-                            (acc: number, p: any) => acc + Number(p?.amount || 0),
-                            0
-                          )
-                        : 0
-                      const cur = map.get(site) || { total: 0, paid: 0, count: 0 }
+                      const cur = map.get(site) || { total: 0, count: 0 }
                       cur.total += total
-                      cur.paid += paid
                       cur.count += 1
                       map.set(site, cur)
                     })
                     return Array.from(map.entries())
                       .sort((a, b) => a[0].localeCompare(b[0]))
                       .map(([site, v]) => {
-                        const outstanding = Math.max(0, v.total - v.paid)
                         return (
                           <div key={site} className="rounded-lg border bg-card p-3 shadow-sm">
                             <div className="text-sm font-medium mb-1">{site}</div>
                             <div className="text-xs text-muted-foreground">건수 {v.count}</div>
                             <div className="mt-1 text-xs">
                               총액 {Math.round(v.total).toLocaleString('ko-KR')} KRW
-                            </div>
-                            <div className="text-xs">
-                              수금 {Math.round(v.paid).toLocaleString('ko-KR')} KRW
-                            </div>
-                            <div className="text-xs">
-                              미수 {Math.round(outstanding).toLocaleString('ko-KR')} KRW
                             </div>
                           </div>
                         )
@@ -973,24 +959,6 @@ export default async function AdminMaterialsPage({
             )}
 
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <div className="mb-2 flex justify-between items-center">
-                <div>
-                  <a
-                    href="/dashboard/admin/materials/payments-report"
-                    className={buttonVariants({ variant: 'outline', size: 'standard' })}
-                    role="button"
-                  >
-                    결제 리포트
-                  </a>
-                </div>
-                <a
-                  className={buttonVariants({ variant: 'outline', size: 'standard' })}
-                  role="button"
-                  href={`/api/admin/materials/export?tab=shipments${search ? `&search=${encodeURIComponent(search)}` : ''}`}
-                >
-                  엑셀 다운로드
-                </a>
-              </div>
               <ShipmentsTable shipments={shipments as any} />
             </div>
           </div>
