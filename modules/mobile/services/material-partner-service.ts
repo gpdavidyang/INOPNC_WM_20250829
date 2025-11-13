@@ -23,27 +23,34 @@ const API_PATH = '/api/admin/material-suppliers'
 export async function loadMaterialPartnerRows(
   status: keyof typeof STATUS_QUERY = 'active'
 ): Promise<SupplierRow[]> {
-  const queryString = status === 'all' ? '' : `?status=${STATUS_QUERY[status]}`
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
-  const apiUrl = `${baseUrl}${API_PATH}${queryString}`
+  const shouldUseApi =
+    typeof window !== 'undefined' &&
+    Boolean(process.env.NEXT_PUBLIC_SITE_URL) &&
+    process.env.NEXT_RUNTIME !== 'edge'
 
-  try {
-    const res = await fetch(apiUrl, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
-      credentials: 'include',
-    })
-    if (res.ok) {
-      const json = (await res.json()) as SupplierApiResponse
-      if (Array.isArray(json?.data?.material_suppliers)) {
-        return json.data.material_suppliers
+  if (shouldUseApi) {
+    const queryString = status === 'all' ? '' : `?status=${STATUS_QUERY[status]}`
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? ''
+    const apiUrl = `${baseUrl}${API_PATH}${queryString}`
+
+    try {
+      const res = await fetch(apiUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      if (res.ok) {
+        const json = (await res.json()) as SupplierApiResponse
+        if (Array.isArray(json?.data?.material_suppliers)) {
+          return json.data.material_suppliers
+        }
+      } else {
+        console.warn('[loadMaterialPartnerRows] API error:', res.status, res.statusText)
       }
-    } else {
-      console.warn('[loadMaterialPartnerRows] API error:', res.status, res.statusText)
+    } catch (error) {
+      console.error('[loadMaterialPartnerRows] API fetch failed', error)
     }
-  } catch (error) {
-    console.error('[loadMaterialPartnerRows] API fetch failed', error)
   }
 
   const supabase = createClient()

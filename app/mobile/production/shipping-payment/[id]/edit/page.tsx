@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireAuth } from '@/lib/auth/ultra-simple'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { ProductionManagerTabs } from '@/modules/mobile/components/navigation/ProductionManagerTabs'
@@ -252,8 +253,18 @@ async function updateShipment(id: string, formData: FormData) {
 }
 
 export default async function ShippingEditPage({ params }: { params: { id: string } }) {
+  console.log('[ShippingEditPage] render start', params?.id)
   await requireAuth('/mobile/production')
   const supabase = createClient()
+  let serviceClient: ReturnType<typeof createServiceClient> | null = null
+  try {
+    serviceClient = createServiceClient()
+  } catch (error) {
+    console.warn(
+      '[ShippingEditPage] service client unavailable, continuing with session client',
+      error
+    )
+  }
   const id = params.id
 
   // Load shipment with robust fallback (schema-independent)
@@ -279,7 +290,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
       const { data: basic } = await supabase
         .from('material_shipments')
         .select(
-          'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity), sites(name)'
+          'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity, unit_price, total_price, notes), sites(name)'
         )
         .eq('id', id)
         .maybeSingle()
@@ -289,14 +300,66 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
     const { data: basic } = await supabase
       .from('material_shipments')
       .select(
-        'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity), sites(name)'
+        'id, site_id, partner_company_id, shipment_date, status, shipment_items(id, material_id, quantity, unit_price, total_price, notes), sites(name)'
       )
       .eq('id', id)
       .maybeSingle()
     shipment = basic
   }
 
+  if (!shipment && serviceClient) {
+    const relationalSelect = `
+      *,
+      sites(name),
+      shipment_items(id, material_id, quantity, unit_price, total_price, notes, materials(name, code)),
+      billing_method:payment_methods!material_shipments_billing_method_id_fkey(id, name),
+      shipping_method:payment_methods!material_shipments_shipping_method_id_fkey(id, name),
+      freight_method:payment_methods!material_shipments_freight_charge_method_id_fkey(id, name)
+    `
+    const basicSelect =
+      'id, site_id, request_id, status, shipment_date, delivery_date, total_weight, driver_name, driver_phone, notes, shipment_items(id, material_id, quantity, unit_price, total_price, notes), sites(name)'
+
+    let svcShipment: any = null
+    try {
+      const { data, error } = await serviceClient
+        .from('material_shipments')
+        .select(relationalSelect)
+        .eq('id', id)
+        .maybeSingle()
+      if (!error && data) {
+        svcShipment = data
+      } else {
+        if (error) {
+          console.warn('[ShippingEditPage] service client relational fetch failed', error)
+        }
+        const { data: basic, error: basicError } = await serviceClient
+          .from('material_shipments')
+          .select(basicSelect)
+          .eq('id', id)
+          .maybeSingle()
+        if (basic) {
+          svcShipment = basic
+        } else if (basicError) {
+          console.warn('[ShippingEditPage] service client fallback fetch failed', basicError)
+        }
+      }
+    } catch (svcError) {
+      console.warn('[ShippingEditPage] service client fetch threw', svcError)
+      const { data: basic } = await serviceClient
+        .from('material_shipments')
+        .select(basicSelect)
+        .eq('id', id)
+        .maybeSingle()
+      svcShipment = basic
+    }
+
+    if (svcShipment) {
+      shipment = svcShipment
+    }
+  }
+
   if (!shipment) {
+    console.warn('[ShippingEditPage] shipment not found, redirecting', id)
     redirect('/mobile/production/shipping-payment')
   }
 

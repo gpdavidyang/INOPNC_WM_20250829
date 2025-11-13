@@ -53,63 +53,86 @@ export async function getAuthForClient(
 }
 
 async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<SimpleAuth | null> {
-  try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
+  let refreshAttempted = false
 
-    if (error) {
+  while (true) {
+    try {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser()
+
+      if (error) {
+        if (isRecoverableAuthError(error)) {
+          if (refreshAttempted) {
+            console.warn('[auth] recoverable Supabase auth error persisted after refresh')
+            return null
+          }
+          const refreshed = await tryRefreshSession(supabase)
+          if (refreshed) {
+            refreshAttempted = true
+            continue
+          }
+          return null
+        }
+        throw error
+      }
+
+      if (!user) return null
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, organization_id, partner_company_id, full_name, site_id, status')
+        .eq('id', user.id)
+        .single()
+
+      if (profileError) {
+        if (isRecoverableAuthError(profileError)) {
+          if (refreshAttempted) {
+            console.warn('[auth] recoverable profile lookup error persisted after refresh')
+            return null
+          }
+          const refreshed = await tryRefreshSession(supabase)
+          if (refreshed) {
+            refreshAttempted = true
+            continue
+          }
+          return null
+        }
+        throw profileError
+      }
+
+      const normalizedRole = normalizeUserRole(profile?.role)
+
+      return {
+        userId: user.id,
+        email: user.email!,
+        isRestricted: normalizedRole === 'customer_manager',
+        restrictedOrgId:
+          (profile as any)?.partner_company_id || (profile as any)?.organization_id || undefined,
+        uiTrack: getUITrack(normalizedRole),
+        role: normalizedRole,
+      }
+    } catch (error) {
       if (isRecoverableAuthError(error)) {
-        console.warn('[auth] recoverable Supabase auth error detected, forcing re-authentication')
+        if (!refreshAttempted && (await tryRefreshSession(supabase))) {
+          refreshAttempted = true
+          continue
+        }
+        console.warn('[auth] recoverable Supabase auth exception, returning null session')
         return null
+      }
+      if (error instanceof Error) {
+        if (error.name === 'AuthSessionMissingError') {
+          return null
+        }
+        const message = error.message.toLowerCase()
+        if (message.includes('invalid') && message.includes('jwt')) {
+          return null
+        }
       }
       throw error
     }
-
-    if (!user) return null
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role, organization_id, partner_company_id, full_name, site_id, status')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError) {
-      if (isRecoverableAuthError(profileError)) {
-        console.warn('[auth] recoverable profile lookup error, forcing re-authentication')
-        return null
-      }
-      throw profileError
-    }
-
-    const normalizedRole = normalizeUserRole(profile?.role)
-
-    return {
-      userId: user.id,
-      email: user.email!,
-      isRestricted: normalizedRole === 'customer_manager',
-      // Prefer partner_company_id for restricted organization, fallback to legacy organization_id
-      restrictedOrgId:
-        (profile as any)?.partner_company_id || (profile as any)?.organization_id || undefined,
-      uiTrack: getUITrack(normalizedRole),
-      role: normalizedRole,
-    }
-  } catch (error) {
-    if (isRecoverableAuthError(error)) {
-      console.warn('[auth] recoverable Supabase auth exception, returning null session')
-      return null
-    }
-    if (error instanceof Error) {
-      if (error.name === 'AuthSessionMissingError') {
-        return null
-      }
-      const message = error.message.toLowerCase()
-      if (message.includes('invalid') && message.includes('jwt')) {
-        return null
-      }
-    }
-    throw error
   }
 }
 
@@ -143,6 +166,21 @@ function isRecoverableAuthError(error: unknown): boolean {
     )
   }
   return false
+}
+
+async function tryRefreshSession(supabase: SupabaseClient<Database>): Promise<boolean> {
+  try {
+    console.warn('[auth] attempting Supabase session refresh due to recoverable error')
+    const { data, error } = await supabase.auth.refreshSession()
+    if (error) {
+      console.warn('[auth] session refresh failed:', error)
+      return false
+    }
+    return Boolean(data?.session?.user)
+  } catch (refreshError) {
+    console.warn('[auth] session refresh threw an exception:', refreshError)
+    return false
+  }
 }
 
 // 2. UI 트랙 결정 (5줄)

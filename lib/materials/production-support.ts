@@ -92,13 +92,27 @@ export function parseProductionMetadata(raw: unknown): ProductionMetadata {
  * falling back to the first line of the raw notes text.
  */
 export function extractProductionMemo(raw: unknown, metadata?: ProductionMetadata): string | null {
-  if (metadata && typeof metadata.memo === 'string' && metadata.memo.trim()) {
-    return metadata.memo.trim()
+  const cleanedMemo = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) return null
+    if (trimmed.startsWith('memo: {') || trimmed.toLowerCase().includes('"fallback_reason"'))
+      return null
+    return trimmed
+  }
+
+  const metaMemo = metadata?.memo
+  const resolvedMetaMemo = cleanedMemo(metaMemo)
+  if (resolvedMetaMemo) {
+    return resolvedMetaMemo
   }
 
   const rawText = typeof raw === 'string' ? raw.trim() : ''
   if (!rawText) return null
-  return rawText.split('\n')[0] || null
+  const firstLine = rawText.split('\n')[0] || ''
+  const fallback = cleanedMemo(firstLine)
+  return fallback
 }
 
 /**
