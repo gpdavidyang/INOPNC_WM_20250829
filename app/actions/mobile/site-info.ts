@@ -200,34 +200,34 @@ export async function getCurrentUserSite() {
       return { success: true, data: null }
     }
 
-    // Fetch site documents (PTW and Blueprint) for the current site
+    // Fetch site documents (PTW/공도면/진행도면) via unified_document_system
     try {
-      log('getCurrentUserSite: Fetching site documents for site_id:', siteData.site_id)
-
-      // Use documents table instead of site_documents
-      const { data: documents, error: documentsError } = await supabase
-        .from('documents')
-        .select('id, title, file_name, file_url, document_type, created_at, updated_at')
+      log('getCurrentUserSite: Fetching shared docs via UDS for site_id:', siteData.site_id)
+      const { data: sharedDocs, error: sharedError } = await supabase
+        .from('unified_document_system')
+        .select('id, title, file_name, file_url, sub_category, created_at, metadata')
         .eq('site_id', siteData.site_id)
-        .in('document_type', ['ptw', 'blueprint'])
+        .eq('category_type', 'shared')
+        .eq('status', 'active')
+        .eq('is_archived', false)
+        .in('sub_category', [
+          'ptw',
+          'construction_drawing',
+          'blueprint',
+          'plan',
+          'progress_drawing',
+        ])
         .order('created_at', { ascending: false })
 
-      if (documentsError) {
-        log('getCurrentUserSite: Document query error (non-fatal):', documentsError)
+      if (sharedError) {
+        log('getCurrentUserSite: UDS document query error (non-fatal):', sharedError)
       } else {
-        log('getCurrentUserSite: Found documents:', documents?.length || 0)
-
-        // Add documents to site data using the getSiteDocumentsPTWAndBlueprint logic
-        const ptwDocument = documents?.find(
-          (doc: unknown) =>
-            doc.document_type === 'ptw' ||
-            (doc.title && (doc.title.includes('PTW') || doc.title.includes('작업허가서')))
+        const ptwDocument = sharedDocs?.find((doc: any) => doc.sub_category === 'ptw')
+        const blueprintDocument = sharedDocs?.find((doc: any) =>
+          ['construction_drawing', 'blueprint', 'plan'].includes(doc.sub_category || '')
         )
-        const blueprintDocument = documents?.find(
-          (doc: unknown) =>
-            doc.document_type === 'blueprint' ||
-            doc.document_type === 'drawing' ||
-            (doc.title && (doc.title.includes('도면') || doc.title.includes('blueprint')))
+        const progressDocument = sharedDocs?.find(
+          (doc: any) => doc.sub_category === 'progress_drawing'
         )
 
         if (ptwDocument) {
@@ -239,7 +239,6 @@ export async function getCurrentUserSite() {
             document_type: 'ptw',
             created_at: ptwDocument.created_at,
           }
-          log('getCurrentUserSite: Added PTW document:', ptwDocument.title)
         }
 
         if (blueprintDocument) {
@@ -251,11 +250,21 @@ export async function getCurrentUserSite() {
             document_type: 'blueprint',
             created_at: blueprintDocument.created_at,
           }
-          log('getCurrentUserSite: Added blueprint document:', blueprintDocument.title)
+        }
+
+        if (progressDocument) {
+          siteData.progress_document = {
+            id: progressDocument.id,
+            title: progressDocument.title || progressDocument.file_name,
+            file_name: progressDocument.file_name,
+            file_url: progressDocument.file_url,
+            document_type: 'progress_drawing',
+            created_at: progressDocument.created_at,
+          }
         }
       }
     } catch (docError) {
-      log('getCurrentUserSite: Error fetching documents (non-fatal):', docError)
+      log('getCurrentUserSite: Error fetching unified documents (non-fatal):', docError)
     }
 
     log('getCurrentUserSite: Success')

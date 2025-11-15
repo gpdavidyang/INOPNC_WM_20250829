@@ -179,7 +179,7 @@ export async function getMarkupDocuments(
           `
           *,
           creator:profiles!markup_documents_created_by_fkey(full_name, email),
-          site:sites(name, organization_id)
+          site:sites(id, name, organization_id)
         `,
           { count: 'exact' }
         )

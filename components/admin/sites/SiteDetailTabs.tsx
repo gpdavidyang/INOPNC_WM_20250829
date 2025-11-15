@@ -32,7 +32,10 @@ import {
   DEFAULT_SHARED_DOCUMENT_CATEGORIES,
   type SharedDocumentCategoryOption,
 } from '@/lib/constants/shared-document-categories'
-import { resolveSharedDocCategoryLabel } from '@/lib/documents/shared-documents'
+import {
+  resolveSharedDocCategoryLabel,
+  matchesSharedDocCategory,
+} from '@/lib/documents/shared-documents'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import StatsCard from '@/components/ui/stats-card'
 import {
@@ -3274,10 +3277,11 @@ export default function SiteDetailTabs({
                     <TableBody>
                       {filteredSharedDocs.map((doc: any, idx: number) => {
                         const docId = doc?.id ? String(doc.id) : `${idx}`
+                        const metadata = parseSharedDocMetadata(doc)
                         const uploader =
                           doc?.profiles?.full_name ||
                           doc?.uploaded_by_profile?.full_name ||
-                          doc?.metadata?.uploader ||
+                          metadata?.uploader ||
                           ''
                         const deleting = Boolean(sharedDeleting[docId])
                         const fileUrl = getSharedDocFileUrl(doc)
@@ -3285,7 +3289,13 @@ export default function SiteDetailTabs({
                         const downloadHref = fileUrl ?? null
                         const hasDownload = Boolean(downloadHref)
                         const downloading = docId ? Boolean(sharedDownloading[docId]) : false
-                        const isMarkupDoc = doc?.metadata?.source_table === 'markup_documents'
+                        const isMarkupDoc = metadata?.source_table === 'markup_documents'
+                        const markupOpenHref = buildMarkupToolHrefForDoc(
+                          doc,
+                          siteId,
+                          metadata,
+                          fileUrl
+                        )
                         const isEditing = sharedEditingDocId === docId
                         const editDraft = isEditing && sharedEditDraft ? sharedEditDraft : null
                         const updating = Boolean(sharedUpdating[docId])
@@ -3400,6 +3410,11 @@ export default function SiteDetailTabs({
                             </TableCell>
                             <TableCell className="align-top">
                               <div className="flex flex-wrap items-center justify-end gap-2">
+                                {markupOpenHref ? (
+                                  <Button asChild size="sm" variant="secondary" className="gap-1">
+                                    <a href={markupOpenHref}>열기</a>
+                                  </Button>
+                                ) : null}
                                 {hasPreview && fileUrl ? (
                                   <Button asChild size="sm" variant="outline" className="gap-1">
                                     <a href={fileUrl} target="_blank" rel="noopener noreferrer">
@@ -3432,7 +3447,7 @@ export default function SiteDetailTabs({
                                     다운로드
                                   </Button>
                                 )}
-                                {isMarkupDoc ? null : isEditing ? (
+                                {isEditing ? (
                                   <>
                                     <Button
                                       size="sm"
@@ -3755,6 +3770,68 @@ function getSharedDocFileUrl(doc: any): string | null {
     if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate
   }
   return null
+}
+
+function parseSharedDocMetadata(doc: any): Record<string, any> {
+  const raw = doc?.metadata
+  if (!raw) return {}
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw))
+    return raw as Record<string, any>
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+
+function getMarkupDocumentIdFromMetadata(metadata: Record<string, any>): string | null {
+  const candidates = [
+    metadata?.markup_document_id,
+    metadata?.source_id,
+    metadata?.document_id,
+    metadata?.markup_id,
+  ]
+  for (const candidate of candidates) {
+    if (candidate && typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim()
+    }
+  }
+  return null
+}
+
+function isMarkupEligibleSharedDoc(doc: any): boolean {
+  return matchesSharedDocCategory(doc, 'construction') || matchesSharedDocCategory(doc, 'progress')
+}
+
+function buildMarkupToolHrefForDoc(
+  doc: any,
+  siteId: string,
+  metadata: Record<string, any>,
+  preResolvedUrl?: string | null
+): string | null {
+  const markupId = getMarkupDocumentIdFromMetadata(metadata)
+  if (metadata?.source_table === 'markup_documents' && markupId) {
+    return `/dashboard/admin/tools/markup?docId=${markupId}`
+  }
+  if (!isMarkupEligibleSharedDoc(doc)) return null
+  const fileUrl = preResolvedUrl || getSharedDocFileUrl(doc)
+  if (!fileUrl) return null
+  const params = new URLSearchParams()
+  params.set('blueprintUrl', fileUrl)
+  const title = doc?.title || doc?.file_name || '도면'
+  params.set('title', title)
+  const resolvedSiteId =
+    (typeof doc?.site_id === 'string' && doc.site_id) ||
+    (typeof metadata?.site_id === 'string' && metadata.site_id) ||
+    siteId
+  if (resolvedSiteId) params.set('siteId', resolvedSiteId)
+  if (doc?.id) params.set('unifiedDocumentId', String(doc.id))
+  params.set('startEmpty', '1')
+  return `/dashboard/admin/tools/markup?${params.toString()}`
 }
 
 // Helpers: filter/sort for assignments and requests

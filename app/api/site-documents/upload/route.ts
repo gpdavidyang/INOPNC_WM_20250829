@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { mapDocumentTypeToSharedSubcategory } from '@/lib/unified-documents'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -143,6 +145,37 @@ export async function POST(request: NextRequest) {
           error: '문서 정보 저장에 실패했습니다.',
         },
         { status: 500 }
+      )
+    }
+
+    // Mirror record into unified_document_system (shared documents)
+    try {
+      const serviceClient = createServiceRoleClient()
+      const subCategory = mapDocumentTypeToSharedSubcategory(documentType)
+      await serviceClient.from('unified_document_system').insert({
+        title: file.name,
+        description: null,
+        file_name: file.name,
+        file_url: publicUrl,
+        file_size: file.size,
+        mime_type: file.type,
+        category_type: 'shared',
+        sub_category: subCategory,
+        uploaded_by: authResult.userId,
+        site_id: siteId,
+        status: 'active',
+        is_archived: false,
+        metadata: {
+          document_type: documentType,
+          storage_path: uploadData.path,
+          source_table: 'site_documents',
+          source_site_document_id: documentRecord.id,
+        },
+      })
+    } catch (udsError) {
+      console.warn(
+        '[site-documents/upload] Failed to insert into unified_document_system',
+        udsError
       )
     }
 

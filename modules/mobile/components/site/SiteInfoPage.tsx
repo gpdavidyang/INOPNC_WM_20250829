@@ -1033,7 +1033,7 @@ export default function SiteInfoPage() {
         type: 'progress',
         uploadDate: new Date(),
         isMarked: false,
-        source: 'site_documents',
+        source: 'unified_document_system',
         siteId: currentSite.id,
         siteName: currentSite.name,
       }
@@ -1155,7 +1155,7 @@ export default function SiteInfoPage() {
           type: 'progress',
           uploadDate: new Date(),
           isMarked: false,
-          source: 'site_documents',
+          source: 'unified_document_system',
           siteId: currentSite.id,
           siteName: currentSite.name,
         }
