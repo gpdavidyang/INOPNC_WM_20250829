@@ -31,6 +31,7 @@ interface MarkupDocument {
     change_summary?: string
     original_blueprint_url?: string
     original_blueprint_filename?: string
+    daily_report_id?: string | null
   }
   profiles?: {
     id: string
@@ -42,6 +43,12 @@ interface MarkupDocument {
     name: string
     address: string
   }
+  daily_report?: {
+    id: string
+    work_date?: string | null
+    member_name?: string | null
+    status?: string | null
+  } | null
 }
 
 interface Site {
@@ -84,47 +91,56 @@ export default function MarkupDocumentsManagement() {
   const fetchDocuments = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('unified_document_system')
-        .select(
-          `
-          *,
-          profiles!unified_document_system_uploaded_by_fkey(id, full_name, email),
-          sites(id, name, address)
-        `,
-          { count: 'exact' }
-        )
-        .eq('category_type', 'markup')
-        .eq('status', 'active')
-
-      // 검색 필터 적용
-      if (searchTerm) {
-        query = query.or(
-          `title.ilike.%${searchTerm}%,original_filename.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
-        )
+      const params = new URLSearchParams({
+        admin: 'true',
+        limit: String(itemsPerPage),
+        page: String(currentPage),
+      })
+      if (searchTerm) params.set('search', searchTerm)
+      if (selectedSite) params.set('site', selectedSite)
+      const res = await fetch(`/api/markup-documents?${params.toString()}`)
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.success === false) {
+        throw new Error(json?.error || '도면마킹 문서를 불러오지 못했습니다.')
       }
-
-      // 현장 필터 적용
-      if (selectedSite) {
-        query = query.eq('site_id', selectedSite)
-      }
-
-      const from = (currentPage - 1) * itemsPerPage
-      const to = from + itemsPerPage - 1
-
-      const { data, error, count } = await query
-        .order('updated_at', { ascending: false })
-        .range(from, to)
-
-      if (error) throw error
-
-      setDocuments(data || [])
-      setTotalCount(count || 0)
+      const docList = Array.isArray(json?.documents) ? json.documents : json?.data || []
+      setDocuments(docList)
+      const total =
+        typeof json?.pagination?.total === 'number'
+          ? json.pagination.total
+          : Array.isArray(json?.data)
+            ? json.data.length
+            : 0
+      setTotalCount(total)
     } catch (error) {
       console.error('Error fetching markup documents:', error)
     } finally {
       setLoading(false)
     }
+  }
+
+  const formatDailyReportStatus = (status?: string | null) => {
+    if (!status) return '상태 미정'
+    const map: Record<string, string> = {
+      submitted: '제출 완료',
+      draft: '임시 저장',
+      saved: '임시 저장',
+      pending: '검토 중',
+      approved: '승인 완료',
+      rejected: '반려',
+    }
+    const key = status.toString().toLowerCase()
+    return map[key] || status
+  }
+
+  const formatDailyReportLabel = (log?: MarkupDocument['daily_report'] | null) => {
+    if (!log) return '미연결'
+    const dateLabel = log.work_date
+      ? new Date(log.work_date).toLocaleDateString('ko-KR')
+      : '날짜 미정'
+    const memberLabel = log.member_name || '작성자 미상'
+    const statusLabel = formatDailyReportStatus(log.status)
+    return `${dateLabel} · ${memberLabel} · ${statusLabel}`
   }
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -182,8 +198,10 @@ export default function MarkupDocumentsManagement() {
   }
 
   const handleDocumentClick = (document: MarkupDocument) => {
-    // 상세 페이지로 이동
-    window.location.href = `/dashboard/admin/documents/markup/${document.id}`
+    toast({
+      title: '미리보기를 사용할 수 없습니다',
+      description: '도면마킹 문서는 목록에서 직접 편집하거나 다운로드해 주세요.',
+    })
   }
 
   const handleVersionRestore = () => {
@@ -299,6 +317,9 @@ export default function MarkupDocumentsManagement() {
                     현장
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업일지
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     생성자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -353,6 +374,16 @@ export default function MarkupDocumentsManagement() {
                       </div>
                       {document.sites?.address && (
                         <div className="text-sm text-gray-500">{document.sites.address}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {formatDailyReportLabel(document.daily_report)}
+                      </div>
+                      {document.metadata?.daily_report_id && !document.daily_report && (
+                        <div className="text-xs text-gray-500">
+                          ID: {document.metadata.daily_report_id}
+                        </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

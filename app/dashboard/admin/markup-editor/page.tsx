@@ -62,7 +62,6 @@ export default async function AdminMarkupEditorPage() {
                     <TableHead>제목</TableHead>
                     <TableHead>현장</TableHead>
                     <TableHead>작성자</TableHead>
-                    <TableHead>보기</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -81,14 +80,6 @@ export default async function AdminMarkupEditorPage() {
                         </TableCell>
                         <TableCell>{d.site?.name || '-'}</TableCell>
                         <TableCell>{d.creator?.full_name || d.creator?.email || '-'}</TableCell>
-                        <TableCell>
-                          <Link
-                            href={`/dashboard/admin/documents/markup/${d.id}`}
-                            className="underline text-blue-600"
-                          >
-                            열기
-                          </Link>
-                        </TableCell>
                       </TableRow>
                     ))
                   )}

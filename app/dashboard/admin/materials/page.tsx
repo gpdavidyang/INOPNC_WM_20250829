@@ -36,7 +36,9 @@ import { INVENTORY_SORT_COLUMNS, type InventorySortKey } from '@/lib/admin/mater
 import {
   MATERIAL_PRIORITY_BADGE_VARIANTS,
   MATERIAL_PRIORITY_LABELS,
+  normalizeMaterialPriority,
   isMaterialPriorityValue,
+  type MaterialPriorityValue,
 } from '@/lib/materials/priorities'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -677,18 +679,59 @@ export default async function AdminMaterialsPage({
           <div className="space-y-4">
             {/* Requests summary cards */}
             {Array.isArray(requests) && (
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-3">
                 {(() => {
-                  const totalReq = (requests as any[]).length
-                  const count = (st: string) =>
-                    (requests as any[]).filter(r => (r.status || '').toLowerCase() === st).length
+                  const totalReq = requests.length
+                  const uniqueSiteCount = (() => {
+                    const siteIds = new Set<string>()
+                    requests.forEach(rq => {
+                      const siteKey =
+                        (rq.site_id && String(rq.site_id)) ||
+                        (rq.sites?.id && String(rq.sites.id)) ||
+                        rq.sites?.name ||
+                        ''
+                      if (siteKey) {
+                        siteIds.add(siteKey)
+                      }
+                    })
+                    return siteIds.size
+                  })()
+                  const totalRequestQuantity = requests.reduce((sum, rq) => {
+                    const items = Array.isArray(rq.items)
+                      ? rq.items
+                      : Array.isArray(rq.material_request_items)
+                        ? rq.material_request_items
+                        : []
+                    const itemSum = items.reduce(
+                      (acc: number, item: any) => acc + Number(item?.requested_quantity ?? 0),
+                      0
+                    )
+                    return sum + itemSum
+                  }, 0)
+                  const priorityCounts: Record<MaterialPriorityValue, number> = {
+                    low: 0,
+                    normal: 0,
+                    high: 0,
+                    urgent: 0,
+                  }
+                  requests.forEach(rq => {
+                    const priority = normalizeMaterialPriority(rq?.priority)
+                    priorityCounts[priority] += 1
+                  })
+                  const priorityOrder: MaterialPriorityValue[] = ['urgent', 'high', 'normal', 'low']
                   return (
                     <>
                       <StatsCard label="요청건수" value={totalReq} unit="건" />
-                      <StatsCard label="대기" value={count('pending')} unit="건" />
-                      <StatsCard label="승인" value={count('approved')} unit="건" />
-                      <StatsCard label="발주" value={count('ordered')} unit="건" />
-                      <StatsCard label="입고완료" value={count('delivered')} unit="건" />
+                      <StatsCard label="요청현장수" value={uniqueSiteCount} unit="곳" />
+                      <StatsCard label="요청수량" value={totalRequestQuantity} unit="ea" />
+                      {priorityOrder.map(priority => (
+                        <StatsCard
+                          key={priority}
+                          label={`긴급도 (${MATERIAL_PRIORITY_LABELS[priority]})`}
+                          value={priorityCounts[priority]}
+                          unit="건"
+                        />
+                      ))}
                     </>
                   )
                 })()}
@@ -776,22 +819,16 @@ export default async function AdminMaterialsPage({
         {tab === 'productions' && (
           <div className="space-y-4">
             {Array.isArray(productions) && productions.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
                 {(() => {
                   const totalQty = productions.reduce(
                     (sum, row) => sum + Number(row.produced_quantity ?? 0),
                     0
                   )
-                  const countByStatus = (status: string) =>
-                    productions.filter(
-                      row => String(row.quality_status || '').toLowerCase() === status
-                    ).length
                   return (
                     <>
                       <StatsCard label="생산건수" value={productions.length} unit="건" />
                       <StatsCard label="총 생산량" value={totalQty} unit="ea" />
-                      <StatsCard label="승인" value={countByStatus('approved')} unit="건" />
-                      <StatsCard label="대기" value={countByStatus('pending')} unit="건" />
                     </>
                   )
                 })()}
@@ -896,12 +933,6 @@ export default async function AdminMaterialsPage({
                     (acc, s) => acc + Number((s as any)?.total_amount || 0),
                     0
                   )
-                  const paid = (shipments as any[]).reduce((acc, s) => {
-                    const ps = Array.isArray((s as any)?.payments) ? (s as any).payments : []
-                    const sum = ps.reduce((a: number, p: any) => a + Number(p?.amount || 0), 0)
-                    return acc + sum
-                  }, 0)
-                  const outstanding = Math.max(0, total - paid)
                   const count = (shipments as any[]).length
                   const getStatusCount = (predicate: (status: string) => boolean) =>
                     (shipments as any[]).filter(s => predicate(String((s as any)?.status || '')))
@@ -916,8 +947,6 @@ export default async function AdminMaterialsPage({
                     <>
                       <StatsCard label="출고건수" value={count} unit="건" />
                       <StatsCard label="금액" value={total} unit="KRW" />
-                      <StatsCard label="수금" value={paid} unit="KRW" />
-                      <StatsCard label="미수" value={outstanding} unit="KRW" />
                       <StatsCard label="진행" value={pending} unit="건" />
                       <StatsCard label="완료" value={completed} unit="건" />
                     </>

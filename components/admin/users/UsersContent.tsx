@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Users, RefreshCw, Filter } from 'lucide-react'
+import { Search, Users, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import StatsCard from '@/components/ui/stats-card'
@@ -43,6 +43,8 @@ interface UsersContentProps {
 
 type RoleFilterOption = 'all' | UserRole
 type StatusFilterOption = 'all' | UserStatus
+type SortDirection = 'asc' | 'desc'
+type SortColumn = 'name' | 'role' | 'organization' | 'status' | 'last_activity'
 
 const ROLE_OPTIONS: { value: RoleFilterOption; label: string }[] = [
   { value: 'all', label: '전체 역할' },
@@ -116,6 +118,8 @@ export function UsersContent({
   const [searchInput, setSearchInput] = useState('')
   const [roleFilter, setRoleFilter] = useState<RoleFilterOption>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all')
+  const [sortKey, setSortKey] = useState<SortColumn | null>(null)
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const router = useRouter()
 
   const isSystemAdmin = useMemo(() => currentAdminRole === 'system_admin', [currentAdminRole])
@@ -127,6 +131,8 @@ export function UsersContent({
         search?: string
         role?: RoleFilterOption
         status?: StatusFilterOption
+        sortKey?: SortColumn | null
+        sortDirection?: SortDirection
       }
     ) => {
       setLoading(true)
@@ -135,6 +141,11 @@ export function UsersContent({
       const effectiveSearch = overrides?.search ?? searchTerm
       const effectiveRole = overrides?.role ?? roleFilter
       const effectiveStatus = overrides?.status ?? statusFilter
+      const effectiveSortKey =
+        overrides && Object.prototype.hasOwnProperty.call(overrides, 'sortKey')
+          ? (overrides.sortKey ?? null)
+          : sortKey
+      const effectiveSortDirection = overrides?.sortDirection ?? sortDirection
 
       try {
         const params = new URLSearchParams({
@@ -150,6 +161,10 @@ export function UsersContent({
         }
         if (effectiveStatus !== 'all') {
           params.set('status', effectiveStatus)
+        }
+        if (effectiveSortKey) {
+          params.set('sort_by', effectiveSortKey)
+          params.set('sort_order', effectiveSortDirection)
         }
 
         const response = await fetch(`/api/admin/users?${params.toString()}`, { cache: 'no-store' })
@@ -167,6 +182,8 @@ export function UsersContent({
         setSearchInput(effectiveSearch)
         setRoleFilter(effectiveRole)
         setStatusFilter(effectiveStatus)
+        setSortKey(effectiveSortKey)
+        setSortDirection(effectiveSortDirection)
       } catch (err) {
         console.error('Failed to fetch users', err)
         setError(err instanceof Error ? err.message : '사용자 목록을 불러오지 못했습니다.')
@@ -174,7 +191,7 @@ export function UsersContent({
         setLoading(false)
       }
     },
-    [pageSize, roleFilter, searchTerm, statusFilter]
+    [pageSize, roleFilter, searchTerm, statusFilter, sortDirection, sortKey]
   )
 
   const handleSearch = useCallback(() => {
@@ -186,11 +203,49 @@ export function UsersContent({
     fetchUsers(1, { search: '', role: 'all', status: 'all' })
   }, [fetchUsers])
 
+  const handleSort = useCallback(
+    (column: SortColumn) => {
+      const nextDirection = sortKey === column ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc'
+      setSortKey(column)
+      setSortDirection(nextDirection)
+      fetchUsers(1, { sortKey: column, sortDirection: nextDirection })
+    },
+    [fetchUsers, sortDirection, sortKey]
+  )
+
   const handleOpenDetail = useCallback(
     (userId: string) => {
       router.push(`/dashboard/admin/users/${userId}`)
     },
     [router]
+  )
+
+  const renderSortableHeader = useCallback(
+    (label: string, column: SortColumn, align: 'left' | 'right' = 'left') => {
+      const isActive = sortKey === column
+      const Icon = !isActive ? ArrowUpDown : sortDirection === 'asc' ? ArrowUp : ArrowDown
+      return (
+        <button
+          type="button"
+          onClick={() => handleSort(column)}
+          className={`flex w-full items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground ${
+            align === 'right' ? 'justify-end text-right' : 'justify-start text-left'
+          }`}
+        >
+          <span>{label}</span>
+          <Icon className="h-3.5 w-3.5" />
+        </button>
+      )
+    },
+    [handleSort, sortDirection, sortKey]
+  )
+
+  const getAriaSort = useCallback(
+    (column: SortColumn) => {
+      if (sortKey !== column) return 'none'
+      return sortDirection === 'asc' ? 'ascending' : 'descending'
+    },
+    [sortDirection, sortKey]
   )
 
   return (
@@ -294,11 +349,21 @@ export function UsersContent({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('users.table.user')}</TableHead>
-                    <TableHead>{t('users.table.role')}</TableHead>
-                    <TableHead>{t('users.table.organization')}</TableHead>
-                    <TableHead>{t('users.table.status')}</TableHead>
-                    <TableHead>{t('users.table.lastActivity')}</TableHead>
+                    <TableHead aria-sort={getAriaSort('name')}>
+                      {renderSortableHeader(t('users.table.user'), 'name')}
+                    </TableHead>
+                    <TableHead aria-sort={getAriaSort('role')}>
+                      {renderSortableHeader(t('users.table.role'), 'role')}
+                    </TableHead>
+                    <TableHead aria-sort={getAriaSort('organization')}>
+                      {renderSortableHeader(t('users.table.organization'), 'organization')}
+                    </TableHead>
+                    <TableHead aria-sort={getAriaSort('status')}>
+                      {renderSortableHeader(t('users.table.status'), 'status')}
+                    </TableHead>
+                    <TableHead aria-sort={getAriaSort('last_activity')}>
+                      {renderSortableHeader(t('users.table.lastActivity'), 'last_activity')}
+                    </TableHead>
                     <TableHead className="text-right">상세</TableHead>
                   </TableRow>
                 </TableHeader>

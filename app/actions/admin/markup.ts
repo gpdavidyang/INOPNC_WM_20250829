@@ -29,6 +29,12 @@ export interface MarkupDocumentWithStats extends Omit<MarkupDocument, 'permissio
     name: string
     organization_id?: string | null
   }
+  daily_report?: {
+    id: string
+    work_date?: string | null
+    member_name?: string | null
+    status?: string | null
+  } | null
 }
 
 export interface MarkupDocumentFilter {
@@ -85,7 +91,10 @@ async function ensureMarkupDocumentsAccessible(
     throw new AppError('마킹 문서를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
   }
 
-  const records = (data || []) as Array<{ id: string; site?: { organization_id?: string | null } | null }>
+  const records = (data || []) as Array<{
+    id: string
+    site?: { organization_id?: string | null } | null
+  }>
 
   if (records.length !== documentIds.length) {
     throw new AppError('마킹 문서에 접근할 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
@@ -135,7 +144,10 @@ async function filterMarkupDocumentsByOrganization<T extends { site_id?: string 
 
   const orgMap = new Map<string, string | null | undefined>()
   for (const site of data || []) {
-    orgMap.set((site as { id: string }).id, (site as { organization_id?: string | null }).organization_id)
+    orgMap.set(
+      (site as { id: string }).id,
+      (site as { organization_id?: string | null }).organization_id
+    )
   }
 
   for (const [, organizationId] of orgMap) {
@@ -206,7 +218,37 @@ export async function getMarkupDocuments(
         }
       }
 
-      const filteredDocuments = await filterMarkupDocumentsByOrganization(supabase, auth, documents as any[])
+      let filteredDocuments = await filterMarkupDocumentsByOrganization(
+        supabase,
+        auth,
+        documents as any[]
+      )
+
+      if (filteredDocuments.length > 0) {
+        const worklogIds = Array.from(
+          new Set(
+            filteredDocuments
+              .map((doc: any) => doc.linked_worklog_id)
+              .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
+          )
+        )
+        if (worklogIds.length > 0) {
+          const { data: worklogs } = await supabase
+            .from('daily_reports')
+            .select('id, work_date, member_name, status')
+            .in('id', worklogIds)
+          const map = new Map<string, any>()
+          ;(worklogs || []).forEach(w => {
+            map.set(w.id as string, w)
+          })
+          filteredDocuments = filteredDocuments.map(doc => ({
+            ...doc,
+            daily_report: doc.linked_worklog_id ? map.get(doc.linked_worklog_id) || null : null,
+          }))
+        } else {
+          filteredDocuments = filteredDocuments.map(doc => ({ ...doc, daily_report: null }))
+        }
+      }
 
       const transformedDocuments = filteredDocuments.map((doc: any) => ({
         ...doc,

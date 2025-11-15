@@ -43,6 +43,12 @@ const DEFAULT_STAMP: Required<NonNullable<MarkupEditorState['toolState']['stampS
   color: 'red',
 }
 
+const TEXT_SIZE_MAP: Record<'small' | 'medium' | 'large', number> = {
+  small: 12,
+  medium: 14,
+  large: 18,
+}
+
 function genId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 }
@@ -96,6 +102,17 @@ export function SharedMarkupEditor({
     showOpenDialog: false,
   }))
 
+  React.useEffect(() => {
+    if (!initialDocument) return
+    setEditorState(prev => ({
+      ...prev,
+      currentFile: {
+        ...(prev.currentFile || {}),
+        ...(initialDocument as Record<string, unknown>),
+      },
+    }))
+  }, [initialDocument])
+
   const { zoomIn, zoomOut, resetZoom, pan } = useCanvasState(editorState, setEditorState)
   const { undo, redo, deleteSelected, copySelected, paste } = useMarkupTools(
     editorState,
@@ -107,9 +124,11 @@ export function SharedMarkupEditor({
   const [textColor, setTextColor] = React.useState<'gray' | 'red' | 'blue'>('gray')
   const [penColor, setPenColor] = React.useState<'gray' | 'red' | 'blue'>('red')
   const [penWidth, setPenWidth] = React.useState<1 | 3 | 5>(3)
+  const [boxSize, setBoxSize] = React.useState<'small' | 'medium' | 'large'>('medium')
 
   const [showMobileSheet, setShowMobileSheet] = React.useState(false)
   const stampToastRef = React.useRef<string | number | null>(null)
+  const [isExporting, setIsExporting] = React.useState(false)
 
   const bgUrl = (initialDocument?.original_blueprint_url || '') as string
 
@@ -196,7 +215,7 @@ export function SharedMarkupEditor({
           createdAt: new Date().toISOString(),
           modifiedAt: new Date().toISOString(),
           content,
-          fontSize: textSize === 'small' ? 12 : textSize === 'large' ? 18 : 14,
+          fontSize: TEXT_SIZE_MAP[textSize],
           fontColor: colorToHex(textColor),
         } as any
         addObjectWithUndo(obj)
@@ -213,7 +232,7 @@ export function SharedMarkupEditor({
         }))
         lastPointRef.current = p
         // temp object attached during move handled in move handler (as preview not required, we finalize on up)
-        ;(lastPointRef as any).currentBoxMeta = { color, label, start: p }
+        ;(lastPointRef as any).currentBoxMeta = { color, label, start: p, size: boxSize }
         return
       }
 
@@ -249,6 +268,9 @@ export function SharedMarkupEditor({
       editorState.markupObjects,
       worldFromClient,
       addObjectWithUndo,
+      textSize,
+      textColor,
+      boxSize,
     ]
   )
 
@@ -328,6 +350,20 @@ export function SharedMarkupEditor({
           const h = Math.max(1, Math.abs(end.y - start.y))
           const x = Math.min(start.x, end.x)
           const y = Math.min(start.y, end.y)
+          let labelText = meta.label
+          if (meta.color === 'gray') {
+            try {
+              const userInput =
+                typeof window !== 'undefined'
+                  ? window.prompt('구역명을 입력하세요', labelText || '')
+                  : null
+              if (userInput && userInput.trim()) {
+                labelText = userInput.trim()
+              }
+            } catch {
+              // ignore prompt errors; fallback to default label
+            }
+          }
           const obj: MarkupObject = {
             id: genId('box'),
             type: 'box',
@@ -336,7 +372,8 @@ export function SharedMarkupEditor({
             width: w,
             height: h,
             color: meta.color,
-            label: meta.label,
+            label: labelText,
+            size: meta.size,
             createdAt: new Date().toISOString(),
             modifiedAt: new Date().toISOString(),
           } as any
@@ -376,6 +413,52 @@ export function SharedMarkupEditor({
     ]
   )
 
+  const handleDownloadImage = React.useCallback(async () => {
+    if (!bgUrl) {
+      toast.error('원본 도면을 찾을 수 없습니다.')
+      return
+    }
+    try {
+      setIsExporting(true)
+      const image = await loadImageForExport(bgUrl)
+      const width = image.naturalWidth || image.width || editorState.viewerState.imageWidth || 0
+      const height = image.naturalHeight || image.height || editorState.viewerState.imageHeight || 0
+      if (!width || !height) {
+        throw new Error('도면 크기를 확인할 수 없습니다.')
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        throw new Error('이미지 캔버스를 초기화할 수 없습니다.')
+      }
+
+      ctx.drawImage(image, 0, 0, width, height)
+      drawMarkupObjectsToCanvas(ctx, editorState.markupObjects)
+
+      const link = document.createElement('a')
+      link.href = canvas.toDataURL('image/png')
+      link.download = buildDownloadFileName(initialDocument)
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      toast.success('이미지 파일로 저장했습니다.')
+    } catch (error) {
+      console.error('Markup image download failed:', error)
+      toast.error('이미지 저장에 실패했습니다.')
+    } finally {
+      setIsExporting(false)
+    }
+  }, [
+    bgUrl,
+    editorState.markupObjects,
+    editorState.viewerState.imageHeight,
+    editorState.viewerState.imageWidth,
+    initialDocument,
+  ])
+
   const setTool = (tool: ToolType) => {
     setEditorState(prev => ({ ...prev, toolState: { ...prev.toolState, activeTool: tool } }))
     // Mobile UX: open tool settings automatically for tools that have sub options
@@ -407,106 +490,117 @@ export function SharedMarkupEditor({
         showStampQuickToast()
       }
 
-      const id = toast.custom(t => (
-        <div className="pointer-events-auto w-[min(92vw,380px)] rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-          <div className="mb-2 text-sm font-medium text-gray-800">스탬프 설정</div>
-          <div className="grid gap-3">
-            <div>
-              <div className="mb-1 text-xs text-gray-500">색상</div>
-              <div className="flex items-center gap-2">
-                <StampColor
-                  color="red"
-                  active={(editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'red'}
-                  onClick={() => selectStamp({ color: 'red' })}
-                />
-                <StampColor
-                  color="blue"
-                  active={(editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'blue'}
-                  onClick={() => selectStamp({ color: 'blue' })}
-                />
-                <StampColor
-                  color="gray"
-                  active={(editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'gray'}
-                  onClick={() => selectStamp({ color: 'gray' })}
-                />
+      const id = toast.custom(
+        t => (
+          <div className="pointer-events-auto w-[min(92vw,380px)] rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
+            <div className="mb-2 text-sm font-medium text-gray-800">스탬프 설정</div>
+            <div className="grid gap-3">
+              <div>
+                <div className="mb-1 text-xs text-gray-500">색상</div>
+                <div className="flex items-center gap-2">
+                  <StampColor
+                    color="red"
+                    active={
+                      (editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'red'
+                    }
+                    onClick={() => selectStamp({ color: 'red' })}
+                  />
+                  <StampColor
+                    color="blue"
+                    active={
+                      (editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'blue'
+                    }
+                    onClick={() => selectStamp({ color: 'blue' })}
+                  />
+                  <StampColor
+                    color="gray"
+                    active={
+                      (editorState.toolState.stampSettings?.color || DEFAULT_STAMP.color) === 'gray'
+                    }
+                    onClick={() => selectStamp({ color: 'gray' })}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-gray-500">모양</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ShapeChip
+                    shape="circle"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) ===
+                      'circle'
+                    }
+                    onClick={() => selectStamp({ shape: 'circle' })}
+                  />
+                  <ShapeChip
+                    shape="triangle"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) ===
+                      'triangle'
+                    }
+                    onClick={() => selectStamp({ shape: 'triangle' })}
+                  />
+                  <ShapeChip
+                    shape="square"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) ===
+                      'square'
+                    }
+                    onClick={() => selectStamp({ shape: 'square' })}
+                  />
+                  <ShapeChip
+                    shape="star"
+                    active={
+                      (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'star'
+                    }
+                    onClick={() => selectStamp({ shape: 'star' })}
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 text-xs text-gray-500">크기</div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <SizeChip
+                    size="small"
+                    active={
+                      (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'small'
+                    }
+                    onClick={() => selectStamp({ size: 'small' })}
+                  />
+                  <SizeChip
+                    size="medium"
+                    active={
+                      (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'medium'
+                    }
+                    onClick={() => selectStamp({ size: 'medium' })}
+                  />
+                  <SizeChip
+                    size="large"
+                    active={
+                      (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'large'
+                    }
+                    onClick={() => selectStamp({ size: 'large' })}
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <div className="mb-1 text-xs text-gray-500">모양</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <ShapeChip
-                  shape="circle"
-                  active={
-                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'circle'
-                  }
-                  onClick={() => selectStamp({ shape: 'circle' })}
-                />
-                <ShapeChip
-                  shape="triangle"
-                  active={
-                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'triangle'
-                  }
-                  onClick={() => selectStamp({ shape: 'triangle' })}
-                />
-                <ShapeChip
-                  shape="square"
-                  active={
-                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'square'
-                  }
-                  onClick={() => selectStamp({ shape: 'square' })}
-                />
-                <ShapeChip
-                  shape="star"
-                  active={
-                    (editorState.toolState.stampSettings?.shape || DEFAULT_STAMP.shape) === 'star'
-                  }
-                  onClick={() => selectStamp({ shape: 'star' })}
-                />
-              </div>
-            </div>
-            <div>
-              <div className="mb-1 text-xs text-gray-500">크기</div>
-              <div className="flex flex-wrap items-center gap-2">
-                <SizeChip
-                  size="small"
-                  active={
-                    (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'small'
-                  }
-                  onClick={() => selectStamp({ size: 'small' })}
-                />
-                <SizeChip
-                  size="medium"
-                  active={
-                    (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'medium'
-                  }
-                  onClick={() => selectStamp({ size: 'medium' })}
-                />
-                <SizeChip
-                  size="large"
-                  active={
-                    (editorState.toolState.stampSettings?.size || DEFAULT_STAMP.size) === 'large'
-                  }
-                  onClick={() => selectStamp({ size: 'large' })}
-                />
-              </div>
+            <div className="mt-3 flex justify-end">
+              <button className="rounded border px-2 py-1 text-xs" onClick={() => toast.dismiss(t)}>
+                닫기
+              </button>
             </div>
           </div>
-          <div className="mt-3 flex justify-end">
-            <button
-              className="rounded border px-2 py-1 text-xs"
-              onClick={() => toast.dismiss(t)}
-            >
-              닫기
-            </button>
-          </div>
-        </div>
-      ), {
-        duration: 4000,
-        position: 'bottom-center',
-      })
+        ),
+        {
+          duration: 4000,
+          position: 'bottom-center',
+        }
+      )
 
       stampToastRef.current = id
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to display stamp picker toast', error)
+    }
   }
 
   const setStamp = (
@@ -607,6 +701,33 @@ export function SharedMarkupEditor({
                           onClick={() => apply({ color: 'blue', label: '작업완료' })}
                         />
                       </div>
+                      <div className="text-xs text-gray-500">크기</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <SizeChip
+                          size="small"
+                          active={(sel as any).size === 'small'}
+                          onClick={() => {
+                            setBoxSize('small')
+                            apply({ size: 'small' })
+                          }}
+                        />
+                        <SizeChip
+                          size="medium"
+                          active={(sel as any).size === 'medium' || !(sel as any).size}
+                          onClick={() => {
+                            setBoxSize('medium')
+                            apply({ size: 'medium' })
+                          }}
+                        />
+                        <SizeChip
+                          size="large"
+                          active={(sel as any).size === 'large'}
+                          onClick={() => {
+                            setBoxSize('large')
+                            apply({ size: 'large' })
+                          }}
+                        />
+                      </div>
                     </div>
                   )
                 }
@@ -623,6 +744,33 @@ export function SharedMarkupEditor({
                       >
                         내용 수정
                       </button>
+                      <div className="text-xs text-gray-500">크기</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <SizeChip
+                          size="small"
+                          active={detectTextSize(sel.fontSize) === 'small'}
+                          onClick={() => {
+                            setTextSize('small')
+                            apply({ fontSize: TEXT_SIZE_MAP.small })
+                          }}
+                        />
+                        <SizeChip
+                          size="medium"
+                          active={detectTextSize(sel.fontSize) === 'medium'}
+                          onClick={() => {
+                            setTextSize('medium')
+                            apply({ fontSize: TEXT_SIZE_MAP.medium })
+                          }}
+                        />
+                        <SizeChip
+                          size="large"
+                          active={detectTextSize(sel.fontSize) === 'large'}
+                          onClick={() => {
+                            setTextSize('large')
+                            apply({ fontSize: TEXT_SIZE_MAP.large })
+                          }}
+                        />
+                      </div>
                     </div>
                   )
                 }
@@ -645,6 +793,33 @@ export function SharedMarkupEditor({
                           color="gray"
                           active={sel.color === 'gray'}
                           onClick={() => apply({ color: 'gray' })}
+                        />
+                      </div>
+                      <div className="text-xs text-gray-500">크기</div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <SizeChip
+                          size="small"
+                          active={sel.size === 'small'}
+                          onClick={() => {
+                            setStamp({ size: 'small' })
+                            apply({ size: 'small' })
+                          }}
+                        />
+                        <SizeChip
+                          size="medium"
+                          active={sel.size === 'medium'}
+                          onClick={() => {
+                            setStamp({ size: 'medium' })
+                            apply({ size: 'medium' })
+                          }}
+                        />
+                        <SizeChip
+                          size="large"
+                          active={sel.size === 'large'}
+                          onClick={() => {
+                            setStamp({ size: 'large' })
+                            apply({ size: 'large' })
+                          }}
                         />
                       </div>
                     </div>
@@ -806,6 +981,28 @@ export function SharedMarkupEditor({
               </div>
             </>
           )}
+          {editorState.toolState.activeTool.startsWith('box-') && (
+            <>
+              <div className="text-xs font-medium text-gray-500">도형</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <SizeChip
+                  size="small"
+                  active={boxSize === 'small'}
+                  onClick={() => setBoxSize('small')}
+                />
+                <SizeChip
+                  size="medium"
+                  active={boxSize === 'medium'}
+                  onClick={() => setBoxSize('medium')}
+                />
+                <SizeChip
+                  size="large"
+                  active={boxSize === 'large'}
+                  onClick={() => setBoxSize('large')}
+                />
+              </div>
+            </>
+          )}
           {editorState.toolState.activeTool === 'pen' && (
             <>
               <div className="text-xs font-medium text-gray-500">펜</div>
@@ -854,7 +1051,13 @@ export function SharedMarkupEditor({
               className={`px-2 py-1 rounded border ${editorState.toolState.activeTool === 'pan' ? 'bg-gray-100' : ''}`}
               onClick={() => setTool('pan')}
             >
-              팬
+              이동
+            </button>
+            <button
+              className={`px-2 py-1 rounded border ${editorState.toolState.activeTool === 'pen' ? 'bg-gray-100' : ''}`}
+              onClick={() => setTool('pen')}
+            >
+              펜
             </button>
             <button className="px-2 py-1 rounded border" onClick={zoomOut}>
               -
@@ -904,6 +1107,14 @@ export function SharedMarkupEditor({
               title="붙여넣기"
             >
               붙여넣기
+            </button>
+            <button
+              className="px-3 py-1.5 rounded border"
+              onClick={handleDownloadImage}
+              disabled={isExporting || !bgUrl}
+              title="마킹된 이미지를 다운로드"
+            >
+              {isExporting ? '내보내는 중...' : '이미지 다운로드'}
             </button>
             <button
               className="px-3 py-1.5 rounded bg-blue-600 text-white hover:bg-blue-700"
@@ -1054,22 +1265,28 @@ export function SharedMarkupEditor({
                   <StampIcon className="w-5 h-5" />
                 </IconToggle>
                 {editorState.selectedObjects.length > 0 && (
-                  <IconToggle
-                    active={false}
-                    label="삭제"
-                    onClick={() => deleteSelected()}
-                  >
+                  <IconToggle active={false} label="삭제" onClick={() => deleteSelected()}>
                     <Trash2 className="w-5 h-5 text-red-600" />
                   </IconToggle>
                 )}
               </div>
-              <button
-                type="button"
-                className="px-3 py-1.5 text-sm rounded-md border"
-                onClick={() => setShowMobileSheet(s => !s)}
-              >
-                설정
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-sm rounded-md border"
+                  onClick={handleDownloadImage}
+                  disabled={isExporting || !bgUrl}
+                >
+                  {isExporting ? '저장 중...' : '이미지 저장'}
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1.5 text-sm rounded-md border"
+                  onClick={() => setShowMobileSheet(s => !s)}
+                >
+                  설정
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1097,6 +1314,13 @@ export function SharedMarkupEditor({
       )}
     </div>
   )
+}
+
+function detectTextSize(fontSize?: number): 'small' | 'medium' | 'large' {
+  if (!fontSize) return 'medium'
+  if (fontSize <= TEXT_SIZE_MAP.small) return 'small'
+  if (fontSize >= TEXT_SIZE_MAP.large) return 'large'
+  return 'medium'
 }
 
 function colorToHex(c: string) {
@@ -1150,6 +1374,157 @@ function distToSeg(
   t = Math.max(0, Math.min(1, t))
   const proj = { x: a.x + t * (b.x - a.x), y: a.y + t * (b.y - a.y) }
   return Math.hypot(p.x - proj.x, p.y - proj.y)
+}
+
+async function loadImageForExport(url: string): Promise<HTMLImageElement> {
+  if (!url) throw new Error('이미지 경로가 없습니다.')
+  if (url.startsWith('blob:') || url.startsWith('data:')) {
+    return loadImageElement(url)
+  }
+  const response = await fetch(url, { credentials: 'include' }).catch(error => {
+    console.error('Failed to fetch blueprint for export:', error)
+    throw new Error('도면 이미지를 불러올 수 없습니다.')
+  })
+  if (!response || !response.ok) {
+    throw new Error('도면 이미지를 불러올 수 없습니다.')
+  }
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
+  try {
+    return await loadImageElement(objectUrl)
+  } finally {
+    URL.revokeObjectURL(objectUrl)
+  }
+}
+
+function loadImageElement(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+function drawMarkupObjectsToCanvas(ctx: CanvasRenderingContext2D, objects: MarkupObject[]) {
+  objects.forEach(obj => {
+    const anyObj = obj as any
+    if (obj.type === 'box') {
+      const stroke = colorToHex(anyObj.color || 'gray')
+      const width = Number(anyObj.width) || 0
+      const height = Number(anyObj.height) || 0
+      ctx.save()
+      ctx.strokeStyle = stroke
+      ctx.lineWidth = getBoxStrokeWidth(anyObj.size)
+      ctx.strokeRect(anyObj.x, anyObj.y, width, height)
+      if (anyObj.label) {
+        ctx.font = '12px Pretendard, sans-serif'
+        ctx.fillStyle = stroke
+        ctx.textBaseline = 'bottom'
+        ctx.fillText(String(anyObj.label), anyObj.x + 4, Math.max(12, anyObj.y - 4))
+      }
+      ctx.restore()
+      return
+    }
+
+    if (obj.type === 'text') {
+      const fontSize = Number(anyObj.fontSize) || 14
+      ctx.save()
+      ctx.font = `${fontSize}px Pretendard, sans-serif`
+      ctx.fillStyle = anyObj.fontColor || '#111'
+      ctx.textBaseline = 'alphabetic'
+      ctx.fillText(String(anyObj.content || ''), anyObj.x, anyObj.y)
+      ctx.restore()
+      return
+    }
+
+    if (obj.type === 'drawing') {
+      const path = Array.isArray(anyObj.path) ? anyObj.path : []
+      if (path.length > 1) {
+        ctx.save()
+        ctx.beginPath()
+        ctx.moveTo(path[0].x, path[0].y)
+        for (let i = 1; i < path.length; i++) {
+          ctx.lineTo(path[i].x, path[i].y)
+        }
+        ctx.strokeStyle = colorToHex(anyObj.strokeColor || '#ef4444')
+        ctx.lineWidth = Number(anyObj.strokeWidth) || 2
+        ctx.lineJoin = 'round'
+        ctx.lineCap = 'round'
+        ctx.stroke()
+        ctx.restore()
+      }
+      return
+    }
+
+    if (obj.type === 'stamp') {
+      drawStampOnCanvas(ctx, anyObj)
+    }
+  })
+}
+
+function drawStampOnCanvas(ctx: CanvasRenderingContext2D, obj: any) {
+  const color = colorToHex(obj.color || '#ef4444')
+  const size = sizeToPixels(obj.size || 'medium')
+  const half = size / 2
+  ctx.save()
+  ctx.fillStyle = color
+  ctx.globalAlpha = 0.85
+  if (obj.shape === 'circle') {
+    ctx.beginPath()
+    ctx.arc(obj.x, obj.y, half, 0, Math.PI * 2)
+    ctx.fill()
+  } else if (obj.shape === 'square') {
+    ctx.fillRect(obj.x - half, obj.y - half, size, size)
+  } else if (obj.shape === 'triangle') {
+    ctx.beginPath()
+    ctx.moveTo(obj.x, obj.y - half)
+    ctx.lineTo(obj.x - half, obj.y + half)
+    ctx.lineTo(obj.x + half, obj.y + half)
+    ctx.closePath()
+    ctx.fill()
+  } else {
+    const pts = getStarPoints(obj.x, obj.y, half, half / 2)
+    ctx.beginPath()
+    ctx.moveTo(pts[0].x, pts[0].y)
+    for (let i = 1; i < pts.length; i++) {
+      ctx.lineTo(pts[i].x, pts[i].y)
+    }
+    ctx.closePath()
+    ctx.fill()
+  }
+  ctx.restore()
+}
+
+function getStarPoints(cx: number, cy: number, outer: number, inner: number) {
+  const pts: Array<{ x: number; y: number }> = []
+  for (let i = 0; i < 10; i++) {
+    const angle = (Math.PI / 5) * i - Math.PI / 2
+    const radius = i % 2 === 0 ? outer : inner
+    pts.push({ x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius })
+  }
+  return pts
+}
+
+function buildDownloadFileName(doc?: AnyDoc) {
+  const base = doc?.title || doc?.original_blueprint_filename || 'markup-blueprint'
+  return `${sanitizeFilename(base)}.png`
+}
+
+function sanitizeFilename(value: string) {
+  return (
+    value
+      ?.toString()
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .replace(/\s+/g, '_')
+      .slice(0, 80) || 'markup'
+  )
+}
+
+function getBoxStrokeWidth(size?: 'small' | 'medium' | 'large'): number {
+  if (size === 'small') return 2
+  if (size === 'large') return 4
+  return 3
 }
 
 export default SharedMarkupEditor

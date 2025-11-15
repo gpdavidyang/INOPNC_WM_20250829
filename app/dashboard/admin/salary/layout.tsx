@@ -10,7 +10,7 @@ const tabs = [
   { href: '/dashboard/admin/salary/personal', label: '개인세율' },
   { href: '/dashboard/admin/salary/defaults', label: '기본세율' },
   { href: '/dashboard/admin/salary/snapshots', label: '스냅샷' },
-  { href: '/dashboard/admin/salary/rules', label: '규칙' },
+  { href: '/dashboard/admin/salary/rules', label: '규칙설정' },
 ]
 
 export default function SalaryLayout({ children }: { children: React.ReactNode }) {

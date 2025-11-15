@@ -256,6 +256,15 @@ export default function DocumentHubPage() {
           border-radius: 10px;
           padding: 8px 10px;
         }
+        .filters .btn {
+          min-height: 44px;
+          padding: 0 16px;
+          border-radius: 10px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+        }
         :global(.doc-hub .filters .doc-filter-trigger) {
           border: 1px solid var(--line, #e5e7eb);
           background: var(--card, #fff);
@@ -266,6 +275,18 @@ export default function DocumentHubPage() {
           font-weight: 600;
           font-size: 14px;
           text-align: left;
+        }
+        .upload-actions .select,
+        .upload-actions .btn,
+        .upload-actions .btn + .btn {
+          min-height: 44px;
+          display: inline-flex;
+          align-items: center;
+        }
+        .upload-actions .btn {
+          padding: 0 16px;
+          border-radius: 10px;
+          font-weight: 600;
         }
         .grid-thumbs .thumb {
           background: var(--card, #fff);
@@ -1299,6 +1320,7 @@ function DrawingsTab() {
                     ) : null}
                     {it.createdAt ? (
                       <span className="doc-meta-date">
+                        {' '}
                         {new Date(it.createdAt).toLocaleDateString('ko-KR')}
                       </span>
                     ) : null}

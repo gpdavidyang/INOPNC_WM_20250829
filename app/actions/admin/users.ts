@@ -15,6 +15,14 @@ import type { Profile, UserRole, UserStatus } from '@/types'
 import { sendWelcomeEmail, sendPasswordResetEmail } from './email-notifications'
 
 type AdminSupabaseClient = SupabaseClient<Database>
+type SortDirection = 'asc' | 'desc'
+export type UserSortField =
+  | 'created_at'
+  | 'name'
+  | 'role'
+  | 'organization'
+  | 'status'
+  | 'last_activity'
 
 async function ensureUsersAccessible(
   supabase: AdminSupabaseClient,
@@ -138,26 +146,25 @@ export async function getUsers(
   limit = 10,
   search = '',
   role?: UserRole,
-  status?: UserStatus
+  status?: UserStatus,
+  sortBy: UserSortField = 'created_at',
+  sortDirection: SortDirection = 'desc'
 ): Promise<AdminActionResult<{ users: UserWithSites[]; total: number; pages: number }>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
       const auth = profile.auth
 
       // First get the profiles with organization info
-      let query = supabase
-        .from('profiles')
-        .select(
-          `
+      let query = supabase.from('profiles').select(
+        `
           *,
           organizations!profiles_organization_id_fkey(
             id,
             name
           )
         `,
-          { count: 'exact' }
-        )
-        .order('created_at', { ascending: false })
+        { count: 'exact' }
+      )
 
       if (auth.isRestricted) {
         const restrictedOrgId = requireRestrictedOrgId(auth)
@@ -186,9 +193,13 @@ export async function getUsers(
         query = query.eq('status', status)
       }
 
-      // Apply pagination
       const offset = (page - 1) * limit
-      query = query.range(offset, offset + limit - 1)
+      const isLastActivitySort = sortBy === 'last_activity'
+
+      if (!isLastActivitySort) {
+        query = applyUserSort(query, sortBy, sortDirection)
+        query = query.range(offset, offset + limit - 1)
+      }
 
       const { data: users, error, count } = await query
 
@@ -307,13 +318,25 @@ export async function getUsers(
         })
       )
 
-      const totalPages = Math.ceil((count || 0) / limit)
+      let orderedUsers = transformedUsers
+
+      if (isLastActivitySort) {
+        orderedUsers = [...transformedUsers].sort((a, b) =>
+          compareLastActivity(a, b, sortDirection)
+        )
+      }
+
+      const totalRecords = count || orderedUsers.length
+      const totalPages = Math.max(1, Math.ceil(totalRecords / limit))
+      const paginatedUsers = isLastActivitySort
+        ? orderedUsers.slice(offset, offset + limit)
+        : orderedUsers
 
       return {
         success: true,
         data: {
-          users: transformedUsers,
-          total: count || 0,
+          users: paginatedUsers,
+          total: totalRecords,
           pages: totalPages,
         },
       }
@@ -325,6 +348,41 @@ export async function getUsers(
       }
     }
   })
+}
+
+function applyUserSort(query: any, sortBy: UserSortField, direction: SortDirection) {
+  const ascending = direction === 'asc'
+
+  switch (sortBy) {
+    case 'name':
+      return query.order('full_name', { ascending, nullsFirst: ascending })
+    case 'role':
+      return query.order('role', { ascending })
+    case 'organization':
+      return query.order('name', {
+        ascending,
+        foreignTable: 'organizations',
+        nullsFirst: ascending,
+      })
+    case 'status':
+      return query.order('status', { ascending, nullsFirst: ascending })
+    case 'created_at':
+      return query.order('created_at', { ascending })
+    default:
+      return query.order('created_at', { ascending })
+  }
+}
+
+function compareLastActivity(a: UserWithSites, b: UserWithSites, direction: SortDirection) {
+  const getTime = (user: UserWithSites) => {
+    const value = user.work_log_stats?.last_report_date
+    if (!value) return 0
+    const time = new Date(value).getTime()
+    return Number.isNaN(time) ? 0 : time
+  }
+
+  const diff = getTime(a) - getTime(b)
+  return direction === 'asc' ? diff : -diff
 }
 
 /**

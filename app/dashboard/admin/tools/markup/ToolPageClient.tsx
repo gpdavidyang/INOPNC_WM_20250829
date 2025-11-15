@@ -5,6 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import AdminMarkupToolClient from './AdminMarkupToolClient'
 import RecentDocsTable from './RecentDocsTable'
 import { PageHeader } from '@/components/ui/page-header'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import type { SiteOption } from '@/components/admin/markup/MarkupMetadataForm'
 // no top input card; launcher keeps only recent list and the open button
 
 type AnyDoc = {
@@ -14,18 +24,32 @@ type AnyDoc = {
   original_blueprint_url?: string
   original_blueprint_filename?: string
   markup_data?: any[]
+  site_id?: string | null
+  site?: { id?: string | null; name?: string | null } | null
+  linked_worklog_id?: string | null
+  source?: 'markup' | 'shared'
 }
 
-export default function ToolPageClient({ docs }: { docs: any[] }) {
+export default function ToolPageClient({
+  docs,
+  siteOptions,
+}: {
+  docs: any[]
+  siteOptions: SiteOption[]
+}) {
   const router = useRouter()
   const sp = useSearchParams()
   const docId = (sp.get('docId') || '').trim()
   const blueprintUrl = (sp.get('blueprintUrl') || '').trim()
+  const blueprintSiteId = (sp.get('siteId') || '').trim()
   const title = (sp.get('title') || '').trim()
   const startEmpty = (sp.get('startEmpty') || '').trim() === '1'
 
   const [initialDocument, setInitialDocument] = React.useState<AnyDoc | null>(null)
   const [state, setState] = React.useState<'launcher' | 'editor' | 'loading'>('loading')
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [siteFilter, setSiteFilter] = React.useState<string>('all')
+  const [worklogFilter, setWorklogFilter] = React.useState<'all' | 'linked' | 'unlinked'>('all')
   // Local chooser state must be declared unconditionally before any early returns
   const fileRef = React.useRef<HTMLInputElement | null>(null)
 
@@ -104,6 +128,7 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
           original_blueprint_url: blueprintUrl,
           original_blueprint_filename: 'blueprint.png',
           markup_data: [],
+          site_id: blueprintSiteId || undefined,
         })
         return
       }
@@ -154,6 +179,22 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
     setState('launcher')
   }, [router])
 
+  const filteredDocs = React.useMemo(() => {
+    const term = searchTerm.trim().toLowerCase()
+    return docs.filter(doc => {
+      const matchesTerm =
+        !term ||
+        [doc.title, doc.description, doc.site?.name]
+          .filter(Boolean)
+          .some(value => String(value).toLowerCase().includes(term))
+      const matchesSite = siteFilter === 'all' || doc.site_id === siteFilter
+      const hasWorklog = Boolean(doc.daily_report)
+      const matchesWorklog =
+        worklogFilter === 'all' || (worklogFilter === 'linked' ? hasWorklog : !hasWorklog)
+      return matchesTerm && matchesSite && matchesWorklog
+    })
+  }, [docs, searchTerm, siteFilter, worklogFilter])
+
   if (state === 'editor' && initialDocument) {
     return (
       <div className="px-0 pb-8">
@@ -169,7 +210,11 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
           backButtonHref="/dashboard/admin/tools/markup"
         />
         <div className="px-4 sm:px-6 lg:px-8 py-6">
-          <AdminMarkupToolClient initialDocument={initialDocument} onClose={handleCloseEditor} />
+          <AdminMarkupToolClient
+            initialDocument={initialDocument}
+            siteOptions={siteOptions}
+            onClose={handleCloseEditor}
+          />
         </div>
       </div>
     )
@@ -194,9 +239,14 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
             로딩 중...
           </div>
         )}
-        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-sm font-medium">최근 도면마킹 문서</div>
+        <div className="rounded-lg border bg-card p-4 shadow-sm space-y-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="text-sm font-medium">도면마킹 문서</div>
+              <p className="text-xs text-muted-foreground">
+                모든 문서를 검색하고 필터링한 뒤 바로 편집하세요.
+              </p>
+            </div>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
@@ -205,7 +255,64 @@ export default function ToolPageClient({ docs }: { docs: any[] }) {
               도면파일 불러오기
             </button>
           </div>
-          <RecentDocsTable docs={docs} />
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="md:col-span-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">검색어</label>
+              <Input
+                placeholder="제목/현장/설명"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="md:col-span-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">현장</label>
+              <Select value={siteFilter} onValueChange={value => setSiteFilter(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="현장 선택" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  {siteOptions.map(option => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                작업일지 연결
+              </label>
+              <Select value={worklogFilter} onValueChange={value => setWorklogFilter(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="작업일지 상태" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="linked">연결됨</SelectItem>
+                  <SelectItem value="unlinked">미연결</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchTerm('')
+                setSiteFilter('all')
+                setWorklogFilter('all')
+              }}
+            >
+              필터 초기화
+            </Button>
+          </div>
+          <div className="overflow-x-auto">
+            <RecentDocsTable docs={filteredDocs} />
+          </div>
         </div>
         <input
           ref={fileRef}

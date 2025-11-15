@@ -495,6 +495,28 @@ export default function SiteDetailTabs({
 
   const startSharedEdit = useCallback(
     (doc: any) => {
+      if (doc?.metadata?.source_table === 'markup_documents') {
+        const markupId =
+          doc?.metadata?.markup_document_id ||
+          doc?.metadata?.source_id ||
+          (typeof doc?.id === 'string' && doc.id.startsWith('shared-')
+            ? doc.id.replace('shared-', '')
+            : null)
+        if (markupId) {
+          try {
+            router.push(`/dashboard/admin/tools/markup?docId=${markupId}`)
+          } catch {
+            window.location.href = `/dashboard/admin/tools/markup?docId=${markupId}`
+          }
+        } else {
+          toast({
+            title: '연결된 도면을 찾을 수 없습니다',
+            description: '도면마킹 문서 ID를 확인할 수 없습니다.',
+            variant: 'destructive',
+          })
+        }
+        return
+      }
       const docId = doc?.id ? String(doc.id) : null
       if (!docId) {
         toast({
@@ -605,6 +627,14 @@ export default function SiteDetailTabs({
         toast({
           title: '삭제할 수 없습니다',
           description: '문서 식별자를 찾을 수 없습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+      if (doc?.metadata?.source_table === 'markup_documents') {
+        toast({
+          title: '삭제할 수 없습니다',
+          description: '도면마킹 문서는 도면마킹 도구에서 삭제하세요.',
           variant: 'destructive',
         })
         return
@@ -3255,6 +3285,7 @@ export default function SiteDetailTabs({
                         const downloadHref = fileUrl ?? null
                         const hasDownload = Boolean(downloadHref)
                         const downloading = docId ? Boolean(sharedDownloading[docId]) : false
+                        const isMarkupDoc = doc?.metadata?.source_table === 'markup_documents'
                         const isEditing = sharedEditingDocId === docId
                         const editDraft = isEditing && sharedEditDraft ? sharedEditDraft : null
                         const updating = Boolean(sharedUpdating[docId])
@@ -3401,7 +3432,7 @@ export default function SiteDetailTabs({
                                     다운로드
                                   </Button>
                                 )}
-                                {isEditing ? (
+                                {isMarkupDoc ? null : isEditing ? (
                                   <>
                                     <Button
                                       size="sm"
@@ -3425,6 +3456,10 @@ export default function SiteDetailTabs({
                                       )}
                                     </Button>
                                   </>
+                                ) : isMarkupDoc ? (
+                                  <span className="text-xs text-muted-foreground">
+                                    도면마킹 도구에서 관리됩니다.
+                                  </span>
                                 ) : (
                                   <>
                                     <Button
@@ -3683,7 +3718,7 @@ function buildDocPreviewHref(d: any): string {
   const url: string | undefined = d?.file_url || d?.fileUrl
   const mime: string | undefined = d?.mime_type || d?.mimeType
   // 1) 전용 뷰어 라우트 우선
-  if (category === 'markup') return `/dashboard/admin/documents/markup/${d.id}`
+  if (category === 'markup') return `/dashboard/admin/documents/${d.id}`
   if (category === 'photo_grid') {
     const direct = getSharedDocFileUrl(d)
     if (direct) return direct
