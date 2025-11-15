@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { mapSharedSubcategoryToCategory } from '@/lib/unified-documents'
 
 export const dynamic = 'force-dynamic'
 
@@ -149,116 +150,87 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Primary: site_documents
-    try {
-      let query = db
-        .from('site_documents')
-        .select('id, site_id, document_type, file_name, file_url, file_size, mime_type, created_at')
-        .order('created_at', { ascending: false })
+    const planSubcategories = ['construction_drawing', 'blueprint', 'plan']
+    const progressSubcategories = ['progress_drawing', 'progress']
 
-      if (siteId) query = query.eq('site_id', siteId)
-      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
-        query = query.in('site_id', partnerAllowedSiteIds)
-      if (category === 'plan') query = query.eq('document_type', 'blueprint')
-      if (category === 'progress') query = query.eq('document_type', 'progress_drawing')
-      if (category === 'other') query = query.eq('document_type', 'other')
-      if (q) query = query.ilike('file_name', `%${q}%`)
+    let sharedQuery = db
+      .from('unified_document_system')
+      .select(
+        'id, site_id, title, file_name, file_url, file_size, mime_type, created_at, sub_category, metadata, status, is_archived'
+      )
+      .eq('category_type', 'shared')
+      .eq('status', 'active')
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false })
 
-      const { data, error } = await query.range(0, rangeEnd)
-      if (error) throw error
+    if (siteId) sharedQuery = sharedQuery.eq('site_id', siteId)
+    else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
+      sharedQuery = sharedQuery.in('site_id', partnerAllowedSiteIds)
 
-      const baseItems = (data || []).map((d: any) => ({
-        id: d.id,
-        site_id: d.site_id,
-        category:
-          d.document_type === 'blueprint'
-            ? 'plan'
-            : d.document_type === 'progress_drawing'
-              ? 'progress'
-              : 'other',
-        title: d.file_name,
-        url: d.file_url,
-        size: d.file_size,
-        mime: d.mime_type,
-        created_at: d.created_at,
-      }))
+    if (category === 'plan') sharedQuery = sharedQuery.in('sub_category', planSubcategories)
+    else if (category === 'progress')
+      sharedQuery = sharedQuery.in('sub_category', progressSubcategories)
+    else if (category === 'other')
+      sharedQuery = sharedQuery.not(
+        'sub_category',
+        'in',
+        '("construction_drawing","blueprint","plan","progress_drawing","progress","ptw")'
+      )
 
-      let countQuery = db.from('site_documents').select('*', { count: 'exact', head: true })
-      if (siteId) countQuery = countQuery.eq('site_id', siteId)
-      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
-        countQuery = countQuery.in('site_id', partnerAllowedSiteIds)
-      if (category === 'plan') countQuery = countQuery.eq('document_type', 'blueprint')
-      if (category === 'progress') countQuery = countQuery.eq('document_type', 'progress_drawing')
-      if (category === 'other') countQuery = countQuery.eq('document_type', 'other')
-      if (q) countQuery = countQuery.ilike('file_name', `%${q}%`)
-      const { count } = await countQuery
-
-      return mergeAndRespond(baseItems, count || 0)
-    } catch (primaryErr: any) {
-      // If site_documents is missing, fallback to legacy documents
-      const code = primaryErr?.code || ''
-      const msg: string = primaryErr?.message || ''
-      const isMissingRelation =
-        code === '42P01' || /relation .*site_documents.* does not exist/i.test(msg)
-      if (!isMissingRelation) {
-        // Non-schema errors → return empty set but 200 (preserve current behavior)
-        return NextResponse.json({
-          success: true,
-          data: [],
-          pagination: { page, limit, total: 0, totalPages: 0 },
-        })
-      }
-
-      // Fallback: documents table
-      let query = db
-        .from('documents')
-        .select('id, site_id, document_type, file_name, file_url, file_size, mime_type, created_at')
-        .order('created_at', { ascending: false })
-      if (siteId) query = query.eq('site_id', siteId)
-      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
-        query = query.in('site_id', partnerAllowedSiteIds)
-      if (category === 'plan') query = query.eq('document_type', 'blueprint')
-      if (category === 'progress') query = query.eq('document_type', 'progress_drawing')
-      if (category === 'other') query = query.eq('document_type', 'other')
-      if (q) query = query.ilike('file_name', `%${q}%`)
-
-      const { data, error } = await query.range(0, rangeEnd)
-      if (error) {
-        return NextResponse.json({
-          success: true,
-          data: [],
-          pagination: { page, limit, total: 0, totalPages: 0 },
-        })
-      }
-
-      const baseItems = (data || []).map((d: any) => ({
-        id: d.id,
-        site_id: d.site_id,
-        category:
-          d.document_type === 'blueprint'
-            ? 'plan'
-            : d.document_type === 'progress_drawing'
-              ? 'progress'
-              : 'other',
-        title: d.file_name,
-        url: d.file_url,
-        size: d.file_size,
-        mime: d.mime_type,
-        created_at: d.created_at,
-      }))
-
-      let countQuery = db.from('documents').select('*', { count: 'exact', head: true })
-      if (siteId) countQuery = countQuery.eq('site_id', siteId)
-      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
-        countQuery = countQuery.in('site_id', partnerAllowedSiteIds)
-      if (category === 'plan') countQuery = countQuery.eq('document_type', 'blueprint')
-      if (category === 'progress') countQuery = countQuery.eq('document_type', 'progress_drawing')
-      if (category === 'other') countQuery = countQuery.eq('document_type', 'other')
-      if (q) countQuery = countQuery.ilike('file_name', `%${q}%`)
-      const { count } = await countQuery
-
-      return mergeAndRespond(baseItems, count || 0)
+    if (q) {
+      const like = `%${q}%`
+      sharedQuery = sharedQuery.or(`title.ilike.${like},file_name.ilike.${like}`)
     }
+
+    const { data: sharedRows, error: sharedError } = await sharedQuery.range(0, rangeEnd)
+    if (sharedError) {
+      console.error('[docs/drawings] failed to load shared documents', sharedError)
+      return NextResponse.json({
+        success: true,
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 },
+      })
+    }
+
+    const baseItems =
+      sharedRows?.map(row => ({
+        id: row.id,
+        site_id: row.site_id,
+        category: mapSharedSubcategoryToCategory(row.sub_category),
+        title: row.title || row.file_name || '도면',
+        url: row.file_url,
+        size: row.file_size,
+        mime: row.mime_type,
+        created_at: row.created_at,
+      })) || []
+
+    let countQuery = db
+      .from('unified_document_system')
+      .select('id', { count: 'exact', head: true })
+      .eq('category_type', 'shared')
+      .eq('status', 'active')
+      .eq('is_archived', false)
+
+    if (siteId) countQuery = countQuery.eq('site_id', siteId)
+    else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
+      countQuery = countQuery.in('site_id', partnerAllowedSiteIds)
+    if (category === 'plan') countQuery = countQuery.in('sub_category', planSubcategories)
+    else if (category === 'progress')
+      countQuery = countQuery.in('sub_category', progressSubcategories)
+    else if (category === 'other')
+      countQuery = countQuery.not(
+        'sub_category',
+        'in',
+        '("construction_drawing","blueprint","plan","progress_drawing","progress","ptw")'
+      )
+    if (q) {
+      const like = `%${q}%`
+      countQuery = countQuery.or(`title.ilike.${like},file_name.ilike.${like}`)
+    }
+
+    const { count } = await countQuery
+
+    return mergeAndRespond(baseItems, count || 0)
   } catch (e: any) {
     return NextResponse.json(
       { success: false, error: e?.message || 'Internal error' },

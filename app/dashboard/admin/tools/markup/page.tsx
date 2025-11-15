@@ -5,6 +5,28 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import ToolPageClient from './ToolPageClient'
 
+function resolveSharedDocFileUrl(row: Record<string, any>): string | null {
+  if (!row) return null
+  const metadata =
+    row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, any>) : {}
+  const candidates = [
+    row.file_url,
+    row.fileUrl,
+    row.original_file_url,
+    metadata.public_url,
+    metadata.preview_url,
+    metadata.file_url,
+    metadata.signed_url,
+    metadata.remote_url,
+  ]
+  for (const url of candidates) {
+    if (typeof url === 'string' && url.trim().length > 0) {
+      return url
+    }
+  }
+  return null
+}
+
 export const metadata: Metadata = {
   title: '도면마킹 관리',
 }
@@ -58,18 +80,21 @@ export default async function AdminMarkupToolPage({
 
   const sharedDocs =
     sharedRows
-      ?.filter(row => typeof row.file_url === 'string' && row.file_url.length > 0)
-      .map(row => {
+      ?.map(row => {
         const metadata =
           row.metadata && typeof row.metadata === 'object'
             ? (row.metadata as Record<string, any>)
             : {}
+        const fileUrl = resolveSharedDocFileUrl(row)
+        if (!fileUrl) return null
+        const unifiedDocumentId = row.id as string
         return {
-          id: `shared-${row.id}`,
+          id: `shared-${unifiedDocumentId}`,
+          unified_document_id: unifiedDocumentId,
           source: 'shared' as const,
           title: row.title || row.file_name || '도면',
           description: row.description || metadata?.description || '',
-          original_blueprint_url: row.file_url,
+          original_blueprint_url: fileUrl,
           original_blueprint_filename: row.file_name || '도면',
           created_at: row.created_at,
           site_id: row.site_id,
@@ -88,7 +113,8 @@ export default async function AdminMarkupToolPage({
           linked_worklog_id: metadata?.linked_worklog_id || null,
           daily_report: null,
         }
-      }) || []
+      })
+      .filter(Boolean) || []
 
   const docs = [
     ...markupDocs.map(doc => ({ ...doc, source: 'markup' as const })),

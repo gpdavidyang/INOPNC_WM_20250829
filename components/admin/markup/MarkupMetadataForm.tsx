@@ -10,13 +10,21 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
+import { linkUnifiedDocumentToMarkupDoc } from '@/lib/unified-documents'
 
 type AnyDoc = {
   id?: string
   title?: string
+  description?: string
+  original_blueprint_url?: string
+  original_blueprint_filename?: string
   site_id?: string | null
   site?: { id?: string | null; name?: string | null } | null
   linked_worklog_id?: string | null
+  source?: 'markup' | 'shared'
+  unified_document_id?: string | null
+  markup_data?: any[]
+  daily_report?: { id?: string }
 }
 
 export interface SiteOption {
@@ -118,6 +126,56 @@ export default function MarkupMetadataForm({
     fetchWorklogs(siteId, document?.linked_worklog_id || null)
   }, [siteId, document?.linked_worklog_id, fetchWorklogs])
 
+  const ensureMarkupDocument = React.useCallback(
+    async (nextTitle: string, nextSiteId: string, nextWorklogId: string) => {
+      if (document?.id) return document.id
+      const blueprintUrl = document?.original_blueprint_url
+      if (!blueprintUrl) {
+        throw new Error('도면 원본을 찾을 수 없습니다. 공유자료에서 다시 열어주세요.')
+      }
+      const blueprintFileName =
+        document?.original_blueprint_filename || `${nextTitle || '도면'}.png`
+      const payload = {
+        title: nextTitle || document?.title || '무제 도면',
+        description: document?.description || '',
+        original_blueprint_url: blueprintUrl,
+        original_blueprint_filename: blueprintFileName,
+        markup_data: Array.isArray(document?.markup_data) ? document?.markup_data : [],
+        preview_image_url: null,
+        site_id: nextSiteId || document?.site_id || null,
+        linked_worklog_id: nextWorklogId || document?.linked_worklog_id || null,
+      }
+      const res = await fetch('/api/markup-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.data?.id) {
+        throw new Error(json?.error || '도면마킹 문서를 생성할 수 없습니다.')
+      }
+      const created = json.data as AnyDoc
+      onDocumentChange?.({
+        ...document,
+        ...created,
+        id: created.id,
+        source: 'markup',
+      })
+      if (document?.unified_document_id) {
+        await linkUnifiedDocumentToMarkupDoc({
+          unifiedDocumentId: document.unified_document_id,
+          markupDocumentId: created.id,
+          extraMetadata: {
+            linked_worklog_id: payload.linked_worklog_id,
+            site_id: payload.site_id,
+          },
+        })
+      }
+      return created.id as string
+    },
+    [document, onDocumentChange]
+  )
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     const nextTitle = title.trim()
@@ -125,18 +183,11 @@ export default function MarkupMetadataForm({
       setMessage({ type: 'error', text: '제목을 입력해 주세요.' })
       return
     }
-    if (!document?.id) {
-      applyLocalUpdate(nextTitle, siteId, worklogId)
-      setMessage({
-        type: 'success',
-        text: '제목/현장/작업일지 정보가 적용되었습니다. 도면 저장 시 함께 업로드됩니다.',
-      })
-      return
-    }
     setIsSaving(true)
     setMessage(null)
     try {
-      const res = await fetch(`/api/markup-documents/${document.id}`, {
+      const ensuredId = await ensureMarkupDocument(nextTitle, siteId, worklogId)
+      const res = await fetch(`/api/markup-documents/${ensuredId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

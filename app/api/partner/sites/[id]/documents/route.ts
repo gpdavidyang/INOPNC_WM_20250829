@@ -48,7 +48,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Check unified_documents, legacy documents, and site_documents(blueprint)
     let unifiedDocuments = []
     let legacyDocuments = []
-    let siteDocuments = []
 
     // Query unified_documents table
     const unifiedQuery = supabase
@@ -131,22 +130,25 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
     finalLegacyQuery = finalLegacyQuery.order('created_at', { ascending: false }).limit(50)
 
-    // Site documents (blueprint only)
-    const siteDocsQuery = supabase
-      .from('site_documents')
+    // Shared drawings from UDS (공도면/진행도면/PTW 등)
+    const sharedDocsQuery = supabase
+      .from('unified_document_system')
       .select(
-        'id, file_name, file_url, file_size, mime_type, document_type, created_at, is_primary_blueprint, site_id'
+        'id, title, file_name, file_url, file_size, mime_type, sub_category, created_at, metadata'
       )
       .eq('site_id', siteId)
-      .in('document_type', ['blueprint', 'progress_drawing'])
+      .eq('category_type', 'shared')
+      .eq('status', 'active')
+      .eq('is_archived', false)
+      .in('sub_category', ['construction_drawing', 'blueprint', 'plan', 'progress_drawing', 'ptw'])
       .order('created_at', { ascending: false })
       .limit(50)
 
     // Execute queries
-    const [unifiedResult, legacyResult, siteDocsResult] = await Promise.all([
+    const [unifiedResult, legacyResult, sharedDocsResult] = await Promise.all([
       finalUnifiedQuery,
       finalLegacyQuery,
-      siteDocsQuery,
+      sharedDocsQuery,
     ])
 
     if (unifiedResult.error && legacyResult.error) {
@@ -156,7 +158,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     unifiedDocuments = unifiedResult.data || []
     legacyDocuments = legacyResult.data || []
-    siteDocuments = siteDocsResult.error ? [] : siteDocsResult.data || []
+    siteDocuments = []
+    const sharedDocuments = sharedDocsResult.error ? [] : sharedDocsResult.data || []
 
     // Transform both unified and legacy documents for frontend
     const transformedUnified = (unifiedDocuments || []).map((doc: any) => ({
@@ -199,25 +202,21 @@ export async function GET(request: Request, { params }: { params: { id: string }
       is_primary_blueprint: false,
     }))
 
-    const transformedSiteDocs = (siteDocuments || []).map((doc: any) => ({
+    const transformedSiteDocs = (sharedDocuments || []).map((doc: any) => ({
       id: doc.id,
-      type: mapDocumentType(
-        'drawing',
-        doc.document_type === 'blueprint' ? 'blueprint' : 'progress'
-      ),
+      type: mapDocumentType('drawing', doc.sub_category || 'drawing'),
       name: doc.file_name,
-      title: doc.file_name,
-      description:
-        doc.document_type === 'blueprint' ? '현장 문서(blueprint)' : '현장 문서(progress)',
+      title: doc.title || doc.file_name,
+      description: '현장 공유자료',
       uploadDate: new Date(doc.created_at).toLocaleDateString('ko-KR'),
-      uploader: '관리자',
+      uploader: doc.metadata?.uploader || '관리자',
       fileSize: doc.file_size,
       mimeType: doc.mime_type,
       fileUrl: doc.file_url,
       categoryType: 'drawing',
-      subType: doc.document_type === 'blueprint' ? 'blueprint' : 'progress',
-      icon: getDocumentIcon('drawing', doc.document_type === 'blueprint' ? 'blueprint' : null),
-      is_primary_blueprint: !!doc.is_primary_blueprint,
+      subType: doc.sub_category,
+      icon: getDocumentIcon('drawing', doc.sub_category),
+      is_primary_blueprint: doc.metadata?.is_primary === true,
     }))
 
     // Combine and sort all documents

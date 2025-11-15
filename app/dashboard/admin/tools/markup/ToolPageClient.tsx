@@ -28,6 +28,7 @@ type AnyDoc = {
   site?: { id?: string | null; name?: string | null } | null
   linked_worklog_id?: string | null
   source?: 'markup' | 'shared'
+  unified_document_id?: string | null
 }
 
 export default function ToolPageClient({
@@ -43,6 +44,7 @@ export default function ToolPageClient({
   const blueprintUrl = (sp.get('blueprintUrl') || '').trim()
   const blueprintSiteId = (sp.get('siteId') || '').trim()
   const title = (sp.get('title') || '').trim()
+  const unifiedDocumentId = (sp.get('unifiedDocumentId') || '').trim()
   const startEmpty = (sp.get('startEmpty') || '').trim() === '1'
 
   const [initialDocument, setInitialDocument] = React.useState<AnyDoc | null>(null)
@@ -129,6 +131,8 @@ export default function ToolPageClient({
           original_blueprint_filename: 'blueprint.png',
           markup_data: [],
           site_id: blueprintSiteId || undefined,
+          source: 'shared',
+          unified_document_id: unifiedDocumentId || undefined,
         })
         return
       }

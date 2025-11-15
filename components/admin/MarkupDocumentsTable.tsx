@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { DataTable } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import AdminActionButtons from '@/components/admin/AdminActionButtons'
+import Link from 'next/link'
 
 export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
   const router = useRouter()
@@ -58,7 +59,20 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           width: 220,
           className: 'whitespace-nowrap',
           accessor: (d: any) => d?.site?.name || '',
-          render: (d: any) => d?.site?.name || '-',
+          render: (d: any) => {
+            const siteId = d?.site?.id || d?.site_id || d?.site?.site_id
+            const label = d?.site?.name || d?.site_name || '-'
+            return siteId ? (
+              <Link
+                href={`/dashboard/admin/sites/${siteId}`}
+                className="text-blue-600 hover:underline"
+              >
+                {label}
+              </Link>
+            ) : (
+              label
+            )
+          },
         },
         {
           key: 'daily_report',

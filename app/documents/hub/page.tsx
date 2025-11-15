@@ -248,15 +248,45 @@ export default function DocumentHubPage() {
           border: 1px solid #1a254f;
         }
         /* Filters in drawings/photos */
-        .filters .select,
-        .filters .input {
+        :global(.doc-hub .filters) {
+          width: 100%;
+        }
+        :global(.doc-hub .filter-section) {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        :global(.doc-hub .filter-row) {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        :global(.doc-hub .filter-row-search) {
+          grid-template-columns: 2fr minmax(100px, 1fr);
+        }
+        :global(.doc-hub .filters-divider.horizontal) {
+          width: 100%;
+          height: 1px;
+          border-radius: 999px;
+          background: #e3e8f5;
+          margin: 6px 0;
+        }
+        :global(.doc-hub .upload-row) {
+          display: grid;
+          grid-template-columns: 2fr 1fr 1fr;
+          gap: 8px;
+          align-items: center;
+        }
+        :global(.doc-hub .filters .select),
+        :global(.doc-hub .filters .input) {
           border: 1px solid var(--line, #e5e7eb);
           background: var(--card, #fff);
           color: var(--text, #1f2937);
           border-radius: 10px;
           padding: 8px 10px;
+          height: 44px;
         }
-        .filters .btn {
+        :global(.doc-hub .filters .btn) {
           min-height: 44px;
           padding: 0 16px;
           border-radius: 10px;
@@ -265,7 +295,8 @@ export default function DocumentHubPage() {
           justify-content: center;
           font-weight: 600;
         }
-        :global(.doc-hub .filters .doc-filter-trigger) {
+        :global(.doc-hub .filters .doc-filter-trigger),
+        :global(.doc-hub .filters .upload-trigger) {
           border: 1px solid var(--line, #e5e7eb);
           background: var(--card, #fff);
           color: var(--text, #1f2937);
@@ -389,12 +420,18 @@ export default function DocumentHubPage() {
         :global([data-theme='dark']) .doc-hub .filters .select,
         :global([data-theme='dark']) .doc-hub .filters .input,
         :global([data-theme='dark']) .doc-hub .filters .doc-filter-trigger,
+        :global([data-theme='dark']) .doc-hub .filters .upload-trigger,
         :global(html.dark) .doc-hub .filters .select,
         :global(html.dark) .doc-hub .filters .input,
-        :global(html.dark) .doc-hub .filters .doc-filter-trigger {
+        :global(html.dark) .doc-hub .filters .doc-filter-trigger,
+        :global(html.dark) .doc-hub .filters .upload-trigger {
           border-color: #3a4048 !important;
           background: #11151b !important;
           color: #f8fafc !important;
+        }
+        :global([data-theme='dark']) .doc-hub .filters .filters-divider,
+        :global(html.dark) .doc-hub .filters .filters-divider {
+          background: #3a4048 !important;
         }
         :global([data-theme='dark']) .doc-hub .grid-thumbs .thumb,
         :global(html.dark) .doc-hub .grid-thumbs .thumb {
@@ -1177,64 +1214,95 @@ function DrawingsTab() {
         </div>
       )}
       <div className="filters">
-        <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
-          <CustomSelectTrigger
-            className="doc-filter-trigger min-w-[150px] w-full"
-            aria-label="현장 선택"
-          >
-            <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
-          </CustomSelectTrigger>
-          <CustomSelectContent>
-            <CustomSelectItem value="all">현장 전체</CustomSelectItem>
-            {siteOptions.map(s => (
-              <CustomSelectItem key={s.id} value={s.id}>
-                {s.name}
-              </CustomSelectItem>
-            ))}
-          </CustomSelectContent>
-        </CustomSelect>
-        <select
-          className="select"
-          value={category}
-          onChange={e => setCategory(e.target.value as any)}
-        >
-          <option value="">전체도면</option>
-          <option value="plan">공도면</option>
-          <option value="progress">진행도면</option>
-          <option value="other">기타</option>
-        </select>
-        <input
-          className="input"
-          placeholder="검색"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-        />
-        <button
-          className="btn"
-          onClick={() => {
-            setPage(1)
-            fetchList()
-          }}
-        >
-          검색
-        </button>
-        <div className="upload-actions">
-          <select
-            className="select upload-select"
-            value={uploadCategory}
-            onChange={e => setUploadCategory(e.target.value as 'plan' | 'progress' | 'other')}
-          >
-            <option value="plan">공도면 업로드</option>
-            <option value="progress">진행도면 업로드</option>
-            <option value="other">기타 업로드</option>
-          </select>
-          <button className="btn" onClick={onUpload}>
-            업로드
-          </button>
+        <div className="filter-section">
+          <div className="filter-row">
+            <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
+              <CustomSelectTrigger
+                className="doc-filter-trigger min-w-[150px]"
+                aria-label="현장 선택"
+              >
+                <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">현장 전체</CustomSelectItem>
+                {siteOptions.map(s => (
+                  <CustomSelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
+            <CustomSelect
+              value={category || 'all'}
+              onValueChange={value =>
+                setCategory(value === 'all' ? '' : (value as 'plan' | 'progress' | 'other'))
+              }
+            >
+              <CustomSelectTrigger className="doc-filter-trigger" aria-label="도면 유형">
+                <CustomSelectValue>
+                  {category === 'plan'
+                    ? '공도면'
+                    : category === 'progress'
+                      ? '진행도면'
+                      : category === 'other'
+                        ? '기타'
+                        : '전체도면'}
+                </CustomSelectValue>
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">전체도면</CustomSelectItem>
+                <CustomSelectItem value="plan">공도면</CustomSelectItem>
+                <CustomSelectItem value="progress">진행도면</CustomSelectItem>
+                <CustomSelectItem value="other">기타</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
+          <div className="filter-row filter-row-search">
+            <input
+              className="input"
+              placeholder="검색"
+              value={q}
+              onChange={e => setQ(e.target.value)}
+            />
+            <button
+              className="btn search-btn"
+              onClick={() => {
+                setPage(1)
+                fetchList()
+              }}
+            >
+              검색
+            </button>
+          </div>
+          <div className="filters-divider horizontal" aria-hidden="true" />
+          <div className="upload-row">
+            <CustomSelect
+              value={uploadCategory}
+              onValueChange={value => setUploadCategory(value as 'plan' | 'progress' | 'other')}
+            >
+              <CustomSelectTrigger className="upload-trigger" aria-label="업로드 유형 선택">
+                <CustomSelectValue>
+                  {uploadCategory === 'plan'
+                    ? '공도면 업로드'
+                    : uploadCategory === 'progress'
+                      ? '진행도면 업로드'
+                      : '기타 업로드'}
+                </CustomSelectValue>
+              </CustomSelectTrigger>
+              <CustomSelectContent align="end">
+                <CustomSelectItem value="plan">공도면 업로드</CustomSelectItem>
+                <CustomSelectItem value="progress">진행도면 업로드</CustomSelectItem>
+                <CustomSelectItem value="other">기타 업로드</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+            <button className="btn" onClick={onUpload}>
+              업로드
+            </button>
+            <button className="btn" onClick={openMarkupTool}>
+              마킹 도구
+            </button>
+          </div>
         </div>
-        <button className="btn" onClick={openMarkupTool}>
-          마킹 도구
-        </button>
         <input
           ref={fileInput}
           type="file"

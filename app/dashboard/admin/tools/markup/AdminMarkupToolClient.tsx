@@ -4,6 +4,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import MarkupMetadataForm, { type SiteOption } from '@/components/admin/markup/MarkupMetadataForm'
+import { linkUnifiedDocumentToMarkupDoc } from '@/lib/unified-documents'
 
 type AnyDoc = {
   id?: string
@@ -85,6 +86,25 @@ export default function AdminMarkupToolClient({
     }
     const j = await res.json().catch(() => ({}))
     if (!res.ok || j?.error) throw new Error(j?.error || '저장 실패')
+    const savedDoc = j?.data
+    const unifiedId =
+      payload?.unified_document_id ||
+      activeDocument?.unified_document_id ||
+      initialDocument?.unified_document_id
+    if (!payload?.id && unifiedId && savedDoc?.id) {
+      await linkUnifiedDocumentToMarkupDoc({
+        unifiedDocumentId: unifiedId,
+        markupDocumentId: savedDoc.id,
+        extraMetadata: {
+          linked_worklog_id:
+            savedDoc.linked_worklog_id ??
+            payload?.linked_worklog_id ??
+            activeDocument?.linked_worklog_id ??
+            null,
+          site_id: savedDoc.site_id ?? payload?.site_id ?? activeDocument?.site_id ?? null,
+        },
+      })
+    }
 
     // 저장 후 목록으로 이동
     router.push('/dashboard/admin/documents/markup')
