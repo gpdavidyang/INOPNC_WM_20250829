@@ -748,6 +748,7 @@ export interface MarkupDocument {
   created_at: string
   updated_at: string
   site_id?: string
+  linked_worklog_id?: string | null
   is_deleted: boolean
   file_size: number
   markup_count: number

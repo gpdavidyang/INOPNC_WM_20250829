@@ -61,6 +61,24 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           render: (d: any) => d?.site?.name || '-',
         },
         {
+          key: 'daily_report',
+          header: '작업일지',
+          sortable: true,
+          width: 260,
+          className: 'whitespace-nowrap',
+          accessor: (d: any) =>
+            d?.daily_report?.work_date ? new Date(d.daily_report.work_date).getTime() : 0,
+          render: (d: any) => {
+            if (!d?.daily_report) return '-'
+            const dateLabel = d.daily_report.work_date
+              ? new Date(d.daily_report.work_date).toLocaleDateString('ko-KR')
+              : '날짜 미정'
+            const memberLabel = d.daily_report.member_name || '작성자 미상'
+            const statusLabel = formatDailyReportStatus(d.daily_report.status)
+            return `${dateLabel} · ${memberLabel} · ${statusLabel}`
+          },
+        },
+        {
           key: 'creator',
           header: '작성자',
           sortable: true,
@@ -88,7 +106,6 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
           render: (d: any) => (
             <AdminActionButtons
               size="compact"
-              detailHref={`/dashboard/admin/documents/markup/${d.id}`}
               editHref={`/dashboard/admin/documents/markup/${d.id}/edit`}
               deleteHref={`/api/markup-documents/${d.id}`}
               onDeleted={() => router.refresh()}
@@ -98,4 +115,17 @@ export default function MarkupDocumentsTable({ docs }: { docs: any[] }) {
       ]}
     />
   )
+}
+
+function formatDailyReportStatus(status?: string | null) {
+  if (!status) return '상태 미정'
+  const map: Record<string, string> = {
+    submitted: '제출 완료',
+    approved: '승인 완료',
+    rejected: '반려',
+    draft: '임시 저장',
+    saved: '임시 저장',
+    pending: '검토 중',
+  }
+  return map[status.toLowerCase()] || status
 }

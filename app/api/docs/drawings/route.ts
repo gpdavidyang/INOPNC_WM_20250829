@@ -61,6 +61,93 @@ export async function GET(request: NextRequest) {
 
     const from = (page - 1) * limit
     const to = from + limit - 1
+    const rangeEnd = Math.max(Math.min(to + 1, 500) - 1, 0)
+    const includeMarkup = !category || category === 'progress'
+
+    const mergeAndRespond = async (baseItems: any[], baseCount: number): Promise<NextResponse> => {
+      let merged = [...baseItems]
+      let total = baseCount
+
+      if (includeMarkup) {
+        const { items: markupItems, count: markupCount } = await fetchMarkupBundle()
+        merged = merged.concat(markupItems)
+        total += markupCount
+      }
+
+      merged.sort((a, b) => {
+        const at = new Date(a.created_at || 0).getTime()
+        const bt = new Date(b.created_at || 0).getTime()
+        return bt - at
+      })
+
+      const paged = merged.slice(from, from + limit)
+
+      return NextResponse.json({
+        success: true,
+        data: paged,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      })
+    }
+
+    let markupCache: { items: any[]; count: number } | null = null
+    const fetchMarkupBundle = async () => {
+      if (!includeMarkup) return { items: [], count: 0 }
+      if (markupCache) return markupCache
+
+      try {
+        let listQuery = db
+          .from('markup_documents')
+          .select(
+            'id, site_id, title, original_blueprint_url, original_blueprint_filename, created_at'
+          )
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+          .range(0, rangeEnd)
+
+        if (siteId) listQuery = listQuery.eq('site_id', siteId)
+        else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
+          listQuery = listQuery.in('site_id', partnerAllowedSiteIds)
+
+        if (q) {
+          listQuery = listQuery.or(`title.ilike.%${q}%,original_blueprint_filename.ilike.%${q}%`)
+        }
+
+        const countQuery = db
+          .from('markup_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_deleted', false)
+
+        if (siteId) countQuery.eq('site_id', siteId)
+        else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
+          countQuery.in('site_id', partnerAllowedSiteIds)
+        if (q) {
+          countQuery.or(`title.ilike.%${q}%,original_blueprint_filename.ilike.%${q}%`)
+        }
+
+        const [{ data }, { count }] = await Promise.all([listQuery, countQuery])
+        const mapped =
+          data
+            ?.filter(row => row?.original_blueprint_url)
+            .map(row => ({
+              id: `markup-${row.id}`,
+              site_id: row.site_id,
+              category: 'progress' as const,
+              title: row.title || row.original_blueprint_filename || '도면마킹 문서',
+              url: row.original_blueprint_url,
+              created_at: row.created_at,
+            })) || []
+
+        markupCache = { items: mapped, count: count || 0 }
+        return markupCache
+      } catch {
+        return { items: [], count: 0 }
+      }
+    }
 
     // Primary: site_documents
     try {
@@ -77,10 +164,10 @@ export async function GET(request: NextRequest) {
       if (category === 'other') query = query.eq('document_type', 'other')
       if (q) query = query.ilike('file_name', `%${q}%`)
 
-      const { data, error } = await query.range(from, to)
+      const { data, error } = await query.range(0, rangeEnd)
       if (error) throw error
 
-      const items = (data || []).map((d: any) => ({
+      const baseItems = (data || []).map((d: any) => ({
         id: d.id,
         site_id: d.site_id,
         category:
@@ -106,16 +193,7 @@ export async function GET(request: NextRequest) {
       if (q) countQuery = countQuery.ilike('file_name', `%${q}%`)
       const { count } = await countQuery
 
-      return NextResponse.json({
-        success: true,
-        data: items,
-        pagination: {
-          page,
-          limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit),
-        },
-      })
+      return mergeAndRespond(baseItems, count || 0)
     } catch (primaryErr: any) {
       // If site_documents is missing, fallback to legacy documents
       const code = primaryErr?.code || ''
@@ -144,7 +222,7 @@ export async function GET(request: NextRequest) {
       if (category === 'other') query = query.eq('document_type', 'other')
       if (q) query = query.ilike('file_name', `%${q}%`)
 
-      const { data, error } = await query.range(from, to)
+      const { data, error } = await query.range(0, rangeEnd)
       if (error) {
         return NextResponse.json({
           success: true,
@@ -153,7 +231,7 @@ export async function GET(request: NextRequest) {
         })
       }
 
-      const items = (data || []).map((d: any) => ({
+      const baseItems = (data || []).map((d: any) => ({
         id: d.id,
         site_id: d.site_id,
         category:
@@ -171,7 +249,7 @@ export async function GET(request: NextRequest) {
 
       let countQuery = db.from('documents').select('*', { count: 'exact', head: true })
       if (siteId) countQuery = countQuery.eq('site_id', siteId)
-      else if (auth.role === 'partner' && partnerAllowedSiteIds)
+      else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
         countQuery = countQuery.in('site_id', partnerAllowedSiteIds)
       if (category === 'plan') countQuery = countQuery.eq('document_type', 'blueprint')
       if (category === 'progress') countQuery = countQuery.eq('document_type', 'progress_drawing')
@@ -179,16 +257,7 @@ export async function GET(request: NextRequest) {
       if (q) countQuery = countQuery.ilike('file_name', `%${q}%`)
       const { count } = await countQuery
 
-      return NextResponse.json({
-        success: true,
-        data: items,
-        pagination: {
-          page,
-          limit,
-          total: count || 0,
-          totalPages: Math.ceil((count || 0) / limit),
-        },
-      })
+      return mergeAndRespond(baseItems, count || 0)
     }
   } catch (e: any) {
     return NextResponse.json(

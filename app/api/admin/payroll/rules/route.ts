@@ -57,6 +57,16 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Upsert failed' }, { status: 500 })
       return NextResponse.json({ success: true })
     }
+    if (action === 'delete') {
+      const id = body?.id
+      if (!id) {
+        return NextResponse.json({ success: false, error: 'Rule id required' }, { status: 400 })
+      }
+      const { error } = await service.from('salary_calculation_rules').delete().eq('id', id)
+      if (error)
+        return NextResponse.json({ success: false, error: 'Delete failed' }, { status: 500 })
+      return NextResponse.json({ success: true })
+    }
     return NextResponse.json({ success: false, error: 'Unknown action' }, { status: 400 })
   } catch (e: any) {
     console.error('POST /admin/payroll/rules error:', e)

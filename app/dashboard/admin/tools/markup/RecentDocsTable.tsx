@@ -22,6 +22,50 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
     }
   }
 
+  const formatDailyReportStatus = (status?: string | null) => {
+    if (!status) return '상태 미정'
+    const map: Record<string, string> = {
+      submitted: '제출 완료',
+      draft: '임시 저장',
+      saved: '임시 저장',
+      pending: '검토 중',
+      approved: '승인 완료',
+      rejected: '반려',
+    }
+    const normalized = status.toLowerCase()
+    return map[normalized] || status
+  }
+
+  const formatDailyReportLabel = (log?: any | null) => {
+    if (!log) return '미연결'
+    const dateLabel = log.work_date
+      ? new Date(log.work_date).toLocaleDateString('ko-KR')
+      : '날짜 미정'
+    const memberLabel = log.member_name || '작성자 미상'
+    const statusLabel = formatDailyReportStatus(log.status)
+    return `${dateLabel} · ${memberLabel} · ${statusLabel}`
+  }
+
+  const resolveSource = (doc: any) => {
+    if (doc?.source === 'shared') return 'shared'
+    if (typeof doc?.id === 'string' && doc.id.startsWith('shared-')) return 'shared'
+    return 'markup'
+  }
+
+  const buildEditHref = (doc: any): string | undefined => {
+    if (resolveSource(doc) === 'shared') {
+      if (!doc?.original_blueprint_url) return undefined
+      const params = new URLSearchParams()
+      params.set('blueprintUrl', doc.original_blueprint_url)
+      if (doc?.title) params.set('title', doc.title)
+      if (doc?.site_id) params.set('siteId', doc.site_id)
+      params.set('startEmpty', '1')
+      return `/dashboard/admin/tools/markup?${params.toString()}`
+    }
+    if (!doc?.id) return undefined
+    return `/dashboard/admin/tools/markup?docId=${doc.id}`
+  }
+
   return (
     <DataTable<any>
       data={docs}
@@ -58,6 +102,16 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
             width: 140,
           },
           {
+            key: 'daily_report',
+            header: '작업일지',
+            sortable: true,
+            accessor: (d: any) =>
+              d?.daily_report?.work_date ? new Date(d.daily_report.work_date).getTime() : 0,
+            render: (d: any) => formatDailyReportLabel(d?.daily_report),
+            width: 240,
+            className: 'whitespace-nowrap',
+          },
+          {
             key: 'creator',
             header: '작성자',
             sortable: true,
@@ -71,18 +125,11 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
             render: (d: any) => (
               <div className="flex items-center gap-1 whitespace-nowrap">
                 <Link
-                  href={`/dashboard/admin/documents/markup/${d.id}`}
-                  className={buttonVariants({ variant: 'outline', size: 'compact' })}
-                  role="button"
-                >
-                  상세
-                </Link>
-                <Link
-                  href={`/dashboard/admin/tools/markup?docId=${d.id}`}
+                  href={buildEditHref(d) || '#'}
                   className={buttonVariants({ variant: 'secondary', size: 'compact' })}
                   role="button"
                 >
-                  수정
+                  열기
                 </Link>
                 <button
                   onClick={() => handleDelete(d.id)}

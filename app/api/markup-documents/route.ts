@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -26,12 +27,25 @@ export async function GET(request: NextRequest) {
     const role = profile?.role || authResult.role || ''
     const isAdmin = role === 'admin' || role === 'system_admin'
 
+    const supabaseAdminClient = (() => {
+      if (isAdmin) {
+        try {
+          return createServiceClient()
+        } catch (error) {
+          console.warn('Failed to create service client for markup documents:', error)
+        }
+      }
+      return null
+    })()
+
+    const supabaseForDocs = supabaseAdminClient ?? supabase
+
     // 쿼리 파라미터
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const search = searchParams.get('search')
     const site = searchParams.get('site')
-    const worklogId = searchParams.get('worklogId') || searchParams.get('worklog_id')
+    const worklogId = searchParams.get('worklogId') || searchParams.get('linked_worklog_id')
     const admin = searchParams.get('admin') === 'true'
     const stats = searchParams.get('stats') === 'true'
     // Note: location parameter removed as location column no longer exists
@@ -40,7 +54,10 @@ export async function GET(request: NextRequest) {
     // 통계 요청 처리
     if (stats) {
       const statsQuery = isAdmin
-        ? supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false)
+        ? supabaseForDocs
+            .from('markup_documents')
+            .select('*', { count: 'exact' })
+            .eq('is_deleted', false)
         : supabase
             .from('markup_documents')
             .select('*', { count: 'exact' })
@@ -58,7 +75,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 기본 쿼리 생성 - 관계 정보 포함
-    let query = supabase
+    let query = supabaseForDocs
       .from('markup_documents')
       .select(
         `
@@ -111,19 +128,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
 
+    const documentList = (documents || []) as Array<any>
+    const worklogIds = documentList
+      .map(doc => doc?.linked_worklog_id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    const worklogMap = new Map<string, any>()
+    if (worklogIds.length > 0) {
+      const { data: dailyReports, error: worklogError } = await supabaseForDocs
+        .from('daily_reports')
+        .select('id, work_date, member_name, status')
+        .in('id', Array.from(new Set(worklogIds)))
+      if (worklogError) {
+        console.warn('Failed to fetch linked worklogs for markup documents:', worklogError)
+      } else {
+        ;(dailyReports || []).forEach(report => {
+          if (report?.id) worklogMap.set(report.id as string, report)
+        })
+      }
+    }
+
     // 관계 정보를 포함한 문서 포맷팅
-    const formattedDocuments =
-      documents?.map((doc: unknown) => ({
-        ...doc,
-        created_by_name: doc.creator?.full_name || 'Unknown',
-        creator_email: doc.creator?.email || '',
-        creator_role: doc.creator?.role || '',
-        site_name: doc.site?.name || '',
-        site_address: doc.site?.address || '',
-        // 필수 필드 보장 (location field removed from schema)
-        file_size: doc.file_size || 0,
-        markup_count: doc.markup_count || 0,
-      })) || []
+    const formattedDocuments = documentList.map(doc => ({
+      ...doc,
+      created_by_name: doc?.creator?.full_name || 'Unknown',
+      creator_email: doc?.creator?.email || '',
+      creator_role: doc?.creator?.role || '',
+      site_name: doc?.site?.name || '',
+      site_address: doc?.site?.address || '',
+      // 필수 필드 보장 (location field removed from schema)
+      file_size: doc?.file_size || 0,
+      markup_count: doc?.markup_count || 0,
+      daily_report: doc?.linked_worklog_id
+        ? worklogMap.get(doc.linked_worklog_id as string) || null
+        : null,
+    }))
 
     const totalPages = Math.ceil((count || 0) / limit)
 
@@ -179,6 +217,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
+    const isAdmin = authResult.role === 'admin' || authResult.role === 'system_admin'
+    const supabaseAdminClient = (() => {
+      if (isAdmin) {
+        try {
+          return createServiceClient()
+        } catch (error) {
+          console.warn('Failed to create service client for markup document writes:', error)
+        }
+      }
+      return null
+    })()
+    const supabaseForDocs = supabaseAdminClient ?? supabase
+
     const body = await request.json()
     const {
       title,
@@ -189,6 +240,15 @@ export async function POST(request: NextRequest) {
       preview_image_url,
     } = body
     const siteIdFromBody = body?.site_id as string | undefined
+    const linkedWorklogId = (() => {
+      if (typeof body?.linked_worklog_id === 'string' && body.linked_worklog_id.trim().length > 0) {
+        return body.linked_worklog_id.trim()
+      }
+      if (typeof body?.daily_report_id === 'string' && body.daily_report_id.trim().length > 0) {
+        return body.daily_report_id.trim()
+      }
+      return null
+    })()
 
     // 필수 필드 검증
     if (!title || !original_blueprint_url || !original_blueprint_filename) {
@@ -224,7 +284,7 @@ export async function POST(request: NextRequest) {
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
     // markup_documents 테이블에 문서 생성
-    const { data: document, error } = await (supabase
+    const { data: document, error } = await (supabaseForDocs
       .from('markup_documents')
       .insert({
         title,
@@ -237,6 +297,7 @@ export async function POST(request: NextRequest) {
         site_id: effectiveSiteId,
         markup_count,
         file_size: 0, // TODO: 실제 파일 크기 계산
+        linked_worklog_id: linkedWorklogId,
       } as unknown)
       .select()
       .single() as unknown)
@@ -248,26 +309,29 @@ export async function POST(request: NextRequest) {
 
     // 동시에 unified_document_system에도 등록하여 통합뷰에 표시되도록 함
     try {
-      const { error: unifiedError } = await supabase.from('unified_document_system').insert({
-        title,
-        description,
-        file_name: `${title}.markup`,
-        file_url: `/api/markup-documents/${document.id}/file`, // 마킹 문서 전용 뷰어 URL
-        file_size: 0,
-        mime_type: 'application/markup-document',
-        category_type: 'markup',
-        uploaded_by: authResult.userId,
-        site_id: (profile as unknown).site_id,
-        status: 'uploaded',
-        is_public: false, // 마킹 문서는 기본적으로 비공개
-        metadata: {
-          source_table: 'markup_documents',
-          source_id: document.id,
-          markup_count,
-          original_blueprint_url,
-          original_blueprint_filename,
-        },
-      })
+      const { error: unifiedError } = await (supabaseAdminClient ?? supabase)
+        .from('unified_document_system')
+        .insert({
+          title,
+          description,
+          file_name: `${title}.markup`,
+          file_url: `/api/markup-documents/${document.id}/file`, // 마킹 문서 전용 뷰어 URL
+          file_size: 0,
+          mime_type: 'application/markup-document',
+          category_type: 'markup',
+          uploaded_by: authResult.userId,
+          site_id: (profile as unknown).site_id,
+          status: 'uploaded',
+          is_public: false, // 마킹 문서는 기본적으로 비공개
+          metadata: {
+            source_table: 'markup_documents',
+            source_id: document.id,
+            markup_count,
+            original_blueprint_url,
+            original_blueprint_filename,
+            daily_report_id: linkedWorklogId,
+          },
+        })
 
       if (unifiedError) {
         console.warn('Warning: Failed to sync to unified document system:', unifiedError)

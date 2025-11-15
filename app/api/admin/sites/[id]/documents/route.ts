@@ -38,12 +38,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     const supabase = createClient()
+    const svc = createServiceRoleClient()
 
     const siteId = params.id
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') || 'invoice' // Default to 기성청구 문서
     const type = searchParams.get('type') // document_type filter
     const limit = parseInt(searchParams.get('limit') || '50')
+    const q = (searchParams.get('q') || '').trim()
 
     // Build query for site documents
     let query = supabase
@@ -61,12 +63,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
       query = query.eq('sub_category', type)
     }
 
-    const { data: documents, error } = await query
+    const { data: documentsData, error } = await query
 
     if (error) {
       console.error('Documents query error:', error)
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
+    let documents = documentsData || []
 
     // Get document statistics for this site and category
     const { data: statsData } = await supabase
@@ -96,6 +99,94 @@ export async function GET(request: Request, { params }: { params: { id: string }
           {} as Record<string, number>
         ) || {},
       category: category,
+    }
+
+    const shouldIncludeMarkup =
+      category === 'shared' && (!type || type === 'all' || type === 'progress_drawing')
+
+    if (shouldIncludeMarkup) {
+      const markupLimit = Math.max(limit, 50)
+      let markupQuery = svc
+        .from('markup_documents')
+        .select(
+          `
+          id,
+          title,
+          description,
+          created_at,
+          site_id,
+          created_by,
+          linked_worklog_id,
+          original_blueprint_url,
+          original_blueprint_filename,
+          file_size,
+          creator:profiles!markup_documents_created_by_fkey(full_name, email)
+        `
+        )
+        .eq('site_id', siteId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(markupLimit)
+
+      if (q) {
+        markupQuery = markupQuery.or(`title.ilike.%${q}%,original_blueprint_filename.ilike.%${q}%`)
+      }
+
+      const [{ data: markupRows }, { count: markupCount }] = await Promise.all([
+        markupQuery,
+        svc
+          .from('markup_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('site_id', siteId)
+          .eq('is_deleted', false),
+      ])
+
+      const mappedMarkup =
+        markupRows?.map(row => ({
+          id: row.id,
+          category_type: 'shared',
+          sub_category: 'progress_drawing',
+          file_name: row.original_blueprint_filename || row.title || '도면마킹 문서',
+          file_url: row.original_blueprint_url,
+          title: row.title || row.original_blueprint_filename || '도면마킹 문서',
+          description: row.description || '',
+          created_at: row.created_at,
+          metadata: {
+            source_table: 'markup_documents',
+            markup_document_id: row.id,
+            linked_worklog_id: row.linked_worklog_id,
+            readonly: true,
+          },
+          updated_at: row.created_at,
+          uploaded_by: row.created_by,
+          file_size: row.file_size || 0,
+          mime_type: 'image/png',
+          status: 'active',
+          profiles: row.creator
+            ? {
+                full_name: row.creator.full_name,
+                role: 'markup_creator',
+              }
+            : null,
+        })) || []
+
+      if (markupCount) {
+        statistics.total_documents += markupCount || 0
+        const docCount = statistics.by_type?.document || 0
+        statistics.by_type = {
+          ...statistics.by_type,
+          document: docCount + (markupCount || 0),
+        }
+      }
+
+      if (mappedMarkup.length > 0) {
+        documents = [...documents, ...mappedMarkup].sort((a, b) => {
+          const at = new Date(a.created_at || 0).getTime()
+          const bt = new Date(b.created_at || 0).getTime()
+          return bt - at
+        })
+        documents = documents.slice(0, limit)
+      }
     }
 
     // Get site information for context

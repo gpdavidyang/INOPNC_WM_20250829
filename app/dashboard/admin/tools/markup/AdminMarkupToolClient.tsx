@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
+import MarkupMetadataForm, { type SiteOption } from '@/components/admin/markup/MarkupMetadataForm'
 
 type AnyDoc = {
   id?: string
@@ -11,19 +12,27 @@ type AnyDoc = {
   original_blueprint_url?: string
   original_blueprint_filename?: string
   markup_data?: any[]
+  site_id?: string | null
+  linked_worklog_id?: string | null
 }
 
 interface AdminMarkupToolClientProps {
   initialDocument: AnyDoc
+  siteOptions: SiteOption[]
   onClose?: () => void
 }
 
 export default function AdminMarkupToolClient({
   initialDocument,
+  siteOptions,
   onClose,
 }: AdminMarkupToolClientProps) {
   const router = useRouter()
-  const params = useSearchParams()
+  const [activeDocument, setActiveDocument] = React.useState(initialDocument)
+
+  React.useEffect(() => {
+    setActiveDocument(initialDocument)
+  }, [initialDocument])
 
   const onSave = async (payload: AnyDoc) => {
     // If blueprint url is a local blob, upload it to obtain a persistent URL
@@ -54,6 +63,8 @@ export default function AdminMarkupToolClient({
           description: payload.description,
           markup_data: payload.markup_data || [],
           preview_image_url: null,
+          site_id: payload.site_id ?? activeDocument?.site_id ?? null,
+          linked_worklog_id: payload.linked_worklog_id ?? activeDocument?.linked_worklog_id ?? null,
         }),
       })
     } else {
@@ -67,20 +78,16 @@ export default function AdminMarkupToolClient({
           original_blueprint_filename: blueprintFileName,
           markup_data: payload.markup_data || [],
           preview_image_url: null,
+          site_id: payload.site_id ?? activeDocument?.site_id ?? null,
+          linked_worklog_id: payload.linked_worklog_id ?? activeDocument?.linked_worklog_id ?? null,
         }),
       })
     }
     const j = await res.json().catch(() => ({}))
     if (!res.ok || j?.error) throw new Error(j?.error || '저장 실패')
 
-    // 저장 후 목록/상세로 이동
-    try {
-      const id = (j?.data?.id || payload?.id) as string | undefined
-      if (id) router.push(`/dashboard/admin/documents/markup/${id}`)
-      else router.push('/dashboard/admin/documents/markup')
-    } catch {
-      router.push('/dashboard/admin/documents/markup')
-    }
+    // 저장 후 목록으로 이동
+    router.push('/dashboard/admin/documents/markup')
   }
 
   const handleClose = () => {
@@ -90,13 +97,20 @@ export default function AdminMarkupToolClient({
   }
 
   return (
-    <div className="h-[calc(100vh-200px)] min-h-[560px]">
-      <SharedMarkupEditor
-        mode="admin"
-        initialDocument={initialDocument}
-        onSave={onSave}
-        onClose={handleClose}
+    <div className="space-y-4">
+      <MarkupMetadataForm
+        document={activeDocument}
+        siteOptions={siteOptions}
+        onDocumentChange={setActiveDocument}
       />
+      <div className="h-[calc(100vh-260px)] min-h-[560px]">
+        <SharedMarkupEditor
+          mode="admin"
+          initialDocument={activeDocument}
+          onSave={onSave}
+          onClose={handleClose}
+        />
+      </div>
     </div>
   )
 }

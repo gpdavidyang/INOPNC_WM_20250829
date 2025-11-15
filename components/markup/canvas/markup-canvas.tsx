@@ -65,6 +65,26 @@ export function MarkupCanvas({
           className="absolute left-0 top-0"
         >
           {objects.map(renderObject(selectedIds))}
+          {objects.map(obj => {
+            if (!selectedIds.includes(obj.id)) return null
+            const rect = getBoundingRect(obj)
+            if (!rect) return null
+            const padded = expandRect(rect, 4)
+            return (
+              <rect
+                key={`selection-${obj.id}`}
+                x={padded.x}
+                y={padded.y}
+                width={padded.width}
+                height={padded.height}
+                fill="none"
+                stroke="#0ea5e9"
+                strokeWidth={1.5}
+                strokeDasharray="4 4"
+                pointerEvents="none"
+              />
+            )
+          })}
         </svg>
       </div>
     </div>
@@ -76,6 +96,7 @@ function renderObject(selectedIds: string[]) {
     const selected = selectedIds.includes(obj.id)
     if (obj.type === 'box') {
       const stroke = obj.color === 'red' ? '#ef4444' : obj.color === 'blue' ? '#3b82f6' : '#6b7280'
+      const strokeWidth = getBoxStrokeWidth((obj as any).size, selected)
       return (
         <g key={obj.id}>
           <rect
@@ -86,7 +107,7 @@ function renderObject(selectedIds: string[]) {
             fill={selected ? stroke : 'transparent'}
             fillOpacity={selected ? 0.18 : 1}
             stroke={stroke}
-            strokeWidth={selected ? 3 : 2}
+            strokeWidth={strokeWidth}
           />
           <text x={obj.x + 4} y={obj.y - 4} fontSize={12} fill={stroke}>
             {(obj as any).label}
@@ -183,6 +204,56 @@ function colorToHex(c: string) {
   const map: Record<string, string> = { red: '#ef4444', blue: '#3b82f6', gray: '#6b7280' }
   if (c.startsWith('#')) return c
   return map[c] || c
+}
+
+type BoundingRect = { x: number; y: number; width: number; height: number }
+
+function getBoundingRect(obj: MarkupObject): BoundingRect | null {
+  if (obj.type === 'box') {
+    return { x: obj.x, y: obj.y, width: (obj as any).width, height: (obj as any).height }
+  }
+  if (obj.type === 'stamp') {
+    const size = sizeToPixels((obj as any).size || 'medium')
+    const r = size / 2
+    return { x: obj.x - r, y: obj.y - r, width: size, height: size }
+  }
+  if (obj.type === 'text') {
+    const content = (obj as any).content || ''
+    const fontSize = (obj as any).fontSize || 14
+    const width = Math.max(40, content.length * 8)
+    return { x: obj.x, y: obj.y - fontSize, width, height: fontSize }
+  }
+  if (obj.type === 'drawing') {
+    const path = (obj as any).path || []
+    if (!Array.isArray(path) || path.length === 0) return null
+    const xs = path.map((p: any) => p.x)
+    const ys = path.map((p: any) => p.y)
+    const minX = Math.min(...xs)
+    const minY = Math.min(...ys)
+    const maxX = Math.max(...xs)
+    const maxY = Math.max(...ys)
+    return {
+      x: minX,
+      y: minY,
+      width: Math.max(1, maxX - minX),
+      height: Math.max(1, maxY - minY),
+    }
+  }
+  return null
+}
+
+function expandRect(rect: BoundingRect, padding: number): BoundingRect {
+  return {
+    x: rect.x - padding,
+    y: rect.y - padding,
+    width: rect.width + padding * 2,
+    height: rect.height + padding * 2,
+  }
+}
+
+function getBoxStrokeWidth(size?: 'small' | 'medium' | 'large', selected?: boolean): number {
+  const base = size === 'small' ? 2 : size === 'large' ? 4 : 3
+  return selected ? base + 1 : base
 }
 
 export default MarkupCanvas
