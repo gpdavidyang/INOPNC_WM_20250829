@@ -20,6 +20,7 @@ interface Organization {
   contact_email?: string
   contact_phone?: string
   member_count?: number
+  site_count?: number
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -95,7 +96,10 @@ export function OrganizationsOverview() {
     })
     if (!ok) return
     try {
-      const res = await fetch(`/api/admin/organizations/${id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/admin/organizations/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
       const j = await res.json().catch(() => ({}))
       if (!res.ok || j?.success === false) throw new Error(j?.error || '삭제 실패')
       toast({ title: '삭제 완료', description: '시공업체가 삭제되었습니다.', variant: 'success' })
@@ -239,26 +243,43 @@ export function OrganizationsOverview() {
                     ),
                   },
                   {
+                    key: 'site_count',
+                    header: '연동 현장',
+                    sortable: true,
+                    width: '12%',
+                    align: 'right',
+                    render: (o: Organization) => (
+                      <div className="flex items-center justify-end gap-1 text-sm font-medium">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        {o.site_count ?? 0}곳
+                      </div>
+                    ),
+                  },
+                  {
                     key: 'actions',
                     header: '작업',
                     sortable: false,
                     width: '16%',
                     align: 'right',
+                    className: 'whitespace-nowrap',
                     render: (o: Organization) => (
-                      <div className="flex items-center justify-end gap-1">
-                        <Button asChild size="sm" variant="outline">
+                      <div className="flex flex-nowrap items-center justify-end gap-2">
+                        <Button asChild size="sm" variant="outline" className="whitespace-nowrap">
                           <Link href={`/dashboard/admin/organizations/${o.id}`}>상세</Link>
                         </Button>
-                        <Button asChild size="sm" variant="outline">
+                        <Button asChild size="sm" variant="outline" className="whitespace-nowrap">
                           <Link href={`/dashboard/admin/organizations/${o.id}/edit`}>수정</Link>
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(o.id, o.name)}
+                        <form
+                          onSubmit={event => {
+                            event.preventDefault()
+                            void handleDelete(o.id, o.name)
+                          }}
                         >
-                          삭제
-                        </Button>
+                          <Button size="sm" variant="outline" className="whitespace-nowrap">
+                            삭제
+                          </Button>
+                        </form>
                       </div>
                     ),
                   },

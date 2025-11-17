@@ -127,7 +127,7 @@ export default function DefaultRatesPage() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-left">
-                  <th className="px-3 py-2">형태</th>
+                  <th className="px-3 py-2">고용형태</th>
                   <th className="px-3 py-2">소득세(%)</th>
                   <th className="px-3 py-2">국민연금(%)</th>
                   <th className="px-3 py-2">건강보험(%)</th>

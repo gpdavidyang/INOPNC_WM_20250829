@@ -42,6 +42,7 @@ type FormState = {
   accommodation_name: string
   accommodation_address: string
   accommodation_phone: string
+  organization_id: string
 }
 
 const toDateInput = (value?: string | null) => {
@@ -79,6 +80,11 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
   const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
   const [sharedDocsError, setSharedDocsError] = useState<string | null>(null)
   const [sharedDocs, setSharedDocs] = useState<Array<Record<string, any>>>([])
+  const [organizationOptions, setOrganizationOptions] = useState<Array<{ id: string; name: string }>>(
+    []
+  )
+  const [organizationLoading, setOrganizationLoading] = useState(false)
+  const [organizationError, setOrganizationError] = useState<string | null>(null)
 
   const [form, setForm] = useState<FormState>(() => ({
     name: initial?.name || '',
@@ -99,6 +105,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     accommodation_name: String(initial?.accommodation_name || ''),
     accommodation_address: String(initial?.accommodation_address || ''),
     accommodation_phone: String((initial as any)?.accommodation_phone || ''),
+    organization_id: initial?.organization_id ? String(initial.organization_id) : '',
   }))
 
   const canViewSharedDocs = mode === 'edit' && !!siteId
@@ -250,6 +257,39 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     }
   }, [initialExtrasExpanded])
 
+  useEffect(() => {
+    let active = true
+    setOrganizationLoading(true)
+    setOrganizationError(null)
+    ;(async () => {
+      try {
+        const res = await fetch('/api/admin/organizations', { cache: 'no-store' })
+        const json = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && Array.isArray(json?.organizations)) {
+          setOrganizationOptions(
+            (json.organizations as Array<{ id: string; name: string }>).map(org => ({
+              id: String(org.id),
+              name: org.name || '이름 미지정',
+            }))
+          )
+        } else {
+          setOrganizationOptions([])
+          setOrganizationError('소속 목록을 불러오지 못했습니다.')
+        }
+      } catch {
+        if (!active) return
+        setOrganizationOptions([])
+        setOrganizationError('소속 목록을 불러오지 못했습니다.')
+      } finally {
+        if (active) setOrganizationLoading(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [])
+
   const handleChange = useCallback((field: keyof FormState, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
@@ -267,6 +307,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
         address: form.address,
         status: form.status,
         start_date: form.start_date,
+        organization_id: form.organization_id || null,
         description: form.description.trim() || null,
         end_date: form.end_date.trim() || null,
         manager_name: form.manager_name.trim() || null,
@@ -347,6 +388,37 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
                 <CustomSelectItem value="completed">완료</CustomSelectItem>
               </CustomSelectContent>
             </CustomSelect>
+          </Field>
+          <Field
+            htmlFor="site-organization"
+            label="소속(시공사)"
+            className="md:col-span-6 xl:col-span-4"
+            hint="현장이 속한 시공업체를 선택하세요."
+          >
+            <CustomSelect
+              value={form.organization_id || 'none'}
+              onValueChange={value =>
+                handleChange('organization_id', value === 'none' ? '' : value)
+              }
+              disabled={organizationLoading}
+            >
+              <CustomSelectTrigger id="site-organization" className="h-9 w-full justify-between">
+                <CustomSelectValue
+                  placeholder={organizationLoading ? '소속 불러오는 중...' : '소속 선택'}
+                />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="none">연동 안 함</CustomSelectItem>
+                {organizationOptions.map(option => (
+                  <CustomSelectItem key={option.id} value={option.id}>
+                    {option.name}
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
+            {organizationError ? (
+              <p className="text-[11px] text-destructive mt-1">{organizationError}</p>
+            ) : null}
           </Field>
           <Field htmlFor="site-address" label="주소" required className="md:col-span-12">
             <Input

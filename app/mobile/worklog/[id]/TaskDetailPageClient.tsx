@@ -4,6 +4,8 @@ import Image from 'next/image'
 import React from 'react'
 import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
+import { useToast } from '@/components/ui/use-toast'
+import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
 import '@/modules/mobile/styles/worklogs.css'
 
 type TabKey = 'photos' | 'drawings' | 'completion' | 'others'
@@ -93,6 +95,170 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
           (attachment.id.startsWith('markup-') || attachment.id.startsWith('linked-')))
     )
   })
+
+  const { toast } = useToast()
+  const initialLinkedDocs = React.useMemo(
+    () =>
+      markupDrawings.map(item => ({
+        id: getMarkupDocumentId(item) || item.id,
+        title: item.name || '도면',
+        linkedWorklogIds: extractLinkedWorklogIds(item),
+      })),
+    [markupDrawings]
+  )
+  const [linkedDocs, setLinkedDocs] = React.useState(initialLinkedDocs)
+  const [loadingLinks, setLoadingLinks] = React.useState(false)
+  const [showDrawingPicker, setShowDrawingPicker] = React.useState(false)
+  const [linkingDocId, setLinkingDocId] = React.useState<string | null>(null)
+  const [detachingDocId, setDetachingDocId] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    setLinkedDocs(initialLinkedDocs)
+  }, [initialLinkedDocs])
+
+  const refreshMarkupLinks = React.useCallback(async () => {
+    setLoadingLinks(true)
+    try {
+      const res = await fetch(`/api/markup-documents?worklogId=${detail.id}`)
+      const json = await res.json().catch(() => ({}))
+      const arr = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json?.documents)
+          ? json.documents
+          : []
+      const mapped = arr.map((doc: any) => ({
+        id: doc.id,
+        title: doc.title || '도면',
+        linkedWorklogIds:
+          Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0
+            ? doc.linked_worklog_ids.filter(
+                (value: unknown): value is string => typeof value === 'string' && value.length > 0
+              )
+            : doc.linked_worklog_id
+              ? [doc.linked_worklog_id]
+              : [detail.id],
+      }))
+      setLinkedDocs(mapped)
+    } catch {
+      setLinkedDocs([])
+    } finally {
+      setLoadingLinks(false)
+    }
+  }, [detail.id])
+
+  React.useEffect(() => {
+    void refreshMarkupLinks()
+  }, [refreshMarkupLinks])
+
+  const handleOpenMarkupTool = React.useCallback(
+    (docId?: string) => {
+      if (!detail.siteId) {
+        toast({
+          title: '현장 정보가 필요합니다.',
+          description: '현장에 연결된 도면만 마킹할 수 있습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+      const params = new URLSearchParams()
+      params.set('siteId', detail.siteId)
+      params.set('worklogId', detail.id)
+      params.set('mode', docId ? 'start' : 'browse')
+      if (docId) params.set('docId', docId)
+      const url = `/mobile/markup-tool?${params.toString()}`
+      window.location.href = url
+    },
+    [detail.id, detail.siteId, toast]
+  )
+
+  const handleAttachMarkup = React.useCallback(
+    async (docId: string) => {
+      setLinkingDocId(docId)
+      try {
+        const detailRes = await fetch(`/api/markup-documents/${docId}`, { cache: 'no-store' })
+        const detailJson = await detailRes.json().catch(() => ({}))
+        if (!detailRes.ok || !detailJson?.data) {
+          throw new Error(detailJson?.error || '도면 정보를 불러올 수 없습니다.')
+        }
+        const existing: string[] = Array.isArray(detailJson.data.linked_worklog_ids)
+          ? detailJson.data.linked_worklog_ids
+          : detailJson.data.linked_worklog_id
+            ? [detailJson.data.linked_worklog_id]
+            : []
+        const next = Array.from(new Set([...existing, detail.id]))
+        const patchRes = await fetch(`/api/markup-documents/${docId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linked_worklog_ids: next }),
+        })
+        const patchJson = await patchRes.json().catch(() => ({}))
+        if (!patchRes.ok || patchJson?.error) {
+          throw new Error(patchJson?.error || '작업일지와 연결하지 못했습니다.')
+        }
+        toast({
+          title: '도면이 연결되었습니다.',
+          description: '작업일지에서 바로 확인할 수 있습니다.',
+        })
+        setShowDrawingPicker(false)
+        await refreshMarkupLinks()
+      } catch (error) {
+        toast({
+          title: '연결 실패',
+          description: error instanceof Error ? error.message : '도면 연결에 실패했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLinkingDocId(null)
+      }
+    },
+    [detail.id, refreshMarkupLinks, toast]
+  )
+
+  const handleDetachMarkup = React.useCallback(
+    async (docId: string) => {
+      const target = linkedDocs.find(doc => doc.id === docId)
+      if (!target) return
+      setDetachingDocId(docId)
+      try {
+        const remaining = target.linkedWorklogIds.filter(id => id !== detail.id)
+        const patchRes = await fetch(`/api/markup-documents/${docId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linked_worklog_ids: remaining }),
+        })
+        const patchJson = await patchRes.json().catch(() => ({}))
+        if (!patchRes.ok || patchJson?.error) {
+          throw new Error(patchJson?.error || '연결을 해제할 수 없습니다.')
+        }
+        toast({
+          title: '연결 해제 완료',
+          description: '도면 마킹 연결이 해제되었습니다.',
+        })
+        await refreshMarkupLinks()
+      } catch (error) {
+        toast({
+          title: '해제 실패',
+          description: error instanceof Error ? error.message : '연결 해제에 실패했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setDetachingDocId(null)
+      }
+    },
+    [detail.id, linkedDocs, refreshMarkupLinks, toast]
+  )
+
+  const handleDrawingSelection = React.useCallback(
+    (drawing: any) => {
+      if (!drawing) return
+      if (drawing.source === 'markup' && drawing.id) {
+        void handleAttachMarkup(drawing.id)
+      } else if (drawing.id) {
+        handleOpenMarkupTool(drawing.id)
+      }
+    },
+    [handleAttachMarkup, handleOpenMarkupTool]
+  )
 
   return (
     <MobileLayoutShell>
@@ -242,64 +408,115 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
           )}
         </div>
 
-        {markupDrawings.length > 0 ? (
-          <section style={{ marginTop: 16 }}>
-            <h4 style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>연결된 진행도면</h4>
-            {markupDrawings.map(item => {
-              const linkedIds = extractLinkedWorklogIds(item)
-              const markupDocId = getMarkupDocumentId(item)
-              const fallbackWorklogId = linkedIds[0] || detail.id
-              const markupHref = markupDocId
-                ? `/mobile/markup-tool?mode=start&docId=${markupDocId}`
-                : null
-              const documentsHref = `/documents/hub?worklogId=${fallbackWorklogId}${
-                detail.siteId ? `&siteId=${detail.siteId}` : ''
-              }`
-              return (
-                <div key={item.id} className="linked-markup-card">
-                  <div className="linked-markup-title">{item.name || '도면'}</div>
+        <section
+          style={{
+            marginTop: 16,
+            border: '1px dashed rgba(148,163,184,0.6)',
+            borderRadius: 16,
+            padding: 16,
+            background: '#fff',
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <h4 style={{ fontWeight: 700, fontSize: 15 }}>도면 마킹 연결</h4>
+                <p style={{ fontSize: 12, color: '#475467' }}>
+                  작업일지와 연결된 도면 마킹을 관리하세요.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  className="viewer-action-btn secondary"
+                  onClick={() => handleOpenMarkupTool()}
+                  disabled={!detail.siteId}
+                >
+                  새 마킹
+                </button>
+                <button
+                  type="button"
+                  className="viewer-action-btn secondary"
+                  onClick={() => setShowDrawingPicker(prev => !prev)}
+                  disabled={!detail.siteId}
+                >
+                  {showDrawingPicker ? '선택 닫기' : '기존 연결'}
+                </button>
+              </div>
+            </div>
+            <a
+              className="viewer-action-btn secondary"
+              style={{ width: 'fit-content' }}
+              href={`/documents/hub?siteId=${detail.siteId || ''}&worklogId=${detail.id}`}
+            >
+              현장공유함 이동
+            </a>
+          </div>
+
+          {showDrawingPicker && (
+            <div
+              style={{
+                marginTop: 12,
+                borderRadius: 12,
+                border: '1px solid #e2e8f0',
+                maxHeight: 420,
+                overflow: 'hidden',
+              }}
+            >
+              <DrawingBrowser
+                selectedSite={detail.siteId || ''}
+                siteName={detail.siteName}
+                onDrawingSelect={handleDrawingSelection}
+              />
+            </div>
+          )}
+
+          <div style={{ marginTop: 12 }}>
+            {loadingLinks ? (
+              <p style={{ fontSize: 12, color: '#94a3b8' }}>연결 정보를 불러오는 중...</p>
+            ) : linkedDocs.length === 0 ? (
+              <p style={{ fontSize: 12, color: '#94a3b8' }}>
+                연결된 도면이 없습니다. 새 도면을 마킹하거나 기존 도면을 연결해 주세요.
+              </p>
+            ) : (
+              linkedDocs.map(doc => (
+                <div key={doc.id} className="linked-markup-card">
+                  <div className="linked-markup-title">{doc.title}</div>
                   <div className="linked-markup-badges">
-                    {linkedIds.map(id => (
+                    {doc.linkedWorklogIds.map(id => (
                       <span key={id} className="linked-chip">
                         #{id}
                       </span>
                     ))}
                   </div>
                   <div className="linked-markup-actions">
-                    {item.fileUrl ? (
-                      <a
-                        className="viewer-action-btn secondary"
-                        href={item.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        열기
-                      </a>
-                    ) : null}
-                    {extractSnapshotPdfUrl(item) ? (
-                      <a
-                        className="viewer-action-btn secondary"
-                        href={extractSnapshotPdfUrl(item)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        PDF
-                      </a>
-                    ) : null}
-                    {markupHref ? (
-                      <a className="viewer-action-btn secondary" href={markupHref}>
-                        마킹 도구
-                      </a>
-                    ) : null}
-                    <a className="viewer-action-btn secondary" href={documentsHref}>
-                      현장공유함
-                    </a>
+                    <button
+                      type="button"
+                      className="viewer-action-btn secondary"
+                      onClick={() => handleOpenMarkupTool(doc.id)}
+                    >
+                      열기
+                    </button>
+                    <button
+                      type="button"
+                      className="viewer-action-btn secondary"
+                      style={{ borderColor: '#fecdd3', color: '#b91c1c', background: '#ffe4e6' }}
+                      onClick={() => handleDetachMarkup(doc.id)}
+                      disabled={detachingDocId === doc.id}
+                    >
+                      {detachingDocId === doc.id ? '해제 중...' : '연결 해제'}
+                    </button>
                   </div>
                 </div>
-              )
-            })}
-          </section>
-        ) : null}
+              ))
+            )}
+            {linkingDocId && (
+              <p style={{ marginTop: 8, fontSize: 12, color: '#475467' }}>
+                도면을 작업일지에 연결하는 중입니다. 잠시만 기다려 주세요.
+              </p>
+            )}
+          </div>
+        </section>
       </div>
     </MobileLayoutShell>
   )

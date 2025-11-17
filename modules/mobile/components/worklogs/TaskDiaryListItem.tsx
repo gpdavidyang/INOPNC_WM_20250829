@@ -31,6 +31,8 @@ export const TaskDiaryListItem: React.FC<TaskDiaryListItemProps> = ({
         weekday: 'short',
       })
 
+  const hasMarkup = (worklog.attachmentCounts?.drawings || 0) > 0
+
   return (
     <article
       className={clsx('worklog-card', isActive && 'active')}
@@ -46,7 +48,10 @@ export const TaskDiaryListItem: React.FC<TaskDiaryListItemProps> = ({
     >
       <header className="worklog-card-header">
         <h3 className="worklog-site">{worklog.siteName}</h3>
-        <WorklogStatusBadge status={worklog.status} />
+        <div className="worklog-card-actions">
+          {hasMarkup && <span className="markup-badge">도면 연결</span>}
+          <WorklogStatusBadge status={worklog.status} />
+        </div>
       </header>
 
       <div className="worklog-meta">

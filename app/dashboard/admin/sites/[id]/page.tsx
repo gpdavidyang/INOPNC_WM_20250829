@@ -27,6 +27,16 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
     .eq('is_deleted', false)
     .maybeSingle()
 
+  let organization: any = null
+  if (site?.organization_id) {
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', site.organization_id)
+      .maybeSingle()
+    organization = org
+  }
+
   const h = headers()
   const host = h.get('x-forwarded-host') || h.get('host') || 'localhost:3000'
   const proto = h.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')
@@ -64,6 +74,7 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
           <SiteDetailTabs
             siteId={params.id}
             site={site}
+            organization={organization}
             initialDocs={Array.isArray(docs) ? docs : []}
             initialReports={Array.isArray(reports) ? reports : []}
             initialAssignments={assignments}

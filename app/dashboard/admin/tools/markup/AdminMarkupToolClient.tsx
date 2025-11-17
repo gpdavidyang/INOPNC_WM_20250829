@@ -18,6 +18,17 @@ type AnyDoc = {
   linked_worklog_ids?: string[] | null
 }
 
+const extractLinkedIds = (doc?: AnyDoc | null) => {
+  if (!doc) return []
+  if (Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0) {
+    return doc.linked_worklog_ids.filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0
+    )
+  }
+  if (doc.linked_worklog_id) return [doc.linked_worklog_id]
+  return []
+}
+
 interface AdminMarkupToolClientProps {
   initialDocument: AnyDoc
   siteOptions: SiteOption[]
@@ -37,6 +48,15 @@ export default function AdminMarkupToolClient({
   }, [initialDocument])
 
   const onSave = async (payload: AnyDoc) => {
+    const mergedLinkedIds = (() => {
+      const fromPayload = extractLinkedIds(payload)
+      if (fromPayload.length > 0) return fromPayload
+      const fromActive = extractLinkedIds(activeDocument)
+      if (fromActive.length > 0) return fromActive
+      return extractLinkedIds(initialDocument)
+    })()
+    const mergedLinkedWorklogId = mergedLinkedIds[0] ?? null
+
     // If blueprint url is a local blob, upload it to obtain a persistent URL
     let blueprintUrl = payload.original_blueprint_url || ''
     let blueprintFileName = payload.original_blueprint_filename || 'blueprint.png'
@@ -142,21 +162,3 @@ export default function AdminMarkupToolClient({
     </div>
   )
 }
-const extractLinkedIds = (doc?: AnyDoc | null) => {
-  if (!doc) return []
-  if (Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0) {
-    return doc.linked_worklog_ids.filter(
-      (value): value is string => typeof value === 'string' && value.trim().length > 0
-    )
-  }
-  if (doc.linked_worklog_id) return [doc.linked_worklog_id]
-  return []
-}
-const mergedLinkedIds = (() => {
-  const fromActive = extractLinkedIds(activeDocument)
-  if (fromActive.length > 0) return fromActive
-  const fromPayload = extractLinkedIds(payload)
-  if (fromPayload.length > 0) return fromPayload
-  return []
-})()
-const mergedLinkedWorklogId = mergedLinkedIds[0] ?? null

@@ -264,9 +264,17 @@ const REFERENCE_LABELS: Record<string, string> = {
 
 const DEFAULT_BADGE_STYLE = 'border border-slate-200 bg-slate-50 text-slate-700'
 
+const ORGANIZATION_TYPE_LABELS: Record<string, string> = {
+  general_contractor: '원청',
+  subcontractor: '협력사',
+  supplier: '자재업체',
+  partner: '파트너',
+}
+
 type Props = {
   siteId: string
   site: any
+  organization?: any | null
   initialDocs: any[]
   initialReports: any[]
   initialAssignments: any[]
@@ -276,6 +284,7 @@ type Props = {
 export default function SiteDetailTabs({
   siteId,
   site,
+  organization,
   initialDocs: _initialDocs,
   initialReports,
   initialAssignments,
@@ -1641,6 +1650,56 @@ export default function SiteDetailTabs({
               </div>
             </div>
           </div>
+
+          <section className="rounded-lg border bg-card p-4 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground">소속(시공사) 정보</h3>
+                <p className="text-xs text-muted-foreground">
+                  현장에 연동된 시공업체의 기본 정보를 확인하세요.
+                </p>
+              </div>
+              {organization?.id ? (
+                <Button asChild variant="outline" size="sm">
+                  <a href={`/dashboard/admin/organizations/${organization.id}`}>시공사 상세보기</a>
+                </Button>
+              ) : null}
+            </div>
+            {organization ? (
+              <dl className="mt-4 grid gap-4 text-sm text-muted-foreground md:grid-cols-2">
+                <div>
+                  <dt className="text-xs">소속명</dt>
+                  <dd className="text-foreground font-medium">{organization?.name || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs">구분</dt>
+                  <dd className="text-foreground">
+                    {organization?.type
+                      ? ORGANIZATION_TYPE_LABELS[String(organization.type)] || organization.type
+                      : '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs">대표 연락처</dt>
+                  <dd className="text-foreground">
+                    {organization?.contact_phone || organization?.phone || '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs">대표 이메일</dt>
+                  <dd className="text-foreground">
+                    {organization?.contact_email || organization?.email || '-'}
+                  </dd>
+                </div>
+                <div className="md:col-span-2">
+                  <dt className="text-xs">주소</dt>
+                  <dd className="text-foreground">{organization?.address || '-'}</dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">연결된 시공사 정보가 없습니다.</p>
+            )}
+          </section>
 
           {invoiceStageSummary ? (
             <section className="rounded-lg border bg-card p-4 shadow-sm">

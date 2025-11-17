@@ -537,6 +537,24 @@ export const WorkLogHomePage: React.FC = () => {
               '작업 내용 미입력'
 
             const formattedDate = formatDateWithWeekday(workLog.date)
+            const hasLinkedMarkup =
+              (workLog.attachments?.drawings || []).some(file => {
+                const meta =
+                  file && typeof (file as any).metadata === 'object' ? (file as any).metadata : null
+                if (
+                  meta &&
+                  (typeof meta.markup_document_id === 'string' ||
+                    typeof meta.linked_worklog_id === 'string')
+                ) {
+                  return true
+                }
+                return Boolean(
+                  file?.id &&
+                    (file.id.startsWith('markup-') ||
+                      file.id.startsWith('linked-') ||
+                      file.id.startsWith('drawing-'))
+                )
+              })
 
             const handleRowClick = () => {
               if (readOnly) {
@@ -573,6 +591,7 @@ export const WorkLogHomePage: React.FC = () => {
                   <span className={`status-badge ${workLog.status}`}>
                     {workLog.status === 'draft' ? '임시저장' : '작성완료'}
                   </span>
+                  {hasLinkedMarkup && <span className="markup-badge">도면 연결</span>}
                   <span className="task-diary-date">{formattedDate}</span>
                 </div>
               </button>
@@ -997,6 +1016,19 @@ export const WorkLogHomePage: React.FC = () => {
             font-size: 13px;
             font-weight: 600;
             border: 1px solid transparent;
+          }
+
+          .markup-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.12);
+            color: #1d4ed8;
+            border: 1px solid rgba(59, 130, 246, 0.35);
           }
 
           .status-badge.draft {
