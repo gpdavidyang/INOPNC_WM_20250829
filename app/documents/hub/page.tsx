@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import {
   CustomSelect,
@@ -168,6 +169,19 @@ export default function DocumentHubPage() {
           align-items: center;
           gap: 12px;
           margin-top: 6px;
+        }
+        .badge-link {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 6px;
+          font-size: 11px;
+          font-weight: 600;
+          line-height: 1.4;
+          color: #1d4ed8;
+          background: rgba(37, 99, 235, 0.08);
+          border-radius: 999px;
+          border: 1px solid rgba(37, 99, 235, 0.2);
         }
         .doc-category-badge {
           display: inline-flex;
@@ -912,10 +926,17 @@ function DrawingsTab() {
     Array<{
       id: string
       url: string
+      previewUrl?: string
+      storagePath?: string | null
+      storageBucket?: string | null
       title?: string
       category?: string
       categoryLabel?: string
       createdAt?: string
+      siteId?: string
+      linkedWorklogId?: string
+      linkedWorklogIds?: string[]
+      pdfUrl?: string
     }>
   >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -928,6 +949,7 @@ function DrawingsTab() {
   const [queue, setQueue] = useState<
     Array<{ file: File; siteId: string; category: 'plan' | 'progress' | 'other' }>
   >([])
+  const [uploadWarning, setUploadWarning] = useState('')
   // Partner UX: restrict by allowed sites and auto-select first
   const [isRestricted, setIsRestricted] = useState(false)
   const [orgId, setOrgId] = useState<string | null>(null)
@@ -936,7 +958,107 @@ function DrawingsTab() {
     if (!site) return '현장 전체'
     return siteOptions.find(s => s.id === site)?.name || '현장 선택'
   }, [site, siteOptions])
-  const handleSiteChange = (value: string) => setSite(value === 'all' ? '' : value)
+  const getMarkupDocumentId = (itemId: string) =>
+    itemId.startsWith('markup-') ? itemId.slice('markup-'.length) : null
+  const [worklogLinkId, setWorklogLinkId] = useState('')
+  const [linking, setLinking] = useState<Record<string, boolean>>({})
+  const [worklogDraft, setWorklogDraft] = useState('')
+  useEffect(() => {
+    setWorklogDraft(worklogLinkId)
+  }, [worklogLinkId])
+  const openMarkupViewer = (item: { id: string; siteId?: string }) => {
+    const markupId = getMarkupDocumentId(item.id)
+    if (!markupId || typeof window === 'undefined') return
+    const viewerUrl = new URL('/mobile/markup-tool', window.location.origin)
+    viewerUrl.searchParams.set('mode', 'start')
+    viewerUrl.searchParams.set('docId', markupId)
+    if (item.siteId) viewerUrl.searchParams.set('siteId', item.siteId)
+    if (worklogLinkId) viewerUrl.searchParams.set('worklogId', worklogLinkId)
+    viewerUrl.searchParams.set('source', 'documents')
+    window.open(viewerUrl.toString(), '_blank')
+  }
+
+  const linkDocToWorklog = async (doc: {
+    id: string
+    linkedWorklogId?: string
+    linkedWorklogIds?: string[]
+  }) => {
+    const targetWorklogId = worklogLinkId.trim()
+    if (!targetWorklogId) {
+      toast({
+        title: '작업일지를 선택하세요',
+        description: 'URL 쿼리(worklogId)를 통해 연결할 작업일지를 지정해 주세요.',
+        variant: 'warning',
+      })
+      return
+    }
+    const markupId = getMarkupDocumentId(doc.id)
+    if (!markupId) {
+      toast({
+        title: '연결 불가',
+        description: '마킹 문서만 작업일지에 연결할 수 있습니다.',
+        variant: 'info',
+      })
+      return
+    }
+    const normalized = Array.isArray(doc.linkedWorklogIds)
+      ? doc.linkedWorklogIds.filter(id => typeof id === 'string' && id.length > 0)
+      : doc.linkedWorklogId
+        ? [doc.linkedWorklogId]
+        : []
+    if (normalized.includes(targetWorklogId)) {
+      toast({
+        title: '이미 연결됨',
+        description: `도면이 작업일지 #${targetWorklogId}에 이미 연결되어 있습니다.`,
+        variant: 'info',
+      })
+      return
+    }
+    const nextLinkedIds = [targetWorklogId, ...normalized]
+    setLinking(prev => ({ ...prev, [doc.id]: true }))
+    try {
+      const res = await fetch(`/api/markup-documents/${markupId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ linked_worklog_ids: nextLinkedIds }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(json?.error || '작업일지에 연결하지 못했습니다.')
+      }
+      setItems(prev =>
+        prev.map(it =>
+          it.id === doc.id
+            ? {
+                ...it,
+                linkedWorklogId: nextLinkedIds[0],
+                linkedWorklogIds: nextLinkedIds,
+              }
+            : it
+        )
+      )
+      toast({
+        title: '연결 완료',
+        description: `문서를 작업일지 ${targetWorklogId}에 연결했습니다.`,
+      })
+    } catch (error: any) {
+      toast({
+        title: '연결 실패',
+        description: error?.message || '작업일지에 연결할 수 없습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setLinking(prev => {
+        const next = { ...prev }
+        delete next[doc.id]
+        return next
+      })
+    }
+  }
+  const handleSiteChange = (value: string) => {
+    setSite(value === 'all' ? '' : value)
+    setUploadWarning('')
+  }
 
   // URL 프리셋 적용 플래그(한 번만 적용)
   const presetRef = useRef(false)
@@ -948,8 +1070,10 @@ function DrawingsTab() {
       const sp = new URLSearchParams(window.location.search)
       const siteId = sp.get('siteId') || sp.get('site_id')
       const cat = (sp.get('category') || '').trim()
+      const worklogPreset = sp.get('worklogId') || sp.get('worklog_id') || sp.get('worklog') || ''
       if (siteId) setSite(siteId)
       if (cat === 'plan' || cat === 'progress' || cat === 'other') setCategory(cat)
+      if (worklogPreset) setWorklogLinkId(worklogPreset)
       presetRef.current = true
     } catch {
       /* ignore */
@@ -965,19 +1089,72 @@ function DrawingsTab() {
       params.set('limit', String(limit))
       params.set('page', String(page))
       if (q.trim()) params.set('q', q.trim())
+      if (worklogLinkId.trim()) params.set('worklogId', worklogLinkId.trim())
       const res = await fetch(`/api/docs/drawings?${params.toString()}`)
       const json = await res.json()
       if (res.ok && json?.success) {
         setItems(
           (json.data || []).map((d: any) => {
-            const cat = typeof d.category === 'string' ? d.category : undefined
+            const metadata =
+              d?.metadata && typeof d.metadata === 'object' && !Array.isArray(d.metadata)
+                ? (d.metadata as Record<string, any>)
+                : {}
+            const cat =
+              typeof d.category === 'string' && d.category.trim().length > 0
+                ? d.category
+                : undefined
+            const storagePath =
+              typeof d.storage_path === 'string' && d.storage_path.length > 0
+                ? d.storage_path
+                : typeof d.metadata?.storage_path === 'string' && d.metadata.storage_path.length > 0
+                  ? d.metadata.storage_path
+                  : undefined
+            const storageBucket =
+              typeof d.storage_bucket === 'string' && d.storage_bucket.length > 0
+                ? d.storage_bucket
+                : typeof metadata.storage_bucket === 'string' && metadata.storage_bucket.length > 0
+                  ? metadata.storage_bucket
+                  : storagePath
+                    ? 'documents'
+                    : undefined
+            const url = typeof d.url === 'string' ? d.url : ''
+            const previewUrl =
+              typeof d.preview_url === 'string' && d.preview_url.length > 0
+                ? d.preview_url
+                : undefined
+            const linkedWorklogIds =
+              Array.isArray(d.linked_worklog_ids) && d.linked_worklog_ids.length > 0
+                ? d.linked_worklog_ids.filter((id: unknown): id is string => typeof id === 'string')
+                : []
+            const linkedWorklogId =
+              typeof d.linked_worklog_id === 'string' && d.linked_worklog_id.length > 0
+                ? d.linked_worklog_id
+                : typeof metadata.linked_worklog_id === 'string' &&
+                    metadata.linked_worklog_id.length > 0
+                  ? metadata.linked_worklog_id
+                  : undefined
+            const snapshotPdfUrl =
+              typeof metadata.snapshot_pdf_url === 'string' && metadata.snapshot_pdf_url.length > 0
+                ? metadata.snapshot_pdf_url
+                : undefined
             return {
               id: String(d.id),
-              url: String(d.url),
-              title: typeof d.title === 'string' ? d.title : undefined,
+              url,
+              previewUrl,
+              storagePath,
+              storageBucket,
+              title: typeof d.title === 'string' ? d.title : d.file_name || undefined,
               category: cat,
               categoryLabel: cat ? DRAWING_CATEGORY_LABELS[cat] || '기타' : '기타',
               createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
+              siteId: typeof d.site_id === 'string' ? d.site_id : undefined,
+              linkedWorklogId,
+              linkedWorklogIds: linkedWorklogIds.length
+                ? Array.from(new Set([linkedWorklogId, ...linkedWorklogIds].filter(Boolean)))
+                : linkedWorklogId
+                  ? [linkedWorklogId]
+                  : undefined,
+              pdfUrl: snapshotPdfUrl,
             }
           })
         )
@@ -995,13 +1172,63 @@ function DrawingsTab() {
         if (shared.ok && sj?.success && Array.isArray(sj.data)) {
           const extras = sj.data
             .filter((d: any) => (d.title || d.file_name || '').includes('공도면'))
-            .map((d: any) => ({
-              id: `shared-${d.id}`,
-              url: String(d.file_url || ''),
-              title: String(d.title || d.file_name || '공도면'),
-              categoryLabel: resolveSharedDocCategoryLabel(d),
-              createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
-            }))
+            .map((d: any) => {
+              const metadata =
+                d?.metadata && typeof d.metadata === 'object' && !Array.isArray(d.metadata)
+                  ? (d.metadata as Record<string, any>)
+                  : {}
+              const storagePath =
+                typeof metadata.storage_path === 'string' && metadata.storage_path.length > 0
+                  ? metadata.storage_path
+                  : undefined
+              const storageBucket =
+                typeof metadata.storage_bucket === 'string' && metadata.storage_bucket.length > 0
+                  ? metadata.storage_bucket
+                  : storagePath
+                    ? 'documents'
+                    : undefined
+              return {
+                id: `shared-${d.id}`,
+                url: typeof d.file_url === 'string' ? d.file_url : '',
+                previewUrl:
+                  typeof d.preview_url === 'string' && d.preview_url.length > 0
+                    ? d.preview_url
+                    : undefined,
+                storagePath,
+                storageBucket,
+                title: String(d.title || d.file_name || '공도면'),
+                categoryLabel: resolveSharedDocCategoryLabel(d),
+                createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
+                siteId: typeof d.site_id === 'string' ? d.site_id : undefined,
+                linkedWorklogId:
+                  typeof metadata.linked_worklog_id === 'string' &&
+                  metadata.linked_worklog_id.length > 0
+                    ? metadata.linked_worklog_id
+                    : undefined,
+                linkedWorklogIds: (() => {
+                  const arr =
+                    Array.isArray(metadata.linked_worklog_ids) &&
+                    metadata.linked_worklog_ids.length > 0
+                      ? metadata.linked_worklog_ids.filter(
+                          (id: unknown): id is string => typeof id === 'string'
+                        )
+                      : []
+                  if (arr.length) {
+                    return metadata.linked_worklog_id && !arr.includes(metadata.linked_worklog_id)
+                      ? [metadata.linked_worklog_id, ...arr]
+                      : arr
+                  }
+                  return typeof metadata.linked_worklog_id === 'string'
+                    ? [metadata.linked_worklog_id]
+                    : undefined
+                })(),
+                pdfUrl:
+                  typeof metadata.snapshot_pdf_url === 'string' &&
+                  metadata.snapshot_pdf_url.length > 0
+                    ? metadata.snapshot_pdf_url
+                    : undefined,
+              }
+            })
           setItems(prev => {
             const ids = new Set(prev.map(p => p.id))
             const merged = prev.slice()
@@ -1017,20 +1244,81 @@ function DrawingsTab() {
     }
   }
 
-  const onUpload = () => fileInput.current?.click()
-  const openMarkupTool = () => {
+  const onUpload = () => {
+    if (!site) {
+      setUploadWarning('업로드할 현장을 먼저 선택하세요.')
+      toast({
+        title: '현장을 먼저 선택하세요',
+        description: '업로드할 현장을 선택한 뒤 다시 시도하세요.',
+        variant: 'warning',
+      })
+      return
+    }
+    setUploadWarning('')
+    fileInput.current?.click()
+  }
+  const resolveDocUrl = async (
+    doc: {
+      url?: string
+      previewUrl?: string
+      storagePath?: string | null
+      storageBucket?: string | null
+    },
+    options?: { downloadName?: string }
+  ) => {
+    if (!doc.storagePath && !doc.url && !doc.previewUrl) return null
+    const rawUrl =
+      typeof doc.previewUrl === 'string' && doc.previewUrl.length > 0
+        ? doc.previewUrl
+        : typeof doc.url === 'string'
+          ? doc.url
+          : ''
+    const isInlineUrl =
+      rawUrl.startsWith('data:') || rawUrl.startsWith('blob:') || rawUrl.length > 1800
+    if (isInlineUrl && rawUrl) {
+      return rawUrl
+    }
+    const params = new URLSearchParams()
+    if (doc.storagePath) {
+      params.set('path', doc.storagePath)
+      const bucket = doc.storageBucket || 'documents'
+      if (bucket) params.set('bucket', bucket)
+    }
+    if (rawUrl) {
+      params.set('url', rawUrl)
+    }
+    if (options?.downloadName) params.set('download', options.downloadName)
+    try {
+      const r = await fetch(`/api/files/signed-url?${params.toString()}`)
+      const j = await r.json().catch(() => ({}))
+      if (j?.url) return j.url as string
+    } catch {
+      /* ignore */
+    }
+    return rawUrl || null
+  }
+  const openMarkupTool = async () => {
     try {
       // If exactly one drawing is selected, bridge it to the markup tool
       if (selected.size === 1) {
         const id = Array.from(selected)[0]
         const it = items.find(i => i.id === id)
-        if (it && it.url) {
+        if (it) {
+          const resolvedUrl = await resolveDocUrl(it)
+          if (!resolvedUrl) {
+            toast({
+              title: '파일을 열 수 없습니다',
+              description: '도면 경로를 확인할 수 없습니다.',
+              variant: 'destructive',
+            })
+            return
+          }
           try {
             const drawingData = {
               id: String(it.id),
               name: String(it.title || '도면'),
               title: String(it.title || '도면'),
-              url: String(it.url),
+              url: resolvedUrl,
               size: 0,
               type: 'image',
               uploadDate: new Date(),
@@ -1146,7 +1434,7 @@ function DrawingsTab() {
 
   useEffect(() => {
     fetchList()
-  }, [site, category, page, isRestricted])
+  }, [site, category, page, isRestricted, worklogLinkId])
 
   // Load auth to determine partner restriction and fetch allowed sites accordingly
   useEffect(() => {
@@ -1200,6 +1488,9 @@ function DrawingsTab() {
             <div style={{ fontSize: 12, color: '#6B7280' }}>
               관리자에게 업체-현장 매핑을 요청해 주세요.
             </div>
+            {uploadWarning ? (
+              <p className="my-2 text-xs font-medium text-[--accent-600]">{uploadWarning}</p>
+            ) : null}
           </div>
         </div>
       )}
@@ -1210,6 +1501,37 @@ function DrawingsTab() {
             <div style={{ fontSize: 12, color: '#6B7280' }}>
               시공업체 사용자는 배정된 현장 선택 후 도면을 조회할 수 있습니다.
             </div>
+          </div>
+        </div>
+      )}
+      {worklogLinkId && (
+        <div className="doc-selection-card active" style={{ marginBottom: 8 }}>
+          <div className="doc-selection-content">
+            <div className="doc-selection-title">작업일지 연동 모드</div>
+            <div style={{ fontSize: 12, color: '#1D4ED8' }}>
+              작업일지 #{worklogLinkId}에 연결할 도면을 선택하거나 새로 업로드해 주세요.
+            </div>
+          </div>
+          <div className="doc-actions">
+            <a
+              className="preview-btn secondary"
+              href={`/mobile/worklog/${worklogLinkId}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              모바일
+            </a>
+            <a
+              className="preview-btn secondary"
+              href={`/dashboard/admin/daily-reports/${worklogLinkId}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              관리자
+            </a>
+            <button className="preview-btn" onClick={() => setWorklogLinkId('')}>
+              해제
+            </button>
           </div>
         </div>
       )}
@@ -1274,6 +1596,24 @@ function DrawingsTab() {
               검색
             </button>
           </div>
+          <div className="filter-row">
+            <input
+              className="input"
+              placeholder="작업일지 ID (연결 모드)"
+              value={worklogDraft}
+              onChange={e => setWorklogDraft(e.target.value)}
+            />
+            <button
+              className="btn"
+              onClick={() => setWorklogLinkId(worklogDraft.trim())}
+              disabled={!worklogDraft.trim()}
+            >
+              적용
+            </button>
+            <button className="btn" onClick={() => setWorklogLinkId('')}>
+              해제
+            </button>
+          </div>
           <div className="filters-divider horizontal" aria-hidden="true" />
           <div className="upload-row">
             <CustomSelect
@@ -1298,7 +1638,7 @@ function DrawingsTab() {
             <button className="btn" onClick={onUpload}>
               업로드
             </button>
-            <button className="btn" onClick={openMarkupTool}>
+            <button className="btn" onClick={() => void openMarkupTool()}>
               마킹 도구
             </button>
           </div>
@@ -1311,6 +1651,9 @@ function DrawingsTab() {
           onChange={e => onFiles(e.target.files)}
         />
       </div>
+      {uploadWarning ? (
+        <p className="my-2 text-xs font-medium text-[--accent-600]">{uploadWarning}</p>
+      ) : null}
       {queue.length > 0 && (
         <div className="doc-selection-card" style={{ marginBottom: 8 }}>
           <div className="doc-selection-content">
@@ -1394,25 +1737,48 @@ function DrawingsTab() {
                     ) : null}
                   </div>
                 ) : null}
+                <div className="doc-meta-row">
+                  {Array.isArray(it.linkedWorklogIds) && it.linkedWorklogIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {it.linkedWorklogIds.map(id => (
+                        <span key={id} className="doc-meta-date badge-link">
+                          #{id}
+                        </span>
+                      ))}
+                    </div>
+                  ) : it.linkedWorklogId ? (
+                    <span className="doc-meta-date">작업일지 #{it.linkedWorklogId}</span>
+                  ) : (
+                    <span className="doc-meta-date muted">작업일지 미연결</span>
+                  )}
+                </div>
               </div>
               <div className="doc-actions">
                 <button
                   className="preview-btn"
                   onClick={async () => {
-                    const url = it.url
-                    if (!url) return
-                    try {
-                      // Get signed/final URL
-                      let finalUrl = url
-                      try {
-                        const r = await fetch(
-                          `/api/files/signed-url?url=${encodeURIComponent(url)}`
-                        )
-                        const j = await r.json()
-                        finalUrl = j?.url || url
-                      } catch {
-                        void 0
+                    const markupId = getMarkupDocumentId(it.id)
+                    const hasPreview = typeof it.previewUrl === 'string' && it.previewUrl.length > 0
+                    if (markupId && !hasPreview) {
+                      openMarkupViewer(it)
+                      return
+                    }
+                    const finalUrl = await resolveDocUrl(it)
+                    if (!finalUrl) {
+                      if (markupId) {
+                        openMarkupViewer(it)
+                        return
                       }
+                      toast({
+                        title: '파일 없음',
+                        description:
+                          '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
+                        variant: 'destructive',
+                      })
+                      return
+                    }
+                    const isInline = finalUrl.startsWith('data:') || finalUrl.startsWith('blob:')
+                    if (!isInline) {
                       // Check existence to avoid opening 404 tabs
                       try {
                         const chk = await fetch(
@@ -1429,17 +1795,51 @@ function DrawingsTab() {
                           return
                         }
                       } catch {
-                        void 0
+                        /* ignore */
                       }
-                      window.open(finalUrl, '_blank')
-                    } catch {
-                      // Last resort
-                      window.open(url, '_blank')
                     }
+                    window.open(finalUrl, '_blank')
                   }}
                 >
                   보기
                 </button>
+                {it.pdfUrl ? (
+                  <button
+                    className="preview-btn secondary"
+                    onClick={() => window.open(it.pdfUrl!, '_blank')}
+                  >
+                    PDF
+                  </button>
+                ) : null}
+                {getMarkupDocumentId(it.id) ? (
+                  <button className="preview-btn secondary" onClick={() => openMarkupViewer(it)}>
+                    마킹열기
+                  </button>
+                ) : null}
+                {worklogLinkId && getMarkupDocumentId(it.id) ? (
+                  <button
+                    className="preview-btn"
+                    onClick={() => linkDocToWorklog(it)}
+                    disabled={
+                      linking[it.id] ||
+                      (Array.isArray(it.linkedWorklogIds)
+                        ? it.linkedWorklogIds.includes(worklogLinkId.trim())
+                        : it.linkedWorklogId === worklogLinkId.trim())
+                    }
+                  >
+                    {Array.isArray(it.linkedWorklogIds)
+                      ? it.linkedWorklogIds.includes(worklogLinkId.trim())
+                        ? '연결됨'
+                        : linking[it.id]
+                          ? '연결 중...'
+                          : '작업일지 연결'
+                      : it.linkedWorklogId === worklogLinkId.trim()
+                        ? '연결됨'
+                        : linking[it.id]
+                          ? '연결 중...'
+                          : '작업일지 연결'}
+                  </button>
+                ) : null}
                 <button
                   className={`selection-checkmark ${selected.has(it.id) ? 'active' : ''}`}
                   onClick={() => toggle(it.id)}
@@ -1463,22 +1863,28 @@ function DrawingsTab() {
               return
             }
             for (const id of Array.from(selected)) {
-              const url = items.find(it => it.id === id)?.url
-              if (!url) continue
-              try {
-                const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-                const j = await r.json()
-                const su = j?.url || url
+              const doc = items.find(it => it.id === id)
+              if (!doc) continue
+              const downloadSource = doc.pdfUrl || doc.url
+              const finalUrl = await resolveDocUrl(
+                doc.pdfUrl ? { ...doc, previewUrl: doc.pdfUrl, url: doc.pdfUrl } : doc,
+                {
+                  downloadName: (doc.title || 'drawing').replace(/\s+/g, '_'),
+                }
+              )
+              if (!finalUrl && downloadSource) {
+                const fallback = downloadSource
                 const a = document.createElement('a')
-                a.href = su
-                a.download = ''
+                a.href = fallback
+                a.download = (doc.title || '').replace(/\s+/g, '_') || 'drawing'
                 a.click()
-              } catch {
-                const a = document.createElement('a')
-                a.href = url
-                a.download = ''
-                a.click()
+                continue
               }
+              if (!finalUrl) continue
+              const a = document.createElement('a')
+              a.href = finalUrl
+              a.download = (doc.title || '').replace(/\s+/g, '_') || 'drawing'
+              a.click()
             }
           }}
         >
@@ -1495,14 +1901,23 @@ function DrawingsTab() {
               })
               return
             }
-            const url = items.find(it => it.id === Array.from(selected)[0])?.url
-            if ((navigator as any).share && url) {
+            const doc = items.find(it => it.id === Array.from(selected)[0])
+            if ((navigator as any).share && doc) {
+              const finalUrl = await resolveDocUrl(
+                doc.pdfUrl ? { ...doc, previewUrl: doc.pdfUrl, url: doc.pdfUrl } : doc
+              )
+              if (!finalUrl) {
+                toast({
+                  title: '파일 공유 실패',
+                  description: '도면 경로를 찾을 수 없습니다.',
+                  variant: 'destructive',
+                })
+                return
+              }
               try {
-                const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-                const j = await r.json()
-                await (navigator as any).share({ url: j?.url || url, title: '도면 공유' })
+                await (navigator as any).share({ url: finalUrl, title: '도면 공유' })
               } catch {
-                await (navigator as any).share({ url, title: '도면 공유' })
+                await (navigator as any).share({ url: finalUrl, title: '도면 공유' })
               }
             } else {
               toast({ title: '공유 안내', description: '브라우저 공유 미지원', variant: 'info' })
@@ -1547,13 +1962,29 @@ function PhotosTab() {
   const [queue, setQueue] = useState<
     Array<{ file: File; siteId: string; category: 'before' | 'after' | 'other' }>
   >([])
+  const [uploadWarning, setUploadWarning] = useState('')
   const siteSelectLabel = useMemo(() => {
     if (!site) return '현장 전체'
     return siteOptions.find(s => s.id === site)?.name || '현장 선택'
   }, [site, siteOptions])
-  const handleSiteChange = (value: string) => setSite(value === 'all' ? '' : value)
+  const handleSiteChange = (value: string) => {
+    setSite(value === 'all' ? '' : value)
+    setUploadWarning('')
+  }
 
-  const onUpload = () => inputRef.current?.click()
+  const onUpload = () => {
+    if (!site) {
+      setUploadWarning('사진을 업로드할 현장을 먼저 선택하세요.')
+      toast({
+        title: '현장을 먼저 선택하세요',
+        description: '사진을 올릴 현장을 선택한 뒤 다시 시도하세요.',
+        variant: 'warning',
+      })
+      return
+    }
+    setUploadWarning('')
+    inputRef.current?.click()
+  }
   const onFiles = async (files: FileList | null) => {
     if (!files) return
     const arr = Array.from(files)
@@ -1686,6 +2117,9 @@ function PhotosTab() {
           onChange={e => onFiles(e.target.files)}
         />
       </div>
+      {uploadWarning ? (
+        <p className="my-2 text-xs font-medium text-[--accent-600]">{uploadWarning}</p>
+      ) : null}
       {queue.length > 0 && (
         <div className="doc-selection-card" style={{ marginBottom: 8 }}>
           <div className="doc-selection-content">
@@ -1734,7 +2168,14 @@ function PhotosTab() {
               onClick={() => toggle(it.id)}
               style={{ outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none' }}
             >
-              <img src={it.url} alt={`photo-${it.id}`} />
+              <Image
+                src={it.url}
+                alt={`photo-${it.id}`}
+                width={320}
+                height={180}
+                className="h-full w-full object-cover"
+                sizes="(max-width: 768px) 50vw, 320px"
+              />
             </div>
           ))}
       </div>

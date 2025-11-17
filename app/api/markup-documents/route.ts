@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { uploadDataUrlToDocumentsBucket } from '@/lib/storage/data-url'
+import { fetchMarkupWorklogMap, syncMarkupWorklogLinks } from '@/lib/documents/worklog-links'
 
 export const dynamic = 'force-dynamic'
 
@@ -103,9 +105,27 @@ export async function GET(request: NextRequest) {
       query = query.eq('created_by', authResult.userId)
     }
 
-    // 특정 작업일지에 연결된 문서만
+    let linkedDocIdsForFilter: string[] = []
     if (worklogId) {
-      query = query.eq('linked_worklog_id', worklogId)
+      const { data: linkedRows } = await supabaseForDocs
+        .from('markup_document_worklog_links')
+        .select('markup_document_id')
+        .eq('worklog_id', worklogId)
+      linkedDocIdsForFilter =
+        linkedRows
+          ?.map(row =>
+            typeof row?.markup_document_id === 'string' ? row.markup_document_id : null
+          )
+          .filter((id): id is string => Boolean(id)) || []
+    }
+
+    if (worklogId) {
+      if (linkedDocIdsForFilter.length > 0) {
+        const inList = linkedDocIdsForFilter.map(id => `"${id}"`).join(',')
+        query = query.or(`linked_worklog_id.eq.${worklogId},id.in.(${inList})`)
+      } else {
+        query = query.eq('linked_worklog_id', worklogId)
+      }
     }
 
     // 검색어 필터
@@ -129,15 +149,27 @@ export async function GET(request: NextRequest) {
     }
 
     const documentList = (documents || []) as Array<any>
-    const worklogIds = documentList
-      .map(doc => doc?.linked_worklog_id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    const docIds = documentList
+      .map(doc => (typeof doc?.id === 'string' ? doc.id : null))
+      .filter((id): id is string => Boolean(id))
+
+    const worklogLinkMap = docIds.length > 0 ? await fetchMarkupWorklogMap(docIds) : new Map()
+
+    const worklogIds = new Set<string>()
+    documentList.forEach(doc => {
+      if (doc?.linked_worklog_id && typeof doc.linked_worklog_id === 'string') {
+        worklogIds.add(doc.linked_worklog_id)
+      }
+      const extras = worklogLinkMap.get(doc?.id) || []
+      extras.forEach(id => worklogIds.add(id))
+    })
+    const uniqueWorklogIds = Array.from(worklogIds)
     const worklogMap = new Map<string, any>()
-    if (worklogIds.length > 0) {
+    if (uniqueWorklogIds.length > 0) {
       const { data: dailyReports, error: worklogError } = await supabaseForDocs
         .from('daily_reports')
         .select('id, work_date, member_name, status')
-        .in('id', Array.from(new Set(worklogIds)))
+        .in('id', uniqueWorklogIds)
       if (worklogError) {
         console.warn('Failed to fetch linked worklogs for markup documents:', worklogError)
       } else {
@@ -148,20 +180,28 @@ export async function GET(request: NextRequest) {
     }
 
     // 관계 정보를 포함한 문서 포맷팅
-    const formattedDocuments = documentList.map(doc => ({
-      ...doc,
-      created_by_name: doc?.creator?.full_name || 'Unknown',
-      creator_email: doc?.creator?.email || '',
-      creator_role: doc?.creator?.role || '',
-      site_name: doc?.site?.name || '',
-      site_address: doc?.site?.address || '',
-      // 필수 필드 보장 (location field removed from schema)
-      file_size: doc?.file_size || 0,
-      markup_count: doc?.markup_count || 0,
-      daily_report: doc?.linked_worklog_id
-        ? worklogMap.get(doc.linked_worklog_id as string) || null
-        : null,
-    }))
+    const formattedDocuments = documentList.map(doc => {
+      const extras = worklogLinkMap.get(doc?.id) || []
+      const combined = doc?.linked_worklog_id
+        ? [doc.linked_worklog_id as string, ...extras]
+        : extras
+      const linkedIds = Array.from(new Set(combined))
+      const primaryWorklogId = doc?.linked_worklog_id || linkedIds[0] || null
+
+      return {
+        ...doc,
+        linked_worklog_ids: linkedIds,
+        created_by_name: doc?.creator?.full_name || 'Unknown',
+        creator_email: doc?.creator?.email || '',
+        creator_role: doc?.creator?.role || '',
+        site_name: doc?.site?.name || '',
+        site_address: doc?.site?.address || '',
+        // 필수 필드 보장 (location field removed from schema)
+        file_size: doc?.file_size || 0,
+        markup_count: doc?.markup_count || 0,
+        daily_report: primaryWorklogId ? worklogMap.get(primaryWorklogId) || null : null,
+      }
+    })
 
     const totalPages = Math.ceil((count || 0) / limit)
 
@@ -239,16 +279,24 @@ export async function POST(request: NextRequest) {
       markup_data,
       preview_image_url,
     } = body
+    const preview_image_data =
+      (body?.preview_image_data as string | undefined) ||
+      (body?.previewImageData as string | undefined)
     const siteIdFromBody = body?.site_id as string | undefined
-    const linkedWorklogId = (() => {
-      if (typeof body?.linked_worklog_id === 'string' && body.linked_worklog_id.trim().length > 0) {
-        return body.linked_worklog_id.trim()
+    const worklogIds: string[] = (() => {
+      const raw =
+        body?.worklogIds || body?.worklog_ids || body?.linked_worklog_ids || body?.daily_report_ids
+      if (Array.isArray(raw)) {
+        return raw
+          .filter((value: any) => typeof value === 'string')
+          .map((value: string) => value.trim())
+          .filter(Boolean)
       }
-      if (typeof body?.daily_report_id === 'string' && body.daily_report_id.trim().length > 0) {
-        return body.daily_report_id.trim()
-      }
-      return null
+      if (typeof body?.linked_worklog_id === 'string') return [body.linked_worklog_id.trim()]
+      if (typeof body?.daily_report_id === 'string') return [body.daily_report_id.trim()]
+      return []
     })()
+    const primaryWorklogId = worklogIds[0] || null
 
     // 필수 필드 검증
     if (!title || !original_blueprint_url || !original_blueprint_filename) {
@@ -280,6 +328,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    let derivedPreviewUrl = preview_image_url
+    let derivedPreviewPath: string | null = null
+    if (!derivedPreviewUrl && preview_image_data) {
+      const uploaded = await uploadDataUrlToDocumentsBucket({
+        dataUrl: preview_image_data,
+        siteId: effectiveSiteId,
+        prefix: 'markup-previews',
+        serviceClient: supabaseAdminClient ?? undefined,
+      })
+      if (uploaded) {
+        derivedPreviewUrl = uploaded.url
+        derivedPreviewPath = uploaded.path
+      }
+    }
+
     // 마킹 개수 계산
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
@@ -292,12 +355,12 @@ export async function POST(request: NextRequest) {
         original_blueprint_url,
         original_blueprint_filename,
         markup_data: markup_data || [],
-        preview_image_url,
+        preview_image_url: derivedPreviewUrl,
         created_by: authResult.userId,
         site_id: effectiveSiteId,
         markup_count,
         file_size: 0, // TODO: 실제 파일 크기 계산
-        linked_worklog_id: linkedWorklogId,
+        linked_worklog_id: primaryWorklogId,
       } as unknown)
       .select()
       .single() as unknown)
@@ -329,7 +392,10 @@ export async function POST(request: NextRequest) {
             markup_count,
             original_blueprint_url,
             original_blueprint_filename,
-            daily_report_id: linkedWorklogId,
+            daily_report_id: primaryWorklogId,
+            linked_worklog_ids: worklogIds,
+            preview_image_url: derivedPreviewUrl,
+            preview_storage_path: derivedPreviewPath,
           },
         })
 
@@ -341,9 +407,15 @@ export async function POST(request: NextRequest) {
       console.warn('Warning: Error syncing to unified document system:', syncError)
     }
 
+    try {
+      await syncMarkupWorklogLinks(document.id, worklogIds)
+    } catch (linkError) {
+      console.warn('Failed to sync markup worklog links:', linkError)
+    }
+
     return NextResponse.json({
       success: true,
-      data: document,
+      data: { ...document, preview_image_url: derivedPreviewUrl, linked_worklog_ids: worklogIds },
     })
   } catch (error) {
     console.error('Unexpected error:', error)

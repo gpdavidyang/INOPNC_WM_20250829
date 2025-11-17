@@ -1,4 +1,4 @@
-"use client"
+'use client'
 
 import { useState, useEffect, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,7 @@ import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowse
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { ArrowLeft, FolderOpen } from 'lucide-react'
 import { toast, Toaster } from 'sonner'
+import type { MarkupObject } from '@/types/markup'
 
 interface DrawingFile {
   id: string
@@ -64,7 +65,9 @@ export default function MarkupToolPage() {
       setSelectedSite(prev => (prev?.id ? prev : { id: siteIdParam, name: '' }))
       try {
         localStorage.setItem('selected_site', JSON.stringify({ id: siteIdParam, name: '' }))
-      } catch {}
+      } catch (error) {
+        console.warn('로컬 스토리지에 현장 정보를 저장하지 못했습니다.', error)
+      }
     }
 
     // localStorage에서 선택된 도면 불러오기 (파라미터가 없을 때만)
@@ -138,7 +141,9 @@ export default function MarkupToolPage() {
 
             try {
               localStorage.setItem('selected_drawing', JSON.stringify(drawing))
-            } catch {}
+            } catch (error) {
+              console.warn('로컬 스토리지에 도면 정보를 저장하지 못했습니다.', error)
+            }
 
             setShowBrowser(false)
             toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
@@ -181,7 +186,9 @@ export default function MarkupToolPage() {
 
             try {
               localStorage.setItem('selected_drawing', JSON.stringify(drawing))
-            } catch {}
+            } catch (error) {
+              console.warn('로컬 스토리지에 도면 정보를 저장하지 못했습니다.', error)
+            }
 
             setShowBrowser(false)
             toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
@@ -226,7 +233,9 @@ export default function MarkupToolPage() {
 
               try {
                 localStorage.setItem('selected_drawing', JSON.stringify(drawing))
-              } catch {}
+              } catch (error) {
+                console.warn('로컬 스토리지에 도면 정보를 저장하지 못했습니다.', error)
+              }
 
               setShowBrowser(false)
               toast.success('도면을 불러왔습니다. 마킹을 시작하세요.')
@@ -265,20 +274,25 @@ export default function MarkupToolPage() {
       }
 
       let savedId: string | undefined
+      let previewDataUrl: string | undefined
+      try {
+        previewDataUrl = await renderMarkupSnapshotDataUrl(
+          document.original_blueprint_url || drawingFile?.url,
+          payload.markup_data || []
+        )
+      } catch (snapshotError) {
+        console.warn('Failed to render markup snapshot:', snapshotError)
+      }
 
       if (drawingFile?.id) {
         // 새로운 통합 API: 도면 ID 기반 저장/게시
-        let previewUrl = payload.preview_image_url
-        if (publish && !previewUrl) {
-          // 게시 시 프리뷰 자동 생성 시도
-          previewUrl = await generatePreviewAndUpload(drawingFile)
-        }
         const body = {
           drawingId: drawingFile.id,
           title: payload.title,
           description: payload.description,
           markupData: payload.markup_data,
-          preview_image_url: previewUrl,
+          preview_image_url: payload.preview_image_url,
+          preview_image_data: previewDataUrl,
           published: Boolean(publish),
         }
         const res = await fetch('/api/docs/drawings/markups/save', {
@@ -289,6 +303,9 @@ export default function MarkupToolPage() {
         const json = await res.json()
         if (!res.ok || json?.success === false) throw new Error(json?.error || '마킹 저장 실패')
         savedId = json?.data?.markup?.id
+        if (json?.data?.markup?.preview_image_url) {
+          payload.preview_image_url = json.data.markup.preview_image_url
+        }
         toast.success(publish ? '마킹 저장 및 진행도면 게시 완료' : '마킹 저장 완료')
       } else {
         // Fallback: 기존 API
@@ -299,6 +316,7 @@ export default function MarkupToolPage() {
           original_blueprint_filename: drawingFile?.name || 'blueprint.png',
           markup_data: payload.markup_data,
           preview_image_url: payload.preview_image_url,
+          preview_image_data: previewDataUrl,
         }
         const res = await fetch('/api/markup-documents', {
           method: 'POST',
@@ -308,6 +326,9 @@ export default function MarkupToolPage() {
         const json = await res.json()
         if (!res.ok || json?.error) throw new Error(json?.error || '마킹 문서 저장 실패')
         savedId = json?.data?.id
+        if (json?.data?.preview_image_url) {
+          payload.preview_image_url = json.data.preview_image_url
+        }
         toast.success('마킹 저장 완료')
       }
 
@@ -324,6 +345,10 @@ export default function MarkupToolPage() {
         }
       }
 
+      toast.info('PDF로 저장되었습니다', {
+        description: '현장공유함 > 진행도면에서 PDF를 확인하거나 공유할 수 있어요.',
+      })
+
       // 2) 로컬 fallback 업데이트
       const recentMarkup = {
         id: savedId || document.id || `local-${Date.now()}`,
@@ -333,6 +358,11 @@ export default function MarkupToolPage() {
         markupCount: payload.markup_data?.length || 0,
       }
       localStorage.setItem('recent_markup', JSON.stringify(recentMarkup))
+      setMarkupDocument(prev => ({
+        ...(prev || {}),
+        markup_data: payload.markup_data,
+        preview_image_url: payload.preview_image_url,
+      }))
 
       // 저장 후 뒤로 가기
       try {
@@ -354,39 +384,23 @@ export default function MarkupToolPage() {
     }
   }
 
-  // 원본 도면으로 간단 미리보기 생성 후 업로드
-  const generatePreviewAndUpload = async (file: DrawingFile): Promise<string | undefined> => {
+  const renderMarkupSnapshotDataUrl = async (
+    sourceUrl?: string | null,
+    markupObjects: MarkupObject[] = []
+  ): Promise<string | undefined> => {
     try {
-      const img = await loadImage(file.url)
-      // 캔버스 크기 결정(가로 1024 기준 비율 유지)
-      const maxW = 1024
-      const scale = Math.min(1, maxW / img.width)
-      const w = Math.round(img.width * scale)
-      const h = Math.round(img.height * scale)
+      if (!sourceUrl) return undefined
+      const img = await loadImage(sourceUrl)
+      const width = img.naturalWidth || img.width
+      const height = img.naturalHeight || img.height
+      if (!width || !height) return undefined
       const canvas = document.createElement('canvas')
-      canvas.width = w
-      canvas.height = h
+      canvas.width = width
+      canvas.height = height
       const ctx = canvas.getContext('2d')!
-      ctx.drawImage(img, 0, 0, w, h)
-      // 간단한 워터마크/레이블
-      ctx.fillStyle = 'rgba(0,0,0,0.4)'
-      ctx.fillRect(0, h - 28, w, 28)
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 14px sans-serif'
-      const text = `Markup Preview • ${new Date().toLocaleString('ko-KR')}`
-      ctx.fillText(text, 12, h - 10)
-
-      const blob = await new Promise<Blob | null>(resolve =>
-        canvas.toBlob(resolve, 'image/png', 0.92)
-      )
-      if (!blob) return undefined
-
-      const fd = new FormData()
-      fd.append('file', new File([blob], (file.name || 'preview') + '.png', { type: 'image/png' }))
-      const res = await fetch('/api/uploads/preview', { method: 'POST', body: fd })
-      const json = await res.json()
-      if (!res.ok || json?.success === false) return undefined
-      return json.url as string
+      ctx.drawImage(img, 0, 0, width, height)
+      drawMarkupObjectsOnCanvas(ctx, markupObjects || [])
+      return canvas.toDataURL('image/png', 0.95)
     } catch {
       return undefined
     }
@@ -400,6 +414,116 @@ export default function MarkupToolPage() {
       img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'))
       img.src = src
     })
+
+  const drawMarkupObjectsOnCanvas = (ctx: CanvasRenderingContext2D, objects: MarkupObject[]) => {
+    objects.forEach(obj => {
+      if (obj.type === 'box') {
+        ctx.save()
+        ctx.strokeStyle = colorToHex(obj.color || 'gray')
+        ctx.lineWidth = getBoxStrokeWidth(obj.size)
+        ctx.strokeRect(obj.x, obj.y, (obj as any).width || 0, (obj as any).height || 0)
+        if ((obj as any).label) {
+          ctx.font = '12px Pretendard, sans-serif'
+          ctx.fillStyle = colorToHex(obj.color || 'gray')
+          ctx.textBaseline = 'bottom'
+          ctx.fillText(String((obj as any).label), obj.x + 4, Math.max(12, obj.y - 4))
+        }
+        ctx.restore()
+        return
+      }
+      if (obj.type === 'text') {
+        const anyObj = obj as any
+        ctx.save()
+        ctx.font = `${anyObj.fontSize || 14}px Pretendard, sans-serif`
+        ctx.fillStyle = anyObj.fontColor || '#111'
+        ctx.textBaseline = 'alphabetic'
+        ctx.fillText(String(anyObj.content || ''), obj.x, obj.y)
+        ctx.restore()
+        return
+      }
+      if (obj.type === 'drawing') {
+        const anyObj = obj as any
+        const path = Array.isArray(anyObj.path) ? anyObj.path : []
+        if (path.length > 1) {
+          ctx.save()
+          ctx.beginPath()
+          ctx.moveTo(path[0].x, path[0].y)
+          for (let i = 1; i < path.length; i++) ctx.lineTo(path[i].x, path[i].y)
+          ctx.strokeStyle = colorToHex(anyObj.strokeColor || '#ef4444')
+          ctx.lineWidth = Number(anyObj.strokeWidth) || 2
+          ctx.lineJoin = 'round'
+          ctx.lineCap = 'round'
+          ctx.stroke()
+          ctx.restore()
+        }
+        return
+      }
+      if (obj.type === 'stamp') {
+        drawStamp(ctx, obj)
+      }
+    })
+  }
+
+  const drawStamp = (ctx: CanvasRenderingContext2D, obj: MarkupObject) => {
+    const anyObj = obj as any
+    const color = colorToHex(anyObj.color || '#ef4444')
+    const size = sizeToPixels(anyObj.size || 'medium')
+    const half = size / 2
+    ctx.save()
+    ctx.fillStyle = color
+    ctx.globalAlpha = 0.85
+    if (anyObj.shape === 'circle') {
+      ctx.beginPath()
+      ctx.arc(anyObj.x, anyObj.y, half, 0, Math.PI * 2)
+      ctx.fill()
+    } else if (anyObj.shape === 'square') {
+      ctx.fillRect(anyObj.x - half, anyObj.y - half, size, size)
+    } else if (anyObj.shape === 'triangle') {
+      ctx.beginPath()
+      ctx.moveTo(anyObj.x, anyObj.y - half)
+      ctx.lineTo(anyObj.x - half, anyObj.y + half)
+      ctx.lineTo(anyObj.x + half, anyObj.y + half)
+      ctx.closePath()
+      ctx.fill()
+    } else {
+      const pts = getStarPoints(anyObj.x, anyObj.y, half, half / 2)
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y)
+      ctx.closePath()
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  const getStarPoints = (cx: number, cy: number, outer: number, inner: number) => {
+    const pts: Array<{ x: number; y: number }> = []
+    for (let i = 0; i < 10; i++) {
+      const angle = (Math.PI / 5) * i - Math.PI / 2
+      const radius = i % 2 === 0 ? outer : inner
+      pts.push({ x: cx + Math.cos(angle) * radius, y: cy + Math.sin(angle) * radius })
+    }
+    return pts
+  }
+
+  const colorToHex = (value: string) => {
+    const map: Record<string, string> = { red: '#ef4444', blue: '#3b82f6', gray: '#6b7280' }
+    if (!value) return '#ef4444'
+    if (value.startsWith('#')) return value
+    return map[value] || value
+  }
+
+  const sizeToPixels = (size: 'small' | 'medium' | 'large') => {
+    if (size === 'small') return 18
+    if (size === 'large') return 36
+    return 24
+  }
+
+  const getBoxStrokeWidth = (size?: 'small' | 'medium' | 'large') => {
+    if (size === 'small') return 2
+    if (size === 'large') return 4
+    return 3
+  }
 
   const handleClose = () => {
     router.back()
@@ -451,7 +575,8 @@ export default function MarkupToolPage() {
               접근 권한을 확인할 수 없습니다
             </h1>
             <p className="text-sm text-gray-600 mb-4">
-              로그인 정보가 만료되었거나 프로필을 불러오지 못했습니다. 다시 로그인하거나 홈 화면으로 돌아가 주세요.
+              로그인 정보가 만료되었거나 프로필을 불러오지 못했습니다. 다시 로그인하거나 홈 화면으로
+              돌아가 주세요.
             </p>
             <div className="flex items-center justify-center gap-3">
               <button

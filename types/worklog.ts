@@ -102,6 +102,7 @@ export interface WorklogAttachment {
   category: 'before' | 'after' | 'markup' | 'completion' | 'other'
   previewUrl?: string
   fileUrl: string
+  metadata?: Record<string, any>
 }
 
 export interface WorklogSummary {

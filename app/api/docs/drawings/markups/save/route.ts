@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import {
+  uploadDataUrlToDocumentsBucket,
+  uploadBufferToDocumentsBucket,
+} from '@/lib/storage/data-url'
+import { createPdfFromImageDataUrl } from '@/lib/markups/pdf'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,6 +25,9 @@ export async function POST(request: NextRequest) {
     const preview_image_url =
       (body?.preview_image_url as string | undefined) ||
       (body?.previewImageUrl as string | undefined)
+    const preview_image_data =
+      (body?.preview_image_data as string | undefined) ||
+      (body?.previewImageData as string | undefined)
     const published = Boolean(body?.published)
 
     if (!drawingId) {
@@ -95,6 +103,39 @@ export async function POST(request: NextRequest) {
     const original_blueprint_filename = drawing.file_name
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
+    let derivedPreviewUrl = preview_image_url
+    let derivedPreviewPath: string | null = null
+    let derivedPdfUrl: string | null = null
+    let derivedPdfPath: string | null = null
+    if (!derivedPreviewUrl && preview_image_data) {
+      const uploaded = await uploadDataUrlToDocumentsBucket({
+        dataUrl: preview_image_data,
+        siteId: drawing.site_id,
+        prefix: 'markup-previews',
+        serviceClient,
+      })
+      if (uploaded) {
+        derivedPreviewUrl = uploaded.url
+        derivedPreviewPath = uploaded.path
+      }
+    }
+    if (preview_image_data) {
+      const pdfBuffer = await createPdfFromImageDataUrl(preview_image_data)
+      if (pdfBuffer) {
+        const uploadedPdf = await uploadBufferToDocumentsBucket({
+          buffer: pdfBuffer,
+          mimeType: 'application/pdf',
+          siteId: drawing.site_id,
+          prefix: 'markup-pdfs',
+          serviceClient,
+        })
+        if (uploadedPdf) {
+          derivedPdfUrl = uploadedPdf.url
+          derivedPdfPath = uploadedPdf.path
+        }
+      }
+    }
+
     // Insert into markup_documents
     const { data: markupDoc, error: mdErr } = await supabase
       .from('markup_documents')
@@ -104,7 +145,7 @@ export async function POST(request: NextRequest) {
         original_blueprint_url,
         original_blueprint_filename,
         markup_data: markup_data || [],
-        preview_image_url,
+        preview_image_url: derivedPreviewUrl,
         created_by: auth.userId,
         site_id: drawing.site_id,
         markup_count,
@@ -141,6 +182,10 @@ export async function POST(request: NextRequest) {
           markup_count,
           original_blueprint_url,
           original_blueprint_filename,
+          preview_image_url: derivedPreviewUrl,
+          preview_storage_path: derivedPreviewPath,
+          snapshot_pdf_url: derivedPdfUrl,
+          snapshot_pdf_path: derivedPdfPath,
         },
       })
     } catch (_) {
@@ -149,9 +194,9 @@ export async function POST(request: NextRequest) {
 
     // If published, create a progress drawing entry in site_documents using preview image
     let progressDocument: any = null
-    if (published && preview_image_url) {
+    if (published && derivedPreviewUrl) {
       const guessedExt = (() => {
-        const m = /\.([a-zA-Z0-9]+)(?:\?|#|$)/.exec(preview_image_url)
+        const m = /\.([a-zA-Z0-9]+)(?:\?|#|$)/.exec(derivedPreviewUrl || '')
         return m ? m[1].toLowerCase() : 'png'
       })()
       const mime =
@@ -169,7 +214,7 @@ export async function POST(request: NextRequest) {
             site_id: drawing.site_id,
             document_type: 'progress_drawing',
             file_name: progressFileName,
-            file_url: preview_image_url,
+            file_url: derivedPreviewUrl,
             file_size: 0,
             mime_type: mime,
             uploaded_by: auth.userId,
@@ -191,7 +236,7 @@ export async function POST(request: NextRequest) {
             title: progressFileName,
             description: '도면마킹에서 게시된 진행도면',
             file_name: progressFileName,
-            file_url: preview_image_url,
+            file_url: derivedPreviewUrl,
             file_size: 0,
             mime_type: mime,
             category_type: 'shared',
@@ -204,6 +249,7 @@ export async function POST(request: NextRequest) {
               source_table: 'markup_documents',
               source_markup_document_id: markupDoc.id,
               linked_site_document_id: progressDocument?.id ?? null,
+              snapshot_pdf_url: derivedPdfUrl,
             },
           })
           .select()
@@ -219,7 +265,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: { markup: markupDoc, progress: progressDocument },
+      data: {
+        markup: { ...markupDoc, preview_image_url: derivedPreviewUrl },
+        progress: progressDocument,
+      },
     })
   } catch (e: any) {
     return NextResponse.json(

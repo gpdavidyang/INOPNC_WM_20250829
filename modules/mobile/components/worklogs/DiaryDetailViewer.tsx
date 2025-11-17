@@ -46,6 +46,8 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
       updatedAt?: string
       previewUrl?: string
       blueprintUrl?: string
+      pdfUrl?: string
+      linkedWorklogIds: string[]
     }>
   >([])
   const [loadingMarkups, setLoadingMarkups] = useState(false)
@@ -70,6 +72,17 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
           updatedAt: doc.updated_at,
           previewUrl: doc.preview_image_url || doc.previewUrl || undefined,
           blueprintUrl: doc.original_blueprint_url || doc.blueprintUrl || undefined,
+          pdfUrl:
+            typeof doc?.metadata?.snapshot_pdf_url === 'string'
+              ? doc.metadata.snapshot_pdf_url
+              : doc.snapshot_pdf_url || undefined,
+          linkedWorklogIds: Array.isArray(doc.linked_worklog_ids)
+            ? doc.linked_worklog_ids.filter(
+                (value: unknown): value is string => typeof value === 'string' && value.length > 0
+              )
+            : doc.linked_worklog_id
+              ? [doc.linked_worklog_id]
+              : [],
         }))
         setLinkedMarkups(items)
       } catch {
@@ -179,6 +192,60 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     )
   }
 
+  const renderLinkedMarkups = () => {
+    if (!linkedMarkups.length) return null
+    return (
+      <section className="info-table" aria-label="연결된 마킹 도면">
+        <div className="info-row">
+          <div className="info-label">연결된 도면</div>
+          <div className="info-value">
+            {linkedMarkups.map(doc => (
+              <div key={doc.id} className="linked-markup-card">
+                <div className="linked-markup-title">{doc.title}</div>
+                <div className="linked-markup-badges">
+                  {(doc.linkedWorklogIds || [worklog.id]).map(id => (
+                    <span key={id} className="linked-chip">
+                      #{id}
+                    </span>
+                  ))}
+                </div>
+                <div className="linked-markup-actions">
+                  {doc.blueprintUrl ? (
+                    <a
+                      href={doc.blueprintUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="viewer-action-btn secondary"
+                    >
+                      보기
+                    </a>
+                  ) : null}
+                  {doc.pdfUrl ? (
+                    <a
+                      href={doc.pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="viewer-action-btn secondary"
+                    >
+                      PDF
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="viewer-action-btn secondary"
+                    onClick={() => onOpenMarkupDoc?.(doc.id, worklog)}
+                  >
+                    마킹 열기
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
   const counts = worklog.attachmentCounts
 
   const drawingsWithMarkups: WorklogAttachment[] = (() => {
@@ -191,6 +258,12 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
       category: 'markup' as const,
       previewUrl: doc.previewUrl || doc.blueprintUrl,
       fileUrl: doc.blueprintUrl || '#',
+      metadata: {
+        source: 'markup',
+        markup_document_id: doc.id,
+        snapshot_pdf_url: doc.pdfUrl,
+        linked_worklog_ids: doc.linkedWorklogIds,
+      },
     }))
     return [...mapped, ...base]
   })()
@@ -234,6 +307,7 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
           </section>
 
           {renderTasks()}
+          {renderLinkedMarkups()}
 
           {/* 첨부 탭 + 줌 컨트롤 */}
           <section aria-label="첨부">

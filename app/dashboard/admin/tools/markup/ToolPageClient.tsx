@@ -27,6 +27,7 @@ type AnyDoc = {
   site_id?: string | null
   site?: { id?: string | null; name?: string | null } | null
   linked_worklog_id?: string | null
+  linked_worklog_ids?: string[] | null
   source?: 'markup' | 'shared'
   unified_document_id?: string | null
 }
@@ -192,7 +193,10 @@ export default function ToolPageClient({
           .filter(Boolean)
           .some(value => String(value).toLowerCase().includes(term))
       const matchesSite = siteFilter === 'all' || doc.site_id === siteFilter
-      const hasWorklog = Boolean(doc.daily_report)
+      const hasWorklog =
+        (Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0) ||
+        Boolean(doc.linked_worklog_id) ||
+        Boolean(doc.daily_report)
       const matchesWorklog =
         worklogFilter === 'all' || (worklogFilter === 'linked' ? hasWorklog : !hasWorklog)
       return matchesTerm && matchesSite && matchesWorklog

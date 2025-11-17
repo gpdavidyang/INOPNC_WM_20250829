@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import React from 'react'
 import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
@@ -37,6 +38,61 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
   }
 
   const items = attachmentsByTab[active]
+  const resolveMetadata = (attachment: WorklogAttachment) =>
+    attachment?.metadata && typeof attachment.metadata === 'object'
+      ? (attachment.metadata as Record<string, any>)
+      : null
+
+  const extractSnapshotPdfUrl = (attachment: WorklogAttachment) => {
+    const meta = resolveMetadata(attachment)
+    if (
+      meta &&
+      typeof meta.snapshot_pdf_url === 'string' &&
+      meta.snapshot_pdf_url.trim().length > 0
+    ) {
+      return meta.snapshot_pdf_url
+    }
+    return undefined
+  }
+
+  const extractLinkedWorklogIds = (attachment: WorklogAttachment) => {
+    const meta = resolveMetadata(attachment)
+    const ids = new Set<string>()
+    if (Array.isArray(meta?.linked_worklog_ids)) {
+      meta.linked_worklog_ids.forEach(value => {
+        if (typeof value === 'string' && value.trim().length > 0) ids.add(value.trim())
+      })
+    }
+    if (typeof meta?.linked_worklog_id === 'string' && meta.linked_worklog_id.trim().length > 0) {
+      ids.add(meta.linked_worklog_id.trim())
+    }
+    if (typeof meta?.daily_report_id === 'string' && meta.daily_report_id.trim().length > 0) {
+      ids.add(meta.daily_report_id.trim())
+    }
+    if (ids.size === 0) ids.add(detail.id)
+    return Array.from(ids)
+  }
+
+  const getMarkupDocumentId = (attachment: WorklogAttachment): string | undefined => {
+    const meta = resolveMetadata(attachment)
+    if (typeof meta?.markup_document_id === 'string' && meta.markup_document_id.length > 0) {
+      return meta.markup_document_id
+    }
+    const rawId = attachment?.id || ''
+    if (rawId.startsWith('markup-') || rawId.startsWith('linked-')) {
+      return rawId.replace(/^[a-zA-Z]+-/, '')
+    }
+    return undefined
+  }
+
+  const markupDrawings = (detail.attachments.drawings || []).filter(attachment => {
+    const meta = resolveMetadata(attachment)
+    return Boolean(
+      meta?.markup_document_id ||
+        (attachment.id &&
+          (attachment.id.startsWith('markup-') || attachment.id.startsWith('linked-')))
+    )
+  })
 
   return (
     <MobileLayoutShell>
@@ -44,6 +100,14 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
         {/* Header */}
         <div className="fullscreen-header" style={{ position: 'sticky', top: 0, zIndex: 5 }}>
           <h3>작업일지 상세</h3>
+          <a
+            className="viewer-action-btn secondary"
+            href={`/documents/hub?siteId=${detail.siteId || ''}&worklogId=${detail.id}`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            현장공유함
+          </a>
           <button
             className="close-btn"
             onClick={() => {
@@ -134,11 +198,14 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
               style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}
             >
               {items.map(a => (
-                <img
+                <Image
                   key={a.id}
                   src={a.previewUrl || a.fileUrl}
                   alt={a.name}
+                  width={480}
+                  height={360}
                   className="photo-item"
+                  sizes="(max-width: 768px) 100vw, 480px"
                 />
               ))}
             </div>
@@ -149,12 +216,14 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
                 if (!first) return null
                 if (isImg(first)) {
                   return (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={first.previewUrl || first.fileUrl}
                       alt={first.name}
+                      width={900}
+                      height={1200}
                       className="document-image"
                       style={{ transform: `scale(${zoom / 100})` }}
+                      sizes="(max-width: 768px) 100vw, 900px"
                     />
                   )
                 }
@@ -172,6 +241,65 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
             </div>
           )}
         </div>
+
+        {markupDrawings.length > 0 ? (
+          <section style={{ marginTop: 16 }}>
+            <h4 style={{ fontWeight: 700, fontSize: 15, marginBottom: 8 }}>연결된 진행도면</h4>
+            {markupDrawings.map(item => {
+              const linkedIds = extractLinkedWorklogIds(item)
+              const markupDocId = getMarkupDocumentId(item)
+              const fallbackWorklogId = linkedIds[0] || detail.id
+              const markupHref = markupDocId
+                ? `/mobile/markup-tool?mode=start&docId=${markupDocId}`
+                : null
+              const documentsHref = `/documents/hub?worklogId=${fallbackWorklogId}${
+                detail.siteId ? `&siteId=${detail.siteId}` : ''
+              }`
+              return (
+                <div key={item.id} className="linked-markup-card">
+                  <div className="linked-markup-title">{item.name || '도면'}</div>
+                  <div className="linked-markup-badges">
+                    {linkedIds.map(id => (
+                      <span key={id} className="linked-chip">
+                        #{id}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="linked-markup-actions">
+                    {item.fileUrl ? (
+                      <a
+                        className="viewer-action-btn secondary"
+                        href={item.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        열기
+                      </a>
+                    ) : null}
+                    {extractSnapshotPdfUrl(item) ? (
+                      <a
+                        className="viewer-action-btn secondary"
+                        href={extractSnapshotPdfUrl(item)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        PDF
+                      </a>
+                    ) : null}
+                    {markupHref ? (
+                      <a className="viewer-action-btn secondary" href={markupHref}>
+                        마킹 도구
+                      </a>
+                    ) : null}
+                    <a className="viewer-action-btn secondary" href={documentsHref}>
+                      현장공유함
+                    </a>
+                  </div>
+                </div>
+              )
+            })}
+          </section>
+        ) : null}
       </div>
     </MobileLayoutShell>
   )

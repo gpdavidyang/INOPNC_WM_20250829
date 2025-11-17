@@ -88,6 +88,14 @@ export default async function AdminMarkupToolPage({
         const fileUrl = resolveSharedDocFileUrl(row)
         if (!fileUrl) return null
         const unifiedDocumentId = row.id as string
+        const linkedIds =
+          Array.isArray(metadata?.linked_worklog_ids) && metadata.linked_worklog_ids.length > 0
+            ? metadata.linked_worklog_ids.filter(
+                (value: unknown): value is string => typeof value === 'string' && value.length > 0
+              )
+            : metadata?.linked_worklog_id
+              ? [metadata.linked_worklog_id]
+              : []
         return {
           id: `shared-${unifiedDocumentId}`,
           unified_document_id: unifiedDocumentId,
@@ -111,13 +119,23 @@ export default async function AdminMarkupToolPage({
               }
             : null,
           linked_worklog_id: metadata?.linked_worklog_id || null,
+          linked_worklog_ids: linkedIds,
           daily_report: null,
         }
       })
       .filter(Boolean) || []
 
   const docs = [
-    ...markupDocs.map(doc => ({ ...doc, source: 'markup' as const })),
+    ...markupDocs.map(doc => ({
+      ...doc,
+      source: 'markup' as const,
+      linked_worklog_ids:
+        Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0
+          ? doc.linked_worklog_ids
+          : doc.linked_worklog_id
+            ? [doc.linked_worklog_id]
+            : [],
+    })),
     ...sharedDocs,
   ].sort((a, b) => {
     const at = new Date(a.created_at || 0).getTime()

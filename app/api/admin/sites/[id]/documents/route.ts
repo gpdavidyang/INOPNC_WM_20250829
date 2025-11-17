@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { fetchMarkupWorklogMap } from '@/lib/documents/worklog-links'
 
 export const dynamic = 'force-dynamic'
 
@@ -141,34 +142,49 @@ export async function GET(request: Request, { params }: { params: { id: string }
           .eq('is_deleted', false),
       ])
 
+      const markupIds =
+        markupRows
+          ?.map(row => (typeof row?.id === 'string' ? row.id : null))
+          .filter((id): id is string => Boolean(id)) || []
+      const linkMap =
+        markupIds.length > 0 ? await fetchMarkupWorklogMap(markupIds) : new Map<string, string[]>()
+
       const mappedMarkup =
-        markupRows?.map(row => ({
-          id: row.id,
-          category_type: 'shared',
-          sub_category: 'progress_drawing',
-          file_name: row.original_blueprint_filename || row.title || '도면마킹 문서',
-          file_url: row.original_blueprint_url,
-          title: row.title || row.original_blueprint_filename || '도면마킹 문서',
-          description: row.description || '',
-          created_at: row.created_at,
-          metadata: {
-            source_table: 'markup_documents',
-            markup_document_id: row.id,
-            linked_worklog_id: row.linked_worklog_id,
-            readonly: true,
-          },
-          updated_at: row.created_at,
-          uploaded_by: row.created_by,
-          file_size: row.file_size || 0,
-          mime_type: 'image/png',
-          status: 'active',
-          profiles: row.creator
-            ? {
-                full_name: row.creator.full_name,
-                role: 'markup_creator',
-              }
-            : null,
-        })) || []
+        markupRows?.map(row => {
+          const extras = row?.id ? linkMap.get(row.id) || [] : []
+          const combined = row?.linked_worklog_id
+            ? [row.linked_worklog_id as string, ...extras]
+            : extras
+          const linkedIds = Array.from(new Set(combined))
+          return {
+            id: row.id,
+            category_type: 'shared',
+            sub_category: 'progress_drawing',
+            file_name: row.original_blueprint_filename || row.title || '도면마킹 문서',
+            file_url: row.original_blueprint_url,
+            title: row.title || row.original_blueprint_filename || '도면마킹 문서',
+            description: row.description || '',
+            created_at: row.created_at,
+            metadata: {
+              source_table: 'markup_documents',
+              markup_document_id: row.id,
+              linked_worklog_id: row.linked_worklog_id,
+              linked_worklog_ids: linkedIds,
+              readonly: true,
+            },
+            updated_at: row.created_at,
+            uploaded_by: row.created_by,
+            file_size: row.file_size || 0,
+            mime_type: 'image/png',
+            status: 'active',
+            profiles: row.creator
+              ? {
+                  full_name: row.creator.full_name,
+                  role: 'markup_creator',
+                }
+              : null,
+          }
+        }) || []
 
       if (markupCount) {
         statistics.total_documents += markupCount || 0

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { mapSharedSubcategoryToCategory } from '@/lib/unified-documents'
+import { fetchMarkupWorklogMap } from '@/lib/documents/worklog-links'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit') || '50')))
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
     const q = (searchParams.get('q') || '').trim()
+    const worklogId = (searchParams.get('worklogId') || searchParams.get('worklog_id') || '').trim()
 
     // Customer-manager (partner alias): build allowed site list; if siteId provided but not allowed -> 403
     // If no siteId, aggregate across allowed sites
@@ -101,10 +103,24 @@ export async function GET(request: NextRequest) {
       if (markupCache) return markupCache
 
       try {
+        let linkedMarkupDocIds: string[] = []
+        if (worklogId) {
+          const { data: linkRows } = await db
+            .from('markup_document_worklog_links')
+            .select('markup_document_id')
+            .eq('worklog_id', worklogId)
+          linkedMarkupDocIds =
+            linkRows
+              ?.map(row =>
+                typeof row?.markup_document_id === 'string' ? row.markup_document_id : null
+              )
+              .filter((id): id is string => Boolean(id)) || []
+        }
+
         let listQuery = db
           .from('markup_documents')
           .select(
-            'id, site_id, title, original_blueprint_url, original_blueprint_filename, created_at'
+            'id, site_id, title, original_blueprint_url, original_blueprint_filename, created_at, preview_image_url, linked_worklog_id'
           )
           .eq('is_deleted', false)
           .order('created_at', { ascending: false })
@@ -113,6 +129,14 @@ export async function GET(request: NextRequest) {
         if (siteId) listQuery = listQuery.eq('site_id', siteId)
         else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
           listQuery = listQuery.in('site_id', partnerAllowedSiteIds)
+        if (worklogId) {
+          if (linkedMarkupDocIds.length > 0) {
+            const inList = linkedMarkupDocIds.map(id => `"${id}"`).join(',')
+            listQuery = listQuery.or(`linked_worklog_id.eq.${worklogId},id.in.(${inList})`)
+          } else {
+            listQuery = listQuery.eq('linked_worklog_id', worklogId)
+          }
+        }
 
         if (q) {
           listQuery = listQuery.or(`title.ilike.%${q}%,original_blueprint_filename.ilike.%${q}%`)
@@ -126,22 +150,53 @@ export async function GET(request: NextRequest) {
         if (siteId) countQuery.eq('site_id', siteId)
         else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
           countQuery.in('site_id', partnerAllowedSiteIds)
+        if (worklogId) {
+          if (linkedMarkupDocIds.length > 0) {
+            const inList = linkedMarkupDocIds.map(id => `"${id}"`).join(',')
+            countQuery.or(`linked_worklog_id.eq.${worklogId},id.in.(${inList})`)
+          } else {
+            countQuery.eq('linked_worklog_id', worklogId)
+          }
+        }
         if (q) {
           countQuery.or(`title.ilike.%${q}%,original_blueprint_filename.ilike.%${q}%`)
         }
 
         const [{ data }, { count }] = await Promise.all([listQuery, countQuery])
+        const markupIds =
+          data
+            ?.map(row => (typeof row?.id === 'string' ? row.id : null))
+            .filter((id): id is string => Boolean(id)) || []
+        const linkMap =
+          markupIds.length > 0
+            ? await fetchMarkupWorklogMap(markupIds)
+            : new Map<string, string[]>()
         const mapped =
           data
             ?.filter(row => row?.original_blueprint_url)
-            .map(row => ({
-              id: `markup-${row.id}`,
-              site_id: row.site_id,
-              category: 'progress' as const,
-              title: row.title || row.original_blueprint_filename || '도면마킹 문서',
-              url: row.original_blueprint_url,
-              created_at: row.created_at,
-            })) || []
+            .map(row => {
+              const previewUrl =
+                typeof row.preview_image_url === 'string' && row.preview_image_url.length > 0
+                  ? row.preview_image_url
+                  : null
+              const extras = row?.id ? linkMap.get(row.id) || [] : []
+              const combined = row?.linked_worklog_id
+                ? [row.linked_worklog_id as string, ...extras]
+                : extras
+              const linkedIds = Array.from(new Set(combined))
+              const primaryUrl = previewUrl || row.original_blueprint_url
+              return {
+                id: `markup-${row.id}`,
+                site_id: row.site_id,
+                category: 'progress' as const,
+                title: row.title || row.original_blueprint_filename || '도면마킹 문서',
+                url: primaryUrl,
+                preview_url: previewUrl,
+                created_at: row.created_at,
+                linked_worklog_id: row.linked_worklog_id,
+                linked_worklog_ids: linkedIds,
+              }
+            }) || []
 
         markupCache = { items: mapped, count: count || 0 }
         return markupCache
@@ -166,6 +221,10 @@ export async function GET(request: NextRequest) {
     if (siteId) sharedQuery = sharedQuery.eq('site_id', siteId)
     else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
       sharedQuery = sharedQuery.in('site_id', partnerAllowedSiteIds)
+    if (worklogId) {
+      const sharedFilter = `metadata->>linked_worklog_id.eq.${worklogId},metadata->linked_worklog_ids.cs.{"${worklogId}"}`
+      sharedQuery = sharedQuery.or(sharedFilter)
+    }
 
     if (category === 'plan') sharedQuery = sharedQuery.in('sub_category', planSubcategories)
     else if (category === 'progress')
@@ -193,16 +252,61 @@ export async function GET(request: NextRequest) {
     }
 
     const baseItems =
-      sharedRows?.map(row => ({
-        id: row.id,
-        site_id: row.site_id,
-        category: mapSharedSubcategoryToCategory(row.sub_category),
-        title: row.title || row.file_name || '도면',
-        url: row.file_url,
-        size: row.file_size,
-        mime: row.mime_type,
-        created_at: row.created_at,
-      })) || []
+      sharedRows?.map(row => {
+        const metadata =
+          row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+            ? (row.metadata as Record<string, any>)
+            : {}
+        const storagePath =
+          typeof metadata.storage_path === 'string' && metadata.storage_path.length > 0
+            ? metadata.storage_path
+            : typeof metadata.storagePath === 'string' && metadata.storagePath.length > 0
+              ? metadata.storagePath
+              : null
+        const storageBucket =
+          typeof metadata.storage_bucket === 'string' && metadata.storage_bucket.length > 0
+            ? metadata.storage_bucket
+            : typeof metadata.storageBucket === 'string' && metadata.storageBucket.length > 0
+              ? metadata.storageBucket
+              : null
+        const previewUrl =
+          typeof metadata.preview_image_url === 'string' && metadata.preview_image_url.length > 0
+            ? metadata.preview_image_url
+            : typeof metadata.previewUrl === 'string' && metadata.previewUrl.length > 0
+              ? metadata.previewUrl
+              : null
+        const linkedWorklogId =
+          typeof metadata.linked_worklog_id === 'string' && metadata.linked_worklog_id.length > 0
+            ? metadata.linked_worklog_id
+            : typeof metadata.daily_report_id === 'string' && metadata.daily_report_id.length > 0
+              ? metadata.daily_report_id
+              : null
+        const linkedWorklogIds = Array.isArray(metadata.linked_worklog_ids)
+          ? metadata.linked_worklog_ids.filter(
+              (id: unknown): id is string => typeof id === 'string'
+            )
+          : []
+        const combinedLinkedIds =
+          linkedWorklogId && !linkedWorklogIds.includes(linkedWorklogId)
+            ? [linkedWorklogId, ...linkedWorklogIds]
+            : linkedWorklogIds
+        return {
+          id: row.id,
+          site_id: row.site_id,
+          category: mapSharedSubcategoryToCategory(row.sub_category),
+          title: row.title || row.file_name || '도면',
+          url: row.file_url,
+          preview_url: previewUrl,
+          size: row.file_size,
+          mime: row.mime_type,
+          created_at: row.created_at,
+          storage_path: storagePath,
+          storage_bucket: storageBucket,
+          linked_worklog_id: linkedWorklogId,
+          linked_worklog_ids: combinedLinkedIds,
+          metadata,
+        }
+      }) || []
 
     let countQuery = db
       .from('unified_document_system')
@@ -214,6 +318,10 @@ export async function GET(request: NextRequest) {
     if (siteId) countQuery = countQuery.eq('site_id', siteId)
     else if (auth.role === 'customer_manager' && partnerAllowedSiteIds)
       countQuery = countQuery.in('site_id', partnerAllowedSiteIds)
+    if (worklogId) {
+      const sharedFilter = `metadata->>linked_worklog_id.eq.${worklogId},metadata->linked_worklog_ids.cs.{"${worklogId}"}`
+      countQuery = countQuery.or(sharedFilter)
+    }
     if (category === 'plan') countQuery = countQuery.in('sub_category', planSubcategories)
     else if (category === 'progress')
       countQuery = countQuery.in('sub_category', progressSubcategories)

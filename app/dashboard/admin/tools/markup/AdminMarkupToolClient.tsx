@@ -15,6 +15,7 @@ type AnyDoc = {
   markup_data?: any[]
   site_id?: string | null
   linked_worklog_id?: string | null
+  linked_worklog_ids?: string[] | null
 }
 
 interface AdminMarkupToolClientProps {
@@ -65,7 +66,8 @@ export default function AdminMarkupToolClient({
           markup_data: payload.markup_data || [],
           preview_image_url: null,
           site_id: payload.site_id ?? activeDocument?.site_id ?? null,
-          linked_worklog_id: payload.linked_worklog_id ?? activeDocument?.linked_worklog_id ?? null,
+          linked_worklog_id: mergedLinkedWorklogId,
+          linked_worklog_ids: mergedLinkedIds,
         }),
       })
     } else {
@@ -80,7 +82,8 @@ export default function AdminMarkupToolClient({
           markup_data: payload.markup_data || [],
           preview_image_url: null,
           site_id: payload.site_id ?? activeDocument?.site_id ?? null,
-          linked_worklog_id: payload.linked_worklog_id ?? activeDocument?.linked_worklog_id ?? null,
+          linked_worklog_id: mergedLinkedWorklogId,
+          linked_worklog_ids: mergedLinkedIds,
         }),
       })
     }
@@ -97,10 +100,15 @@ export default function AdminMarkupToolClient({
         markupDocumentId: savedDoc.id,
         extraMetadata: {
           linked_worklog_id:
-            savedDoc.linked_worklog_id ??
+            savedDoc?.linked_worklog_id ??
+            mergedLinkedWorklogId ??
             payload?.linked_worklog_id ??
             activeDocument?.linked_worklog_id ??
             null,
+          linked_worklog_ids:
+            (savedDoc?.linked_worklog_ids ?? mergedLinkedIds.length > 0)
+              ? mergedLinkedIds
+              : (payload?.linked_worklog_ids ?? activeDocument?.linked_worklog_ids),
           site_id: savedDoc.site_id ?? payload?.site_id ?? activeDocument?.site_id ?? null,
         },
       })
@@ -134,3 +142,21 @@ export default function AdminMarkupToolClient({
     </div>
   )
 }
+const extractLinkedIds = (doc?: AnyDoc | null) => {
+  if (!doc) return []
+  if (Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0) {
+    return doc.linked_worklog_ids.filter(
+      (value): value is string => typeof value === 'string' && value.trim().length > 0
+    )
+  }
+  if (doc.linked_worklog_id) return [doc.linked_worklog_id]
+  return []
+}
+const mergedLinkedIds = (() => {
+  const fromActive = extractLinkedIds(activeDocument)
+  if (fromActive.length > 0) return fromActive
+  const fromPayload = extractLinkedIds(payload)
+  if (fromPayload.length > 0) return fromPayload
+  return []
+})()
+const mergedLinkedWorklogId = mergedLinkedIds[0] ?? null

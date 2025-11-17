@@ -51,6 +51,11 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
     return siteId ? `/dashboard/admin/sites/${siteId}` : undefined
   }
 
+  const getSnapshotPdfUrl = (doc: any) =>
+    (doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata.snapshot_pdf_url : null) ||
+    doc?.snapshot_pdf_url ||
+    null
+
   const handleDelete = async (doc: any) => {
     if (!doc) return
     const source = resolveSource(doc)
@@ -151,7 +156,34 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
             sortable: true,
             accessor: (d: any) =>
               d?.daily_report?.work_date ? new Date(d.daily_report.work_date).getTime() : 0,
-            render: (d: any) => formatDailyReportLabel(d?.daily_report),
+            render: (d: any) => {
+              const linkedIds =
+                Array.isArray(d?.linked_worklog_ids) && d.linked_worklog_ids.length > 0
+                  ? d.linked_worklog_ids
+                  : d?.linked_worklog_id
+                    ? [d.linked_worklog_id]
+                    : []
+              return (
+                <div className="flex flex-col gap-1">
+                  {d?.daily_report ? (
+                    <span>{formatDailyReportLabel(d.daily_report)}</span>
+                  ) : linkedIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {linkedIds.map((id: string) => (
+                        <span
+                          key={id}
+                          className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                        >
+                          #{id}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">미연결</span>
+                  )}
+                </div>
+              )
+            },
             width: 240,
             className: 'whitespace-nowrap',
           },
@@ -168,6 +200,20 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
             header: '작업',
             render: (d: any) => (
               <div className="flex items-center gap-1 whitespace-nowrap">
+                {(() => {
+                  const pdfUrl = getSnapshotPdfUrl(d)
+                  if (!pdfUrl) return null
+                  return (
+                    <a
+                      href={pdfUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={buttonVariants({ variant: 'outline', size: 'compact' })}
+                    >
+                      PDF
+                    </a>
+                  )
+                })()}
                 {(() => {
                   const href = buildEditHref(d)
                   const label = getActionLabel(d)

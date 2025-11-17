@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import type { UnifiedDailyReport } from '@/types/daily-reports'
 import { integratedResponseToUnifiedReport, type AdminIntegratedResponse } from './unified-admin'
 import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
+import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
 
 const getSupabaseForAdmin = () => {
   try {
@@ -100,6 +101,32 @@ export async function getUnifiedDailyReportForAdmin(
         {}
       )
 
+      const fallbackLinked = await fetchLinkedDrawingsForWorklog(id, minimal.site_id)
+      if (fallbackLinked.length > 0) {
+        attachments['drawing'] = [
+          ...(attachments['drawing'] || []),
+          ...fallbackLinked.map(doc => ({
+            id: `linked-${doc.id}`,
+            document_type: 'drawing',
+            file_name: doc.title,
+            file_url: doc.previewUrl || doc.url,
+            file_size: 0,
+            uploaded_at: doc.createdAt,
+            metadata: {
+              source: doc.source,
+              original_url: doc.url,
+              preview_url: doc.previewUrl,
+              markup_document_id: doc.markupId,
+              linked_worklog_id: doc.linkedWorklogIds?.[0] || id,
+              linked_worklog_ids:
+                doc.linkedWorklogIds && doc.linkedWorklogIds.length > 0
+                  ? doc.linkedWorklogIds
+                  : [id],
+            },
+          })),
+        ]
+      }
+
       const photoGroups = await fetchAdditionalPhotosForReport(id)
 
       const integratedFallback: AdminIntegratedResponse = {
@@ -134,6 +161,8 @@ export async function getUnifiedDailyReportForAdmin(
   data.additional_before_photos = photoGroups.additional_before_photos
   data.additional_after_photos = photoGroups.additional_after_photos
 
+  const linkedDrawings = await fetchLinkedDrawingsForWorklog(id, data.site_id)
+
   const integrated: AdminIntegratedResponse = {
     daily_report: {
       ...(() => {
@@ -161,9 +190,28 @@ export async function getUnifiedDailyReportForAdmin(
       photo: (data.document_attachments || []).filter(
         (file: any) => (file?.document_type || '').toLowerCase() === 'photo'
       ),
-      drawing: (data.document_attachments || []).filter(
-        (file: any) => (file?.document_type || '').toLowerCase() === 'drawing'
-      ),
+      drawing: [
+        ...(data.document_attachments || []).filter(
+          (file: any) => (file?.document_type || '').toLowerCase() === 'drawing'
+        ),
+        ...linkedDrawings.map(doc => ({
+          id: `linked-${doc.id}`,
+          document_type: 'drawing',
+          file_name: doc.title,
+          file_url: doc.previewUrl || doc.url,
+          file_size: 0,
+          uploaded_at: doc.createdAt,
+          metadata: {
+            source: doc.source,
+            original_url: doc.url,
+            preview_url: doc.previewUrl,
+            markup_document_id: doc.markupId,
+            linked_worklog_id: doc.linkedWorklogIds?.[0] || id,
+            linked_worklog_ids:
+              doc.linkedWorklogIds && doc.linkedWorklogIds.length > 0 ? doc.linkedWorklogIds : [id],
+          },
+        })),
+      ],
       completion: (data.document_attachments || []).filter(
         (file: any) => (file?.document_type || '').toLowerCase() === 'completion'
       ),
