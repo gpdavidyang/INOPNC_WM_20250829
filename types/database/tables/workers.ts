@@ -42,7 +42,6 @@ export interface SalaryInfoTable extends Timestamps {
   base_salary?: number | null
   daily_wage: number
   hourly_rate: number
-  overtime_rate: number
   tax_rate: number
   insurance_rate: number
   start_date: string
@@ -63,8 +62,6 @@ export interface SalaryPaymentsTable extends Timestamps {
   regular_hours: number
   overtime_hours: number
   base_pay: number
-  overtime_pay: number
-  bonus?: number | null
   deductions: number
   net_pay: number
   payment_method?: string | null

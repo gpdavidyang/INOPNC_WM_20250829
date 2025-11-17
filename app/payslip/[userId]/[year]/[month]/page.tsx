@@ -1,15 +1,23 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { payslipGeneratorKorean } from '@/lib/services/payslip-generator-korean'
 
 export default function PayslipPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const { userId, year, month } = params as { userId: string; year: string; month: string }
   const [htmlContent, setHtmlContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
+  const workerNameFromQuery =
+    (
+      searchParams?.get('name') ||
+      searchParams?.get('fullName') ||
+      searchParams?.get('workerName') ||
+      ''
+    )?.trim() || ''
 
   useEffect(() => {
     async function generatePayslip() {
@@ -58,6 +66,44 @@ export default function PayslipPage() {
         const rateSource: 'custom' | 'employment_type_default' | null =
           json?.data?.rateSource || null
         const appliedRates = json?.data?.rates || null
+        const workerProfileFromApi = (json?.data?.worker as any) || null
+        const resolvedWorkerProfile =
+          profile && profile.id === userId ? profile : workerProfileFromApi
+        const pickWorkerName = (...values: Array<string | null | undefined>) => {
+          for (const val of values) {
+            if (typeof val === 'string') {
+              const trimmed = val.trim()
+              if (trimmed) return trimmed
+            }
+          }
+          return ''
+        }
+        const resolvedWorkerName = pickWorkerName(
+          resolvedWorkerProfile?.full_name,
+          resolvedWorkerProfile?.name,
+          workerProfileFromApi?.full_name,
+          workerProfileFromApi?.name,
+          workerNameFromQuery
+        )
+        const workerEmail =
+          resolvedWorkerProfile?.email || workerProfileFromApi?.email || profile?.email || ''
+        const workerRole =
+          resolvedWorkerProfile?.role || workerProfileFromApi?.role || profile?.role || 'worker'
+        const workerEmploymentType =
+          json?.data?.employment_type ||
+          resolvedWorkerProfile?.employment_type ||
+          workerProfileFromApi?.employment_type ||
+          profile?.employment_type ||
+          'regular_employee'
+        const EMPLOYMENT_LABELS: Record<string, string> = {
+          freelancer: '프리랜서',
+          daily_worker: '일용직',
+          regular_employee: '상용직',
+        }
+        const departmentLabel =
+          EMPLOYMENT_LABELS[workerEmploymentType as keyof typeof EMPLOYMENT_LABELS] ||
+          workerEmploymentType ||
+          '일용직'
 
         // 3) 대표 현장명 (서버 API, 실패 시 미지정)
         let siteId = ''
@@ -84,10 +130,10 @@ export default function PayslipPage() {
         const payslipData = {
           employee: {
             id: userId,
-            name: profile?.full_name || profile?.name || '',
-            email: profile?.email || '',
-            role: profile?.role || 'worker',
-            department: profile?.employment_type || '일용직',
+            name: resolvedWorkerName || `ID ${userId.slice(0, 6)}`,
+            email: workerEmail,
+            role: workerRole || 'worker',
+            department: departmentLabel,
             employeeNumber: `W-${String(userId).slice(0, 6)}`,
           },
           company: {
@@ -124,7 +170,7 @@ export default function PayslipPage() {
       }
     }
     generatePayslip()
-  }, [userId, year, month])
+  }, [userId, year, month, workerNameFromQuery])
 
   if (loading) {
     return (

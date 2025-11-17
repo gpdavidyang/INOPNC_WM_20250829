@@ -5,6 +5,62 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 import { getSalarySnapshot } from '@/lib/services/salary-snapshot.service'
 
+type WorkerProfileRow = {
+  id: string
+  full_name?: string | null
+  name?: string | null
+  email?: string | null
+  role?: string | null
+  employment_type?: string | null
+}
+
+type SalaryLike = {
+  work_days?: number
+  total_labor_hours?: number
+  total_work_hours?: number
+  total_overtime_hours?: number
+  base_pay?: number
+  total_gross_pay?: number
+  tax_deduction?: number
+  national_pension?: number
+  health_insurance?: number
+  employment_insurance?: number
+  total_deductions?: number
+  net_pay?: number
+  period_start?: string
+  period_end?: string
+}
+
+function normalizeSalaryResult(
+  salary: SalaryLike | null | undefined,
+  periodStart: string,
+  periodEnd: string
+) {
+  const safeBase = Number(salary?.base_pay || 0)
+  const safeGross = Math.round(safeBase)
+  const safeDeductions = Number(salary?.total_deductions || 0)
+  const sanitized = {
+    work_days: Number(salary?.work_days || 0),
+    total_labor_hours: Number(salary?.total_labor_hours || 0),
+    total_work_hours: Number(salary?.total_work_hours || 0),
+    total_overtime_hours: Number(salary?.total_overtime_hours || 0),
+    base_pay: safeBase,
+    total_gross_pay: safeGross,
+    tax_deduction: Number(salary?.tax_deduction || 0),
+    national_pension: Number(salary?.national_pension || 0),
+    health_insurance: Number(salary?.health_insurance || 0),
+    employment_insurance: Number(salary?.employment_insurance || 0),
+    total_deductions: safeDeductions,
+    net_pay:
+      typeof salary?.net_pay === 'number' ? Number(salary.net_pay) : safeGross - safeDeductions,
+    period_start: salary?.period_start || periodStart,
+    period_end: salary?.period_end || periodEnd,
+    rate_source: (salary as any)?.rate_source,
+    rates: (salary as any)?.rates,
+  }
+  return sanitized
+}
+
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
@@ -23,6 +79,14 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       )
     }
+    const payrollPeriodStart = `${year}-${String(month).padStart(2, '0')}-01`
+    const payrollPeriodEnd = new Date(year, month, 0).toISOString().split('T')[0]
+    const preferSnapshotParam = searchParams.get('preferSnapshot')
+    const preferSnapshot =
+      preferSnapshotParam === null ||
+      preferSnapshotParam === '' ||
+      preferSnapshotParam.toLowerCase() === '1' ||
+      preferSnapshotParam.toLowerCase() === 'true'
 
     // Prefer service role for stable reads across environments
     let supabase: ReturnType<typeof createServiceRoleClient | typeof createClient>
@@ -36,15 +100,23 @@ export async function GET(request: NextRequest) {
     const isAdmin = auth.role === 'admin' || auth.role === 'system_admin'
     const targetWorkerId = workerIdParam && isAdmin ? workerIdParam : auth.userId
 
-    // 0) 스냅샷 우선 조회
+    const { data: workerProfile } = await supabase
+      .from('profiles')
+      .select('id, full_name, name, email, role, employment_type')
+      .eq('id', targetWorkerId)
+      .maybeSingle()
+    const workerProfileData = (workerProfile || null) as WorkerProfileRow | null
+
     const { snapshot } = await getSalarySnapshot(targetWorkerId, year, month)
 
-    // 1) 월간 급여 계산 (스냅샷 없으면 서버 계산). 실패 시 안전한 기본값 반환
-    let monthly = snapshot?.salary as any
-    if (!monthly) {
+    let rawSalary: SalaryLike | null = null
+    let salarySource: 'snapshot' | 'calculated' = 'snapshot'
+    if (preferSnapshot && snapshot?.salary) {
+      rawSalary = snapshot.salary
+    } else {
+      salarySource = 'calculated'
       try {
-        // Use service role for consistency with mobile endpoints and to avoid RLS gaps
-        monthly = await salaryCalculationService.calculateMonthlySalary(
+        rawSalary = await salaryCalculationService.calculateMonthlySalary(
           targetWorkerId,
           year,
           month,
@@ -56,16 +128,12 @@ export async function GET(request: NextRequest) {
           'Monthly salary calculation failed, using fallback:',
           calcError?.message || calcError
         )
-        const period_start = `${year}-${String(month).padStart(2, '0')}-01`
-        const period_end = new Date(year, month, 0).toISOString().split('T')[0]
-        monthly = {
+        rawSalary = {
           work_days: 0,
           total_labor_hours: 0,
           total_work_hours: 0,
           total_overtime_hours: 0,
           base_pay: 0,
-          overtime_pay: 0,
-          bonus_pay: 0,
           total_gross_pay: 0,
           tax_deduction: 0,
           national_pension: 0,
@@ -73,14 +141,16 @@ export async function GET(request: NextRequest) {
           employment_insurance: 0,
           total_deductions: 0,
           net_pay: 0,
-          period_start,
-          period_end,
+          period_start: payrollPeriodStart,
+          period_end: payrollPeriodEnd,
         }
       }
     }
 
+    const normalizedMonthly = normalizeSalaryResult(rawSalary, payrollPeriodStart, payrollPeriodEnd)
+
     // 2) 급여 정보(일급/고용형태) 조회 (worker_salary_settings 우선, 없으면 salary_info)
-    const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
+    const monthStart = payrollPeriodStart
     const { data: workerSetting } = await supabase
       .from('worker_salary_settings')
       .select('employment_type, daily_rate')
@@ -91,7 +161,11 @@ export async function GET(request: NextRequest) {
       .limit(1)
       .maybeSingle()
 
-    let employment_type = workerSetting?.employment_type || snapshot?.employment_type || null
+    let employment_type =
+      workerSetting?.employment_type ||
+      snapshot?.employment_type ||
+      workerProfileData?.employment_type ||
+      null
     let daily_rate: number | null = workerSetting?.daily_rate || (snapshot?.daily_rate ?? null)
 
     if (!employment_type || !daily_rate) {
@@ -104,20 +178,15 @@ export async function GET(request: NextRequest) {
         .order('effective_date', { ascending: false })
         .limit(1)
         .maybeSingle()
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('employment_type, full_name')
-        .eq('id', targetWorkerId)
-        .single()
-      employment_type = employment_type || profile?.employment_type || 'regular_employee'
+      employment_type = employment_type || workerProfileData?.employment_type || 'regular_employee'
       daily_rate =
         daily_rate ||
         (salaryInfo?.hourly_rate ? Math.round((salaryInfo.hourly_rate || 0) * 8) : null)
     }
 
     // 3) 현장수 계산 (해당 월 내 고유 site_id 개수)
-    const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
-    const periodEnd = new Date(year, month, 0).toISOString().split('T')[0]
+    const periodStart = payrollPeriodStart
+    const periodEnd = payrollPeriodEnd
     let siteCount = snapshot?.siteCount
     if (typeof siteCount !== 'number') {
       try {
@@ -174,18 +243,28 @@ export async function GET(request: NextRequest) {
         employment_type,
         daily_rate,
         siteCount,
-        workDays: monthly.work_days,
-        totalManDays: Number(monthly.total_labor_hours.toFixed(1)),
-        salary: monthly,
-        rateSource: (monthly as any).rate_source || null,
-        rates: (monthly as any).rates || null,
-        source: snapshot ? 'snapshot' : 'calculated',
+        workDays: normalizedMonthly.work_days,
+        totalManDays: Number(normalizedMonthly.total_labor_hours.toFixed(1)),
+        salary: normalizedMonthly,
+        rateSource: (normalizedMonthly as any).rate_source || null,
+        rates: (normalizedMonthly as any).rates || null,
+        source: salarySource,
         snapshot: snapshot
           ? {
               status: snapshot.status || 'issued',
               issued_at: snapshot.issued_at || null,
               approved_at: snapshot.approved_at || null,
               paid_at: snapshot.paid_at || null,
+            }
+          : null,
+        worker: workerProfileData
+          ? {
+              id: workerProfileData.id,
+              full_name: workerProfileData.full_name || workerProfileData.name || null,
+              name: workerProfileData.name || workerProfileData.full_name || null,
+              email: workerProfileData.email || null,
+              role: workerProfileData.role || null,
+              employment_type: workerProfileData.employment_type || null,
             }
           : null,
         debug: debugInfo,

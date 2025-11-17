@@ -18,8 +18,6 @@ export interface WorkData {
 
 export interface SalaryResult {
   base_pay: number
-  overtime_pay: number
-  bonus_pay: number
   total_gross_pay: number
   tax_deduction: number
   national_pension: number
@@ -41,7 +39,6 @@ export interface MonthlySalary extends SalaryResult {
 export interface SalaryInfo {
   base_salary: number
   hourly_rate: number
-  overtime_rate: number
   employment_type?: string
   custom_tax_rates?: Record<string, number> | null
 }
@@ -72,14 +69,13 @@ export class SalaryCalculationService {
       }
 
       // labor_hours를 기준으로 계산 (1공수 = 8시간)
-      const baseHours = Math.min(workData.labor_hours * 8, 8) // 최대 8시간
-      const overtimeHours = Math.max(workData.labor_hours * 8 - 8, 0)
+      const laborDays =
+        workData.labor_hours > 0 ? workData.labor_hours : (workData.work_hours || 0) / 8
+      const normalizedLaborDays = laborDays > 0 ? laborDays : 0
 
       // 급여 계산
-      const base_pay = baseHours * salaryInfo.hourly_rate
-      const overtime_pay = overtimeHours * salaryInfo.overtime_rate
-      const bonus_pay = await this.calculateBonus(workData)
-      const total_gross_pay = base_pay + overtime_pay + bonus_pay
+      const base_pay = Math.round(normalizedLaborDays * salaryInfo.hourly_rate * 8)
+      const total_gross_pay = base_pay
 
       // 공제액 계산
       const deductions = await this.calculateTaxDeductions(
@@ -89,8 +85,6 @@ export class SalaryCalculationService {
 
       return {
         base_pay,
-        overtime_pay,
-        bonus_pay,
         total_gross_pay,
         ...deductions,
         net_pay: total_gross_pay - deductions.total_deductions,
@@ -144,8 +138,6 @@ export class SalaryCalculationService {
       let total_work_hours = 0
       let total_overtime_hours = 0
       let total_base_pay = 0
-      let total_overtime_pay = 0
-      let total_bonus_pay = 0
 
       for (const record of attendanceData || []) {
         const workHours = Number(record.work_hours || 0)
@@ -184,33 +176,18 @@ export class SalaryCalculationService {
         total_work_hours += dailyHours
         const etLower = String(salaryInfo.employment_type || '').toLowerCase()
         const noOvertime = etLower === 'daily_worker' || etLower === 'freelancer'
-        total_overtime_hours += noOvertime
-          ? 0
-          : Number(record.overtime_hours || 0) > 0
+        const recordedOvertime =
+          Number(record.overtime_hours || 0) > 0
             ? Number(record.overtime_hours)
             : Math.max(dailyHours - 8, 0)
-
-        const baseHours = Math.min(dailyHours, 8)
-        let overtimeHours = Math.max(dailyHours - 8, 0)
-        if (noOvertime) {
-          overtimeHours = 0
-        }
-
-        // 기본급은 월말에 daily_rate * 총공수로 계산
-        total_overtime_pay += overtimeHours * salaryInfo.overtime_rate
-        total_bonus_pay += await this.calculateBonus({
-          user_id: userId,
-          work_date: record.work_date,
-          labor_hours: laborDays,
-          site_id: record.site_id,
-        })
+        total_overtime_hours += noOvertime ? 0 : recordedOvertime
       }
 
       // 기본급 산출: 일당 × 총공수
       const dailyRate = Math.round((salaryInfo.hourly_rate || 0) * 8)
       total_base_pay = Math.round(dailyRate * total_labor_hours)
 
-      const total_gross_pay = total_base_pay + total_overtime_pay + total_bonus_pay
+      const total_gross_pay = total_base_pay
 
       // 월 단위 공제액 계산
       const deductions = await this.calculateTaxDeductions(
@@ -225,8 +202,6 @@ export class SalaryCalculationService {
         total_work_hours,
         total_overtime_hours,
         base_pay: total_base_pay,
-        overtime_pay: total_overtime_pay,
-        bonus_pay: total_bonus_pay,
         total_gross_pay,
         tax_deduction: deductions.tax_deduction,
         national_pension: deductions.national_pension,
@@ -385,15 +360,6 @@ export class SalaryCalculationService {
   }
 
   /**
-   * 보너스 계산 (추후 구현 예정)
-   */
-  private async calculateBonus(workData: Partial<WorkData>): Promise<number> {
-    // TODO: 보너스 계산 로직 구현
-    // 현장별, 역할별, 성과별 보너스 계산
-    return 0
-  }
-
-  /**
    * 급여 정보 조회
    */
   private async getSalaryInfo(
@@ -417,11 +383,9 @@ export class SalaryCalculationService {
 
       if (wSetting) {
         const hourly = Math.round(wSetting.daily_rate / 8)
-        const overtime = Math.round(hourly * 1.5)
         return {
           base_salary: wSetting.daily_rate * 20, // 정보가 없을 때의 월급 추정(사용 안함)
           hourly_rate: hourly,
-          overtime_rate: overtime,
           employment_type: wSetting.employment_type,
           custom_tax_rates: (wSetting as any).custom_tax_rates || null,
         }
@@ -451,7 +415,6 @@ export class SalaryCalculationService {
         return {
           base_salary: data.base_salary,
           hourly_rate: data.hourly_rate,
-          overtime_rate: data.overtime_rate,
           employment_type: inferredType,
           custom_tax_rates: null,
         }
@@ -461,7 +424,6 @@ export class SalaryCalculationService {
       return {
         base_salary: 2000000,
         hourly_rate: 15000,
-        overtime_rate: 22500,
         employment_type: 'regular_employee',
         custom_tax_rates: null,
       }

@@ -61,7 +61,6 @@ export interface SalaryInfo {
   base_salary?: number | null
   daily_wage: number
   hourly_rate: number
-  overtime_rate: number
   tax_rate: number
   insurance_rate: number
   start_date: string
@@ -80,7 +79,6 @@ export interface SalaryCalculation {
   regular_hours: number
   overtime_hours: number
   base_pay: number
-  overtime_pay: number
   total_gross: number
   tax_deduction: number
   insurance_deduction: number

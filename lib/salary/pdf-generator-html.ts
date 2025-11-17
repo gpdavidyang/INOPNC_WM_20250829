@@ -1,20 +1,19 @@
-
 export interface SalaryPDFData {
   // Worker information
   workerName: string
   workerNumber?: string
   position?: string
   department?: string
-  
+
   // Site information
   siteName: string
   siteAddress?: string
-  
+
   // Company information
   companyName: string
   companyRegistrationNumber?: string
   companyAddress?: string
-  
+
   // Salary period
   salaryYear: number
   salaryMonth: number
@@ -22,17 +21,17 @@ export interface SalaryPDFData {
     startDate: string
     endDate: string
   }
-  
+
   // Calculation result
   calculation: SalaryCalculationResult
-  
+
   // Additional information
   bankInfo?: {
     bankName: string
     accountNumber: string
     accountHolder: string
   }
-  
+
   // Metadata
   issuedDate: string
   issuedBy: string
@@ -44,22 +43,22 @@ export class SalaryPDFGeneratorHTML {
       style: 'currency',
       currency: 'KRW',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(amount)
   }
-  
+
   private formatDate(dateString: string): string {
     const date = new Date(dateString)
     return date.toLocaleDateString('ko-KR', {
       year: 'numeric',
       month: '2-digit',
-      day: '2-digit'
+      day: '2-digit',
     })
   }
 
   public generateHTML(data: SalaryPDFData): string {
-    const { calculation } = data;
-    
+    const { calculation } = data
+
     return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -297,18 +296,26 @@ export class SalaryPDFGeneratorHTML {
           <span class="info-label">회사명:</span>
           <span class="info-value">${data.companyName}</span>
         </div>
-        ${data.companyRegistrationNumber ? `
+        ${
+          data.companyRegistrationNumber
+            ? `
         <div class="info-item">
           <span class="info-label">사업자번호:</span>
           <span class="info-value">${data.companyRegistrationNumber}</span>
         </div>
-        ` : ''}
-        ${data.companyAddress ? `
+        `
+            : ''
+        }
+        ${
+          data.companyAddress
+            ? `
         <div class="info-item" style="grid-column: span 2;">
           <span class="info-label">주소:</span>
           <span class="info-value">${data.companyAddress}</span>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     </div>
     
@@ -320,28 +327,40 @@ export class SalaryPDFGeneratorHTML {
           <span class="info-label">성명:</span>
           <span class="info-value">${data.workerName}</span>
         </div>
-        ${data.workerNumber ? `
+        ${
+          data.workerNumber
+            ? `
         <div class="info-item">
           <span class="info-label">사번:</span>
           <span class="info-value">${data.workerNumber}</span>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
         <div class="info-item">
           <span class="info-label">현장:</span>
           <span class="info-value">${data.siteName}</span>
         </div>
-        ${data.position ? `
+        ${
+          data.position
+            ? `
         <div class="info-item">
           <span class="info-label">직책:</span>
           <span class="info-value">${data.position}</span>
         </div>
-        ` : ''}
-        ${data.siteAddress ? `
+        `
+            : ''
+        }
+        ${
+          data.siteAddress
+            ? `
         <div class="info-item" style="grid-column: span 2;">
           <span class="info-label">현장주소:</span>
           <span class="info-value">${data.siteAddress}</span>
         </div>
-        ` : ''}
+        `
+            : ''
+        }
       </div>
     </div>
     
@@ -371,38 +390,32 @@ export class SalaryPDFGeneratorHTML {
             <td>${calculation.details.workHours}시간 × ${this.formatCurrency(calculation.details.hourlyRate || 0)}</td>
             <td class="amount">${this.formatCurrency(calculation.basePay)}</td>
           </tr>
-          ${calculation.overtimePay > 0 ? `
-          <tr>
-            <td>연장수당</td>
-            <td>${calculation.details.overtimeHours}시간 × ${this.formatCurrency(calculation.details.overtimeRate || 0)}</td>
-            <td class="amount">${this.formatCurrency(calculation.overtimePay)}</td>
-          </tr>
-          ` : ''}
-          ${calculation.bonuses > 0 ? `
-          <tr>
-            <td>보너스</td>
-            <td>-</td>
-            <td class="amount">${this.formatCurrency(calculation.bonuses)}</td>
-          </tr>
-          ` : ''}
-          ${calculation.deductions > 0 ? `
+          ${
+            calculation.deductions > 0
+              ? `
           <tr>
             <td>공제액</td>
             <td>-</td>
             <td class="amount deduction">-${this.formatCurrency(calculation.deductions)}</td>
           </tr>
-          ` : ''}
+          `
+              : ''
+          }
           <tr class="subtotal-row">
             <td colspan="2">소계 (세전)</td>
             <td class="amount">${this.formatCurrency(calculation.grossPay)}</td>
           </tr>
-          ${calculation.taxAmount > 0 ? `
+          ${
+            calculation.taxAmount > 0
+              ? `
           <tr>
             <td>세금 (${calculation.details.taxRate}%)</td>
             <td>${calculation.calculationType === 'tax_prepaid' ? '3.3% 선취' : ''}</td>
             <td class="amount deduction">-${this.formatCurrency(calculation.taxAmount)}</td>
           </tr>
-          ` : ''}
+          `
+              : ''
+          }
           <tr class="total-row">
             <td colspan="2">실수령액</td>
             <td class="amount" style="font-size: 14px;">${this.formatCurrency(calculation.netPay)}</td>
@@ -412,7 +425,9 @@ export class SalaryPDFGeneratorHTML {
     </div>
     
     <!-- Bank Information -->
-    ${data.bankInfo ? `
+    ${
+      data.bankInfo
+        ? `
     <div class="section">
       <h2 class="section-title">계좌 정보</h2>
       <div class="bank-info">
@@ -432,7 +447,9 @@ export class SalaryPDFGeneratorHTML {
         </div>
       </div>
     </div>
-    ` : ''}
+    `
+        : ''
+    }
     
     <!-- Footer -->
     <div class="footer">
@@ -461,43 +478,43 @@ export class SalaryPDFGeneratorHTML {
   </div>
 </body>
 </html>
-    `;
+    `
   }
 
   public async downloadPDF(data: SalaryPDFData, filename?: string): Promise<void> {
-    const html = this.generateHTML(data);
-    const defaultFilename = `급여명세서_${data.workerName}_${data.salaryYear}년${data.salaryMonth}월.pdf`;
-    
+    const html = this.generateHTML(data)
+    const defaultFilename = `급여명세서_${data.workerName}_${data.salaryYear}년${data.salaryMonth}월.pdf`
+
     // Create a blob from the HTML
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+
     // Open in new window for printing
-    const printWindow = window.open(url, '_blank');
-    
+    const printWindow = window.open(url, '_blank')
+
     if (printWindow) {
       printWindow.addEventListener('load', () => {
         setTimeout(() => {
-          printWindow.print();
-          URL.revokeObjectURL(url);
-        }, 250);
-      });
+          printWindow.print()
+          URL.revokeObjectURL(url)
+        }, 250)
+      })
     }
   }
-  
+
   public async generatePDFBlob(data: SalaryPDFData): Promise<Blob> {
-    const html = this.generateHTML(data);
-    return new Blob([html], { type: 'text/html' });
+    const html = this.generateHTML(data)
+    return new Blob([html], { type: 'text/html' })
   }
 }
 
 // Utility functions for easy use
 export async function downloadSalaryPDF(data: SalaryPDFData, filename?: string): Promise<void> {
-  const generator = new SalaryPDFGeneratorHTML();
-  await generator.downloadPDF(data, filename);
+  const generator = new SalaryPDFGeneratorHTML()
+  await generator.downloadPDF(data, filename)
 }
 
 export async function getSalaryPDFBlob(data: SalaryPDFData): Promise<Blob> {
-  const generator = new SalaryPDFGeneratorHTML();
-  return generator.generatePDFBlob(data);
+  const generator = new SalaryPDFGeneratorHTML()
+  return generator.generatePDFBlob(data)
 }

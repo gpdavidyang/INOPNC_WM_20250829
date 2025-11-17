@@ -44,7 +44,6 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
     workDays: 22,
     calculationType: 'tax_prepaid' as const,
     taxRate: 3.3,
-    bonuses: 0,
     deductions: 0,
     bankName: '',
     accountNumber: '',
@@ -263,7 +262,6 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       overtimeHours: salaryData.overtimeHours,
       calculationType: salaryData.calculationType,
       taxRate: salaryData.taxRate,
-      bonuses: salaryData.bonuses,
       deductions: salaryData.deductions,
     })
 
@@ -350,7 +348,6 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       dailyRate: 0,
       workHours: 8,
       overtimeHours: 0,
-      bonuses: 0,
       deductions: 0,
       bankName: '',
       accountNumber: '',
@@ -500,18 +497,6 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                           {formatSalary(calculationResult.overtimePay)}
-                        </td>
-                      </tr>
-                    )}
-
-                    {calculationResult.bonuses > 0 && (
-                      <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">보너스</td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">
-                          -
-                        </td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
-                          {formatSalary(calculationResult.bonuses)}
                         </td>
                       </tr>
                     )}
@@ -920,15 +905,6 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                       <span className="text-gray-600 dark:text-gray-400">연장수당:</span>
                       <span className="font-medium text-gray-900 dark:text-white">
                         {formatSalary(calculationResult.overtimePay)}
-                      </span>
-                    </div>
-                  )}
-
-                  {calculationResult.bonuses > 0 && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">보너스:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">
-                        {formatSalary(calculationResult.bonuses)}
                       </span>
                     </div>
                   )}

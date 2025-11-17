@@ -43,8 +43,6 @@ export default async function AdminWorkerSalaryCalendarPage({
     hours: number
     labor: number
     base_pay: number
-    overtime_pay: number
-    bonus_pay: number
     gross: number
     net: number
   }> = []
@@ -65,8 +63,6 @@ export default async function AdminWorkerSalaryCalendarPage({
       hours: workHours || laborDays * 8,
       labor: laborDays,
       base_pay: daily.base_pay,
-      overtime_pay: daily.overtime_pay,
-      bonus_pay: daily.bonus_pay,
       gross: daily.total_gross_pay,
       net: daily.net_pay,
     })
@@ -120,8 +116,6 @@ export default async function AdminWorkerSalaryCalendarPage({
             { key: 'hours', header: '근로시간', sortable: true, align: 'right', render: d => d.hours },
             { key: 'labor', header: '공수', sortable: true, align: 'right', render: d => formatManhours(d.labor) },
             { key: 'base_pay', header: '기본급', sortable: true, align: 'right', render: d => `₩${d.base_pay.toLocaleString()}` },
-            { key: 'overtime_pay', header: '추가수당', sortable: true, align: 'right', render: d => `₩${d.overtime_pay.toLocaleString()}` },
-            { key: 'bonus_pay', header: '보너스', sortable: true, align: 'right', render: d => `₩${d.bonus_pay.toLocaleString()}` },
             { key: 'gross', header: '총급여', sortable: true, align: 'right', render: d => `₩${d.gross.toLocaleString()}` },
             { key: 'net', header: '실수령', sortable: true, align: 'right', render: d => `₩${d.net.toLocaleString()}` },
           ] as Column<typeof breakdown[number]>)}

@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react'
 import { PageHeader } from '@/components/ui/page-header'
 import EmptyState from '@/components/ui/empty-state'
 import { t } from '@/lib/ui/strings'
+import { MonthPicker } from '@/components/ui/month-picker'
 
 export default function PayrollDashboardPage() {
   const [yearMonth, setYearMonth] = useState<string>(new Date().toISOString().slice(0, 7))
-  const [status, setStatus] = useState<'all' | 'issued' | 'approved' | 'paid'>('all')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [data, setData] = useState<{
@@ -23,10 +23,10 @@ export default function PayrollDashboardPage() {
   })
   const [source, setSource] = useState<'snapshots' | 'fallback'>('snapshots')
   const [showFallbackInfo, setShowFallbackInfo] = useState(false)
-  const [trendMonths, setTrendMonths] = useState<3 | 6 | 12>(3)
   const [trend, setTrend] = useState<
     Array<{ month: string; count: number; gross: number; deductions: number; net: number }>
   >([])
+  const [trendLoading, setTrendLoading] = useState(false)
   const [workers, setWorkers] = useState<
     Array<{
       worker_id: string
@@ -46,7 +46,6 @@ export default function PayrollDashboardPage() {
     setError('')
     try {
       const qs = new URLSearchParams({ year: String(Number(y)), month: String(Number(m)) })
-      if (status !== 'all') qs.set('status', status)
       const res = await fetch(`/api/admin/payroll/summary?${qs.toString()}`)
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '요약 조회 실패')
@@ -63,16 +62,19 @@ export default function PayrollDashboardPage() {
   useEffect(() => {
     fetchSummary()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [yearMonth, status])
+  }, [yearMonth])
 
-  const fetchTrend = async (months: 3 | 6 | 12) => {
+  const fetchTrend = async () => {
+    setTrendLoading(true)
     try {
-      const res = await fetch(`/api/admin/payroll/summary/trend?months=${months}`)
+      const res = await fetch(`/api/admin/payroll/summary/trend?months=3`)
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '추이 조회 실패')
       setTrend(json.data || [])
     } catch (e) {
       setTrend([])
+    } finally {
+      setTrendLoading(false)
     }
   }
 
@@ -91,12 +93,29 @@ export default function PayrollDashboardPage() {
   }
 
   useEffect(() => {
-    fetchTrend(trendMonths)
-  }, [trendMonths])
+    fetchTrend()
+  }, [])
 
   useEffect(() => {
     fetchWorkers()
   }, [yearMonth])
+
+  const employmentTypeLabel = {
+    freelancer: '프리랜서',
+    daily_worker: '일용직',
+    regular_employee: '상용직',
+  } as Record<string, string>
+  const formatEmploymentType = (val: string | null | undefined) => {
+    const key = String(val || '').toLowerCase()
+    return employmentTypeLabel[key] || val || '-'
+  }
+  const maxTrendGross = React.useMemo(() => {
+    if (!trend.length) return 1
+    const values = trend.map(t => Number(t.gross) || 0)
+    const max = Math.max(...values, 1)
+    return max <= 0 ? 1 : max
+  }, [trend])
+  const BAR_MAX_HEIGHT = 128
 
   return (
     <div className="px-0 pb-8">
@@ -107,24 +126,12 @@ export default function PayrollDashboardPage() {
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="month"
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+        <MonthPicker
           value={yearMonth}
-          onChange={e => setYearMonth(e.target.value)}
-          aria-label="년월"
+          onChange={setYearMonth}
+          ariaLabel="년월"
+          className="w-full sm:w-36"
         />
-        <select
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={status}
-          onChange={e => setStatus(e.target.value as any)}
-          aria-label="상태"
-        >
-          <option value="all">전체</option>
-          <option value="issued">발행</option>
-          <option value="approved">승인</option>
-          <option value="paid">지급</option>
-        </select>
         <button
           type="button"
           onClick={fetchSummary}
@@ -143,7 +150,7 @@ export default function PayrollDashboardPage() {
             source === 'fallback' ? '스냅샷 부재시 작업기록 기반 추정치' : '스냅샷 데이터 기준'
           }
         >
-          {source === 'fallback' ? '자료원: 추정(폴백)' : '자료원: 스냅샷'}
+          {source === 'fallback' ? '자료원: 추정(폴백)' : '자료원: 급여명세서'}
         </span>
         {source === 'fallback' && (
           <button
@@ -180,7 +187,7 @@ export default function PayrollDashboardPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">스냅샷 수</div>
+          <div className="text-sm text-[#8DA0CD] mb-1">발행 된 급여명세서 수</div>
           <div className="text-2xl font-semibold">{data.count}</div>
         </div>
         <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
@@ -197,37 +204,10 @@ export default function PayrollDashboardPage() {
         </div>
       </div>
 
-      {/* 추이: 최근 3/6/12개월 총급여지급액 그래프/표 */}
+      {/* 추이: 최근 3개월 총급여지급액 표 */}
       <div className="mt-6 space-y-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">최근 추이</span>
-          {[3, 6, 12].map(v => (
-            <button
-              key={v}
-              className={`px-2 py-1 text-xs rounded border ${trendMonths === v ? 'bg-blue-600 text-white' : 'bg-white text-gray-900'}`}
-              onClick={() => setTrendMonths(v as 3 | 6 | 12)}
-            >
-              {v}개월
-            </button>
-          ))}
-        </div>
-        <div className="w-full border rounded-md p-3 bg-white">
-          <div className="flex items-end gap-2 h-32">
-            {trend.map(t => {
-              const max = Math.max(1, ...trend.map(x => x.gross))
-              const h = Math.round((t.gross / max) * 100)
-              return (
-                <div key={t.month} className="flex flex-col items-center justify-end gap-1">
-                  <div
-                    className="w-6 bg-blue-500"
-                    style={{ height: `${h}%` }}
-                    title={`₩${t.gross.toLocaleString()}`}
-                  />
-                  <div className="text-[10px] text-gray-600">{t.month.slice(5)}</div>
-                </div>
-              )
-            })}
-          </div>
+          <span className="text-sm font-semibold">최근 추이 (3개월)</span>
         </div>
         <div className="overflow-x-auto border rounded-md">
           <table className="min-w-full text-sm">
@@ -250,7 +230,14 @@ export default function PayrollDashboardPage() {
                   <td className="px-3 py-2 text-right">₩{t.net.toLocaleString()}</td>
                 </tr>
               ))}
-              {trend.length === 0 && (
+              {trendLoading && (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                    최근 추이 계산 중...
+                  </td>
+                </tr>
+              )}
+              {!trendLoading && trend.length === 0 && (
                 <tr>
                   <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
                     데이터가 없습니다.
@@ -281,7 +268,7 @@ export default function PayrollDashboardPage() {
               {workers.map(w => (
                 <tr key={w.worker_id} className="border-t">
                   <td className="px-3 py-2">{w.name}</td>
-                  <td className="px-3 py-2">{w.employment_type || '-'}</td>
+                  <td className="px-3 py-2">{formatEmploymentType(w.employment_type)}</td>
                   <td className="px-3 py-2 text-right">
                     {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
                   </td>
