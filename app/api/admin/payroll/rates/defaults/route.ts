@@ -9,9 +9,12 @@ type EmploymentType = (typeof EMPLOYMENT_TYPES)[number]
 
 const RATE_FIELD_CONFIG = [
   { field: 'income_tax_rate', taxName: '소득세' },
+  { field: 'local_tax_rate', taxName: '지방세' },
   { field: 'pension_rate', taxName: '국민연금' },
   { field: 'health_insurance_rate', taxName: '건강보험' },
   { field: 'employment_insurance_rate', taxName: '고용보험' },
+  { field: 'long_term_care_rate', taxName: '장기요양' },
+  { field: 'industrial_accident_rate', taxName: '산재보험' },
 ] as const
 
 type RateField = (typeof RATE_FIELD_CONFIG)[number]['field']
@@ -24,9 +27,12 @@ type NormalizedRate = RateValues & {
 
 const EMPTY_RATE_VALUES: RateValues = {
   income_tax_rate: 0,
+  local_tax_rate: 0,
   pension_rate: 0,
   health_insurance_rate: 0,
   employment_insurance_rate: 0,
+  long_term_care_rate: 0,
+  industrial_accident_rate: 0,
 }
 
 const TAX_NAME_ALIASES: Record<string, RateField> = {
@@ -35,6 +41,11 @@ const TAX_NAME_ALIASES: Record<string, RateField> = {
   income_tax: 'income_tax_rate',
   income_tax_rate: 'income_tax_rate',
   근로소득세: 'income_tax_rate',
+  지방세: 'local_tax_rate',
+  지방소득세: 'local_tax_rate',
+  local_tax: 'local_tax_rate',
+  local_tax_rate: 'local_tax_rate',
+  local_income_tax: 'local_tax_rate',
   국민연금: 'pension_rate',
   '국민연금(근로자)': 'pension_rate',
   national_pension: 'pension_rate',
@@ -47,6 +58,15 @@ const TAX_NAME_ALIASES: Record<string, RateField> = {
   고용보험: 'employment_insurance_rate',
   employment_insurance: 'employment_insurance_rate',
   employment_insurance_rate: 'employment_insurance_rate',
+  장기요양: 'long_term_care_rate',
+  long_term_care: 'long_term_care_rate',
+  long_term_care_rate: 'long_term_care_rate',
+  long_term_care_insurance: 'long_term_care_rate',
+  산재보험: 'industrial_accident_rate',
+  산업재해보험: 'industrial_accident_rate',
+  industrial_accident: 'industrial_accident_rate',
+  industrial_accident_rate: 'industrial_accident_rate',
+  industrial_insurance: 'industrial_accident_rate',
 }
 
 const isValidEmploymentType = (value: any): value is EmploymentType =>
@@ -66,11 +86,17 @@ const mapTaxNameToField = (taxName: any): RateField | null => {
   if (raw.includes('건강보험')) return 'health_insurance_rate'
   if (raw.includes('고용보험')) return 'employment_insurance_rate'
   if (raw.includes('소득세')) return 'income_tax_rate'
+  if (raw.includes('지방세') || raw.includes('지방소득세')) return 'local_tax_rate'
+  if (raw.includes('장기요양')) return 'long_term_care_rate'
+  if (raw.includes('산재') || raw.includes('산업재해')) return 'industrial_accident_rate'
   const lower = raw.toLowerCase()
   if (lower.includes('pension')) return 'pension_rate'
   if (lower.includes('health')) return 'health_insurance_rate'
   if (lower.includes('employment')) return 'employment_insurance_rate'
   if (lower.includes('income')) return 'income_tax_rate'
+  if (lower.includes('local')) return 'local_tax_rate'
+  if (lower.includes('long_term')) return 'long_term_care_rate'
+  if (lower.includes('industrial')) return 'industrial_accident_rate'
   return null
 }
 
@@ -79,10 +105,20 @@ const normalizeItem = (item: any): NormalizedRate | null => {
   return {
     employment_type: item.employment_type,
     income_tax_rate: toRateNumber(item.income_tax_rate ?? item.income_tax),
+    local_tax_rate: toRateNumber(item.local_tax_rate ?? item.local_tax ?? item.local_income_tax),
     pension_rate: toRateNumber(item.pension_rate ?? item.national_pension),
     health_insurance_rate: toRateNumber(item.health_insurance_rate ?? item.health_insurance),
     employment_insurance_rate: toRateNumber(
       item.employment_insurance_rate ?? item.employment_insurance
+    ),
+    long_term_care_rate: toRateNumber(
+      item.long_term_care_rate ?? item.long_term_care ?? item.long_term_care_insurance
+    ),
+    industrial_accident_rate: toRateNumber(
+      item.industrial_accident_rate ??
+        item.industrial_accident ??
+        item.industrial_insurance ??
+        item.industrial_accident_insurance
     ),
   }
 }

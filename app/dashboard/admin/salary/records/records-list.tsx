@@ -12,8 +12,6 @@ type RecordRow = {
   site: { name: string }
   work_date: string
   base_pay: number
-  overtime_pay: number
-  bonus_pay: number
 }
 
 export default function SalaryRecordsList() {
@@ -76,7 +74,9 @@ export default function SalaryRecordsList() {
     const d = new Date(r.work_date)
     const y = d.getFullYear()
     const m = d.getMonth() + 1
-    window.open(`/payslip/${r.worker_id}/${y}/${m}`, '_blank')
+    const displayName = (r.worker?.full_name || '').trim()
+    const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
+    window.open(`/payslip/${r.worker_id}/${y}/${m}${query}`, '_blank')
   }
 
   return (
@@ -129,9 +129,7 @@ export default function SalaryRecordsList() {
               <th className="px-3 py-2">작업자</th>
               <th className="px-3 py-2">현장</th>
               <th className="px-3 py-2">작업일</th>
-              <th className="px-3 py-2 text-right">기본</th>
-              <th className="px-3 py-2 text-right">연장</th>
-              <th className="px-3 py-2 text-right">합계</th>
+              <th className="px-3 py-2 text-right">급여</th>
               <th className="px-3 py-2">액션</th>
             </tr>
           </thead>
@@ -141,11 +139,7 @@ export default function SalaryRecordsList() {
                 <td className="px-3 py-2">{r.worker.full_name}</td>
                 <td className="px-3 py-2">{r.site.name}</td>
                 <td className="px-3 py-2">{r.work_date}</td>
-                <td className="px-3 py-2 text-right">₩{r.base_pay.toLocaleString()}</td>
-                <td className="px-3 py-2 text-right">₩{r.overtime_pay.toLocaleString()}</td>
-                <td className="px-3 py-2 text-right font-medium">
-                  ₩{(r.base_pay + r.overtime_pay + (r.bonus_pay || 0)).toLocaleString()}
-                </td>
+                <td className="px-3 py-2 text-right font-medium">₩{r.base_pay.toLocaleString()}</td>
                 <td className="px-3 py-2">
                   <button
                     className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
@@ -158,7 +152,7 @@ export default function SalaryRecordsList() {
             ))}
             {items.length === 0 && !loading && (
               <tr>
-                <td className="px-3 py-6" colSpan={7}>
+                <td className="px-3 py-6" colSpan={5}>
                   <EmptyState description="데이터가 없습니다." />
                 </td>
               </tr>

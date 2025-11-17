@@ -1,6 +1,5 @@
 'use server'
 
-
 /**
  * 세율 관리 API
  */
@@ -9,7 +8,7 @@
 export async function getTaxRates(
   employment_type?: EmploymentType
 ): Promise<AdminActionResult<TaxRate[]>> {
-  return withAdminAuth(async (supabase) => {
+  return withAdminAuth(async supabase => {
     try {
       let query = supabase
         .from('employment_tax_rates')
@@ -31,7 +30,7 @@ export async function getTaxRates(
 
       return {
         success: true,
-        data: rates || []
+        data: rates || [],
       }
     } catch (error) {
       console.error('Tax rates fetch error:', error)
@@ -61,7 +60,7 @@ export async function updateTaxRate(
         .update({
           rate,
           description,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', id)
 
@@ -72,7 +71,7 @@ export async function updateTaxRate(
 
       return {
         success: true,
-        message: '세율이 업데이트되었습니다.'
+        message: '세율이 업데이트되었습니다.',
       }
     } catch (error) {
       console.error('Tax rate update error:', error)
@@ -91,11 +90,12 @@ export async function getWorkerSalarySettings(
   employment_type?: EmploymentType,
   active_only: boolean = true
 ): Promise<AdminActionResult<WorkerSalarySetting[]>> {
-  return withAdminAuth(async (supabase) => {
+  return withAdminAuth(async supabase => {
     try {
       let query = supabase
         .from('worker_salary_settings')
-        .select(`
+        .select(
+          `
           *,
           worker:profiles!worker_id (
             id,
@@ -103,7 +103,8 @@ export async function getWorkerSalarySettings(
             email,
             role
           )
-        `)
+        `
+        )
         .order('effective_date', { ascending: false })
 
       if (worker_id) {
@@ -127,7 +128,7 @@ export async function getWorkerSalarySettings(
 
       return {
         success: true,
-        data: settings || []
+        data: settings || [],
       }
     } catch (error) {
       console.error('Worker salary settings fetch error:', error)
@@ -163,7 +164,7 @@ export async function setWorkerSalarySetting(
         p_daily_rate: daily_rate,
         p_custom_tax_rates: custom_tax_rates ? JSON.stringify(custom_tax_rates) : null,
         p_bank_account_info: bank_account_info ? JSON.stringify(bank_account_info) : null,
-        p_effective_date: effective_date
+        p_effective_date: effective_date,
       })
 
       if (error) {
@@ -173,16 +174,13 @@ export async function setWorkerSalarySetting(
 
       // Add notes if provided
       if (notes && result) {
-        await supabase
-          .from('worker_salary_settings')
-          .update({ notes })
-          .eq('id', result)
+        await supabase.from('worker_salary_settings').update({ notes }).eq('id', result)
       }
 
       return {
         success: true,
         data: { setting_id: result },
-        message: '급여 설정이 저장되었습니다.'
+        message: '급여 설정이 저장되었습니다.',
       }
     } catch (error) {
       console.error('Worker salary setting error:', error)
@@ -195,9 +193,9 @@ export async function setWorkerSalarySetting(
 export async function calculatePersonalSalary(
   params: PersonalSalaryCalculationParams
 ): Promise<AdminActionResult<EnhancedSalaryCalculationResult>> {
-  return withAdminAuth(async (supabase) => {
+  return withAdminAuth(async supabase => {
     try {
-      const { worker_id, work_date, labor_hours, bonus_pay = 0, additional_deductions = 0 } = params
+      const { worker_id, work_date, labor_hours, additional_deductions = 0 } = params
 
       if (!worker_id || !work_date || labor_hours === undefined || labor_hours === null) {
         return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
@@ -211,7 +209,7 @@ export async function calculatePersonalSalary(
       const { data: result, error } = await supabase.rpc('calculate_individual_salary', {
         p_worker_id: worker_id,
         p_labor_hours: labor_hours,
-        p_work_date: work_date
+        p_work_date: work_date,
       })
 
       if (error) {
@@ -220,14 +218,14 @@ export async function calculatePersonalSalary(
       }
 
       if (!result || result.length === 0) {
-        return { 
-          success: false, 
-          error: '해당 직원의 급여 설정을 찾을 수 없습니다. 먼저 급여 설정을 등록해주세요.' 
+        return {
+          success: false,
+          error: '해당 직원의 급여 설정을 찾을 수 없습니다. 먼저 급여 설정을 등록해주세요.',
         }
       }
 
       const calculation = result[0]
-      
+
       // Convert to enhanced result format
       const enhancedResult: EnhancedSalaryCalculationResult = {
         worker_id,
@@ -235,27 +233,25 @@ export async function calculatePersonalSalary(
         daily_rate: parseFloat(calculation.daily_rate),
         gross_pay: parseFloat(calculation.gross_pay),
         base_pay: parseFloat(calculation.base_pay),
-        overtime_pay: parseFloat(calculation.overtime_pay),
         deductions: {
           income_tax: parseFloat(calculation.income_tax),
           resident_tax: parseFloat(calculation.resident_tax),
           national_pension: parseFloat(calculation.national_pension),
           health_insurance: parseFloat(calculation.health_insurance),
           employment_insurance: parseFloat(calculation.employment_insurance),
-          other_deductions: additional_deductions
+          other_deductions: additional_deductions,
         },
         total_tax: parseFloat(calculation.total_tax) + additional_deductions,
-        net_pay: parseFloat(calculation.net_pay) - additional_deductions + bonus_pay,
+        net_pay: parseFloat(calculation.net_pay) - additional_deductions,
         tax_details: {
           ...calculation.tax_details,
-          bonus_pay,
-          additional_deductions
-        }
+          additional_deductions,
+        },
       }
 
       return {
         success: true,
-        data: enhancedResult
+        data: enhancedResult,
       }
     } catch (error) {
       console.error('Personal salary calculation error:', error)
@@ -279,7 +275,7 @@ export async function savePersonalSalaryRecord(
 
       const labor_hours = calculation.tax_details?.labor_hours || 0
       const regular_hours = Math.min(labor_hours * 8, 8)
-      const overtime_hours = Math.max((labor_hours * 8) - 8, 0)
+      const overtime_hours = Math.max(labor_hours * 8 - 8, 0)
 
       const { data: record, error } = await supabase
         .from('salary_records')
@@ -292,8 +288,6 @@ export async function savePersonalSalaryRecord(
           overtime_hours,
           labor_hours,
           base_pay: calculation.base_pay,
-          overtime_pay: calculation.overtime_pay,
-          bonus_pay: calculation.tax_details?.bonus_pay || 0,
           deductions: calculation.deductions.other_deductions || 0,
           income_tax: calculation.deductions.income_tax,
           resident_tax: calculation.deductions.resident_tax,
@@ -304,7 +298,7 @@ export async function savePersonalSalaryRecord(
           total_pay: calculation.net_pay,
           status: 'calculated',
           tax_details: calculation.tax_details,
-          notes
+          notes,
         })
         .select()
         .single()
@@ -317,7 +311,7 @@ export async function savePersonalSalaryRecord(
       return {
         success: true,
         data: { record_id: record.id },
-        message: '급여 기록이 저장되었습니다.'
+        message: '급여 기록이 저장되었습니다.',
       }
     } catch (error) {
       console.error('Salary record save error:', error)
@@ -331,16 +325,18 @@ export async function getPersonalMonthlySalarySummary(
   worker_id: string,
   year: number,
   month: number
-): Promise<AdminActionResult<{
-  total_records: number
-  total_labor_hours: number
-  total_gross_pay: number
-  total_tax: number
-  total_net_pay: number
-  employment_type: EmploymentType
-  records: unknown[]
-}>> {
-  return withAdminAuth(async (supabase) => {
+): Promise<
+  AdminActionResult<{
+    total_records: number
+    total_labor_hours: number
+    total_gross_pay: number
+    total_tax: number
+    total_net_pay: number
+    employment_type: EmploymentType
+    records: unknown[]
+  }>
+> {
+  return withAdminAuth(async supabase => {
     try {
       if (!worker_id || !year || !month) {
         return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
@@ -351,13 +347,15 @@ export async function getPersonalMonthlySalarySummary(
 
       const { data: records, error } = await supabase
         .from('salary_records')
-        .select(`
+        .select(
+          `
           *,
           site:sites (
             id,
             name
           )
-        `)
+        `
+        )
         .eq('worker_id', worker_id)
         .gte('work_date', start_date)
         .lte('work_date', end_date)
@@ -378,33 +376,36 @@ export async function getPersonalMonthlySalarySummary(
             total_tax: 0,
             total_net_pay: 0,
             employment_type: 'daily_worker' as EmploymentType,
-            records: []
-          }
+            records: [],
+          },
         }
       }
 
-      const summary = records.reduce((acc: unknown, record: unknown) => {
-        acc.total_records += 1
-        acc.total_labor_hours += record.labor_hours || 0
-        acc.total_gross_pay += (record.base_pay + record.overtime_pay + record.bonus_pay)
-        acc.total_tax += record.tax_amount || 0
-        acc.total_net_pay += record.total_pay
-        return acc
-      }, {
-        total_records: 0,
-        total_labor_hours: 0,
-        total_gross_pay: 0,
-        total_tax: 0,
-        total_net_pay: 0
-      })
+      const summary = records.reduce(
+        (acc: unknown, record: unknown) => {
+          acc.total_records += 1
+          acc.total_labor_hours += record.labor_hours || 0
+          acc.total_gross_pay += record.base_pay
+          acc.total_tax += record.tax_amount || 0
+          acc.total_net_pay += record.total_pay
+          return acc
+        },
+        {
+          total_records: 0,
+          total_labor_hours: 0,
+          total_gross_pay: 0,
+          total_tax: 0,
+          total_net_pay: 0,
+        }
+      )
 
       return {
         success: true,
         data: {
           ...summary,
           employment_type: records[0]?.employment_type || 'daily_worker',
-          records
-        }
+          records,
+        },
       }
     } catch (error) {
       console.error('Personal monthly salary summary error:', error)
@@ -414,20 +415,25 @@ export async function getPersonalMonthlySalarySummary(
 }
 
 // 모든 직원 목록 (급여 설정용)
-export async function getWorkersForSalarySettings(): Promise<AdminActionResult<Array<{
-  id: string
-  full_name: string
-  email: string
-  role: string
-  has_salary_setting: boolean
-  employment_type?: EmploymentType
-  daily_rate?: number
-}>>> {
-  return withAdminAuth(async (supabase) => {
+export async function getWorkersForSalarySettings(): Promise<
+  AdminActionResult<
+    Array<{
+      id: string
+      full_name: string
+      email: string
+      role: string
+      has_salary_setting: boolean
+      employment_type?: EmploymentType
+      daily_rate?: number
+    }>
+  >
+> {
+  return withAdminAuth(async supabase => {
     try {
       const { data: workers, error } = await supabase
         .from('profiles')
-        .select(`
+        .select(
+          `
           id,
           full_name,
           email,
@@ -438,7 +444,8 @@ export async function getWorkersForSalarySettings(): Promise<AdminActionResult<A
             daily_rate,
             is_active
           )
-        `)
+        `
+        )
         .in('role', ['worker', 'site_manager', 'customer_manager'])
         .neq('status', 'inactive')
         .order('full_name')
@@ -448,22 +455,23 @@ export async function getWorkersForSalarySettings(): Promise<AdminActionResult<A
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      const formatted_workers = workers?.map((worker: unknown) => {
-        const active_setting = worker.salary_settings?.find((s: unknown) => s.is_active)
-        return {
-          id: worker.id,
-          full_name: worker.full_name,
-          email: worker.email,
-          role: worker.role,
-          has_salary_setting: !!active_setting,
-          employment_type: active_setting?.employment_type,
-          daily_rate: active_setting?.daily_rate
-        }
-      }) || []
+      const formatted_workers =
+        workers?.map((worker: unknown) => {
+          const active_setting = worker.salary_settings?.find((s: unknown) => s.is_active)
+          return {
+            id: worker.id,
+            full_name: worker.full_name,
+            email: worker.email,
+            role: worker.role,
+            has_salary_setting: !!active_setting,
+            employment_type: active_setting?.employment_type,
+            daily_rate: active_setting?.daily_rate,
+          }
+        }) || []
 
       return {
         success: true,
-        data: formatted_workers
+        data: formatted_workers,
       }
     } catch (error) {
       console.error('Workers for salary settings fetch error:', error)

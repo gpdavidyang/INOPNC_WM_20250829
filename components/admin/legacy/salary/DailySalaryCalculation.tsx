@@ -16,7 +16,6 @@ interface DailySalaryData {
   hourly_rate: number
   daily_rate: number
   overtime_hours: number
-  overtime_pay: number
   total_pay: number
 }
 
@@ -192,10 +191,9 @@ export default function DailySalaryCalculation() {
           const laborHours = Number(assignment.labor_hours) || 0
           const dailyWage = Number(profile.daily_wage) || 0
           const hourlyRate = laborHours > 0 ? dailyWage / 8 : 0 // Calculate hourly from daily wage
-          const overtimeHours = Math.max(0, laborHours - 8) // overtime after 8 hours
+          const overtimeHours = Math.max(0, laborHours - 8) // 기록만 유지
           const regularPay = Math.min(laborHours, 8) * hourlyRate
-          const overtimePay = overtimeHours * hourlyRate * 1.5 // 1.5x rate for overtime
-          const totalPay = regularPay + overtimePay
+          const totalPay = regularPay
 
           return {
             id: assignment.id,
@@ -209,7 +207,6 @@ export default function DailySalaryCalculation() {
             hourly_rate: hourlyRate,
             daily_rate: regularPay,
             overtime_hours: overtimeHours,
-            overtime_pay: overtimePay,
             total_pay: totalPay,
           }
         })
@@ -265,7 +262,6 @@ export default function DailySalaryCalculation() {
       시급: item.hourly_rate || 0,
       일당: item.daily_rate || 0,
       연장근무: item.overtime_hours || 0,
-      연장수당: item.overtime_pay || 0,
       총급여: item.total_pay || 0,
     }))
 

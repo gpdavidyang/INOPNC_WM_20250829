@@ -534,7 +534,6 @@ export interface EnhancedSalaryCalculationResult {
   daily_rate: number
   gross_pay: number
   base_pay: number
-  overtime_pay: number
   deductions: {
     income_tax: number
     resident_tax: number
@@ -567,8 +566,6 @@ export interface EnhancedSalaryRecord {
   overtime_hours: number
   labor_hours?: number
   base_pay: number
-  overtime_pay: number
-  bonus_pay: number
   deductions: number
   income_tax?: number
   resident_tax?: number
@@ -600,7 +597,6 @@ export interface PersonalSalaryCalculationParams {
   worker_id: string
   work_date: string
   labor_hours: number
-  bonus_pay?: number
   additional_deductions?: number
   override_rates?: Record<string, number>
 }

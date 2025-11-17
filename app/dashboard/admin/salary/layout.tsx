@@ -6,11 +6,10 @@ import React from 'react'
 
 const tabs = [
   { href: '/dashboard/admin/salary/dashboard', label: '대시보드' },
-  { href: '/dashboard/admin/salary/preview', label: '미리보기' },
-  { href: '/dashboard/admin/salary/personal', label: '개인세율' },
+  { href: '/dashboard/admin/salary/preview', label: '급여계산 & 급여명세서 발행' },
+  { href: '/dashboard/admin/salary/snapshots', label: '발행 된 급여명세서 조회' },
   { href: '/dashboard/admin/salary/defaults', label: '기본세율' },
-  { href: '/dashboard/admin/salary/snapshots', label: '스냅샷' },
-  { href: '/dashboard/admin/salary/rules', label: '규칙설정' },
+  { href: '/dashboard/admin/salary/personal', label: '개인별 일당 및 세율' },
 ]
 
 export default function SalaryLayout({ children }: { children: React.ReactNode }) {

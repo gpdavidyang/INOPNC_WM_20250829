@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export type SnapshotSource = 'db' | 'storage'
 
@@ -25,10 +26,7 @@ export interface SalarySnapshot {
     work_days: number
     total_labor_hours: number
     total_work_hours: number
-    total_overtime_hours: number
     base_pay: number
-    overtime_pay: number
-    bonus_pay: number
     total_gross_pay: number
     tax_deduction: number
     national_pension: number
@@ -129,6 +127,70 @@ export async function saveSalarySnapshot(
   }
 }
 
+async function listSnapshotsFromStorage(params: {
+  workerId?: string
+  year?: number
+  month?: number
+  status?: 'issued' | 'approved' | 'paid'
+  limit: number
+  supabase?: ReturnType<typeof createClient>
+  serviceClient?: ReturnType<typeof createServiceRoleClient>
+}): Promise<SalarySnapshot[]> {
+  const { workerId, year, month, status, limit, supabase, serviceClient } = params
+  const client = serviceClient || supabase
+  if (!client) return []
+  const storage = client.storage.from('documents')
+
+  const workerIds: string[] = []
+  if (workerId) {
+    workerIds.push(workerId)
+  } else {
+    const { data, error } = await storage.list('salary-snapshots', { limit: 1000 })
+    if (error || !data) return []
+    for (const entry of data) {
+      if (entry?.name) workerIds.push(entry.name)
+      if (workerIds.length >= limit) break
+    }
+  }
+
+  const snapshots: SalarySnapshot[] = []
+  for (const wid of workerIds) {
+    const { data: files, error } = await storage.list(`salary-snapshots/${wid}`, {
+      limit,
+      sortBy: { column: 'name', order: 'desc' },
+    })
+    if (error || !files) continue
+    for (const file of files) {
+      if (!file.name.endsWith('.json')) continue
+      const [fileYearStr, fileMonthStr] = file.name.replace('.json', '').split('-')
+      const fileYear = Number(fileYearStr)
+      const fileMonth = Number(fileMonthStr)
+      if (year && fileYear !== year) continue
+      if (month && fileMonth !== month) continue
+      const { data: blob, error: downloadError } = await storage.download(
+        `salary-snapshots/${wid}/${file.name}`
+      )
+      if (downloadError || !blob) continue
+      try {
+        const text = await blob.text()
+        const json = JSON.parse(text) as SalarySnapshot
+        if (status && json.status !== status) continue
+        snapshots.push(json)
+        if (snapshots.length >= limit) break
+      } catch {
+        continue
+      }
+    }
+    if (snapshots.length >= limit) break
+  }
+  snapshots.sort((a, b) => {
+    const aTime = new Date(a.issued_at).getTime()
+    const bTime = new Date(b.issued_at).getTime()
+    return bTime - aTime
+  })
+  return snapshots.slice(0, limit)
+}
+
 export async function listSalarySnapshots(params: {
   workerId?: string
   year?: number
@@ -154,7 +216,7 @@ export async function listSalarySnapshots(params: {
     if (status) query = query.eq('status', status)
 
     const { data, error } = await query
-    if (!error && Array.isArray(data)) {
+    if (!error && Array.isArray(data) && data.length > 0) {
       const snapshots = data
         .map(r => {
           const snap = (r as any).data_json as SalarySnapshot
@@ -174,30 +236,24 @@ export async function listSalarySnapshots(params: {
     // fall through to storage listing
   }
 
-  if (!workerId) {
-    return { snapshots: [] }
-  }
-
   try {
-    const base = `salary-snapshots/${workerId}`
-    const { data: files, error } = await supabase.storage.from('documents').list(base, {
+    const storageClient = (() => {
+      try {
+        return createServiceRoleClient()
+      } catch {
+        return null
+      }
+    })()
+    const storageSnapshots = await listSnapshotsFromStorage({
+      supabase,
+      serviceClient: storageClient || undefined,
+      workerId,
+      year,
+      month,
+      status,
       limit,
-      sortBy: { column: 'created_at', order: 'desc' },
     })
-    if (error || !files) return { snapshots: [] }
-    const snapshots: SalarySnapshot[] = []
-    for (const f of files) {
-      if (!f.name.endsWith('.json')) continue
-      const [ym] = f.name.split('.json')
-      const [yStr, mStr] = ym.split('-')
-      if (!yStr || !mStr) continue
-      const y = Number(yStr)
-      const m = Number(mStr)
-      const { snapshot } = await getSalarySnapshot(workerId, y, m)
-      if (snapshot) snapshots.push(snapshot)
-    }
-    const filtered = status ? snapshots.filter(s => s.status === status) : snapshots
-    return { snapshots: filtered }
+    return { snapshots: storageSnapshots }
   } catch (e) {
     return { snapshots: [] }
   }

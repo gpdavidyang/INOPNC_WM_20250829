@@ -26,7 +26,9 @@ import process from 'node:process'
 import * as XLSX from 'xlsx'
 import { createClient } from '@supabase/supabase-js'
 
-interface RawRow { [key: string]: any }
+interface RawRow {
+  [key: string]: any
+}
 
 interface ParsedRow {
   date: string // YYYY-MM-DD
@@ -61,12 +63,18 @@ function readRows(filePath: string): RawRow[] {
 }
 
 function normalizeKey(k: string): string {
-  return String(k || '').trim().toLowerCase().replace(/\s+/g, '').replace(/[_-]+/g, '')
+  return String(k || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[_-]+/g, '')
 }
 
 function toISODate(dotDate: string): string | null {
   // 2025.1.2 → 2025-01-02
-  const s = String(dotDate || '').trim().replace(/\s+/g, '')
+  const s = String(dotDate || '')
+    .trim()
+    .replace(/\s+/g, '')
   const m = s.match(/^(\d{4})[.](\d{1,2})[.](\d{1,2})$/)
   if (!m) return null
   const y = Number(m[1])
@@ -77,7 +85,9 @@ function toISODate(dotDate: string): string | null {
 
 function parseNumber(v: any): number {
   if (typeof v === 'number') return v
-  const s = String(v || '').replace(/,/g, '').trim()
+  const s = String(v || '')
+    .replace(/,/g, '')
+    .trim()
   if (!s) return 0
   const n = Number(s)
   return Number.isFinite(n) ? n : 0
@@ -127,7 +137,17 @@ async function main() {
     // skip group rows like "외" or zero amounts
     if (/외\s*$/.test(workerName)) continue
     if (gross === 0 && net === 0 && tax === 0) continue
-    parsed.push({ date: dateIso, workerName, siteName, manDays, baseRate, grossPay: gross, tax, netPay: net, notes })
+    parsed.push({
+      date: dateIso,
+      workerName,
+      siteName,
+      manDays,
+      baseRate,
+      grossPay: gross,
+      tax,
+      netPay: net,
+      notes,
+    })
   }
 
   if (parsed.length === 0) {
@@ -136,7 +156,9 @@ async function main() {
   }
 
   // Resolve users and sites
-  const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  const supabase = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 
   // Load site alias map if present
   let aliasMap: Record<string, string> = {}
@@ -145,7 +167,9 @@ async function main() {
     if (fs.existsSync(aliasPath)) {
       aliasMap = JSON.parse(fs.readFileSync(aliasPath, 'utf8'))
     }
-  } catch {}
+  } catch (err) {
+    console.warn('⚠️ Failed to load site alias map:', err)
+  }
 
   const normalizeSite = (name: string) => aliasMap[name] || name
 
@@ -154,8 +178,12 @@ async function main() {
 
   const userIdByName = new Map<string, string>()
   if (workerNames.length > 0) {
-    const { data } = await supabase.from('profiles').select('id, full_name').in('full_name', workerNames)
-    for (const row of data || []) userIdByName.set(String((row as any).full_name), String((row as any).id))
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .in('full_name', workerNames)
+    for (const row of data || [])
+      userIdByName.set(String((row as any).full_name), String((row as any).id))
   }
 
   const siteIdByName = new Map<string, string>()
@@ -164,7 +192,8 @@ async function main() {
     for (let i = 0; i < siteNames.length; i += 1000) {
       const subset = siteNames.slice(i, i + 1000)
       const { data } = await supabase.from('sites').select('id, name').in('name', subset)
-      for (const row of data || []) siteIdByName.set(String((row as any).name), String((row as any).id))
+      for (const row of data || [])
+        siteIdByName.set(String((row as any).name), String((row as any).id))
     }
   }
 
@@ -197,7 +226,10 @@ async function main() {
     const periodStart = dates.slice().sort()[0]
     const periodEnd = dates.slice().sort().slice(-1)[0]
     const workDays = new Set(rowsOfGroup.filter(r => r.manDays > 0).map(r => r.date)).size
-    const totalManDays = rowsOfGroup.reduce((s, r) => s + (Number.isFinite(r.manDays) ? r.manDays : 0), 0)
+    const totalManDays = rowsOfGroup.reduce(
+      (s, r) => s + (Number.isFinite(r.manDays) ? r.manDays : 0),
+      0
+    )
     const basePay = rowsOfGroup.reduce((s, r) => s + r.grossPay, 0)
     const tax = rowsOfGroup.reduce((s, r) => s + r.tax, 0)
     const net = rowsOfGroup.reduce((s, r) => s + r.netPay, 0)
@@ -234,8 +266,6 @@ async function main() {
         total_work_hours: Math.round(totalManDays * 8 * 100) / 100,
         total_overtime_hours: 0,
         base_pay: basePay,
-        overtime_pay: 0,
-        bonus_pay: 0,
         total_gross_pay: basePay,
         tax_deduction: tax,
         national_pension: 0,
@@ -254,7 +284,10 @@ async function main() {
 
   console.log(`파싱 ${parsed.length}건 → 스냅샷 ${snapshots.length}건 생성 예정`)
   if (dryRun) {
-    console.log('샘플:', snapshots.slice(0, 2).map(s => ({ path: s.path, preview: s.json.salary })))
+    console.log(
+      '샘플:',
+      snapshots.slice(0, 2).map(s => ({ path: s.path, preview: s.json.salary }))
+    )
     console.log('드라이런: 업로드 생략')
     return
   }
@@ -262,7 +295,9 @@ async function main() {
   // Upload to storage (upsert)
   for (const s of snapshots) {
     const payload = new Blob([JSON.stringify(s.json, null, 2)], { type: 'application/json' })
-    const { error } = await supabase.storage.from('documents').upload(s.path, payload, { upsert: true })
+    const { error } = await supabase.storage
+      .from('documents')
+      .upload(s.path, payload, { upsert: true })
     if (error) {
       console.error('업로드 실패:', s.path, error.message)
     } else {

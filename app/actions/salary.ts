@@ -8,7 +8,6 @@ interface SalaryInfo {
   user_id: string
   base_salary: number
   hourly_rate: number
-  overtime_rate: number
   effective_date: string
   end_date?: string
   created_at: string
@@ -18,13 +17,10 @@ interface SalaryInfo {
 interface MonthlySalaryCalculation {
   base_salary: number
   hourly_rate: number
-  overtime_rate: number
   total_work_hours: number
   total_overtime_hours: number
   total_labor_hours: number
   regular_pay: number
-  overtime_pay: number
-  bonus_pay: number
   total_gross_pay: number
   tax_deduction: number
   national_pension: number
@@ -86,14 +82,11 @@ export async function calculateMonthlySalary(params: {
     const calculation: unknown = {
       base_salary: 0, // 서비스에서 직접 계산
       hourly_rate: 0, // 서비스에서 직접 계산
-      overtime_rate: 0, // 서비스에서 직접 계산
       total_work_hours: result.total_work_hours,
       total_overtime_hours: result.total_overtime_hours,
       total_labor_hours: result.total_labor_hours,
       regular_pay: result.base_pay,
       base_pay: result.base_pay, // PDF 생성에 필요
-      overtime_pay: result.overtime_pay,
-      bonus_pay: result.bonus_pay,
       total_gross_pay: result.total_gross_pay,
       tax_deduction: result.tax_deduction,
       national_pension: result.national_pension,
@@ -115,7 +108,6 @@ export async function calculateMonthlySalary(params: {
     if (salaryResult.success && salaryResult.data) {
       calculation.base_salary = salaryResult.data.base_salary
       calculation.hourly_rate = salaryResult.data.hourly_rate
-      calculation.overtime_rate = salaryResult.data.overtime_rate
     }
 
     return { success: true, data: calculation }
@@ -149,13 +141,11 @@ export async function getCompanySalarySummary(params: {
       site_name: '강남 A현장',
       month: params.month || '2025-01',
       base_salary: 2800000 + Math.floor(Math.random() * 500000),
-      overtime_pay: Math.floor(Math.random() * 500000),
       allowances: 150000,
       deductions: 337000,
       net_salary: 2800000 + Math.floor(Math.random() * 1000000),
       total_days: 20 + Math.floor(Math.random() * 5),
       total_hours: 160 + Math.floor(Math.random() * 40),
-      overtime_hours: Math.floor(Math.random() * 30),
       status: Math.random() > 0.7 ? 'pending' : 'paid',
     }))
 

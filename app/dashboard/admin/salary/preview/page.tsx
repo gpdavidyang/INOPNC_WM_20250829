@@ -3,8 +3,15 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/ui/page-header'
 import { t } from '@/lib/ui/strings'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { MonthPicker } from '@/components/ui/month-picker'
 
 type WorkerPreview = {
   worker_id: string
@@ -14,6 +21,8 @@ type WorkerPreview = {
   total_labor_hours: number
   total_gross_pay: number
   net_pay: number
+  status?: 'issued' | 'approved' | 'paid' | null
+  issued_at?: string | null
 }
 
 function ym(d = new Date()) {
@@ -21,7 +30,6 @@ function ym(d = new Date()) {
 }
 
 export default function PayrollPreviewPage() {
-  const supabase = useMemo(() => createClient(), [])
   const { toast } = useToast()
   const [yearMonth, setYearMonth] = useState<string>(ym())
   const [loading, setLoading] = useState(false)
@@ -30,14 +38,17 @@ export default function PayrollPreviewPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [detail, setDetail] = useState<any | null>(null)
+  const [detailWorker, setDetailWorker] = useState<WorkerPreview | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [employmentType, setEmploymentType] = useState<
     '' | 'freelancer' | 'daily_worker' | 'regular_employee'
   >('')
-  const [siteId, setSiteId] = useState<string>('')
-  const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
-  const [workerSites, setWorkerSites] = useState<Record<string, string[]>>({})
-  const [autoProcess, setAutoProcess] = useState<boolean>(false)
+  const [workerOptions, setWorkerOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [workerId, setWorkerId] = useState<string>('')
+  const [publishLoading, setPublishLoading] = useState(false)
+  const [publishProgress, setPublishProgress] = useState<{ total: number; current: number } | null>(
+    null
+  )
 
   const [y, m] = useMemo(() => yearMonth.split('-'), [yearMonth])
 
@@ -48,14 +59,12 @@ export default function PayrollPreviewPage() {
     try {
       const qs = new URLSearchParams({ year: String(Number(y)), month: String(Number(m)) })
       if (employmentType) qs.set('employmentType', employmentType)
-      if (siteId) qs.set('siteId', siteId)
       const res = await fetch(`/api/admin/payroll/summary/workers?${qs.toString()}`)
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '조회 실패')
       const list: WorkerPreview[] = json.data || []
       setRows(list)
-      // Load sites for month to support site filter
-      await loadSitesForMonth(list.map(r => r.worker_id))
+      setWorkerOptions(list.map(item => ({ id: item.worker_id, name: item.name || '-' })))
       setSelected(new Set())
     } catch (e: any) {
       setRows([])
@@ -86,172 +95,37 @@ export default function PayrollPreviewPage() {
     })
   }
 
-  const publishSelected = async () => {
-    const ids = Array.from(selected)
-    if (ids.length === 0) return
-    const res = await fetch('/api/admin/payroll/snapshots/publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year: Number(y), month: Number(m), userIds: ids }),
-    })
-    const json = await res.json()
-    if (!res.ok || json?.success === false) {
-      toast({ title: '발행 실패', description: json?.error || '발행 실패', variant: 'destructive' })
-    } else {
-      if (autoProcess) {
-        const entries = ids.map(id => ({ userId: id, year: Number(y), month: Number(m) }))
-        try {
-          const approveRes = await fetch('/api/admin/payroll/snapshots/approve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entries }),
-          })
-          const approveJson = await approveRes.json()
-          if (!approveRes.ok || approveJson?.success === false)
-            throw new Error(approveJson?.error || '승인 실패')
-          const payRes = await fetch('/api/admin/payroll/snapshots/pay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entries }),
-          })
-          const payJson = await payRes.json()
-          if (!payRes.ok || payJson?.success === false)
-            throw new Error(payJson?.error || '지급 실패')
-          toast({ title: '완료', description: `발행/승인/지급 완료 (${json.inserted}건)` })
-        } catch (e: any) {
-          toast({ title: '처리 실패', description: e?.message || '연속 처리 중 오류', variant: 'destructive' })
-        }
-      } else {
-        toast({ title: '발행 완료', description: `${json.inserted}건 처리되었습니다.` })
-      }
-    }
+  const employmentTypeLabel = {
+    freelancer: '프리랜서',
+    daily_worker: '일용직',
+    regular_employee: '상용직',
+  } as Record<string, string>
+  const formatEmploymentType = (val: string | null | undefined) => {
+    const key = String(val || '').toLowerCase()
+    return employmentTypeLabel[key] || val || '-'
   }
-
-  const publishAll = async () => {
-    const ids = filtered.map(r => r.worker_id)
-    if (ids.length === 0) return
-    const res = await fetch('/api/admin/payroll/snapshots/publish', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year: Number(y), month: Number(m), userIds: ids }),
-    })
-    const json = await res.json()
-    if (!res.ok || json?.success === false) {
-      toast({ title: '발행 실패', description: json?.error || '발행 실패', variant: 'destructive' })
-    } else {
-      if (autoProcess) {
-        const entries = ids.map(id => ({ userId: id, year: Number(y), month: Number(m) }))
-        try {
-          const approveRes = await fetch('/api/admin/payroll/snapshots/approve', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entries }),
-          })
-          const approveJson = await approveRes.json()
-          if (!approveRes.ok || approveJson?.success === false)
-            throw new Error(approveJson?.error || '승인 실패')
-          const payRes = await fetch('/api/admin/payroll/snapshots/pay', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ entries }),
-          })
-          const payJson = await payRes.json()
-          if (!payRes.ok || payJson?.success === false)
-            throw new Error(payJson?.error || '지급 실패')
-          toast({ title: '완료', description: `발행/승인/지급 완료 (${json.inserted}건)` })
-        } catch (e: any) {
-          toast({ title: '처리 실패', description: e?.message || '연속 처리 중 오류', variant: 'destructive' })
-        }
-      } else {
-        toast({ title: '발행 완료', description: `${json.inserted}건 처리되었습니다.` })
-      }
-    }
+  const statusLabel: Record<NonNullable<WorkerPreview['status']>, string> = {
+    issued: '발행',
+    approved: '승인',
+    paid: '지급',
   }
-
-  const approveSelected = async () => {
-    const ids = Array.from(selected)
-    if (ids.length === 0) return
-    const entries = ids.map(id => ({ userId: id, year: Number(y), month: Number(m) }))
-    try {
-      const res = await fetch('/api/admin/payroll/snapshots/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries }),
-      })
-      const json = await res.json()
-      if (!res.ok || json?.success === false) throw new Error(json?.error || '선택 승인 실패')
-      toast({ title: '승인 완료', description: '선택 항목이 승인되었습니다.' })
-    } catch (e: any) {
-      toast({ title: '승인 실패', description: e?.message || '선택 승인 실패', variant: 'destructive' })
-    }
+  const getStatusBadgeClass = (status?: WorkerPreview['status']) => {
+    if (status === 'paid') return 'bg-slate-100 text-slate-700'
+    if (status === 'approved') return 'bg-green-50 text-green-700'
+    if (status === 'issued') return 'bg-amber-50 text-amber-700'
+    return 'bg-gray-100 text-gray-500'
   }
+  const isPublished = (row: WorkerPreview) => Boolean(row.status)
 
-  const paySelected = async () => {
-    const ids = Array.from(selected)
-    if (ids.length === 0) return
-    const entries = ids.map(id => ({ userId: id, year: Number(y), month: Number(m) }))
-    try {
-      const res = await fetch('/api/admin/payroll/snapshots/pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entries }),
-      })
-      const json = await res.json()
-      if (!res.ok || json?.success === false) throw new Error(json?.error || '선택 지급 실패')
-      toast({ title: '지급 완료', description: '선택 항목이 지급 처리되었습니다.' })
-    } catch (e: any) {
-      toast({ title: '지급 실패', description: e?.message || '선택 지급 실패', variant: 'destructive' })
-    }
-  }
-
-  async function loadSitesForMonth(workerIds: string[]) {
-    try {
-      const year = Number(y)
-      const month = Number(m)
-      if (!year || !month) return
-      const start = `${y}-${m}-01`
-      const end = new Date(year, month, 0).toISOString().split('T')[0]
-      const { data: wr } = await supabase
-        .from('work_records')
-        .select('user_id, profile_id, site_id')
-        .gte('work_date', start)
-        .lte('work_date', end)
-      const map: Record<string, Set<string>> = {}
-      const siteSet: Set<string> = new Set()
-      for (const r of wr || []) {
-        const uid = (r as any).user_id || (r as any).profile_id
-        const sid = (r as any).site_id
-        if (!uid || !sid) continue
-        if (!map[uid]) map[uid] = new Set()
-        map[uid].add(sid)
-        siteSet.add(sid)
-      }
-      const ids = Array.from(siteSet)
-      if (ids.length) {
-        const { data: sites } = await supabase.from('sites').select('id, name').in('id', ids)
-        const options = (sites || []).map((s: any) => ({ id: s.id, name: s.name }))
-        options.sort((a, b) => a.name.localeCompare(b.name))
-        setSiteOptions(options)
-      } else {
-        setSiteOptions([])
-      }
-      const obj: Record<string, string[]> = {}
-      for (const k of Object.keys(map)) obj[k] = Array.from(map[k])
-      setWorkerSites(obj)
-    } catch {
-      setSiteOptions([])
-      setWorkerSites({})
-    }
-  }
-
-  const openDetail = async (workerId: string) => {
+  const openDetail = async (worker: WorkerPreview) => {
     setDetail(null)
+    setDetailWorker(worker)
     setDetailLoading(true)
     try {
       const res = await fetch('/api/admin/payroll/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: workerId, year: Number(y), month: Number(m) }),
+        body: JSON.stringify({ userId: worker.worker_id, year: Number(y), month: Number(m) }),
       })
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '미리보기 실패')
@@ -263,14 +137,48 @@ export default function PayrollPreviewPage() {
     }
   }
 
+  const summarizeDefaultRate = () => {
+    const rawType =
+      String(detail?.employment_type || detailWorker?.employment_type || '').trim()
+    const normalized = rawType.toLowerCase()
+    if (
+      normalized === 'freelancer' ||
+      normalized === 'daily_worker' ||
+      rawType === '프리랜서' ||
+      rawType === '일용직'
+    ) {
+      return '소득세 3.0% + 지방세 0.3%'
+    }
+    return null
+  }
+
+  const rateEntries = useMemo(() => {
+    const entries = detail?.rates ? Object.entries(detail.rates as Record<string, number>) : []
+    if (entries.length === 0) return null
+    const labelMap: Record<string, string> = {
+      income_tax: '소득세',
+      local_tax: '지방세',
+      national_pension: '국민연금',
+      health_insurance: '건강보험',
+      employment_insurance: '고용보험',
+    }
+    return entries.map(([key, value]) => ({
+      label: labelMap[key] || key,
+      value,
+    }))
+  }, [detail?.rates])
+
   const filtered = useMemo(() => {
     const q = query.trim()
     let list = rows
     if (q) list = list.filter(r => r.name?.toLowerCase().includes(q.toLowerCase()))
     if (employmentType) list = list.filter(r => r.employment_type === employmentType)
-    if (siteId) list = list.filter(r => (workerSites[r.worker_id] || []).includes(siteId))
+    if (workerId) list = list.filter(r => r.worker_id === workerId)
     return list
-  }, [rows, query, employmentType, siteId, workerSites])
+  }, [rows, query, employmentType, workerId])
+
+  const employmentSelectValue = employmentType || 'all'
+  const workerSelectValue = workerId || 'all'
 
   const totals = useMemo(() => {
     return filtered.reduce(
@@ -284,53 +192,119 @@ export default function PayrollPreviewPage() {
     )
   }, [filtered])
 
+  const publishableSelectedIds = useMemo(() => {
+    return Array.from(selected).filter(id => {
+      const row = rows.find(r => r.worker_id === id)
+      return row && !isPublished(row)
+    })
+  }, [selected, rows])
+  const hasPublishableSelection = publishableSelectedIds.length > 0
+
+  const publishSelected = async () => {
+    const ids = Array.from(publishableSelectedIds)
+    if (ids.length === 0) {
+      toast({ title: '발행 불가', description: '발행 가능한 선택 대상이 없습니다.', variant: 'destructive' })
+      return
+    }
+    setPublishLoading(true)
+    setPublishProgress({ total: ids.length, current: 0 })
+    const res = await fetch('/api/admin/payroll/snapshots/publish', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: Number(y), month: Number(m), userIds: ids }),
+    })
+    const json = await res.json()
+    if (!res.ok || json?.success === false) {
+      toast({ title: '발행 실패', description: json?.error || '발행 실패', variant: 'destructive' })
+    } else {
+      setPublishProgress(prev =>
+        prev ? { ...prev, current: prev.total } : { total: ids.length, current: ids.length }
+      )
+      toast({ title: '발행 완료', description: `${json.inserted}건 처리되었습니다.` })
+      await fetchAll()
+      setSelected(new Set())
+    }
+    setPublishProgress(null)
+    setPublishLoading(false)
+  }
+
   return (
     <div className="px-0 pb-8">
       <PageHeader
-        title="급여 스냅샷 미리보기"
-        description="선택 월/필터에 따라 발행 대상 및 금액 확인"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '스냅샷 미리보기' }]}
+        title="급여계산 & 급여명세서 발행"
+        description="선택 월/필터에 따라 급여를 계산하고 필요한 대상에게 즉시 발행하세요"
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '급여 관리', href: '/dashboard/admin/salary' },
+          { label: '급여계산 & 급여명세서 발행' },
+        ]}
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="month"
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={yearMonth}
-          onChange={e => setYearMonth(e.target.value)}
-          aria-label="년월"
-        />
-        <select
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={employmentType}
-          onChange={e => setEmploymentType(e.target.value as any)}
-          aria-label="고용형태"
-        >
-          <option value="">전체 형태</option>
-          <option value="freelancer">프리랜서</option>
-          <option value="daily_worker">일용직</option>
-          <option value="regular_employee">상용직</option>
-        </select>
-        <select
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={siteId}
-          onChange={e => setSiteId(e.target.value)}
-          aria-label="현장"
-        >
-          <option value="">전체 현장</option>
-          {siteOptions.map(s => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="search"
-          placeholder={t('common.search')}
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-        />
+        <div className="w-full sm:w-auto">
+          <MonthPicker
+            value={yearMonth}
+            onChange={setYearMonth}
+            ariaLabel="년월"
+            className="w-full sm:w-36"
+          />
+        </div>
+        <div className="w-full sm:w-40">
+          <CustomSelect
+            value={employmentSelectValue}
+            onValueChange={value =>
+              setEmploymentType(value === 'all' ? '' : (value as typeof employmentType))
+            }
+          >
+            <CustomSelectTrigger
+              className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+              aria-label="고용형태"
+            >
+              <CustomSelectValue placeholder="전체 형태" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 형태</CustomSelectItem>
+              <CustomSelectItem value="freelancer">프리랜서</CustomSelectItem>
+              <CustomSelectItem value="daily_worker">일용직</CustomSelectItem>
+              <CustomSelectItem value="regular_employee">상용직</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
+        </div>
+        <div className="w-full sm:w-40">
+          <CustomSelect
+            value={workerSelectValue}
+            onValueChange={value => setWorkerId(value === 'all' ? '' : value)}
+          >
+            <CustomSelectTrigger
+              className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+              aria-label="이름"
+            >
+              <CustomSelectValue placeholder="전체 이름" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 이름</CustomSelectItem>
+              {workerOptions.map(option => (
+                <CustomSelectItem key={option.id} value={option.id}>
+                  {option.name}
+                </CustomSelectItem>
+              ))}
+            </CustomSelectContent>
+          </CustomSelect>
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <input
+            type="search"
+            placeholder={t('common.search')}
+            className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+          />
+        </div>
+      </div>
+      <p className="text-xs text-gray-500">
+        선택한 월에 대해 계산된 급여명세서가 있는 작업자만 이름 목록에 표시됩니다.
+      </p>
+      <div className="flex justify-end gap-2">
         <button
           type="button"
           onClick={fetchAll}
@@ -339,48 +313,41 @@ export default function PayrollPreviewPage() {
         >
           {t('common.refresh')}
         </button>
-        <div className="flex-1" />
-        <label className="inline-flex items-center gap-2 text-sm mr-2">
-          <input
-            type="checkbox"
-            checked={autoProcess}
-            onChange={e => setAutoProcess(e.target.checked)}
-          />
-          발행 후 자동 승인/지급
-        </label>
         <button
           type="button"
           onClick={publishSelected}
-          disabled={selected.size === 0}
+          disabled={!hasPublishableSelection || publishLoading}
           className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm disabled:bg-gray-400"
         >
           선택 발행
         </button>
-        <button
-          type="button"
-          onClick={approveSelected}
-          disabled={selected.size === 0}
-          className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm disabled:opacity-60"
-        >
-          선택 승인
-        </button>
-        <button
-          type="button"
-          onClick={paySelected}
-          disabled={selected.size === 0}
-          className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm disabled:opacity-60"
-        >
-          선택 지급
-        </button>
-        <button
-          type="button"
-          onClick={publishAll}
-          disabled={filtered.length === 0}
-          className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm disabled:bg-gray-400"
-        >
-          전체 발행
-        </button>
       </div>
+
+      {publishLoading && (
+        <div className="border border-blue-200 bg-blue-50 text-blue-800 text-sm rounded-md p-3">
+          <div className="font-medium mb-1">급여명세서 발행 중...</div>
+          {publishProgress && publishProgress.total > 0 ? (
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-2 bg-blue-100 rounded">
+                <div
+                  className="h-2 bg-blue-500 rounded"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.round((publishProgress.current / publishProgress.total) * 100)
+                    )}%`,
+                  }}
+                />
+              </div>
+              <div className="text-xs">
+                {publishProgress.current}/{publishProgress.total}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs">요청 준비 중...</div>
+          )}
+        </div>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
@@ -416,7 +383,8 @@ export default function PayrollPreviewPage() {
                 />
               </th>
               <th className="px-3 py-2">이름</th>
-              <th className="px-3 py-2">형태</th>
+              <th className="px-3 py-2">고용형태</th>
+              <th className="px-3 py-2">상태</th>
               <th className="px-3 py-2 text-right">일당</th>
               <th className="px-3 py-2 text-right">총공수</th>
               <th className="px-3 py-2 text-right">총급여</th>
@@ -426,17 +394,38 @@ export default function PayrollPreviewPage() {
           </thead>
           <tbody>
             {filtered.map(w => (
-              <tr key={w.worker_id} className="border-t">
+              <tr key={w.worker_id} className={`border-t ${isPublished(w) ? 'bg-gray-50/60' : ''}`}>
                 <td className="px-3 py-2">
                   <input
                     type="checkbox"
                     aria-label="선택"
                     checked={selected.has(w.worker_id)}
                     onChange={() => toggle(w.worker_id)}
+                    disabled={publishLoading}
                   />
                 </td>
                 <td className="px-3 py-2">{w.name}</td>
-                <td className="px-3 py-2">{w.employment_type || '-'}</td>
+                <td className="px-3 py-2">{formatEmploymentType(w.employment_type)}</td>
+                <td className="px-3 py-2">
+                  {w.status === 'paid' ? (
+                    <div className="flex flex-wrap gap-1">
+                      {(['issued', 'paid'] as const).map(st => (
+                        <span
+                          key={`${w.worker_id}-${st}`}
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(st)}`}
+                        >
+                          {statusLabel[st]}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(w.status)}`}
+                    >
+                      {w.status ? statusLabel[w.status] : '미발행'}
+                    </span>
+                  )}
+                </td>
                 <td className="px-3 py-2 text-right">
                   {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
                 </td>
@@ -448,13 +437,17 @@ export default function PayrollPreviewPage() {
                 <td className="px-3 py-2 flex items-center gap-2">
                   <button
                     className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
-                    onClick={() => window.open(`/payslip/${w.worker_id}/${y}/${m}`, '_blank')}
+                    onClick={() => {
+                      const safeName = (w.name || '').trim()
+                      const query = safeName ? `?name=${encodeURIComponent(safeName)}` : ''
+                      window.open(`/payslip/${w.worker_id}/${y}/${m}${query}`, '_blank')
+                    }}
                   >
                     HTML 보기
                   </button>
                   <button
                     className="px-2 py-1 text-xs rounded-md bg-white border"
-                    onClick={() => openDetail(w.worker_id)}
+                    onClick={() => openDetail(w)}
                   >
                     상세
                   </button>
@@ -463,7 +456,7 @@ export default function PayrollPreviewPage() {
             ))}
             {filtered.length === 0 && !loading && (
               <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={8}>
+                <td className="px-3 py-6 text-center text-gray-500" colSpan={9}>
                   표시할 데이터가 없습니다.
                 </td>
               </tr>
@@ -481,12 +474,7 @@ export default function PayrollPreviewPage() {
               <li>
                 공수: {detail.work_days}일 / 총공수 {formatManhours(detail.total_labor_hours)}
               </li>
-              <li>
-                근무시간: {detail.total_work_hours}h / 연장 {detail.total_overtime_hours}h
-              </li>
               <li>기본급: ₩{Number(detail.base_pay || 0).toLocaleString()}</li>
-              <li>연장수당: ₩{Number(detail.overtime_pay || 0).toLocaleString()}</li>
-              <li>보너스: ₩{Number(detail.bonus_pay || 0).toLocaleString()}</li>
               <li>총액: ₩{Number(detail.total_gross_pay || 0).toLocaleString()}</li>
               <li>공제: ₩{Number(detail.total_deductions || 0).toLocaleString()}</li>
               <li className="font-semibold">
@@ -496,21 +484,33 @@ export default function PayrollPreviewPage() {
           </div>
           <div className="border rounded-md p-3">
             <h3 className="font-semibold mb-2">세율 정보</h3>
-            <div className="text-sm space-y-1">
-              <div>출처: {detail.rate_source === 'custom' ? '개인설정' : '형태기본/가드'}</div>
-              {detail.rates && (
+            <div className="text-sm space-y-2">
+              <div>
+                고용형태: {formatEmploymentType(detail?.employment_type || detailWorker?.employment_type)}
+              </div>
+              {detail.rate_source && (
+                <div>
+                  세율 출처: {detail.rate_source === 'custom' ? '개인 설정' : '고용형태 기본' }
+                </div>
+              )}
+              {rateEntries ? (
                 <ul className="text-xs list-disc pl-5">
-                  {Object.entries(detail.rates).map(([k, v]) => (
-                    <li key={k}>
-                      {k}: {String(v)}%
+                  {rateEntries.map(entry => (
+                    <li key={entry.label}>
+                      {entry.label}: {entry.value}%
                     </li>
                   ))}
                 </ul>
+              ) : (
+                <div className="text-xs text-gray-600">
+                  기본세율: {summarizeDefaultRate() || '세율 정보 없음'}
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
+
     </div>
     </div>
   )
