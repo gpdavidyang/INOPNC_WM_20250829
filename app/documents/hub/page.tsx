@@ -963,10 +963,10 @@ function CompanyTab() {
               <div className="doc-selection-content">
                 <div className="doc-selection-title">{item.title}</div>
               </div>
-                <div className="doc-actions">
-                  <button
-                    className="preview-btn"
-                    onClick={async () => {
+              <div className="doc-actions">
+                <button
+                  className="preview-btn"
+                  onClick={async () => {
                     if (!item.url) return
                     try {
                       const r = await fetch(
@@ -1015,16 +1015,24 @@ const isReadableWorklogReference = (value: string) =>
   READABLE_WORKLOG_PATTERNS.some(pattern => pattern.test(value.trim()))
 
 const buildWorklogConnectionDisplay = (rawIds: string[]) => {
-  const normalized = rawIds
-    .map(id => (typeof id === 'string' ? id.trim() : ''))
-    .filter(Boolean)
+  const normalized = rawIds.map(id => (typeof id === 'string' ? id.trim() : '')).filter(Boolean)
   if (!normalized.length) {
     return { type: 'empty' as const, ids: [] as string[], total: 0, title: '' }
   }
   const readableOnly = normalized.every(isReadableWorklogReference)
   return readableOnly
-    ? { type: 'badges' as const, ids: normalized, total: normalized.length, title: normalized.join(', ') }
-    : { type: 'summary' as const, ids: [] as string[], total: normalized.length, title: normalized.join(', ') }
+    ? {
+        type: 'badges' as const,
+        ids: normalized,
+        total: normalized.length,
+        title: normalized.join(', '),
+      }
+    : {
+        type: 'summary' as const,
+        ids: [] as string[],
+        total: normalized.length,
+        title: normalized.join(', '),
+      }
 }
 
 const formatReadableWorklogId = (value: string) => {
@@ -1073,8 +1081,8 @@ function DrawingsTab() {
   const [loading, setLoading] = useState(false)
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
-const limit = 24
-const [totalPages, setTotalPages] = useState(1)
+  const limit = 24
+  const [totalPages, setTotalPages] = useState(1)
   const [queue, setQueue] = useState<
     Array<{ file: File; siteId: string; category: 'plan' | 'progress' | 'other' }>
   >([])
@@ -1098,7 +1106,7 @@ const [totalPages, setTotalPages] = useState(1)
     itemId.startsWith('markup-') ? itemId.slice('markup-'.length) : null
   const [worklogLinkId, setWorklogLinkId] = useState('')
   const [linking, setLinking] = useState<Record<string, boolean>>({})
-const [worklogDraft, setWorklogDraft] = useState('')
+  const [worklogDraft, setWorklogDraft] = useState('')
   useEffect(() => {
     setWorklogDraft(worklogLinkId)
   }, [worklogLinkId])
@@ -1841,69 +1849,73 @@ const [worklogDraft, setWorklogDraft] = useState('')
       )}
       <div className="document-cards">
         {loading && <div className="doc-selection-title">불러오는 중...</div>}
-        {!loading &&
-          items.map(it => {
-            const linkedIds =
-              Array.isArray(it.linkedWorklogIds) && it.linkedWorklogIds.length > 0
-                ? it.linkedWorklogIds
-                : it.linkedWorklogId
-                  ? [it.linkedWorklogId]
-                  : []
-            const hasConnections = linkedIds.length > 0
-            const display = buildWorklogConnectionDisplay(linkedIds)
-            const formattedDate = formatDisplayDate(it.createdAt)
-            const siteLabel = it.siteId ? siteNameMap.get(it.siteId) || null : null
-            return (
-              <div key={it.id} className={`doc-item ${selected.has(it.id) ? 'active' : ''}`}>
-                <div className="doc-info">
-                  <div className="doc-title-row">
-                    <div className="doc-item-title">{it.title || '도면'}</div>
-                    {siteLabel ? <span className="doc-item-site">{siteLabel}</span> : null}
-                  </div>
-                  <div className="doc-meta-row">
-                    {it.categoryLabel ? (
-                      <span
-                        className={cn(
-                          'doc-category-badge',
-                          it.category === 'plan'
-                            ? 'doc-category-plan'
-                            : it.category === 'progress'
-                              ? 'doc-category-progress'
-                              : 'doc-category-other'
-                        )}
-                      >
-                        {it.categoryLabel}
+        {!loading && (
+          <>
+            {items.map(it => {
+              const linkedIds =
+                Array.isArray(it.linkedWorklogIds) && it.linkedWorklogIds.length > 0
+                  ? it.linkedWorklogIds
+                  : it.linkedWorklogId
+                    ? [it.linkedWorklogId]
+                    : []
+              const hasConnections = linkedIds.length > 0
+              const display = buildWorklogConnectionDisplay(linkedIds)
+              const formattedDate = formatDisplayDate(it.createdAt)
+              const siteLabel = it.siteId ? siteNameMap.get(it.siteId) || null : null
+              return (
+                <div key={it.id} className={`doc-item ${selected.has(it.id) ? 'active' : ''}`}>
+                  <div className="doc-info">
+                    <div className="doc-title-row">
+                      <div className="doc-item-title">{it.title || '도면'}</div>
+                      {siteLabel ? <span className="doc-item-site">{siteLabel}</span> : null}
+                    </div>
+                    <div className="doc-meta-row">
+                      {it.categoryLabel ? (
+                        <span
+                          className={cn(
+                            'doc-category-badge',
+                            it.category === 'plan'
+                              ? 'doc-category-plan'
+                              : it.category === 'progress'
+                                ? 'doc-category-progress'
+                                : 'doc-category-other'
+                          )}
+                        >
+                          {it.categoryLabel}
+                        </span>
+                      ) : null}
+                      {formattedDate ? (
+                        <span className="doc-meta-date">{formattedDate}</span>
+                      ) : null}
+                    </div>
+                    <div className="doc-status-row">
+                      <span className={`doc-status-pill ${hasConnections ? '' : 'pending'}`}>
+                        {hasConnections
+                          ? display.type === 'badges'
+                            ? '작업일지 연결'
+                            : `연결 ${display.total}건`
+                          : '작업일지 미연결'}
                       </span>
-                    ) : null}
-                    {formattedDate ? <span className="doc-meta-date">{formattedDate}</span> : null}
+                      {hasConnections && display.type === 'badges' ? (
+                        <div className="flex flex-wrap items-center gap-1">
+                          {display.ids.map(id => (
+                            <span key={id} className="doc-meta-date badge-link">
+                              {formatReadableWorklogId(id)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : !hasConnections ? (
+                        <span className="doc-meta-date muted">연결 필요</span>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="doc-status-row">
-                    <span className={`doc-status-pill ${hasConnections ? '' : 'pending'}`}>
-                      {hasConnections
-                        ? display.type === 'badges'
-                          ? '작업일지 연결'
-                          : `연결 ${display.total}건`
-                        : '작업일지 미연결'}
-                    </span>
-                    {hasConnections && display.type === 'badges' ? (
-                      <div className="flex flex-wrap items-center gap-1">
-                        {display.ids.map(id => (
-                          <span key={id} className="doc-meta-date badge-link">
-                            {formatReadableWorklogId(id)}
-                          </span>
-                        ))}
-                      </div>
-                    ) : !hasConnections ? (
-                      <span className="doc-meta-date muted">연결 필요</span>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="doc-actions">
-                  <button
-                    className="preview-btn"
-                    onClick={async () => {
+                  <div className="doc-actions">
+                    <button
+                      className="preview-btn"
+                      onClick={async () => {
                         const markupId = getMarkupDocumentId(it.id)
-                        const hasPreview = typeof it.previewUrl === 'string' && it.previewUrl.length > 0
+                        const hasPreview =
+                          typeof it.previewUrl === 'string' && it.previewUrl.length > 0
                         if (markupId && !hasPreview) {
                           openMarkupViewer(it)
                           return
@@ -1916,20 +1928,25 @@ const [worklogDraft, setWorklogDraft] = useState('')
                           }
                           toast({
                             title: '파일 없음',
-                            description: '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
+                            description:
+                              '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
                             variant: 'destructive',
                           })
                           return
                         }
-                        const isInline = finalUrl.startsWith('data:') || finalUrl.startsWith('blob:')
+                        const isInline =
+                          finalUrl.startsWith('data:') || finalUrl.startsWith('blob:')
                         if (!isInline) {
                           try {
-                            const chk = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`)
+                            const chk = await fetch(
+                              `/api/files/check?url=${encodeURIComponent(finalUrl)}`
+                            )
                             const cj = await chk.json().catch(() => ({}))
                             if (!cj?.exists) {
                               toast({
                                 title: '파일 없음',
-                                description: '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
+                                description:
+                                  '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
                                 variant: 'destructive',
                               })
                               return
@@ -1944,12 +1961,18 @@ const [worklogDraft, setWorklogDraft] = useState('')
                       보기
                     </button>
                     {it.pdfUrl ? (
-                      <button className="preview-btn secondary" onClick={() => window.open(it.pdfUrl!, '_blank')}>
+                      <button
+                        className="preview-btn secondary"
+                        onClick={() => window.open(it.pdfUrl!, '_blank')}
+                      >
                         PDF
                       </button>
                     ) : null}
                     {getMarkupDocumentId(it.id) ? (
-                      <button className="preview-btn secondary" onClick={() => openMarkupViewer(it)}>
+                      <button
+                        className="preview-btn secondary"
+                        onClick={() => openMarkupViewer(it)}
+                      >
                         마킹열기
                       </button>
                     ) : null}
@@ -1985,9 +2008,10 @@ const [worklogDraft, setWorklogDraft] = useState('')
                     </button>
                   </div>
                 </div>
-            </div>
-            )
-          })}
+              )
+            })}
+          </>
+        )}
       </div>
       <div className="foot equal">
         <button
