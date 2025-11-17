@@ -199,6 +199,45 @@
   transition: all 0.2s ease;
 }
 
+.linked-markup-card {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  margin-bottom: 8px;
+}
+
+.linked-markup-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.linked-markup-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.linked-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.linked-markup-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .clear-filters-btn:hover {
   background: rgba(226, 232, 240, 0.6);
 }

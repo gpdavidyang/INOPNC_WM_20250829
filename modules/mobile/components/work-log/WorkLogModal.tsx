@@ -90,6 +90,10 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   const [userOptions, setUserOptions] = useState<
     Array<{ id: string; name: string; role?: string }>
   >([])
+  const [linkedDrawings, setLinkedDrawings] = useState<
+    Array<{ id: string; title: string; linkedWorklogIds: string[] }>
+  >([])
+  const [loadingLinks, setLoadingLinks] = useState(false)
 
   const isViewMode = mode === 'view'
 
@@ -99,6 +103,8 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
       setTasks((workLog?.tasks as any) || [])
       setErrors({})
       setNewWorker({ id: '', name: '', hours: 0 })
+      setLinkedDrawings([])
+      setLoadingLinks(false)
     }
   }, [isOpen, workLog])
 
@@ -136,6 +142,40 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
 
     if (isOpen) fetchUsers()
   }, [isOpen])
+
+  useEffect(() => {
+    const fetchLinkedDocs = async () => {
+      if (!workLog?.id || mode === 'create') return
+      setLoadingLinks(true)
+      try {
+        const res = await fetch(`/api/markup-documents?worklogId=${encodeURIComponent(workLog.id)}`)
+        const json = await res.json().catch(() => ({}))
+        const arr = Array.isArray(json?.data)
+          ? json.data
+          : Array.isArray(json?.documents)
+            ? json.documents
+            : []
+        const mapped = arr.map((doc: any) => ({
+          id: doc.id,
+          title: doc.title || '도면',
+          linkedWorklogIds:
+            Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0
+              ? doc.linked_worklog_ids.filter(
+                  (value: unknown): value is string => typeof value === 'string' && value.length > 0
+                )
+              : doc.linked_worklog_id
+                ? [doc.linked_worklog_id]
+                : [workLog.id],
+        }))
+        setLinkedDrawings(mapped)
+      } catch {
+        setLinkedDrawings([])
+      } finally {
+        setLoadingLinks(false)
+      }
+    }
+    if (isOpen) fetchLinkedDocs()
+  }, [isOpen, workLog?.id, mode])
 
   const hasWorkerError = Boolean(errors.workers)
   const materialEntries = formData.materials || []
@@ -348,12 +388,22 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative z-10 w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+        <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4 gap-3">
           <h2 className="text-lg font-semibold text-[#1A254F]">
             {mode === 'create' && '작업일지 작성'}
             {mode === 'edit' && '작업일지 수정'}
             {mode === 'view' && '작업일지 상세'}
           </h2>
+          {!isViewMode && (
+            <a
+              href={`/documents/hub${formData.siteId ? `?siteId=${formData.siteId}` : ''}`}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-full border border-[#cbd5e1] px-3 py-1.5 text-xs font-semibold text-[#1A254F] hover:bg-gray-50"
+            >
+              현장공유함 이동
+            </a>
+          )}
           <button
             type="button"
             onClick={onClose}
@@ -888,6 +938,52 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
               </span>
             </div>
           </div>
+
+          {mode !== 'create' ? (
+            <div className="mt-5 rounded-lg border border-dashed border-gray-300 bg-white p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-[#1A254F]">연결된 진행도면</h4>
+                  <p className="text-xs text-[#475467]">
+                    현장공유함에서 마킹 저장 시 자동으로 작업일지와 연동됩니다.
+                  </p>
+                </div>
+                <a
+                  className="viewer-action-btn secondary"
+                  href={`/documents/hub?siteId=${formData.siteId || ''}&worklogId=${workLog?.id || ''}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  현장공유함 이동
+                </a>
+              </div>
+              {loadingLinks ? (
+                <p className="mt-3 text-xs text-[#94a3b8]">연결 정보를 불러오는 중...</p>
+              ) : linkedDrawings.length === 0 ? (
+                <p className="mt-3 text-xs text-[#94a3b8]">
+                  현재 연결된 진행도면이 없습니다. 현장공유함 &gt; 진행도면에서 저장해 주세요.
+                </p>
+              ) : (
+                <ul className="mt-3 space-y-2">
+                  {linkedDrawings.map(doc => (
+                    <li key={doc.id} className="rounded-lg border border-gray-200 p-2">
+                      <div className="text-sm font-semibold text-[#1A254F]">{doc.title}</div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {doc.linkedWorklogIds.map(id => (
+                          <span
+                            key={id}
+                            className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                          >
+                            #{id}
+                          </span>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
 
           <div className="mt-5">
             <FileUploadSection

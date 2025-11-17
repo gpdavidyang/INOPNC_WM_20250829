@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
 
 export const dynamic = 'force-dynamic'
 
@@ -122,6 +123,28 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     const { data, error } = await query.maybeSingle()
     if (error || !data) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
+
+    const linkedDrawings = await fetchLinkedDrawingsForWorklog(reportId, data.site_id)
+    if (linkedDrawings.length) {
+      const attachments =
+        (Array.isArray(data.document_attachments) ? data.document_attachments : []) || []
+      const normalized = linkedDrawings.map(doc => ({
+        id: `linked-${doc.id}`,
+        file_name: doc.title,
+        file_url: doc.previewUrl || doc.url,
+        document_type: 'drawing',
+        file_size: 0,
+        uploaded_at: doc.createdAt,
+        linked_worklog_id: reportId,
+        metadata: {
+          source: doc.source,
+          original_url: doc.url,
+          preview_url: doc.previewUrl,
+          markup_document_id: doc.markupId,
+        },
+      }))
+      data.document_attachments = [...attachments, ...normalized]
     }
 
     return NextResponse.json({ success: true, data })

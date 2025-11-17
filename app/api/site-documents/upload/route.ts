@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { mapDocumentTypeToSharedSubcategory } from '@/lib/unified-documents'
@@ -15,6 +16,12 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient()
+    let serviceClient: ReturnType<typeof createServiceRoleClient> | null = null
+    try {
+      serviceClient = createServiceRoleClient()
+    } catch (error) {
+      console.warn('[site-documents/upload] Service role client unavailable', error)
+    }
 
     // Parse form data
     const formData = await request.formData()
@@ -118,7 +125,8 @@ export async function POST(request: NextRequest) {
     } = supabase.storage.from('documents').getPublicUrl(uploadData.path)
 
     // Create database record
-    const { data: documentRecord, error: dbError } = await supabase
+    const siteDocumentsClient = serviceClient ?? supabase
+    const { data: documentRecord, error: dbError } = await siteDocumentsClient
       .from('site_documents')
       .insert({
         site_id: siteId,
@@ -149,34 +157,38 @@ export async function POST(request: NextRequest) {
     }
 
     // Mirror record into unified_document_system (shared documents)
-    try {
-      const serviceClient = createServiceRoleClient()
-      const subCategory = mapDocumentTypeToSharedSubcategory(documentType)
-      await serviceClient.from('unified_document_system').insert({
-        title: file.name,
-        description: null,
-        file_name: file.name,
-        file_url: publicUrl,
-        file_size: file.size,
-        mime_type: file.type,
-        category_type: 'shared',
-        sub_category: subCategory,
-        uploaded_by: authResult.userId,
-        site_id: siteId,
-        status: 'active',
-        is_archived: false,
-        metadata: {
-          document_type: documentType,
-          storage_path: uploadData.path,
-          source_table: 'site_documents',
-          source_site_document_id: documentRecord.id,
-        },
-      })
-    } catch (udsError) {
-      console.warn(
-        '[site-documents/upload] Failed to insert into unified_document_system',
-        udsError
-      )
+    if (serviceClient) {
+      try {
+        const subCategory = mapDocumentTypeToSharedSubcategory(documentType)
+        await serviceClient.from('unified_document_system').insert({
+          title: file.name,
+          description: null,
+          file_name: file.name,
+          file_url: publicUrl,
+          file_size: file.size,
+          mime_type: file.type,
+          category_type: 'shared',
+          sub_category: subCategory,
+          uploaded_by: authResult.userId,
+          site_id: siteId,
+          status: 'active',
+          is_archived: false,
+          metadata: {
+            document_type: documentType,
+            storage_path: uploadData.path,
+            storage_bucket: 'documents',
+            source_table: 'site_documents',
+            source_site_document_id: documentRecord.id,
+          },
+        })
+      } catch (udsError) {
+        console.warn(
+          '[site-documents/upload] Failed to insert into unified_document_system',
+          udsError
+        )
+      }
+    } else {
+      console.warn('[site-documents/upload] Skipped UDS insert because service client unavailable')
     }
 
     return NextResponse.json({

@@ -169,6 +169,54 @@ export default function DailyReportDetailClient({
     [report?.attachments]
   )
 
+  const linkedDrawings = useMemo(() => {
+    return (attachments.drawings || []).filter(att => {
+      const meta = att?.metadata && typeof att.metadata === 'object' ? att.metadata : null
+      if (!meta) return false
+      return Boolean(
+        meta?.source ||
+          meta?.markup_document_id ||
+          meta?.source_id ||
+          meta?.linked_worklog_id ||
+          meta?.original_url
+      )
+    })
+  }, [attachments.drawings])
+
+  const resolveLinkedWorklogIdsFromMeta = (
+    meta: Record<string, any> | null | undefined,
+    fallbackId?: string
+  ) => {
+    const ids = new Set<string>()
+    if (Array.isArray(meta?.linked_worklog_ids)) {
+      meta.linked_worklog_ids.forEach(value => {
+        if (typeof value === 'string' && value.trim().length > 0) ids.add(value.trim())
+      })
+    }
+    if (typeof meta?.linked_worklog_id === 'string' && meta.linked_worklog_id.trim().length > 0) {
+      ids.add(meta.linked_worklog_id.trim())
+    }
+    if (typeof meta?.daily_report_id === 'string' && meta.daily_report_id.trim().length > 0) {
+      ids.add(meta.daily_report_id.trim())
+    }
+    if (fallbackId && fallbackId.trim().length > 0) {
+      ids.add(fallbackId.trim())
+    }
+    return Array.from(ids)
+  }
+
+  const getMarkupLinkFromAttachment = (attachment: UnifiedAttachment) => {
+    const meta =
+      attachment?.metadata && typeof attachment.metadata === 'object' ? attachment.metadata : null
+    if (!meta) return null
+    const markupId =
+      (typeof meta.markup_document_id === 'string' && meta.markup_document_id) ||
+      (typeof meta.source_id === 'string' && meta.source_id) ||
+      (typeof meta.document_id === 'string' && meta.document_id) ||
+      null
+    return markupId ? `/dashboard/admin/tools/markup?docId=${markupId}` : null
+  }
+
   const relatedReports = integrated?.related_reports ?? []
 
   const handleOpenFile = async (url: string) => {
@@ -202,6 +250,13 @@ export default function DailyReportDetailClient({
   }
 
   const renderArray = (values?: string[]) => (values && values.length > 0 ? values.join(', ') : '-')
+
+  const documentsLinkUrl = useMemo(() => {
+    const params = new URLSearchParams()
+    if (report?.siteId) params.set('siteId', report.siteId)
+    params.set('worklogId', reportId)
+    return `/documents/hub?${params.toString()}`
+  }, [report?.siteId, reportId])
 
   const memberNames = useMemo(() => {
     const entries = (report?.workEntries || [])
@@ -661,7 +716,133 @@ export default function DailyReportDetailClient({
         </CardContent>
       </Card>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild variant="outline" size="sm">
+          <a href={documentsLinkUrl} target="_blank" rel="noreferrer">
+            현장공유함 열기
+          </a>
+        </Button>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
+        {linkedDrawings.length > 0 && (
+          <Card className="border shadow-sm lg:col-span-2">
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-base">연결된 진행도면</CardTitle>
+              <CardDescription>현장공유함/마킹 도구와 연동된 도면</CardDescription>
+            </CardHeader>
+            <CardContent className="px-0 pb-4">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2">미리보기</th>
+                      <th className="px-3 py-2">도면명</th>
+                      <th className="px-3 py-2">출처</th>
+                      <th className="px-3 py-2">연결 작업일지</th>
+                      <th className="px-3 py-2 text-right">동작</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {linkedDrawings.map(att => {
+                      const preview = att.url
+                      const meta =
+                        att.metadata && typeof att.metadata === 'object' ? att.metadata : {}
+                      const sourceLabel =
+                        (meta?.source as string) ||
+                        (meta?.source_table as string) ||
+                        (meta?.category_type as string) ||
+                        'shared'
+                      const linkedWorklogIds = resolveLinkedWorklogIdsFromMeta(meta, reportId)
+                      const markupHref = getMarkupLinkFromAttachment(att)
+                      const primaryWorklogId = linkedWorklogIds[0] || reportId
+                      const documentsHref = `/documents/hub?worklogId=${primaryWorklogId}${
+                        report.siteId ? `&siteId=${report.siteId}` : ''
+                      }`
+                      const snapshotPdfUrl =
+                        typeof meta?.snapshot_pdf_url === 'string' &&
+                        meta.snapshot_pdf_url.length > 0
+                          ? meta.snapshot_pdf_url
+                          : undefined
+                      return (
+                        <tr key={att.id || att.name}>
+                          <td className="px-3 py-2">
+                            <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
+                              {preview ? (
+                                <Image
+                                  src={preview}
+                                  alt={att.name}
+                                  fill
+                                  sizes="80px"
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                                  없음
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 font-medium text-foreground">
+                            {att.name || '-'}
+                          </td>
+                          <td className="px-3 py-2 text-xs text-muted-foreground">{sourceLabel}</td>
+                          <td className="px-3 py-2 text-xs text-blue-600">
+                            {linkedWorklogIds.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {linkedWorklogIds.map(id => (
+                                  <a
+                                    key={id}
+                                    href={`/dashboard/admin/daily-reports/${id}`}
+                                    className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                                  >
+                                    #{id}
+                                  </a>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => att.url && handleOpenFile(att.url)}
+                                disabled={!att.url}
+                              >
+                                미리보기
+                              </Button>
+                              {snapshotPdfUrl ? (
+                                <Button asChild size="sm" variant="secondary">
+                                  <a href={snapshotPdfUrl} target="_blank" rel="noreferrer">
+                                    PDF
+                                  </a>
+                                </Button>
+                              ) : null}
+                              {markupHref ? (
+                                <Button asChild size="sm" variant="secondary">
+                                  <a href={markupHref}>마킹 열기</a>
+                                </Button>
+                              ) : null}
+                              <Button asChild size="sm" variant="ghost">
+                                <a href={documentsHref} target="_blank" rel="noreferrer">
+                                  현장공유함
+                                </a>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
         <Card className="border shadow-sm h-full">
           <CardHeader className="px-4 py-3">
             <CardTitle className="text-base">작업 내용</CardTitle>

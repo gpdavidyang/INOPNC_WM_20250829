@@ -6,6 +6,7 @@ import { AppError, ErrorType } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
 import type { MarkupDocument } from '@/types/markup'
 import type { MarkupDocumentPermission } from '@/types'
+import { fetchMarkupWorklogMap } from '@/lib/documents/worklog-links'
 import {
   withAdminAuth,
   type AdminActionResult,
@@ -225,29 +226,46 @@ export async function getMarkupDocuments(
       )
 
       if (filteredDocuments.length > 0) {
-        const worklogIds = Array.from(
-          new Set(
-            filteredDocuments
-              .map((doc: any) => doc.linked_worklog_id)
-              .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
-          )
-        )
+        const docIds = filteredDocuments
+          .map((doc: any) => (typeof doc?.id === 'string' ? doc.id : null))
+          .filter((id): id is string => Boolean(id))
+        const linkMap =
+          docIds.length > 0 ? await fetchMarkupWorklogMap(docIds) : new Map<string, string[]>()
+        const worklogIdSet = new Set<string>()
+
+        filteredDocuments.forEach(doc => {
+          if (doc?.linked_worklog_id && typeof doc.linked_worklog_id === 'string') {
+            worklogIdSet.add(doc.linked_worklog_id)
+          }
+          const extras = doc?.id ? linkMap.get(doc.id) || [] : []
+          extras.forEach(id => worklogIdSet.add(id))
+        })
+
+        const worklogIds = Array.from(worklogIdSet)
+        const worklogMap = new Map<string, any>()
         if (worklogIds.length > 0) {
           const { data: worklogs } = await supabase
             .from('daily_reports')
             .select('id, work_date, member_name, status')
             .in('id', worklogIds)
-          const map = new Map<string, any>()
           ;(worklogs || []).forEach(w => {
-            map.set(w.id as string, w)
+            if (w?.id) worklogMap.set(w.id as string, w)
           })
-          filteredDocuments = filteredDocuments.map(doc => ({
-            ...doc,
-            daily_report: doc.linked_worklog_id ? map.get(doc.linked_worklog_id) || null : null,
-          }))
-        } else {
-          filteredDocuments = filteredDocuments.map(doc => ({ ...doc, daily_report: null }))
         }
+
+        filteredDocuments = filteredDocuments.map(doc => {
+          const extras = doc?.id ? linkMap.get(doc.id) || [] : []
+          const combined = doc?.linked_worklog_id
+            ? [doc.linked_worklog_id as string, ...extras]
+            : extras
+          const linkedIds = Array.from(new Set(combined))
+          const primaryWorklogId = doc?.linked_worklog_id || linkedIds[0] || null
+          return {
+            ...doc,
+            linked_worklog_ids: linkedIds,
+            daily_report: primaryWorklogId ? worklogMap.get(primaryWorklogId) || null : null,
+          }
+        })
       }
 
       const transformedDocuments = filteredDocuments.map((doc: any) => ({
