@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   WorkLog,
   MemberType,
@@ -18,12 +18,17 @@ import type {
 import { cn } from '@/lib/utils'
 import { useWorkOptions } from '@/hooks/use-work-options'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/use-toast'
+import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
 import {
   CustomSelect,
   CustomSelectTrigger,
   CustomSelectValue,
   CustomSelectContent,
   CustomSelectItem,
+  CustomSelectGroup,
+  CustomSelectLabel,
+  CustomSelectSeparator,
 } from '@/components/ui/custom-select'
 
 interface WorkLogModalProps {
@@ -39,6 +44,11 @@ const DEFAULT_MEMBER_TYPES: string[] = ['슬라브', '거더', '기둥']
 const DEFAULT_WORK_PROCESSES: string[] = ['균열', '면', '마감']
 const ensureOther = (arr: string[]) => (arr.includes('기타') ? arr : [...arr, '기타'])
 const workTypeOptions: WorkType[] = ['지하', '지상', '지붕', '기타']
+
+const ROLE_LABELS: Record<'worker' | 'site_manager', string> = {
+  worker: '작업자',
+  site_manager: '현장관리자',
+}
 
 const createInitialFormData = (source?: WorkLog): Partial<WorkLog> => ({
   date: source?.date || new Date().toISOString().split('T')[0],
@@ -94,6 +104,27 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     Array<{ id: string; title: string; linkedWorklogIds: string[] }>
   >([])
   const [loadingLinks, setLoadingLinks] = useState(false)
+  const [showDrawingPicker, setShowDrawingPicker] = useState(false)
+  const [linkingDocId, setLinkingDocId] = useState<string | null>(null)
+  const [detachingDocId, setDetachingDocId] = useState<string | null>(null)
+  const { toast } = useToast()
+
+  const groupedUserOptions = useMemo(() => {
+    const workerGroup = userOptions.filter(option => option.role !== 'site_manager')
+    const managerGroup = userOptions.filter(option => option.role === 'site_manager')
+    const groups: Array<{
+      key: 'worker' | 'site_manager'
+      label: string
+      options: Array<{ id: string; name: string; role?: string }>
+    }> = []
+    if (workerGroup.length > 0) {
+      groups.push({ key: 'worker', label: ROLE_LABELS.worker, options: workerGroup })
+    }
+    if (managerGroup.length > 0) {
+      groups.push({ key: 'site_manager', label: ROLE_LABELS.site_manager, options: managerGroup })
+    }
+    return groups
+  }, [userOptions])
 
   const isViewMode = mode === 'view'
 
@@ -143,39 +174,42 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     if (isOpen) fetchUsers()
   }, [isOpen])
 
-  useEffect(() => {
-    const fetchLinkedDocs = async () => {
-      if (!workLog?.id || mode === 'create') return
-      setLoadingLinks(true)
-      try {
-        const res = await fetch(`/api/markup-documents?worklogId=${encodeURIComponent(workLog.id)}`)
-        const json = await res.json().catch(() => ({}))
-        const arr = Array.isArray(json?.data)
-          ? json.data
-          : Array.isArray(json?.documents)
-            ? json.documents
-            : []
-        const mapped = arr.map((doc: any) => ({
-          id: doc.id,
-          title: doc.title || '도면',
-          linkedWorklogIds:
-            Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0
-              ? doc.linked_worklog_ids.filter(
-                  (value: unknown): value is string => typeof value === 'string' && value.length > 0
-                )
-              : doc.linked_worklog_id
-                ? [doc.linked_worklog_id]
-                : [workLog.id],
-        }))
-        setLinkedDrawings(mapped)
-      } catch {
-        setLinkedDrawings([])
-      } finally {
-        setLoadingLinks(false)
-      }
+  const fetchLinkedDocs = useCallback(async () => {
+    if (!workLog?.id || mode === 'create') return
+    setLoadingLinks(true)
+    try {
+      const res = await fetch(`/api/markup-documents?worklogId=${encodeURIComponent(workLog.id)}`)
+      const json = await res.json().catch(() => ({}))
+      const arr = Array.isArray(json?.data)
+        ? json.data
+        : Array.isArray(json?.documents)
+          ? json.documents
+          : []
+      const mapped = arr.map((doc: any) => ({
+        id: doc.id,
+        title: doc.title || '도면',
+        linkedWorklogIds:
+          Array.isArray(doc.linked_worklog_ids) && doc.linked_worklog_ids.length > 0
+            ? doc.linked_worklog_ids.filter(
+                (value: unknown): value is string => typeof value === 'string' && value.length > 0
+              )
+            : doc.linked_worklog_id
+              ? [doc.linked_worklog_id]
+              : [workLog.id],
+      }))
+      setLinkedDrawings(mapped)
+    } catch {
+      setLinkedDrawings([])
+    } finally {
+      setLoadingLinks(false)
     }
-    if (isOpen) fetchLinkedDocs()
-  }, [isOpen, workLog?.id, mode])
+  }, [mode, workLog?.id])
+
+  useEffect(() => {
+    if (isOpen) {
+      void fetchLinkedDocs()
+    }
+  }, [fetchLinkedDocs, isOpen])
 
   const hasWorkerError = Boolean(errors.workers)
   const materialEntries = formData.materials || []
@@ -381,6 +415,119 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
       setLoading(false)
     }
   }
+
+  const handleOpenMarkupTool = useCallback(
+    (docId?: string) => {
+      const resolvedSiteId = formData.siteId || workLog?.siteId || ''
+      if (!workLog?.id || !resolvedSiteId) {
+        toast({
+          title: '현장을 먼저 선택해주세요.',
+          description: '현장 정보가 있어야 도면 마킹을 연결할 수 있습니다.',
+          variant: 'destructive',
+        })
+        return
+      }
+      const params = new URLSearchParams()
+      params.set('worklogId', workLog.id)
+      params.set('siteId', resolvedSiteId)
+      params.set('mode', docId ? 'start' : 'browse')
+      if (docId) params.set('docId', docId)
+      const url = `/mobile/markup-tool?${params.toString()}`
+      window.open(url, '_blank', 'noopener,noreferrer')
+    },
+    [formData.siteId, toast, workLog]
+  )
+
+  const handleAttachMarkup = useCallback(
+    async (docId: string) => {
+      if (!workLog?.id) return
+      setLinkingDocId(docId)
+      try {
+        const detailRes = await fetch(`/api/markup-documents/${docId}`, { cache: 'no-store' })
+        const detailJson = await detailRes.json().catch(() => ({}))
+        if (!detailRes.ok || !detailJson?.data) {
+          throw new Error(detailJson?.error || '도면 정보를 불러오지 못했습니다.')
+        }
+        const current: string[] = Array.isArray(detailJson.data.linked_worklog_ids)
+          ? detailJson.data.linked_worklog_ids
+          : detailJson.data.linked_worklog_id
+            ? [detailJson.data.linked_worklog_id]
+            : []
+        const next = Array.from(new Set([...current, workLog.id]))
+        const patchRes = await fetch(`/api/markup-documents/${docId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linked_worklog_ids: next }),
+        })
+        const patchJson = await patchRes.json().catch(() => ({}))
+        if (!patchRes.ok || patchJson?.error) {
+          throw new Error(patchJson?.error || '작업일지 연결에 실패했습니다.')
+        }
+        toast({
+          title: '도면이 연결되었습니다.',
+          description: '작업일지에 도면 마킹을 추가했습니다.',
+        })
+        setShowDrawingPicker(false)
+        await fetchLinkedDocs()
+      } catch (error) {
+        toast({
+          title: '연결 실패',
+          description: error instanceof Error ? error.message : '도면을 연결하지 못했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setLinkingDocId(null)
+      }
+    },
+    [fetchLinkedDocs, toast, workLog]
+  )
+
+  const handleDetachMarkup = useCallback(
+    async (docId: string) => {
+      if (!workLog?.id) return
+      const target = linkedDrawings.find(doc => doc.id === docId)
+      if (!target) return
+      setDetachingDocId(docId)
+      try {
+        const remaining = target.linkedWorklogIds.filter(id => id !== workLog.id)
+        const patchRes = await fetch(`/api/markup-documents/${docId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linked_worklog_ids: remaining }),
+        })
+        const patchJson = await patchRes.json().catch(() => ({}))
+        if (!patchRes.ok || patchJson?.error) {
+          throw new Error(patchJson?.error || '연결을 해제하지 못했습니다.')
+        }
+        toast({
+          title: '연결 해제 완료',
+          description: '도면 마킹 연결이 해제되었습니다.',
+        })
+        await fetchLinkedDocs()
+      } catch (error) {
+        toast({
+          title: '해제 실패',
+          description: error instanceof Error ? error.message : '연결을 해제하지 못했습니다.',
+          variant: 'destructive',
+        })
+      } finally {
+        setDetachingDocId(null)
+      }
+    },
+    [fetchLinkedDocs, linkedDrawings, toast, workLog]
+  )
+
+  const handleDrawingSelection = useCallback(
+    (drawing: any) => {
+      if (!drawing) return
+      if (drawing.source === 'markup' && drawing.id) {
+        void handleAttachMarkup(drawing.id)
+        return
+      }
+      handleOpenMarkupTool(drawing.id)
+    },
+    [handleAttachMarkup, handleOpenMarkupTool]
+  )
 
   if (!isOpen) return null
 
@@ -749,18 +896,31 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                       disabled={isViewMode}
                     >
                       <CustomSelectTrigger className="h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm font-medium shadow-sm focus:outline-none focus:ring-1 focus:ring-[#1A254F]">
-                        <CustomSelectValue placeholder="작성자 선택" />
+                        <CustomSelectValue placeholder="작업자 선택" />
                       </CustomSelectTrigger>
                       <CustomSelectContent className="max-h-64 overflow-auto">
-                        {userOptions.length === 0 ? (
+                        {groupedUserOptions.length === 0 ? (
                           <CustomSelectItem value="__empty__" disabled>
                             불러올 사용자가 없습니다
                           </CustomSelectItem>
                         ) : (
-                          userOptions.map(u => (
-                            <CustomSelectItem key={u.id} value={u.id}>
-                              {u.name}
-                            </CustomSelectItem>
+                          groupedUserOptions.map((group, index) => (
+                            <CustomSelectGroup key={group.key}>
+                              <CustomSelectLabel className="pl-3 text-xs text-gray-500">
+                                {group.label}
+                              </CustomSelectLabel>
+                              {group.options.map(u => (
+                                <CustomSelectItem key={u.id} value={u.id}>
+                                  <span className="flex flex-col">
+                                    <span className="text-sm font-medium">{u.name}</span>
+                                    <span className="text-xs text-gray-500">
+                                      {ROLE_LABELS[u.role === 'site_manager' ? 'site_manager' : 'worker']}
+                                    </span>
+                                  </span>
+                                </CustomSelectItem>
+                              ))}
+                              {index < groupedUserOptions.length - 1 && <CustomSelectSeparator />}
+                            </CustomSelectGroup>
                           ))
                         )}
                       </CustomSelectContent>
@@ -941,47 +1101,112 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
 
           {mode !== 'create' ? (
             <div className="mt-5 rounded-lg border border-dashed border-gray-300 bg-white p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h4 className="text-sm font-semibold text-[#1A254F]">연결된 진행도면</h4>
+                  <h4 className="text-sm font-semibold text-[#1A254F]">도면 마킹 연결</h4>
                   <p className="text-xs text-[#475467]">
-                    현장공유함에서 마킹 저장 시 자동으로 작업일지와 연동됩니다.
+                    작업일지 저장 후 도면 마킹을 생성하거나 기존 문서를 연결하세요.
                   </p>
                 </div>
-                <a
-                  className="viewer-action-btn secondary"
-                  href={`/documents/hub?siteId=${formData.siteId || ''}&worklogId=${workLog?.id || ''}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  현장공유함 이동
-                </a>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-[#1A254F] transition-colors hover:border-[#1A254F]"
+                    onClick={() => handleOpenMarkupTool()}
+                    disabled={!workLog?.id || !(formData.siteId || workLog?.siteId) || isViewMode}
+                  >
+                    새 도면 마킹
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-[#1A254F] transition-colors hover:border-[#1A254F]"
+                    disabled={!workLog?.id || !(formData.siteId || workLog?.siteId) || isViewMode}
+                    onClick={() => setShowDrawingPicker(prev => !prev)}
+                  >
+                    {showDrawingPicker ? '선택 닫기' : '기존 도면 연결'}
+                  </button>
+                  <a
+                    className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-[#475467]"
+                    href={`/documents/hub?siteId=${formData.siteId || ''}&worklogId=${workLog?.id || ''}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    현장공유함 이동
+                  </a>
+                </div>
               </div>
-              {loadingLinks ? (
-                <p className="mt-3 text-xs text-[#94a3b8]">연결 정보를 불러오는 중...</p>
-              ) : linkedDrawings.length === 0 ? (
-                <p className="mt-3 text-xs text-[#94a3b8]">
-                  현재 연결된 진행도면이 없습니다. 현장공유함 &gt; 진행도면에서 저장해 주세요.
-                </p>
-              ) : (
-                <ul className="mt-3 space-y-2">
-                  {linkedDrawings.map(doc => (
-                    <li key={doc.id} className="rounded-lg border border-gray-200 p-2">
-                      <div className="text-sm font-semibold text-[#1A254F]">{doc.title}</div>
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {doc.linkedWorklogIds.map(id => (
-                          <span
-                            key={id}
-                            className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
-                          >
-                            #{id}
-                          </span>
-                        ))}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+
+              {showDrawingPicker && (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-[#f8fafc] p-3">
+                  <p className="text-xs text-[#475467]">
+                    추천 도면을 선택해 바로 연결하거나, 공도면을 선택해 마킹 도구로 이동하세요.
+                  </p>
+                  <div className="mt-3 max-h-[420px] overflow-hidden rounded-lg border">
+                    <DrawingBrowser
+                      selectedSite={formData.siteId || workLog?.siteId || ''}
+                      siteName={formData.siteName || workLog?.siteName}
+                      onDrawingSelect={handleDrawingSelection}
+                    />
+                  </div>
+                </div>
               )}
+
+              <div className="mt-4">
+                {loadingLinks ? (
+                  <p className="text-xs text-[#94a3b8]">연결 정보를 불러오는 중...</p>
+                ) : linkedDrawings.length === 0 ? (
+                  <p className="text-xs text-[#94a3b8]">
+                    연결된 도면이 없습니다. 새 마킹을 생성하거나 기존 도면을 연결해 주세요.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {linkedDrawings.map(doc => (
+                      <li
+                        key={doc.id}
+                        className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm md:flex-row md:items-center md:justify-between"
+                      >
+                        <div>
+                          <div className="font-semibold text-[#1A254F]">{doc.title}</div>
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            {doc.linkedWorklogIds.map(id => (
+                              <span
+                                key={id}
+                                className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
+                              >
+                                #{id}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        {!isViewMode && (
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-[#475467] hover:border-[#1A254F]"
+                              onClick={() => handleOpenMarkupTool(doc.id)}
+                            >
+                              열기
+                            </button>
+                            <button
+                              type="button"
+                              className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-[#dc2626] hover:border-[#dc2626]"
+                              onClick={() => handleDetachMarkup(doc.id)}
+                              disabled={detachingDocId === doc.id}
+                            >
+                              {detachingDocId === doc.id ? '해제 중...' : '연결 해제'}
+                            </button>
+                          </div>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {linkingDocId && (
+                  <p className="mt-2 text-xs text-[#475467]">
+                    도면을 작업일지에 연결하는 중입니다. 잠시만 기다려 주세요.
+                  </p>
+                )}
+              </div>
             </div>
           ) : null}
 

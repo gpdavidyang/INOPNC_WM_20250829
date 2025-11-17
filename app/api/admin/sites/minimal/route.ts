@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const orgId = searchParams.get('organization_id') || undefined
 
     // Be tolerant to schema differences: avoid requiring is_active/status columns
-    let q = supabase.from('sites').select('id, name')
+    let q = supabase.from('sites').select('id, name, organization_id')
     if (orgId) q = q.eq('organization_id', orgId)
     const { data, error } = await q.order('name')
     if (error) throw error

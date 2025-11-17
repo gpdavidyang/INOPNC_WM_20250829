@@ -274,6 +274,12 @@
   gap: 12px;
 }
 
+.worklog-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .worklog-site {
   font-size: 16px;
   font-weight: 700;
@@ -346,6 +352,16 @@
   background: rgba(244, 63, 94, 0.1);
   color: #be123c;
   border: 1px solid rgba(244, 63, 94, 0.35);
+}
+
+.markup-badge {
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.35);
 }
 
 .list-footer {
@@ -871,6 +887,12 @@
 [data-theme='dark'] .attachment-pill {
   background: rgba(148, 163, 184, 0.25);
   color: #e2e8f0;
+}
+
+[data-theme='dark'] .markup-badge {
+  background: rgba(96, 165, 250, 0.2);
+  color: #bfdbfe;
+  border-color: rgba(147, 197, 253, 0.45);
 }
 
 [data-theme='dark'] .calendar-cell {

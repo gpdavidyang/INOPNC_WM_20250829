@@ -452,7 +452,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
       try {
         const response = await fetch(
-          `/api/sites/by-partner?partner_company_id=${encodeURIComponent(department)}`,
+          `/api/mobile/sites/by-organization?organization_id=${encodeURIComponent(department)}`,
           {
             method: 'GET',
             signal: controller.signal,
@@ -464,17 +464,20 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         )
 
         if (!response.ok) {
-          throw new Error(`Failed to load partner sites (status: ${response.status})`)
+          throw new Error(`Failed to load organization sites (status: ${response.status})`)
         }
 
         const payload = await response.json()
-        const siteList: Site[] = Array.isArray(payload)
-          ? payload.map(site => ({
-              id: site.id,
-              name: site.name,
-              organization_id: site.organization_id ?? null,
-            }))
-          : []
+        const responseSites: any[] = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : []
+        const siteList: Site[] = responseSites.map(site => ({
+          id: site.id,
+          name: site.name,
+          organization_id: site.organization_id ?? null,
+        }))
 
         if (isActive) {
           setSites(siteList)

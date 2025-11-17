@@ -30,7 +30,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch organizations' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, organizations: organizations || [] })
+    const orgList = organizations || []
+    const orgIds = orgList.map(org => org.id).filter((id): id is string => Boolean(id))
+
+    let siteCountMap = new Map<string, number>()
+    let memberCountMap = new Map<string, number>()
+
+    if (orgIds.length > 0) {
+      const [{ data: siteRows }, { data: memberRows }] = await Promise.all([
+        supabase.from('sites').select('organization_id').in('organization_id', orgIds),
+        supabase.from('profiles').select('organization_id').in('organization_id', orgIds),
+      ])
+
+      if (Array.isArray(siteRows)) {
+        siteCountMap = siteRows.reduce((map, row: any) => {
+          const key = row?.organization_id
+          if (!key) return map
+          map.set(key, (map.get(key) || 0) + 1)
+          return map
+        }, new Map<string, number>())
+      }
+
+      if (Array.isArray(memberRows)) {
+        memberCountMap = memberRows.reduce((map, row: any) => {
+          const key = row?.organization_id
+          if (!key) return map
+          map.set(key, (map.get(key) || 0) + 1)
+          return map
+        }, new Map<string, number>())
+      }
+    }
+
+    const enriched = orgList.map(org => ({
+      ...org,
+      site_count: siteCountMap.get(org.id) || 0,
+      member_count: memberCountMap.get(org.id) || 0,
+    }))
+
+    return NextResponse.json({ success: true, organizations: enriched })
   } catch (error) {
     console.error('Organizations API error:', error)
     return NextResponse.json(

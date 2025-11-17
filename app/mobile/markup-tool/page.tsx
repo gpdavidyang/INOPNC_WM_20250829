@@ -306,7 +306,16 @@ export default function MarkupToolPage() {
         if (json?.data?.markup?.preview_image_url) {
           payload.preview_image_url = json.data.markup.preview_image_url
         }
-        toast.success(publish ? '마킹 저장 및 진행도면 게시 완료' : '마킹 저장 완료')
+        toast.success(publish ? '마킹 저장 및 진행도면 게시 완료' : '마킹 저장 완료', {
+          action: linkWorklogId
+            ? {
+                label: '작업일지 보기',
+                onClick: () => {
+                  window.location.href = `/mobile/worklog/${linkWorklogId}`
+                },
+              }
+            : undefined,
+        })
       } else {
         // Fallback: 기존 API
         const fallback = {
@@ -329,24 +338,64 @@ export default function MarkupToolPage() {
         if (json?.data?.preview_image_url) {
           payload.preview_image_url = json.data.preview_image_url
         }
-        toast.success('마킹 저장 완료')
+        toast.success('마킹 저장 완료', {
+          action: linkWorklogId
+            ? {
+                label: '작업일지 보기',
+                onClick: () => {
+                  window.location.href = `/mobile/worklog/${linkWorklogId}`
+                },
+              }
+            : undefined,
+        })
       }
 
       // 2-1) 작업일지 링크(있다면)
-      if (linkWorklogId && savedId) {
+      const linkSavedDocToWorklog = async (markupId: string, worklogId: string) => {
         try {
-          await fetch(`/api/markup-documents/${savedId}`, {
+          const detailRes = await fetch(`/api/markup-documents/${markupId}`, { cache: 'no-store' })
+          const detailJson = await detailRes.json().catch(() => ({}))
+          if (!detailRes.ok || !detailJson?.data) {
+            throw new Error(detailJson?.error || '마킹 문서 정보를 불러오지 못했습니다.')
+          }
+          const current: string[] = Array.isArray(detailJson.data.linked_worklog_ids)
+            ? detailJson.data.linked_worklog_ids
+            : detailJson.data.linked_worklog_id
+              ? [detailJson.data.linked_worklog_id]
+              : []
+          if (current.includes(worklogId)) return
+          const next = [...current, worklogId]
+          const res = await fetch(`/api/markup-documents/${markupId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ linked_worklog_id: linkWorklogId }),
+            body: JSON.stringify({ linked_worklog_ids: next }),
           })
-        } catch (e) {
-          console.warn('Linking to worklog failed:', e)
+          const json = await res.json().catch(() => ({}))
+          if (!res.ok || json?.error) {
+            throw new Error(json?.error || '작업일지 연결 실패')
+          }
+        } catch (error) {
+          console.warn('Linking to worklog failed:', error)
+          toast.warning('작업일지 연결 실패', {
+            description: '도면은 저장되었지만 작업일지와 연결되지 않았습니다.',
+          })
         }
+      }
+
+      if (linkWorklogId && savedId) {
+        await linkSavedDocToWorklog(savedId, linkWorklogId)
       }
 
       toast.info('PDF로 저장되었습니다', {
         description: '현장공유함 > 진행도면에서 PDF를 확인하거나 공유할 수 있어요.',
+        action: linkWorklogId
+          ? {
+              label: '작업일지 보기',
+              onClick: () => {
+                window.location.href = `/mobile/worklog/${linkWorklogId}`
+              },
+            }
+          : undefined,
       })
 
       // 2) 로컬 fallback 업데이트
