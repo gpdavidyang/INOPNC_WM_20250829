@@ -151,21 +151,12 @@ export default function SnapshotList() {
   }
 
   const exportCSV = () => {
-    const headers = [
-      'worker_id',
-      'year',
-      'month',
-      'month_label',
-      'status',
-      'gross',
-      'deductions',
-      'net',
-    ]
+    const headers = ['이름', 'worker_id', '년', '월', '상태', '총지급액', '총공제액', '실지급액']
     const rows = items.map(s => [
+      workerNameMap[s.worker_id] || '',
       s.worker_id,
       s.year,
       s.month,
-      s.month_label,
       s.status || 'issued',
       s.salary?.total_gross_pay ?? '',
       s.salary?.total_deductions ?? '',
