@@ -39,6 +39,7 @@ function normalizeSalaryResult(
   const safeBase = Number(salary?.base_pay || 0)
   const safeGross = Math.round(safeBase)
   const safeDeductions = Number(salary?.total_deductions || 0)
+  const safeNet = Math.max(safeGross - safeDeductions, 0)
   const sanitized = {
     work_days: Number(salary?.work_days || 0),
     total_labor_hours: Number(salary?.total_labor_hours || 0),
@@ -51,8 +52,7 @@ function normalizeSalaryResult(
     health_insurance: Number(salary?.health_insurance || 0),
     employment_insurance: Number(salary?.employment_insurance || 0),
     total_deductions: safeDeductions,
-    net_pay:
-      typeof salary?.net_pay === 'number' ? Number(salary.net_pay) : safeGross - safeDeductions,
+    net_pay: safeNet,
     period_start: salary?.period_start || periodStart,
     period_end: salary?.period_end || periodEnd,
     rate_source: (salary as any)?.rate_source,

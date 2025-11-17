@@ -940,7 +940,7 @@ export class PayslipGeneratorKorean {
       <div class="footer-info">
         <strong>지급일:</strong> ${paymentDateText} | 
         <strong>지급방법:</strong> ${data.paymentMethod || '계좌이체'}<br>
-        <strong>${data.company.name}</strong> | ${data.company.address || '서울특별시 강남구'} | ${data.company.phone || '02-1234-5678'} | 사업자: ${data.company.registrationNumber || '123-45-67890'}
+        <strong>INOPNC</strong> | 경기도 안산시 단원구 꽃우물1길 16-8(화정동, 주식회사 이노피앤씨) | ${data.company.phone || '02-1234-5678'} | 사업자: ${data.company.registrationNumber || '123-45-67890'}
       </div>
       <div class="stamp">
         <strong>급여 지급 확인</strong><br>
