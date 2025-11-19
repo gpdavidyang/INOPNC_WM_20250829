@@ -85,18 +85,33 @@ async function main() {
     }
 
     if (!userId) {
-      // Fallback: list users and find by email (limited; may page)
-      const { data: users, error: listErr } = await admin.auth.admin.listUsers()
-      if (listErr) {
-        console.error('❌ listUsers error:', listErr.message)
-        process.exit(1)
+      // Fallback: paginate through admin users to locate matching email
+      let page = 1
+      const perPage = 100
+      while (!userId) {
+        const { data: usersData, error: listErr } = await admin.auth.admin.listUsers({
+          page,
+          perPage,
+        })
+        if (listErr) {
+          console.error('❌ listUsers error:', listErr.message)
+          process.exit(1)
+        }
+        const users = usersData?.users || []
+        const match = users.find(u => u.email?.toLowerCase() === EMAIL.toLowerCase())
+        if (match) {
+          userId = match.id
+          break
+        }
+        if (users.length < perPage) {
+          break
+        }
+        page += 1
       }
-      const match = users?.users?.find(u => u.email?.toLowerCase() === EMAIL.toLowerCase())
-      if (!match) {
+      if (!userId) {
         console.error('❌ Could not create or find user by email')
         process.exit(1)
       }
-      userId = match.id
       console.log('👤 Existing auth user found:', EMAIL, userId)
       // Ensure password matches desired value
       try {

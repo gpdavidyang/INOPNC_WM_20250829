@@ -11,7 +11,6 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import { MonthPicker } from '@/components/ui/month-picker'
 
 type WorkerPreview = {
   worker_id: string
@@ -242,11 +241,12 @@ export default function PayrollPreviewPage() {
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-full sm:w-auto">
-          <MonthPicker
+          <input
+            type="month"
+            className="h-10 w-full sm:w-36 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
             value={yearMonth}
-            onChange={setYearMonth}
-            ariaLabel="년월"
-            className="w-full sm:w-36"
+            onChange={e => setYearMonth(e.target.value)}
+            aria-label="년월"
           />
         </div>
         <div className="w-full sm:w-40">

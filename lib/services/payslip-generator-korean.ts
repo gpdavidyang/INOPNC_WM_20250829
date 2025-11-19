@@ -233,20 +233,19 @@ export class PayslipGeneratorKorean {
       display: inline-flex;
       align-items: center;
       padding: 8px 16px;
-      background: #3b82f6;
-      color: white;
+      background: #1d4ed8;
+      color: #ffffff;
       text-decoration: none;
       border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
-      transition: all 0.2s ease;
+      transition: background 0.2s ease;
       border: none;
       cursor: pointer;
     }
     
     .back-button:hover {
-      background: #2563eb;
-      transform: translateY(-1px);
+      background: #1e3a8a;
     }
     
     .back-arrow {
@@ -258,25 +257,26 @@ export class PayslipGeneratorKorean {
       display: inline-flex;
       align-items: center;
       padding: 8px 16px;
-      background: #10b981;
-      color: white;
+      background: #ffffff;
+      color: #1d4ed8;
       text-decoration: none;
       border-radius: 8px;
       font-size: 14px;
       font-weight: 500;
-      transition: all 0.2s ease;
-      border: none;
+      transition: border-color 0.2s ease, color 0.2s ease;
+      border: 1px solid #cbd5f5;
       cursor: pointer;
     }
     
     .print-button:hover {
-      background: #059669;
+      border-color: #94a3d0;
+      color: #1e3a8a;
     }
     
     .header {
       text-align: center;
       margin-bottom: 10px;
-      border-bottom: 2px solid #2563eb;
+      border-bottom: 2px solid #e2e8f0;
       padding-bottom: 8px;
       position: relative;
     }
@@ -299,17 +299,16 @@ export class PayslipGeneratorKorean {
       border-radius: 6px;
       font-size: 11px;
       font-weight: 600;
-      background: ${isSnapshot ? '#ecfeff' : '#fff7ed'};
-      color: ${isSnapshot ? '#0369a1' : '#9a3412'};
-      border: 1px solid ${isSnapshot ? '#67e8f9' : '#fdba74'};
+      background: #f8fafc;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
       margin: 6px auto 4px;
     }
-    
     
     .header h1 {
       font-size: 18px;
       margin-bottom: 3px;
-      color: #1e40af;
+      color: #0f172a;
     }
     
     .header .period {
@@ -367,7 +366,7 @@ export class PayslipGeneratorKorean {
     
     .section { margin-bottom: 8px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
     
-    .section-title { background: #f3f4f6; padding: 4px 8px; font-weight: 700; font-size: 11px; color: #0f172a; border-bottom: 1px solid #e5e7eb; }
+    .section-title { background: #f8fafc; padding: 4px 8px; font-weight: 700; font-size: 11px; color: #0f172a; border-bottom: 1px solid #e5e7eb; }
     
     .section-content { padding: 8px; }
     

@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { PageHeader } from '@/components/ui/page-header'
 import EmptyState from '@/components/ui/empty-state'
 import { t } from '@/lib/ui/strings'
-import { MonthPicker } from '@/components/ui/month-picker'
 
 export default function PayrollDashboardPage() {
   const [yearMonth, setYearMonth] = useState<string>(new Date().toISOString().slice(0, 7))
@@ -38,6 +37,45 @@ export default function PayrollDashboardPage() {
       net_pay: number
     }>
   >([])
+  type WorkerSortKey =
+    | 'name'
+    | 'employment_type'
+    | 'daily_rate'
+    | 'total_labor_hours'
+    | 'total_gross_pay'
+    | 'net_pay'
+  const [workerSort, setWorkerSort] = useState<{ key: WorkerSortKey; direction: 'asc' | 'desc' }>({
+    key: 'name',
+    direction: 'asc',
+  })
+  const sortedWorkers = useMemo(() => {
+    const data = Array.isArray(workers) ? [...workers] : []
+    data.sort((a, b) => {
+      const { key, direction } = workerSort
+      const dir = direction === 'asc' ? 1 : -1
+      const av = (a as any)?.[key]
+      const bv = (b as any)?.[key]
+      if (key === 'name' || key === 'employment_type') {
+        const aStr = (av || '').toString()
+        const bStr = (bv || '').toString()
+        return aStr.localeCompare(bStr) * dir
+      }
+      const aNum = Number(av) || 0
+      const bNum = Number(bv) || 0
+      if (aNum === bNum) return 0
+      return aNum > bNum ? dir : -dir
+    })
+    return data
+  }, [workers, workerSort])
+
+  const toggleWorkerSort = (key: WorkerSortKey) => {
+    setWorkerSort(prev => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+      }
+      return { key, direction: 'asc' }
+    })
+  }
 
   const fetchSummary = async () => {
     if (!yearMonth) return
@@ -109,6 +147,10 @@ export default function PayrollDashboardPage() {
     const key = String(val || '').toLowerCase()
     return employmentTypeLabel[key] || val || '-'
   }
+  const getSortIndicator = (key: WorkerSortKey) => {
+    if (workerSort.key !== key) return ''
+    return workerSort.direction === 'asc' ? '▲' : '▼'
+  }
   const maxTrendGross = React.useMemo(() => {
     if (!trend.length) return 1
     const values = trend.map(t => Number(t.gross) || 0)
@@ -126,11 +168,12 @@ export default function PayrollDashboardPage() {
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <MonthPicker
+        <input
+          type="month"
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
           value={yearMonth}
-          onChange={setYearMonth}
-          ariaLabel="년월"
-          className="w-full sm:w-36"
+          onChange={e => setYearMonth(e.target.value)}
+          aria-label="년월"
         />
         <button
           type="button"
@@ -256,16 +299,74 @@ export default function PayrollDashboardPage() {
           <table className="min-w-full text-sm">
             <thead>
               <tr className="bg-gray-50 text-left">
-                <th className="px-3 py-2">이름</th>
-                <th className="px-3 py-2">고용형태</th>
-                <th className="px-3 py-2 text-right">일당</th>
-                <th className="px-3 py-2 text-right">총공수</th>
-                <th className="px-3 py-2 text-right">총급여</th>
-                <th className="px-3 py-2 text-right">실수령</th>
+                <th className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerSort('name')}
+                    className="flex items-center gap-1 text-left font-semibold"
+                  >
+                    이름 <span className="text-xs text-gray-500">{getSortIndicator('name')}</span>
+                  </button>
+                </th>
+                <th className="px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerSort('employment_type')}
+                    className="flex items-center gap-1 text-left font-semibold"
+                  >
+                    고용형태{' '}
+                    <span className="text-xs text-gray-500">
+                      {getSortIndicator('employment_type')}
+                    </span>
+                  </button>
+                </th>
+                <th className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerSort('daily_rate')}
+                    className="inline-flex w-full justify-end gap-1 font-semibold"
+                  >
+                    일당 <span className="text-xs text-gray-500">{getSortIndicator('daily_rate')}</span>
+                  </button>
+                </th>
+                <th className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerSort('total_labor_hours')}
+                    className="inline-flex w-full justify-end gap-1 font-semibold"
+                  >
+                    총공수{' '}
+                    <span className="text-xs text-gray-500">
+                      {getSortIndicator('total_labor_hours')}
+                    </span>
+                  </button>
+                </th>
+                <th className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerSort('total_gross_pay')}
+                    className="inline-flex w-full justify-end gap-1 font-semibold"
+                  >
+                    총급여{' '}
+                    <span className="text-xs text-gray-500">
+                      {getSortIndicator('total_gross_pay')}
+                    </span>
+                  </button>
+                </th>
+                <th className="px-3 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkerSort('net_pay')}
+                    className="inline-flex w-full justify-end gap-1 font-semibold"
+                  >
+                    실수령{' '}
+                    <span className="text-xs text-gray-500">{getSortIndicator('net_pay')}</span>
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {workers.map(w => (
+              {sortedWorkers.map(w => (
                 <tr key={w.worker_id} className="border-t">
                   <td className="px-3 py-2">{w.name}</td>
                   <td className="px-3 py-2">{formatEmploymentType(w.employment_type)}</td>
@@ -277,7 +378,14 @@ export default function PayrollDashboardPage() {
                   <td className="px-3 py-2 text-right">₩{w.net_pay.toLocaleString()}</td>
                 </tr>
               ))}
-              {workers.length === 0 && (
+              {loading && workers.length === 0 && (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                    데이터를 불러오는 중입니다...
+                  </td>
+                </tr>
+              )}
+              {!loading && workers.length === 0 && (
                 <tr>
                   <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
                     데이터가 없습니다.

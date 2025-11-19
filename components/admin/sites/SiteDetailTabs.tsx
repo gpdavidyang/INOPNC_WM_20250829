@@ -345,13 +345,23 @@ export default function SiteDetailTabs({
     by_type?: Record<string, number>
   } | null>(null)
   const [sharedDownloading, setSharedDownloading] = useState<Record<string, boolean>>({})
-  const [sharedLinking, setSharedLinking] = useState<Record<string, boolean>>({})
   const [sharedEditingDocId, setSharedEditingDocId] = useState<string | null>(null)
   const [sharedEditDraft, setSharedEditDraft] = useState<{
     title: string
     subCategory: string | null
   } | null>(null)
   const [sharedUpdating, setSharedUpdating] = useState<Record<string, boolean>>({})
+  const [sharedWorklogMeta, setSharedWorklogMeta] = useState<
+    Record<
+      string,
+      {
+        work_date?: string | null
+        component_name?: string | null
+        work_process?: string | null
+        process_type?: string | null
+      }
+    >
+  >({})
   const sharedCategoryLabelMap = useMemo(() => {
     const next = { ...DEFAULT_SHARED_CATEGORY_LABEL_MAP }
     sharedCategoryOptions.forEach(option => {
@@ -369,6 +379,19 @@ export default function SiteDetailTabs({
   const resolveSharedCategoryLabel = useCallback(
     (doc: any) => resolveSharedDocCategoryLabel(doc, sharedCategoryLabelMap),
     [sharedCategoryLabelMap]
+  )
+  const formatSharedWorklogLabel = useCallback(
+    (id: string): string => {
+      const meta = sharedWorklogMeta[id]
+      if (!meta) return `#${id}`
+      const dateLabel = meta.work_date
+        ? new Date(meta.work_date).toLocaleDateString('ko-KR')
+        : '날짜 미정'
+      const componentLabel = meta.component_name || '부재 미정'
+      const processLabel = meta.work_process || meta.process_type || '공정 미정'
+      return `${dateLabel} · ${componentLabel} · ${processLabel}`
+    },
+    [sharedWorklogMeta]
   )
   const fallbackSiteName = (site?.name as string | undefined) || '-'
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
@@ -461,6 +484,11 @@ export default function SiteDetailTabs({
               ? (json.statistics as { total_documents: number; by_type?: Record<string, number> })
               : null
           )
+          if (json?.worklog_map && typeof json.worklog_map === 'object') {
+            setSharedWorklogMeta(json.worklog_map as Record<string, any>)
+          } else {
+            setSharedWorklogMeta({})
+          }
         }
       } catch {
         void 0
@@ -563,83 +591,6 @@ export default function SiteDetailTabs({
       })
     },
     [toast]
-  )
-
-  const handleSharedLink = useCallback(
-    async (doc: any, metadata: Record<string, any>) => {
-      const markupId = getMarkupDocumentIdFromMetadata(metadata)
-      if (!markupId) {
-        toast({
-          title: '연결 불가',
-          description: '마킹 문서 ID를 확인할 수 없습니다.',
-          variant: 'destructive',
-        })
-        return
-      }
-      const docId = String(doc?.id || markupId)
-      const existingList = Array.isArray(metadata?.linked_worklog_ids)
-        ? metadata.linked_worklog_ids.filter(
-            (value: unknown): value is string => typeof value === 'string' && value.length > 0
-          )
-        : metadata?.linked_worklog_id
-          ? [metadata.linked_worklog_id]
-          : metadata?.daily_report_id
-            ? [metadata.daily_report_id]
-            : []
-      const next = prompt(
-        '연결할 작업일지 ID를 입력하세요 (쉼표 또는 공백으로 구분). 비우면 모든 연결이 해제됩니다.',
-        existingList.join(', ')
-      )
-      if (next === null) return
-      const parsed = next
-        .split(/[, \n]+/)
-        .map(value => value.trim())
-        .filter(Boolean)
-      setSharedLinking(prev => ({ ...prev, [docId]: true }))
-      try {
-        const res = await fetch(`/api/markup-documents/${markupId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ linked_worklog_ids: parsed }),
-        })
-        const json = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(json?.error || '작업일지 연결에 실패했습니다.')
-        setSharedDocs(prev =>
-          prev.map(item => {
-            if (String(item.id) !== docId) return item
-            const nextMeta = parseSharedDocMetadata(item)
-            if (parsed.length > 0) {
-              nextMeta.linked_worklog_id = parsed[0]
-              nextMeta.linked_worklog_ids = parsed
-            } else {
-              delete nextMeta.linked_worklog_id
-              delete nextMeta.linked_worklog_ids
-            }
-            return { ...item, metadata: nextMeta }
-          })
-        )
-        toast({
-          title: parsed.length > 0 ? '연결 완료' : '연결 해제',
-          description:
-            parsed.length > 0
-              ? `총 ${parsed.length}개의 작업일지가 연결되었습니다.`
-              : '작업일지 연결이 모두 해제되었습니다.',
-        })
-      } catch (error: any) {
-        toast({
-          title: '연결 실패',
-          description: error?.message || '작업일지 연결 처리 중 오류가 발생했습니다.',
-          variant: 'destructive',
-        })
-      } finally {
-        setSharedLinking(prev => {
-          const nextState = { ...prev }
-          delete nextState[docId]
-          return nextState
-        })
-      }
-    },
-    [setSharedDocs, toast]
   )
 
   const cancelSharedEdit = useCallback(() => {
@@ -3572,16 +3523,16 @@ export default function SiteDetailTabs({
                             </TableCell>
                             <TableCell className="align-top text-xs text-muted-foreground">
                               {linkedWorklogIds.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
+                                <div className="flex flex-col gap-1">
                                   {linkedWorklogIds.map(id => (
                                     <a
                                       key={id}
                                       href={`/dashboard/admin/daily-reports/${id}`}
-                                      className="rounded-full border border-blue-200 px-2 py-0.5 text-[11px] font-semibold text-blue-600"
+                                      className="rounded-md border border-blue-200 px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50"
                                       target="_blank"
                                       rel="noreferrer"
                                     >
-                                      #{id}
+                                      {formatSharedWorklogLabel(id)}
                                     </a>
                                   ))}
                                 </div>
@@ -3600,22 +3551,6 @@ export default function SiteDetailTabs({
                                 {markupOpenHref ? (
                                   <Button asChild size="sm" variant="secondary" className="gap-1">
                                     <a href={markupOpenHref}>열기</a>
-                                  </Button>
-                                ) : null}
-                                {isMarkupDoc ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="gap-1"
-                                    disabled={Boolean(sharedLinking[docId])}
-                                    onClick={() => handleSharedLink(doc, metadata)}
-                                  >
-                                    {Array.isArray(metadata?.linked_worklog_ids) &&
-                                    metadata.linked_worklog_ids.length > 0
-                                      ? `연결 관리 (${metadata.linked_worklog_ids.length}건)`
-                                      : metadata?.linked_worklog_id
-                                        ? `연결 변경 (#${metadata.linked_worklog_id})`
-                                        : '작업일지 연결'}
                                   </Button>
                                 ) : null}
                                 {hasPreview && fileUrl ? (
@@ -3685,11 +3620,7 @@ export default function SiteDetailTabs({
                                       )}
                                     </Button>
                                   </>
-                                ) : isMarkupDoc ? (
-                                  <span className="text-xs text-muted-foreground">
-                                    도면마킹 도구에서 관리됩니다.
-                                  </span>
-                                ) : (
+                                ) : isMarkupDoc ? null : (
                                   <>
                                     <Button
                                       size="sm"
@@ -4044,7 +3975,6 @@ function buildMarkupToolHrefForDoc(
     siteId
   if (resolvedSiteId) params.set('siteId', resolvedSiteId)
   if (doc?.id) params.set('unifiedDocumentId', String(doc.id))
-  params.set('startEmpty', '1')
   return `/dashboard/admin/tools/markup?${params.toString()}`
 }
 

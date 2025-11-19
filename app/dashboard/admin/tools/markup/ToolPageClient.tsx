@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import AdminMarkupToolClient from './AdminMarkupToolClient'
 import RecentDocsTable from './RecentDocsTable'
 import { PageHeader } from '@/components/ui/page-header'
@@ -30,23 +30,39 @@ type AnyDoc = {
   linked_worklog_ids?: string[] | null
   source?: 'markup' | 'shared'
   unified_document_id?: string | null
+  linked_markup_document_id?: string | null
+}
+
+export type ToolPageClientSearchParams = {
+  docId?: string
+  blueprintUrl?: string
+  siteId?: string
+  title?: string
+  unifiedDocumentId?: string
+  markupDocumentId?: string
+  startEmpty?: boolean
 }
 
 export default function ToolPageClient({
   docs,
   siteOptions,
+  initialQuery,
 }: {
   docs: any[]
   siteOptions: SiteOption[]
+  initialQuery?: ToolPageClientSearchParams
 }) {
   const router = useRouter()
-  const sp = useSearchParams()
-  const docId = (sp.get('docId') || '').trim()
-  const blueprintUrl = (sp.get('blueprintUrl') || '').trim()
-  const blueprintSiteId = (sp.get('siteId') || '').trim()
-  const title = (sp.get('title') || '').trim()
-  const unifiedDocumentId = (sp.get('unifiedDocumentId') || '').trim()
-  const startEmpty = (sp.get('startEmpty') || '').trim() === '1'
+  const docId = (initialQuery?.docId || '').trim()
+  const blueprintUrl = (initialQuery?.blueprintUrl || '').trim()
+  const blueprintSiteId = (initialQuery?.siteId || '').trim()
+  const titleParam = (initialQuery?.title || '').trim()
+  const unifiedDocumentId = (initialQuery?.unifiedDocumentId || '').trim()
+  const markupDocumentIdParam = (initialQuery?.markupDocumentId || '').trim()
+  const startEmpty = Boolean(initialQuery?.startEmpty)
+  const hasDirectLaunchParams = Boolean(
+    docId || blueprintUrl || startEmpty || unifiedDocumentId || markupDocumentIdParam
+  )
 
   const [initialDocument, setInitialDocument] = React.useState<AnyDoc | null>(null)
   const [state, setState] = React.useState<'launcher' | 'editor' | 'loading'>('loading')
@@ -62,8 +78,8 @@ export default function ToolPageClient({
   }, [])
 
   React.useEffect(() => {
-    // 1) docId 우선
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(docId)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    const isUuid = uuidRegex.test(docId)
     const isUrl = (() => {
       try {
         const u = new URL(blueprintUrl)
@@ -96,26 +112,142 @@ export default function ToolPageClient({
       return false
     }
 
+    const loadSharedDocument = async () => {
+      if (!unifiedDocumentId) return false
+      try {
+        setState('loading')
+        const res = await fetch(`/api/unified-documents/${unifiedDocumentId}`, {
+          cache: 'no-store',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || !json?.data) return false
+        const row = json.data as Record<string, any>
+        const metadata =
+          row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+            ? (row.metadata as Record<string, any>)
+            : {}
+        const urlCandidates = [
+          blueprintUrl,
+          row?.file_url,
+          row?.fileUrl,
+          row?.original_file_url,
+          metadata?.original_blueprint_url,
+          metadata?.file_url,
+          metadata?.public_url,
+          metadata?.preview_url,
+        ]
+        let resolvedBlueprintUrl = ''
+        for (const candidate of urlCandidates) {
+          if (typeof candidate === 'string' && candidate.trim().length > 0) {
+            resolvedBlueprintUrl = candidate
+            break
+          }
+        }
+        const markupDataFromRow =
+          Array.isArray(row?.markup_data) && row.markup_data.length > 0
+            ? row.markup_data
+            : Array.isArray(metadata?.markup_data)
+              ? metadata.markup_data
+              : []
+        const metadataLinkedIds =
+          Array.isArray(metadata?.linked_worklog_ids) && metadata.linked_worklog_ids.length > 0
+            ? metadata.linked_worklog_ids.filter(
+                (value: unknown): value is string =>
+                  typeof value === 'string' && value.trim().length > 0
+              )
+            : []
+        const linkedMarkupCandidate =
+          (markupDocumentIdParam &&
+            uuidRegex.test(markupDocumentIdParam) &&
+            markupDocumentIdParam) ||
+          (metadata?.source_table === 'markup_documents'
+            ? metadata.markup_document_id || metadata.source_id
+            : metadata?.markup_document_id)
+        let linkedMarkupDoc: AnyDoc | null = null
+        if (linkedMarkupCandidate && uuidRegex.test(String(linkedMarkupCandidate))) {
+          try {
+            const linkedRes = await fetch(`/api/markup-documents/${linkedMarkupCandidate}`, {
+              cache: 'no-store',
+            })
+            const linkedJson = await linkedRes.json().catch(() => ({}))
+            if (linkedRes.ok && linkedJson?.data) {
+              linkedMarkupDoc = {
+                ...linkedJson.data,
+                source: 'shared',
+                unified_document_id: unifiedDocumentId,
+                linked_markup_document_id: linkedMarkupCandidate,
+              }
+            }
+          } catch (err) {
+            if (process.env.NODE_ENV !== 'production')
+              console.debug('linked markup fetch failed', err)
+          }
+        }
+        const resolvedMarkupData =
+          Array.isArray(linkedMarkupDoc?.markup_data) && linkedMarkupDoc.markup_data.length > 0
+            ? linkedMarkupDoc.markup_data
+            : markupDataFromRow
+        const resolvedSiteId =
+          linkedMarkupDoc?.site_id ??
+          row?.site_id ??
+          (typeof metadata?.site_id === 'string' ? metadata.site_id : null) ??
+          (blueprintSiteId || null)
+        const sharedDoc: AnyDoc = {
+          ...(linkedMarkupDoc || {}),
+          id: linkedMarkupDoc?.id,
+          source: 'shared',
+          unified_document_id: unifiedDocumentId,
+          linked_markup_document_id: linkedMarkupCandidate || linkedMarkupDoc?.id || null,
+          title: linkedMarkupDoc?.title || row?.title || row?.file_name || titleParam || '도면',
+          description: linkedMarkupDoc?.description || row?.description || '',
+          original_blueprint_url: linkedMarkupDoc?.original_blueprint_url || resolvedBlueprintUrl,
+          original_blueprint_filename:
+            linkedMarkupDoc?.original_blueprint_filename || row?.file_name || '도면',
+          markup_data: resolvedMarkupData || [],
+          site_id: resolvedSiteId || null,
+          linked_worklog_id:
+            linkedMarkupDoc?.linked_worklog_id ??
+            metadata?.linked_worklog_id ??
+            metadataLinkedIds[0] ??
+            null,
+          linked_worklog_ids:
+            Array.isArray(linkedMarkupDoc?.linked_worklog_ids) &&
+            linkedMarkupDoc.linked_worklog_ids.length > 0
+              ? linkedMarkupDoc.linked_worklog_ids
+              : metadataLinkedIds,
+        }
+        startEditor(sharedDoc)
+        return true
+      } catch (error) {
+        if (process.env.NODE_ENV !== 'production') console.debug('shared doc load failed', error)
+      }
+      return false
+    }
+
     const run = async () => {
-      // 빈 마크업
       if (startEmpty) {
         startEditor({
           id: undefined,
-          title: title || '무제 도면',
+          title: titleParam || '무제 도면',
           original_blueprint_url: '',
           original_blueprint_filename: '',
           markup_data: [],
         })
         return
       }
-      // docId로 로드
       if (isUuid) {
         try {
           setState('loading')
           const r = await fetch(`/api/markup-documents/${docId}`, { cache: 'no-store' })
           const j = await r.json().catch(() => ({}))
           if (r.ok && j?.data) {
-            startEditor(j.data)
+            startEditor({
+              ...j.data,
+              source: unifiedDocumentId ? 'shared' : 'markup',
+              unified_document_id: unifiedDocumentId || j.data?.unified_document_id,
+              linked_markup_document_id:
+                unifiedDocumentId || markupDocumentIdParam ? j.data?.id : undefined,
+            })
             return
           }
         } catch (err) {
@@ -123,27 +255,37 @@ export default function ToolPageClient({
             console.debug('fetch markup-doc by id failed', err)
         }
       }
-      // blueprintUrl로 시작
+
+      if (await loadSharedDocument()) return
+
       if (isUrl) {
         startEditor({
           id: undefined,
-          title: title || '무제 도면',
+          title: titleParam || '무제 도면',
           original_blueprint_url: blueprintUrl,
           original_blueprint_filename: 'blueprint.png',
           markup_data: [],
           site_id: blueprintSiteId || undefined,
-          source: 'shared',
+          source: unifiedDocumentId ? 'shared' : 'markup',
           unified_document_id: unifiedDocumentId || undefined,
         })
         return
       }
-      // 로컬 스토리지에서 이어서
       if (tryFromLocal()) return
-      // 폴백: 런처
       setState('launcher')
     }
+
     run()
-  }, [docId, blueprintUrl, title, startEmpty, startEditor])
+  }, [
+    docId,
+    blueprintUrl,
+    blueprintSiteId,
+    titleParam,
+    startEmpty,
+    unifiedDocumentId,
+    markupDocumentIdParam,
+    startEditor,
+  ])
 
   const onPickFile = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,6 +370,29 @@ export default function ToolPageClient({
     )
   }
 
+  if (state === 'loading' && hasDirectLaunchParams) {
+    return (
+      <div className="px-0 pb-8">
+        <PageHeader
+          title="도면마킹 도구"
+          description="도면을 불러오고 있습니다. 잠시만 기다려주세요."
+          breadcrumbs={[
+            { label: '대시보드', href: '/dashboard/admin' },
+            { label: '현장작업 관리' },
+            { label: '도면마킹 도구' },
+          ]}
+          showBackButton
+          backButtonHref="/dashboard/admin/tools/markup"
+        />
+        <div className="px-4 sm:px-6 lg:px-8 py-8">
+          <div className="rounded-lg border bg-card p-6 text-sm text-muted-foreground">
+            도면마킹 도구를 준비 중입니다...
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   // Launcher
 
   return (
@@ -254,6 +419,26 @@ export default function ToolPageClient({
               <p className="text-xs text-muted-foreground">
                 모든 문서를 검색하고 필터링한 뒤 바로 편집하세요.
               </p>
+              <div className="mt-2 rounded-md bg-blue-50/80 px-3 py-2 text-[11px] text-blue-900">
+                <p className="font-semibold">문서 유형 & 작업 버튼 안내</p>
+                <p className="mt-1">
+                  모든 문서는 <span className="font-semibold">‘열기’</span> 버튼으로 시작합니다.
+                  열람 후 바로 편집/저장이 가능하며, 문서 유형 배지에서 출처와 동기화 방향을
+                  확인하세요.
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-4">
+                  <li>
+                    <span className="font-semibold">현장 공유 도면</span> — 작업자/현장관리자가
+                    업로드한 도면으로 이미 저장된 마킹 데이터를 그대로 불러옵니다. 본사에서 수정 후
+                    저장하면 다시 현장 공유함과 모바일에 즉시 반영됩니다.
+                  </li>
+                  <li>
+                    <span className="font-semibold">본사 기준 도면</span> — 본사관리자가 작성/등록한
+                    도면입니다. 기존 마킹을 이어서 편집하고 저장하며, 필요 시 버전 스냅샷이 자동
+                    보관되어 추적할 수 있습니다.
+                  </li>
+                </ul>
+              </div>
             </div>
             <button
               type="button"
@@ -270,6 +455,7 @@ export default function ToolPageClient({
                 placeholder="제목/현장/설명"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                className="h-10"
               />
             </div>
             <div className="md:col-span-1">

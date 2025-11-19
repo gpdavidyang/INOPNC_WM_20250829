@@ -87,6 +87,12 @@ async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<Simp
         .single()
 
       if (profileError) {
+        if ((profileError as { code?: string }).code === 'PGRST116') {
+          console.warn('[auth] profile lookup returned no rows for user, treating as signed out', {
+            userId: user.id,
+          })
+          return null
+        }
         if (isRecoverableAuthError(profileError)) {
           if (refreshAttempted) {
             console.warn('[auth] recoverable profile lookup error persisted after refresh')

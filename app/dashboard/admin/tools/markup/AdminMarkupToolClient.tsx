@@ -4,7 +4,10 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import MarkupMetadataForm, { type SiteOption } from '@/components/admin/markup/MarkupMetadataForm'
-import { linkUnifiedDocumentToMarkupDoc } from '@/lib/unified-documents'
+import {
+  linkUnifiedDocumentToMarkupDoc,
+  syncMarkupUpdateToUnifiedDocument,
+} from '@/lib/unified-documents'
 
 type AnyDoc = {
   id?: string
@@ -16,6 +19,9 @@ type AnyDoc = {
   site_id?: string | null
   linked_worklog_id?: string | null
   linked_worklog_ids?: string[] | null
+  source?: 'markup' | 'shared'
+  unified_document_id?: string | null
+  linked_markup_document_id?: string | null
 }
 
 const extractLinkedIds = (doc?: AnyDoc | null) => {
@@ -76,6 +82,9 @@ export default function AdminMarkupToolClient({
       }
     }
     let res: Response
+    const nextMarkupData = Array.isArray(payload?.markup_data) ? payload.markup_data : []
+    const nextMarkupCount = nextMarkupData.length
+    const resolvedSiteId = payload.site_id ?? activeDocument?.site_id ?? null
     if (payload?.id) {
       res = await fetch(`/api/markup-documents/${payload.id}`, {
         method: 'PUT',
@@ -83,9 +92,9 @@ export default function AdminMarkupToolClient({
         body: JSON.stringify({
           title: payload.title,
           description: payload.description,
-          markup_data: payload.markup_data || [],
+          markup_data: nextMarkupData,
           preview_image_url: null,
-          site_id: payload.site_id ?? activeDocument?.site_id ?? null,
+          site_id: resolvedSiteId,
           linked_worklog_id: mergedLinkedWorklogId,
           linked_worklog_ids: mergedLinkedIds,
         }),
@@ -99,9 +108,9 @@ export default function AdminMarkupToolClient({
           description: payload.description || '',
           original_blueprint_url: blueprintUrl,
           original_blueprint_filename: blueprintFileName,
-          markup_data: payload.markup_data || [],
+          markup_data: nextMarkupData,
           preview_image_url: null,
-          site_id: payload.site_id ?? activeDocument?.site_id ?? null,
+          site_id: resolvedSiteId,
           linked_worklog_id: mergedLinkedWorklogId,
           linked_worklog_ids: mergedLinkedIds,
         }),
@@ -131,6 +140,37 @@ export default function AdminMarkupToolClient({
               : (payload?.linked_worklog_ids ?? activeDocument?.linked_worklog_ids),
           site_id: savedDoc.site_id ?? payload?.site_id ?? activeDocument?.site_id ?? null,
         },
+      })
+    }
+
+    if (unifiedId && savedDoc?.id) {
+      await syncMarkupUpdateToUnifiedDocument({
+        unifiedDocumentId: unifiedId,
+        markupDocumentId: savedDoc.id,
+        markupData: nextMarkupData,
+        markupCount: nextMarkupCount,
+        title: savedDoc?.title ?? payload?.title ?? activeDocument?.title ?? null,
+        description:
+          savedDoc?.description ?? payload?.description ?? activeDocument?.description ?? null,
+        siteId: savedDoc?.site_id ?? resolvedSiteId ?? null,
+        linkedWorklogId:
+          savedDoc?.linked_worklog_id ??
+          mergedLinkedWorklogId ??
+          payload?.linked_worklog_id ??
+          activeDocument?.linked_worklog_id ??
+          null,
+        linkedWorklogIds:
+          savedDoc?.linked_worklog_ids ?? mergedLinkedIds ?? payload?.linked_worklog_ids ?? [],
+        originalBlueprintUrl:
+          savedDoc?.original_blueprint_url ??
+          payload?.original_blueprint_url ??
+          activeDocument?.original_blueprint_url ??
+          null,
+        originalBlueprintFilename:
+          savedDoc?.original_blueprint_filename ??
+          payload?.original_blueprint_filename ??
+          activeDocument?.original_blueprint_filename ??
+          null,
       })
     }
 

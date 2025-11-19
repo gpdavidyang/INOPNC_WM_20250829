@@ -108,12 +108,31 @@ export default function PersonalRatesPage() {
     return null
   }
 
-  const formatCustomTax = (rates: Record<string, number> | null | undefined) =>
-    rates
-      ? Object.entries(rates)
-          .map(([k, v]) => `${k}:${v}%`)
-          .join(', ')
-      : '-'
+  const TAX_LABEL_MAP: Record<string, string> = {
+    income_tax_rate: '소득세',
+    income_tax: '소득세',
+    local_tax_rate: '지방세',
+    local_tax: '지방세',
+    national_pension: '국민연금',
+    pension_rate: '국민연금',
+    health_insurance_rate: '건강보험',
+    health_insurance: '건강보험',
+    employment_insurance_rate: '고용보험',
+    employment_insurance: '고용보험',
+    long_term_care_rate: '장기요양',
+    industrial_accident_rate: '산재보험',
+  }
+  const formatCustomTax = (rates: Record<string, number> | null | undefined) => {
+    if (!rates) return '-'
+    const entries = Object.entries(rates)
+      .filter(([, v]) => Number(v) > 0)
+      .map(([k, v]) => {
+        const label = TAX_LABEL_MAP[k] || k
+        return `${label} ${Number(v)}%`
+      })
+    if (entries.length === 0) return '세율 입력 없음'
+    return entries.join(', ')
+  }
 
   const normalizeCustomTax = (taxes: Array<{ key: string; value: string }>): Record<string, number> | null => {
     const map: Record<string, number> = {}
