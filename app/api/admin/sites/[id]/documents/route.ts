@@ -27,6 +27,38 @@ const DOCUMENT_SELECT_FIELDS = `
         )
       `
 
+function collectLinkedWorklogIds(doc: Record<string, any>): string[] {
+  if (!doc) return []
+  const metadata =
+    doc.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
+      ? (doc.metadata as Record<string, any>)
+      : {}
+  const metaIds = Array.isArray(metadata?.linked_worklog_ids)
+    ? metadata.linked_worklog_ids.filter(
+        (value: unknown): value is string => typeof value === 'string' && value.length > 0
+      )
+    : []
+  const baseIds: string[] = []
+  if (metaIds.length > 0) baseIds.push(...metaIds)
+  if (metadata?.linked_worklog_id) {
+    const id = String(metadata.linked_worklog_id).trim()
+    if (id) baseIds.push(id)
+  }
+  if (metadata?.daily_report_id) {
+    const id = String(metadata.daily_report_id).trim()
+    if (id) baseIds.push(id)
+  }
+  if (Array.isArray(doc?.linked_worklog_ids) && doc.linked_worklog_ids.length > 0) {
+    baseIds.push(
+      ...doc.linked_worklog_ids.filter(
+        (value: unknown): value is string => typeof value === 'string' && value.length > 0
+      )
+    )
+  }
+  if (doc?.linked_worklog_id) baseIds.push(String(doc.linked_worklog_id))
+  return Array.from(new Set(baseIds.filter(Boolean)))
+}
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
@@ -205,6 +237,33 @@ export async function GET(request: Request, { params }: { params: { id: string }
       }
     }
 
+    const worklogIdSet = new Set<string>()
+    for (const doc of documents || []) {
+      const ids = collectLinkedWorklogIds(doc)
+      ids.forEach(id => worklogIdSet.add(id))
+    }
+
+    let worklogMap: Record<string, any> = {}
+    if (worklogIdSet.size > 0) {
+      const ids = Array.from(worklogIdSet)
+      const { data: worklogRows } = await svc
+        .from('daily_reports')
+        .select('id, work_date, component_name, process_type, work_process')
+        .in('id', ids)
+      const map: Record<string, any> = {}
+      for (const row of worklogRows || []) {
+        if (!row?.id) continue
+        map[row.id] = {
+          id: row.id,
+          work_date: row.work_date || null,
+          component_name: row.component_name || null,
+          process_type: row.process_type || null,
+          work_process: row.work_process || null,
+        }
+      }
+      worklogMap = map
+    }
+
     // Get site information for context
     const { data: siteData } = await supabase
       .from('sites')
@@ -216,6 +275,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       success: true,
       data: documents || [],
       statistics,
+      worklog_map: worklogMap,
       site: siteData,
       filters: {
         site_id: siteId,

@@ -183,28 +183,6 @@ export default function DailyReportDetailClient({
     })
   }, [attachments.drawings])
 
-  const resolveLinkedWorklogIdsFromMeta = (
-    meta: Record<string, any> | null | undefined,
-    fallbackId?: string
-  ) => {
-    const ids = new Set<string>()
-    if (Array.isArray(meta?.linked_worklog_ids)) {
-      meta.linked_worklog_ids.forEach(value => {
-        if (typeof value === 'string' && value.trim().length > 0) ids.add(value.trim())
-      })
-    }
-    if (typeof meta?.linked_worklog_id === 'string' && meta.linked_worklog_id.trim().length > 0) {
-      ids.add(meta.linked_worklog_id.trim())
-    }
-    if (typeof meta?.daily_report_id === 'string' && meta.daily_report_id.trim().length > 0) {
-      ids.add(meta.daily_report_id.trim())
-    }
-    if (fallbackId && fallbackId.trim().length > 0) {
-      ids.add(fallbackId.trim())
-    }
-    return Array.from(ids)
-  }
-
   const getMarkupLinkFromAttachment = (attachment: UnifiedAttachment) => {
     const meta =
       attachment?.metadata && typeof attachment.metadata === 'object' ? attachment.metadata : null
@@ -739,7 +717,6 @@ export default function DailyReportDetailClient({
                       <th className="px-3 py-2">미리보기</th>
                       <th className="px-3 py-2">도면명</th>
                       <th className="px-3 py-2">출처</th>
-                      <th className="px-3 py-2">연결 작업일지</th>
                       <th className="px-3 py-2 text-right">동작</th>
                     </tr>
                   </thead>
@@ -749,16 +726,13 @@ export default function DailyReportDetailClient({
                       const meta =
                         att.metadata && typeof att.metadata === 'object' ? att.metadata : {}
                       const sourceLabel =
-                        (meta?.source as string) ||
-                        (meta?.source_table as string) ||
-                        (meta?.category_type as string) ||
-                        'shared'
-                      const linkedWorklogIds = resolveLinkedWorklogIdsFromMeta(meta, reportId)
+                        (att?.uploader?.full_name as string) ||
+                        (att?.uploaded_by_name as string) ||
+                        (meta?.uploader_name as string) ||
+                        (meta?.uploader?.full_name as string) ||
+                        (meta?.uploaded_by_profile?.full_name as string) ||
+                        '작성자 미상'
                       const markupHref = getMarkupLinkFromAttachment(att)
-                      const primaryWorklogId = linkedWorklogIds[0] || reportId
-                      const documentsHref = `/documents/hub?worklogId=${primaryWorklogId}${
-                        report.siteId ? `&siteId=${report.siteId}` : ''
-                      }`
                       const snapshotPdfUrl =
                         typeof meta?.snapshot_pdf_url === 'string' &&
                         meta.snapshot_pdf_url.length > 0
@@ -788,33 +762,8 @@ export default function DailyReportDetailClient({
                             {att.name || '-'}
                           </td>
                           <td className="px-3 py-2 text-xs text-muted-foreground">{sourceLabel}</td>
-                          <td className="px-3 py-2 text-xs text-blue-600">
-                            {linkedWorklogIds.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {linkedWorklogIds.map(id => (
-                                  <a
-                                    key={id}
-                                    href={`/dashboard/admin/daily-reports/${id}`}
-                                    className="rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
-                                  >
-                                    #{id}
-                                  </a>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">-</span>
-                            )}
-                          </td>
                           <td className="px-3 py-2 text-right">
                             <div className="flex flex-wrap items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => att.url && handleOpenFile(att.url)}
-                                disabled={!att.url}
-                              >
-                                미리보기
-                              </Button>
                               {snapshotPdfUrl ? (
                                 <Button asChild size="sm" variant="secondary">
                                   <a href={snapshotPdfUrl} target="_blank" rel="noreferrer">
@@ -824,14 +773,9 @@ export default function DailyReportDetailClient({
                               ) : null}
                               {markupHref ? (
                                 <Button asChild size="sm" variant="secondary">
-                                  <a href={markupHref}>마킹 열기</a>
+                                  <a href={markupHref}>도면마킹 열기</a>
                                 </Button>
                               ) : null}
-                              <Button asChild size="sm" variant="ghost">
-                                <a href={documentsHref} target="_blank" rel="noreferrer">
-                                  현장공유함
-                                </a>
-                              </Button>
                             </div>
                           </td>
                         </tr>

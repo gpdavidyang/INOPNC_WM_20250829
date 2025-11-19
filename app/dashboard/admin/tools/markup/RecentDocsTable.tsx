@@ -26,18 +26,18 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
     return undefined
   }
 
-  const getActionLabel = (doc: any) => (resolveSource(doc) === 'shared' ? '열기' : '수정')
-
   const buildEditHref = (doc: any): string | undefined => {
     if (resolveSource(doc) === 'shared') {
-      if (!doc?.original_blueprint_url) return undefined
       const params = new URLSearchParams()
-      params.set('blueprintUrl', doc.original_blueprint_url)
+      if (doc?.original_blueprint_url) params.set('blueprintUrl', doc.original_blueprint_url)
       if (doc?.title) params.set('title', doc.title)
       if (doc?.site_id) params.set('siteId', doc.site_id)
       const unifiedId = getUnifiedDocumentId(doc)
       if (unifiedId) params.set('unifiedDocumentId', unifiedId)
-      params.set('startEmpty', '1')
+      if (doc?.linked_markup_document_id) {
+        params.set('docId', doc.linked_markup_document_id)
+        params.set('markupDocumentId', doc.linked_markup_document_id)
+      }
       return `/dashboard/admin/tools/markup?${params.toString()}`
     }
     if (!doc?.id) return undefined
@@ -95,14 +95,14 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
     return map[normalized] || status
   }
 
-  const formatDailyReportLabel = (log?: any | null) => {
-    if (!log) return '미연결'
-    const dateLabel = log.work_date
-      ? new Date(log.work_date).toLocaleDateString('ko-KR')
+  const formatWorklogSummary = (worklog?: any | null) => {
+    if (!worklog) return null
+    const dateLabel = worklog.work_date
+      ? new Date(worklog.work_date).toLocaleDateString('ko-KR')
       : '날짜 미정'
-    const memberLabel = log.member_name || '작성자 미상'
-    const statusLabel = formatDailyReportStatus(log.status)
-    return `${dateLabel} · ${memberLabel} · ${statusLabel}`
+    const componentLabel = worklog.component_name || '부재 미정'
+    const processLabel = worklog.work_process || worklog.process_type || '공정 미정'
+    return `${dateLabel} · ${componentLabel} · ${processLabel}`
   }
 
   return (
@@ -131,6 +131,23 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
             render: (d: any) => (
               <span className="font-medium text-foreground">{d?.title || '-'}</span>
             ),
+          },
+          {
+            key: 'source',
+            header: '문서 유형',
+            sortable: true,
+            accessor: (d: any) => resolveSource(d),
+            render: (d: any) =>
+              resolveSource(d) === 'shared' ? (
+                <div className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                  현장 공유 도면
+                </div>
+              ) : (
+                <div className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                  본사 기준 도면
+                </div>
+              ),
+            width: 150,
           },
           {
             key: 'site',
@@ -165,19 +182,42 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
                     : []
               return (
                 <div className="flex flex-col gap-1">
-                  {d?.daily_report ? (
-                    <span>{formatDailyReportLabel(d.daily_report)}</span>
+                  {d?.daily_report && formatWorklogSummary(d.daily_report) ? (
+                    <a
+                      href={`/dashboard/admin/daily-reports/${d.daily_report.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-md border border-blue-200 px-2 py-1 text-[11px] font-semibold text-blue-700 hover:bg-blue-50"
+                    >
+                      {formatWorklogSummary(d.daily_report)}
+                    </a>
                   ) : linkedIds.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {linkedIds.map((id: string) => (
-                        <span
-                          key={id}
-                          className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700"
-                        >
-                          #{id}
-                        </span>
-                      ))}
-                    </div>
+                    (() => {
+                      const details = Array.isArray(d?.worklog_details)
+                        ? d.worklog_details
+                        : linkedIds.map((id: string) => ({ id }))
+                      return (
+                        <div className="flex flex-col gap-1">
+                          {details.map((detail: any, index: number) => (
+                            <a
+                              key={`${detail.id || index}-${index}`}
+                              href={
+                                detail?.id
+                                  ? `/dashboard/admin/daily-reports/${detail.id}`
+                                  : undefined
+                              }
+                              className={`rounded-md border border-blue-200 px-2 py-1 text-[11px] font-semibold ${
+                                detail?.id ? 'text-blue-700 hover:bg-blue-50' : 'text-blue-500'
+                              }`}
+                              target={detail?.id ? '_blank' : undefined}
+                              rel={detail?.id ? 'noreferrer' : undefined}
+                            >
+                              {formatWorklogSummary(detail) || (detail?.id ? `#${detail.id}` : '-')}
+                            </a>
+                          ))}
+                        </div>
+                      )
+                    })()
                   ) : (
                     <span className="text-muted-foreground text-xs">미연결</span>
                   )}
@@ -216,7 +256,6 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
                 })()}
                 {(() => {
                   const href = buildEditHref(d)
-                  const label = getActionLabel(d)
                   if (!href) {
                     return (
                       <span
@@ -226,7 +265,7 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
                         })}
                         aria-disabled="true"
                       >
-                        {label}
+                        열기
                       </span>
                     )
                   }
@@ -236,7 +275,7 @@ export default function RecentDocsTable({ docs }: { docs: any[] }) {
                       className={buttonVariants({ variant: 'secondary', size: 'compact' })}
                       role="button"
                     >
-                      {label}
+                      열기
                     </Link>
                   )
                 })()}

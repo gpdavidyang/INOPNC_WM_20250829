@@ -36,9 +36,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     let query = supabase
       .from('daily_reports')
-      .select('id, site_id, work_date, member_name, status, work_process, total_workers', {
-        count: 'exact',
-      })
+      .select(
+        'id, site_id, work_date, member_name, status, work_process, process_type, component_name, total_workers',
+        {
+          count: 'exact',
+        }
+      )
       .eq('site_id', siteId)
       .order('work_date', { ascending: false, nullsFirst: false })
       .limit(limit)
@@ -61,7 +64,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
     if (ensureId && !worklogs.some(log => log.id === ensureId)) {
       const { data: ensureData } = await supabase
         .from('daily_reports')
-        .select('id, site_id, work_date, member_name, status, work_process, total_workers')
+        .select(
+          'id, site_id, work_date, member_name, status, work_process, process_type, component_name, total_workers'
+        )
         .eq('site_id', siteId)
         .eq('id', ensureId)
         .maybeSingle()

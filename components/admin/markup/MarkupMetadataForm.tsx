@@ -39,6 +39,8 @@ interface WorklogOption {
   member_name?: string | null
   status?: string | null
   work_process?: string | null
+  process_type?: string | null
+  component_name?: string | null
   total_workers?: number | null
 }
 
@@ -74,6 +76,18 @@ export default function MarkupMetadataForm({
     null
   )
   const [isSaving, setIsSaving] = React.useState(false)
+  const [worklogMeta, setWorklogMeta] = React.useState<
+    Record<
+      string,
+      {
+        work_date?: string | null
+        component_name?: string | null
+        work_process?: string | null
+        process_type?: string | null
+      }
+    >
+  >({})
+  const [worklogMetaLoading, setWorklogMetaLoading] = React.useState(false)
 
   React.useEffect(() => {
     setTitle(document?.title || '')
@@ -81,6 +95,7 @@ export default function MarkupMetadataForm({
     setWorklogIds(deriveWorklogIds(document))
     setWorklogInput('')
     setWorklogSelectValue('none')
+    setWorklogMeta({})
   }, [
     document?.title,
     document?.site_id,
@@ -146,17 +161,64 @@ export default function MarkupMetadataForm({
     []
   )
 
+  const initialWorklogIdRef = React.useRef<string | null>(null)
+  React.useEffect(() => {
+    initialWorklogIdRef.current =
+      document?.linked_worklog_id || document?.linked_worklog_ids?.[0] || null
+  }, [document?.linked_worklog_id, document?.linked_worklog_ids])
+
+  const primaryWorklogId = React.useMemo(() => worklogIds[0] || null, [worklogIds])
+
   React.useEffect(() => {
     if (!siteId) {
+      if (worklogIds.length > 0) setWorklogIds([])
       setWorklogs([])
-      setWorklogIds([])
       setWorklogInput('')
       return
     }
-    const ensureId =
-      worklogIds[0] || document?.linked_worklog_id || document?.linked_worklog_ids?.[0] || null
-    fetchWorklogs(siteId, ensureId)
-  }, [siteId, document?.linked_worklog_id, document?.linked_worklog_ids, fetchWorklogs, worklogIds])
+    const ensureId = primaryWorklogId || initialWorklogIdRef.current
+    fetchWorklogs(siteId, ensureId || undefined)
+  }, [siteId, primaryWorklogId, fetchWorklogs])
+
+  React.useEffect(() => {
+    if (worklogIds.length === 0) {
+      setWorklogMeta({})
+      return
+    }
+    const controller = new AbortController()
+    const ids = Array.from(new Set(worklogIds))
+    setWorklogMetaLoading(true)
+    fetch(`/api/daily-reports/meta?${new URLSearchParams({ ids: ids.join(',') }).toString()}`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then(res => res.json().catch(() => ({})))
+      .then(json => {
+        if (controller.signal.aborted) return
+        if (json?.success && json?.data && typeof json.data === 'object') {
+          setWorklogMeta(json.data as Record<string, any>)
+        }
+      })
+      .catch(() => void 0)
+      .finally(() => {
+        if (!controller.signal.aborted) setWorklogMetaLoading(false)
+      })
+    return () => controller.abort()
+  }, [worklogIds])
+
+  const formatWorklogChipLabel = React.useCallback(
+    (id: string) => {
+      const meta = worklogMeta[id]
+      if (!meta) return `#${id}`
+      const dateLabel = meta.work_date
+        ? new Date(meta.work_date).toLocaleDateString('ko-KR')
+        : '날짜 미정'
+      const componentLabel = meta.component_name || '부재 미정'
+      const processLabel = meta.work_process || meta.process_type || '공정 미정'
+      return `${dateLabel} · ${componentLabel} · ${processLabel}`
+    },
+    [worklogMeta]
+  )
 
   const addWorklogId = React.useCallback(
     (rawId: string) => {
@@ -297,24 +359,10 @@ export default function MarkupMetadataForm({
   const formatWorklogLabel = (worklog: WorklogOption) => {
     const dateLabel = worklog.work_date
       ? new Date(worklog.work_date).toLocaleDateString('ko-KR')
-      : '날짜 미상'
-    const memberLabel = worklog.member_name || '작성자 미상'
-    const statusLabel = formatWorklogStatus(worklog.status)
-    return `${dateLabel} · ${memberLabel} · ${statusLabel}`
-  }
-
-  const formatWorklogStatus = (status?: string | null) => {
-    if (!status) return '상태 미정'
-    const normalized = status.toLowerCase()
-    const map: Record<string, string> = {
-      submitted: '제출 완료',
-      draft: '임시 저장',
-      saved: '임시 저장',
-      pending: '검토 중',
-      approved: '승인 완료',
-      rejected: '반려',
-    }
-    return map[normalized] || status
+      : '날짜 미정'
+    const componentLabel = worklog.component_name || '부재 미정'
+    const processLabel = worklog.work_process || worklog.process_type || '공정 미정'
+    return `${dateLabel} · ${componentLabel} · ${processLabel}`
   }
 
   return (
@@ -425,7 +473,7 @@ export default function MarkupMetadataForm({
                     key={id}
                     className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700"
                   >
-                    #{id}
+                    {formatWorklogChipLabel(id)}
                     <button
                       type="button"
                       aria-label={`작업일지 ${id} 제거`}
@@ -441,7 +489,7 @@ export default function MarkupMetadataForm({
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             {siteId
-              ? worklogsLoading
+              ? worklogsLoading || worklogMetaLoading
                 ? '작업일지를 불러오는 중입니다...'
                 : worklogsError || '최근 100건의 작업일지를 선택하거나 직접 ID를 입력해 추가하세요.'
               : '작업일지를 선택하려면 먼저 현장을 지정하세요.'}

@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
-import { MonthPicker } from '@/components/ui/month-picker'
 import {
   CustomSelect,
   CustomSelectTrigger,
@@ -373,11 +372,12 @@ export default function SnapshotList() {
       <section className="space-y-3">
         <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
           <div className="w-full md:w-auto">
-            <MonthPicker
+            <input
+              type="month"
+              className="h-10 w-full md:w-36 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
               value={yearMonth}
-              onChange={val => setYearMonth(val || getDefaultYearMonth())}
-              ariaLabel="조회 년월"
-              className="w-full md:w-36"
+              onChange={e => setYearMonth(e.target.value || getDefaultYearMonth())}
+              aria-label="조회 년월"
             />
           </div>
           <div className="w-full md:w-64">
