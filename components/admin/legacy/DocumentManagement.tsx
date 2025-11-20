@@ -3,6 +3,7 @@
 import { t } from '@/lib/ui/strings'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 
@@ -221,15 +222,31 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
 
   // Handle view document
   const handleViewDocument = (document: DocumentWithApproval) => {
-    if (document.file_url) {
-      window.open(document.file_url, '_blank')
-    } else {
+    if (!document.file_url && !document.storage_path && !document.folder_path) {
       toast({
         variant: 'warning',
         title: '파일 없음',
         description: '문서 파일을 찾을 수 없습니다.',
       })
+      return
     }
+    openFileRecordInNewTab({
+      file_url: document.file_url,
+      storage_bucket: document.storage_bucket || undefined,
+      storage_path: document.storage_path || document.folder_path || undefined,
+      file_name: document.file_name || document.title,
+      title: document.title || document.file_name || '문서',
+    }).catch(() => {
+      if (document.file_url) {
+        window.open(document.file_url, '_blank', 'noopener,noreferrer')
+      } else {
+        toast({
+          variant: 'warning',
+          title: '파일 없음',
+          description: '문서 파일을 찾을 수 없습니다.',
+        })
+      }
+    })
   }
 
   // Define table columns

@@ -124,14 +124,11 @@ export default function PersonalRatesPage() {
   }
   const formatCustomTax = (rates: Record<string, number> | null | undefined) => {
     if (!rates) return '-'
-    const entries = Object.entries(rates)
-      .filter(([, v]) => Number(v) > 0)
-      .map(([k, v]) => {
-        const label = TAX_LABEL_MAP[k] || k
-        return `${label} ${Number(v)}%`
-      })
-    if (entries.length === 0) return '세율 입력 없음'
-    return entries.join(', ')
+    const total = Object.values(rates)
+      .map(v => Number(v) || 0)
+      .reduce((sum, v) => sum + v, 0)
+    if (total <= 0) return '세율 입력 없음'
+    return `${Number(total.toFixed(2)).toString()}%`
   }
 
   const normalizeCustomTax = (taxes: Array<{ key: string; value: string }>): Record<string, number> | null => {
@@ -415,7 +412,7 @@ export default function PersonalRatesPage() {
           daily_rate: r.daily_rate || 0,
           effective_date: new Date().toISOString().split('T')[0],
           is_active: true,
-          custom_tax_rates: buildDefaultCustomRates(et),
+          custom_tax_rates: null,
           replaceActive: true,
         }),
       })
@@ -655,9 +652,7 @@ export default function PersonalRatesPage() {
                                 daily_rate: it.daily_rate || 0,
                                 effective_date: new Date().toISOString().split('T')[0],
                                 is_active: true,
-                                custom_tax_rates: buildDefaultCustomRates(
-                                  it.employment_type || 'daily_worker'
-                                ),
+                                custom_tax_rates: null,
                                 replaceActive: true,
                               }),
                             })

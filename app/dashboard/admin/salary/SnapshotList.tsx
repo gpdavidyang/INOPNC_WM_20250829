@@ -11,6 +11,7 @@ import {
   CustomSelectContent,
   CustomSelectItem,
 } from '@/components/ui/custom-select'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 const getDefaultYearMonth = () => {
   const now = new Date()
@@ -522,7 +523,11 @@ export default function SnapshotList() {
                     onClick={() => {
                       const displayName = (workerNameMap[s.worker_id] || '').trim()
                       const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
-                      window.open(`/payslip/${s.worker_id}/${s.year}/${s.month}${query}`, '_blank')
+                      openFileRecordInNewTab({
+                        file_url: `/payslip/${s.worker_id}/${s.year}/${s.month}${query}`,
+                        file_name: `${displayName || 'payslip'}-${s.year}-${s.month}.html`,
+                        title: `${displayName || '급여'} ${s.year}-${s.month}`,
+                      })
                     }}
                   >
                     HTML 보기
@@ -691,12 +696,16 @@ export default function SnapshotList() {
                   <td className="px-3 py-2 flex items-center gap-2">
                     <button
                       className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
-                      onClick={() => {
-                        const displayName = (workerNameMap[s.worker_id] || '').trim()
-                        const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
-                        window.open(`/payslip/${s.worker_id}/${s.year}/${s.month}${query}`, '_blank')
-                      }}
-                    >
+                    onClick={() => {
+                      const displayName = (workerNameMap[s.worker_id] || '').trim()
+                      const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
+                      openFileRecordInNewTab({
+                        file_url: `/payslip/${s.worker_id}/${s.year}/${s.month}${query}`,
+                        file_name: `${displayName || 'payslip'}-${s.year}-${s.month}.html`,
+                        title: `${displayName || '급여'} ${s.year}-${s.month}`,
+                      })
+                    }}
+                  >
                       HTML 보기
                     </button>
                     <button

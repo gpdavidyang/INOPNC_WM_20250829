@@ -94,6 +94,66 @@ export type Database = {
           },
         ]
       }
+      announcement_dispatches: {
+        Row: {
+          announcement_id: string
+          created_at: string
+          created_by: string | null
+          dispatched_count: number
+          dispatch_batch_id: string
+          failed_count: number
+          id: string
+          status: string
+          target_roles: string[] | null
+          target_site_ids: string[] | null
+          target_user_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string
+          created_by?: string | null
+          dispatched_count?: number
+          dispatch_batch_id?: string
+          failed_count?: number
+          id?: string
+          status?: string
+          target_roles?: string[] | null
+          target_site_ids?: string[] | null
+          target_user_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string
+          created_by?: string | null
+          dispatched_count?: number
+          dispatch_batch_id?: string
+          failed_count?: number
+          id?: string
+          status?: string
+          target_roles?: string[] | null
+          target_site_ids?: string[] | null
+          target_user_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'announcement_dispatches_announcement_id_fkey'
+            columns: ['announcement_id']
+            isOneToOne: false
+            referencedRelation: 'announcements'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'announcement_dispatches_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       approval_requests: {
         Row: {
           approved_by: string | null
@@ -721,7 +781,44 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      communication_overview_v: {
+        Row: {
+          announcement_created_at: string | null
+          announcement_id: string | null
+          announcement_is_active: boolean | null
+          announcement_priority: string | null
+          announcement_target_roles: string[] | null
+          announcement_target_sites: string[] | null
+          announcement_title: string | null
+          dispatch_batch_id: string | null
+          dispatch_created_at: string | null
+          dispatch_created_by: string | null
+          dispatch_id: string | null
+          dispatch_status: string | null
+          dispatch_target_roles: string[] | null
+          dispatch_target_site_ids: string[] | null
+          dispatch_target_user_ids: string[] | null
+          latest_engagement_at: string | null
+          latest_engagement_type: string | null
+          log_body: string | null
+          log_id: string | null
+          log_is_starred: boolean | null
+          log_notification_type: string | null
+          log_sent_at: string | null
+          log_status: string | null
+          log_target_partner_company_id: string | null
+          log_target_partner_company_name: string | null
+          log_target_role: string | null
+          log_target_site_id: string | null
+          log_target_site_name: string | null
+          log_title: string | null
+          log_user_id: string | null
+          profile_organization_id: string | null
+          profile_partner_company_id: string | null
+          profile_role: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_npc1000_shortage: {

@@ -16,6 +16,7 @@ type WorkerPreview = {
   worker_id: string
   name: string
   employment_type: string | null
+  employment_type_label?: string | null
   daily_rate: number | null
   total_labor_hours: number
   total_gross_pay: number
@@ -63,7 +64,32 @@ export default function PayrollPreviewPage() {
       if (!res.ok || json?.success === false) throw new Error(json?.error || '조회 실패')
       const list: WorkerPreview[] = json.data || []
       setRows(list)
-      setWorkerOptions(list.map(item => ({ id: item.worker_id, name: item.name || '-' })))
+      const workerMap = list.reduce((map, item) => {
+        if (item.worker_id) {
+          const name = (item.name || '').trim() || '-'
+          if (!map.has(item.worker_id)) {
+            map.set(item.worker_id, { id: item.worker_id, name })
+          }
+        }
+        return map
+      }, new Map<string, { id: string; name: string }>())
+      const dedupedOptions = Array.from(workerMap.values()).sort((a, b) => {
+        const an = (a?.name || '').trim()
+        const bn = (b?.name || '').trim()
+        if (!an && !bn) return 0
+        if (!an) return 1
+        if (!bn) return -1
+        try {
+          return an.localeCompare(bn, 'ko', { sensitivity: 'base' })
+        } catch {
+          return an > bn ? 1 : an < bn ? -1 : 0
+        }
+      })
+      setWorkerOptions(dedupedOptions)
+      setWorkerId(prev => {
+        if (!prev) return ''
+        return dedupedOptions.some(option => option.id === prev) ? prev : ''
+      })
       setSelected(new Set())
     } catch (e: any) {
       setRows([])
@@ -99,7 +125,11 @@ export default function PayrollPreviewPage() {
     daily_worker: '일용직',
     regular_employee: '상용직',
   } as Record<string, string>
-  const formatEmploymentType = (val: string | null | undefined) => {
+  const formatEmploymentType = (
+    val: string | null | undefined,
+    label?: string | null | undefined
+  ) => {
+    if (label && label !== '-') return label
     const key = String(val || '').toLowerCase()
     return employmentTypeLabel[key] || val || '-'
   }
@@ -137,8 +167,7 @@ export default function PayrollPreviewPage() {
   }
 
   const summarizeDefaultRate = () => {
-    const rawType =
-      String(detail?.employment_type || detailWorker?.employment_type || '').trim()
+    const rawType = String(detail?.employment_type || detailWorker?.employment_type || '').trim()
     const normalized = rawType.toLowerCase()
     if (
       normalized === 'freelancer' ||
@@ -294,7 +323,7 @@ export default function PayrollPreviewPage() {
         <div className="flex-1 min-w-[160px]">
           <input
             type="search"
-            placeholder={t('common.search')}
+            placeholder="이름 검색"
             className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
             value={query}
             onChange={e => setQuery(e.target.value)}
@@ -405,7 +434,9 @@ export default function PayrollPreviewPage() {
                   />
                 </td>
                 <td className="px-3 py-2">{w.name}</td>
-                <td className="px-3 py-2">{formatEmploymentType(w.employment_type)}</td>
+                <td className="px-3 py-2">
+                  {formatEmploymentType(w.employment_type, w.employment_type_label)}
+                </td>
                 <td className="px-3 py-2">
                   {w.status === 'paid' ? (
                     <div className="flex flex-wrap gap-1">
@@ -440,7 +471,11 @@ export default function PayrollPreviewPage() {
                     onClick={() => {
                       const safeName = (w.name || '').trim()
                       const query = safeName ? `?name=${encodeURIComponent(safeName)}` : ''
-                      window.open(`/payslip/${w.worker_id}/${y}/${m}${query}`, '_blank')
+                      openFileRecordInNewTab({
+                        file_url: `/payslip/${w.worker_id}/${y}/${m}${query}`,
+                        file_name: `${safeName || 'payslip'}-${y}-${m}.html`,
+                        title: `${safeName || '급여'} ${y}-${m}`,
+                      })
                     }}
                   >
                     HTML 보기
@@ -486,7 +521,11 @@ export default function PayrollPreviewPage() {
             <h3 className="font-semibold mb-2">세율 정보</h3>
             <div className="text-sm space-y-2">
               <div>
-                고용형태: {formatEmploymentType(detail?.employment_type || detailWorker?.employment_type)}
+                고용형태:{' '}
+                {formatEmploymentType(
+                  detail?.employment_type || detailWorker?.employment_type,
+                  detailWorker?.employment_type_label
+                )}
               </div>
               {detail.rate_source && (
                 <div>

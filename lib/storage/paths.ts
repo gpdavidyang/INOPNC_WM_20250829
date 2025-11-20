@@ -7,8 +7,10 @@ const SCOPE_SEGMENTS = new Set(['public', 'sign', 'auth'])
 
 const normalizeSegment = (value: string) => decodeURIComponent(value || '')
 
-const normalizeObjectPath = (value: string) =>
-  value.replace(/^\/+/, '').replace(/%2F/gi, '/').replace(/\/+/g, '/')
+const normalizeObjectPath = (value: string) => {
+  const stripped = value.replace(/[?#].*$/, '')
+  return stripped.replace(/^\/+/, '').replace(/%2F/gi, '/').replace(/\/+/g, '/')
+}
 
 /**
  * Parses a Supabase storage URL (public/sign/auth) and returns the bucket/object path.
@@ -52,7 +54,8 @@ export function parseStoragePath(
     const bucket = bucketHint.replace(/^\/+|\/+$/g, '')
     if (!bucket) return null
     if (normalized.startsWith(`${bucket}/`)) {
-      return { bucket, objectPath: normalized.slice(bucket.length + 1) }
+      const sliced = normalized.slice(bucket.length + 1)
+      return { bucket, objectPath: sliced || '' }
     }
     return { bucket, objectPath: normalized }
   }

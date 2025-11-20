@@ -216,7 +216,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   }
 
   const isProductionManager = profile?.role === 'production_manager'
-  const menuItems = isProductionManager
+  const baseMenuItems = isProductionManager
     ? [
         { label: '입고요청', href: '/mobile/production/requests' },
         { label: '생산정보', href: '/mobile/production/production' },
@@ -229,6 +229,16 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
         { label: '현장정보', href: '/mobile/sites' },
         { label: '문서함', href: '/mobile/documents' },
       ]
+
+  const shouldShowCommunication =
+    profile?.role === 'site_manager' ||
+    profile?.role === 'worker' ||
+    profile?.role === 'customer_manager' ||
+    profile?.role === 'partner'
+
+  const menuItems = shouldShowCommunication
+    ? [...baseMenuItems, { label: '커뮤니케이션 로그', href: '/mobile/communication/logs' }]
+    : baseMenuItems
 
   // No overlay scrollbar: menu count is small, scrolling disabled
 

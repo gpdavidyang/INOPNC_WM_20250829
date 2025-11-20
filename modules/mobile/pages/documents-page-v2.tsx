@@ -13,6 +13,7 @@ import {
   NotificationProvider,
   useNotificationHelpers,
 } from '@/modules/mobile/hooks/useNotification'
+import { FilePreviewButton } from '@/components/files/FilePreviewButton'
 import './documents-page-v2.css'
 
 interface DocumentItem {
@@ -20,6 +21,10 @@ interface DocumentItem {
   title: string
   hasUpload: boolean
   fileUrl?: string
+  fileName?: string
+  folderPath?: string
+  storageBucket?: string | null
+  storagePath?: string | null
   siteId?: string | null
   siteName?: string | null
 }
@@ -136,6 +141,15 @@ const DocumentsContentV2: React.FC = () => {
           (typeof doc.file_name === 'string' && doc.file_name.trim()) ||
           '제목 없음'
         const fileUrl = typeof doc.file_url === 'string' ? doc.file_url : undefined
+        const fileName = typeof doc.file_name === 'string' ? doc.file_name : undefined
+        const folderPath = typeof doc.folder_path === 'string' ? doc.folder_path : undefined
+        const storageBucket = typeof doc.storage_bucket === 'string' ? doc.storage_bucket : null
+        const storagePath =
+          typeof doc.storage_path === 'string'
+            ? doc.storage_path
+            : typeof doc.folder_path === 'string'
+              ? doc.folder_path
+              : null
         const siteInfo =
           doc.site && typeof doc.site === 'object'
             ? (doc.site as { id?: unknown; name?: unknown })
@@ -148,6 +162,10 @@ const DocumentsContentV2: React.FC = () => {
           title,
           hasUpload: Boolean(fileUrl),
           fileUrl,
+          fileName,
+          folderPath,
+          storageBucket,
+          storagePath,
           siteId,
           siteName,
         }
@@ -392,24 +410,6 @@ const DocumentsContentV2: React.FC = () => {
     })
   }
 
-  const openDocument = (document: DocumentItem) => {
-    if (!document.fileUrl) {
-      showWarning('업로드된 파일이 없습니다.', '파일 없음')
-      return
-    }
-
-    const viewerUrl = `/shared/${document.id}`
-    window.open(viewerUrl, '_blank', 'noopener,noreferrer')
-  }
-
-  const handlePreviewDocument = (docId: string) => {
-    const document = currentDocuments.find(doc => doc.id === docId)
-    if (!document) return
-
-    openDocument(document)
-    clearDeleteMode()
-  }
-
   const handleDeleteDocument = async (docId: string) => {
     const document = currentDocuments.find(doc => doc.id === docId)
     if (!document) return
@@ -524,6 +524,15 @@ const DocumentsContentV2: React.FC = () => {
       const siteLabel =
         doc.siteName && doc.siteName.trim().length > 0 ? doc.siteName : '현장 미지정'
 
+      const previewRecord = doc.fileUrl
+        ? {
+            file_url: doc.fileUrl,
+            storage_bucket: doc.storageBucket || undefined,
+            storage_path: doc.storagePath || doc.folderPath || undefined,
+            file_name: doc.fileName,
+            title: doc.title,
+          }
+        : null
       return (
         <div
           key={doc.id}
@@ -562,16 +571,24 @@ const DocumentsContentV2: React.FC = () => {
                 업로드
               </button>
             )}
-            <button
-              type="button"
-              className="preview-btn"
-              onClick={event => {
-                event.stopPropagation()
-                handlePreviewDocument(doc.id)
-              }}
-            >
-              보기
-            </button>
+            {previewRecord ? (
+              <FilePreviewButton
+                document={previewRecord}
+                className="preview-btn"
+                onClick={event => event.stopPropagation()}
+              >
+                보기
+              </FilePreviewButton>
+            ) : (
+              <button
+                type="button"
+                className="preview-btn"
+                disabled
+                onClick={event => event.stopPropagation()}
+              >
+                보기
+              </button>
+            )}
             <button
               type="button"
               className="delete-btn"

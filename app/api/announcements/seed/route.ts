@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       {
         title: '신규 기능 업데이트',
         content: '모바일 작업일지 V2가 배포되었습니다. 새 기능을 확인하세요.',
-        priority: 'medium',
+        priority: 'normal',
       },
       {
         title: '자재 반입 절차 변경',
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       {
         title: '휴무일 안내',
         content: '다음 주 월요일 현장 전체 휴무입니다. 일정에 참고하세요.',
-        priority: 'medium',
+        priority: 'normal',
       },
     ]
 

@@ -14,7 +14,7 @@ export default async function AdminDocumentDetailPage({ params }: { params: { id
   const { data: doc } = await supabase
     .from('unified_document_system')
     .select(
-      'id, title, category_type, sub_category, document_type, status, file_url, file_name, file_size, mime_type, site:sites(name), created_at'
+      'id, title, category_type, sub_category, document_type, status, file_url, file_name, file_size, mime_type, storage_bucket, storage_path, folder_path, site:sites(name), created_at'
     )
     .eq('id', params.id)
     .maybeSingle()
@@ -32,6 +32,17 @@ export default async function AdminDocumentDetailPage({ params }: { params: { id
       previewUrl = String(doc.file_url)
     }
   }
+
+  const fileRecord = doc
+    ? {
+        file_url: doc.file_url || undefined,
+        storage_bucket: (doc as any)?.storage_bucket || undefined,
+        storage_path: (doc as any)?.storage_path || (doc as any)?.folder_path || undefined,
+        folder_path: (doc as any)?.folder_path || undefined,
+        file_name: doc.file_name || undefined,
+        title: doc.title || undefined,
+      }
+    : null
 
   return (
     <div className="px-0 pb-8 space-y-6">
@@ -72,7 +83,7 @@ export default async function AdminDocumentDetailPage({ params }: { params: { id
                   파일 열기
                 </a>
               )}
-              <DownloadLinkButton endpoint={`/api/admin/documents/${params.id}/download`} />
+              <DownloadLinkButton record={fileRecord} />
             </div>
           </div>
         </div>

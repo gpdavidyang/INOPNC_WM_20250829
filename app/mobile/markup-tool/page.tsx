@@ -284,6 +284,40 @@ export default function MarkupToolPage() {
         console.warn('Failed to render markup snapshot:', snapshotError)
       }
 
+      const ensureBlueprintUpload = async () => {
+        let blueprintUrl = document.original_blueprint_url || drawingFile?.url || ''
+        const blueprintFileName =
+          drawingFile?.name || document.original_blueprint_filename || 'blueprint.png'
+        if (!blueprintUrl) return { url: '', fileName: blueprintFileName }
+        const isEphemeral =
+          blueprintUrl.startsWith('blob:') ||
+          blueprintUrl.startsWith('data:') ||
+          blueprintUrl.startsWith('filesystem:')
+        if (!isEphemeral) {
+          return { url: blueprintUrl, fileName: blueprintFileName }
+        }
+        try {
+          const resp = await fetch(blueprintUrl)
+          if (!resp.ok) throw new Error('원본 도면을 읽을 수 없습니다.')
+          const blob = await resp.blob()
+          const inferredType = blob.type || 'image/png'
+          const safeName =
+            blueprintFileName || `blueprint.${(inferredType.split('/')[1] || 'png').split(';')[0]}`
+          const fd = new FormData()
+          fd.append('file', new File([blob], safeName, { type: inferredType }))
+          const uploadRes = await fetch('/api/uploads/preview', { method: 'POST', body: fd })
+          const uploadJson = await uploadRes.json().catch(() => ({}))
+          if (!uploadRes.ok || !uploadJson?.url) {
+            throw new Error(uploadJson?.error || '도면 업로드에 실패했습니다.')
+          }
+          return { url: uploadJson.url as string, fileName: safeName }
+        } catch (err) {
+          console.warn('Blueprint upload failed:', err)
+          toast.error('원본 도면을 업로드하지 못했습니다. 다른 파일을 선택해 주세요.')
+          return { url: blueprintUrl, fileName: blueprintFileName }
+        }
+      }
+
       if (drawingFile?.id) {
         // 새로운 통합 API: 도면 ID 기반 저장/게시
         const body = {
@@ -318,11 +352,13 @@ export default function MarkupToolPage() {
         })
       } else {
         // Fallback: 기존 API
+        const ensured = await ensureBlueprintUpload()
         const fallback = {
           title: payload.title,
           description: payload.description,
-          original_blueprint_url: document.original_blueprint_url || drawingFile?.url,
-          original_blueprint_filename: drawingFile?.name || 'blueprint.png',
+          original_blueprint_url:
+            ensured.url || document.original_blueprint_url || drawingFile?.url,
+          original_blueprint_filename: ensured.fileName || drawingFile?.name || 'blueprint.png',
           markup_data: payload.markup_data,
           preview_image_url: payload.preview_image_url,
           preview_image_data: previewDataUrl,

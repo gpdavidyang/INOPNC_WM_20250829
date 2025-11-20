@@ -1,5 +1,7 @@
 'use client'
 
+import { openFileRecordInNewTab } from '@/lib/files/preview'
+
 //  // TODO: Implement when table exists
 
 interface DailyReportDetailProps {
@@ -28,6 +30,51 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
   const [attachments, setAttachments] = useState<any[]>([])
   const [showDetailedWorkLogs, setShowDetailedWorkLogs] = useState(false)
   const [showAttendanceDetails, setShowAttendanceDetails] = useState(false)
+
+  const buildFileRecord = (file: any, defaultName: string) => {
+    if (!file) return {}
+    if (typeof file === 'string') {
+      return {
+        file_url: file,
+        file_name: defaultName,
+        title: defaultName,
+      }
+    }
+    const metadata =
+      file && typeof file === 'object' && file.metadata && typeof file.metadata === 'object'
+        ? (file.metadata as Record<string, any>)
+        : {}
+    return {
+      file_url: file.url || file.image_url || file.file_url || metadata.url,
+      storage_bucket: file.storage_bucket || metadata.storage_bucket || undefined,
+      storage_path:
+        file.storage_path || file.path || metadata.storage_path || metadata.path || undefined,
+      file_name: file.filename || file.file_name || file.store_name || defaultName,
+      title: file.filename || file.file_name || file.store_name || defaultName,
+    }
+  }
+
+  const handleOpenFile = async (file: any, defaultName: string) => {
+    const reference = buildFileRecord(file, defaultName)
+    try {
+      if (!reference.file_url && !reference.storage_path) {
+        if (typeof file === 'string' && file) {
+          window.open(file, '_blank', 'noopener,noreferrer')
+        } else {
+          alert('파일 정보를 찾을 수 없습니다.')
+        }
+        return
+      }
+      await openFileRecordInNewTab(reference)
+    } catch (error) {
+      console.error('파일 열기 실패', error)
+      if (reference.file_url) {
+        window.open(reference.file_url, '_blank', 'noopener,noreferrer')
+      } else {
+        alert('파일을 열 수 없습니다. 잠시 후 다시 시도해 주세요.')
+      }
+    }
+  }
 
   // Load attachments
   // TODO: Implement when file attachments are available
@@ -340,7 +387,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                       src={photo.url || photo}
                       alt={`추가 사진 ${index + 1}`}
                       className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
-                      onClick={() => window.open(photo.url || photo, '_blank')}
+                      onClick={() => handleOpenFile(photo, `추가 사진 ${index + 1}`)}
                     />
                   ))}
                 </div>
@@ -367,7 +414,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                       src={photo.url || photo}
                       alt={`작업 전 사진 ${index + 1}`}
                       className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
-                      onClick={() => window.open(photo.url || photo, '_blank')}
+                      onClick={() => handleOpenFile(photo, `작업 전 사진 ${index + 1}`)}
                     />
                   ))}
                 </div>
@@ -394,7 +441,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                       src={photo.url || photo}
                       alt={`작업 후 사진 ${index + 1}`}
                       className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
-                      onClick={() => window.open(photo.url || photo, '_blank')}
+                      onClick={() => handleOpenFile(photo, `작업 후 사진 ${index + 1}`)}
                     />
                   ))}
                 </div>
@@ -433,7 +480,9 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                         </div>
                         {receipt.image_url && (
                           <button
-                            onClick={() => window.open(receipt.image_url, '_blank')}
+                            onClick={() =>
+                              handleOpenFile(receipt.image_url, receipt.store_name || '영수증')
+                            }
                             className="text-xs text-blue-600 hover:text-blue-700"
                           >
                             보기

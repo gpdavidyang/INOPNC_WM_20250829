@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { getSessionUserId } from '@/lib/supabase/session'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { normalizeRequiredDocStatus } from '@/lib/documents/status'
 
 interface User {
   id: string
@@ -45,7 +46,7 @@ interface RequiredDocument {
 
 interface UserDocumentSubmission {
   id: string
-  submission_status: 'not_submitted' | 'submitted' | 'approved' | 'rejected' | 'expired'
+  submission_status: 'not_submitted' | 'pending' | 'approved' | 'rejected' | 'expired'
   submitted_at?: string
   approved_at?: string
   rejected_at?: string
@@ -275,9 +276,9 @@ export default function RequiredDocumentDetailModal({
   }
 
   const getStatusInfo = (status: string) => {
-    switch (status) {
+    const canonical = normalizeRequiredDocStatus(status)
+    switch (canonical) {
       case 'pending':
-      case 'submitted':
         return {
           icon: <Clock className="w-5 h-5 text-yellow-500" />,
           text: '검토 대기',
@@ -336,7 +337,7 @@ export default function RequiredDocumentDetailModal({
   if (!isOpen || !document) return null
 
   const statusInfo = getStatusInfo(document.status)
-  const canApprove = document.status === 'pending' || document.status === 'submitted'
+  const canApprove = normalizeRequiredDocStatus(document.status) === 'pending'
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">

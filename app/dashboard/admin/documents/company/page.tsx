@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { PageHeader } from '@/components/ui/page-header'
 import { useToast } from '@/components/ui/use-toast'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 // Canonical slugs used across the app (aligns with mobile/company tab)
 type CompanySlug = 'biz_reg' | 'bankbook' | 'npc1000_form' | 'completion_form'
@@ -38,6 +39,10 @@ type Row = {
   title?: string
   file_name?: string
   file_url?: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
+  metadata?: Record<string, any> | null
   document_type?: string
   tags?: string[]
   created_at?: string
@@ -393,15 +398,22 @@ export default function AdminCompanyDocumentsPage() {
                   <td className="px-3 py-2 flex items-center gap-2">
                     <button
                       className="px-2 py-1 text-xs rounded border"
+                      disabled={!r.file_url && !r.storage_path && !r.folder_path}
                       onClick={async () => {
-                        if (!r.file_url) return
                         try {
-                          const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(r.file_url)}`)
-                          const j = await res.json().catch(() => ({}))
-                          const url = (j?.url as string) || r.file_url
-                          window.open(url, '_blank')
-                        } catch {
-                          window.open(r.file_url, '_blank')
+                          await openFileRecordInNewTab({
+                            file_url: r.file_url,
+                            storage_bucket: r.storage_bucket || r.metadata?.storage_bucket,
+                            storage_path:
+                              r.storage_path || r.folder_path || r.metadata?.storage_path,
+                            file_name: r.file_name || r.title,
+                            title: r.title || r.file_name || '회사 문서',
+                          })
+                        } catch (error) {
+                          console.error('Failed to open company document', error)
+                          if (r.file_url) {
+                            window.open(r.file_url, '_blank', 'noopener,noreferrer')
+                          }
                         }
                       }}
                     >

@@ -1,6 +1,7 @@
 'use client'
 
 import type { Profile, UserSiteHistory } from '@/types'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 interface SalaryViewProps {
   profile: Profile & { salary_type?: string }
@@ -254,7 +255,13 @@ export function SalaryView({ profile }: SalaryViewProps) {
 
     // 새 탭에서 급여명세서 HTML 페이지 열기
     const payslipUrl = `/payslip/${profile.id}/${salaryItem.year}/${salaryItem.monthNum}`
-    window.open(payslipUrl, '_blank', 'width=800,height=1000,scrollbars=yes,resizable=yes')
+    openFileRecordInNewTab({
+      file_url: payslipUrl,
+      file_name: `${profile?.full_name || 'payslip'}-${salaryItem.year}-${salaryItem.monthNum}.html`,
+      title: `${profile?.full_name || '급여'} ${salaryItem.year}-${salaryItem.monthNum}`,
+    }).catch(() =>
+      window.open(payslipUrl, '_blank', 'width=800,height=1000,scrollbars=yes,resizable=yes')
+    )
   }
 
   return (

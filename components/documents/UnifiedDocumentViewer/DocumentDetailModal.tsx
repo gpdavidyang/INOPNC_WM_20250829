@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
+import { FilePreviewButton } from '@/components/files/FilePreviewButton'
 
 interface DocumentDetailModalProps {
   document: UnifiedDocument
@@ -23,6 +24,19 @@ export default function DocumentDetailModal({
   profile,
 }: DocumentDetailModalProps) {
   const [loading, setLoading] = useState(false)
+  const metadata = (document.metadata || {}) as Record<string, any>
+  const previewRecord = {
+    file_url: document.file_url,
+    storage_bucket:
+      (document as any).storage_bucket || (metadata.storage_bucket as string | undefined),
+    storage_path:
+      (document as any).storage_path ||
+      (metadata.storage_path as string | undefined) ||
+      document.folder_path ||
+      undefined,
+    file_name: document.file_name,
+    title: document.title,
+  }
 
   if (!isOpen) return null
 
@@ -81,36 +95,23 @@ export default function DocumentDetailModal({
       const res = await fetch(`/api/files/signed-url?${qs.toString()}`, { credentials: 'include' })
       const json = await res.json().catch(() => ({}))
       const finalUrl = json?.url || document.file_url
-      const link = document.createElement('a')
+      const dom = window.document
+      const link = dom.createElement('a')
       link.href = finalUrl
       if (document.file_name) link.download = document.file_name
       link.target = '_blank'
-      document.body.appendChild(link)
+      dom.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      dom.body.removeChild(link)
     } catch {
-      const link = document.createElement('a')
+      const dom = window.document
+      const link = dom.createElement('a')
       link.href = document.file_url
       if (document.file_name) link.download = document.file_name
       link.target = '_blank'
-      document.body.appendChild(link)
+      dom.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
-    }
-  }
-
-  const handlePreview = async () => {
-    if (!document.file_url) return
-    try {
-      const res = await fetch(
-        `/api/files/signed-url?${new URLSearchParams({ url: document.file_url }).toString()}`,
-        { credentials: 'include' }
-      )
-      const json = await res.json().catch(() => ({}))
-      const finalUrl = json?.url || document.file_url
-      window.open(finalUrl, '_blank', 'noopener,noreferrer')
-    } catch {
-      window.open(document.file_url, '_blank', 'noopener,noreferrer')
+      dom.body.removeChild(link)
     }
   }
 
@@ -178,14 +179,14 @@ export default function DocumentDetailModal({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handlePreview}
+              <FilePreviewButton
+                document={previewRecord}
+                variant="unstyled"
                 className="inline-flex items-center px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 rounded transition-colors"
               >
                 <Eye className="h-4 w-4 mr-1" />
                 미리보기
-              </button>
+              </FilePreviewButton>
               <button
                 type="button"
                 onClick={handleDownload}

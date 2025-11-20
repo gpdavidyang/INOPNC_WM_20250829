@@ -9,20 +9,49 @@ function resolveSharedDocFileUrl(row: Record<string, any>): string | null {
   if (!row) return null
   const metadata =
     row.metadata && typeof row.metadata === 'object' ? (row.metadata as Record<string, any>) : {}
-  const candidates = [
-    row.file_url,
-    row.fileUrl,
-    row.original_file_url,
-    metadata.public_url,
-    metadata.preview_url,
-    metadata.file_url,
-    metadata.signed_url,
-    metadata.remote_url,
-  ]
+  const preferBlueprintFromMetadata =
+    metadata?.source_table === 'markup_documents' ||
+    typeof metadata?.markup_document_id === 'string'
+
+  const isMarkupProxyUrl = (value: string | null | undefined) => {
+    if (typeof value !== 'string') return false
+    const trimmed = value.trim()
+    if (!trimmed) return false
+    return trimmed.includes('/api/markup-documents/') && trimmed.includes('/file')
+  }
+
+  const candidates: string[] = []
+  const pushCandidate = (value?: string | null) => {
+    if (typeof value !== 'string') return
+    const trimmed = value.trim()
+    if (!trimmed) return
+    candidates.push(trimmed)
+  }
+
+  if (preferBlueprintFromMetadata) {
+    pushCandidate(metadata.original_blueprint_url)
+    pushCandidate(metadata.preview_image_url)
+    pushCandidate(metadata.snapshot_pdf_url)
+  }
+
+  pushCandidate(row.file_url)
+  pushCandidate(row.fileUrl)
+  pushCandidate(row.original_file_url)
+  pushCandidate(metadata.public_url)
+  pushCandidate(metadata.preview_url)
+  pushCandidate(metadata.file_url)
+  pushCandidate(metadata.signed_url)
+  pushCandidate(metadata.remote_url)
+
+  if (!preferBlueprintFromMetadata) {
+    pushCandidate(metadata.original_blueprint_url)
+    pushCandidate(metadata.preview_image_url)
+    pushCandidate(metadata.snapshot_pdf_url)
+  }
+
   for (const url of candidates) {
-    if (typeof url === 'string' && url.trim().length > 0) {
-      return url
-    }
+    if (isMarkupProxyUrl(url)) continue
+    return url
   }
   return null
 }

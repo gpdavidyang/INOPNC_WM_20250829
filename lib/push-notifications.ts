@@ -447,10 +447,10 @@ export const notificationHelpers = {
     userIds: string[],
     title: string,
     content: string,
-    priority: 'low' | 'medium' | 'high' | 'urgent',
+    priority: 'low' | 'normal' | 'high' | 'critical' | 'urgent',
     announcementId: string
   ) {
-    const isUrgent = priority === 'urgent' || priority === 'high'
+    const isUrgent = priority === 'urgent' || priority === 'high' || priority === 'critical'
     return pushNotificationService.sendNotification({
       userIds,
       notificationType: 'site_announcement',

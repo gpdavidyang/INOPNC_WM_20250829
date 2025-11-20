@@ -20,6 +20,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const status = statusMap[action] || 'read'
   try {
     const service = createServiceRoleClient()
+    const { data: logRow, error: fetchError } = await service
+      .from('notification_logs')
+      .select('dispatch_id, dispatch_batch_id, announcement_id')
+      .eq('id', params.id)
+      .maybeSingle()
+    if (fetchError) {
+      console.error('[admin/notifications/:id/status] log fetch failed', fetchError)
+    }
     const { error } = await service.from('notification_logs').update({ status }).eq('id', params.id)
     if (error) return NextResponse.json({ success: false, error: 'Update failed' }, { status: 500 })
     try {
@@ -28,6 +36,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         engagement_type: `admin_${action}`,
         engaged_at: new Date().toISOString(),
         user_id: auth.userId,
+        metadata: {
+          source: 'admin_dashboard',
+          action,
+          dispatch_id: logRow?.dispatch_id || null,
+          dispatch_batch_id: logRow?.dispatch_batch_id || null,
+          announcement_id: logRow?.announcement_id || null,
+        },
       } as any)
     } catch (e) {
       console.warn('[admin/notifications/:id/status] engagement insert failed:', e)

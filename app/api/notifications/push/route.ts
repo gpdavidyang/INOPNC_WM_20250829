@@ -47,6 +47,9 @@ interface NotificationRequest {
     | 'safety_alert'
     | 'equipment_maintenance'
     | 'site_announcement'
+  announcementId?: string
+  dispatchId?: string
+  dispatchBatchId?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -109,7 +112,9 @@ export async function POST(request: NextRequest) {
     // Get target users and their push subscriptions
     let query = supabase
       .from('profiles')
-      .select('id, push_subscription, notification_preferences, role, site_id')
+      .select(
+        'id, push_subscription, notification_preferences, role, site_id, partner_company_id, organization_id'
+      )
 
     // Apply filters
     if (userIds?.length) {
@@ -135,6 +140,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!targetUsers?.length) {
+      if (body.dispatchId) {
+        await supabase
+          .from('announcement_dispatches')
+          .update({
+            status: 'failed',
+            dispatched_count: 0,
+            failed_count: 0,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', body.dispatchId)
+      }
       return NextResponse.json({ error: 'No target users found' }, { status: 404 })
     }
 
@@ -281,6 +297,15 @@ export async function POST(request: NextRequest) {
           status: 'delivered',
           sent_at: new Date().toISOString(),
           sent_by: authResult.userId,
+          announcement_id: body.announcementId,
+          dispatch_id: body.dispatchId,
+          dispatch_batch_id: body.dispatchBatchId,
+          target_role: user.role,
+          target_site_id: user.site_id,
+          target_partner_company_id:
+            (user as { partner_company_id?: string | null }).partner_company_id ||
+            (user as { organization_id?: string | null }).organization_id ||
+            null,
         })
 
         return { success: true, userId: user.id }
@@ -302,6 +327,15 @@ export async function POST(request: NextRequest) {
           error_message: error.message,
           sent_at: new Date().toISOString(),
           sent_by: user.id,
+          announcement_id: body.announcementId,
+          dispatch_id: body.dispatchId,
+          dispatch_batch_id: body.dispatchBatchId,
+          target_role: user.role,
+          target_site_id: user.site_id,
+          target_partner_company_id:
+            (user as { partner_company_id?: string | null }).partner_company_id ||
+            (user as { organization_id?: string | null }).organization_id ||
+            null,
         })
 
         return { success: false, userId: user.id, error: error.message }
@@ -313,6 +347,24 @@ export async function POST(request: NextRequest) {
       (r: unknown) => r.status === 'fulfilled' && r.value.success
     ).length
     const failureCount = results.length - successCount
+
+    if (body.dispatchId) {
+      const status =
+        failureCount > 0 && successCount === 0
+          ? 'failed'
+          : failureCount > 0
+            ? 'completed'
+            : 'completed'
+      await supabase
+        .from('announcement_dispatches')
+        .update({
+          status,
+          dispatched_count: successCount,
+          failed_count: failureCount,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', body.dispatchId)
+    }
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,7 @@
 'use client'
 
+import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
+
 interface Document {
   id: string
   category_type: string
@@ -7,6 +9,9 @@ interface Document {
   file_name: string
   original_filename?: string
   file_url: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
   description?: string
   site_id?: string
   site?: {
@@ -27,6 +32,7 @@ interface Document {
   status?: string
   is_public?: boolean
   tags?: string[]
+  metadata?: unknown
 }
 
 interface Site {
@@ -153,6 +159,43 @@ export default function EnhancedDocumentsView() {
       }
     } catch (error) {
       console.error('Error fetching documents:', error)
+    }
+  }
+
+  const buildFileRecord = (doc: Document) => ({
+    file_url: doc.file_url,
+    storage_bucket: doc.storage_bucket || undefined,
+    storage_path: doc.storage_path || doc.folder_path || undefined,
+    file_name: doc.file_name || doc.original_filename || doc.title,
+    title: doc.title,
+  })
+
+  const handlePreviewDocument = async (doc: Document) => {
+    const fallbackUrl = doc.file_url
+    try {
+      await openFileRecordInNewTab(buildFileRecord(doc))
+    } catch (error) {
+      console.error('Failed to open document', error)
+      if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleDownloadDocument = async (doc: Document) => {
+    const fallbackUrl = doc.file_url
+    try {
+      const signedUrl = await fetchSignedUrlForRecord(buildFileRecord(doc), {
+        downloadName: doc.file_name || doc.original_filename || doc.title,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = signedUrl
+      anchor.target = '_blank'
+      anchor.download = doc.file_name || doc.original_filename || doc.title || 'document'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
+    } catch (error) {
+      console.error('Failed to download document', error)
+      if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
     }
   }
 
@@ -535,21 +578,20 @@ export default function EnhancedDocumentsView() {
                       ) : (
                         // Default handling for other document types
                         <>
-                          <a
-                            href={doc.file_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewDocument(doc)}
                             className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 rounded inline-block"
                           >
                             보기
-                          </a>
-                          <a
-                            href={doc.file_url}
-                            download
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadDocument(doc)}
                             className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 rounded inline-block ml-2"
                           >
                             다운로드
-                          </a>
+                          </button>
                         </>
                       )}
                     </div>
@@ -722,23 +764,22 @@ export default function EnhancedDocumentsView() {
                           ) : (
                             // Default handling for other document types
                             <>
-                              <a
-                                href={doc.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                              <button
+                                type="button"
+                                onClick={() => handlePreviewDocument(doc)}
                                 className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 rounded"
                                 title="보기"
                               >
                                 보기
-                              </a>
-                              <a
-                                href={doc.file_url}
-                                download
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadDocument(doc)}
                                 className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 rounded inline-block ml-2"
                                 title="다운로드"
                               >
                                 다운로드
-                              </a>
+                              </button>
                               <button
                                 className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 rounded ml-2"
                                 title="삭제"

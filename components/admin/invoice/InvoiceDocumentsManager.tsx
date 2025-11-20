@@ -15,6 +15,7 @@ import {
 } from '@/components/admin/invoice/InvoiceUploadDialog'
 import { DEFAULT_INVOICE_DOC_TYPES } from '@/lib/invoice/doc-types'
 import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
+import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
 
 interface InvoiceDocType {
   code: string
@@ -163,18 +164,27 @@ const findDocTypesForDocument = (
   return Array.from(codes)
 }
 
-const resolveStorageParams = (doc: InvoiceDocument) => {
+const buildInvoiceFileRecord = (doc: InvoiceDocument) => {
   const metadata = (
     doc?.metadata && typeof doc.metadata === 'object' ? doc.metadata : {}
   ) as Record<string, any>
-  const storagePath = doc.storage_path || metadata?.storage_path || metadata?.storagePath || null
-  const storageBucket =
-    doc.storage_bucket ||
-    metadata?.storage_bucket ||
-    metadata?.storageBucket ||
-    parseSupabaseStorageUrl(doc.file_url || metadata?.file_url || undefined)?.bucket ||
-    null
-  return { storagePath, storageBucket }
+  return {
+    file_url: doc.file_url || metadata.file_url,
+    storage_bucket:
+      doc.storage_bucket ||
+      metadata.storage_bucket ||
+      metadata.storageBucket ||
+      parseSupabaseStorageUrl(doc.file_url || metadata.file_url || undefined)?.bucket ||
+      undefined,
+    storage_path:
+      doc.storage_path ||
+      metadata.storage_path ||
+      metadata.storagePath ||
+      metadata.folder_path ||
+      undefined,
+    file_name: doc.file_name || metadata.file_name || doc.title,
+    title: doc.title || doc.file_name || metadata.file_name,
+  }
 }
 
 const toInvoiceDocumentFromDetail = (
@@ -622,32 +632,22 @@ export default function InvoiceDocumentsManager({
     if (!doc?.id) return
     try {
       const resolved = doc.file_url ? doc : await resolveDocumentDetail(doc)
-      const { storagePath, storageBucket } = resolveStorageParams(resolved as InvoiceDocument)
-      let signedUrl = resolved.file_url || ''
+      const record = buildInvoiceFileRecord(resolved as InvoiceDocument)
+      let signedUrl = ''
       try {
-        if (!signedUrl && !storagePath) throw new Error('파일 URL이 없습니다.')
-        const params = new URLSearchParams()
-        if (signedUrl) params.set('url', signedUrl)
-        if (storagePath) params.set('path', storagePath)
-        if (storageBucket) params.set('bucket', storageBucket)
-        if (resolved.file_name) params.set('download', resolved.file_name)
-        const qs = params.toString()
-        if (qs) {
-          const res = await fetch(`/api/files/signed-url?${qs}`, {
-            credentials: 'include',
-          })
-          const json = await res.json()
-          if (json?.url) signedUrl = json.url
+        signedUrl = await fetchSignedUrlForRecord(record)
+      } catch (error) {
+        if (record.file_url) {
+          signedUrl = record.file_url
+        } else {
+          throw error
         }
-      } catch {
-        /* ignore signed URL failure */
       }
-      if (!signedUrl) throw new Error('파일 URL을 찾을 수 없습니다.')
-      const anchor = document.createElement('a')
+      const anchor = window.document.createElement('a')
       anchor.href = signedUrl
       if (resolved.file_name) anchor.download = resolved.file_name
       anchor.rel = 'noopener noreferrer'
-      document.body.appendChild(anchor)
+      window.document.body.appendChild(anchor)
       anchor.click()
       anchor.remove()
       setDocuments(prev => {
@@ -673,27 +673,7 @@ export default function InvoiceDocumentsManager({
     if (!doc?.id) return
     try {
       const resolved = doc.file_url ? doc : await resolveDocumentDetail(doc)
-      const { storagePath, storageBucket } = resolveStorageParams(resolved as InvoiceDocument)
-      let finalUrl = resolved.file_url || ''
-      if (!finalUrl && !storagePath) throw new Error('파일 URL을 찾을 수 없습니다.')
-      try {
-        const params = new URLSearchParams()
-        if (finalUrl) params.set('url', finalUrl)
-        if (storagePath) params.set('path', storagePath)
-        if (storageBucket) params.set('bucket', storageBucket)
-        const qs = params.toString()
-        if (qs) {
-          const res = await fetch(`/api/files/signed-url?${qs}`, {
-            credentials: 'include',
-          })
-          const json = await res.json()
-          if (json?.url) finalUrl = json.url
-        }
-      } catch {
-        /* ignore signed URL failure */
-      }
-      if (!finalUrl) throw new Error('파일 URL을 찾을 수 없습니다.')
-      window.open(finalUrl, '_blank', 'noopener,noreferrer')
+      await openFileRecordInNewTab(buildInvoiceFileRecord(resolved as InvoiceDocument))
       setDocuments(prev => {
         const existing = getDocumentsForType(prev, docType) || []
         const merged = [

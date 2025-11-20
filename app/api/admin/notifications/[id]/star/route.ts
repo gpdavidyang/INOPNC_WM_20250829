@@ -14,11 +14,24 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const starred = Boolean(body?.starred)
   try {
     const service = createServiceRoleClient()
+    const { data: log } = await service
+      .from('notification_logs')
+      .select('dispatch_id, dispatch_batch_id, announcement_id')
+      .eq('id', params.id)
+      .maybeSingle()
+
     await service.from('notification_engagement').insert({
       notification_id: params.id,
       user_id: auth.userId,
       engagement_type: starred ? 'admin_starred' : 'admin_unstarred',
       engaged_at: new Date().toISOString(),
+      metadata: {
+        source: 'admin_dashboard',
+        action: starred ? 'star' : 'unstar',
+        dispatch_id: log?.dispatch_id || null,
+        dispatch_batch_id: log?.dispatch_batch_id || null,
+        announcement_id: log?.announcement_id || null,
+      },
     } as any)
     return NextResponse.json({ success: true })
   } catch (e: any) {

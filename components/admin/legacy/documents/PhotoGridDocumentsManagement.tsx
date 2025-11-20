@@ -3,6 +3,7 @@
 import { t } from '@/lib/ui/strings'
 
 import React, { useState, useEffect } from 'react'
+import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
 
 // Helper function to get typography class
 function getTypographyClass(
@@ -25,6 +26,10 @@ interface PhotoGridDocument {
   thumbnailUrl?: string
   status: 'active' | 'archived'
   tags: string[]
+  fileUrl?: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
 }
 
 export default function PhotoGridDocumentsManagement() {
@@ -52,7 +57,7 @@ export default function PhotoGridDocumentsManagement() {
       if (response.ok) {
         const result = await response.json()
         const data = result.documents || []
-        const formattedDocs = data.map((doc: unknown) => {
+        const formattedDocs = data.map((doc: any) => {
           return {
             id: doc.id,
             title: doc.title,
@@ -66,6 +71,8 @@ export default function PhotoGridDocumentsManagement() {
             tags: ['사진대지', doc.category_type].filter(Boolean),
             fileUrl: doc.file_url,
             metadata: doc.metadata,
+            storage_bucket: doc.storage_bucket || null,
+            storage_path: doc.storage_path || doc.folder_path || null,
           }
         })
         setDocuments(formattedDocs)
@@ -83,7 +90,15 @@ export default function PhotoGridDocumentsManagement() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  const handlePreview = (doc: PhotoGridDocument) => {
+  const buildFileRecord = (doc: PhotoGridDocument) => ({
+    file_url: doc.fileUrl,
+    storage_bucket: doc.storage_bucket || undefined,
+    storage_path: doc.storage_path || undefined,
+    file_name: doc.fileName || doc.title,
+    title: doc.title,
+  })
+
+  const handlePreview = async (doc: PhotoGridDocument) => {
     const raw = (doc as unknown as any).metadata
     let meta: any = raw
     if (typeof raw === 'string') {
@@ -103,6 +118,16 @@ export default function PhotoGridDocumentsManagement() {
       return
     }
     // Legacy photo_grid_id no longer supported
+    if (doc.fileUrl) {
+      try {
+        await openFileRecordInNewTab(buildFileRecord(doc))
+        return
+      } catch (error) {
+        console.error('사진대지 파일 열기 실패', error)
+      }
+      window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
+      return
+    }
     alert('레거시 사진대지 문서는 새 미리보기를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.')
   }
 
@@ -124,6 +149,25 @@ export default function PhotoGridDocumentsManagement() {
         '_blank'
       )
       return
+    }
+    if (doc.fileUrl) {
+      try {
+        const url = await fetchSignedUrlForRecord(buildFileRecord(doc), {
+          downloadName: doc.fileName || doc.title,
+        })
+        const anchor = window.document.createElement('a')
+        anchor.href = url
+        anchor.target = '_blank'
+        anchor.download = doc.fileName || doc.title || 'photo-grid'
+        window.document.body.appendChild(anchor)
+        anchor.click()
+        window.document.body.removeChild(anchor)
+        return
+      } catch (error) {
+        console.error('사진대지 파일 다운로드 실패', error)
+        window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
+        return
+      }
     }
     alert(
       '레거시 사진대지 문서는 직접 다운로드를 지원하지 않습니다. 마이그레이션 후 이용해 주세요.'

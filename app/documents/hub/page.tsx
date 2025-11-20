@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -12,29 +12,38 @@ import {
 import { resolveSharedDocCategoryLabel } from '@/lib/documents/shared-documents'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
+import { FilePreviewButton } from '@/components/files/FilePreviewButton'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 type TabKey = 'mine' | 'company' | 'drawings' | 'photos'
 
-type RequiredDocKey =
-  | 'pre-employment-checkup'
-  | 'safety-training'
-  | 'vehicle-insurance'
-  | 'vehicle-registration'
-  | 'bank-account-copy'
-  | 'id-card'
-  | 'senior-documents'
-  | 'other'
+type RequiredDocKey = string
 
-const REQUIRED_LIST: Array<{ key: RequiredDocKey; title: string }> = [
-  { key: 'pre-employment-checkup', title: '배치전 검진' },
-  { key: 'safety-training', title: '기초안전보건교육' },
-  { key: 'vehicle-insurance', title: '차량보험증' },
-  { key: 'vehicle-registration', title: '차량등록증' },
-  { key: 'bank-account-copy', title: '통장사본' },
-  { key: 'id-card', title: '신분증' },
-  { key: 'senior-documents', title: '고령자 서류' },
-  { key: 'other', title: '기타' },
+const DEFAULT_REQUIRED_DOCS: Array<{ code: RequiredDocKey; title: string }> = [
+  { code: 'pre-employment-checkup', title: '배치전 검진' },
+  { code: 'safety-training', title: '기초안전보건교육' },
+  { code: 'vehicle-insurance', title: '차량보험증' },
+  { code: 'vehicle-registration', title: '차량등록증' },
+  { code: 'bank-account-copy', title: '통장사본' },
+  { code: 'id-card', title: '신분증' },
+  { code: 'senior-documents', title: '고령자 서류' },
+  { code: 'other', title: '기타' },
 ]
+
+const REQUIRED_DOC_COPY_OVERRIDES: Record<
+  string,
+  {
+    title?: string
+    description?: string
+  }
+> = {
+  safety_certificate: { description: '필수 안전교육증' },
+  health_certificate: { description: '건강적합 증명' },
+  insurance_certificate: { description: '보험 가입증명' },
+  id_copy: { description: '신분증 사본' },
+  license: { description: '자격/면허증' },
+  other: { description: '프로젝트 추가서류' },
+}
 
 const COMPANY_LIST: Array<{ key: string; title: string }> = [
   { key: 'biz_reg', title: '사업자등록증' },
@@ -47,6 +56,41 @@ const DRAWING_CATEGORY_LABELS: Record<string, string> = {
   plan: '공도면',
   progress: '진행도면',
   other: '기타',
+}
+
+const DOC_STATUS_BADGE_STYLES: Record<
+  RequiredDocStatus,
+  { label: string; background: string; color: string }
+> = {
+  approved: {
+    label: REQUIRED_DOC_STATUS_LABELS.approved,
+    background: '#dcfce7',
+    color: '#166534',
+  },
+  rejected: {
+    label: REQUIRED_DOC_STATUS_LABELS.rejected,
+    background: '#fee2e2',
+    color: '#b91c1c',
+  },
+  pending: {
+    label: REQUIRED_DOC_STATUS_LABELS.pending,
+    background: '#fef3c7',
+    color: '#92400e',
+  },
+  not_submitted: {
+    label: REQUIRED_DOC_STATUS_LABELS.not_submitted,
+    background: '#fee2e2',
+    color: '#9f1239',
+  },
+}
+
+type CompanyDoc = {
+  id: string
+  title: string
+  url: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  file_name?: string | null
 }
 
 export default function DocumentHubPage() {
@@ -320,17 +364,53 @@ export default function DocumentHubPage() {
           border-radius: 10px;
           padding: 8px 12px;
           font-weight: 700;
+          font-size: 13px;
         }
         .upload-btn.uploaded {
           border-color: #16a34a;
           color: #16a34a;
           background: color-mix(in srgb, #16a34a 10%, transparent);
         }
+        .doc-selection-title {
+          font-size: 14px;
+          font-weight: 700;
+          color: #111827;
+        }
+        .doc-selection-description {
+          margin-top: 4px;
+          color: #6b7280;
+          font-size: 10px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .doc-status-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          font-size: 10px;
+          padding: 2px 10px;
+          border-radius: 999px;
+          min-width: 60px;
+        }
+        @media (max-width: 480px) {
+          .doc-status-badge {
+            font-size: 10px;
+            min-width: 48px;
+          }
+        }
+        .doc-status-reason {
+          margin-top: 4px;
+          font-size: 10px;
+          color: #b91c1c;
+        }
         .doc-actions .btn,
         .foot .btn {
           border: 1px solid var(--line, #e5e7eb);
           background: var(--card, #fff);
           color: var(--text, #1f2937);
+          font-size: 13px;
         }
         .preview-btn,
         .selection-checkmark {
@@ -339,6 +419,7 @@ export default function DocumentHubPage() {
           color: var(--text, #1f2937);
           border-radius: 10px;
           padding: 8px 10px;
+          font-size: 13px;
         }
         .selection-checkmark.active {
           border-color: #2f6bff;
@@ -548,18 +629,138 @@ export default function DocumentHubPage() {
   )
 }
 
+type RequiredDocType = {
+  id: string
+  code: string
+  title: string
+  description?: string
+  instructions?: string
+}
+
+type SubmissionInfo = {
+  document_id?: string
+  file_url?: string | null
+  file_name?: string | null
+  storage_bucket?: string | null
+  storage_path?: string | null
+  status?: RequiredDocStatus
+  rejection_reason?: string | null
+  updated_at?: string
+}
+
+async function saveBlobToDevice(blob: Blob, suggestedName?: string) {
+  const downloadName = suggestedName || 'document'
+  const enhancedWindow = window as Window & {
+    showSaveFilePicker?: (options?: any) => Promise<any>
+  }
+
+  if (typeof enhancedWindow.showSaveFilePicker === 'function') {
+    try {
+      const handle = await enhancedWindow.showSaveFilePicker({
+        suggestedName: downloadName,
+        types: [
+          {
+            description: '문서 파일',
+            accept: {
+              'application/pdf': ['.pdf'],
+              'image/*': ['.png', '.jpg', '.jpeg', '.heic', '.heif'],
+              'application/msword': ['.doc'],
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+              'application/zip': ['.zip'],
+            },
+          },
+        ],
+      })
+      const writable = await handle.createWritable()
+      await writable.write(blob)
+      await writable.close()
+      return
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        throw error
+      }
+      console.warn('Native save picker failed, falling back to anchor download', error)
+    }
+  }
+
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = downloadName
+  anchor.rel = 'noopener'
+  document.body.appendChild(anchor)
+  anchor.click()
+  setTimeout(() => {
+    document.body.removeChild(anchor)
+    URL.revokeObjectURL(url)
+  }, 0)
+}
+
+function buildSubmissionMapFromRows(
+  rows: any[],
+  lookup?: Map<string, string>
+): Record<string, SubmissionInfo> {
+  const map: Record<string, SubmissionInfo> = {}
+  if (!Array.isArray(rows)) return map
+
+  const requirementLookup = lookup ?? new Map<string, string>()
+
+  for (const s of rows) {
+    const requirementId = s?.requirement_id || s?.requirement?.id || s?.requirement?.requirement_id
+    let docType =
+      s?.requirement?.code || s?.requirement?.document_type || s?.requirement?.documentType || ''
+    if (!docType && requirementId) {
+      docType = requirementLookup.get(String(requirementId)) || ''
+    }
+    const key = String(docType || '')
+    const doc = s?.document
+    if (!key) continue
+    const rawStatus =
+      s?.submission_status || doc?.status || (doc?.file_url ? 'pending' : 'not_submitted')
+    const normalizedStatus = normalizeRequiredDocStatus(rawStatus)
+
+    map[key] = {
+      document_id: doc?.id,
+      file_url: doc?.file_url,
+      file_name: doc?.file_name,
+      storage_bucket: doc?.storage_bucket ?? null,
+      storage_path: doc?.storage_path ?? doc?.folder_path ?? null,
+      status: normalizedStatus,
+      rejection_reason: s?.rejection_reason,
+      updated_at: s?.updated_at,
+    }
+  }
+  return map
+}
+
 function MyDocsTab() {
   const { toast } = useToast()
   const [uploaded, setUploaded] = useState<Record<string, File | null>>({})
-  const [requiredTypes, setRequiredTypes] = useState<
-    Array<{ id: string; code: string; name_ko?: string }>
-  >([])
-  const [submissions, setSubmissions] = useState<
-    Record<string, { document_id?: string; file_url?: string }>
-  >({})
+  const [requiredTypes, setRequiredTypes] = useState<RequiredDocType[]>([])
+  const [submissions, setSubmissions] = useState<Record<string, SubmissionInfo>>({})
   const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sharing, setSharing] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  const typeCodeLookup = useMemo(() => {
+    const map = new Map<string, string>()
+    requiredTypes.forEach(rt => map.set(String(rt.id), rt.code))
+    return map
+  }, [requiredTypes])
+
+  const refreshSubmissions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/user-document-submissions', { credentials: 'include' })
+      const subsJson = await res.json().catch(() => ({}))
+      if (res.ok && Array.isArray(subsJson?.data)) {
+        setSubmissions(buildSubmissionMapFromRows(subsJson.data, typeCodeLookup))
+      }
+    } catch (error) {
+      console.error('Failed to refresh submissions', error)
+    }
+  }, [typeCodeLookup])
 
   useEffect(() => {
     ;(async () => {
@@ -572,25 +773,38 @@ function MyDocsTab() {
         const typesJson = await typesRes.json().catch(() => ({}))
         const subsJson = await subsRes.json().catch(() => ({}))
         const list = Array.isArray(typesJson?.required_documents)
-          ? (typesJson.required_documents as Array<any>).map(it => ({
-              id: String(it.id),
-              code: String(it.code || it.document_type || ''),
-            }))
+          ? (typesJson.required_documents as Array<any>)
+              .map(it => ({
+                id: String(it.id),
+                code: String(it.code || it.document_type || ''),
+                title: String(it.name_ko || it.name_en || it.code || '필수 서류'),
+                description: it.description,
+                instructions: it.instructions,
+                sort_order: typeof it.sort_order === 'number' ? it.sort_order : 0,
+              }))
+              .filter(it => !!it.code)
+              .sort((a, b) => a.sort_order - b.sort_order)
           : []
-        setRequiredTypes(list)
-
-        const map: Record<string, { document_id?: string; file_url?: string }> = {}
-        if (Array.isArray(subsJson?.data)) {
-          for (const s of subsJson.data) {
-            const docType = s?.requirement?.document_type || s?.requirement?.documentType || ''
-            const key = String(docType)
-            const doc = s?.document
-            if (key) {
-              map[key] = { document_id: doc?.id, file_url: doc?.file_url }
-            }
-          }
+        if (list.length > 0) {
+          setRequiredTypes(list)
+        } else {
+          setRequiredTypes(
+            DEFAULT_REQUIRED_DOCS.map(doc => ({ id: doc.code, code: doc.code, title: doc.title }))
+          )
         }
-        setSubmissions(map)
+
+        const lookup = new Map(list.map(item => [String(item.id), item.code]))
+        if (Array.isArray(subsJson?.data)) {
+          setSubmissions(buildSubmissionMapFromRows(subsJson.data, lookup))
+        } else {
+          setSubmissions({})
+        }
+      } catch (error) {
+        console.error('Failed to load required document data', error)
+        setRequiredTypes(
+          DEFAULT_REQUIRED_DOCS.map(doc => ({ id: doc.code, code: doc.code, title: doc.title }))
+        )
+        setSubmissions({})
       } finally {
         setLoading(false)
       }
@@ -631,7 +845,7 @@ function MyDocsTab() {
       const json = await res.json()
       if (!res.ok || json?.error) throw new Error(json?.error || '업로드 실패')
       const docId = json?.data?.id
-      if (requirementId && docId) {
+      if (requirementId) {
         await fetch('/api/user-document-submissions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -640,8 +854,16 @@ function MyDocsTab() {
         })
         setSubmissions(prev => ({
           ...prev,
-          [k]: { document_id: String(docId), file_url: json?.data?.url },
+          [k]: {
+            document_id: docId ? String(docId) : undefined,
+            file_url: json?.data?.url,
+            file_name: f.name,
+            status: 'pending',
+            rejection_reason: undefined,
+            updated_at: new Date().toISOString(),
+          },
         }))
+        await refreshSubmissions()
       }
     } catch (e: any) {
       toast({
@@ -666,153 +888,321 @@ function MyDocsTab() {
         .filter(Boolean) as string[],
     [selected, submissions]
   )
+  const selectedRemoteEntries = useMemo(
+    () =>
+      Array.from(selected)
+        .map(k => submissions[k])
+        .filter(
+          (info): info is SubmissionInfo =>
+            !!info && (!!info.file_url || (!!info.storage_bucket && !!info.storage_path))
+        ),
+    [selected, submissions]
+  )
 
-  const onSave = () => {
-    if (selectedFiles.length > 0) {
-      for (const f of selectedFiles) {
-        const a = document.createElement('a')
-        a.href = URL.createObjectURL(f)
-        a.download = f.name
-        a.click()
-        URL.revokeObjectURL(a.href)
+  const resolveRemoteSubmissionAsset = useCallback(async (info: SubmissionInfo) => {
+    if (!info) return null
+    let downloadUrl = info.file_url || null
+    const needsSignedUrl =
+      !!info.storage_bucket &&
+      !!info.storage_path &&
+      (!downloadUrl || /\/object\/sign\//.test(downloadUrl))
+
+    if (needsSignedUrl && info.storage_bucket && info.storage_path) {
+      const params = new URLSearchParams()
+      params.set('bucket', info.storage_bucket)
+      params.set('path', info.storage_path)
+      if (info.file_name) params.set('filename', info.file_name)
+      if (info.file_url) params.set('url', info.file_url)
+      try {
+        const res = await fetch(`/api/files/signed-url?${params.toString()}`, {
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (res.ok && json?.url) {
+          downloadUrl = json.url
+        }
+      } catch (error) {
+        console.warn('Failed to load signed URL for submission', error)
       }
-    } else if (selectedRemoteUrls.length > 0) {
-      for (const url of selectedRemoteUrls) {
-        const a = document.createElement('a')
-        a.href = url
-        a.download = ''
-        a.click()
-      }
-    } else {
-      toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
     }
-  }
-  const onShare = async () => {
-    if (selectedFiles.length === 0 && selectedRemoteUrls.length === 0) {
+
+    if (!downloadUrl && info.storage_bucket && info.storage_path) {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+      if (supabaseUrl) {
+        const encodedPath = encodeURIComponent(info.storage_path).replace(/%2F/g, '/')
+        downloadUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${info.storage_bucket}/${encodedPath}`
+      }
+    }
+
+    if (!downloadUrl) return null
+    const response = await fetch(downloadUrl, { credentials: 'include' })
+    if (!response.ok) throw new Error('파일을 불러오지 못했습니다.')
+    const blob = await response.blob()
+    const safeName = info.file_name || `document-${Date.now()}`
+    return { blob, fileName: safeName, downloadUrl }
+  }, [])
+
+  const shortenDescription = useCallback((text?: string | null, limit = 15) => {
+    if (!text) return ''
+    const trimmed = text.trim()
+    if (!trimmed) return ''
+    const effectiveLimit = Math.max(1, limit)
+    return trimmed.length <= effectiveLimit ? trimmed : `${trimmed.slice(0, effectiveLimit)}…`
+  }, [])
+
+  const onSave = useCallback(async () => {
+    if (saving) return
+    const hasLocal = selectedFiles.length > 0
+    const hasRemote = selectedRemoteEntries.length > 0
+
+    if (!hasLocal && !hasRemote) {
       toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
       return
     }
+
+    setSaving(true)
     try {
-      const nav: any = navigator as any
-      if (!nav.share) {
+      if (hasLocal) {
+        for (const file of selectedFiles) {
+          await saveBlobToDevice(file, file.name)
+        }
+      }
+      if (hasRemote) {
+        for (const info of selectedRemoteEntries) {
+          const resolved = await resolveRemoteSubmissionAsset(info)
+          if (!resolved) continue
+          await saveBlobToDevice(resolved.blob, resolved.fileName)
+        }
+      }
+      toast({ title: '저장 완료', description: '선택한 문서를 기기에 저장했습니다.' })
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to save selected documents', error)
         toast({
-          title: '공유 안내',
-          description: 'Web Share 미지원. 저장 후 다른 앱으로 공유하세요.',
-          variant: 'info',
+          title: '저장 실패',
+          description: error?.message || '파일 저장 중 오류가 발생했습니다.',
+          variant: 'destructive',
         })
-        return
       }
-
-      // 우선 파일 공유 시도
-      if (selectedFiles.length > 0 && nav.canShare) {
-        // 1) 다중 파일 지원 여부 확인
-        if (nav.canShare({ files: selectedFiles })) {
-          await nav.share({ files: selectedFiles, title: '내문서함 공유' })
-          return
-        }
-        // 2) 단일 파일로 폴백
-        const single = selectedFiles[0]
-        if (single && nav.canShare({ files: [single] })) {
-          if (selectedFiles.length > 1) {
-            toast({
-              title: '다중 파일 공유 미지원',
-              description: `선택한 ${selectedFiles.length}개 중 첫 번째 파일(${single.name})만 공유됩니다. 나머지는 저장 후 개별 공유해 주세요.`,
-              variant: 'info',
-            })
-          }
-          await nav.share({ files: [single], title: '내문서함 공유(첫 파일만)' })
-          return
-        }
-        // 3) 파일 공유가 불가한 환경 → 링크 공유로 폴백
-      }
-
-      if (selectedRemoteUrls.length > 0) {
-        const text = selectedRemoteUrls.join('\n')
-        await nav.share({ title: '내문서함 공유', text, url: selectedRemoteUrls[0] })
-        return
-      }
-
-      toast({
-        title: '선택 필요',
-        description: '공유할 항목을 선택하거나 저장 후 다시 시도하세요.',
-        variant: 'warning',
-      })
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : ''
-      toast({
-        title: '공유 실패',
-        description: msg || '공유 취소 또는 실패',
-        variant: 'destructive',
-      })
+    } finally {
+      setSaving(false)
     }
-  }
+  }, [saving, selectedFiles, selectedRemoteEntries, resolveRemoteSubmissionAsset, toast])
+  const onShare = useCallback(async () => {
+    if (sharing) return
+    const hasLocal = selectedFiles.length > 0
+    const hasRemote = selectedRemoteEntries.length > 0
+    if (!hasLocal && !hasRemote) {
+      toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
+      return
+    }
+    const nav: any = navigator as any
+    if (typeof nav?.share !== 'function') {
+      toast({
+        title: '공유 안내',
+        description:
+          '이 기기는 네이티브 공유 기능을 지원하지 않습니다. 저장 후 다른 앱으로 공유해 주세요.',
+        variant: 'info',
+      })
+      return
+    }
+    setSharing(true)
+    try {
+      const shareFiles: File[] = []
+      const shareLinks: string[] = []
+      if (hasLocal) {
+        shareFiles.push(...selectedFiles)
+      }
+      if (hasRemote) {
+        for (const info of selectedRemoteEntries) {
+          const resolved = await resolveRemoteSubmissionAsset(info)
+          if (!resolved) continue
+          shareLinks.push(resolved.downloadUrl)
+          const remoteFile = new File([resolved.blob], resolved.fileName, {
+            type: resolved.blob.type || 'application/octet-stream',
+          })
+          shareFiles.push(remoteFile)
+        }
+      }
+
+      const shareData: any = { title: '내문서함 공유' }
+      let canShareFiles = false
+      if (shareFiles.length > 0) {
+        if (typeof nav.canShare === 'function') {
+          if (nav.canShare({ files: shareFiles })) {
+            shareData.files = shareFiles
+            canShareFiles = true
+          } else if (shareFiles.length > 0 && nav.canShare({ files: [shareFiles[0]] })) {
+            shareData.files = [shareFiles[0]]
+            canShareFiles = true
+            if (shareFiles.length > 1) {
+              toast({
+                title: '다중 파일 공유 미지원',
+                description: `선택한 ${shareFiles.length}개 중 첫 번째 파일(${shareFiles[0].name})만 공유됩니다.`,
+                variant: 'info',
+              })
+            }
+          }
+        } else {
+          shareData.files = shareFiles
+          canShareFiles = true
+        }
+      }
+
+      if (!canShareFiles) {
+        const fallbackLinks =
+          shareLinks.length > 0
+            ? shareLinks
+            : selectedRemoteUrls.length > 0
+              ? selectedRemoteUrls
+              : []
+        if (fallbackLinks.length === 0) {
+          throw new Error('공유할 파일을 준비하지 못했습니다.')
+        }
+        shareData.text = fallbackLinks.join('\n')
+        shareData.url = fallbackLinks[0]
+      }
+
+      await nav.share(shareData)
+      toast({ title: '공유 완료', description: '선택한 문서를 공유했습니다.' })
+    } catch (error: any) {
+      if (error?.name !== 'AbortError') {
+        console.error('Failed to share documents', error)
+        toast({
+          title: '공유 실패',
+          description: error?.message || '공유 중 오류가 발생했습니다.',
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      setSharing(false)
+    }
+  }, [
+    sharing,
+    selectedFiles,
+    selectedRemoteEntries,
+    selectedRemoteUrls,
+    resolveRemoteSubmissionAsset,
+    toast,
+  ])
 
   return (
     <div>
-      <div className="section-title">필수제출서류 8종</div>
-      <div className="document-cards">
-        {REQUIRED_LIST.map(item => {
-          const f = uploaded[item.key]
-          const remote = submissions[item.key]
-          return (
-            <div
-              key={item.key}
-              className={`doc-selection-card ${selected.has(item.key) ? 'active' : ''}`}
-            >
-              <div className="doc-selection-content">
-                <div className="doc-selection-title">{item.title}</div>
+      <div className="section-title">필수제출서류</div>
+      {requiredTypes.length === 0 ? (
+        <p className="text-sm text-muted-foreground">설정된 필수 서류가 없습니다.</p>
+      ) : (
+        <div className="document-cards">
+          {requiredTypes.map(item => {
+            const f = uploaded[item.code]
+            const remote = submissions[item.code]
+            const hasSubmission = !!remote
+            const status = normalizeRequiredDocStatus(
+              remote?.status || (hasSubmission ? 'pending' : 'not_submitted')
+            )
+            const statusInfo = DOC_STATUS_BADGE_STYLES[status] || null
+            const overrides = REQUIRED_DOC_COPY_OVERRIDES[item.code] || {}
+            const displayTitle = overrides.title ?? item.title ?? item.code
+            const truncatedTitle = shortenDescription(displayTitle)
+            const displayDescription = overrides.description ?? item.description ?? ''
+            const descriptionText = shortenDescription(displayDescription, 40)
+            const titleTooltip = overrides.title ? item.title || displayTitle : displayTitle
+            const descriptionTooltip = overrides.description
+              ? item.description || displayDescription
+              : displayDescription
+            const previewRecord = remote
+              ? {
+                  file_url: remote.file_url,
+                  storage_bucket: remote.storage_bucket || undefined,
+                  storage_path: remote.storage_path || undefined,
+                  file_name: remote.file_name || undefined,
+                  title: item.title,
+                }
+              : null
+            return (
+              <div
+                key={item.code}
+                className={`doc-selection-card ${selected.has(item.code) ? 'active' : ''}`}
+              >
+                <div className="doc-selection-content">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="doc-selection-title" title={titleTooltip || undefined}>
+                      {truncatedTitle}
+                    </div>
+                    {statusInfo ? (
+                      <span
+                        className="doc-status-badge"
+                        style={{
+                          backgroundColor: statusInfo.background,
+                          color: statusInfo.color,
+                          fontSize: '10px',
+                          lineHeight: '1',
+                        }}
+                      >
+                        {statusInfo.label}
+                      </span>
+                    ) : null}
+                  </div>
+                  {descriptionText ? (
+                    <p
+                      className="doc-selection-description"
+                      title={descriptionTooltip || undefined}
+                      style={{ fontSize: '10px', lineHeight: '1.4' }}
+                    >
+                      {descriptionText}
+                    </p>
+                  ) : null}
+                  {remote?.rejection_reason ? (
+                    <p className="doc-status-reason">사유: {remote.rejection_reason}</p>
+                  ) : null}
+                </div>
+                <div className="doc-actions">
+                  <input
+                    ref={el => (inputRefs.current[item.code] = el)}
+                    type="file"
+                    hidden
+                    onChange={e => onFile(item.code, e.target.files?.[0] || undefined)}
+                  />
+                  <button
+                    className={`upload-btn ${hasSubmission ? 'uploaded' : ''}`}
+                    onClick={() => onPick(item.code)}
+                  >
+                    {hasSubmission ? '변경' : '업로드'}
+                  </button>
+                  {previewRecord ? (
+                    <FilePreviewButton document={previewRecord}>보기</FilePreviewButton>
+                  ) : (
+                    <button
+                      className="preview-btn"
+                      disabled={!f}
+                      onClick={() => {
+                        if (f) {
+                          window.open(URL.createObjectURL(f), '_blank')
+                        }
+                      }}
+                    >
+                      보기
+                    </button>
+                  )}
+                  <button
+                    className={`selection-checkmark ${selected.has(item.code) ? 'active' : ''}`}
+                    aria-pressed={selected.has(item.code)}
+                    onClick={() => toggle(item.code)}
+                  >
+                    ✓
+                  </button>
+                </div>
               </div>
-              <div className="doc-actions">
-                <input
-                  ref={el => (inputRefs.current[item.key] = el)}
-                  type="file"
-                  hidden
-                  onChange={e => onFile(item.key, e.target.files?.[0] || undefined)}
-                />
-                <button
-                  className={`upload-btn ${f || remote ? 'uploaded' : ''}`}
-                  onClick={() => onPick(item.key)}
-                >
-                  {f || remote ? '완료' : '업로드'}
-                </button>
-                <button
-                  className="preview-btn"
-                  disabled={!f && !remote}
-                  onClick={async () => {
-                    if (remote?.file_url) {
-                      try {
-                        const r = await fetch(
-                          `/api/files/signed-url?url=${encodeURIComponent(remote.file_url)}`
-                        )
-                        const j = await r.json()
-                        const su = j?.url || remote.file_url
-                        window.open(su, '_blank')
-                      } catch {
-                        window.open(remote.file_url, '_blank')
-                      }
-                    } else if (f) window.open(URL.createObjectURL(f), '_blank')
-                  }}
-                >
-                  보기
-                </button>
-                <button
-                  className={`selection-checkmark ${selected.has(item.key) ? 'active' : ''}`}
-                  aria-pressed={selected.has(item.key)}
-                  onClick={() => toggle(item.key)}
-                >
-                  ✓
-                </button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      )}
       <div className="foot equal">
-        <button className="btn" onClick={onSave}>
-          저장하기
+        <button className="btn" onClick={onSave} disabled={saving}>
+          {saving ? '저장중...' : '저장하기'}
         </button>
-        <button className="btn btn-primary" onClick={onShare}>
-          공유하기
+        <button className="btn btn-primary" onClick={onShare} disabled={sharing}>
+          {sharing ? '공유중...' : '공유하기'}
         </button>
       </div>
     </div>
@@ -822,7 +1212,7 @@ function MyDocsTab() {
 function CompanyTab() {
   const { toast } = useToast()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [docs, setDocs] = useState<Array<{ id: string; title: string; url: string }>>([])
+  const [docs, setDocs] = useState<CompanyDoc[]>([])
   const [loading, setLoading] = useState(false)
   const [migrateTried, setMigrateTried] = useState(false)
   const filteredDocs = useMemo(() => docs.filter(d => !(d.title || '').includes('공도면')), [docs])
@@ -842,6 +1232,9 @@ function CompanyTab() {
                 id: String(d.id),
                 title: d.title || d.file_name || '문서',
                 url: String(d.file_url || ''),
+                storage_bucket: d.storage_bucket ?? d.bucket ?? null,
+                storage_path: d.storage_path ?? d.folder_path ?? null,
+                file_name: d.file_name || d.original_filename || d.title || null,
               }))
             : []
           setDocs(list)
@@ -876,6 +1269,9 @@ function CompanyTab() {
                 id: String(d.id),
                 title: d.title || d.file_name || '문서',
                 url: String(d.file_url || ''),
+                storage_bucket: d.storage_bucket ?? d.bucket ?? null,
+                storage_path: d.storage_path ?? d.folder_path ?? null,
+                file_name: d.file_name || d.original_filename || d.title || null,
               }))
             : []
           setDocs(list)
@@ -885,6 +1281,30 @@ function CompanyTab() {
       }
     })()
   }, [docs, loading, migrateTried])
+
+  const buildFileRecord = useCallback(
+    (item: CompanyDoc) => ({
+      file_url: item.url,
+      storage_bucket: item.storage_bucket || undefined,
+      storage_path: item.storage_path || undefined,
+      file_name: item.file_name || item.title,
+      title: item.title,
+    }),
+    []
+  )
+
+  const handlePreview = useCallback(
+    async (item: CompanyDoc) => {
+      if (!item?.url) return
+      try {
+        await openFileRecordInNewTab(buildFileRecord(item))
+      } catch (error) {
+        console.error('회사 서류 미리보기 실패', error)
+        window.open(item.url, '_blank', 'noopener,noreferrer')
+      }
+    },
+    [buildFileRecord]
+  )
 
   const toggle = (id: string) =>
     setSelected(prev => {
@@ -964,21 +1384,7 @@ function CompanyTab() {
                 <div className="doc-selection-title">{item.title}</div>
               </div>
               <div className="doc-actions">
-                <button
-                  className="preview-btn"
-                  onClick={async () => {
-                    if (!item.url) return
-                    try {
-                      const r = await fetch(
-                        `/api/files/signed-url?url=${encodeURIComponent(item.url)}`
-                      )
-                      const j = await r.json()
-                      window.open(j?.url || item.url, '_blank')
-                    } catch {
-                      window.open(item.url, '_blank')
-                    }
-                  }}
-                >
+                <button className="preview-btn" onClick={() => handlePreview(item)}>
                   보기
                 </button>
                 <button

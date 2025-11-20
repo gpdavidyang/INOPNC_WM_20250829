@@ -195,10 +195,13 @@ export async function POST(request: NextRequest) {
       'other',
     ])
     const mappedRaw = documentTypeRaw || 'other'
-    // For company category, store as 'shared' to satisfy DB constraint
-    let documentType = category === 'company' ? 'shared' : mappedRaw
+    let baseCategory = category || 'personal'
+    if (isRequired) baseCategory = 'required'
+    else if (baseCategory === 'company') baseCategory = 'shared'
+    if (!ALLOWED_DB_TYPES.has(baseCategory)) baseCategory = 'personal'
+    let documentType = baseCategory
     if (!ALLOWED_DB_TYPES.has(documentType)) {
-      documentType = category === 'company' ? 'shared' : 'other'
+      documentType = 'other'
     }
     const isPublicFlag = formData.get('isPublic') === 'true' || category === 'company'
 
@@ -256,7 +259,7 @@ export async function POST(request: NextRequest) {
     console.log('📁 Uploading to path:', filePath)
     console.log('📁 User ID for path:', userId)
 
-    // Determine whether to use service client (admin/system_admin)
+    // Determine whether to use service client (admin/system_admin) for privileged inserts
     const isAdmin = ['admin', 'system_admin'].includes((profile?.role as string) || '')
     let adminClient = null as ReturnType<typeof createServiceClient> | null
     if (isAdmin) {
@@ -265,6 +268,16 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         console.warn('⚠️ Service role not available; falling back to user client for upload.', e)
         adminClient = null
+      }
+    }
+    let privilegedClient = adminClient
+    if (!privilegedClient && isRequired) {
+      try {
+        privilegedClient = createServiceClient()
+      } catch (error) {
+        console.warn(
+          '⚠️ Required document insert will rely on session client (service key unavailable).'
+        )
       }
     }
     const storageClient = adminClient || supabase
@@ -407,27 +420,38 @@ export async function POST(request: NextRequest) {
       console.log('📝 Saving to unified_document_system for required document')
 
       // Get requirement details
-      const { data: requirement } = await supabase
-        .from('document_requirements')
-        .select('requirement_name, document_type')
+      const requirementClient = privilegedClient || supabase
+      const { data: requirement } = await requirementClient
+        .from('required_document_types')
+        .select('id, code, name_ko, name_en, description')
         .eq('id', requirementId)
         .single()
 
       if (requirement) {
-        const { error: unifiedError } = await supabase.from('unified_document_system').insert([
+        const unifiedClient = privilegedClient || supabase
+        const { error: unifiedError } = await unifiedClient.from('unified_document_system').insert([
           {
-            title: requirement.requirement_name || file.name,
-            description: `필수 제출 서류: ${requirement.requirement_name}`,
+            title: requirement.name_ko || requirement.name_en || file.name,
+            description:
+              requirement.description ||
+              `필수 제출 서류: ${requirement.name_ko || requirement.name_en || ''}`,
             file_name: fileName,
             file_size: file.size,
             file_url: urlData.publicUrl,
             mime_type: file.type,
-            category_type: 'required_user_docs',
-            sub_category: requirement.document_type,
-            tags: [requirement.document_type],
+            category_type: 'required',
+            sub_category: requirement.code,
+            tags: requirement.code ? [requirement.code] : null,
             uploaded_by: userId,
             site_id: profile?.site_id || null,
             status: 'uploaded',
+            storage_bucket: 'documents',
+            storage_path: filePath,
+            metadata: {
+              requirement_id: requirement.id,
+              storage_bucket: 'documents',
+              storage_path: filePath,
+            },
           },
         ])
 

@@ -10,7 +10,9 @@ import type {
   UnifiedAttachment,
   UnifiedDailyReport,
   UnifiedWorkerEntry,
+  AdditionalPhotoData,
 } from '@/types/daily-reports'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 import {
   integratedResponseToUnifiedReport,
   type AdminIntegratedResponse,
@@ -197,34 +199,62 @@ export default function DailyReportDetailClient({
 
   const relatedReports = integrated?.related_reports ?? []
 
-  const handleOpenFile = async (url: string) => {
-    if (!url) return
-
-    let finalUrl = url
-    try {
-      const signed = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`, {
-        credentials: 'include',
-      })
-      const signedJson = await signed.json().catch(() => ({}))
-      finalUrl = signedJson?.url || url
-    } catch {
-      // Ignore and fall back to original URL
+  const buildFileRecordFromSource = (
+    source: UnifiedAttachment | AdditionalPhotoData
+  ): {
+    file_url?: string
+    storage_bucket?: string
+    storage_path?: string
+    file_name?: string
+    title?: string
+  } => {
+    const metadata =
+      source && 'metadata' in source && source.metadata && typeof source.metadata === 'object'
+        ? (source.metadata as Record<string, any>)
+        : {}
+    const storageBucket =
+      metadata.storage_bucket || metadata.bucket || (source as any).storage_bucket || undefined
+    const storagePath =
+      (source as any).storage_path ||
+      (source as any).path ||
+      metadata.storage_path ||
+      metadata.path ||
+      undefined
+    return {
+      file_url: source.url || metadata.url,
+      storage_bucket: storageBucket,
+      storage_path: storagePath,
+      file_name: (source as UnifiedAttachment).name || (source as AdditionalPhotoData).filename,
+      title: (source as UnifiedAttachment).name || (source as AdditionalPhotoData).filename,
     }
+  }
 
-    try {
-      const check = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`, {
-        credentials: 'include',
-      })
-      const checkJson = await check.json().catch(() => ({}))
-      if (!checkJson?.exists) {
-        alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
-        return
-      }
-    } catch {
-      // If the check fails, still attempt to open the file
+  const hasFileReference = (source: UnifiedAttachment | AdditionalPhotoData): boolean => {
+    const metadata =
+      source && 'metadata' in source && source.metadata && typeof source.metadata === 'object'
+        ? (source.metadata as Record<string, any>)
+        : {}
+    return Boolean(
+      source.url ||
+        (source as any).storage_path ||
+        (source as any).path ||
+        metadata.storage_path ||
+        metadata.url
+    )
+  }
+
+  const handleOpenFile = async (source: UnifiedAttachment | AdditionalPhotoData) => {
+    const record = buildFileRecordFromSource(source)
+    if (!record.file_url && !record.storage_path) {
+      alert('파일 정보를 찾을 수 없습니다.')
+      return
     }
-
-    window.open(finalUrl, '_blank', 'noopener,noreferrer')
+    try {
+      await openFileRecordInNewTab(record)
+    } catch (error) {
+      console.error('Failed to open file', error)
+      alert('파일을 열 수 없습니다. 잠시 후 다시 시도해 주세요.')
+    }
   }
 
   const renderArray = (values?: string[]) => (values && values.length > 0 ? values.join(', ') : '-')
@@ -425,8 +455,8 @@ export default function DailyReportDetailClient({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => photo.url && handleOpenFile(photo.url)}
-                      disabled={!photo.url}
+                      onClick={() => handleOpenFile(photo)}
+                      disabled={!hasFileReference(photo)}
                     >
                       원본 보기
                     </Button>
@@ -503,8 +533,8 @@ export default function DailyReportDetailClient({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => photo.url && handleOpenFile(photo.url)}
-                        disabled={!photo.url}
+                        onClick={() => handleOpenFile(photo)}
+                        disabled={!hasFileReference(photo)}
                       >
                         보기
                       </Button>
@@ -622,7 +652,12 @@ export default function DailyReportDetailClient({
                     {item.uploadedAt ? formatDate(item.uploadedAt) : '업로드 정보 없음'}
                   </div>
                 </div>
-                <Button size="sm" variant="outline" onClick={() => handleOpenFile(item.url)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleOpenFile(item)}
+                  disabled={!hasFileReference(item)}
+                >
                   보기
                 </Button>
               </div>

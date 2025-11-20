@@ -36,6 +36,7 @@ import {
   resolveSharedDocCategoryLabel,
   matchesSharedDocCategory,
 } from '@/lib/documents/shared-documents'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import StatsCard from '@/components/ui/stats-card'
 import {
@@ -3219,31 +3220,16 @@ export default function SiteDetailTabs({
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={async () => {
-                          let finalUrl = d.url
-                          try {
-                            const s = await fetch(
-                              `/api/files/signed-url?url=${encodeURIComponent(d.url)}`
-                            )
-                            const sj = await s.json()
-                            finalUrl = sj?.url || d.url
-                          } catch {
-                            void 0
-                          }
-                          try {
-                            const chk = await fetch(
-                              `/api/files/check?url=${encodeURIComponent(finalUrl)}`
-                            )
-                            const cj = await chk.json().catch(() => ({}))
-                            if (!cj?.exists) {
-                              alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
-                              return
-                            }
-                          } catch {
-                            void 0
-                          }
-                          window.open(finalUrl, '_blank')
-                        }}
+                        onClick={() =>
+                          openFileRecordInNewTab({
+                            file_url: d.url,
+                            storage_bucket: d.storage_bucket,
+                            storage_path: d.storage_path || d.folder_path,
+                            file_name: d.title,
+                            title: d.title,
+                          })
+                        }
+                        disabled={!d.url && !d.storage_path}
                       >
                         보기
                       </Button>

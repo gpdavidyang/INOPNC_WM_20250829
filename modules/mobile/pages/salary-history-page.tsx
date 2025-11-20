@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { format, addMonths } from 'date-fns'
@@ -17,14 +18,26 @@ type MonthItem = {
 }
 
 function useOpenPayslip() {
-  return useCallback((userId: string, y: number, m: number) => {
+  return useCallback(async (userId: string, y: number, m: number) => {
     const href = `/payslip/${userId}/${y}/${m}`
     const isStandalone =
       typeof window !== 'undefined' &&
       (window.matchMedia?.('(display-mode: standalone)').matches ||
         (navigator as any)?.standalone === true)
-    if (isStandalone) window.location.assign(href)
-    else window.open(href, '_blank', 'noopener,noreferrer')
+    if (isStandalone) {
+      window.location.assign(href)
+      return
+    }
+    try {
+      await openFileRecordInNewTab({
+        file_url: href,
+        file_name: `payslip-${y}-${String(m).padStart(2, '0')}.html`,
+        title: `급여명세서 ${y}-${m}`,
+      })
+    } catch (error) {
+      console.error('Failed to open payslip', error)
+      window.open(href, '_blank', 'noopener,noreferrer')
+    }
   }, [])
 }
 

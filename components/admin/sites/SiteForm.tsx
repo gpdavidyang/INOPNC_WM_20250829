@@ -17,6 +17,7 @@ import { ChevronDown } from 'lucide-react'
 import { matchesSharedDocCategory } from '@/lib/documents/shared-documents'
 import { cn } from '@/lib/utils'
 import type { Site } from '@/types'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 type Mode = 'create' | 'edit'
 
@@ -80,9 +81,9 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
   const [sharedDocsLoading, setSharedDocsLoading] = useState(false)
   const [sharedDocsError, setSharedDocsError] = useState<string | null>(null)
   const [sharedDocs, setSharedDocs] = useState<Array<Record<string, any>>>([])
-  const [organizationOptions, setOrganizationOptions] = useState<Array<{ id: string; name: string }>>(
-    []
-  )
+  const [organizationOptions, setOrganizationOptions] = useState<
+    Array<{ id: string; name: string }>
+  >([])
   const [organizationLoading, setOrganizationLoading] = useState(false)
   const [organizationError, setOrganizationError] = useState<string | null>(null)
 
@@ -180,24 +181,48 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     return buckets
   }, [sharedDocs])
   const openSharedDoc = useCallback(async (doc: Record<string, any>) => {
-    if (typeof window === 'undefined') return
-    const baseUrl = doc?.file_url || doc?.fileUrl || doc?.url
-    if (!baseUrl) return
-    let finalUrl = baseUrl
-    try {
-      const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(baseUrl)}`)
-      const json = await res.json().catch(() => ({}))
-      if (res.ok && json?.url) finalUrl = json.url
-    } catch {
-      /* ignore - fallback to original url */
+    if (!doc) return
+    const record = {
+      file_url: doc?.file_url || doc?.fileUrl || doc?.url,
+      storage_bucket:
+        doc?.storage_bucket ||
+        doc?.storageBucket ||
+        doc?.bucket ||
+        doc?.document?.storage_bucket ||
+        null,
+      storage_path:
+        doc?.storage_path ||
+        doc?.storagePath ||
+        doc?.folder_path ||
+        doc?.folderPath ||
+        doc?.document?.storage_path ||
+        null,
+      folder_path: doc?.folder_path || doc?.folderPath || null,
+      file_name: doc?.file_name || doc?.fileName || doc?.title || null,
+      title: doc?.title || doc?.file_name || doc?.fileName || null,
     }
-    const opened = window.open(finalUrl, '_blank', 'noopener,noreferrer')
-    if (!opened) {
-      const link = document.createElement('a')
-      link.href = finalUrl
-      link.target = '_blank'
-      link.rel = 'noreferrer'
-      link.click()
+
+    if (!record.file_url && !record.storage_path) {
+      console.warn('[SiteForm] 공유 자료에 파일 경로 정보가 없어 열 수 없습니다.', doc)
+      return
+    }
+
+    try {
+      await openFileRecordInNewTab(record)
+      return
+    } catch (error) {
+      console.warn('[SiteForm] Failed to open shared doc via helper, falling back.', error)
+    }
+
+    if (record.file_url) {
+      const opened = window.open(record.file_url, '_blank', 'noopener,noreferrer')
+      if (!opened) {
+        const link = document.createElement('a')
+        link.href = record.file_url
+        link.target = '_blank'
+        link.rel = 'noreferrer'
+        link.click()
+      }
     }
   }, [])
   const renderSharedDocList = (

@@ -1,5 +1,6 @@
 'use client'
 
+import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
 
 interface MyDocumentsProps {
   profile: unknown
@@ -15,6 +16,13 @@ interface Document {
   uploadedBy: string
   fileType: string
   url?: string
+  title?: string
+  folderPath?: string
+  storageBucket?: string | null
+  storagePath?: string | null
+  document_type?: string
+  is_public?: boolean
+  description?: string
 }
 
 interface RequiredDocument {
@@ -28,7 +36,6 @@ interface RequiredDocument {
   uploadDate?: string
   fileName?: string
 }
-
 
 export function MyDocuments({ profile }: MyDocumentsProps) {
   const { isLargeFont } = useFontSize()
@@ -64,12 +71,12 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     try {
       const result = await getMyDocuments({
         category: filterType === 'all' ? undefined : filterType,
-        userId: profile.id
+        userId: profile.id,
       })
-      
+
       if (result.success && result.data) {
         // Sort documents
-        const sorted = [...result.data].sort((a: unknown, b: unknown) => {
+        const sorted = [...(result.data as Document[])].sort((a, b) => {
           if (sortBy === 'date') {
             return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
           } else if (sortBy === 'name') {
@@ -91,10 +98,60 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     handleUploadFiles(files)
   }
 
+  const buildFileRecord = (doc: Document) => ({
+    file_url: doc.url,
+    storage_bucket: doc.storageBucket || undefined,
+    storage_path: doc.storagePath || doc.folderPath || undefined,
+    file_name: doc.name,
+    title: doc.title || doc.name,
+  })
+
+  const openDocument = async (doc: Document) => {
+    if (!doc?.url) {
+      alert('업로드된 파일이 없습니다.')
+      return
+    }
+    try {
+      await openFileRecordInNewTab(buildFileRecord(doc))
+    } catch (error) {
+      console.error('문서를 열 수 없습니다.', error)
+      const isStandalone =
+        typeof window !== 'undefined' &&
+        (window.matchMedia?.('(display-mode: standalone)').matches ||
+          (navigator as any)?.standalone === true)
+      if (isStandalone) window.location.assign(doc.url)
+      else window.open(doc.url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const downloadDocument = async (doc: Document) => {
+    if (!doc?.url) return
+    try {
+      const signedUrl = await fetchSignedUrlForRecord(buildFileRecord(doc), {
+        downloadName: doc.name,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = signedUrl
+      anchor.download = doc.name || 'document'
+      anchor.target = '_blank'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
+    } catch (error) {
+      console.error('문서를 다운로드할 수 없습니다.', error)
+      const anchor = window.document.createElement('a')
+      anchor.href = doc.url
+      anchor.download = doc.name || 'document'
+      anchor.target = '_blank'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
+    }
+  }
 
   const handleUploadFiles = async (files: File[]) => {
     setIsUploading(true)
-    
+
     try {
       for (const file of files) {
         const formData = new FormData()
@@ -103,20 +160,20 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
         formData.append('uploadedBy', user?.id || '')
         formData.append('documentType', 'personal')
         formData.append('isRequired', 'false')
-        
+
         // Use API route directly for file upload
         const response = await fetch('/api/documents', {
           method: 'POST',
-          body: formData
+          body: formData,
         })
-        
+
         if (!response.ok) {
           const error = await response.json()
           console.error('Upload failed:', error)
           alert(`파일 업로드 실패: ${error.error || '알 수 없는 오류'}`)
         }
       }
-      
+
       // Refresh documents list after upload
       await loadDocuments()
     } catch (error) {
@@ -137,13 +194,13 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     }
   }
 
-  const handleBulkDownload = () => {
-    selectedDocs.forEach(docId => {
-      const doc = documents.find((d: unknown) => d.id === docId)
-      if (doc?.url) {
-        window.open(doc.url, '_blank')
+  const handleBulkDownload = async () => {
+    for (const docId of selectedDocs) {
+      const doc = documents.find(d => d.id === docId)
+      if (doc) {
+        await downloadDocument(doc)
       }
-    })
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -167,12 +224,16 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     doc: { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     docx: { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     xls: { icon: FileSpreadsheet, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
-    xlsx: { icon: FileSpreadsheet, color: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/20' },
+    xlsx: {
+      icon: FileSpreadsheet,
+      color: 'text-green-500',
+      bg: 'bg-green-50 dark:bg-green-900/20',
+    },
     jpg: { icon: FileImage, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
     jpeg: { icon: FileImage, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
     png: { icon: FileImage, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/20' },
     zip: { icon: FileArchive, color: 'text-yellow-500', bg: 'bg-yellow-50 dark:bg-yellow-900/20' },
-    default: { icon: File, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-900/20' }
+    default: { icon: File, color: 'text-gray-500', bg: 'bg-gray-50 dark:bg-gray-900/20' },
   }
 
   const getFileTypeConfig = (fileName: string) => {
@@ -189,7 +250,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       icon: User,
       description: '주민등록증, 운전면허증 등',
       required: true,
-      uploaded: false
+      uploaded: false,
     },
     {
       id: 'certificate',
@@ -198,7 +259,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       icon: Award,
       description: '해당 업무 관련 자격증',
       required: true,
-      uploaded: false
+      uploaded: false,
     },
     {
       id: 'insurance',
@@ -207,7 +268,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       icon: Shield,
       description: '산재보험, 고용보험 등',
       required: true,
-      uploaded: false
+      uploaded: false,
     },
     {
       id: 'contract',
@@ -216,7 +277,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       icon: FileText,
       description: '근로계약서, 도급계약서 등',
       required: true,
-      uploaded: false
+      uploaded: false,
     },
     {
       id: 'safety_training',
@@ -225,7 +286,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       icon: Briefcase,
       description: '안전교육 수료 증명서',
       required: false,
-      uploaded: false
+      uploaded: false,
     },
     {
       id: 'health_checkup',
@@ -234,8 +295,8 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       icon: Calendar,
       description: '정기 건강검진 결과서',
       required: false,
-      uploaded: false
-    }
+      uploaded: false,
+    },
   ]
 
   const [requiredDocs, setRequiredDocs] = useState<RequiredDocument[]>(REQUIRED_DOCUMENTS)
@@ -247,16 +308,16 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     return {
       completed: uploadedRequiredCount,
       total: requiredCount,
-      percentage: requiredCount > 0 ? Math.round((uploadedRequiredCount / requiredCount) * 100) : 0
+      percentage: requiredCount > 0 ? Math.round((uploadedRequiredCount / requiredCount) * 100) : 0,
     }
   }
 
   const handleRequiredDocUpload = async (docId: string, files: File[]) => {
     if (files.length === 0) return
-    
+
     const file = files[0]
     const docInfo = requiredDocs.find(d => d.id === docId)
-    
+
     const formData = new FormData()
     formData.append('file', file)
     formData.append('category', 'required')
@@ -264,33 +325,35 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     formData.append('documentType', 'required')
     formData.append('isRequired', 'true')
     formData.append('requirementId', docId)
-    
+
     try {
       // Use API route directly for file upload
       const response = await fetch('/api/documents', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
-      
+
       if (!response.ok) {
         const error = await response.json()
         console.error('Required doc upload failed:', error)
         alert(`파일 업로드 실패: ${error.error || '알 수 없는 오류'}`)
         return
       }
-      
+
       // Update required docs state
-      setRequiredDocs(prev => prev.map(doc => 
-        doc.id === docId 
-          ? { 
-              ...doc, 
-              uploaded: true, 
-              uploadDate: new Date().toISOString(),
-              fileName: file.name 
-            }
-          : doc
-      ))
-      
+      setRequiredDocs(prev =>
+        prev.map(doc =>
+          doc.id === docId
+            ? {
+                ...doc,
+                uploaded: true,
+                uploadDate: new Date().toISOString(),
+                fileName: file.name,
+              }
+            : doc
+        )
+      )
+
       // Reload documents list
       loadDocuments()
     } catch (error) {
@@ -298,35 +361,39 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     }
   }
 
-  const filteredDocuments = documents.filter((doc: unknown) => {
+  const filteredDocuments = documents.filter((doc: Document) => {
     // Text search filter
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (doc.description && doc.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    const matchesSearch =
+      doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (doc.description && doc.description.toLowerCase().includes(searchTerm.toLowerCase()))
 
     // File type filter
     const fileExt = doc.name.split('.').pop()?.toLowerCase() || ''
-    const matchesFileType = fileTypeFilter === 'all' || 
-                           (fileTypeFilter === 'documents' && ['pdf', 'doc', 'docx'].includes(fileExt)) ||
-                           (fileTypeFilter === 'spreadsheets' && ['xls', 'xlsx', 'csv'].includes(fileExt)) ||
-                           (fileTypeFilter === 'images' && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) ||
-                           (fileTypeFilter === 'archives' && ['zip', 'rar', '7z', 'tar'].includes(fileExt))
+    const matchesFileType =
+      fileTypeFilter === 'all' ||
+      (fileTypeFilter === 'documents' && ['pdf', 'doc', 'docx'].includes(fileExt)) ||
+      (fileTypeFilter === 'spreadsheets' && ['xls', 'xlsx', 'csv'].includes(fileExt)) ||
+      (fileTypeFilter === 'images' && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExt)) ||
+      (fileTypeFilter === 'archives' && ['zip', 'rar', '7z', 'tar'].includes(fileExt))
 
     // Size filter
-    const matchesSize = sizeFilter === 'all' ||
-                       (sizeFilter === 'small' && doc.size < 1024 * 1024) || // < 1MB
-                       (sizeFilter === 'medium' && doc.size >= 1024 * 1024 && doc.size < 10 * 1024 * 1024) || // 1MB-10MB
-                       (sizeFilter === 'large' && doc.size >= 10 * 1024 * 1024) // > 10MB
+    const matchesSize =
+      sizeFilter === 'all' ||
+      (sizeFilter === 'small' && doc.size < 1024 * 1024) || // < 1MB
+      (sizeFilter === 'medium' && doc.size >= 1024 * 1024 && doc.size < 10 * 1024 * 1024) || // 1MB-10MB
+      (sizeFilter === 'large' && doc.size >= 10 * 1024 * 1024) // > 10MB
 
     // Date filter
     const docDate = new Date(doc.uploadDate)
     const now = new Date()
     const daysDiff = Math.floor((now.getTime() - docDate.getTime()) / (1000 * 60 * 60 * 24))
-    
-    const matchesDate = dateFilter === 'all' ||
-                       (dateFilter === 'today' && daysDiff === 0) ||
-                       (dateFilter === 'week' && daysDiff <= 7) ||
-                       (dateFilter === 'month' && daysDiff <= 30) ||
-                       (dateFilter === 'year' && daysDiff <= 365)
+
+    const matchesDate =
+      dateFilter === 'all' ||
+      (dateFilter === 'today' && daysDiff === 0) ||
+      (dateFilter === 'week' && daysDiff <= 7) ||
+      (dateFilter === 'month' && daysDiff <= 30) ||
+      (dateFilter === 'year' && daysDiff <= 365)
 
     return matchesSearch && matchesFileType && matchesSize && matchesDate
   })
@@ -335,7 +402,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     if (selectedDocs.length === filteredDocuments.length) {
       setSelectedDocs([])
     } else {
-      setSelectedDocs(filteredDocuments.map((d: unknown) => d.id))
+      setSelectedDocs(filteredDocuments.map((d: Document) => d.id))
     }
   }
 
@@ -350,7 +417,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
               ({filteredDocuments.length}개)
             </span>
           </h2>
-          
+
           {/* Touch-Optimized Action Buttons */}
           <div className="flex items-center gap-2">
             {selectedDocs.length > 0 ? (
@@ -367,7 +434,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleBulkDownload}
+                  onClick={() => void handleBulkDownload()}
                   className="h-12 px-3 min-w-[48px]"
                 >
                   <Download className="h-4 w-4" />
@@ -409,7 +476,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
       {/* Required Documents Section - Updated Design */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border">
-        <div 
+        <div
           className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
           onClick={() => setRequiredDocsExpanded(!requiredDocsExpanded)}
         >
@@ -429,24 +496,28 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {/* Completion percentage badge */}
-            <span className={cn(
-              "px-3 py-1 rounded-full text-sm font-medium",
-              getRequiredDocsProgress().percentage === 100
-                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                : getRequiredDocsProgress().percentage >= 50
-                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"  
-                : "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400"
-            )}>
+            <span
+              className={cn(
+                'px-3 py-1 rounded-full text-sm font-medium',
+                getRequiredDocsProgress().percentage === 100
+                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                  : getRequiredDocsProgress().percentage >= 50
+                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+              )}
+            >
               {getRequiredDocsProgress().percentage}%
             </span>
-            
-            <ChevronDown className={cn(
-              "h-5 w-5 text-gray-400 transition-transform",
-              requiredDocsExpanded && "rotate-180"
-            )} />
+
+            <ChevronDown
+              className={cn(
+                'h-5 w-5 text-gray-400 transition-transform',
+                requiredDocsExpanded && 'rotate-180'
+              )}
+            />
           </div>
         </div>
 
@@ -454,25 +525,25 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
           <div className="p-4 pt-0">
             {/* 2-Column Grid Layout for Required Documents */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {requiredDocs.map((doc) => {
+              {requiredDocs.map(doc => {
                 const IconComponent = doc.icon
                 return (
                   <div
                     key={doc.id}
                     className={cn(
-                      "relative p-4 rounded-lg border-2 transition-all",
+                      'relative p-4 rounded-lg border-2 transition-all',
                       dragOverDocId === doc.id
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.02]"
-                        : doc.uploaded 
-                          ? "border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10" 
-                          : "border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 hover:border-blue-300 dark:hover:border-blue-700"
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.02]'
+                        : doc.uploaded
+                          ? 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-900/10'
+                          : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50 hover:border-blue-300 dark:hover:border-blue-700'
                     )}
-                    onDragOver={(e) => {
+                    onDragOver={e => {
                       e.preventDefault()
                       e.stopPropagation()
                       setDragOverDocId(doc.id)
                     }}
-                    onDragLeave={(e) => {
+                    onDragLeave={e => {
                       e.preventDefault()
                       e.stopPropagation()
                       // Only clear if leaving the card entirely
@@ -483,11 +554,11 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                         setDragOverDocId(null)
                       }
                     }}
-                    onDrop={async (e) => {
+                    onDrop={async e => {
                       e.preventDefault()
                       e.stopPropagation()
                       setDragOverDocId(null)
-                      
+
                       const files = Array.from(e.dataTransfer?.files || [])
                       if (files.length > 0) {
                         await handleRequiredDocUpload(doc.id, files)
@@ -510,22 +581,28 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                         </span>
                       </div>
                     )}
-                    
+
                     <div className="flex flex-col gap-3">
                       {/* Icon and Title */}
                       <div className="flex items-start gap-3">
-                        <div className={cn(
-                          "p-2.5 rounded-lg flex-shrink-0",
-                          doc.uploaded 
-                            ? "bg-green-100 dark:bg-green-900/30" 
-                            : "bg-gray-100 dark:bg-gray-700"
-                        )}>
-                          <IconComponent className={cn(
-                            "h-5 w-5",
-                            doc.uploaded ? "text-green-600 dark:text-green-400" : "text-gray-500 dark:text-gray-400"
-                          )} />
+                        <div
+                          className={cn(
+                            'p-2.5 rounded-lg flex-shrink-0',
+                            doc.uploaded
+                              ? 'bg-green-100 dark:bg-green-900/30'
+                              : 'bg-gray-100 dark:bg-gray-700'
+                          )}
+                        >
+                          <IconComponent
+                            className={cn(
+                              'h-5 w-5',
+                              doc.uploaded
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-gray-500 dark:text-gray-400'
+                            )}
+                          />
                         </div>
-                        
+
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
                             {doc.title}
@@ -541,21 +618,22 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Upload Zone with Drag & Drop */}
                       <div className="mt-auto">
                         {doc.uploaded ? (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-gray-500">
-                                {doc.uploadDate && format(new Date(doc.uploadDate), 'yyyy.MM.dd', { locale: ko })}
+                                {doc.uploadDate &&
+                                  format(new Date(doc.uploadDate), 'yyyy.MM.dd', { locale: ko })}
                               </span>
                               <div className="flex gap-1">
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="text-blue-500 hover:text-blue-600"
-                                  onClick={(e) => {
+                                  onClick={e => {
                                     e.stopPropagation()
                                     setSelectedShareDoc(doc)
                                     setShareModalOpen(true)
@@ -568,14 +646,21 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                                   variant="ghost"
                                   size="sm"
                                   className="text-gray-500 hover:text-red-600"
-                                  onClick={(e) => {
+                                  onClick={e => {
                                     e.stopPropagation()
                                     // Handle re-upload or delete
-                                    setRequiredDocs(prev => prev.map(d => 
-                                      d.id === doc.id 
-                                        ? { ...d, uploaded: false, uploadDate: undefined, fileName: undefined }
-                                        : d
-                                    ))
+                                    setRequiredDocs(prev =>
+                                      prev.map(d =>
+                                        d.id === doc.id
+                                          ? {
+                                              ...d,
+                                              uploaded: false,
+                                              uploadDate: undefined,
+                                              fileName: undefined,
+                                            }
+                                          : d
+                                      )
+                                    )
                                   }}
                                   title="삭제"
                                 >
@@ -587,35 +672,39 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                         ) : (
                           <div className="space-y-2">
                             {/* Drag & Drop Zone */}
-                            <div 
+                            <div
                               className={cn(
-                                "border-2 border-dashed rounded-lg p-3 text-center transition-all",
+                                'border-2 border-dashed rounded-lg p-3 text-center transition-all',
                                 dragOverDocId === doc.id
-                                  ? "border-blue-400 bg-blue-50 dark:bg-blue-900/30"
-                                  : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                                  ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/30'
+                                  : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                               )}
                             >
-                              <Upload className={cn(
-                                "h-6 w-6 mx-auto mb-1",
-                                dragOverDocId === doc.id 
-                                  ? "text-blue-500 animate-bounce" 
-                                  : "text-gray-400"
-                              )} />
+                              <Upload
+                                className={cn(
+                                  'h-6 w-6 mx-auto mb-1',
+                                  dragOverDocId === doc.id
+                                    ? 'text-blue-500 animate-bounce'
+                                    : 'text-gray-400'
+                                )}
+                              />
                               <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {dragOverDocId === doc.id 
-                                  ? '파일을 놓으세요' 
+                                {dragOverDocId === doc.id
+                                  ? '파일을 놓으세요'
                                   : '파일을 드래그하거나'}
                               </p>
                             </div>
                             <Button
                               size="sm"
-                              onClick={(e) => {
+                              onClick={e => {
                                 e.stopPropagation()
                                 const input = document.createElement('input')
                                 input.type = 'file'
                                 input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png'
-                                input.onchange = (e) => {
-                                  const files = Array.from((e.target as HTMLInputElement).files || [])
+                                input.onchange = e => {
+                                  const files = Array.from(
+                                    (e.target as HTMLInputElement).files || []
+                                  )
                                   handleRequiredDocUpload(doc.id, files)
                                 }
                                 input.click()
@@ -633,7 +722,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                 )
               })}
             </div>
-            
+
             {/* Progress Summary */}
             <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
               <div className="flex items-center justify-between mb-3">
@@ -669,7 +758,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
             type="text"
             placeholder="파일명으로 검색..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="pl-9 h-12 text-sm bg-gray-50 dark:bg-gray-700/50"
           />
         </div>
@@ -678,12 +767,14 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
         <div className="flex items-center gap-2">
           {/* Basic Filter Dropdown */}
           <CustomSelect value={filterType} onValueChange={setFilterType}>
-            <CustomSelectTrigger className={cn(
-              "flex-1",
-              touchMode === 'glove' && "min-h-[60px] text-base",
-              touchMode === 'precision' && "min-h-[44px] text-sm",
-              touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
-            )}>
+            <CustomSelectTrigger
+              className={cn(
+                'flex-1',
+                touchMode === 'glove' && 'min-h-[60px] text-base',
+                touchMode === 'precision' && 'min-h-[44px] text-sm',
+                touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
+              )}
+            >
               <CustomSelectValue placeholder="전체 현장" />
             </CustomSelectTrigger>
             <CustomSelectContent>
@@ -696,12 +787,14 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
           {/* Sort Dropdown */}
           <CustomSelect value={sortBy} onValueChange={setSortBy}>
-            <CustomSelectTrigger className={cn(
-              "flex-1",
-              touchMode === 'glove' && "min-h-[60px] text-base",
-              touchMode === 'precision' && "min-h-[44px] text-sm",
-              touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
-            )}>
+            <CustomSelectTrigger
+              className={cn(
+                'flex-1',
+                touchMode === 'glove' && 'min-h-[60px] text-base',
+                touchMode === 'precision' && 'min-h-[44px] text-sm',
+                touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
+              )}
+            >
               <CustomSelectValue placeholder="정렬 방식" />
             </CustomSelectTrigger>
             <CustomSelectContent>
@@ -717,17 +810,16 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
             size="sm"
             onClick={() => setFiltersExpanded(!filtersExpanded)}
             className={cn(
-              "min-w-[48px] h-10",
-              filtersExpanded && "bg-blue-50 border-blue-200 text-blue-600",
-              touchMode === 'glove' && "min-h-[60px] text-base px-4",
-              touchMode === 'precision' && "min-h-[44px] text-sm px-3"
+              'min-w-[48px] h-10',
+              filtersExpanded && 'bg-blue-50 border-blue-200 text-blue-600',
+              touchMode === 'glove' && 'min-h-[60px] text-base px-4',
+              touchMode === 'precision' && 'min-h-[44px] text-sm px-3'
             )}
           >
             <Filter className="h-4 w-4" />
-            <ChevronDown className={cn(
-              "h-4 w-4 ml-1 transition-transform",
-              filtersExpanded && "rotate-180"
-            )} />
+            <ChevronDown
+              className={cn('h-4 w-4 ml-1 transition-transform', filtersExpanded && 'rotate-180')}
+            />
           </Button>
 
           {/* Touch-Optimized View Mode Toggle */}
@@ -735,10 +827,10 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
             <button
               onClick={() => setViewMode('list')}
               className={cn(
-                "p-2 rounded transition-colors min-w-[48px] h-10",
+                'p-2 rounded transition-colors min-w-[48px] h-10',
                 viewMode === 'list'
-                  ? "bg-white dark:bg-gray-600 text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? 'bg-white dark:bg-gray-600 text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               )}
             >
               <List className="h-5 w-5" />
@@ -746,10 +838,10 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
             <button
               onClick={() => setViewMode('grid')}
               className={cn(
-                "p-2 rounded transition-colors min-w-[48px] h-10",
+                'p-2 rounded transition-colors min-w-[48px] h-10',
                 viewMode === 'grid'
-                  ? "bg-white dark:bg-gray-600 text-blue-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? 'bg-white dark:bg-gray-600 text-blue-600 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-700'
               )}
             >
               <Grid3x3 className="h-5 w-5" />
@@ -764,7 +856,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
               <Filter className="h-4 w-4" />
               <span>고급 필터</span>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {/* File Type Filter */}
               <div className="space-y-1">
@@ -773,18 +865,22 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   파일 종류
                 </label>
                 <CustomSelect value={fileTypeFilter} onValueChange={setFileTypeFilter}>
-                  <CustomSelectTrigger className={cn(
-                    "w-full",
-                    touchMode === 'glove' && "min-h-[60px] text-base",
-                    touchMode === 'precision' && "min-h-[44px] text-sm",
-                    touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
-                  )}>
+                  <CustomSelectTrigger
+                    className={cn(
+                      'w-full',
+                      touchMode === 'glove' && 'min-h-[60px] text-base',
+                      touchMode === 'precision' && 'min-h-[44px] text-sm',
+                      touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
+                    )}
+                  >
                     <CustomSelectValue placeholder="전체" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
                     <CustomSelectItem value="all">전체 종류</CustomSelectItem>
                     <CustomSelectItem value="documents">문서 (PDF, DOC)</CustomSelectItem>
-                    <CustomSelectItem value="spreadsheets">스프레드시트 (XLS, CSV)</CustomSelectItem>
+                    <CustomSelectItem value="spreadsheets">
+                      스프레드시트 (XLS, CSV)
+                    </CustomSelectItem>
                     <CustomSelectItem value="images">이미지 (JPG, PNG)</CustomSelectItem>
                     <CustomSelectItem value="archives">압축파일 (ZIP, RAR)</CustomSelectItem>
                   </CustomSelectContent>
@@ -798,12 +894,14 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   파일 크기
                 </label>
                 <CustomSelect value={sizeFilter} onValueChange={setSizeFilter}>
-                  <CustomSelectTrigger className={cn(
-                    "w-full",
-                    touchMode === 'glove' && "min-h-[60px] text-base",
-                    touchMode === 'precision' && "min-h-[44px] text-sm",
-                    touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
-                  )}>
+                  <CustomSelectTrigger
+                    className={cn(
+                      'w-full',
+                      touchMode === 'glove' && 'min-h-[60px] text-base',
+                      touchMode === 'precision' && 'min-h-[44px] text-sm',
+                      touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
+                    )}
+                  >
                     <CustomSelectValue placeholder="전체" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
@@ -822,12 +920,14 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   업로드 날짜
                 </label>
                 <CustomSelect value={dateFilter} onValueChange={setDateFilter}>
-                  <CustomSelectTrigger className={cn(
-                    "w-full",
-                    touchMode === 'glove' && "min-h-[60px] text-base",
-                    touchMode === 'precision' && "min-h-[44px] text-sm",
-                    touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
-                  )}>
+                  <CustomSelectTrigger
+                    className={cn(
+                      'w-full',
+                      touchMode === 'glove' && 'min-h-[60px] text-base',
+                      touchMode === 'precision' && 'min-h-[44px] text-sm',
+                      touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
+                    )}
+                  >
                     <CustomSelectValue placeholder="전체" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
@@ -851,7 +951,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   {fileTypeFilter !== 'all' && (
                     <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full flex items-center gap-1">
                       파일종류
-                      <button 
+                      <button
                         onClick={() => setFileTypeFilter('all')}
                         className="hover:bg-blue-200 rounded-full p-0.5"
                       >
@@ -862,7 +962,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   {sizeFilter !== 'all' && (
                     <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full flex items-center gap-1">
                       크기
-                      <button 
+                      <button
                         onClick={() => setSizeFilter('all')}
                         className="hover:bg-green-200 rounded-full p-0.5"
                       >
@@ -873,7 +973,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   {dateFilter !== 'all' && (
                     <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full flex items-center gap-1">
                       날짜
-                      <button 
+                      <button
                         onClick={() => setDateFilter('all')}
                         className="hover:bg-purple-200 rounded-full p-0.5"
                       >
@@ -884,7 +984,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   <button
                     onClick={() => {
                       setFileTypeFilter('all')
-                      setSizeFilter('all') 
+                      setSizeFilter('all')
                       setDateFilter('all')
                     }}
                     className="text-xs text-gray-500 hover:text-gray-700 underline"
@@ -900,9 +1000,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
       {/* Document List or Upload Area */}
       {loading ? (
-        <div className="text-center py-12 text-gray-500">
-          문서를 불러오는 중...
-        </div>
+        <div className="text-center py-12 text-gray-500">문서를 불러오는 중...</div>
       ) : filteredDocuments.length === 0 ? (
         /* Empty State */
         <Card className="p-12 text-center">
@@ -921,21 +1019,22 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
           <div className="p-3 bg-gray-50 dark:bg-gray-700/50 flex items-center">
             <input
               type="checkbox"
-              checked={selectedDocs.length === filteredDocuments.length && filteredDocuments.length > 0}
+              checked={
+                selectedDocs.length === filteredDocuments.length && filteredDocuments.length > 0
+              }
               onChange={toggleSelectAll}
               className="mr-3 h-5 w-5 rounded"
             />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              전체 선택
-            </span>
+            <span className="text-sm text-gray-600 dark:text-gray-400">전체 선택</span>
           </div>
 
           {/* Enhanced Document Items */}
-          {filteredDocuments.map((doc: unknown) => {
+          {filteredDocuments.map((doc: Document) => {
             const fileConfig = getFileTypeConfig(doc.name)
             const FileIcon = fileConfig.icon
-            const isRecent = new Date().getTime() - new Date(doc.uploadDate).getTime() < 24 * 60 * 60 * 1000 // Last 24 hours
-            
+            const isRecent =
+              new Date().getTime() - new Date(doc.uploadDate).getTime() < 24 * 60 * 60 * 1000 // Last 24 hours
+
             return (
               <div
                 key={doc.id}
@@ -945,7 +1044,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                 <input
                   type="checkbox"
                   checked={selectedDocs.includes(doc.id)}
-                  onChange={(e) => {
+                  onChange={e => {
                     if (e.target.checked) {
                       setSelectedDocs([...selectedDocs, doc.id])
                     } else {
@@ -957,8 +1056,8 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
                 {/* Enhanced File Icon with Badge */}
                 <div className="mr-3 relative">
-                  <div className={cn("p-3 rounded-xl shadow-sm", fileConfig.bg)}>
-                    <FileIcon className={cn("h-6 w-6", fileConfig.color)} />
+                  <div className={cn('p-3 rounded-xl shadow-sm', fileConfig.bg)}>
+                    <FileIcon className={cn('h-6 w-6', fileConfig.color)} />
                   </div>
                   {isRecent && (
                     <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full px-1.5 py-0.5">
@@ -998,45 +1097,28 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                       {format(new Date(doc.uploadDate), 'MM월 dd일', { locale: ko })}
                     </span>
                     <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-gray-500">
-                      {doc.uploadedBy || '본인'}
-                    </span>
+                    <span className="text-xs text-gray-500">{doc.uploadedBy || '본인'}</span>
                   </div>
                   {doc.description && (
-                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">
-                      {doc.description}
-                    </p>
+                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">{doc.description}</p>
                   )}
                 </div>
 
                 {/* Enhanced Quick Actions */}
                 <div className="flex items-center gap-1 ml-2">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-10 w-10 min-w-[40px] hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                    onClick={() => {
-                      if (doc.url) {
-                        window.open(doc.url, '_blank')
-                      }
-                    }}
+                    onClick={() => void openDocument(doc)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="h-10 w-10 min-w-[40px] hover:bg-green-50 hover:text-green-600 transition-colors"
-                    onClick={() => {
-                      if (doc.url) {
-                        const a = document.createElement('a')
-                        a.href = doc.url
-                        a.download = doc.name
-                        document.body.appendChild(a)
-                        a.click()
-                        document.body.removeChild(a)
-                      }
-                    }}
+                    onClick={() => void downloadDocument(doc)}
                   >
                     <Download className="h-4 w-4" />
                   </Button>
@@ -1056,19 +1138,20 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       ) : (
         /* Enhanced Grid View */
         <div className="grid grid-cols-2 gap-3">
-          {filteredDocuments.map((doc: unknown) => {
+          {filteredDocuments.map((doc: Document) => {
             const fileConfig = getFileTypeConfig(doc.name)
             const FileIcon = fileConfig.icon
-            const isRecent = new Date().getTime() - new Date(doc.uploadDate).getTime() < 24 * 60 * 60 * 1000 // Last 24 hours
-            
+            const isRecent =
+              new Date().getTime() - new Date(doc.uploadDate).getTime() < 24 * 60 * 60 * 1000 // Last 24 hours
+
             return (
               <Card
                 key={doc.id}
                 className={cn(
-                  "p-4 hover:shadow-lg transition-all cursor-pointer touch-manipulation min-h-[140px] relative border-2",
-                  selectedDocs.includes(doc.id) 
-                    ? "ring-2 ring-blue-500 border-blue-200 bg-blue-50/30" 
-                    : "border-gray-100 hover:border-blue-200"
+                  'p-4 hover:shadow-lg transition-all cursor-pointer touch-manipulation min-h-[140px] relative border-2',
+                  selectedDocs.includes(doc.id)
+                    ? 'ring-2 ring-blue-500 border-blue-200 bg-blue-50/30'
+                    : 'border-gray-100 hover:border-blue-200'
                 )}
                 onClick={() => {
                   if (selectedDocs.includes(doc.id)) {
@@ -1088,8 +1171,8 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                 <div className="flex flex-col items-center text-center space-y-2">
                   {/* Enhanced File Icon with Badges */}
                   <div className="relative">
-                    <div className={cn("p-3 rounded-xl shadow-sm", fileConfig.bg)}>
-                      <FileIcon className={cn("h-7 w-7", fileConfig.color)} />
+                    <div className={cn('p-3 rounded-xl shadow-sm', fileConfig.bg)}>
+                      <FileIcon className={cn('h-7 w-7', fileConfig.color)} />
                     </div>
                     {isRecent && (
                       <div className="absolute -top-1 -right-1 bg-green-500 text-white text-xs rounded-full px-1 py-0.5">
@@ -1124,9 +1207,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
                   {/* File Details */}
                   <div className="space-y-1">
-                    <p className="text-xs text-gray-500 font-medium">
-                      {formatFileSize(doc.size)}
-                    </p>
+                    <p className="text-xs text-gray-500 font-medium">{formatFileSize(doc.size)}</p>
                     <p className="text-xs text-gray-400">
                       {format(new Date(doc.uploadDate), 'MM/dd', { locale: ko })}
                     </p>
@@ -1134,33 +1215,24 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
                   {/* Quick Actions */}
                   <div className="flex items-center gap-1 pt-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 hover:bg-blue-100 hover:text-blue-600"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
-                        if (doc.url) {
-                          window.open(doc.url, '_blank')
-                        }
+                        void openDocument(doc)
                       }}
                     >
                       <Eye className="h-3.5 w-3.5" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 hover:bg-green-100 hover:text-green-600"
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation()
-                        if (doc.url) {
-                          const a = document.createElement('a')
-                          a.href = doc.url
-                          a.download = doc.name
-                          document.body.appendChild(a)
-                          a.click()
-                          document.body.removeChild(a)
-                        }
+                        void downloadDocument(doc)
                       }}
                     >
                       <Download className="h-3.5 w-3.5" />
@@ -1202,7 +1274,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1214,12 +1286,12 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                   </p>
                 )}
               </div>
-              
+
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   공유 대상 선택
                 </label>
-                
+
                 <div className="space-y-2">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
@@ -1231,29 +1303,25 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                       같은 현장 팀원들
                     </span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      현장 관리자
-                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">현장 관리자</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">
-                      관리자
-                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">관리자</span>
                   </label>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   공유 메모 (선택)
@@ -1265,7 +1333,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
                 />
               </div>
             </div>
-            
+
             <div className="flex gap-3 mt-6">
               <Button
                 variant="outline"

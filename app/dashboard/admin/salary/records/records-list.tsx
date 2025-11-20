@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { t } from '@/lib/ui/strings'
 import EmptyState from '@/components/ui/empty-state'
 import { createClient } from '@/lib/supabase/client'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 type Worker = { id: string; full_name: string }
 type RecordRow = {
@@ -76,7 +77,11 @@ export default function SalaryRecordsList() {
     const m = d.getMonth() + 1
     const displayName = (r.worker?.full_name || '').trim()
     const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
-    window.open(`/payslip/${r.worker_id}/${y}/${m}${query}`, '_blank')
+    openFileRecordInNewTab({
+      file_url: `/payslip/${r.worker_id}/${y}/${m}${query}`,
+      file_name: `${displayName || 'payslip'}-${y}-${m}.html`,
+      title: `${displayName || '급여'} ${y}-${m}`,
+    })
   }
 
   return (

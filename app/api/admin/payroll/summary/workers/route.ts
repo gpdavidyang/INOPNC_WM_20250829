@@ -37,17 +37,32 @@ export async function GET(request: NextRequest) {
     regular_employee: '상용직',
   } as Record<string, string>
 
-  const data = snapshots.map(s => ({
-    worker_id: s.worker_id,
-    name: nameMap[s.worker_id] || (s as any).worker_name || '-',
-    employment_type: employmentLabel[String(s.employment_type || '').toLowerCase()] || '-',
-    daily_rate: s.daily_rate,
-    total_labor_hours: s.salary?.total_labor_hours || 0,
-    total_gross_pay: s.salary?.total_gross_pay || 0,
-    net_pay: s.salary?.net_pay || 0,
-    status: s.status || null,
-    issued_at: s.issued_at || null,
-  }))
+  const normalizeEmploymentType = (value?: string | null) => {
+    const raw = String(value || '')
+      .trim()
+      .toLowerCase()
+    if (raw === 'freelancer' || raw.includes('프리')) return 'freelancer'
+    if (raw === 'daily_worker' || raw.includes('일용')) return 'daily_worker'
+    if (raw === 'regular_employee' || raw.includes('상용')) return 'regular_employee'
+    return raw || null
+  }
+
+  const data = snapshots.map(s => {
+    const normalizedType = normalizeEmploymentType(s.employment_type)
+    const label = normalizedType ? employmentLabel[normalizedType] : '-'
+    return {
+      worker_id: s.worker_id,
+      name: nameMap[s.worker_id] || (s as any).worker_name || '-',
+      employment_type: normalizedType,
+      employment_type_label: label,
+      daily_rate: s.daily_rate,
+      total_labor_hours: s.salary?.total_labor_hours || 0,
+      total_gross_pay: s.salary?.total_gross_pay || 0,
+      net_pay: s.salary?.net_pay || 0,
+      status: s.status || null,
+      issued_at: s.issued_at || null,
+    }
+  })
 
   return NextResponse.json({ success: true, data })
 }

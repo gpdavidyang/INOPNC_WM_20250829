@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useCallback } from 'react'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { WorkLog } from '../../types/work-log.types'
 import {
   formatDate,
@@ -42,6 +43,25 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
         }
       }
     }, [workLog])
+
+    const openAttachment = useCallback(async (file?: { url?: string; name?: string }) => {
+      if (!file?.url) return
+      try {
+        await openFileRecordInNewTab({
+          file_url: file.url,
+          file_name: file.name,
+          title: file.name || '첨부파일',
+        })
+      } catch (error) {
+        console.error('Failed to open attachment', error)
+        const isStandalone =
+          typeof window !== 'undefined' &&
+          (window.matchMedia?.('(display-mode: standalone)').matches ||
+            (navigator as any)?.standalone === true)
+        if (isStandalone) window.location.assign(file.url)
+        else window.open(file.url, '_blank', 'noopener,noreferrer')
+      }
+    }, [])
 
     // 첨부파일 존재 여부 메모이제이션
     const hasAttachments = useMemo(() => {
@@ -231,16 +251,18 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                       </p>
                       <div className="grid grid-cols-4 gap-2">
                         {workLog.attachments.photos.map(photo => (
-                          <div
+                          <button
                             key={photo.id}
-                            className="relative aspect-square bg-[var(--line)] rounded-lg overflow-hidden"
+                            type="button"
+                            onClick={() => openAttachment(photo)}
+                            className="relative aspect-square bg-[var(--line)] rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
                           >
                             <img
                               src={photo.url}
                               alt={photo.name}
                               className="w-full h-full object-cover"
                             />
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -254,9 +276,11 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                       </p>
                       <div className="space-y-2">
                         {workLog.attachments.drawings.map(drawing => (
-                          <div
+                          <button
                             key={drawing.id}
-                            className="flex items-center justify-between p-2 bg-[var(--card)] rounded-lg"
+                            type="button"
+                            onClick={() => openAttachment(drawing)}
+                            className="flex w-full items-center justify-between p-2 bg-[var(--card)] rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
                           >
                             <div className="flex items-center gap-2">
                               <svg
@@ -276,7 +300,7 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                             <span className="text-xs text-[var(--muted)]">
                               {formatFileSize(drawing.size)}
                             </span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -290,9 +314,11 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                       </p>
                       <div className="space-y-2">
                         {workLog.attachments.confirmations.map(confirmation => (
-                          <div
+                          <button
                             key={confirmation.id}
-                            className="flex items-center justify-between p-2 bg-[var(--card)] rounded-lg"
+                            type="button"
+                            onClick={() => openAttachment(confirmation)}
+                            className="flex w-full items-center justify-between p-2 bg-[var(--card)] rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--accent)]"
                           >
                             <div className="flex items-center gap-2">
                               <svg
@@ -313,7 +339,7 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                             <span className="text-xs text-[var(--muted)]">
                               {formatFileSize(confirmation.size)}
                             </span>
-                          </div>
+                          </button>
                         ))}
                       </div>
                     </div>

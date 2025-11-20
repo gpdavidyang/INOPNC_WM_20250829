@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -13,10 +14,18 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createClient()
+    let serviceSupabase = supabase
+    try {
+      serviceSupabase = createServiceClient()
+    } catch (error) {
+      console.warn(
+        '[announcements] Service role client unavailable, falling back to session client'
+      )
+    }
     const {
       title,
       content,
-      priority = 'medium', // low, medium, high, urgent
+      priority = 'normal', // low, normal, high, urgent
       siteIds = [],
       targetRoles = [], // specific roles to notify
       expiresAt,
@@ -42,13 +51,16 @@ export async function POST(request: NextRequest) {
       targetSiteIds = [profile.site_id]
     }
 
+    const allowedPriorities = new Set(['low', 'normal', 'high', 'critical', 'urgent'])
+    const normalizedPriority = allowedPriorities.has(priority) ? priority : 'normal'
+
     // Create announcement record
     const { data: announcement, error: createError } = await supabase
       .from('announcements')
       .insert({
         title,
         content,
-        priority,
+        priority: normalizedPriority,
         target_sites: targetSiteIds,
         target_roles: targetRoles,
         created_by: authResult.userId,
@@ -62,6 +74,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create announcement' }, { status: 500 })
     }
 
+    // Create dispatch batch metadata for traceability
+    const { data: dispatchRecord, error: dispatchError } = await serviceSupabase
+      .from('announcement_dispatches')
+      .insert({
+        announcement_id: announcement.id,
+        target_roles: targetRoles,
+        target_site_ids: targetSiteIds,
+        target_user_ids: [],
+        created_by: authResult.userId,
+        status: 'processing',
+      })
+      .select()
+      .single()
+
+    if (dispatchError) {
+      console.error('Announcement dispatch creation failed:', dispatchError)
+    }
+
     // Fire-and-forget push notifications to targeted users/sites/roles
     try {
       const origin = request.nextUrl.origin
@@ -70,10 +100,10 @@ export async function POST(request: NextRequest) {
         payload: {
           title: `📢 ${title}`,
           body: String(content || '').slice(0, 200),
-          urgency: ['urgent', 'high'].includes(priority) ? 'high' : 'low',
+          urgency: ['urgent', 'high'].includes(normalizedPriority) ? 'high' : 'low',
           data: {
             announcementId: announcement.id,
-            priority,
+            priority: normalizedPriority,
           },
         },
         // include target filters if provided
@@ -87,7 +117,12 @@ export async function POST(request: NextRequest) {
           // Forward cookies to preserve session for requireApiAuth
           Cookie: request.headers.get('cookie') || '',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          announcementId: announcement.id,
+          dispatchId: dispatchRecord?.id,
+          dispatchBatchId: dispatchRecord?.dispatch_batch_id,
+        }),
       }).catch(() => {})
     } catch (e) {
       // Non-blocking

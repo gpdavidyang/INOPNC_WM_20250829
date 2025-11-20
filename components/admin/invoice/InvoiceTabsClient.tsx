@@ -22,7 +22,7 @@ import DocumentVersionsDialog from './DocumentVersionsDialog'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { Download, Eye } from 'lucide-react'
-import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
+import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
 
 type DocType = {
   code: string
@@ -266,59 +266,48 @@ export default function InvoiceTabsClient() {
     [docCache]
   )
 
-  const resolveSignedUrl = useCallback(
-    async (input: {
-      url?: string | null
-      path?: string | null
-      bucket?: string | null
-      downloadName?: string | null
-    }) => {
-      const params = new URLSearchParams()
-      if (input.url) params.set('url', input.url)
-      if (input.path) params.set('path', input.path)
-      if (input.bucket) params.set('bucket', input.bucket)
-      if (input.downloadName) params.set('download', input.downloadName)
-      if (!input.url && !input.path) {
-        throw new Error('파일 경로가 없습니다.')
-      }
-      try {
-        const qs = params.toString()
-        const res = await fetch(`/api/files/signed-url?${qs}`, {
-          credentials: 'include',
-        })
-        const json = await res.json().catch(() => ({}))
-        if (res.ok && json?.url) return json.url as string
-      } catch {
-        /* ignore */
-      }
-      if (input.url) return input.url
-      throw new Error('파일 경로를 확인할 수 없습니다.')
-    },
-    []
-  )
+  const buildFileRecord = useCallback((doc?: Record<string, any>) => {
+    if (!doc) return {}
+    return {
+      file_url: doc.file_url || doc.url,
+      storage_bucket:
+        doc.storage_bucket ||
+        doc.metadata?.storage_bucket ||
+        doc.metadata?.storageBucket ||
+        doc.bucket ||
+        null,
+      storage_path:
+        doc.storage_path ||
+        doc.metadata?.storage_path ||
+        doc.metadata?.storagePath ||
+        doc.folder_path ||
+        doc.metadata?.folder_path ||
+        doc.metadata?.folderPath ||
+        null,
+      folder_path: doc.folder_path || doc.metadata?.folder_path || doc.metadata?.folderPath || null,
+      file_name: doc.file_name || doc.metadata?.file_name || doc.metadata?.fileName || null,
+      title: doc.title || doc.metadata?.title || doc.file_name || null,
+    }
+  }, [])
 
   const handlePreviewDoc = useCallback(
     async (docId: string) => {
+      let doc: Awaited<ReturnType<typeof fetchDocumentDetail>> | null = null
       try {
-        const doc = await fetchDocumentDetail(docId)
+        doc = await fetchDocumentDetail(docId)
         if (!doc?.file_url) {
           throw new Error('파일 URL을 찾을 수 없습니다.')
         }
-        const storagePath =
-          doc.storage_path || doc.metadata?.storage_path || doc.metadata?.storagePath || null
-        const storageBucket =
-          doc.storage_bucket ||
-          doc.metadata?.storage_bucket ||
-          doc.metadata?.storageBucket ||
-          parseSupabaseStorageUrl(doc.file_url || undefined)?.bucket ||
-          null
-        const finalUrl = await resolveSignedUrl({
-          url: doc.file_url,
-          path: storagePath,
-          bucket: storageBucket,
-        })
-        window.open(finalUrl, '_blank', 'noopener,noreferrer')
+        await openFileRecordInNewTab(buildFileRecord(doc))
       } catch (error: any) {
+        if (doc?.file_url) {
+          try {
+            window.open(doc.file_url, '_blank', 'noopener,noreferrer')
+            return
+          } catch {
+            /* ignore */
+          }
+        }
         toast({
           title: '미리보기 실패',
           description: error?.message || '문서를 열 수 없습니다.',
@@ -326,29 +315,19 @@ export default function InvoiceTabsClient() {
         })
       }
     },
-    [fetchDocumentDetail, resolveSignedUrl, toast]
+    [buildFileRecord, fetchDocumentDetail, toast]
   )
 
   const handleDownloadDoc = useCallback(
     async (docId: string) => {
+      let doc: Awaited<ReturnType<typeof fetchDocumentDetail>> | null = null
       try {
-        const doc = await fetchDocumentDetail(docId)
+        doc = await fetchDocumentDetail(docId)
         if (!doc?.file_url) {
           throw new Error('파일 URL을 찾을 수 없습니다.')
         }
-        const storagePath =
-          doc.storage_path || doc.metadata?.storage_path || doc.metadata?.storagePath || null
-        const storageBucket =
-          doc.storage_bucket ||
-          doc.metadata?.storage_bucket ||
-          doc.metadata?.storageBucket ||
-          parseSupabaseStorageUrl(doc.file_url || undefined)?.bucket ||
-          null
-        const finalUrl = await resolveSignedUrl({
-          url: doc.file_url,
-          path: storagePath,
-          bucket: storageBucket,
-          downloadName: doc.file_name || null,
+        const finalUrl = await fetchSignedUrlForRecord(buildFileRecord(doc), {
+          downloadName: doc.file_name || doc.metadata?.file_name || doc.metadata?.fileName || null,
         })
         const anchor = document.createElement('a')
         anchor.href = finalUrl
@@ -357,6 +336,13 @@ export default function InvoiceTabsClient() {
         anchor.rel = 'noopener noreferrer'
         anchor.click()
       } catch (error: any) {
+        if (doc?.file_url) {
+          const fallbackLink = document.createElement('a')
+          fallbackLink.href = doc.file_url
+          fallbackLink.target = '_blank'
+          fallbackLink.rel = 'noopener noreferrer'
+          fallbackLink.click()
+        }
         toast({
           title: '다운로드 실패',
           description: error?.message || '파일을 내려받을 수 없습니다.',
@@ -364,7 +350,7 @@ export default function InvoiceTabsClient() {
         })
       }
     },
-    [fetchDocumentDetail, resolveSignedUrl, toast]
+    [buildFileRecord, fetchDocumentDetail, toast]
   )
 
   return (

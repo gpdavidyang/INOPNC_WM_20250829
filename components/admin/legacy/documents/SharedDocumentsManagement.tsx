@@ -2,6 +2,7 @@
 
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 
 interface Document {
   id: string
@@ -9,6 +10,9 @@ interface Document {
   description?: string
   file_name: string
   file_url: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
   file_size: number
   mime_type: string
   category_type: string
@@ -138,13 +142,28 @@ export default function SharedDocumentsManagement() {
     }
   }
 
+  const buildFileRecord = (document: Document) => ({
+    file_url: document.file_url,
+    storage_bucket: document.storage_bucket || undefined,
+    storage_path: document.storage_path || document.folder_path || undefined,
+    file_name: document.file_name || document.title,
+    title: document.title,
+  })
+
   const handleDownloadDocument = async (document: Document) => {
+    const fallbackUrl = document.file_url
     try {
-      // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.file_url, '_blank')
+      await openFileRecordInNewTab(buildFileRecord(document))
     } catch (error) {
-      console.error('Error downloading document:', error)
-      toast({ variant: 'destructive', title: '오류', description: '문서 다운로드에 실패했습니다.' })
+      console.error('Error downloading document', error)
+      if (fallbackUrl) {
+        window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
+      }
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '문서 다운로드에 실패했습니다.',
+      })
     }
   }
 

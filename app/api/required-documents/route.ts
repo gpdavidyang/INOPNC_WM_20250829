@@ -29,11 +29,23 @@ export async function GET(request: NextRequest) {
 
     // Get required documents for user's role
     const { data: requirements, error } = await supabase
-      .from('document_requirements')
-      .select('*')
+      .from('required_document_types')
+      .select(
+        `
+        id,
+        code,
+        name_ko,
+        description,
+        instructions,
+        file_types,
+        max_file_size,
+        valid_duration_days,
+        sort_order,
+        role_mappings:required_documents_by_role(role_type,is_required)
+      `
+      )
       .eq('is_active', true)
-      .contains('applicable_roles', [role])
-      .order('requirement_name')
+      .order('sort_order', { ascending: true })
 
     if (error) {
       console.error('Error fetching required documents:', error)
@@ -47,7 +59,7 @@ export async function GET(request: NextRequest) {
           is_mandatory: true,
           file_format_allowed: ['application/pdf', 'image/jpeg', 'image/png'],
           max_file_size_mb: 5,
-          instructions: '최근 6개월 이내 건강검진 결과서를 제출하세요.'
+          instructions: '최근 6개월 이내 건강검진 결과서를 제출하세요.',
         },
         {
           id: 'safety-education',
@@ -57,7 +69,7 @@ export async function GET(request: NextRequest) {
           is_mandatory: true,
           file_format_allowed: ['application/pdf', 'image/jpeg', 'image/png'],
           max_file_size_mb: 5,
-          instructions: '최근 2년 이내 이수증만 유효합니다.'
+          instructions: '최근 2년 이내 이수증만 유효합니다.',
         },
         {
           id: 'vehicle-insurance',
@@ -67,7 +79,7 @@ export async function GET(request: NextRequest) {
           is_mandatory: true,
           file_format_allowed: ['application/pdf', 'image/jpeg', 'image/png'],
           max_file_size_mb: 5,
-          instructions: '현재 유효한 보험증을 제출하세요.'
+          instructions: '현재 유효한 보험증을 제출하세요.',
         },
         {
           id: 'vehicle-registration',
@@ -77,7 +89,7 @@ export async function GET(request: NextRequest) {
           is_mandatory: true,
           file_format_allowed: ['application/pdf', 'image/jpeg', 'image/png'],
           max_file_size_mb: 5,
-          instructions: '차량등록증 사본을 명확히 스캔하여 제출하세요.'
+          instructions: '차량등록증 사본을 명확히 스캔하여 제출하세요.',
         },
         {
           id: 'bank-account',
@@ -87,7 +99,7 @@ export async function GET(request: NextRequest) {
           is_mandatory: true,
           file_format_allowed: ['application/pdf', 'image/jpeg', 'image/png'],
           max_file_size_mb: 5,
-          instructions: '본인 명의 통장 사본을 제출하세요.'
+          instructions: '본인 명의 통장 사본을 제출하세요.',
         },
         {
           id: 'id-card',
@@ -97,41 +109,45 @@ export async function GET(request: NextRequest) {
           is_mandatory: true,
           file_format_allowed: ['image/jpeg', 'image/png'],
           max_file_size_mb: 5,
-          instructions: '신분증 앞뒤면을 모두 스캔하여 제출하세요.'
-        }
+          instructions: '신분증 앞뒤면을 모두 스캔하여 제출하세요.',
+        },
       ]
 
       return NextResponse.json({
         success: true,
         data: fallbackRequirements,
-        source: 'fallback'
+        source: 'fallback',
       })
     }
 
     // Transform database data to match expected format
-    const transformedData = requirements?.map((req: unknown) => ({
-      id: req.id,
-      requirement_name: req.requirement_name,
-      document_type: req.document_type,
-      description: req.description,
-      is_mandatory: req.is_mandatory,
-      file_format_allowed: req.file_format_allowed,
-      max_file_size_mb: req.max_file_size_mb,
-      instructions: req.instructions,
-      expiry_days: req.expiry_days
-    })) || []
+    const transformedData =
+      requirements
+        ?.filter((req: any) => {
+          if (!req?.role_mappings || !Array.isArray(req.role_mappings)) return true
+          return req.role_mappings.some(
+            (mapping: any) => mapping.role_type === role && mapping.is_required
+          )
+        })
+        .map((req: any) => ({
+          id: req.id,
+          requirement_name: req.name_ko || req.code,
+          document_type: req.code,
+          description: req.description,
+          is_mandatory: true,
+          file_format_allowed: req.file_types || ['application/pdf', 'image/jpeg', 'image/png'],
+          max_file_size_mb: Math.round((req.max_file_size || 5 * 1024 * 1024) / 1024 / 1024),
+          instructions: req.instructions,
+          expiry_days: req.valid_duration_days,
+        })) || []
 
     return NextResponse.json({
       success: true,
       data: transformedData,
-      source: 'database'
+      source: 'database',
     })
-
   } catch (error) {
     console.error('Error in required documents API:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

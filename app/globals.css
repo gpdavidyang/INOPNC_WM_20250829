@@ -1703,6 +1703,11 @@ html.dark .doc-hub .document-tab.active {
   color: #93c5fd !important;
   background: rgba(47, 107, 255, 0.15) !important;
 }
+.doc-hub .doc-selection-description {
+  font-size: 10px !important;
+  line-height: 1.4 !important;
+  color: #6b7280;
+}
 [data-theme='dark'] .doc-hub .doc-selection-card,
 html.dark .doc-hub .doc-selection-card {
   border-color: #374151 !important;

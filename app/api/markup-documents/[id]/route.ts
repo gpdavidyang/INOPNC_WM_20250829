@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { fetchMarkupWorklogMap, syncMarkupWorklogLinks } from '@/lib/documents/worklog-links'
+import { resolveStorageReference } from '@/lib/storage/paths'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +54,144 @@ const resolveLinkedIds = async (markupId: string, primary?: string | null) => {
   }
 }
 
+const BLUEPRINT_SIGN_TTL_SECONDS = 900
+
+const isEphemeralBlueprintUrl = (value?: string | null) => {
+  if (!value || typeof value !== 'string') return false
+  const trimmed = value.trim()
+  if (!trimmed) return false
+  return (
+    trimmed.startsWith('blob:') ||
+    trimmed.startsWith('filesystem:') ||
+    trimmed.startsWith('capacitor:') ||
+    trimmed.startsWith('capacitor-file:')
+  )
+}
+
+const ensureFreshBlueprintUrl = async (
+  rawUrl?: string | null,
+  signer?: ReturnType<typeof createServiceClient> | null
+): Promise<string | null> => {
+  if (!rawUrl) return rawUrl ?? null
+  if (!signer) return rawUrl
+  const reference = resolveStorageReference({ url: rawUrl })
+  if (!reference) return rawUrl
+  try {
+    const { data } = await signer.storage
+      .from(reference.bucket)
+      .createSignedUrl(reference.objectPath, BLUEPRINT_SIGN_TTL_SECONDS)
+    if (data?.signedUrl) {
+      return data.signedUrl
+    }
+  } catch (error) {
+    console.warn('Failed to refresh markup blueprint URL:', error)
+  }
+  return rawUrl
+}
+
+const fetchFallbackBlueprintUrl = async (
+  siteId?: string | null,
+  client?: ReturnType<typeof createServiceClient> | null
+): Promise<string | null> => {
+  if (!siteId || !client) return null
+  const docTypes = ['blueprint', 'plan', 'construction_drawing']
+  try {
+    const { data } = await client
+      .from('site_documents')
+      .select('file_url')
+      .eq('site_id', siteId)
+      .eq('is_active', true)
+      .in('document_type', docTypes)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (data?.[0]?.file_url) {
+      return data[0].file_url as string
+    }
+  } catch (error) {
+    console.warn('Failed to fetch site blueprint fallback:', error)
+  }
+  try {
+    const { data } = await client
+      .from('unified_document_system')
+      .select('file_url, metadata')
+      .eq('site_id', siteId)
+      .eq('category_type', 'shared')
+      .in('sub_category', ['construction_drawing', 'blueprint', 'plan'])
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (data?.[0]) {
+      const metadata =
+        data[0].metadata && typeof data[0].metadata === 'object'
+          ? (data[0].metadata as Record<string, any>)
+          : {}
+      const metaCandidate =
+        metadata.original_blueprint_url ||
+        metadata.file_url ||
+        metadata.public_url ||
+        metadata.preview_url ||
+        metadata.signed_url
+      return (metaCandidate as string | undefined) || (data[0].file_url as string | null) || null
+    }
+  } catch (error) {
+    console.warn('Failed to fetch shared blueprint fallback:', error)
+  }
+  return null
+}
+
+const maybePersistBlueprintUrl = async ({
+  markupId,
+  url,
+  client,
+}: {
+  markupId?: string | null
+  url?: string | null
+  client?: ReturnType<typeof createServiceClient> | null
+}) => {
+  if (!markupId || !url || !client) return
+  try {
+    await client.from('markup_documents').update({ original_blueprint_url: url }).eq('id', markupId)
+  } catch (error) {
+    console.warn('Failed to persist fallback blueprint url:', error)
+  }
+}
+
+const resolveBlueprintUrlWithFallback = async ({
+  candidates,
+  siteId,
+  fallbackClient,
+  storageSigner,
+  markupId,
+  persistIfFallback,
+  originalWasEphemeral,
+}: {
+  candidates: Array<string | null | undefined>
+  siteId?: string | null
+  fallbackClient?: ReturnType<typeof createServiceClient> | null
+  storageSigner?: ReturnType<typeof createServiceClient> | null
+  markupId?: string
+  persistIfFallback?: boolean
+  originalWasEphemeral?: boolean
+}): Promise<string | null> => {
+  const normalized = candidates
+    .map(value => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean)
+  for (const candidate of normalized) {
+    if (!isEphemeralBlueprintUrl(candidate)) {
+      return (await ensureFreshBlueprintUrl(candidate, storageSigner)) ?? candidate
+    }
+  }
+  const fallbackUrl = await fetchFallbackBlueprintUrl(siteId, fallbackClient)
+  if (fallbackUrl) {
+    if (persistIfFallback && originalWasEphemeral) {
+      await maybePersistBlueprintUrl({ markupId, url: fallbackUrl, client: fallbackClient })
+    }
+    return (await ensureFreshBlueprintUrl(fallbackUrl, storageSigner)) ?? fallbackUrl
+  }
+  const first = normalized[0]
+  return first || null
+}
+
 // GET /api/markup-documents/[id] - 특정 마킹 도면 조회
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -62,19 +201,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const supabase = createClient()
-
-    const isAdmin = authResult.role === 'admin' || authResult.role === 'system_admin'
-    const supabaseAdminClient = (() => {
-      if (isAdmin) {
-        try {
-          return createServiceClient()
-        } catch (error) {
-          console.warn('Failed to create service client for markup PUT:', error)
-        }
+    const serviceClient = (() => {
+      try {
+        return createServiceClient()
+      } catch (error) {
+        console.warn('Failed to initialize service client for markup route:', error)
+        return null
       }
-      return null
     })()
+    const isAdmin = authResult.role === 'admin' || authResult.role === 'system_admin'
+    const supabaseAdminClient = isAdmin && serviceClient ? serviceClient : isAdmin ? supabase : null
     const markupClient = supabaseAdminClient ?? supabase
+    const storageSigner = serviceClient
+    const fallbackClient = serviceClient ?? markupClient
 
     // 1) Try canonical markup table first to include new metadata fields
     const { data: markupDoc, error: markupError } = await markupClient
@@ -103,10 +242,32 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         dailyReport = report || null
       }
 
+      const blueprintCandidates = [
+        (markupDoc as any).original_blueprint_url,
+        (markupDoc as any).file_url,
+        (markupDoc as any).preview_image_url,
+      ]
+      const blueprintUrl = await resolveBlueprintUrlWithFallback({
+        candidates: blueprintCandidates,
+        siteId: markupDoc.site_id,
+        fallbackClient,
+        storageSigner,
+        markupId: params.id,
+        persistIfFallback: true,
+        originalWasEphemeral: blueprintCandidates.some(candidate =>
+          isEphemeralBlueprintUrl(typeof candidate === 'string' ? candidate : null)
+        ),
+      })
+
       return NextResponse.json({
         success: true,
         data: {
           ...markupDoc,
+          original_blueprint_url:
+            blueprintUrl ??
+            (markupDoc as any).original_blueprint_url ??
+            (markupDoc as any).file_url ??
+            null,
           linked_worklog_ids: linkedWorklogIds,
           daily_report: dailyReport,
         },
@@ -160,9 +321,33 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         original_blueprint_filename: (legacyDocument as unknown).original_blueprint_filename,
       }
 
+      const legacyCandidates = [
+        (transformedDocument as any).original_blueprint_url,
+        (transformedDocument as any).file_url,
+        (transformedDocument as any).preview_image_url,
+      ]
+      const legacyBlueprint = await resolveBlueprintUrlWithFallback({
+        candidates: legacyCandidates,
+        siteId: (transformedDocument as any).site_id,
+        fallbackClient,
+        storageSigner,
+        markupId: params.id,
+        persistIfFallback: true,
+        originalWasEphemeral: legacyCandidates.some(candidate =>
+          isEphemeralBlueprintUrl(typeof candidate === 'string' ? candidate : null)
+        ),
+      })
+
       return NextResponse.json({
         success: true,
-        data: transformedDocument,
+        data: {
+          ...transformedDocument,
+          original_blueprint_url:
+            legacyBlueprint ??
+            (transformedDocument as any).original_blueprint_url ??
+            (transformedDocument as any).file_url ??
+            null,
+        },
       })
     }
 
@@ -195,10 +380,36 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       unifiedDailyReport = report || null
     }
 
+    const unifiedBlueprintCandidates = [
+      (document as any).original_blueprint_url,
+      metadataObject.original_blueprint_url,
+      metadataObject.file_url,
+      metadataObject.public_url,
+      metadataObject.preview_url,
+      metadataObject.signed_url,
+      (document as any).file_url,
+    ]
+    const unifiedBlueprint = await resolveBlueprintUrlWithFallback({
+      candidates: unifiedBlueprintCandidates,
+      siteId: (document as any).site_id ?? metadataObject.site_id ?? null,
+      fallbackClient,
+      storageSigner,
+      markupId: metadataObject.source_id || metadataObject.markup_document_id || params.id,
+      persistIfFallback: Boolean(metadataObject.source_id),
+      originalWasEphemeral: unifiedBlueprintCandidates.some(candidate =>
+        isEphemeralBlueprintUrl(typeof candidate === 'string' ? candidate : null)
+      ),
+    })
+
     return NextResponse.json({
       success: true,
       data: {
         ...document,
+        original_blueprint_url:
+          unifiedBlueprint ??
+          metadataObject.original_blueprint_url ??
+          (document as any).file_url ??
+          null,
         linked_worklog_id: derivedWorklogId ?? null,
         linked_worklog_ids: linkedWorklogIds,
         daily_report: unifiedDailyReport,

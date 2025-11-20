@@ -249,7 +249,7 @@ export default function RequiredDocumentUploadModal({
         .from('user_document_submissions')
         .update({
           document_id: newDoc.id,
-          submission_status: 'submitted',
+          submission_status: 'pending',
           submitted_at: new Date().toISOString(),
           expiry_date: formData.expiry_date || null,
         })

@@ -63,7 +63,7 @@ describe('announcements API guards', () => {
           content: 'Site specific',
           target_sites: ['site-1'],
           target_roles: null,
-          priority: 'medium',
+          priority: 'normal',
           created_at: '2024-09-01T00:00:00Z',
           updated_at: '2024-09-01T00:00:00Z',
           is_active: true,
@@ -75,7 +75,7 @@ describe('announcements API guards', () => {
           content: 'Other site',
           target_sites: ['site-2'],
           target_roles: null,
-          priority: 'medium',
+          priority: 'normal',
           created_at: '2024-09-01T00:00:00Z',
           updated_at: '2024-09-01T00:00:00Z',
           is_active: true,
@@ -148,9 +148,7 @@ describe('announcements API guards', () => {
         if (table === 'sites') {
           return {
             select: jest.fn(() => ({
-              eq: jest.fn(() =>
-                Promise.resolve({ data: [{ id: 'site-1' }], error: null })
-              ),
+              eq: jest.fn(() => Promise.resolve({ data: [{ id: 'site-1' }], error: null })),
             })),
           }
         }
@@ -203,9 +201,7 @@ describe('announcements API guards', () => {
         if (table === 'sites') {
           return {
             select: jest.fn(() => ({
-              eq: jest.fn(() =>
-                Promise.resolve({ data: [{ id: 'site-1' }], error: null })
-              ),
+              eq: jest.fn(() => Promise.resolve({ data: [{ id: 'site-1' }], error: null })),
             })),
           }
         }

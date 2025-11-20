@@ -19,6 +19,7 @@ import {
   PhSelectTrigger,
 } from '@/components/ui/custom-select'
 import { matchesSharedDocCategory } from '@/lib/documents/shared-documents'
+import { openFileRecordInNewTab, fetchSignedUrlForRecord } from '@/lib/files/preview'
 import {
   DEFAULT_MATERIAL_PRIORITY,
   MATERIAL_PRIORITY_OPTIONS,
@@ -95,6 +96,9 @@ interface AttachmentFile {
   type?: string
   rawType?: string
   uploader?: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
   metadata?: Record<string, any>
 }
 
@@ -987,33 +991,19 @@ export default function SiteInfoPage() {
     item: any | null
   }>({ open: false, mode: 'choose', item: null })
   const closeProgressModal = () => setProgressModal(prev => ({ ...prev, open: false }))
+  const buildFileRecord = (source: any, fallbackName: string) => ({
+    file_url: source?.url || source?.file_url,
+    storage_bucket: source?.storage_bucket,
+    storage_path: source?.storage_path || source?.folder_path || source?.path,
+    file_name: source?.title || source?.name || source?.file_name || fallbackName,
+    title: source?.title || source?.name || fallbackName,
+  })
+
   const openLatestProgressInNewTab = async () => {
     const item = progressModal.item
     if (!item) return
     try {
-      let finalUrl: string = item.url
-      try {
-        const s = await fetch(`/api/files/signed-url?url=${encodeURIComponent(item.url)}`)
-        const sj = await s.json().catch(() => ({}))
-        finalUrl = sj?.url || item.url
-      } catch {
-        /* ignore */
-      }
-      try {
-        const chk = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`)
-        const cj = await chk.json().catch(() => ({}))
-        if (!cj?.exists) {
-          toast({
-            title: '파일 없음',
-            description: '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
-            variant: 'destructive',
-          })
-          return
-        }
-      } catch {
-        /* ignore */
-      }
-      window.open(finalUrl, '_blank')
+      await openFileRecordInNewTab(buildFileRecord(item, '진행도면'))
       closeProgressModal()
     } catch (e) {
       console.error('[SiteInfo] open latest progress drawing failed', e)
@@ -1111,31 +1101,7 @@ export default function SiteInfoPage() {
       // 보기를 선택한 경우: 서명 URL 생성 후 존재 여부 확인 → 새 탭
       if (openView) {
         try {
-          let finalUrl: string = item.url
-          try {
-            const s = await fetch(`/api/files/signed-url?url=${encodeURIComponent(item.url)}`)
-            const sj = await s.json().catch(() => ({}))
-            finalUrl = sj?.url || item.url
-          } catch {
-            /* ignore */
-          }
-
-          try {
-            const chk = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`)
-            const cj = await chk.json().catch(() => ({}))
-            if (!cj?.exists) {
-              toast({
-                title: '파일 없음',
-                description: '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
-                variant: 'destructive',
-              })
-              return
-            }
-          } catch {
-            /* ignore */
-          }
-
-          window.open(finalUrl, '_blank')
+          await openFileRecordInNewTab(buildFileRecord(item, '진행도면'))
           return
         } catch (e) {
           console.error('[SiteInfo] open latest progress drawing failed', e)
@@ -1283,28 +1249,29 @@ export default function SiteInfoPage() {
     }
   }
 
-  const handleDownload = (file: AttachmentFile) => {
-    const link = document.createElement('a')
-    link.href = file.url
-    link.download = file.name
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleDownload = async (file: AttachmentFile) => {
+    try {
+      const record = buildFileRecord(file, file.name)
+      const url = await fetchSignedUrlForRecord(record, { downloadName: record.file_name })
+      const link = document.createElement('a')
+      link.href = url
+      link.download = record.file_name || 'attachment'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (error) {
+      console.error('[SiteInfo] attachment download failed', error)
+      alert('파일을 다운로드할 수 없습니다.')
+    }
   }
 
   const openAttachmentPreview = async (file: AttachmentFile) => {
-    if (!file?.url) return
-    let finalUrl = file.url
     try {
-      const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(file.url)}`)
-      const json = await res.json().catch(() => ({}))
-      if (res.ok && json?.url) {
-        finalUrl = json.url
-      }
-    } catch {
-      /* ignore — fallback to original URL */
+      await openFileRecordInNewTab(buildFileRecord(file, file.name))
+    } catch (error) {
+      console.error('[SiteInfo] attachment preview failed', error)
+      alert('파일을 열 수 없습니다.')
     }
-    window.open(finalUrl, '_blank', 'noopener,noreferrer')
   }
 
   const handleOpenNpcRecord = () => {
@@ -5823,7 +5790,7 @@ export default function SiteInfoPage() {
                             </button>
                             <button
                               className="action-btn secondary"
-                              onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
+                              onClick={() => handleOpenFile(file, file.name)}
                             >
                               새 창에서 보기
                             </button>

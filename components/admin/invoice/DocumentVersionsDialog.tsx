@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
+import { openFileRecordInNewTab, fetchSignedUrlForRecord } from '@/lib/files/preview'
 import { parseSupabaseStorageUrl } from '@/lib/storage/paths'
 
 interface Version {
@@ -107,58 +108,40 @@ export default function DocumentVersionsDialog({
     load()
   }, [open, siteId, docType])
 
-  const buildSignedUrlParams = (version: Version) => {
-    const params = new URLSearchParams()
-    const storagePath = version.metadata?.storage_path || version.metadata?.storagePath || null
-    const storageBucket =
+  const buildFileRecord = (version: Version) => ({
+    file_url: version.file_url,
+    storage_bucket:
       version.metadata?.storage_bucket ||
       version.metadata?.storageBucket ||
       parseSupabaseStorageUrl(version.file_url || undefined)?.bucket ||
-      null
-    if (version.file_url) params.set('url', version.file_url)
-    if (storagePath) params.set('path', storagePath)
-    if (storageBucket) params.set('bucket', storageBucket)
-    return { params, hasReference: Boolean(version.file_url || storagePath) }
-  }
+      undefined,
+    storage_path: version.metadata?.storage_path || version.metadata?.storagePath || undefined,
+    file_name: version.file_name,
+    title: version.title || version.file_name,
+  })
 
   const preview = async (version: Version) => {
     try {
-      const { params, hasReference } = buildSignedUrlParams(version)
-      if (!hasReference) throw new Error('파일 정보가 없습니다.')
-      let final = version.file_url || ''
-      try {
-        const res = await fetch(`/api/files/signed-url?${params.toString()}`)
-        const json = await res.json()
-        if (json?.url) final = json.url
-      } catch {
-        /* ignore */
-      }
-      if (!final) throw new Error('파일 경로를 확인할 수 없습니다.')
-      window.open(final, '_blank')
-    } catch {
+      await openFileRecordInNewTab(buildFileRecord(version))
+    } catch (error) {
+      console.error('Preview failed', error)
       toast({ title: '미리보기 실패', variant: 'destructive' })
     }
   }
 
   const download = async (version: Version) => {
     try {
-      const { params, hasReference } = buildSignedUrlParams(version)
-      if (!hasReference) throw new Error('파일 정보가 없습니다.')
-      if (version.file_name) params.set('download', version.file_name)
-      let final = version.file_url || ''
-      try {
-        const res = await fetch(`/api/files/signed-url?${params.toString()}`)
-        const json = await res.json()
-        if (json?.url) final = json.url
-      } catch {
-        /* ignore */
-      }
-      if (!final) throw new Error('파일 경로를 확인할 수 없습니다.')
-      const a = document.createElement('a')
-      a.href = final
-      a.download = version.file_name || ''
-      a.click()
-    } catch {
+      const url = await fetchSignedUrlForRecord(buildFileRecord(version), {
+        downloadName: version.file_name,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = url
+      anchor.download = version.file_name || ''
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+    } catch (error) {
+      console.error('Download failed', error)
       toast({ title: '다운로드 실패', variant: 'destructive' })
     }
   }

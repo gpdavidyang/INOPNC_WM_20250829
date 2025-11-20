@@ -3,6 +3,7 @@
 import { t } from '@/lib/ui/strings'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { useToast } from '@/components/ui/use-toast'
+import { fetchSignedUrlForRecord } from '@/lib/files/preview'
 
 import type { Profile } from '@/types'
 
@@ -16,6 +17,8 @@ interface MarkupDocument {
   description?: string
   original_blueprint_url: string
   original_blueprint_filename: string
+  original_blueprint_bucket?: string | null
+  original_blueprint_path?: string | null
   markup_data: unknown[]
   location: 'personal' | 'shared'
   created_by: string
@@ -147,10 +150,27 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
     window.open(`/dashboard/admin/markup-editor?document=${documentId}`, '_blank')
   }
 
-  const handleDownload = (document: MarkupDocument) => {
-    // Download original blueprint
-    if (document.original_blueprint_url) {
-      window.open(document.original_blueprint_url, '_blank')
+  const handleDownload = async (document: MarkupDocument) => {
+    const fallbackUrl = document.original_blueprint_url
+    if (!fallbackUrl && !document.original_blueprint_path) return
+    try {
+      const url = await fetchSignedUrlForRecord({
+        file_url: fallbackUrl || undefined,
+        storage_bucket: document.original_blueprint_bucket || undefined,
+        storage_path: document.original_blueprint_path || undefined,
+        file_name: document.original_blueprint_filename,
+        title: document.title,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = url
+      anchor.target = '_blank'
+      anchor.download = document.original_blueprint_filename || document.title || 'blueprint'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
+    } catch (error) {
+      console.error('원본 도면 다운로드 실패', error)
+      if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
     }
   }
 

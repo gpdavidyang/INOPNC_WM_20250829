@@ -25,31 +25,40 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Missing file reference' }, { status: 400 })
   }
 
+  const resolved = resolveStorageReference({
+    url: rawUrl || undefined,
+    path: pathParam || undefined,
+    bucket: bucketParam || undefined,
+  })
+
   // Try to generate a fresh short-lived signed URL using service role
-  try {
-    const parsed = resolveStorageReference({
-      url: rawUrl || undefined,
-      path: pathParam || undefined,
-      bucket: bucketParam || undefined,
-    })
-    if (parsed) {
+  if (resolved) {
+    try {
       const svc = createServiceRoleClient()
       const options = downloadName ? { download: downloadName } : undefined
       const { data } = await svc.storage
-        .from(parsed.bucket)
-        .createSignedUrl(parsed.objectPath, 600, options)
+        .from(resolved.bucket)
+        .createSignedUrl(resolved.objectPath, 600, options)
       if (data?.signedUrl) {
         return NextResponse.json({ success: true, url: data.signedUrl })
       }
+    } catch (error) {
+      console.warn('Signed URL generation failed, falling back to public URL', error)
     }
-  } catch {
-    // best-effort; fall back below
   }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || ''
 
   // Fallback: return original URL unchanged
   if (rawUrl) {
     return NextResponse.json({ success: true, url: rawUrl })
   }
+  if (resolved && supabaseUrl) {
+    const encodedPath = encodeURIComponent(resolved.objectPath).replace(/%2F/g, '/')
+    const publicUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${resolved.bucket}/${encodedPath}`
+    return NextResponse.json({ success: true, url: publicUrl })
+  }
+
   return NextResponse.json(
     { success: false, error: 'Unable to resolve storage path' },
     { status: 422 }

@@ -79,23 +79,20 @@ export function CustomMultiSelect({
         <CustomSelectTrigger className="h-10">
           <div className="flex w-full items-center justify-between">
             <span className="text-sm text-gray-900 dark:text-gray-100 truncate">{summary}</span>
-            <div className="flex items-center gap-1">
-              {selected.length > 0 && (
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    clear()
-                  }}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                  aria-label="선택 해제"
-                >
-                  <X className="h-3.5 w-3.5 text-gray-500" />
-                </button>
-              )}
-              <ChevronDown className="h-4 w-4 text-gray-500" />
-            </div>
+            {selected.length > 0 && (
+              <button
+                type="button"
+                onClick={e => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  clear()
+                }}
+                className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                aria-label="선택 해제"
+              >
+                <X className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            )}
           </div>
         </CustomSelectTrigger>
         <CustomSelectContent sideOffset={6} align="start">

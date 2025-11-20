@@ -285,6 +285,9 @@ export async function getMyDocuments(params?: { category?: string; userId?: stri
         title: doc.title,
         description: doc.description,
         site: doc.site,
+        folderPath: doc.folder_path,
+        storageBucket: doc.storage_bucket,
+        storagePath: doc.storage_path,
       })) || []
 
     return { success: true, data: transformedDocuments }

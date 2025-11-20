@@ -28,6 +28,16 @@ export default function NotificationsTable({
   }, [initialStars])
 
   const rows = useMemo(() => logs || [], [logs])
+  const roleLabel = (r: string) =>
+    (
+      ({
+        worker: '작업자',
+        site_manager: '현장관리자',
+        customer_manager: '파트너',
+        admin: '본사관리자',
+        system_admin: '시스템관리자',
+      }) as Record<string, string>
+    )[r] || r
   const typeLabel = (t: string) =>
     (
       ({
@@ -42,6 +52,7 @@ export default function NotificationsTable({
   const statusLabel = (s: string) =>
     (
       ({
+        pending: '대기',
         delivered: '전달됨',
         failed: '실패',
         read: '읽음',
@@ -100,13 +111,54 @@ export default function NotificationsTable({
           render: (n: any) => statusLabel(String(n?.status || '')),
         },
         {
+          key: 'target_role',
+          header: '대상 역할',
+          sortable: true,
+          accessor: (n: any) => n?.target_role || '',
+          render: (n: any) => roleLabel(String(n?.target_role || '')),
+        },
+        {
           key: 'user_id',
           header: '대상',
           sortable: true,
           accessor: (n: any) => n?.user_id || '',
+          render: (n: any) => {
+            const label = n?.user_id
+              ? n.user_id
+              : n?.target_role
+                ? `${roleLabel(String(n.target_role))} 대상`
+                : '개별 로그 대기'
+            return (
+              <span className="truncate inline-block max-w-[220px]" title={label}>
+                {label}
+              </span>
+            )
+          },
+        },
+        {
+          key: 'target_site',
+          header: '현장',
+          accessor: (n: any) => n?.target_site_name || n?.target_site_id || '',
           render: (n: any) => (
-            <span className="truncate inline-block max-w-[220px]" title={n?.user_id || ''}>
-              {n?.user_id || '-'}
+            <span
+              className="truncate inline-block max-w-[200px]"
+              title={n?.target_site_name || n?.target_site_id || ''}
+            >
+              {n?.target_site_name || n?.target_site_id || '-'}
+            </span>
+          ),
+        },
+        {
+          key: 'target_partner',
+          header: '소속사',
+          accessor: (n: any) =>
+            n?.target_partner_company_name || n?.target_partner_company_id || '',
+          render: (n: any) => (
+            <span
+              className="truncate inline-block max-w-[220px]"
+              title={n?.target_partner_company_name || n?.target_partner_company_id || ''}
+            >
+              {n?.target_partner_company_name || n?.target_partner_company_id || '-'}
             </span>
           ),
         },
@@ -117,6 +169,9 @@ export default function NotificationsTable({
           render: (n: any) => {
             const id = n?.id as string
             const starred = stars[id] || false
+            if (!n?.has_delivery_log || !id) {
+              return <span className="text-xs text-muted-foreground">대기 중</span>
+            }
             return (
               <div className="flex gap-2">
                 <button

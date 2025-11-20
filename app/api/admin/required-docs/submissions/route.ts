@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { resolveStorageReference } from '@/lib/storage/paths'
+import { normalizeRequiredDocStatus } from '@/lib/documents/status'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,7 +23,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const q = (searchParams.get('q') || '').trim()
-    const status = (searchParams.get('status') || 'all').trim()
+    const rawStatus = (searchParams.get('status') || 'all').trim()
+    const status = rawStatus === 'missing' ? 'not_submitted' : (rawStatus as string)
     const docType = (searchParams.get('document_type') || 'all').trim()
     const from = searchParams.get('from')
     const to = searchParams.get('to')
@@ -71,33 +74,235 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch submissions' }, { status: 500 })
     }
 
-    const rows = (data || []).map((doc: any) => ({
-      id: doc.id,
-      title: doc.title,
-      description: doc.description,
-      document_type: doc.sub_category || 'unknown',
-      file_name: doc.file_name,
-      file_url: doc.file_url,
-      file_size: doc.file_size,
-      status: doc.status === 'uploaded' ? 'pending' : doc.status,
-      submission_date: doc.created_at,
-      submitted_by: {
-        id: doc.uploaded_by,
-        full_name: doc.uploader?.full_name || 'Unknown',
-        email: doc.uploader?.email || '',
-        role: doc.uploader?.role || 'worker',
-      },
-      site: doc.site || null,
-    }))
+    const rows = (data || []).map((doc: any) => {
+      let metadata: Record<string, any> = {}
+      if (doc?.metadata) {
+        if (typeof doc.metadata === 'string') {
+          try {
+            metadata = JSON.parse(doc.metadata)
+          } catch {
+            metadata = {}
+          }
+        } else if (typeof doc.metadata === 'object') {
+          metadata = doc.metadata as Record<string, any>
+        }
+      }
+      const storageBucket =
+        doc?.storage_bucket ||
+        metadata?.storage_bucket ||
+        metadata?.bucket ||
+        metadata?.storage?.bucket ||
+        null
+      const storagePath =
+        doc?.storage_path ||
+        metadata?.storage_path ||
+        metadata?.path ||
+        metadata?.object_path ||
+        metadata?.key ||
+        null
+      const requirementId =
+        metadata?.requirement_id ||
+        metadata?.requirement?.id ||
+        metadata?.requirementId ||
+        doc.requirement_id ||
+        null
+      const requirementCode =
+        metadata?.requirement?.code ||
+        metadata?.requirement_code ||
+        (typeof requirementId === 'string' ? requirementId : null) ||
+        doc.sub_category ||
+        null
+      const displayName =
+        metadata?.requirement?.name_ko ||
+        metadata?.requirement_name ||
+        metadata?.name_ko ||
+        doc.title
+      const uniqueKey = `${doc.uploaded_by || ''}::${requirementCode || requirementId || doc.id}`
+
+      const canonicalStatus = normalizeRequiredDocStatus(
+        doc.status === 'uploaded' ? 'pending' : doc.status
+      )
+
+      return {
+        id: doc.id,
+        title: displayName || doc.title,
+        description: doc.description,
+        document_type_code: doc.sub_category || null,
+        document_type: displayName || doc.sub_category || 'unknown',
+        requirement_id: requirementId || requirementCode || null,
+        document_code: requirementCode,
+        document_id: metadata?.document_id || doc.document_id || null,
+        file_name: doc.file_name,
+        file_url: doc.file_url,
+        file_size: doc.file_size,
+        storage_bucket: storageBucket,
+        storage_path: storagePath,
+        status: canonicalStatus,
+        submission_date: doc.created_at,
+        submitted_by: {
+          id: doc.uploaded_by,
+          full_name: doc.uploader?.full_name || 'Unknown',
+          email: doc.uploader?.email || '',
+          role: doc.uploader?.role || 'worker',
+        },
+        site: doc.site || null,
+        _key: uniqueKey,
+        is_placeholder: false,
+      }
+    })
+
+    const fallbackRows: any[] = []
+    const existingKeys = new Set(rows.map(r => r._key).filter(Boolean))
+
+    const shouldIncludeStatus = (value: string) => {
+      if (status === 'all') return true
+      if (status === 'pending') return value === 'pending'
+      if (status === 'not_submitted') return value === 'not_submitted'
+      return value === status
+    }
+
+    const normalizeStatus = (value?: string | null) => normalizeRequiredDocStatus(value)
+
+    const { data: submissionFallback, error: submissionFallbackError } = await db
+      .from('user_document_submissions')
+      .select('id, submission_status, submitted_at, requirement_id, document_id, user_id')
+      .neq('submission_status', 'not_submitted')
+
+    if (submissionFallbackError) {
+      console.error('fallback submissions error:', submissionFallbackError)
+    } else if (submissionFallback && submissionFallback.length > 0) {
+      const requirementIds = Array.from(
+        new Set(submissionFallback.map(sub => sub.requirement_id).filter(Boolean) as string[])
+      )
+      const documentIds = Array.from(
+        new Set(submissionFallback.map(sub => sub.document_id).filter(Boolean) as string[])
+      )
+      const userIds = Array.from(
+        new Set(submissionFallback.map(sub => sub.user_id).filter(Boolean) as string[])
+      )
+
+      const [requirementsRes, documentsRes, profilesRes] = await Promise.all([
+        requirementIds.length
+          ? db
+              .from('required_document_types')
+              .select('id, code, name_ko, name_en')
+              .in('id', requirementIds)
+          : Promise.resolve({ data: [] as any[], error: null }),
+        documentIds.length
+          ? db
+              .from('documents')
+              .select(
+                'id, title, description, file_name, file_url, file_size, mime_type, created_at'
+              )
+              .in('id', documentIds)
+          : Promise.resolve({ data: [] as any[], error: null }),
+        userIds.length
+          ? db.from('profiles').select('id, full_name, email, role').in('id', userIds)
+          : Promise.resolve({ data: [] as any[], error: null }),
+      ])
+
+      const requirementMap = new Map((requirementsRes.data || []).map((req: any) => [req.id, req]))
+      const documentMap = new Map((documentsRes.data || []).map((doc: any) => [doc.id, doc]))
+      const profileMap = new Map((profilesRes.data || []).map((user: any) => [user.id, user]))
+
+      const fromDate = from ? new Date(from) : null
+      const toDate = to
+        ? (() => {
+            const end = new Date(to)
+            end.setHours(23, 59, 59, 999)
+            return end
+          })()
+        : null
+
+      submissionFallback.forEach(sub => {
+        const fallbackStatus = normalizeStatus(sub?.submission_status)
+        if (!shouldIncludeStatus(fallbackStatus)) return
+        if (submittedBy && sub?.user_id !== submittedBy) return
+
+        const requirement = sub?.requirement_id ? requirementMap.get(sub.requirement_id) : null
+        const document = sub?.document_id ? documentMap.get(sub.document_id) : null
+        const profile = sub?.user_id ? profileMap.get(sub.user_id) : null
+        const requirementCode = requirement?.code || sub?.requirement_id || null
+        if (docType !== 'all' && docType && requirementCode !== docType) return
+
+        const submissionDate = sub?.submitted_at
+          ? new Date(sub.submitted_at)
+          : document?.created_at
+            ? new Date(document.created_at)
+            : null
+        if (fromDate && submissionDate && submissionDate < fromDate) return
+        if (toDate && submissionDate && submissionDate > toDate) return
+
+        if (q) {
+          const search = q.toLowerCase()
+          const title = requirement?.name_ko || requirement?.name_en || document?.title || ''
+          const fileName = document?.file_name || ''
+          const submitter = profile?.full_name || profile?.email || ''
+          if (
+            !title.toLowerCase().includes(search) &&
+            !fileName.toLowerCase().includes(search) &&
+            !submitter.toLowerCase().includes(search)
+          ) {
+            return
+          }
+        }
+
+        const key = `${sub?.user_id || ''}::${requirementCode || sub?.id}`
+        if (existingKeys.has(key)) return
+        existingKeys.add(key)
+
+        const storageRef = resolveStorageReference({
+          url: document?.file_url || undefined,
+          path: document?.storage_path || document?.folder_path || undefined,
+          bucket: document?.storage_bucket || undefined,
+        })
+        fallbackRows.push({
+          id: `fallback-${sub.id}`,
+          title: requirement?.name_ko || requirement?.name_en || document?.title || '제출 문서',
+          description: document?.description || '',
+          document_type:
+            requirement?.name_ko || requirement?.name_en || requirementCode || 'unknown',
+          document_type_code: requirementCode,
+          requirement_id: sub?.requirement_id || requirementCode,
+          document_code: requirementCode,
+          document_id: sub?.document_id || null,
+          file_name: document?.file_name || '',
+          file_url: document?.file_url || '',
+          file_size: document?.file_size || null,
+          storage_bucket: document?.storage_bucket || storageRef?.bucket || null,
+          storage_path: document?.storage_path || storageRef?.objectPath || null,
+          status: fallbackStatus,
+          submission_date: sub?.submitted_at || document?.created_at || new Date().toISOString(),
+          submitted_by: {
+            id: profile?.id,
+            full_name: profile?.full_name || 'Unknown',
+            email: profile?.email || '',
+            role: profile?.role || 'worker',
+          },
+          site: null,
+          _key: key,
+          is_placeholder: !document?.file_url,
+        })
+      })
+    }
+
+    const combinedRows = [...rows, ...fallbackRows].sort((a, b) => {
+      const aTime = a?.submission_date ? new Date(a.submission_date).getTime() : 0
+      const bTime = b?.submission_date ? new Date(b.submission_date).getTime() : 0
+      return bTime - aTime
+    })
+
+    const sanitizedRows = combinedRows.map(({ _key, ...rest }) => rest)
+    const totalCount = (count || 0) + fallbackRows.length
 
     return NextResponse.json({
       success: true,
-      data: rows,
+      data: sanitizedRows,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.max(1, Math.ceil((count || 0) / limit)),
+        total: totalCount,
+        totalPages: Math.max(1, Math.ceil(totalCount / limit)),
       },
     })
   } catch (error) {

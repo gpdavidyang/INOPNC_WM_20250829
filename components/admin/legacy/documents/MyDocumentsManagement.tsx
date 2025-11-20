@@ -3,6 +3,7 @@
 import { t } from '@/lib/ui/strings'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { fetchSignedUrlForRecord } from '@/lib/files/preview'
 
 interface Document {
   id: string
@@ -10,6 +11,9 @@ interface Document {
   description?: string
   file_name: string
   file_path: string
+  file_url?: string | null
+  storage_bucket?: string | null
+  storage_path?: string | null
   file_size: number
   mime_type: string
   location: 'personal' | 'shared'
@@ -109,12 +113,30 @@ export default function MyDocumentsManagement() {
     }
   }
 
+  const buildFileRecord = (document: Document) => ({
+    file_url: document.file_url || document.file_path,
+    storage_bucket: document.storage_bucket || undefined,
+    storage_path: document.storage_path || undefined,
+    file_name: document.file_name || document.title,
+    title: document.title,
+  })
+
   const handleDownloadDocument = async (document: Document) => {
+    const fallbackUrl = document.file_url || document.file_path
     try {
-      // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.file_path, '_blank')
+      const signedUrl = await fetchSignedUrlForRecord(buildFileRecord(document), {
+        downloadName: document.file_name || document.title,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = signedUrl
+      anchor.target = '_blank'
+      anchor.download = document.file_name || document.title || 'document'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
     } catch (error) {
       console.error('Error downloading document:', error)
+      if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
       toast({ variant: 'destructive', title: '오류', description: '문서 다운로드에 실패했습니다.' })
     }
   }

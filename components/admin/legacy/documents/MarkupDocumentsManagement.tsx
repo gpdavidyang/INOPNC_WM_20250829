@@ -3,6 +3,7 @@
 import { t } from '@/lib/ui/strings'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { fetchSignedUrlForRecord } from '@/lib/files/preview'
 
 import MarkupDocumentVersionModal from './MarkupDocumentVersionModal'
 
@@ -11,6 +12,8 @@ interface MarkupDocument {
   title: string
   description?: string
   file_url: string
+  storage_bucket?: string | null
+  storage_path?: string | null
   file_name: string
   file_size?: number
   mime_type?: string
@@ -177,12 +180,30 @@ export default function MarkupDocumentsManagement() {
     }
   }
 
+  const buildFileRecord = (document: MarkupDocument) => ({
+    file_url: document.file_url,
+    storage_bucket: document.storage_bucket || undefined,
+    storage_path: document.storage_path || undefined,
+    file_name: document.file_name || document.title,
+    title: document.title,
+  })
+
   const handleDownloadDocument = async (document: MarkupDocument) => {
+    const fallbackUrl = document.file_url
     try {
-      // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.file_url, '_blank')
+      const signedUrl = await fetchSignedUrlForRecord(buildFileRecord(document), {
+        downloadName: document.file_name || document.title,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = signedUrl
+      anchor.target = '_blank'
+      anchor.download = document.file_name || document.title || 'markup-document'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
     } catch (error) {
       console.error('Error downloading document:', error)
+      if (fallbackUrl) window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
       toast({ variant: 'destructive', title: '오류', description: '문서 다운로드에 실패했습니다.' })
     }
   }

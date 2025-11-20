@@ -1,5 +1,6 @@
 'use client'
 
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { t } from '@/lib/ui/strings'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
@@ -7,6 +8,7 @@ import { useConfirm } from '@/components/ui/use-confirm'
 import InvoiceDocumentUploadModal from './InvoiceDocumentUploadModal'
 import InvoiceDocumentDetailModal from './InvoiceDocumentDetailModal'
 import { getSessionUser } from '@/lib/supabase/session'
+import { fetchSignedUrlForRecord } from '@/lib/files/preview'
 
 interface InvoiceDocument {
   id: string
@@ -16,6 +18,9 @@ interface InvoiceDocument {
   document_type?: string // from metadata
   file_name: string
   file_url: string
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
   file_size: number
   mime_type: string
   status: string
@@ -213,12 +218,46 @@ export default function InvoiceDocumentsManagement() {
     }
   }
 
+  const buildFileRecord = useCallback((document: InvoiceDocument) => {
+    return {
+      file_url: document.file_url,
+      storage_bucket: document.storage_bucket || document.metadata?.storage_bucket || undefined,
+      storage_path:
+        document.storage_path ||
+        document.folder_path ||
+        document.metadata?.storage_path ||
+        document.metadata?.folder_path ||
+        undefined,
+      folder_path: document.folder_path || undefined,
+      file_name: document.file_name,
+      title: document.title,
+    }
+  }, [])
+
   const handleDownloadDocument = async (document: InvoiceDocument) => {
+    if (!document.file_url && !document.storage_path && !document.folder_path) {
+      toast({
+        variant: 'warning',
+        title: '파일 없음',
+        description: '서류 파일 정보를 찾을 수 없습니다.',
+      })
+      return
+    }
     try {
-      // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.file_url, '_blank')
+      const signedUrl = await fetchSignedUrlForRecord(buildFileRecord(document), {
+        downloadName: document.file_name,
+      })
+      const anchor = document.createElement('a')
+      anchor.href = signedUrl
+      anchor.target = '_blank'
+      anchor.download = document.file_name || `${document.title}.pdf`
+      anchor.rel = 'noopener,noreferrer'
+      anchor.click()
     } catch (error) {
       console.error('Error downloading document:', error)
+      if (document.file_url) {
+        window.open(document.file_url, '_blank', 'noopener,noreferrer')
+      }
       toast({ variant: 'destructive', title: '오류', description: '서류 다운로드에 실패했습니다.' })
     }
   }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { fetchSignedUrlForRecord } from '@/lib/files/preview'
 
 interface SharedDocumentsManagementUnifiedProps {
   siteId?: string
@@ -9,7 +10,7 @@ interface SharedDocumentsManagementUnifiedProps {
 
 export default function SharedDocumentsManagementUnified({
   siteId,
-  viewMode = 'admin'
+  viewMode = 'admin',
 }: SharedDocumentsManagementUnifiedProps) {
   const [selectedDocument, setSelectedDocument] = useState<UnifiedDocument | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
@@ -25,11 +26,11 @@ export default function SharedDocumentsManagementUnified({
     error,
     updateDocument,
     deleteDocument,
-    fetchDocuments
+    fetchDocuments,
   } = useUnifiedDocuments({
     categoryType: 'shared',
     siteId,
-    status: 'active'
+    status: 'active',
   })
 
   const handleDocumentClick = (document: UnifiedDocument) => {
@@ -56,14 +57,40 @@ export default function SharedDocumentsManagementUnified({
     }
   }
 
-  const handleDownload = (document: UnifiedDocument) => {
-    window.open(document.file_url, '_blank')
+  const buildFileRecord = (document: UnifiedDocument) => ({
+    file_url: document.file_url,
+    storage_bucket: (document as any).storage_bucket || undefined,
+    storage_path: (document as any).storage_path || document.folder_path || undefined,
+    file_name: document.file_name || document.original_filename || document.title,
+    title: document.title,
+  })
+
+  const handleDownload = async (document: UnifiedDocument) => {
+    const fallbackUrl = document.file_url
+    try {
+      const url = await fetchSignedUrlForRecord(buildFileRecord(document), {
+        downloadName: document.file_name || document.original_filename || document.title,
+      })
+      const anchor = window.document.createElement('a')
+      anchor.href = url
+      anchor.target = '_blank'
+      anchor.download =
+        document.file_name || document.original_filename || document.title || 'document'
+      window.document.body.appendChild(anchor)
+      anchor.click()
+      window.document.body.removeChild(anchor)
+    } catch (error) {
+      console.error('문서 다운로드 실패', error)
+      if (fallbackUrl) {
+        window.open(fallbackUrl, '_blank', 'noopener,noreferrer')
+      }
+    }
   }
 
   const handleShare = async (document: UnifiedDocument) => {
     try {
-      await navigator.clipboard.writeText(document.file_url)
-      // Toast로 성공 메시지 표시
+      const url = await fetchSignedUrlForRecord(buildFileRecord(document))
+      await navigator.clipboard.writeText(url)
       console.log('링크가 클립보드에 복사되었습니다.')
     } catch (error) {
       console.error('클립보드 복사 실패:', error)
@@ -76,16 +103,12 @@ export default function SharedDocumentsManagementUnified({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-2xl font-bold">공유문서함</h2>
-          <p className="text-muted-foreground">
-            모든 사용자가 접근 가능한 공유 문서를 관리합니다.
-          </p>
+          <p className="text-muted-foreground">모든 사용자가 접근 가능한 공유 문서를 관리합니다.</p>
         </div>
-        
+
         <div className="flex items-center gap-2">
-          <Badge variant="secondary">
-            총 {statistics?.by_category?.shared || 0}개 문서
-          </Badge>
-          
+          <Badge variant="secondary">총 {statistics?.by_category?.shared || 0}개 문서</Badge>
+
           <Button onClick={() => fetchDocuments()} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             새로고침
@@ -111,11 +134,7 @@ export default function SharedDocumentsManagementUnified({
               <span>{selectedDocument?.title}</span>
               <div className="flex items-center gap-2">
                 {viewMode === 'admin' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsEditMode(!isEditMode)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => setIsEditMode(!isEditMode)}>
                     <Edit2 className="h-4 w-4 mr-2" />
                     {isEditMode ? '취소' : '편집'}
                   </Button>
@@ -215,7 +234,7 @@ function DocumentDetailView({ document }: DocumentDetailViewProps) {
               <p className="text-sm">{document.mime_type}</p>
             </div>
           </div>
-          
+
           {document.description && (
             <div>
               <label className="text-sm font-medium">설명</label>
@@ -243,7 +262,9 @@ function DocumentDetailView({ document }: DocumentDetailViewProps) {
             {document.site && (
               <div className="md:col-span-2">
                 <label className="text-sm font-medium">현장</label>
-                <p className="text-sm">{document.site.name} ({document.site.address})</p>
+                <p className="text-sm">
+                  {document.site.name} ({document.site.address})
+                </p>
               </div>
             )}
           </div>
@@ -270,8 +291,8 @@ function DocumentDetailView({ document }: DocumentDetailViewProps) {
             <CardTitle>미리보기</CardTitle>
           </CardHeader>
           <CardContent>
-            <img 
-              src={document.file_url} 
+            <img
+              src={document.file_url}
               alt={document.title}
               className="max-w-full h-auto rounded-lg"
             />
@@ -294,7 +315,7 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
     title: document.title,
     description: document.description || '',
     is_public: document.is_public,
-    tags: document.tags?.join(', ') || ''
+    tags: document.tags?.join(', ') || '',
   })
   const [saving, setSaving] = useState(false)
 
@@ -307,7 +328,10 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
         title: formData.title,
         description: formData.description,
         is_public: formData.is_public,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+        tags: formData.tags
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean),
       })
     } finally {
       setSaving(false)
@@ -325,7 +349,7 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
             <label className="text-sm font-medium">제목 *</label>
             <Input
               value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
               required
             />
           </div>
@@ -334,7 +358,7 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
             <label className="text-sm font-medium">설명</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
               className="w-full p-3 border rounded-lg resize-none"
               rows={3}
               placeholder="문서에 대한 설명을 입력하세요..."
@@ -345,7 +369,7 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
             <label className="text-sm font-medium">태그 (쉼표로 구분)</label>
             <Input
               value={formData.tags}
-              onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+              onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
               placeholder="태그1, 태그2, 태그3"
             />
           </div>
@@ -355,7 +379,7 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
               type="checkbox"
               id="is_public"
               checked={formData.is_public}
-              onChange={(e) => setFormData(prev => ({ ...prev, is_public: e.target.checked }))}
+              onChange={e => setFormData(prev => ({ ...prev, is_public: e.target.checked }))}
               className="rounded"
             />
             <label htmlFor="is_public" className="text-sm font-medium">
@@ -380,10 +404,10 @@ function DocumentEditForm({ document, onSave, onCancel }: DocumentEditFormProps)
 // 유틸리티 함수
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes'
-  
+
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }

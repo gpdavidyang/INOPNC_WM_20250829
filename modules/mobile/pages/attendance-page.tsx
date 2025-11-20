@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
@@ -949,19 +950,27 @@ const AttendanceContent: React.FC = () => {
   // charts removed – related helper functions deleted
 
   const openPayslip = useCallback(
-    (y: number, m: number) => {
+    async (y: number, m: number) => {
       if (!userId) return
       const href = `/payslip/${userId}/${y}/${m}`
       const isStandalone =
         typeof window !== 'undefined' &&
         (window.matchMedia?.('(display-mode: standalone)').matches ||
-          // iOS Safari PWA flag
           (navigator as any)?.standalone === true)
 
       if (isStandalone) {
-        // PWA 환경에서는 동일 창 내 라우팅이 UX적으로 안전
         window.location.assign(href)
-      } else {
+        return
+      }
+
+      try {
+        await openFileRecordInNewTab({
+          file_url: href,
+          file_name: `payslip-${y}-${String(m).padStart(2, '0')}.html`,
+          title: `급여명세서 ${y}-${m}`,
+        })
+      } catch (error) {
+        console.error('Failed to open payslip', error)
         window.open(href, '_blank', 'noopener,noreferrer')
       }
     },

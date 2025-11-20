@@ -359,7 +359,7 @@ export type DocumentType =
   | 'other'
 
 // 필수 문서 제출 상태
-export type RequiredDocumentStatus = 'pending' | 'submitted' | 'approved' | 'rejected'
+export type RequiredDocumentStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected'
 
 // 필수 문서 타입
 export type RequiredDocumentType =

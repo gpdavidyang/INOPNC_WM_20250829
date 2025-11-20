@@ -36,6 +36,8 @@ export default async function AdminRequiredDocumentsPage({
       code,
       name_ko,
       name_en,
+      description,
+      instructions,
       file_types,
       max_file_size,
       is_active,

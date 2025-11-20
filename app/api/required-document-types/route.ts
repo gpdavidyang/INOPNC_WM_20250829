@@ -28,12 +28,31 @@ export async function GET(request: NextRequest) {
 
     console.log('Required document types API - User profile:', profile)
 
-    // First try to get from document_requirements table
+    const searchParams = request.nextUrl.searchParams
+    const roleType = searchParams.get('role_type')
+    const siteId = searchParams.get('site_id')
+
     const { data: documents, error } = await supabase
-      .from('document_requirements')
-      .select('*')
+      .from('required_document_types')
+      .select(
+        `
+        id,
+        code,
+        name_ko,
+        name_en,
+        description,
+        file_types,
+        max_file_size,
+        instructions,
+        valid_duration_days,
+        sort_order,
+        is_active,
+        role_mappings:required_documents_by_role(role_type,is_required),
+        site_customizations:site_required_documents(site_id,is_required,due_days)
+      `
+      )
       .eq('is_active', true)
-      .order('created_at', { ascending: true })
+      .order('sort_order', { ascending: true })
 
     if (error) {
       console.error('Error fetching document requirements:', error)
@@ -42,35 +61,55 @@ export async function GET(request: NextRequest) {
 
     console.log('Required document types API - Found documents:', documents?.length || 0)
 
-    // Transform to expected format for documents-tab.tsx
-    const transformedDocuments = (documents || []).map((doc: unknown) => ({
-      id: doc.id,
-      code: doc.document_type || doc.id,
-      name_ko: doc.requirement_name,
-      name_en: doc.requirement_name,
-      description: doc.description,
-      file_types: doc.file_format_allowed || ['pdf', 'jpg', 'jpeg', 'png'],
-      max_file_size: (doc.max_file_size_mb || 5) * 1024 * 1024, // Convert MB to bytes
-      sort_order: 0,
-      isRequired: doc.is_mandatory,
-      is_mandatory: doc.is_mandatory,
-      submissionStatus: 'not_submitted' // Default status, will be updated by submission API
-    }))
+    const filteredDocuments = (documents || []).filter((doc: any) => {
+      if (roleType) {
+        const allowedForRole =
+          Array.isArray(doc.role_mappings) &&
+          doc.role_mappings.some(
+            (mapping: any) => mapping.role_type === roleType && mapping.is_required
+          )
+        if (!allowedForRole) return false
+      }
+      if (siteId) {
+        const allowedForSite =
+          Array.isArray(doc.site_customizations) &&
+          doc.site_customizations.some(
+            (customization: any) => customization.site_id === siteId && customization.is_required
+          )
+        if (!allowedForSite) return false
+      }
+      return true
+    })
 
-    console.log('Required document types API - Transformed documents:', transformedDocuments)
+    // Transform to expected format for documents-tab.tsx
+    const transformedDocuments = filteredDocuments.map((doc: any) => {
+      const maxSize = Number(doc.max_file_size) || 5 * 1024 * 1024
+      return {
+        id: doc.id,
+        code: doc.code || doc.id,
+        document_type: doc.code || doc.id,
+        name_ko: doc.name_ko || doc.name_en,
+        name_en: doc.name_en || doc.name_ko,
+        description: doc.description,
+        instructions: doc.instructions,
+        file_types: doc.file_types || ['pdf', 'jpg', 'jpeg', 'png'],
+        max_file_size: maxSize,
+        max_file_size_mb: Math.round(maxSize / 1024 / 1024),
+        valid_duration_days: doc.valid_duration_days,
+        sort_order: doc.sort_order || 0,
+        isRequired: true,
+        submissionStatus: 'not_submitted',
+      }
+    })
 
     return NextResponse.json({
       required_documents: transformedDocuments,
       user_role: role,
       site_id: profile.site_id,
-      total_count: transformedDocuments.length
+      total_count: transformedDocuments.length,
     })
-
   } catch (error) {
     console.error('Error in GET /api/required-document-types:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
