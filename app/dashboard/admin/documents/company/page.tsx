@@ -1,38 +1,16 @@
 'use client'
 import React from 'react'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { PageHeader } from '@/components/ui/page-header'
 import { useToast } from '@/components/ui/use-toast'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
-
-// Canonical slugs used across the app (aligns with mobile/company tab)
-type CompanySlug = 'biz_reg' | 'bankbook' | 'npc1000_form' | 'completion_form'
-
-const COMPANY_DOCS: Array<{ slug: CompanySlug; label: string; hint?: string }> = [
-  { slug: 'biz_reg', label: '사업자등록증' },
-  { slug: 'bankbook', label: '통장사본' },
-  { slug: 'npc1000_form', label: 'NPC-1000 승인확인서(양식)' },
-  { slug: 'completion_form', label: '작업완료확인서(양식)' },
-]
-
-// Accept legacy/admin-specific aliases so existing data shows up
-const COMPANY_TYPE_ALIASES: Record<CompanySlug, string[]> = {
-  biz_reg: ['biz_reg', 'company_biz_reg'],
-  bankbook: ['bankbook', 'company_bankbook'],
-  npc1000_form: ['npc1000_form'],
-  completion_form: ['completion_form'],
-}
-
-const DOC_TYPE_TO_LABEL: Record<string, string> = {
-  biz_reg: '사업자등록증',
-  company_biz_reg: '사업자등록증',
-  bankbook: '통장사본',
-  company_bankbook: '통장사본',
-  npc1000_form: 'NPC-1000 승인확인서(양식)',
-  completion_form: '작업완료확인서(양식)',
-}
+import {
+  DEFAULT_COMPANY_DOCUMENT_TYPES,
+  buildCompanyDocTypeMap,
+  type CompanyDocumentType,
+} from '@/lib/documents/company-types'
+import { FileActionMenu } from '@/components/files/FileActionButtons'
 
 type Row = {
   id: string
@@ -51,94 +29,175 @@ type Row = {
   description?: string
 }
 
-type TabKey = 'all' | CompanySlug
-
 export default function AdminCompanyDocumentsPage() {
   const { toast } = useToast()
-  const [rows, setRows] = useState<Row[]>([])
+  const [docTypes, setDocTypes] = useState<(CompanyDocumentType & { documents?: Row[] })[]>([])
+  const [typesLoading, setTypesLoading] = useState(true)
+  const [typeFormOpen, setTypeFormOpen] = useState(false)
+  const [editingType, setEditingType] = useState<CompanyDocumentType | null>(null)
+  const [typeForm, setTypeForm] = useState({
+    slug: '',
+    name: '',
+    description: '',
+    display_order: 100,
+    is_required: false,
+    is_active: true,
+  })
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const [unmatchedDocs, setUnmatchedDocs] = useState<Row[]>([])
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({})
-  const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [active, setActive] = useState<TabKey>('biz_reg')
-  const [uploadSlug, setUploadSlug] = useState<CompanySlug>('biz_reg')
+  const fileActionButtonClass =
+    'inline-flex items-center justify-center min-w-[80px] px-3 py-1 text-[11px] font-medium rounded border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-400 disabled:opacity-50'
 
-  const load = async () => {
-    setBusy(true)
+  const loadDocTypes = useCallback(async (activeOnly = false, includeDocs = false) => {
+    setTypesLoading(true)
     try {
+      const params = new URLSearchParams()
+      if (activeOnly) params.set('active', 'true')
+      if (includeDocs) params.set('include_docs', 'true')
       const res = await fetch(
-        '/api/unified-documents/v2?category_type=shared&status=active&limit=200',
-        { credentials: 'include' }
+        `/api/company-doc-types${params.toString() ? `?${params.toString()}` : ''}`,
+        {
+          credentials: 'include',
+        }
       )
-      const j = await res.json()
-      if (res.ok && j?.success) setRows(Array.isArray(j.data) ? j.data : [])
-      else setRows([])
+      const json = await res.json().catch(() => null)
+      if (res.ok && Array.isArray(json?.data)) {
+        setDocTypes(json.data)
+        if (includeDocs) {
+          const unmatched = Array.isArray(json?.unmatchedDocuments) ? json.unmatchedDocuments : []
+          setUnmatchedDocs(unmatched)
+        }
+        return
+      }
+    } catch (error) {
+      console.warn('회사 문서 유형 불러오기 실패', error)
     } finally {
-      setBusy(false)
+      setTypesLoading(false)
     }
-  }
-
-  useEffect(() => {
-    load()
+    setDocTypes(DEFAULT_COMPANY_DOCUMENT_TYPES)
+    if (includeDocs) setUnmatchedDocs([])
   }, [])
 
-  // Reset selection when list changes
   useEffect(() => {
-    setSelected(new Set())
-  }, [rows.length])
+    loadDocTypes(false, true)
+  }, [loadDocTypes])
 
-  const listBySlug = useMemo(() => {
-    const map: Record<CompanySlug, Row[]> = {
-      biz_reg: [],
-      bankbook: [],
-      npc1000_form: [],
-      completion_form: [],
-    }
-    const typeToCanonical: Record<string, CompanySlug> = {}
-    for (const key of Object.keys(COMPANY_TYPE_ALIASES) as CompanySlug[]) {
-      for (const alias of COMPANY_TYPE_ALIASES[key]) typeToCanonical[alias] = key
-    }
-    for (const d of rows) {
-      // 1) 태그 우선: company_slug:* 태그 사용
-      const tags = Array.isArray(d.tags) ? d.tags : []
-      const slugTag = tags.find(t => t.startsWith('company_slug:'))
-      if (slugTag) {
-        const slug = slugTag.split(':')[1] as CompanySlug
-        if (slug && (['biz_reg', 'bankbook', 'npc1000_form', 'completion_form'] as string[]).includes(slug)) {
-          map[slug].push(d)
-          continue
-        }
-      }
-      // 2) 레거시 타입 매핑
-      const t = String(d.document_type || '')
-      const canonical = typeToCanonical[t]
-      if (canonical) {
-        map[canonical].push(d)
-        continue
-      }
-      // 3) 설명 내 마커(호환)
-      const desc = String(d.description || '')
-      const m = desc.match(/company_slug:([a-zA-Z0-9_\-]+)/)
-      if (m) {
-        const slug = m[1] as CompanySlug
-        if (slug && (['biz_reg', 'bankbook', 'npc1000_form', 'completion_form'] as string[]).includes(slug)) {
-          map[slug as CompanySlug].push(d)
-        }
-      }
-    }
-    return map
-  }, [rows])
+  const typeMap = useMemo(() => buildCompanyDocTypeMap(docTypes), [docTypes])
 
-  const latest = (slug: CompanySlug) => {
-    const arr = (listBySlug[slug] || [])
-      .slice()
-      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-    return arr[0]
+  useEffect(() => {
+    // ensure file input refs map keeps valid entries
+    docTypes.forEach(type => {
+      if (!fileInputs.current[type.slug]) {
+        fileInputs.current[type.slug] = null
+      }
+    })
+  }, [docTypes])
+
+  const toFileRecord = useCallback(
+    (row: Row) => ({
+      file_url: row.file_url,
+      storage_bucket: row.storage_bucket || (row.metadata as any)?.storage_bucket,
+      storage_path: row.storage_path || row.folder_path || (row.metadata as any)?.storage_path,
+      file_name: row.file_name || row.title,
+      title: row.title || row.file_name || '회사 문서',
+    }),
+    []
+  )
+
+  const openCreateTypeForm = () => {
+    setEditingType(null)
+    setTypeForm({
+      slug: '',
+      name: '',
+      description: '',
+      display_order: 100,
+      is_required: false,
+      is_active: true,
+    })
+    setTypeFormOpen(true)
   }
 
-  const onPick = (slug: CompanySlug) => fileInputs.current[slug]?.click()
+  const openEditTypeForm = (type: CompanyDocumentType) => {
+    setEditingType(type)
+    setTypeForm({
+      slug: type.slug,
+      name: type.name,
+      description: type.description || '',
+      display_order: type.display_order,
+      is_required: type.is_required,
+      is_active: type.is_active,
+    })
+    setTypeFormOpen(true)
+  }
 
-  const onFile = async (slug: CompanySlug, f?: File) => {
+  const closeTypeForm = () => {
+    setTypeFormOpen(false)
+    setEditingType(null)
+  }
+
+  const submitTypeForm = async () => {
+    try {
+      const payload = {
+        ...typeForm,
+        display_order: Number(typeForm.display_order) || 100,
+      }
+      const res = await fetch(
+        editingType ? `/api/company-doc-types/${editingType.id}` : '/api/company-doc-types',
+        {
+          method: editingType ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+        }
+      )
+      const json = await res.json().catch(() => null)
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || '저장 실패')
+      }
+      toast({
+        title: '유형 저장 완료',
+        description: editingType ? '회사 문서 유형을 수정했습니다.' : '새 회사 문서 유형을 추가했습니다.',
+      })
+      closeTypeForm()
+      await loadDocTypes(false, true)
+    } catch (error: any) {
+      toast({
+        title: '유형 저장 실패',
+        description: error?.message || '회사 문서 유형을 저장하지 못했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleToggleTypeActive = async (type: CompanyDocumentType, active: boolean) => {
+    try {
+      const res = await fetch(`/api/company-doc-types/${type.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ is_active: active }),
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || json?.error) throw new Error(json?.error || '토글 실패')
+      toast({
+        title: active ? '유형 활성화' : '유형 비활성화',
+        description: `${type.name} 상태를 변경했습니다.`,
+      })
+      await loadDocTypes(false, true)
+    } catch (error: any) {
+      toast({
+        title: '상태 변경 실패',
+        description: error?.message || '회사 문서 유형 상태를 변경하지 못했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const onPick = (slug: string) => fileInputs.current[slug]?.click()
+
+  const onFile = async (slug: string, f?: File) => {
     if (!f) return
     setBusy(true)
     setMsg('')
@@ -149,6 +208,11 @@ export default function AdminCompanyDocumentsPage() {
       form.append('title', f.name)
       // 회사서류 유형을 태그로 저장하여 모바일/관리자에서 구분 가능하도록 함
       form.append('tags', `company_slug:${slug}`)
+      form.append('companyDocSlug', slug)
+      const docType = typeMap[slug]
+      if (docType?.id) {
+        form.append('companyDocTypeId', docType.id)
+      }
       const res = await fetch('/api/unified-documents/v2/upload', {
         method: 'POST',
         body: form,
@@ -169,9 +233,10 @@ export default function AdminCompanyDocumentsPage() {
         const detail = data?.details || data?.error || raw || res.statusText || '업로드 실패'
         throw new Error(`${res.status} ${detail}`)
       }
-      setMsg(`${slug} 업로드 완료`)
-      toast({ title: '업로드 완료', description: `${slug} 업로드가 완료되었습니다.` })
-      await load()
+      const label = docType?.name || slug
+      setMsg(`${label} 업로드 완료`)
+      toast({ title: '업로드 완료', description: `${label} 업로드가 완료되었습니다.` })
+      await loadDocTypes(false, true)
     } catch (e: any) {
       console.error('회사서류 업로드 실패:', e)
       setMsg(e?.message || '업로드 실패')
@@ -200,7 +265,7 @@ export default function AdminCompanyDocumentsPage() {
       })
       const j = await res.json()
       if (!res.ok || j?.error) throw new Error(j?.error || '삭제 실패')
-      await load()
+      await loadDocTypes(false, true)
     } catch (e: any) {
       toast({ title: '삭제 실패', description: e?.message || '삭제 실패', variant: 'destructive' })
     } finally {
@@ -208,252 +273,351 @@ export default function AdminCompanyDocumentsPage() {
     }
   }
 
-  // Bulk delete selected rows
-  const onBulkDelete = async () => {
-    const ids = Array.from(selected)
-    if (ids.length === 0) return
-    const ok = await confirm({
-      title: '선택 삭제',
-      description: `선택한 ${ids.length}개의 문서를 삭제하시겠습니까?`,
-      confirmText: '삭제',
-      cancelText: '취소',
-      variant: 'destructive',
-    })
-    if (!ok) return
-    setBusy(true)
-    setMsg('')
-    try {
-      const results = await Promise.allSettled(
-        ids.map(id =>
-          fetch(`/api/documents?id=${encodeURIComponent(id)}`, {
-            method: 'DELETE',
-            credentials: 'include',
-          })
-        )
-      )
-      const failed = results.filter(
-        r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.ok)
-      )
-      if (failed.length > 0) {
-        setMsg(`일부 문서 삭제 실패 (${failed.length}/${ids.length})`)
-      }
-      await load()
-    } finally {
-      setBusy(false)
-      setSelected(new Set())
-    }
-  }
-
-  const allSelected = rows.length > 0 && selected.size === rows.length
-  const toggleSelectAll = () => {
-    if (allSelected) setSelected(new Set())
-    else setSelected(new Set(rows.map(r => String(r.id))))
-  }
-  const toggleSelectOne = (id: string) => {
-    setSelected(prev => {
-      const n = new Set(prev)
-      if (n.has(id)) n.delete(id)
-      else n.add(id)
-      return n
-    })
-  }
-
-  const filteredRows = useMemo(() => {
-    if (active === 'all') {
-      // Show only recognized company docs across all slugs
-      return (['biz_reg', 'bankbook', 'npc1000_form', 'completion_form'] as CompanySlug[])
-        .flatMap(slug => listBySlug[slug])
-        .sort(
-          (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-        )
-    }
-    return (listBySlug[active] || [])
-      .slice()
-      .sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime())
-  }, [active, listBySlug])
-
-  useEffect(() => {
-    // keep upload type in sync with active tab (except for 'all')
-    if (active !== 'all') setUploadSlug(active)
-  }, [active])
-
   return (
     <div className="px-0 pb-8">
       <PageHeader
         title="이노피앤씨 설정"
-        description="사업자등록증/통장사본/NPC-1000/완료확인서 관리"
+        description="사업자등록증/통장사본/NPC-1000/완료확인서 및 유형 관리"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '시스템' }, { label: '이노피앤씨 설정' }]}
         showBackButton
         backButtonHref="/dashboard/admin/system"
       />
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-      <div className="flex items-end justify-between gap-3 flex-wrap">
-        <div>
-          <h1 className="text-2xl font-semibold">회사서류 관리</h1>
-          <p className="text-sm text-muted-foreground">
-            사업자등록증, 통장사본, NPC-1000 승인확인서, 작업완료확인서 업로드/관리
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select
-            className="px-2 py-2 border rounded-md text-sm"
-            value={uploadSlug}
-            onChange={e => setUploadSlug(e.target.value as CompanySlug)}
-          >
-            {COMPANY_DOCS.map(d => (
-              <option key={d.slug} value={d.slug}>
-                {d.label} 업로드
-              </option>
-            ))}
-          </select>
-          <button
-            className="px-3 py-2 text-sm rounded-md bg-blue-600 text-white disabled:opacity-50"
-            onClick={() => onPick(uploadSlug)}
-            disabled={busy}
-          >
-            업로드
-          </button>
-          <input
-            ref={el => (fileInputs.current[uploadSlug] = el)}
-            type="file"
-            hidden
-            onChange={e => onFile(uploadSlug, e.target.files?.[0] || undefined)}
-          />
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b">
-        {(['all', ...COMPANY_DOCS.map(d => d.slug)] as TabKey[]).map(key => {
-          const label = key === 'all' ? '전체' : COMPANY_DOCS.find(d => d.slug === key)!.label
-          const isActive = active === key
-          return (
-            <button
-              key={key}
-              className={`px-3 py-2 text-sm border-b-2 ${isActive ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900'}`}
-              onClick={() => setActive(key)}
-            >
-              {label}
-            </button>
-          )
-        })}
-      </div>
-
-      {msg && <div className="text-sm text-foreground">{msg}</div>}
-
-      <div className="rounded-lg border bg-card p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-sm font-semibold">회사서류 목록</div>
-          <div className="flex items-center gap-2">
-            <button
-              className="px-3 py-2 text-sm rounded-md border disabled:opacity-50"
-              onClick={toggleSelectAll}
-              disabled={filteredRows.length === 0}
-            >
-              {allSelected ? '전체 해제' : '전체 선택'}
-            </button>
-            <button
-              className="px-3 py-2 text-sm rounded-md bg-rose-600 text-white disabled:opacity-50"
-              onClick={onBulkDelete}
-              disabled={selected.size === 0 || busy}
-            >
-              선택 삭제
-            </button>
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold">회사 문서 유형</h1>
+            <p className="text-xs text-muted-foreground">
+              각 유형에서 바로 문서를 업로드하고 관리할 수 있습니다.
+            </p>
           </div>
+          <button
+            className="px-3 py-1.5 text-xs rounded-md border"
+            onClick={openCreateTypeForm}
+            disabled={typesLoading}
+          >
+            + 유형 추가
+          </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-muted text-left">
-                <th className="px-3 py-2 w-10">
+        {msg && <div className="text-xs text-blue-600">{msg}</div>}
+        {typeFormOpen && !editingType && (
+          <section className="rounded-lg border bg-card p-4 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">새 회사 문서 유형</h2>
+                <p className="text-sm text-muted-foreground">
+                  한글 이름과 문서유형 ID를 입력해 새로운 카테고리를 추가하세요.
+                </p>
+              </div>
+              <button className="text-sm text-muted-foreground" onClick={closeTypeForm}>
+                닫기
+              </button>
+            </div>
+            <div className="space-y-3">
+              <label className="flex flex-col gap-1 text-sm">
+                <span>이름</span>
+                <input
+                  className="border rounded px-2 py-1 text-sm"
+                  value={typeForm.name}
+                  onChange={e => setTypeForm(f => ({ ...f, name: e.target.value }))}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>문서유형 ID (영문/숫자/하이픈)</span>
+                <input
+                  className="border rounded px-2 py-1 text-sm"
+                  value={typeForm.slug}
+                  onChange={e => setTypeForm(f => ({ ...f, slug: e.target.value }))}
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                <span>설명</span>
+                <textarea
+                  className="border rounded px-2 py-1 text-sm"
+                  rows={3}
+                  value={typeForm.description}
+                  onChange={e => setTypeForm(f => ({ ...f, description: e.target.value }))}
+                />
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <label className="flex flex-col gap-1 text-sm">
+                  <span>정렬 순서</span>
+                  <input
+                    type="number"
+                    className="border rounded px-2 py-1 text-sm"
+                    value={typeForm.display_order}
+                    onChange={e =>
+                      setTypeForm(f => ({
+                        ...f,
+                        display_order: Number(e.target.value),
+                      }))
+                    }
+                  />
+                </label>
+                <label className="flex items-center gap-2 text-sm">
                   <input
                     type="checkbox"
-                    aria-label="전체 선택"
-                    checked={allSelected}
-                    onChange={toggleSelectAll}
+                    checked={typeForm.is_required}
+                    onChange={e => setTypeForm(f => ({ ...f, is_required: e.target.checked }))}
                   />
-                </th>
-                <th className="px-3 py-2">유형</th>
-                <th className="px-3 py-2">파일명</th>
-                <th className="px-3 py-2">등록일</th>
-                <th className="px-3 py-2">액션</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredRows.map(r => (
-                <tr key={r.id} className="border-t">
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      aria-label="선택"
-                      checked={selected.has(String(r.id))}
-                      onChange={() => toggleSelectOne(String(r.id))}
-                    />
-                  </td>
-                  <td className="px-3 py-2">{mapDocType(r.document_type, r.description)}</td>
-                  <td className="px-3 py-2">{r.title || r.file_name || '-'}</td>
-                  <td className="px-3 py-2">
-                    {r.created_at ? new Date(r.created_at).toLocaleDateString('ko-KR') : '-'}
-                  </td>
-                  <td className="px-3 py-2 flex items-center gap-2">
-                    <button
-                      className="px-2 py-1 text-xs rounded border"
-                      disabled={!r.file_url && !r.storage_path && !r.folder_path}
-                      onClick={async () => {
-                        try {
-                          await openFileRecordInNewTab({
-                            file_url: r.file_url,
-                            storage_bucket: r.storage_bucket || r.metadata?.storage_bucket,
-                            storage_path:
-                              r.storage_path || r.folder_path || r.metadata?.storage_path,
-                            file_name: r.file_name || r.title,
-                            title: r.title || r.file_name || '회사 문서',
-                          })
-                        } catch (error) {
-                          console.error('Failed to open company document', error)
-                          if (r.file_url) {
-                            window.open(r.file_url, '_blank', 'noopener,noreferrer')
-                          }
-                        }
-                      }}
+                  필수 문서
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={typeForm.is_active}
+                    onChange={e => setTypeForm(f => ({ ...f, is_active: e.target.checked }))}
+                  />
+                  사용 중
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button className="px-3 py-2 text-sm rounded border" onClick={closeTypeForm}>
+                취소
+              </button>
+              <button
+                className="px-3 py-2 text-sm rounded bg-blue-600 text-white disabled:opacity-50"
+                onClick={submitTypeForm}
+                disabled={!typeForm.name || !typeForm.slug}
+              >
+                저장
+              </button>
+            </div>
+          </section>
+        )}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {typesLoading && (
+            <>
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border bg-card p-4 text-sm text-muted-foreground animate-pulse h-40"
+                >
+                  로딩 중...
+                </div>
+              ))}
+            </>
+          )}
+          {!typesLoading && docTypes.length === 0 && (
+            <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground col-span-full">
+              등록된 회사 문서 유형이 없습니다. 우측 상단 버튼을 눌러 새 유형을 추가하세요.
+            </div>
+          )}
+          {docTypes.map(type => {
+            const docsForType = (Array.isArray(type.documents) ? type.documents : []).slice()
+              .sort(
+                (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+              )
+            const isEditing =
+              typeFormOpen &&
+              editingType &&
+              ((editingType.id && editingType.id === type.id) ||
+                (!editingType.id && editingType.slug === type.slug))
+            return (
+              <section
+                key={type.slug}
+                className={`rounded-lg border bg-card p-3 shadow-sm space-y-3 flex flex-col ${type.is_active ? '' : 'opacity-70'}`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-semibold">{type.name}</h2>
+                        {type.is_required && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                            필수
+                          </span>
+                        )}
+                        {!type.is_active && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                            비활성
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground font-mono">
+                        ID: {type.slug}
+                      </div>
+                      {type.description && (
+                        <p className="text-xs text-muted-foreground">{type.description}</p>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <button
+                        className="px-2 py-1 text-[11px] rounded border"
+                        onClick={() => openEditTypeForm(type)}
+                      >
+                        수정
+                      </button>
+                      <button
+                        className="px-2 py-1 text-[11px] rounded border"
+                        onClick={() => handleToggleTypeActive(type, !type.is_active)}
+                      >
+                        {type.is_active ? '비활성' : '활성'}
+                      </button>
+                      <button
+                        className="px-2 py-1 text-[11px] rounded bg-blue-600 text-white disabled:opacity-50"
+                        onClick={() => onPick(type.slug)}
+                        disabled={!type.is_active || busy}
+                      >
+                        업로드
+                      </button>
+                      <input
+                        ref={el => (fileInputs.current[type.slug] = el)}
+                        type="file"
+                        hidden
+                        onChange={e => onFile(type.slug, e.target.files?.[0] || undefined)}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  {docsForType.length === 0 && (
+                    <div className="text-xs text-muted-foreground border rounded p-3 bg-muted/40">
+                      등록된 문서가 없습니다.
+                    </div>
+                  )}
+                  {docsForType.map(doc => (
+                    <div
+                      key={doc.id}
+                      className="border rounded p-2 flex flex-col gap-1"
                     >
-                      보기
-                    </button>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-xs font-medium truncate">
+                          {doc.title || doc.file_name || '문서'}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {doc.created_at ? new Date(doc.created_at).toLocaleDateString('ko-KR') : ''}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <FileActionMenu
+                          document={toFileRecord(doc)}
+                          buttonVariant="default"
+                          buttonClassName={fileActionButtonClass}
+                          className="flex items-center gap-2"
+                        />
+                        <button
+                          className="inline-flex items-center justify-center min-w-[80px] px-3 py-1 text-[11px] font-medium rounded border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-400 disabled:opacity-50"
+                          onClick={() => onDelete(doc.id!)}
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {isEditing && (
+                  <div className="border-t pt-3 space-y-2 text-xs">
+                    <div className="font-semibold">유형 정보 수정</div>
+                    <label className="flex flex-col gap-1">
+                      <span>이름</span>
+                      <input
+                        className="border rounded px-2 py-1 text-xs"
+                        value={typeForm.name}
+                        onChange={e => setTypeForm(f => ({ ...f, name: e.target.value }))}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span>문서유형 ID (수정 불가)</span>
+                      <input className="border rounded px-2 py-1 text-xs bg-muted" value={typeForm.slug} disabled />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span>설명</span>
+                      <textarea
+                        className="border rounded px-2 py-1 text-xs"
+                        rows={2}
+                        value={typeForm.description}
+                        onChange={e => setTypeForm(f => ({ ...f, description: e.target.value }))}
+                      />
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="flex flex-col gap-1">
+                        <span>정렬</span>
+                        <input
+                          type="number"
+                          className="border rounded px-2 py-1 text-xs"
+                          value={typeForm.display_order}
+                          onChange={e =>
+                            setTypeForm(f => ({
+                              ...f,
+                              display_order: Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </label>
+                      <label className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={typeForm.is_required}
+                          onChange={e => setTypeForm(f => ({ ...f, is_required: e.target.checked }))}
+                        />
+                        필수
+                      </label>
+                    </div>
+                    <label className="flex items-center gap-1">
+                      <input
+                        type="checkbox"
+                        checked={typeForm.is_active}
+                        onChange={e => setTypeForm(f => ({ ...f, is_active: e.target.checked }))}
+                      />
+                      사용 중
+                    </label>
+                    <div className="flex justify-end gap-1">
+                      <button className="px-2 py-1 text-xs rounded border" onClick={closeTypeForm}>
+                        취소
+                      </button>
+                      <button
+                        className="px-2 py-1 text-xs rounded bg-blue-600 text-white disabled:opacity-50"
+                        onClick={submitTypeForm}
+                        disabled={!typeForm.name}
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )
+          })}
+          {unmatchedDocs.length > 0 && (
+            <section className="rounded-lg border bg-card p-4 shadow-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="font-semibold">분류되지 않은 문서</div>
+                <p className="text-xs text-muted-foreground">
+                  company_slug 태그가 없는 문서입니다. 적절한 유형으로 다시 업로드해주세요.
+                </p>
+              </div>
+              {unmatchedDocs.map(doc => (
+                <div
+                  key={doc.id}
+                  className="border rounded-md p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                >
+                  <div>
+                    <div className="font-medium">{doc.title || doc.file_name || '문서'}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {(doc.file_name || '파일명 없음')}{' '}
+                      {doc.created_at ? `· ${new Date(doc.created_at).toLocaleDateString('ko-KR')}` : ''}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <FileActionMenu
+                      document={toFileRecord(doc)}
+                      buttonVariant="default"
+                      buttonClassName={fileActionButtonClass}
+                    />
                     <button
-                      className="px-2 py-1 text-xs rounded bg-rose-600 text-white"
-                      onClick={() => onDelete(r.id!)}
+                      className="inline-flex items-center justify-center min-w-[80px] px-3 py-1 text-[11px] font-medium rounded border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-rose-400 disabled:opacity-50"
+                      onClick={() => onDelete(doc.id!)}
                     >
                       삭제
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-              {filteredRows.length === 0 && (
-                <tr>
-                  <td className="px-3 py-4 text-center text-gray-500" colSpan={5}>
-                    등록된 회사서류가 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </section>
+          )}
         </div>
       </div>
     </div>
-    </div>
   )
-}
-
-function mapDocType(t?: string, desc?: string) {
-  if (!t) return '-'
-  // Company docs saved as shared: decode company_slug marker from description
-  if (t === 'shared' && desc) {
-    const m = String(desc).match(/company_slug:([a-zA-Z0-9_\-]+)/)
-    if (m) {
-      const slug = m[1]
-      const label = DOC_TYPE_TO_LABEL[slug]
-      if (label) return label
-    }
-  }
-  return DOC_TYPE_TO_LABEL[t] || t
 }

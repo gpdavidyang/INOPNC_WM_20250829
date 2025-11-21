@@ -13,7 +13,14 @@ import { resolveSharedDocCategoryLabel } from '@/lib/documents/shared-documents'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { FilePreviewButton } from '@/components/files/FilePreviewButton'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
+import { FileDownloadButton, FileShareButton } from '@/components/files/FileActionButtons'
+import { fetchSignedUrlForRecord } from '@/lib/files/preview'
+import type { CompanyDocumentType } from '@/lib/documents/company-types'
+import {
+  REQUIRED_DOC_STATUS_LABELS,
+  normalizeRequiredDocStatus,
+  type RequiredDocStatus,
+} from '@/lib/documents/status'
 
 type TabKey = 'mine' | 'company' | 'drawings' | 'photos'
 
@@ -84,13 +91,86 @@ const DOC_STATUS_BADGE_STYLES: Record<
   },
 }
 
-type CompanyDoc = {
-  id: string
-  title: string
-  url: string
+type CompanyDocRecord = {
+  id?: string | number | null
+  title?: string | null
+  file_name?: string | null
+  file_url?: string | null
+  url?: string | null
   storage_bucket?: string | null
   storage_path?: string | null
+  folder_path?: string | null
+  created_at?: string | null
+  tags?: string[] | null
+  metadata?: Record<string, any> | null
+  status?: string | null
+}
+
+type CompanyDocWithType = {
+  id: string
+  title?: string | null
   file_name?: string | null
+  file_url?: string | null
+  storage_bucket?: string | null
+  storage_path?: string | null
+  folder_path?: string | null
+  created_at?: string | null
+  tags?: string[] | null
+  metadata?: Record<string, any> | null
+  status?: string | null
+  typeSlug: string
+  typeName: string
+}
+
+type CompanyDocTypeWithDocs = CompanyDocumentType & {
+  documents?: CompanyDocWithType[]
+}
+
+const normalizeCompanyDoc = (
+  raw: CompanyDocRecord | null | undefined,
+  type?: CompanyDocumentType
+): CompanyDocWithType | null => {
+  if (!raw) return null
+  const metadata =
+    raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata)
+      ? raw.metadata
+      : null
+  const fallbackId =
+    typeof raw.id === 'string' && raw.id.length > 0
+      ? raw.id
+      : (() => {
+          const base = raw.file_url || raw.url || raw.file_name || type?.slug || 'doc'
+          const suffix =
+            typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+          return `${base}-${suffix}`
+        })()
+  const fileUrl =
+    raw.file_url || raw.url || metadata?.file_url || metadata?.url || raw.public_url || null
+  const storageBucket =
+    raw.storage_bucket ?? metadata?.storage_bucket ?? metadata?.bucket ?? raw.bucket ?? null
+  const storagePath =
+    raw.storage_path ?? raw.folder_path ?? metadata?.storage_path ?? metadata?.path ?? null
+  return {
+    id: String(fallbackId),
+    title: raw.title || raw.file_name || metadata?.display_name || type?.name || '회사 문서',
+    file_name: raw.file_name || metadata?.file_name || raw.title || null,
+    file_url: fileUrl,
+    storage_bucket: storageBucket,
+    storage_path: storagePath,
+    folder_path: raw.folder_path ?? null,
+    created_at: raw.created_at || metadata?.created_at || null,
+    tags: Array.isArray(raw.tags)
+      ? raw.tags
+      : Array.isArray(metadata?.tags)
+        ? metadata?.tags
+        : null,
+    metadata,
+    status: raw.status || metadata?.status || null,
+    typeSlug: type?.slug || 'unmatched',
+    typeName: type?.name || '분류되지 않은 문서',
+  }
 }
 
 export default function DocumentHubPage() {
@@ -1212,200 +1292,367 @@ function MyDocsTab() {
 function CompanyTab() {
   const { toast } = useToast()
   const [selected, setSelected] = useState<Set<string>>(new Set())
-  const [docs, setDocs] = useState<CompanyDoc[]>([])
+  const [types, setTypes] = useState<CompanyDocTypeWithDocs[]>([])
+  const [unmatchedDocs, setUnmatchedDocs] = useState<CompanyDocWithType[]>([])
   const [loading, setLoading] = useState(false)
-  const [migrateTried, setMigrateTried] = useState(false)
-  const filteredDocs = useMemo(() => docs.filter(d => !(d.title || '').includes('공도면')), [docs])
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    ;(async () => {
-      setLoading(true)
-      try {
-        const res = await fetch(
-          '/api/unified-documents/v2?category_type=shared&status=active&limit=100',
-          { credentials: 'include' }
-        )
-        const json = await res.json()
-        if (res.ok && json?.success) {
-          const list = Array.isArray(json.data)
-            ? json.data.map((d: any) => ({
-                id: String(d.id),
-                title: d.title || d.file_name || '문서',
-                url: String(d.file_url || ''),
-                storage_bucket: d.storage_bucket ?? d.bucket ?? null,
-                storage_path: d.storage_path ?? d.folder_path ?? null,
-                file_name: d.file_name || d.original_filename || d.title || null,
-              }))
-            : []
-          setDocs(list)
-        }
-      } finally {
-        setLoading(false)
+  const loadDocTypes = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/company-doc-types?active=true&include_docs=true', {
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => null)
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || '회사 서류를 불러오지 못했습니다.')
       }
-    })()
+      const normalizedTypes: CompanyDocTypeWithDocs[] = Array.isArray(json?.data)
+        ? json.data.map((item: any) => {
+            const docs = Array.isArray(item?.documents)
+              ? (item.documents
+                  .map((doc: CompanyDocRecord) => normalizeCompanyDoc(doc, item))
+                  .filter(Boolean) as CompanyDocWithType[])
+              : []
+            return { ...item, documents: docs }
+          })
+        : []
+      setTypes(normalizedTypes)
+      const unmatched = Array.isArray(json?.unmatchedDocuments)
+        ? (json.unmatchedDocuments
+            .map((doc: CompanyDocRecord) => normalizeCompanyDoc(doc))
+            .filter(Boolean) as CompanyDocWithType[])
+        : []
+      setUnmatchedDocs(unmatched)
+    } catch (err: any) {
+      console.error('회사 서류 불러오기 실패', err)
+      setTypes([])
+      setUnmatchedDocs([])
+      setError(err?.message || '회사 서류를 불러올 수 없습니다.')
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  // 자동 마이그레이션 트리거(관리자만 성공, 일반 사용자 403은 무시)
   useEffect(() => {
-    ;(async () => {
-      if (migrateTried || loading) return
-      const hasBlueprintKeyword = docs.some(d => (d.title || '').includes('공도면'))
-      if (!hasBlueprintKeyword) return
-      try {
-        const res = await fetch('/api/admin/documents/migrate-blueprints', {
-          method: 'POST',
-          credentials: 'include',
-        })
-        setMigrateTried(true)
-        // 성공 또는 권한 부족이어도 무시 후 목록 리프레시 시도
-        const reload = await fetch(
-          '/api/unified-documents/v2?category_type=shared&status=active&limit=100',
-          { credentials: 'include' }
-        )
-        const j = await reload.json().catch(() => ({}))
-        if (reload.ok && j?.success) {
-          const list = Array.isArray(j.data)
-            ? j.data.map((d: any) => ({
-                id: String(d.id),
-                title: d.title || d.file_name || '문서',
-                url: String(d.file_url || ''),
-                storage_bucket: d.storage_bucket ?? d.bucket ?? null,
-                storage_path: d.storage_path ?? d.folder_path ?? null,
-                file_name: d.file_name || d.original_filename || d.title || null,
-              }))
-            : []
-          setDocs(list)
-        }
-      } catch {
-        setMigrateTried(true)
-      }
-    })()
-  }, [docs, loading, migrateTried])
+    loadDocTypes()
+  }, [loadDocTypes])
 
-  const buildFileRecord = useCallback(
-    (item: CompanyDoc) => ({
-      file_url: item.url,
-      storage_bucket: item.storage_bucket || undefined,
-      storage_path: item.storage_path || undefined,
-      file_name: item.file_name || item.title,
-      title: item.title,
-    }),
-    []
-  )
+  const docMap = useMemo(() => {
+    const map = new Map<string, CompanyDocWithType>()
+    types.forEach(type => type.documents?.forEach(doc => map.set(doc.id, doc)))
+    unmatchedDocs.forEach(doc => map.set(doc.id, doc))
+    return map
+  }, [types, unmatchedDocs])
 
-  const handlePreview = useCallback(
-    async (item: CompanyDoc) => {
-      if (!item?.url) return
-      try {
-        await openFileRecordInNewTab(buildFileRecord(item))
-      } catch (error) {
-        console.error('회사 서류 미리보기 실패', error)
-        window.open(item.url, '_blank', 'noopener,noreferrer')
-      }
-    },
-    [buildFileRecord]
-  )
-
-  const toggle = (id: string) =>
+  useEffect(() => {
     setSelected(prev => {
-      const n = new Set(prev)
-      n.has(id) ? n.delete(id) : n.add(id)
-      return n
+      const next = new Set<string>()
+      prev.forEach(id => {
+        if (docMap.has(id)) next.add(id)
+      })
+      return next
     })
-  const selectedUrls = useMemo(
+  }, [docMap])
+
+  const selectedRecords = useMemo(
     () =>
       Array.from(selected)
-        .map(id => docs.find(d => d.id === id)?.url)
-        .filter(Boolean) as string[],
-    [selected, docs]
+        .map(id => docMap.get(id))
+        .filter(Boolean) as CompanyDocWithType[],
+    [selected, docMap]
   )
 
-  const onShare = async () => {
-    if (selectedUrls.length === 0) {
+  const buildFileRecord = useCallback((doc: CompanyDocWithType) => {
+    return {
+      file_url: doc.file_url || undefined,
+      storage_bucket: doc.storage_bucket || undefined,
+      storage_path: doc.storage_path || undefined,
+      file_name: doc.file_name || doc.title || doc.typeName,
+      title: doc.title || doc.file_name || doc.typeName,
+    }
+  }, [])
+
+  const toggle = useCallback((id: string) => {
+    setSelected(prev => {
+      const copy = new Set(prev)
+      copy.has(id) ? copy.delete(id) : copy.add(id)
+      return copy
+    })
+  }, [])
+
+  const onShare = useCallback(async () => {
+    if (selectedRecords.length === 0) {
       toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
       return
     }
     try {
-      if ((navigator as any).share && selectedUrls.length > 0) {
-        let url = selectedUrls[0]
-        try {
-          const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-          const j = await r.json()
-          url = j?.url || url
-        } catch {
-          /* ignore signing error */
-        }
-        await (navigator as any).share({ url, title: '회사서류 공유' })
-      } else {
-        toast({
-          title: '공유 안내',
-          description: '공유를 지원하지 않는 브라우저입니다.',
-          variant: 'info',
+      const target = selectedRecords[0]
+      const url = await fetchSignedUrlForRecord(buildFileRecord(target))
+      if (typeof navigator !== 'undefined' && 'share' in navigator) {
+        await (navigator as any).share({
+          url,
+          title: target.title || target.file_name || '회사 문서',
         })
+      } else {
+        await navigator.clipboard.writeText(url)
+        toast({ title: '링크 복사됨', description: '공유 링크를 클립보드에 복사했습니다.' })
       }
-    } catch {
-      /* ignore initial load error */
+    } catch (err: any) {
+      console.error('회사 서류 공유 실패', err)
+      toast({
+        title: '공유 실패',
+        description: err?.message || '파일 공유 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
     }
-  }
-  const onSave = async () => {
-    if (selectedUrls.length === 0) {
+  }, [buildFileRecord, selectedRecords, toast])
+
+  const onSave = useCallback(async () => {
+    if (selectedRecords.length === 0) {
       toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
       return
     }
-    for (let url of selectedUrls) {
-      try {
-        const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-        const j = await r.json()
-        url = j?.url || url
-      } catch {
-        /* ignore signing error */
+    try {
+      for (const record of selectedRecords) {
+        const url = await fetchSignedUrlForRecord(buildFileRecord(record))
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = record.file_name || record.title || record.typeName || 'document'
+        anchor.rel = 'noopener noreferrer'
+        anchor.target = '_blank'
+        anchor.click()
       }
-      const a = document.createElement('a')
-      a.href = url
-      a.download = ''
-      a.click()
+      toast({ title: '다운로드 시작', description: '선택한 파일을 다운로드합니다.' })
+    } catch (err: any) {
+      console.error('회사 서류 다운로드 실패', err)
+      toast({
+        title: '다운로드 실패',
+        description: err?.message || '파일을 다운로드하지 못했습니다.',
+        variant: 'destructive',
+      })
     }
-  }
+  }, [buildFileRecord, selectedRecords, toast])
+
+  const renderDocRow = useCallback(
+    (record: CompanyDocWithType) => {
+      const isSelected = selected.has(record.id)
+      const fileRecord = buildFileRecord(record)
+      const createdLabel = record.created_at ? formatDisplayDate(record.created_at) : ''
+      return (
+        <div key={record.id} className={`company-doc-row ${isSelected ? 'selected' : ''}`}>
+          <div className="company-doc-meta">
+            <div className="company-doc-title" title={record.file_name || record.title || ''}>
+              {record.file_name || record.title || record.typeName}
+            </div>
+            {createdLabel ? <div className="company-doc-date">{createdLabel}</div> : null}
+          </div>
+          <div className="company-doc-actions">
+            <FilePreviewButton document={fileRecord} variant="unstyled" className="company-doc-btn">
+              보기
+            </FilePreviewButton>
+            <FileDownloadButton document={fileRecord} variant="ghost" className="company-doc-btn">
+              다운로드
+            </FileDownloadButton>
+            <FileShareButton document={fileRecord} variant="ghost" className="company-doc-btn">
+              공유
+            </FileShareButton>
+            <button
+              type="button"
+              className={`doc-check ${isSelected ? 'active' : ''}`}
+              aria-pressed={isSelected}
+              aria-label="문서 선택"
+              onClick={() => toggle(record.id)}
+            >
+              ✓
+            </button>
+          </div>
+        </div>
+      )
+    },
+    [buildFileRecord, selected, toggle]
+  )
 
   return (
-    <div>
-      <div className="document-cards">
+    <div className="company-docs">
+      <div className="document-cards company-doc-list">
         {loading && <div className="doc-selection-title">불러오는 중...</div>}
-        {!loading && filteredDocs.length === 0 && (
-          <div className="doc-selection-title">회사서류가 없습니다.</div>
+        {!loading && error && <div className="doc-selection-title text-error">{error}</div>}
+        {!loading && !error && types.length === 0 && unmatchedDocs.length === 0 && (
+          <div className="doc-selection-title">등록된 회사서류가 없습니다.</div>
         )}
-        {!loading &&
-          filteredDocs.map(item => (
-            <div
-              key={item.id}
-              className={`doc-selection-card ${selected.has(item.id) ? 'active' : ''}`}
-            >
-              <div className="doc-selection-content">
-                <div className="doc-selection-title">{item.title}</div>
+        {types.map(type => (
+          <section key={type.slug} className="company-doc-card">
+            <div className="company-card-header">
+              <div className="company-card-title">
+                <span className="company-type-name">{type.name}</span>
+                {type.is_required && <span className="company-type-chip">필수</span>}
               </div>
-              <div className="doc-actions">
-                <button className="preview-btn" onClick={() => handlePreview(item)}>
-                  보기
-                </button>
-                <button
-                  className={`selection-checkmark ${selected.has(item.id) ? 'active' : ''}`}
-                  onClick={() => toggle(item.id)}
-                >
-                  ✓
-                </button>
-              </div>
+              <span className="company-type-desc">{type.description || type.slug}</span>
             </div>
-          ))}
+            <div className="company-card-body">
+              {(type.documents?.length || 0) === 0 ? (
+                <div className="company-doc-empty">등록된 문서가 없습니다.</div>
+              ) : (
+                type.documents!.map(record => renderDocRow(record))
+              )}
+            </div>
+          </section>
+        ))}
+        {unmatchedDocs.length > 0 && (
+          <section className="company-doc-card unmatched">
+            <div className="company-card-header">
+              <div className="company-card-title">
+                <span className="company-type-name">분류되지 않은 문서</span>
+              </div>
+              <span className="company-type-desc">company_slug 태그가 없습니다.</span>
+            </div>
+            <div className="company-card-body">
+              {unmatchedDocs.map(record => renderDocRow(record))}
+            </div>
+          </section>
+        )}
       </div>
-      {/* 관리자용 버튼 제거됨: 공도면 이전/회사서류 초기화 */}
       <div className="foot equal">
         <button className="btn" onClick={onSave}>
-          저장하기
+          {selected.size > 0 ? `선택 다운로드 (${selected.size})` : '선택 다운로드'}
         </button>
         <button className="btn btn-primary" onClick={onShare}>
-          공유하기
+          {selected.size > 0 ? `선택 공유 (${selected.size})` : '선택 공유'}
         </button>
       </div>
+      <style jsx>{`
+        .company-docs {
+          width: 100%;
+        }
+        .company-type-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .company-doc-card {
+          border: 1px solid rgba(148, 163, 184, 0.3);
+          border-radius: 16px;
+          background: var(--card, #fff);
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+        }
+        .company-doc-card.unmatched {
+          border-style: dashed;
+        }
+        .company-card-header {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .company-card-title {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .company-type-name {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .company-type-desc {
+          font-size: 12px;
+          color: #64748b;
+        }
+        .company-type-chip {
+          font-size: 11px;
+          padding: 2px 8px;
+          border-radius: 999px;
+          background: rgba(251, 191, 36, 0.2);
+          color: #b45309;
+          font-weight: 600;
+        }
+        .company-card-body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .company-doc-empty {
+          font-size: 12px;
+          color: #94a3b8;
+          border: 1px dashed rgba(148, 163, 184, 0.5);
+          border-radius: 12px;
+          padding: 12px;
+          background: rgba(148, 163, 184, 0.08);
+        }
+        .company-doc-row {
+          border: 1px solid rgba(148, 163, 184, 0.25);
+          border-radius: 12px;
+          padding: 10px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          background: rgba(248, 250, 252, 0.8);
+        }
+        .company-doc-row.selected {
+          border-color: #2563eb;
+          box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+          background: rgba(219, 234, 254, 0.6);
+        }
+        .company-doc-meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .company-doc-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #111827;
+          flex: 1;
+          min-width: 0;
+          word-break: break-word;
+        }
+        .company-doc-date {
+          font-size: 11px;
+          color: #6b7280;
+          white-space: nowrap;
+        }
+        .company-doc-actions {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .company-doc-btn {
+          border: 1px solid #e2e8f0;
+          background: var(--card, #fff);
+          color: #1d4ed8;
+          padding: 4px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          border-radius: 999px;
+          min-width: auto;
+          line-height: 1.2;
+        }
+        .doc-check {
+          border: 1px solid #cbd5f5;
+          background: #fff;
+          color: #94a3b8;
+          border-radius: 999px;
+          width: 28px;
+          height: 28px;
+          font-weight: 700;
+        }
+        .doc-check.active {
+          border-color: #2563eb;
+          color: #2563eb;
+          background: rgba(37, 99, 235, 0.1);
+        }
+        .text-error {
+          color: #b91c1c;
+        }
+      `}</style>
     </div>
   )
 }

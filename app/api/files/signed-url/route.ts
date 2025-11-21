@@ -51,12 +51,31 @@ export async function GET(request: NextRequest) {
 
   // Fallback: return original URL unchanged
   if (rawUrl) {
-    return NextResponse.json({ success: true, url: rawUrl })
+    let finalUrl = rawUrl
+    try {
+      const urlObj = new URL(rawUrl)
+      if (downloadName) {
+        urlObj.searchParams.set('download', downloadName)
+      }
+      finalUrl = urlObj.toString()
+    } catch {
+      const fallbackBase = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      const urlObj = new URL(rawUrl, fallbackBase)
+      if (downloadName) {
+        urlObj.searchParams.set('download', downloadName)
+      }
+      finalUrl = urlObj.toString()
+    }
+    return NextResponse.json({ success: true, url: finalUrl })
   }
   if (resolved && supabaseUrl) {
     const encodedPath = encodeURIComponent(resolved.objectPath).replace(/%2F/g, '/')
-    const publicUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${resolved.bucket}/${encodedPath}`
-    return NextResponse.json({ success: true, url: publicUrl })
+    const baseUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${resolved.bucket}/${encodedPath}`
+    const finalUrl =
+      downloadName && downloadName.length
+        ? `${baseUrl}?download=${encodeURIComponent(downloadName)}`
+        : baseUrl
+    return NextResponse.json({ success: true, url: finalUrl })
   }
 
   return NextResponse.json(

@@ -12,16 +12,9 @@ type Props = {
   onOpen?: (doc: any) => void
   onApprove?: (doc: any) => void
   onReject?: (doc: any) => void
-  onDelete?: (doc: any) => void
 }
 
-export default function RequiredDocumentsTable({
-  docs,
-  onOpen,
-  onApprove,
-  onReject,
-  onDelete,
-}: Props) {
+export default function RequiredDocumentsTable({ docs, onOpen, onApprove, onReject }: Props) {
   return (
     <DataTable
       data={docs}
@@ -144,18 +137,6 @@ export default function RequiredDocumentsTable({
                     disabled={!actionable}
                   >
                     반려
-                  </Button>
-                ) : null}
-                {onDelete ? (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="compact"
-                    className="px-2 py-1 text-sm"
-                    onClick={() => actionable && onDelete(d)}
-                    disabled={!actionable}
-                  >
-                    삭제
                   </Button>
                 ) : null}
               </div>

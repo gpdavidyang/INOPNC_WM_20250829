@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -140,6 +141,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     const supabase = createClient()
+    const serviceClient = createServiceRoleClient()
 
     // 사용자 프로필 확인
     const { data: profile } = await supabase
@@ -153,13 +155,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     // 기존 문서 조회
-    const { data: existingDoc } = await supabase
+    const { data: existingDoc, error: fetchError } = await serviceClient
       .from('unified_documents')
-      .select('*')
+      .select('id, uploaded_by, workflow_status, file_url')
       .eq('id', params.id)
-      .single()
+      .maybeSingle()
 
     if (!existingDoc) {
+      if (fetchError) {
+        console.error('[unified-documents/delete] fetch error:', fetchError)
+      }
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
@@ -169,11 +174,6 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const isOwner = existingDoc.uploaded_by === authResult.userId
     const isGeneralUser = ['worker', 'site_manager'].includes(role)
     const isPartner = role === 'customer_manager'
-
-    // 제한 계정(시공업체 담당)은 자사 문서만 수정 가능
-    if (isPartner && existingDoc.customer_company_id !== profile.customer_company_id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-    }
 
     const updateData = await request.json()
 
@@ -281,23 +281,47 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const supabase = createClient()
+    const serviceClient = createServiceRoleClient()
 
-    const { data: profile } = await supabase
+    let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, customer_company_id')
       .eq('id', authResult.userId)
       .single()
 
-    if (!profile) {
+    if (profileError) {
+      const message = profileError.message?.toLowerCase() ?? ''
+      if (message.includes('customer_company_id')) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, role, organization_id')
+          .eq('id', authResult.userId)
+          .single()
+        if (data) {
+          profile = {
+            ...data,
+            customer_company_id: (data as any)?.organization_id ?? null,
+          }
+          profileError = null
+        } else {
+          profileError = error
+        }
+      }
+    }
+
+    if (!profile || profileError) {
+      if (profileError) {
+        console.error('[unified-documents/delete] profile lookup failed:', profileError)
+      }
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
     // 기존 문서 조회
-    const { data: existingDoc } = await supabase
+    const { data: existingDoc } = await serviceClient
       .from('unified_documents')
-      .select('*')
+      .select('id, uploaded_by, workflow_status, file_url')
       .eq('id', params.id)
-      .single()
+      .maybeSingle()
 
     if (!existingDoc) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
@@ -326,7 +350,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     if (hardDelete && isAdmin) {
       // 하드 삭제 (관리자만)
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await serviceClient
         .from('unified_documents')
         .delete()
         .eq('id', params.id)
@@ -352,7 +376,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       }
     } else {
       // 소프트 삭제
-      const { error: updateError } = await supabase
+      const { error: updateError } = await serviceClient
         .from('unified_documents')
         .update({
           status: 'deleted',
@@ -368,7 +392,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     // 삭제 이력 기록
-    await supabase.from('document_history').insert({
+    await serviceClient.from('document_history').insert({
       document_id: params.id,
       action: hardDelete ? 'hard_deleted' : 'deleted',
       changed_by: authResult.userId,

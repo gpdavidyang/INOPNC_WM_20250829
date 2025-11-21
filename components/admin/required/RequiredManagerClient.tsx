@@ -18,7 +18,6 @@ import {
   CustomSelectItem,
 } from '@/components/ui/custom-select'
 import { useToast } from '@/components/ui/use-toast'
-import { useConfirm } from '@/components/ui/use-confirm'
 import { cn } from '@/lib/utils'
 import {
   REQUIRED_DOC_STATUS_LABELS,
@@ -41,7 +40,6 @@ export default function RequiredManagerClient({
 }: Props) {
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const { confirm } = useConfirm()
   const [tab, setTab] = useState<'submissions' | 'settings'>(defaultTab)
   const [q, setQ] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
@@ -66,7 +64,7 @@ export default function RequiredManagerClient({
   }>(initialStats)
   const [loading, setLoading] = useState(false)
   const [refresh, setRefresh] = useState(0)
-  const [busy, setBusy] = useState<'approve' | 'reject' | 'delete' | null>(null)
+  const [busy, setBusy] = useState<'approve' | 'reject' | null>(null)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(20)
   const [totalPages, setTotalPages] = useState(1)
@@ -483,40 +481,6 @@ export default function RequiredManagerClient({
                           error instanceof Error
                             ? error.message
                             : '반려 처리 중 오류가 발생했습니다.',
-                      })
-                    } finally {
-                      setBusy(null)
-                    }
-                  }}
-                  onDelete={async doc => {
-                    if (busy || !doc?.id) return
-                    const ok = await confirm({
-                      title: '문서 삭제',
-                      description:
-                        '해당 제출 문서를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
-                      confirmText: '삭제',
-                      cancelText: '취소',
-                      variant: 'destructive',
-                    })
-                    if (!ok) return
-                    setBusy('delete')
-                    try {
-                      const r = await fetch('/api/admin/required-docs/actions', {
-                        method: 'POST',
-                        headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify({ action: 'delete', id: doc.id }),
-                      })
-                      const j = await r.json().catch(() => ({}))
-                      if (!r.ok || j?.success === false) throw new Error(j?.error || '삭제 실패')
-                      setRefresh(x => x + 1)
-                    } catch (error) {
-                      toast({
-                        variant: 'destructive',
-                        title: '삭제 실패',
-                        description:
-                          error instanceof Error
-                            ? error.message
-                            : '삭제 처리 중 오류가 발생했습니다.',
                       })
                     } finally {
                       setBusy(null)

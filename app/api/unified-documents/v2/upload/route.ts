@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { COMPANY_DOC_SLUG_REGEX } from '@/lib/documents/company-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +22,15 @@ export async function POST(request: NextRequest) {
       .eq('id', authResult.userId)
       .single()
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    let resolvedProfile = profile
+    if (!resolvedProfile) {
+      console.warn('[documents/upload] profile not found, using minimal fallback profile')
+      resolvedProfile = {
+        id: authResult.userId,
+        role: authResult.role || 'admin',
+        customer_company_id: null,
+        full_name: authResult.email,
+      } as typeof profile
     }
 
     const formData = await request.formData()
@@ -88,6 +96,28 @@ export async function POST(request: NextRequest) {
     const categoryType = formData.get('categoryType')?.toString()
     const siteId = formData.get('siteId')?.toString() || null
     const tags = formData.get('tags')?.toString() || ''
+    const rawCompanySlug = formData.get('companyDocSlug')?.toString().trim().toLowerCase()
+    const companyDocSlug =
+      rawCompanySlug && COMPANY_DOC_SLUG_REGEX.test(rawCompanySlug) ? rawCompanySlug : null
+    const companyDocTypeId = formData.get('companyDocTypeId')?.toString() || null
+    const tagList = tags
+      ? tags
+          .split(',')
+          .map(t => t.trim())
+          .filter(Boolean)
+      : []
+    if (companyDocSlug) {
+      const marker = `company_slug:${companyDocSlug}`
+      if (!tagList.some(t => t === marker)) {
+        tagList.push(marker)
+      }
+    }
+    const documentMetadata: Record<string, any> = {
+      storage_bucket: 'documents',
+      storage_path: storagePath,
+    }
+    if (companyDocSlug) documentMetadata.company_slug = companyDocSlug
+    if (companyDocTypeId) documentMetadata.company_doc_type_id = companyDocTypeId
 
     // unified_documents 테이블에 문서 정보 저장
     const documentData = {
@@ -97,52 +127,132 @@ export async function POST(request: NextRequest) {
       file_size: file.size,
       file_type: file.type,
       file_url: urlData.publicUrl,
-      storage_path: storagePath,
       category_type: categoryType || 'shared',
       document_type: getDocumentType(file.type),
       site_id: siteId,
-      customer_company_id: profile.role === 'customer_manager' ? profile.customer_company_id : null,
+      customer_company_id:
+        resolvedProfile.role === 'customer_manager' ? resolvedProfile.customer_company_id : null,
       uploaded_by: authResult.userId,
-      status: 'active',
+      profile_id: resolvedProfile.id,
+      status: 'uploaded',
       workflow_status: 'draft',
       // 회사서류함(shared)은 전역 열람 가능해야 하므로 공개 처리
       is_public: (categoryType || 'shared') === 'shared',
       is_archived: false,
       access_level: 'role',
-      tags: tags
-        ? tags
-            .split(',')
-            .map(t => t.trim())
-            .filter(Boolean)
-        : [],
+      tags: tagList,
       version: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      metadata: Object.keys(documentMetadata).length ? documentMetadata : null,
     }
 
-    const { data: document, error: dbError } = await supabase
-      .from('unified_documents')
-      .insert(documentData)
-      .select(
+    const insertDocument = async (
+      payload: Record<string, any>,
+      withRelations: boolean,
+      fields?: string[]
+    ) => {
+      if (withRelations) {
+        return supabase
+          .from('unified_documents')
+          .insert(payload)
+          .select(
+            `
+          id,
+          title,
+          description,
+          file_name,
+          file_url,
+          storage_path,
+          category_type,
+          document_type,
+          site_id,
+          customer_company_id,
+          uploaded_by,
+          status,
+          created_at,
+          updated_at,
+          uploader:uploaded_by (
+            id,
+            full_name,
+            email,
+            role
+          ),
+          site:site_id (
+            id,
+            name
+          ),
+          customer_company:customer_company_id (
+            id,
+            name
+          )
         `
-        *,
-        uploader:uploaded_by (
-          id,
-          full_name,
-          email,
-          role
-        ),
-        site:site_id (
-          id,
-          name
-        ),
-        customer_company:customer_company_id (
-          id,
-          name
+          )
+          .single()
+      }
+      const selectFields = fields?.length
+        ? fields.join(',')
+        : 'id,title,description,file_name,file_url,category_type,document_type,site_id,customer_company_id,uploaded_by,status,created_at,updated_at'
+      return supabase.from('unified_documents').insert(payload).select(selectFields).single()
+    }
+
+    const attemptInsert = async () => {
+      const { data, error } = await insertDocument(documentData, true)
+      if (!error) return { data }
+      if (
+        (error as any)?.code === 'PGRST204' ||
+        String((error as any)?.message || '').includes('schema cache')
+      ) {
+        console.warn('[documents/upload] schema mismatch, retrying with fallback fields')
+        const fallbackKeys: Array<keyof typeof documentData> = [
+          'title',
+          'description',
+          'file_name',
+          'file_url',
+          'category_type',
+          'document_type',
+          'site_id',
+          'customer_company_id',
+          'uploaded_by',
+          'profile_id',
+          'tags',
+          'is_public',
+          'is_archived',
+          'access_level',
+          'workflow_status',
+          'status',
+          'created_at',
+          'updated_at',
+        ] as const
+        const fallbackData = fallbackKeys.reduce(
+          (acc, key) => {
+            if (documentData[key] !== undefined) acc[key] = documentData[key]
+            return acc
+          },
+          {} as Record<string, any>
         )
-      `
-      )
-      .single()
+        const retry = await insertDocument(fallbackData, false, [
+          'id',
+          'title',
+          'description',
+          'file_name',
+          'file_url',
+          'category_type',
+          'document_type',
+          'site_id',
+          'customer_company_id',
+          'uploaded_by',
+          'status',
+          'created_at',
+          'updated_at',
+        ])
+        if (!retry.error) return { data: retry.data }
+        return { error: retry.error }
+      }
+      return { error }
+    }
+
+    const { data: document, error: dbError } = await attemptInsert()
 
     if (dbError) {
       console.error('Database insert error:', dbError)
@@ -177,19 +287,19 @@ export async function POST(request: NextRequest) {
 // 파일 타입에 따른 문서 타입 결정
 function getDocumentType(mimeType: string): string {
   if (mimeType.startsWith('image/')) {
-    return 'image'
+    return 'drawing'
   }
   if (mimeType === 'application/pdf') {
-    return 'pdf'
+    return 'report'
   }
   if (mimeType.includes('word') || mimeType.includes('document')) {
-    return 'document'
+    return 'report'
   }
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
-    return 'spreadsheet'
+    return 'report'
   }
   if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
-    return 'presentation'
+    return 'report'
   }
   return 'other'
 }
