@@ -489,10 +489,10 @@ export default function AdminCompanyDocumentsPage() {
                           {doc.created_at ? new Date(doc.created_at).toLocaleDateString('ko-KR') : ''}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 flex-wrap">
+                      <div className="flex items-center gap-1 flex-wrap justify-end">
                         <FileActionMenu
                           document={toFileRecord(doc)}
-                          buttonVariant="default"
+                          buttonVariant="unstyled"
                           buttonClassName={fileActionButtonClass}
                           className="flex items-center gap-2"
                         />
@@ -599,10 +599,10 @@ export default function AdminCompanyDocumentsPage() {
                       {doc.created_at ? `· ${new Date(doc.created_at).toLocaleDateString('ko-KR')}` : ''}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
                     <FileActionMenu
                       document={toFileRecord(doc)}
-                      buttonVariant="default"
+                      buttonVariant="unstyled"
                       buttonClassName={fileActionButtonClass}
                     />
                     <button

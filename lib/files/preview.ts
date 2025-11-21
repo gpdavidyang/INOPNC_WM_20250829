@@ -66,9 +66,11 @@ export async function fetchSignedUrlForRecord(
   if (reference.url) {
     params.set('url', reference.url)
   }
-  const downloadName = options?.downloadName || reference.downloadName
-  if (downloadName) {
-    params.set('filename', downloadName)
+  if (options?.downloadName !== null) {
+    const downloadName = options?.downloadName ?? reference.downloadName
+    if (downloadName) {
+      params.set('filename', downloadName)
+    }
   }
 
   if (params.toString().length === 0) {
@@ -86,6 +88,6 @@ export async function fetchSignedUrlForRecord(
 }
 
 export async function openFileRecordInNewTab(record: FileRecordLike): Promise<void> {
-  const url = await fetchSignedUrlForRecord(record)
+  const url = await fetchSignedUrlForRecord(record, { downloadName: null })
   window.open(url, '_blank', 'noopener,noreferrer')
 }

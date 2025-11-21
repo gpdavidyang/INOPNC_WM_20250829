@@ -37,7 +37,7 @@ export function FilePreviewButton({
     if (loading || disabled) return
     setLoading(true)
     try {
-      const url = await fetchSignedUrlForRecord(document)
+      const url = await fetchSignedUrlForRecord(document, { downloadName: null })
       if (onResolvedUrl) {
         onResolvedUrl(url)
       } else {

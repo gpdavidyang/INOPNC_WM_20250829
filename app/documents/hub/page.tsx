@@ -1441,26 +1441,51 @@ function CompanyTab() {
       const fileRecord = buildFileRecord(record)
       const createdLabel = record.created_at ? formatDisplayDate(record.created_at) : ''
       return (
-        <div key={record.id} className={`company-doc-row ${isSelected ? 'selected' : ''}`}>
-          <div className="company-doc-meta">
-            <div className="company-doc-title" title={record.file_name || record.title || ''}>
+        <div
+          key={record.id}
+          className={cn(
+            'flex flex-col gap-2 rounded-xl border border-slate-200/80 bg-white/90 p-3',
+            'shadow-sm transition-shadow',
+            isSelected && 'border-blue-500/70 shadow-[0_0_0_1px_rgba(37,99,235,0.3)] bg-blue-50/70'
+          )}
+        >
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              className="text-[13px] font-semibold text-slate-900"
+              title={record.file_name || record.title || ''}
+            >
               {record.file_name || record.title || record.typeName}
             </div>
-            {createdLabel ? <div className="company-doc-date">{createdLabel}</div> : null}
+            {createdLabel ? <div className="text-[11px] text-slate-500">{createdLabel}</div> : null}
           </div>
-          <div className="company-doc-actions">
-            <FilePreviewButton document={fileRecord} variant="unstyled" className="company-doc-btn">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <FilePreviewButton
+              document={fileRecord}
+              variant="unstyled"
+              className="rounded-full border border-slate-200 px-3 py-1 text-[12px] font-semibold text-blue-600"
+            >
               보기
             </FilePreviewButton>
-            <FileDownloadButton document={fileRecord} variant="ghost" className="company-doc-btn">
+            <FileDownloadButton
+              document={fileRecord}
+              variant="ghost"
+              className="rounded-full border border-slate-200 px-3 py-1 text-[12px] font-semibold text-blue-600"
+            >
               다운로드
             </FileDownloadButton>
-            <FileShareButton document={fileRecord} variant="ghost" className="company-doc-btn">
+            <FileShareButton
+              document={fileRecord}
+              variant="ghost"
+              className="rounded-full border border-slate-200 px-3 py-1 text-[12px] font-semibold text-blue-600"
+            >
               공유
             </FileShareButton>
             <button
               type="button"
-              className={`doc-check ${isSelected ? 'active' : ''}`}
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-full border border-slate-300 text-sm font-semibold text-slate-400',
+                isSelected && 'border-blue-500 text-blue-600 bg-blue-50'
+              )}
               aria-pressed={isSelected}
               aria-label="문서 선택"
               onClick={() => toggle(record.id)}
@@ -1475,25 +1500,34 @@ function CompanyTab() {
   )
 
   return (
-    <div className="company-docs">
-      <div className="document-cards company-doc-list">
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {loading && <div className="doc-selection-title">불러오는 중...</div>}
-        {!loading && error && <div className="doc-selection-title text-error">{error}</div>}
+        {!loading && error && <div className="doc-selection-title text-red-500">{error}</div>}
         {!loading && !error && types.length === 0 && unmatchedDocs.length === 0 && (
           <div className="doc-selection-title">등록된 회사서류가 없습니다.</div>
         )}
         {types.map(type => (
-          <section key={type.slug} className="company-doc-card">
-            <div className="company-card-header">
-              <div className="company-card-title">
-                <span className="company-type-name">{type.name}</span>
-                {type.is_required && <span className="company-type-chip">필수</span>}
+          <section
+            key={type.slug}
+            className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)]"
+          >
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2 text-[15px] font-semibold text-slate-900">
+                <span>{type.name}</span>
+                {type.is_required && (
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+                    필수
+                  </span>
+                )}
               </div>
-              <span className="company-type-desc">{type.description || type.slug}</span>
+              <span className="text-xs text-slate-500">{type.description || type.slug}</span>
             </div>
-            <div className="company-card-body">
+            <div className="flex flex-col gap-3">
               {(type.documents?.length || 0) === 0 ? (
-                <div className="company-doc-empty">등록된 문서가 없습니다.</div>
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-4 text-center text-xs text-slate-400">
+                  등록된 문서가 없습니다.
+                </div>
               ) : (
                 type.documents!.map(record => renderDocRow(record))
               )}
@@ -1501,14 +1535,12 @@ function CompanyTab() {
           </section>
         ))}
         {unmatchedDocs.length > 0 && (
-          <section className="company-doc-card unmatched">
-            <div className="company-card-header">
-              <div className="company-card-title">
-                <span className="company-type-name">분류되지 않은 문서</span>
-              </div>
-              <span className="company-type-desc">company_slug 태그가 없습니다.</span>
+          <section className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-200 bg-white p-4">
+            <div className="flex flex-col gap-1">
+              <div className="text-sm font-semibold text-slate-900">분류되지 않은 문서</div>
+              <span className="text-xs text-slate-500">company_slug 태그가 없습니다.</span>
             </div>
-            <div className="company-card-body">
+            <div className="flex flex-col gap-3">
               {unmatchedDocs.map(record => renderDocRow(record))}
             </div>
           </section>
@@ -1554,6 +1586,11 @@ function CompanyTab() {
           align-items: center;
           gap: 6px;
         }
+        .company-card-body {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
         .company-type-name {
           font-size: 15px;
           font-weight: 700;
@@ -1570,11 +1607,6 @@ function CompanyTab() {
           background: rgba(251, 191, 36, 0.2);
           color: #b45309;
           font-weight: 600;
-        }
-        .company-card-body {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
         }
         .company-doc-empty {
           font-size: 12px;
@@ -1606,9 +1638,9 @@ function CompanyTab() {
           flex-wrap: wrap;
         }
         .company-doc-title {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 600;
-          color: #111827;
+          color: #0f172a;
           flex: 1;
           min-width: 0;
           word-break: break-word;
@@ -1621,6 +1653,7 @@ function CompanyTab() {
         .company-doc-actions {
           display: flex;
           align-items: center;
+          justify-content: flex-end;
           flex-wrap: wrap;
           gap: 6px;
         }

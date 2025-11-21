@@ -6,7 +6,7 @@ import { fetchSignedUrlForRecord, FileRecordLike } from '@/lib/files/preview'
 import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
 
-type ButtonVariant = 'default' | 'ghost' | 'icon'
+type ButtonVariant = 'default' | 'ghost' | 'icon' | 'unstyled'
 
 const baseButtonClass =
   'inline-flex items-center justify-center min-w-[60px] px-2 py-1 text-[11px] font-medium rounded border transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none'
@@ -17,6 +17,7 @@ const variantClassMap: Record<ButtonVariant, string> = {
   icon: cn(
     'inline-flex items-center justify-center w-9 h-9 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none'
   ),
+  unstyled: '',
 }
 
 type FileActionButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
