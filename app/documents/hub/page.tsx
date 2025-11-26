@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/components/ui/use-toast'
 import { FilePreviewButton } from '@/components/files/FilePreviewButton'
 import { FileDownloadButton, FileShareButton } from '@/components/files/FileActionButtons'
-import { fetchSignedUrlForRecord } from '@/lib/files/preview'
+import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
 import type { CompanyDocumentType } from '@/lib/documents/company-types'
 import {
   REQUIRED_DOC_STATUS_LABELS,
@@ -216,7 +216,7 @@ export default function DocumentHubPage() {
             className={`document-tab ${active === 'drawings' ? 'active' : ''}`}
             onClick={() => setActive('drawings')}
           >
-            현장공유함(도면 등)
+            현장도면외
           </button>
           <button
             className={`document-tab ${active === 'photos' ? 'active' : ''}`}
@@ -280,37 +280,6 @@ export default function DocumentHubPage() {
           flex-direction: column;
           gap: 10px;
         }
-        .doc-item {
-          border: 1px solid rgba(148, 163, 184, 0.3);
-          border-radius: 14px;
-          background: #fff;
-          padding: 12px 16px;
-          display: flex;
-          gap: 12px;
-          align-items: flex-start;
-        }
-        @media (max-width: 520px) {
-          .doc-item {
-            flex-direction: column;
-          }
-        }
-        .doc-info {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .doc-title-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-        }
-        .doc-item-title {
-          font-size: 15px;
-          font-weight: 600;
-          color: #111827;
-        }
         .doc-item-site {
           font-size: 11px;
           color: #1d4ed8;
@@ -320,22 +289,52 @@ export default function DocumentHubPage() {
           border-radius: 999px;
           white-space: nowrap;
         }
-        .doc-meta-row {
+        :global(.doc-hub .drawing-card) {
+          border: 1px solid rgba(148, 163, 184, 0.25);
+          border-radius: 18px;
+          background: rgba(248, 250, 252, 0.9);
+          padding: 16px;
           display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          font-size: 11px;
-          color: #64748b;
+          flex-direction: column;
+          gap: 10px;
         }
-        .doc-meta-row .doc-category-badge {
-          font-size: 10px;
+        :global(.doc-hub .drawing-card.selected) {
+          border-color: #2563eb;
+          background: rgba(219, 234, 254, 0.85);
+          box-shadow: 0 12px 24px rgba(37, 99, 235, 0.14);
         }
-        .doc-status-row {
+        :global(.doc-hub .drawing-card__header) {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        :global(.doc-hub .drawing-card__title-wrap) {
+          flex: 1;
           display: flex;
           flex-direction: column;
           gap: 4px;
         }
-        .doc-status-pill {
+        :global(.doc-hub .drawing-card__title) {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 15px;
+          font-weight: 600;
+          color: #0f172a;
+        }
+        :global(.doc-hub .drawing-card__meta) {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+          font-size: 11px;
+          color: #6b7280;
+        }
+        :global(.doc-hub .drawing-card__status) {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        :global(.doc-hub .drawing-card__badge) {
           display: inline-flex;
           align-items: center;
           font-size: 11px;
@@ -345,23 +344,53 @@ export default function DocumentHubPage() {
           background: rgba(15, 23, 42, 0.05);
           color: #111827;
         }
-        .doc-status-pill.pending {
+        :global(.doc-hub .drawing-card__badge.warning) {
           color: #b45309;
           background: rgba(251, 191, 36, 0.18);
         }
-        .doc-actions {
+        :global(.doc-hub .drawing-card__connections) {
           display: flex;
-          align-items: center;
-          gap: 6px;
-          margin-left: auto;
           flex-wrap: wrap;
+          gap: 6px;
+        }
+        :global(.doc-hub .drawing-card__actions) {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+        }
+        :global(.doc-hub .drawing-card__actions-left),
+        :global(.doc-hub .drawing-card__actions-right) {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        :global(.doc-hub .drawing-card__actions-right) {
+          margin-left: auto;
         }
         @media (max-width: 520px) {
-          .doc-actions {
-            width: 100%;
-            justify-content: flex-start;
+          :global(.doc-hub .drawing-card__actions) {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          :global(.doc-hub .drawing-card__actions-right) {
             margin-left: 0;
           }
+        }
+        :global(.doc-hub .drawing-card__actions .company-doc-btn) {
+          border: 1px solid rgba(148, 163, 184, 0.45);
+          background: var(--card, #fff);
+          color: #0f172a;
+          padding: 6px 14px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 600;
+        }
+        :global(.doc-hub .drawing-card__actions .company-doc-btn:hover) {
+          border-color: #2563eb;
+          color: #2563eb;
+          background: rgba(37, 99, 235, 0.08);
         }
         .badge-link {
           display: inline-flex;
@@ -2087,46 +2116,29 @@ function DrawingsTab() {
     setUploadWarning('')
     fileInput.current?.click()
   }
-  const resolveDocUrl = async (
-    doc: {
-      url?: string
-      previewUrl?: string
-      storagePath?: string | null
-      storageBucket?: string | null
+  const buildFileRecordFromDrawing = (doc: any) => ({
+    file_url: doc.previewUrl || doc.url || undefined,
+    storage_bucket: doc.storageBucket || undefined,
+    storage_path: doc.storagePath || undefined,
+    file_name: doc.title || doc.file_name || undefined,
+  })
+
+  const getSignedUrlForDrawing = useCallback(
+    async (doc: any, options?: { downloadName?: string }) => {
+      const record = buildFileRecordFromDrawing(doc)
+      try {
+        return await fetchSignedUrlForRecord(record, {
+          downloadName: options?.downloadName || record.file_name || undefined,
+        })
+      } catch (error) {
+        if (record.file_url) {
+          return record.file_url
+        }
+        throw error
+      }
     },
-    options?: { downloadName?: string }
-  ) => {
-    if (!doc.storagePath && !doc.url && !doc.previewUrl) return null
-    const rawUrl =
-      typeof doc.previewUrl === 'string' && doc.previewUrl.length > 0
-        ? doc.previewUrl
-        : typeof doc.url === 'string'
-          ? doc.url
-          : ''
-    const isInlineUrl =
-      rawUrl.startsWith('data:') || rawUrl.startsWith('blob:') || rawUrl.length > 1800
-    if (isInlineUrl && rawUrl) {
-      return rawUrl
-    }
-    const params = new URLSearchParams()
-    if (doc.storagePath) {
-      params.set('path', doc.storagePath)
-      const bucket = doc.storageBucket || 'documents'
-      if (bucket) params.set('bucket', bucket)
-    }
-    if (rawUrl) {
-      params.set('url', rawUrl)
-    }
-    if (options?.downloadName) params.set('download', options.downloadName)
-    try {
-      const r = await fetch(`/api/files/signed-url?${params.toString()}`)
-      const j = await r.json().catch(() => ({}))
-      if (j?.url) return j.url as string
-    } catch {
-      /* ignore */
-    }
-    return rawUrl || null
-  }
+    []
+  )
   const openMarkupTool = async () => {
     try {
       // If exactly one drawing is selected, bridge it to the markup tool
@@ -2134,44 +2146,54 @@ function DrawingsTab() {
         const id = Array.from(selected)[0]
         const it = items.find(i => i.id === id)
         if (it) {
-          const resolvedUrl = await resolveDocUrl(it)
-          if (!resolvedUrl) {
+          try {
+            const resolvedUrl = await getSignedUrlForDrawing(it)
+            if (!resolvedUrl) {
+              toast({
+                title: '파일을 열 수 없습니다',
+                description: '도면 경로를 확인할 수 없습니다.',
+                variant: 'destructive',
+              })
+              return
+            }
+            try {
+              const drawingData = {
+                id: String(it.id),
+                name: String(it.title || '도면'),
+                title: String(it.title || '도면'),
+                url: resolvedUrl,
+                size: 0,
+                type: 'image',
+                uploadDate: new Date(),
+                isMarked: false,
+                source: 'site_documents',
+                siteId: site || undefined,
+                siteName: siteOptions.find(s => s.id === site)?.name,
+              }
+              localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
+            } catch {
+              /* ignore localStorage errors */
+            }
+            // Also pass selected site context when available
+            if (site) {
+              try {
+                const sn = siteOptions.find(s => s.id === site)?.name || ''
+                localStorage.setItem('selected_site', JSON.stringify({ id: site, name: sn }))
+              } catch {
+                /* ignore */
+              }
+            }
+            window.location.href = '/mobile/markup-tool'
+            return
+          } catch (error) {
+            console.error('Failed to prepare drawing for markup tool', error)
             toast({
-              title: '파일을 열 수 없습니다',
-              description: '도면 경로를 확인할 수 없습니다.',
+              title: '도면을 불러오지 못했습니다',
+              description: '네트워크 상태를 확인한 뒤 다시 시도해주세요.',
               variant: 'destructive',
             })
             return
           }
-          try {
-            const drawingData = {
-              id: String(it.id),
-              name: String(it.title || '도면'),
-              title: String(it.title || '도면'),
-              url: resolvedUrl,
-              size: 0,
-              type: 'image',
-              uploadDate: new Date(),
-              isMarked: false,
-              source: 'site_documents',
-              siteId: site || undefined,
-              siteName: siteOptions.find(s => s.id === site)?.name,
-            }
-            localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
-          } catch {
-            /* ignore localStorage errors */
-          }
-          // Also pass selected site context when available
-          if (site) {
-            try {
-              const sn = siteOptions.find(s => s.id === site)?.name || ''
-              localStorage.setItem('selected_site', JSON.stringify({ id: site, name: sn }))
-            } catch {
-              /* ignore */
-            }
-          }
-          window.location.href = '/mobile/markup-tool'
-          return
         }
       }
 
@@ -2548,150 +2570,134 @@ function DrawingsTab() {
               const display = buildWorklogConnectionDisplay(linkedIds)
               const formattedDate = formatDisplayDate(it.createdAt)
               const siteLabel = it.siteId ? siteNameMap.get(it.siteId) || null : null
+              const isSelected = selected.has(it.id)
+              const connectionLabel = hasConnections
+                ? display.type === 'badges'
+                  ? '작업일지 연결'
+                  : `연결 ${display.total}건`
+                : '작업일지 미연결'
               return (
-                <div key={it.id} className={`doc-item ${selected.has(it.id) ? 'active' : ''}`}>
-                  <div className="doc-info">
-                    <div className="doc-title-row">
-                      <div className="doc-item-title">{it.title || '도면'}</div>
-                      {siteLabel ? <span className="doc-item-site">{siteLabel}</span> : null}
+                <div key={it.id} className={cn('drawing-card', { selected: isSelected })}>
+                  <div className="drawing-card__header">
+                    <div className="drawing-card__title-wrap">
+                      <div className="drawing-card__title">
+                        <span>{it.title || '도면'}</span>
+                        {siteLabel ? <span className="doc-item-site">{siteLabel}</span> : null}
+                      </div>
+                      <div className="drawing-card__meta">
+                        {it.categoryLabel ? (
+                          <span
+                            className={cn(
+                              'doc-category-badge',
+                              it.category === 'plan'
+                                ? 'doc-category-plan'
+                                : it.category === 'progress'
+                                  ? 'doc-category-progress'
+                                  : 'doc-category-other'
+                            )}
+                          >
+                            {it.categoryLabel}
+                          </span>
+                        ) : null}
+                        {formattedDate ? (
+                          <span className="doc-meta-date">{formattedDate}</span>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="doc-meta-row">
-                      {it.categoryLabel ? (
-                        <span
-                          className={cn(
-                            'doc-category-badge',
-                            it.category === 'plan'
-                              ? 'doc-category-plan'
-                              : it.category === 'progress'
-                                ? 'doc-category-progress'
-                                : 'doc-category-other'
-                          )}
-                        >
-                          {it.categoryLabel}
-                        </span>
-                      ) : null}
-                      {formattedDate ? (
-                        <span className="doc-meta-date">{formattedDate}</span>
-                      ) : null}
-                    </div>
-                    <div className="doc-status-row">
-                      <span className={`doc-status-pill ${hasConnections ? '' : 'pending'}`}>
-                        {hasConnections
-                          ? display.type === 'badges'
-                            ? '작업일지 연결'
-                            : `연결 ${display.total}건`
-                          : '작업일지 미연결'}
-                      </span>
-                      {hasConnections && display.type === 'badges' ? (
-                        <div className="flex flex-wrap items-center gap-1">
-                          {display.ids.map(id => (
-                            <span key={id} className="doc-meta-date badge-link">
-                              {formatReadableWorklogId(id)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : !hasConnections ? (
-                        <span className="doc-meta-date muted">연결 필요</span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="doc-actions">
                     <button
-                      className="preview-btn"
-                      onClick={async () => {
-                        const markupId = getMarkupDocumentId(it.id)
-                        const hasPreview =
-                          typeof it.previewUrl === 'string' && it.previewUrl.length > 0
-                        if (markupId && !hasPreview) {
-                          openMarkupViewer(it)
-                          return
-                        }
-                        const finalUrl = await resolveDocUrl(it)
-                        if (!finalUrl) {
-                          if (markupId) {
-                            openMarkupViewer(it)
-                            return
-                          }
-                          toast({
-                            title: '파일 없음',
-                            description:
-                              '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
-                            variant: 'destructive',
-                          })
-                          return
-                        }
-                        const isInline =
-                          finalUrl.startsWith('data:') || finalUrl.startsWith('blob:')
-                        if (!isInline) {
-                          try {
-                            const chk = await fetch(
-                              `/api/files/check?url=${encodeURIComponent(finalUrl)}`
-                            )
-                            const cj = await chk.json().catch(() => ({}))
-                            if (!cj?.exists) {
-                              toast({
-                                title: '파일 없음',
-                                description:
-                                  '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
-                                variant: 'destructive',
-                              })
-                              return
-                            }
-                          } catch {
-                            /* ignore */
-                          }
-                        }
-                        window.open(finalUrl, '_blank')
-                      }}
-                    >
-                      보기
-                    </button>
-                    {it.pdfUrl ? (
-                      <button
-                        className="preview-btn secondary"
-                        onClick={() => window.open(it.pdfUrl!, '_blank')}
-                      >
-                        PDF
-                      </button>
-                    ) : null}
-                    {getMarkupDocumentId(it.id) ? (
-                      <button
-                        className="preview-btn secondary"
-                        onClick={() => openMarkupViewer(it)}
-                      >
-                        마킹열기
-                      </button>
-                    ) : null}
-                    {worklogLinkId && getMarkupDocumentId(it.id) ? (
-                      <button
-                        className="preview-btn"
-                        onClick={() => linkDocToWorklog(it)}
-                        disabled={
-                          linking[it.id] ||
-                          (Array.isArray(it.linkedWorklogIds)
-                            ? it.linkedWorklogIds.includes(worklogLinkId.trim())
-                            : it.linkedWorklogId === worklogLinkId.trim())
-                        }
-                      >
-                        {Array.isArray(it.linkedWorklogIds)
-                          ? it.linkedWorklogIds.includes(worklogLinkId.trim())
-                            ? '연결됨'
-                            : linking[it.id]
-                              ? '연결 중...'
-                              : '작업일지 연결'
-                          : it.linkedWorklogId === worklogLinkId.trim()
-                            ? '연결됨'
-                            : linking[it.id]
-                              ? '연결 중...'
-                              : '작업일지 연결'}
-                      </button>
-                    ) : null}
-                    <button
-                      className={`selection-checkmark ${selected.has(it.id) ? 'active' : ''}`}
+                      className={cn('doc-check', { active: isSelected })}
                       onClick={() => toggle(it.id)}
+                      aria-label={isSelected ? '도면 선택 해제' : '도면 선택'}
                     >
                       ✓
                     </button>
+                  </div>
+                  <div className="drawing-card__status">
+                    <span
+                      className={cn('drawing-card__badge', {
+                        warning: !hasConnections,
+                      })}
+                    >
+                      {connectionLabel}
+                    </span>
+                    {hasConnections && display.type === 'badges' ? (
+                      <div className="drawing-card__connections">
+                        {display.ids.map(id => (
+                          <span key={id} className="doc-meta-date badge-link">
+                            {formatReadableWorklogId(id)}
+                          </span>
+                        ))}
+                      </div>
+                    ) : !hasConnections ? (
+                      <span className="doc-meta-date muted">작업일지 연결이 필요합니다.</span>
+                    ) : null}
+                  </div>
+                  <div className="drawing-card__actions">
+                    <div className="drawing-card__actions-left">
+                      {worklogLinkId && getMarkupDocumentId(it.id) ? (
+                        <button
+                          className="company-doc-btn"
+                          onClick={() => linkDocToWorklog(it)}
+                          disabled={
+                            linking[it.id] ||
+                            (Array.isArray(it.linkedWorklogIds)
+                              ? it.linkedWorklogIds.includes(worklogLinkId.trim())
+                              : it.linkedWorklogId === worklogLinkId.trim())
+                          }
+                        >
+                          {Array.isArray(it.linkedWorklogIds)
+                            ? it.linkedWorklogIds.includes(worklogLinkId.trim())
+                              ? '연결됨'
+                              : linking[it.id]
+                                ? '연결 중...'
+                                : '작업일지 연결'
+                            : it.linkedWorklogId === worklogLinkId.trim()
+                              ? '연결됨'
+                              : linking[it.id]
+                                ? '연결 중...'
+                                : '작업일지 연결'}
+                        </button>
+                      ) : null}
+                    </div>
+                    <div className="drawing-card__actions-right">
+                      <button
+                        className="company-doc-btn"
+                        onClick={async () => {
+                          const markupId = getMarkupDocumentId(it.id)
+                          const hasPreview =
+                            typeof it.previewUrl === 'string' && it.previewUrl.length > 0
+                          if (markupId && !hasPreview) {
+                            openMarkupViewer(it)
+                            return
+                          }
+                          try {
+                            await openFileRecordInNewTab(buildFileRecordFromDrawing(it))
+                          } catch (error) {
+                            console.error('Failed to open drawing', error)
+                            toast({
+                              title: '파일을 열 수 없습니다',
+                              description: '도면 경로를 확인할 수 없습니다.',
+                              variant: 'destructive',
+                            })
+                          }
+                        }}
+                      >
+                        보기
+                      </button>
+                      {it.pdfUrl ? (
+                        <button
+                          className="company-doc-btn"
+                          onClick={() => window.open(it.pdfUrl!, '_blank')}
+                        >
+                          PDF
+                        </button>
+                      ) : null}
+                      {getMarkupDocumentId(it.id) ? (
+                        <button className="company-doc-btn" onClick={() => openMarkupViewer(it)}>
+                          마킹열기
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               )
@@ -2714,26 +2720,19 @@ function DrawingsTab() {
             for (const id of Array.from(selected)) {
               const doc = items.find(it => it.id === id)
               if (!doc) continue
-              const downloadSource = doc.pdfUrl || doc.url
-              const finalUrl = await resolveDocUrl(
-                doc.pdfUrl ? { ...doc, previewUrl: doc.pdfUrl, url: doc.pdfUrl } : doc,
-                {
+              const target = doc.pdfUrl ? { ...doc, previewUrl: doc.pdfUrl, url: doc.pdfUrl } : doc
+              try {
+                const finalUrl = await getSignedUrlForDrawing(target, {
                   downloadName: (doc.title || 'drawing').replace(/\s+/g, '_'),
-                }
-              )
-              if (!finalUrl && downloadSource) {
-                const fallback = downloadSource
+                })
+                if (!finalUrl) continue
                 const a = document.createElement('a')
-                a.href = fallback
+                a.href = finalUrl
                 a.download = (doc.title || '').replace(/\s+/g, '_') || 'drawing'
                 a.click()
-                continue
+              } catch (error) {
+                console.error('Failed to download drawing', error)
               }
-              if (!finalUrl) continue
-              const a = document.createElement('a')
-              a.href = finalUrl
-              a.download = (doc.title || '').replace(/\s+/g, '_') || 'drawing'
-              a.click()
             }
           }}
         >
@@ -2752,21 +2751,31 @@ function DrawingsTab() {
             }
             const doc = items.find(it => it.id === Array.from(selected)[0])
             if ((navigator as any).share && doc) {
-              const finalUrl = await resolveDocUrl(
-                doc.pdfUrl ? { ...doc, previewUrl: doc.pdfUrl, url: doc.pdfUrl } : doc
-              )
-              if (!finalUrl) {
+              try {
+                const finalUrl = await getSignedUrlForDrawing(
+                  doc.pdfUrl ? { ...doc, previewUrl: doc.pdfUrl, url: doc.pdfUrl } : doc
+                )
+                if (!finalUrl) {
+                  toast({
+                    title: '파일 공유 실패',
+                    description: '도면 경로를 찾을 수 없습니다.',
+                    variant: 'destructive',
+                  })
+                  return
+                }
+                try {
+                  await (navigator as any).share({ url: finalUrl, title: '도면 공유' })
+                } catch {
+                  await (navigator as any).share({ url: finalUrl, title: '도면 공유' })
+                }
+              } catch (error) {
+                console.error('Failed to share drawing', error)
                 toast({
                   title: '파일 공유 실패',
                   description: '도면 경로를 찾을 수 없습니다.',
                   variant: 'destructive',
                 })
                 return
-              }
-              try {
-                await (navigator as any).share({ url: finalUrl, title: '도면 공유' })
-              } catch {
-                await (navigator as any).share({ url: finalUrl, title: '도면 공유' })
               }
             } else {
               toast({ title: '공유 안내', description: '브라우저 공유 미지원', variant: 'info' })
@@ -2816,9 +2825,21 @@ function PhotosTab() {
     if (!site) return '현장 전체'
     return siteOptions.find(s => s.id === site)?.name || '현장 선택'
   }, [site, siteOptions])
+  const categorySelectLabel = useMemo(() => {
+    if (!category) return '상태 전체'
+    if (category === 'before') return '보수 전'
+    if (category === 'after') return '보수 후'
+    if (category === 'other') return '기타'
+    return '상태 선택'
+  }, [category])
   const handleSiteChange = (value: string) => {
     setSite(value === 'all' ? '' : value)
     setUploadWarning('')
+  }
+  const handleCategoryChange = (value: string) => {
+    const normalized: '' | 'before' | 'after' | 'other' =
+      value === 'all' ? '' : (value as 'before' | 'after' | 'other')
+    setCategory(normalized)
   }
 
   const onUpload = () => {
@@ -2929,16 +2950,20 @@ function PhotosTab() {
             ))}
           </CustomSelectContent>
         </CustomSelect>
-        <select
-          className="select"
-          value={category}
-          onChange={e => setCategory(e.target.value as any)}
-        >
-          <option value="">상태</option>
-          <option value="before">보수 전</option>
-          <option value="after">보수 후</option>
-          <option value="other">기타</option>
-        </select>
+        <CustomSelect value={category || 'all'} onValueChange={handleCategoryChange}>
+          <CustomSelectTrigger
+            className="doc-filter-trigger min-w-[140px] w-full"
+            aria-label="상태 선택"
+          >
+            <CustomSelectValue>{categorySelectLabel}</CustomSelectValue>
+          </CustomSelectTrigger>
+          <CustomSelectContent>
+            <CustomSelectItem value="all">상태 전체</CustomSelectItem>
+            <CustomSelectItem value="before">보수 전</CustomSelectItem>
+            <CustomSelectItem value="after">보수 후</CustomSelectItem>
+            <CustomSelectItem value="other">기타</CustomSelectItem>
+          </CustomSelectContent>
+        </CustomSelect>
         <input
           className="input"
           placeholder="검색"

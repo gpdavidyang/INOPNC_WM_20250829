@@ -17,6 +17,16 @@ export default function MobileAnnouncementsListPage() {
   const [loading, setLoading] = useState(true)
   const [announcements, setAnnouncements] = useState<Announcement[]>([])
   const [error, setError] = useState<string | null>(null)
+  const DEFAULT_VISIBLE_COUNT = 5
+  const [visibleCount, setVisibleCount] = useState(DEFAULT_VISIBLE_COUNT)
+  const [isExpanded, setIsExpanded] = useState(false)
+  const sortedAnnouncements = useMemo(() => {
+    return [...announcements].sort((a, b) => {
+      const aDate = a.created_at ? new Date(a.created_at).getTime() : 0
+      const bDate = b.created_at ? new Date(b.created_at).getTime() : 0
+      return bDate - aDate
+    })
+  }, [announcements])
 
   useEffect(() => {
     let mounted = true
@@ -39,6 +49,11 @@ export default function MobileAnnouncementsListPage() {
       mounted = false
     }
   }, [])
+
+  useEffect(() => {
+    setVisibleCount(DEFAULT_VISIBLE_COUNT)
+    setIsExpanded(false)
+  }, [announcements])
 
   const formattedDate = (dt?: string) => {
     if (!dt) return ''
@@ -82,7 +97,7 @@ export default function MobileAnnouncementsListPage() {
         )}
 
         <div className="space-y-2">
-          {announcements.map(a => (
+          {sortedAnnouncements.slice(0, visibleCount).map(a => (
             <div
               key={a.id}
               className="card p-4 cursor-pointer"
@@ -95,6 +110,23 @@ export default function MobileAnnouncementsListPage() {
               <p className="text-sm text-gray-700 line-clamp-2">{a.content}</p>
             </div>
           ))}
+          {sortedAnnouncements.length > DEFAULT_VISIBLE_COUNT && (
+            <button
+              type="button"
+              className="w-full py-3 text-sm font-semibold text-blue-600 rounded-lg bg-white shadow-sm"
+              onClick={() => {
+                if (isExpanded) {
+                  setVisibleCount(DEFAULT_VISIBLE_COUNT)
+                  setIsExpanded(false)
+                } else {
+                  setVisibleCount(announcements.length)
+                  setIsExpanded(true)
+                }
+              }}
+            >
+              {isExpanded ? '접기' : '더보기'}
+            </button>
+          )}
         </div>
       </div>
     </MobileLayoutShell>

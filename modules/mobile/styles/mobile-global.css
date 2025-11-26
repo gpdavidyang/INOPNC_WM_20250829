@@ -4,7 +4,7 @@
   /* Colors - 100% HTML Match */
   --font:
     var(--font-noto-sans-kr, 'Noto Sans KR'), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  --bg: #f5f7fb;
+  --bg: #f6f9ff;
   --card: #ffffff;
   --text: #101828;
   --muted: #667085;
@@ -213,13 +213,12 @@ textarea {
   position: relative;
   min-width: 32px;
   min-height: 36px;
-  /* Light theme: force solid black so label matches icon stroke */
-  color: #000;
+  color: #1a254f;
   gap: 2px;
 }
 
 [data-theme='dark'] .header-icon-btn {
-  color: var(--text);
+  color: #1a254f;
 }
 
 .header-icon-btn:hover {
@@ -239,29 +238,38 @@ textarea {
   box-shadow: none;
 }
 
-.header-icon-btn .w-5 {
-  width: 20px;
-  height: 20px;
+.appbar-icon {
+  width: 24px;
+  height: 24px;
   stroke-width: 1.5;
+  color: #1a254f;
+}
+
+[data-theme='dark'] .appbar-icon {
+  color: #1a254f;
+}
+
+.header-icon-btn .appbar-icon {
+  color: inherit;
 }
 
 .header-icon-btn .icon-text {
   font-size: var(--appbar-label-size) !important;
-  font-weight: var(--appbar-label-weight);
+  font-weight: 600;
   line-height: 1;
   letter-spacing: -0.3px;
-  color: inherit;
+  color: #1a254f;
 }
 
-/* Force header icon + label to true black in light theme to match icon stroke */
+/* Force consistent brand color in header */
 .app-header .header-icon-btn {
-  color: #000 !important;
+  color: #1a254f !important;
 }
 .app-header .header-icon-btn .icon-text {
   color: inherit !important;
 }
 [data-theme='dark'] .app-header .header-icon-btn {
-  color: var(--text) !important;
+  color: #1a254f !important;
 }
 
 /* 큰글씨 모드에서도 헤더는 영향받지 않도록 */

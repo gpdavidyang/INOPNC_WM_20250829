@@ -1,15 +1,15 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
-import { Search, Moon, Sun, Type, Bell, Menu } from 'lucide-react'
 import { Button } from '@/modules/shared/ui'
+import { Bell, Menu, Moon, Search, Sun, Type } from 'lucide-react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { NotificationModal } from '../notifications/NotificationModal'
 // Drawer is now managed by MobileLayout, not AppBar
 import { SearchPage } from './SearchPage'
 // Switched to server API for unread count to align with notification_logs
-import { useUser } from '@/hooks/use-user'
-import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { useFontSize } from '@/contexts/FontSizeContext'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { isNotificationHiddenToday } from '@/modules/mobile/lib/notification-preferences'
 
 interface AppBarProps {
   onMenuClick?: () => void
@@ -31,10 +31,10 @@ export const AppBar: React.FC<AppBarProps> = ({
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const [notificationHiddenToday, setNotificationHiddenToday] = useState(false)
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
-  const { user } = useUser()
-  const { profile } = useUnifiedAuth()
+  const { user, profile } = useUnifiedAuth()
   const { isLargeFont, toggleFontSize } = useFontSize()
 
   // Fetch notification count function
@@ -59,6 +59,7 @@ export const AppBar: React.FC<AppBarProps> = ({
     setTheme(savedTheme)
     document.documentElement.setAttribute('data-theme', savedTheme)
     document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+    setNotificationHiddenToday(isNotificationHiddenToday())
   }, [])
 
   // Fetch notification count
@@ -96,6 +97,12 @@ export const AppBar: React.FC<AppBarProps> = ({
     window.location.href = destination
   }
 
+  const handleNotificationButtonClick = () => {
+    // Always show modal when user clicks the button, regardless of "don't show today" setting.
+    // The setting will be reflected in the checkbox inside the modal.
+    setShowNotificationModal(true)
+  }
+
   return (
     <header className="app-header">
       <div className="header-content">
@@ -130,7 +137,7 @@ export const AppBar: React.FC<AppBarProps> = ({
               }
             }}
           >
-            <Search className="w-5 h-5" />
+            <Search className="appbar-icon" />
             {showLabels && <span className="icon-text">검색</span>}
           </Button>
 
@@ -143,7 +150,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             aria-label="다크모드"
             onClick={toggleTheme}
           >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {theme === 'dark' ? <Sun className="appbar-icon" /> : <Moon className="appbar-icon" />}
             {showLabels && <span className="icon-text">다크모드</span>}
           </Button>
 
@@ -156,7 +163,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             aria-label="글씨 크기"
             onClick={toggleFontSize}
           >
-            <Type className="w-5 h-5" />
+            <Type className="appbar-icon" />
             {showLabels && (
               <span className="icon-text" id="fontSizeText">
                 {isLargeFont ? '큰글씨' : '작은글씨'}
@@ -171,13 +178,13 @@ export const AppBar: React.FC<AppBarProps> = ({
             className="header-icon-btn"
             id="notificationBtn"
             aria-label="알림"
-            onClick={() => setShowNotificationModal(true)}
+            onClick={handleNotificationButtonClick}
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="appbar-icon" />
             {showLabels && <span className="icon-text">알림</span>}
-            {displayCount > 0 && (
+            {notificationCount > 0 && (
               <span className="notification-badge" id="notificationBadge">
-                {displayCount}
+                {notificationCount}
               </span>
             )}
           </Button>
@@ -196,7 +203,7 @@ export const AppBar: React.FC<AppBarProps> = ({
               // Drawer is now controlled by MobileLayout
             }}
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="appbar-icon" />
             {showLabels && <span className="icon-text">메뉴</span>}
           </Button>
         </div>
@@ -336,6 +343,7 @@ export const AppBar: React.FC<AppBarProps> = ({
         onClose={() => {
           setShowNotificationModal(false)
           fetchNotificationCount() // Refresh count after closing
+          setNotificationHiddenToday(isNotificationHiddenToday())
         }}
         userId={user?.id}
       />

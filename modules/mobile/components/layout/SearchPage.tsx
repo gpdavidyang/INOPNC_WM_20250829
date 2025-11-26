@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
-import { ArrowLeft, Search, X } from 'lucide-react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
+import { ArrowLeft, Search } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface SearchPageProps {
@@ -9,32 +9,124 @@ interface SearchPageProps {
   onClose: () => void
 }
 
+interface AnnouncementResult {
+  id: string
+  title: string
+  content: string
+  priority?: string | null
+  created_at?: string | null
+}
+
+const priorityLabels: Record<string, string> = {
+  low: '일반',
+  medium: '일반',
+  high: '중요',
+  urgent: '긴급',
+  critical: '위급',
+}
+
 export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<string[]>([])
+  const [searchResults, setSearchResults] = useState<AnnouncementResult[]>([])
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [hasSearched, setHasSearched] = useState(false)
+  const clearSearchInput = useCallback(() => {
+    setSearchQuery('')
+    setSearchResults([])
+    setHasSearched(false)
+    setSearchError(null)
+  }, [])
 
-  // 검색 키워드 목록 (데모용)
-  const keywords = [
-    'INOPNC 프로젝트',
-    '현장 관리',
-    '작업 일지',
-    '출력 현황',
-    '문서 관리',
-    '사용자 설정',
-    '알림 설정',
-    '데이터 분석',
-    '일일 보고서',
-    '작업자 관리',
-    '자재 관리',
-    '안전 관리',
-    '품질 관리',
-    '공정 관리',
-    '예산 관리',
-    '일정 관리',
-  ]
+  const formatResultDate = (value?: string | null) => {
+    if (!value) return ''
+    try {
+      return new Date(value).toLocaleDateString('ko-KR', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    } catch {
+      return ''
+    }
+  }
+
+  const getSnippet = (value?: string | null) => {
+    if (!value) return '내용이 없습니다.'
+    const cleaned = value.replace(/\s+/g, ' ').trim()
+    if (!cleaned) return '내용이 없습니다.'
+    return cleaned.length > 120 ? `${cleaned.slice(0, 120)}…` : cleaned
+  }
+
+  const runSearch = useCallback(async (rawQuery: string) => {
+    const query = rawQuery.trim()
+
+    if (!query) {
+      setSearchResults([])
+      setSearchError(null)
+      setHasSearched(false)
+      return
+    }
+
+    setIsSearching(true)
+    setSearchError(null)
+    setHasSearched(true)
+
+    try {
+      const response = await fetch(`/api/announcements?search=${encodeURIComponent(query)}`, {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error('검색 요청 실패')
+      }
+
+      const data = await response.json().catch(() => ({}))
+      const announcements = Array.isArray(data?.announcements) ? data.announcements : []
+      setSearchResults(announcements)
+
+      setRecentSearches(prev => {
+        const next = [query, ...prev.filter(item => item !== query)].slice(0, 5)
+        try {
+          localStorage.setItem('inopnc_recent_searches', JSON.stringify(next))
+        } catch (_) {
+          /* ignore storage errors */
+        }
+        return next
+      })
+    } catch (error) {
+      console.error('Announcement search failed', error)
+      setSearchError('검색 결과를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  const scheduleSearch = useCallback(
+    (query: string) => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+
+      const trimmed = query.trim()
+      if (!trimmed) {
+        setSearchResults([])
+        setSearchError(null)
+        setHasSearched(false)
+        return
+      }
+
+      searchTimeoutRef.current = setTimeout(() => {
+        runSearch(query)
+      }, 250)
+    },
+    [runSearch]
+  )
 
   // 최근 검색어 불러오기
   useEffect(() => {
@@ -50,36 +142,26 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen])
 
-  // 검색 처리
-  const handleSearch = (query: string) => {
-    if (!query.trim()) return
-
-    // 검색 결과 필터링
-    const results = keywords.filter(keyword => keyword.toLowerCase().includes(query.toLowerCase()))
-    setSearchResults(results)
-
-    // 최근 검색어 저장
-    const newRecent = [query, ...recentSearches.filter(s => s !== query)].slice(0, 5)
-    setRecentSearches(newRecent)
-    localStorage.setItem('inopnc_recent_searches', JSON.stringify(newRecent))
-  }
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // 검색어 입력 처리
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value
     setSearchQuery(query)
-    if (query) {
-      handleSearch(query)
-    } else {
-      setSearchResults([])
-    }
+    scheduleSearch(query)
   }
 
   // 검색어 클릭 처리
-  const handleResultClick = (result: string) => {
-    console.log('검색 결과 클릭:', result)
-    // 실제 구현 시 해당 페이지로 이동하거나 관련 기능 실행
+  const handleResultClick = (announcement: AnnouncementResult) => {
+    if (!announcement?.id) return
     onClose()
+    router.push(`/mobile/announcements/${announcement.id}`)
   }
 
   // 최근 검색어 삭제
@@ -87,6 +169,22 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
     setRecentSearches([])
     localStorage.removeItem('inopnc_recent_searches')
   }
+
+  const removeRecentSearch = useCallback((term: string) => {
+    setRecentSearches(prev => {
+      const next = prev.filter(item => item !== term)
+      try {
+        if (next.length === 0) {
+          localStorage.removeItem('inopnc_recent_searches')
+        } else {
+          localStorage.setItem('inopnc_recent_searches', JSON.stringify(next))
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+      return next
+    })
+  }, [])
 
   if (!isOpen) return null
 
@@ -107,20 +205,21 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
             onChange={handleInputChange}
             onKeyDown={e => {
               if (e.key === 'Enter') {
-                handleSearch(searchQuery)
+                if (searchTimeoutRef.current) {
+                  clearTimeout(searchTimeoutRef.current)
+                }
+                runSearch(searchQuery)
               }
             }}
           />
           {searchQuery && (
             <button
-              className="clear-btn"
-              onClick={() => {
-                setSearchQuery('')
-                setSearchResults([])
-                inputRef.current?.focus()
-              }}
+              type="button"
+              className="search-clear-btn"
+              aria-label="검색어 비우기"
+              onClick={clearSearchInput}
             >
-              <X className="w-4 h-4" />
+              &times;
             </button>
           )}
         </div>
@@ -135,44 +234,78 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
             </div>
             <div className="recent-list">
               {recentSearches.map((search, index) => (
-                <button
-                  key={index}
-                  className="recent-item"
-                  onClick={() => {
-                    setSearchQuery(search)
-                    handleSearch(search)
-                  }}
-                >
-                  <Search className="w-4 h-4" />
-                  <span>{search}</span>
-                </button>
+                <div key={`${search}-${index}`} className="recent-item-row">
+                  <button
+                    type="button"
+                    className="recent-item"
+                    onClick={() => {
+                      setSearchQuery(search)
+                      if (searchTimeoutRef.current) {
+                        clearTimeout(searchTimeoutRef.current)
+                      }
+                      runSearch(search)
+                    }}
+                  >
+                    <Search className="w-4 h-4" />
+                    <span>{search}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="recent-remove-btn"
+                    aria-label={`${search} 검색어 삭제`}
+                    onClick={() => removeRecentSearch(search)}
+                  >
+                    &times;
+                  </button>
+                </div>
               ))}
             </div>
           </div>
         )}
 
-        {searchQuery && searchResults.length > 0 && (
+        {searchQuery && (
           <div className="search-results">
             <div className="section-header">
               <h3>검색 결과</h3>
-              <span>{searchResults.length}건</span>
+              <span>{isSearching ? '검색 중…' : `${searchResults.length}건`}</span>
             </div>
-            <div className="results-list">
-              {searchResults.map((result, index) => (
-                <button
-                  key={index}
-                  className="result-item"
-                  onClick={() => handleResultClick(result)}
-                >
-                  <Search className="w-4 h-4" />
-                  <span>{result}</span>
-                </button>
-              ))}
-            </div>
+            {searchError && <div className="search-error">{searchError}</div>}
+            {isSearching && <div className="search-loading">검색 결과를 불러오는 중입니다…</div>}
+            {!isSearching && !searchError && searchResults.length > 0 && (
+              <div className="results-list">
+                {searchResults.map(result => {
+                  const dateLabel = formatResultDate(result.created_at)
+                  const priorityKey = (result.priority || '').toLowerCase()
+                  const priorityLabel = priorityLabels[priorityKey]
+                  return (
+                    <button
+                      key={result.id}
+                      className="result-item"
+                      onClick={() => handleResultClick(result)}
+                    >
+                      <div className="result-item-content">
+                        <div className="result-title-row">
+                          <span className="result-title">{result.title || '제목 없음'}</span>
+                          <div className="result-meta">
+                            {priorityLabel && (
+                              <span className={`priority-badge priority-${priorityKey}`}>
+                                {priorityLabel}
+                              </span>
+                            )}
+                            {dateLabel && <span className="result-date">{dateLabel}</span>}
+                          </div>
+                        </div>
+                        <p className="result-snippet">{getSnippet(result.content)}</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
-        {searchQuery && searchResults.length === 0 && (
+        {searchQuery && hasSearched && !isSearching && !searchResults.length && !searchError && (
           <div className="no-results">
             <Search className="w-12 h-12" />
             <p>&lsquo;{searchQuery}&rsquo;에 대한 검색 결과가 없습니다.</p>
@@ -231,9 +364,12 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         .search-icon {
           position: absolute;
           left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
           width: 20px;
           height: 20px;
           color: var(--muted-ink);
+          pointer-events: none;
         }
 
         .search-input {
@@ -248,26 +384,32 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           outline: none;
           transition: all 0.2s;
         }
+        .search-clear-btn {
+          position: absolute;
+          right: 10px;
+          background: rgba(0, 0, 0, 0.05);
+          color: var(--text);
+          border: none;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 18px;
+          line-height: 1;
+        }
+        [data-theme='dark'] .search-clear-btn {
+          background: rgba(255, 255, 255, 0.1);
+          color: #e6e9f1;
+        }
 
         .search-input:focus {
-          border-color: var(--tag-blue);
+          border-color: var(--line);
           background: var(--surface);
         }
 
-        .clear-btn {
-          position: absolute;
-          right: 12px;
-          background: transparent;
-          border: none;
-          padding: 4px;
-          cursor: pointer;
-          color: var(--muted-ink);
-          border-radius: 50%;
-          transition: background 0.2s;
-        }
-
-        .clear-btn:hover {
-          background: rgba(0, 0, 0, 0.05);
+        .search-input:focus-visible {
+          outline: none;
+          box-shadow: none;
         }
 
         .search-body {
@@ -317,6 +459,12 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           gap: 4px;
         }
 
+        .recent-item-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
         .recent-item,
         .result-item {
           display: flex;
@@ -331,6 +479,84 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           transition: all 0.2s;
           color: var(--text);
           font-size: 15px;
+        }
+
+        .recent-remove-btn {
+          flex-shrink: 0;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          border: none;
+          background: rgba(0, 0, 0, 0.05);
+          color: var(--text);
+          cursor: pointer;
+          font-size: 18px;
+          line-height: 1;
+        }
+
+        [data-theme='dark'] .recent-remove-btn {
+          background: rgba(255, 255, 255, 0.1);
+          color: #e6e9f1;
+        }
+
+        .result-item-content {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          width: 100%;
+        }
+
+        .result-title-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          width: 100%;
+        }
+
+        .result-title {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text);
+        }
+
+        .result-meta {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+
+        .priority-badge {
+          font-size: 11px;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 9999px;
+          background: rgba(49, 163, 250, 0.12);
+          color: #1a254f;
+        }
+
+        .priority-badge.priority-urgent,
+        .priority-badge.priority-critical {
+          background: rgba(234, 56, 41, 0.12);
+          color: #ea3829;
+        }
+
+        .priority-badge.priority-high {
+          background: rgba(249, 115, 22, 0.15);
+          color: #ea580c;
+        }
+
+        .result-date {
+          font-size: 12px;
+          color: var(--muted-ink);
+          white-space: nowrap;
+        }
+
+        .result-snippet {
+          font-size: 13px;
+          color: var(--muted-ink);
+          line-height: 1.4;
         }
 
         [data-theme='dark'] .recent-item,
@@ -350,6 +576,19 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         [data-theme='dark'] .result-item:hover {
           background: rgba(255, 255, 255, 0.05);
           border-color: #31a3fa;
+        }
+
+        .search-error {
+          margin-bottom: 12px;
+          font-size: 13px;
+          color: #dc2626;
+        }
+
+        .search-loading {
+          padding: 16px;
+          text-align: center;
+          font-size: 14px;
+          color: var(--muted-ink);
         }
 
         .no-results {

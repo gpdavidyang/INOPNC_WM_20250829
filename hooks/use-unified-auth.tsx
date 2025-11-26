@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { UI_TRACK_COOKIE_NAME } from '@/lib/auth/constants'
-import type { Session, User } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import { AuthContext } from '@/modules/mobile/providers/AuthProvider'
+import type { Session, User } from '@supabase/supabase-js'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 type Role =
   | 'worker'

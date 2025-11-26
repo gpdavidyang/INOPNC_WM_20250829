@@ -69,17 +69,18 @@
 
 .close-btn {
   background: transparent;
-  border: none;
-  padding: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  padding: 6px 16px;
   cursor: pointer;
-  color: var(--muted);
+  color: var(--text);
   transition: all 0.2s;
-  border-radius: 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .close-btn:hover {
   background: var(--line);
-  color: var(--text);
 }
 
 /* 모달 바디 */

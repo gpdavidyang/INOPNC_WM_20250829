@@ -264,9 +264,7 @@ export const DrawingPreviewModal: React.FC<DrawingPreviewModalProps> = ({
               title="닫기"
               aria-label="모달 닫기"
             >
-              <span className="action-icon" aria-hidden="true">
-                ✕
-              </span>
+              닫기
             </button>
           </div>
         </div>

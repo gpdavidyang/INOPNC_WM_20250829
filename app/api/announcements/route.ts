@@ -22,15 +22,17 @@ export async function POST(request: NextRequest) {
         '[announcements] Service role client unavailable, falling back to session client'
       )
     }
+    const requestBody = await request.json()
     const {
       title,
       content,
-      priority = 'normal', // low, normal, high, urgent
+      priority = 'medium', // low, medium, high, critical, urgent
       siteIds = [],
       targetRoles = [], // specific roles to notify
       expiresAt,
       attachments = [],
-    } = await request.json()
+      is_active,
+    } = requestBody
 
     // Verify user authentication
     // Check if user has permission to create announcements
@@ -45,14 +47,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate site access for site managers
-    let targetSiteIds = siteIds
+    let targetSiteIds: string[] = Array.isArray(siteIds) ? siteIds : []
     if (profile.role === 'site_manager') {
       // Site managers can only announce to their own site
       targetSiteIds = [profile.site_id]
     }
 
-    const allowedPriorities = new Set(['low', 'normal', 'high', 'critical', 'urgent'])
-    const normalizedPriority = allowedPriorities.has(priority) ? priority : 'normal'
+    const allowedPriorities = new Set(['low', 'medium', 'high', 'critical', 'urgent'])
+    const normalizedPriority = allowedPriorities.has(priority) ? priority : 'medium'
 
     // Create announcement record
     const { data: announcement, error: createError } = await supabase
@@ -61,10 +63,10 @@ export async function POST(request: NextRequest) {
         title,
         content,
         priority: normalizedPriority,
-        target_sites: targetSiteIds,
+        target_sites: targetSiteIds.length ? targetSiteIds : null,
         target_roles: targetRoles,
         created_by: authResult.userId,
-        is_active: true,
+        is_active: typeof is_active === 'boolean' ? is_active : true,
       })
       .select()
       .single()
@@ -246,25 +248,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, announcements: [announcement] })
     }
 
-    let query = supabase.from('announcements').select('*').eq('is_active', true)
-
-    if (siteId) {
-      query = query.contains('target_sites', [siteId])
-    } else if (profile.role === 'worker' || profile.role === 'site_manager') {
-      if (profile.site_id) {
-        query = query.contains('target_sites', [profile.site_id])
-      } else {
+    if (profile.role === 'worker' || profile.role === 'site_manager') {
+      if (!profile.site_id) {
         return NextResponse.json({ success: true, announcements: [] })
       }
     } else if (authResult.isRestricted) {
       if (!accessibleSiteIds || accessibleSiteIds.length === 0) {
         return NextResponse.json({ success: true, announcements: [] })
       }
-
-      const siteFilters = accessibleSiteIds.map(site => `target_sites.cs.{${site}}`).join(',')
-
-      query = query.or(['target_sites.is.null', siteFilters].filter(Boolean).join(','))
     }
+
+    let query = supabase.from('announcements').select('*').eq('is_active', true)
 
     if (priority) {
       query = query.eq('priority', priority)
@@ -286,14 +280,35 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    const filteredAnnouncements = !['admin', 'system_admin'].includes(profile.role || '')
-      ? (announcements || []).filter(announcement => {
-          if (!announcement?.target_roles || announcement.target_roles.length === 0) {
-            return true
-          }
-          return announcement.target_roles.includes(profile.role ?? '')
-        })
-      : announcements || []
+    const matchesSite = (announcement: any) => {
+      const targets = Array.isArray(announcement?.target_sites)
+        ? (announcement.target_sites as string[])
+        : []
+      if (siteId) {
+        return targets.length === 0 || targets.includes(siteId)
+      }
+      if (profile.role === 'worker' || profile.role === 'site_manager') {
+        if (!profile.site_id) return false
+        return targets.length === 0 || targets.includes(profile.site_id)
+      }
+      if (authResult.isRestricted) {
+        if (!accessibleSiteIds || accessibleSiteIds.length === 0) return false
+        return targets.length === 0 || targets.some(site => accessibleSiteIds!.includes(site))
+      }
+      return true
+    }
+
+    const matchesRole = (announcement: any) => {
+      if (['admin', 'system_admin'].includes(profile.role || '')) return true
+      const targets = Array.isArray(announcement?.target_roles)
+        ? (announcement.target_roles as string[])
+        : []
+      return targets.length === 0 || targets.includes(profile.role ?? '')
+    }
+
+    const filteredAnnouncements = (announcements || []).filter(
+      announcement => matchesSite(announcement) && matchesRole(announcement)
+    )
 
     return NextResponse.json({
       success: true,

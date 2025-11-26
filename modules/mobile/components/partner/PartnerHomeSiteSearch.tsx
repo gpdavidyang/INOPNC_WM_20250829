@@ -475,7 +475,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         }
         .site-info-bottomsheet-close {
           border: 1px solid #d8ddef;
-          background: #f5f7fb;
+          background: #f6f9ff;
           color: #1a254f;
           font-size: 14px;
           font-weight: 700;
@@ -487,7 +487,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         }
 
         .site-info-sheet-summary {
-          background: #f5f7fb;
+          background: #f6f9ff;
           border: 1px solid #e4e8f4;
           border-radius: 18px;
           padding: 18px;
@@ -550,7 +550,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         }
         .site-info-sheet-contact-call {
           border: 1px solid #d8ddef;
-          background: #f5f7fb;
+          background: #f6f9ff;
           color: #1a254f;
           border-radius: 12px;
           padding: 6px 14px;
@@ -593,7 +593,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         }
         .site-info-sheet-address-actions button {
           border: 1px solid #d8ddef;
-          background: #f5f7fb;
+          background: #f6f9ff;
           color: #1a254f;
           font-weight: 700;
           padding: 6px 14px;
@@ -620,7 +620,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         }
         .site-info-sheet-actions button.ghost {
           border: 1px solid #d8ddef;
-          background: #f5f7fb;
+          background: #f6f9ff;
           color: #1a254f;
         }
         .site-info-sheet-actions button.primary {

@@ -1,14 +1,39 @@
 'use client'
 
+import {
+  clearNotificationSuppression,
+  isNotificationHiddenToday,
+  suppressNotificationsForToday,
+} from '@/modules/mobile/lib/notification-preferences'
+import {
+  AlertCircle,
+  CalendarClock,
+  CheckCircle,
+  ClipboardList,
+  DollarSign,
+  FileText,
+  Megaphone,
+  Package,
+  ShieldAlert,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
-import { X, CheckCircle, FileText, AlertCircle, Calendar } from 'lucide-react'
 // Switch to server history API backed by notification_logs
 
 interface NotificationItem {
   id: string
   title: string
   message: string
-  type: 'info' | 'success' | 'warning' | 'document'
+  type:
+    | 'announcement'
+    | 'safety'
+    | 'materials'
+    | 'schedule'
+    | 'document'
+    | 'general'
+    | 'success'
+    | 'warning'
+    | 'payroll'
   created_at: string
   is_read: boolean
 }
@@ -19,37 +44,129 @@ interface NotificationModalProps {
   userId?: string
 }
 
+const ICON_MAP: Record<NotificationItem['type'], LucideIcon> = {
+  announcement: Megaphone,
+  safety: ShieldAlert,
+  materials: Package,
+  schedule: CalendarClock,
+  document: FileText,
+  success: CheckCircle,
+  warning: AlertCircle,
+  payroll: DollarSign,
+  general: ClipboardList,
+}
+
+const TYPE_LABELS: Record<NotificationItem['type'], string> = {
+  announcement: '공지',
+  safety: '안전',
+  materials: '자재',
+  schedule: '일정',
+  document: '문서',
+  success: '완료',
+  warning: '주의',
+  payroll: '급여',
+  general: '알림',
+}
+
 export const NotificationModal: React.FC<NotificationModalProps> = ({
   isOpen,
   onClose,
   userId,
 }) => {
+  const PAGE_SIZE = 10
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [loading, setLoading] = useState(false)
   const [dontShowToday, setDontShowToday] = useState(false)
+  const [selectedNotification, setSelectedNotification] = useState<NotificationItem | null>(null)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   useEffect(() => {
     if (isOpen && userId) {
-      fetchNotifications()
+      setDontShowToday(isNotificationHiddenToday())
+      // User explicitly opened the modal, so we should show it even if "don't show today" is set.
+      // The preference is mainly for auto-popup scenarios (if any).
+      setPage(1)
+      setHasMore(true)
+      void fetchNotifications(1, false)
+    } else if (!isOpen) {
+      setSelectedNotification(null)
     }
   }, [isOpen, userId])
 
-  const fetchNotifications = async () => {
-    setLoading(true)
+  useEffect(() => {
+    if (!selectedNotification) return
+    const latest = notifications.find(n => n.id === selectedNotification.id)
+    if (!latest) {
+      setSelectedNotification(null)
+      return
+    }
+    if (latest !== selectedNotification) {
+      setSelectedNotification(latest)
+    }
+  }, [notifications, selectedNotification])
+
+  const resolveNotificationType = (
+    rawType?: string,
+    fallbackTitle?: string
+  ): NotificationItem['type'] => {
+    const type = (rawType || '').toLowerCase()
+    if (type.includes('safety') || type.includes('alert')) return 'safety'
+    if (type.includes('material')) return 'materials'
+    if (type.includes('report') || type.includes('schedule')) return 'schedule'
+    if (type.includes('document') || type.includes('doc')) return 'document'
+    if (type.includes('announcement') || type.includes('notice') || type.includes('site'))
+      return 'announcement'
+    if (type.includes('payroll') || type.includes('salary')) return 'payroll'
+    if (type.includes('success')) return 'success'
+    if (type.includes('warning') || type.includes('urgent')) return 'warning'
+    if ((fallbackTitle || '').includes('급여')) return 'payroll'
+    if ((fallbackTitle || '').includes('공지')) return 'announcement'
+    return 'general'
+  }
+
+  const fetchNotifications = async (targetPage = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
     try {
-      const res = await fetch(`/api/notifications/history?limit=10`, { cache: 'no-store' })
+      const res = await fetch(`/api/notifications/history?limit=${PAGE_SIZE}&page=${targetPage}`, {
+        cache: 'no-store',
+      })
       if (!res.ok) throw new Error('history api failed')
       const json = await res.json()
       const items = Array.isArray(json?.notifications) ? json.notifications : []
-      const mapped: NotificationItem[] = items.map((n: any) => ({
-        id: String(n.id),
-        title: n.title || '알림',
-        message: n.body || '',
-        type: 'info',
-        created_at: n.sent_at || n.created_at || new Date().toISOString(),
-        is_read: !!n.read_at,
-      }))
-      setNotifications(mapped)
+      const mapped: NotificationItem[] = items.map((n: any) => {
+        const title = n.title || '알림'
+        const type = resolveNotificationType(String(n.notification_type || n.type || ''), title)
+        return {
+          id: String(n.id),
+          title,
+          message: n.body || '',
+          type,
+          created_at: n.sent_at || n.created_at || new Date().toISOString(),
+          is_read: !!n.read_at,
+        }
+      })
+      if (append) {
+        setNotifications(prev => {
+          const existingIds = new Set(prev.map(n => n.id))
+          const appended = mapped.filter(n => !existingIds.has(n.id))
+          return [...prev, ...appended]
+        })
+      } else {
+        setNotifications(mapped)
+      }
+      const totalPages = Number(json?.pagination?.totalPages || 0)
+      if (totalPages > 0) {
+        setHasMore(targetPage < totalPages)
+      } else {
+        setHasMore(mapped.length === PAGE_SIZE)
+      }
+      setPage(targetPage)
     } catch (error) {
       console.warn('Failed to fetch notifications:', error)
       setNotifications([
@@ -57,7 +174,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           id: '1',
           title: '시스템 점검 안내',
           message: '오늘 오후 2시부터 3시까지 시스템 점검이 예정되어 있습니다.',
-          type: 'info',
+          type: 'announcement',
           created_at: new Date().toISOString(),
           is_read: false,
         },
@@ -78,8 +195,14 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           is_read: true,
         },
       ])
+      setHasMore(false)
+      setPage(1)
     } finally {
-      setLoading(false)
+      if (append) {
+        setLoadingMore(false)
+      } else {
+        setLoading(false)
+      }
     }
   }
 
@@ -118,23 +241,30 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   }
 
   const handleClose = () => {
+    setSelectedNotification(null)
     if (dontShowToday) {
-      localStorage.setItem('hideNotifications', new Date().toDateString())
+      suppressNotificationsForToday()
+    } else {
+      clearNotificationSuppression()
     }
     onClose()
   }
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'document':
-        return <FileText className="w-5 h-5 text-blue-500" />
-      case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />
-      default:
-        return <Calendar className="w-5 h-5 text-blue-500" />
+  const getIcon = (type: NotificationItem['type']) => {
+    const IconComponent = ICON_MAP[type] ?? ClipboardList
+    return <IconComponent className="w-5 h-5" aria-hidden="true" />
+  }
+
+  const handleNotificationClick = (notification: NotificationItem) => {
+    setSelectedNotification(notification)
+    if (!notification.is_read) {
+      void markAsRead(notification.id)
     }
+  }
+
+  const handleLoadMore = () => {
+    if (loadingMore || !hasMore) return
+    void fetchNotifications(page + 1, true)
   }
 
   if (!isOpen) return null
@@ -148,8 +278,8 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
       <div className="notification-popup">
         <div className="notification-popup-header">
           <h3>알림</h3>
-          <button className="notification-popup-close" onClick={handleClose}>
-            <X className="w-5 h-5" />
+          <button className="notification-popup-close" onClick={handleClose} aria-label="닫기">
+            닫기
           </button>
         </div>
 
@@ -166,16 +296,38 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
                   <div
                     key={notification.id}
                     className={`notification-item ${notification.is_read ? 'read' : ''}`}
-                    onClick={() => !notification.is_read && markAsRead(notification.id)}
+                    data-type={notification.type}
+                    onClick={() => handleNotificationClick(notification)}
                   >
-                    <div className="notification-icon">{getIcon(notification.type)}</div>
+                    <div className="notification-icon" data-type={notification.type}>
+                      {getIcon(notification.type)}
+                    </div>
                     <div className="notification-text">
-                      <div className="notification-title">{notification.title}</div>
+                      <div className="notification-text-header">
+                        <span
+                          className="notification-type-badge"
+                          data-type={notification.type}
+                          aria-label={`${TYPE_LABELS[notification.type]} 유형`}
+                        >
+                          {TYPE_LABELS[notification.type]}
+                        </span>
+                        <div className="notification-title">{notification.title}</div>
+                      </div>
                       <div className="notification-desc">{notification.message}</div>
                     </div>
                   </div>
                 ))}
               </div>
+
+              {hasMore && (
+                <button
+                  className="notification-load-more"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                >
+                  {loadingMore ? '불러오는 중…' : '더보기'}
+                </button>
+              )}
 
               {notifications.some(n => !n.is_read) && (
                 <button className="mark-all-read-btn" onClick={markAllAsRead}>
@@ -186,6 +338,29 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
           ) : (
             <div className="empty-notifications">
               <p>새로운 알림이 없습니다.</p>
+            </div>
+          )}
+
+          {selectedNotification && (
+            <div className="notification-detail">
+              <div className="notification-detail-header">
+                <div>
+                  <p className="notification-detail-label">선택한 알림</p>
+                  <h4 className="notification-detail-title">{selectedNotification.title}</h4>
+                </div>
+                <button
+                  type="button"
+                  className="notification-detail-close"
+                  onClick={() => setSelectedNotification(null)}
+                >
+                  닫기
+                </button>
+              </div>
+              <div className="notification-detail-meta">
+                <span>{new Date(selectedNotification.created_at).toLocaleString('ko-KR')}</span>
+                {selectedNotification.is_read ? <span>읽음</span> : <span>읽지 않음</span>}
+              </div>
+              <div className="notification-detail-message">{selectedNotification.message}</div>
             </div>
           )}
 

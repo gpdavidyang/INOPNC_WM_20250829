@@ -20,8 +20,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { action, id, reason } = await request.json()
-    if (!id || !['approve', 'reject', 'delete'].includes(action)) {
+    const { action, id, submissionId, reason } = await request.json()
+    let targetId: string | null = typeof id === 'string' ? id : null
+    if (!targetId && typeof submissionId === 'string' && submissionId) {
+      targetId = `${FALLBACK_PREFIX}${submissionId}`
+    }
+    if (!targetId || !['approve', 'reject', 'delete'].includes(action)) {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 })
     }
 
@@ -33,11 +37,11 @@ export async function POST(request: NextRequest) {
       console.warn('Falling back to supabase client for required-doc actions:', serviceError)
     }
 
-    const isFallbackId = typeof id === 'string' && id.startsWith(FALLBACK_PREFIX)
+    const isFallbackId = targetId.startsWith(FALLBACK_PREFIX)
     if (isFallbackId) {
       const handled = await handleFallbackSubmissionAction({
         supabase: db,
-        submissionId: id.replace(FALLBACK_PREFIX, ''),
+        submissionId: targetId.replace(FALLBACK_PREFIX, ''),
         action: action as 'approve' | 'reject' | 'delete',
         reviewerId: userId,
         rejectionReason: typeof reason === 'string' ? reason : undefined,
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
     const { data: docRecord, error: docError } = await db
       .from('unified_document_system')
       .select('id, uploaded_by, sub_category, metadata')
-      .eq('id', id)
+      .eq('id', targetId)
       .single()
 
     if (docError || !docRecord) {
@@ -71,7 +75,7 @@ export async function POST(request: NextRequest) {
           approved_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', id)
+        .eq('id', targetId)
       if (error) {
         console.error('approve error:', error)
         return NextResponse.json({ error: 'Failed to approve' }, { status: 500 })
@@ -83,13 +87,13 @@ export async function POST(request: NextRequest) {
           status: 'rejected',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', id)
+        .eq('id', targetId)
       if (error) {
         console.error('reject error:', error)
         return NextResponse.json({ error: 'Failed to reject' }, { status: 500 })
       }
     } else if (action === 'delete') {
-      const { error } = await db.from('unified_document_system').delete().eq('id', id)
+      const { error } = await db.from('unified_document_system').delete().eq('id', targetId)
       if (error) {
         console.error('delete error:', error)
         return NextResponse.json({ error: 'Failed to delete' }, { status: 500 })

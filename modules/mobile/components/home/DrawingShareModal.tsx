@@ -229,8 +229,8 @@ export const DrawingShareModal: React.FC<DrawingShareModalProps> = ({
       <div className="share-modal-content" onClick={e => e.stopPropagation()}>
         <div className="share-modal-header">
           <h3 className="share-modal-title">도면 공유</h3>
-          <button className="share-modal-close" onClick={onClose}>
-            ✕
+          <button className="share-modal-close" onClick={onClose} aria-label="닫기">
+            닫기
           </button>
         </div>
 

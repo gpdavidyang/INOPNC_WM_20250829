@@ -4,7 +4,6 @@ import React, { useEffect, useState, ReactNode } from 'react'
 import { AppBar } from './AppBar'
 import { BottomNav } from './BottomNav'
 import { Drawer } from './Drawer'
-import { SearchOverlay } from './SearchOverlay'
 import { FontSizeProvider } from '@/contexts/FontSizeContext'
 import { TouchModeProvider } from '@/contexts/TouchModeContext'
 
@@ -15,7 +14,6 @@ interface MobileLayoutProps {
 
 export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
 
   useEffect(() => {
     // Clear any lingering scroll locks from prior overlays so the mobile shell can scroll
@@ -30,16 +28,8 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs })
     setIsDrawerOpen(true)
   }
 
-  const handleSearchClick = () => {
-    setIsSearchOpen(true)
-  }
-
   const handleDrawerClose = () => {
     setIsDrawerOpen(false)
-  }
-
-  const handleSearchClose = () => {
-    setIsSearchOpen(false)
   }
 
   const mainClassName = topTabs ? 'mobile-container has-top-tabs' : 'mobile-container'
@@ -49,15 +39,12 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs })
       <TouchModeProvider>
         <div className="mobile-root">
           {/* Top App Bar */}
-          <AppBar onMenuClick={handleMenuClick} onSearchClick={handleSearchClick} />
+          <AppBar onMenuClick={handleMenuClick} />
 
           {topTabs ? <div className="mobile-top-tabs">{topTabs}</div> : null}
 
           {/* Side Drawer */}
           <Drawer isOpen={isDrawerOpen} onClose={handleDrawerClose} />
-
-          {/* Search Overlay */}
-          <SearchOverlay isOpen={isSearchOpen} onClose={handleSearchClose} />
 
           {/* Main Content Area */}
           <main className={mainClassName}>{children}</main>

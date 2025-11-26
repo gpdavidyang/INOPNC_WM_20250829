@@ -28,7 +28,9 @@
 .modal-content {
   background: var(--card-bg, #ffffff);
   border-radius: 16px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   max-height: 90vh;
   max-width: 90vw;
   width: 100%;
@@ -59,7 +61,9 @@
 /* Dark Theme */
 [data-theme='dark'] .modal-content {
   background: var(--card-bg, #2a2a2a);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.3),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
 }
 
 [data-theme='dark'] .modal-backdrop {
@@ -86,32 +90,32 @@
 }
 
 .modal-close-button {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
+  border-radius: 999px;
+  border: 1px solid var(--border-color, #e0e0e0);
   background: transparent;
   color: var(--text-secondary, #666666);
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
   flex-shrink: 0;
 }
 
 .modal-close-button:hover {
   background: rgba(0, 0, 0, 0.05);
   color: var(--text-primary, #1a1a1a);
-  transform: rotate(90deg);
+}
+
+[data-theme='dark'] .modal-close-button {
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #e2e8f0;
 }
 
 [data-theme='dark'] .modal-close-button:hover {
   background: rgba(255, 255, 255, 0.1);
-}
-
-.modal-close-button:active {
-  transform: rotate(90deg) scale(0.95);
 }
 
 /* Modal Body */
@@ -147,27 +151,27 @@
     margin: 20px;
     border-radius: 12px;
   }
-  
+
   .modal-content-small,
   .modal-content-medium,
   .modal-content-large {
     max-width: 95vw;
   }
-  
+
   .modal-header {
     padding: 16px 20px 0 20px;
     padding-bottom: 12px;
     margin-bottom: 16px;
   }
-  
+
   .modal-title {
     font-size: 16px;
   }
-  
+
   .modal-body {
     padding: 0 20px 20px 20px;
   }
-  
+
   .modal-close-button {
     width: 36px;
     height: 36px;
@@ -184,7 +188,7 @@
   .modal-backdrop {
     animation: modalFadeIn 0.3s ease-out;
   }
-  
+
   .modal-content {
     animation: modalSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }

@@ -443,7 +443,11 @@ export default function RequiredManagerClient({
                       const r = await fetch('/api/admin/required-docs/actions', {
                         method: 'POST',
                         headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify({ action: 'approve', id: doc.id }),
+                        body: JSON.stringify({
+                          action: 'approve',
+                          id: doc.id,
+                          submissionId: doc.submission_id || null,
+                        }),
                       })
                       const j = await r.json().catch(() => ({}))
                       if (!r.ok || j?.success === false) throw new Error(j?.error || '승인 실패')
@@ -468,7 +472,11 @@ export default function RequiredManagerClient({
                       const r = await fetch('/api/admin/required-docs/actions', {
                         method: 'POST',
                         headers: { 'content-type': 'application/json' },
-                        body: JSON.stringify({ action: 'reject', id: doc.id }),
+                        body: JSON.stringify({
+                          action: 'reject',
+                          id: doc.id,
+                          submissionId: doc.submission_id || null,
+                        }),
                       })
                       const j = await r.json().catch(() => ({}))
                       if (!r.ok || j?.success === false) throw new Error(j?.error || '반려 실패')

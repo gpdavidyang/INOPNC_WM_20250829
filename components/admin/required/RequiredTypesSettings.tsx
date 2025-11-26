@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import DocumentRequirementsTable from '@/components/admin/DocumentRequirementsTable'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { generateEnglishNameFromCode } from '@/lib/documents/required-document-types'
 type DocumentType = {
   id: string
   code: string
@@ -26,7 +27,6 @@ type DocumentType = {
 type FormState = {
   code: string
   name_ko: string
-  name_en: string
   description: string
   instructions: string
   max_file_size_mb: number
@@ -39,7 +39,6 @@ const DEFAULT_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xls', '
 const DEFAULT_FORM: FormState = {
   code: '',
   name_ko: '',
-  name_en: '',
   description: '',
   instructions: '',
   max_file_size_mb: 10,
@@ -113,7 +112,6 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
     setForm({
       code: row.code || '',
       name_ko: row.name_ko || '',
-      name_en: row.name_en || '',
       description: row.description || '',
       instructions: row.instructions || '',
       max_file_size_mb: row.max_file_size
@@ -129,6 +127,24 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
+  const resolveEnglishName = useCallback(
+    (codeValue: string) => {
+      const derived = generateEnglishNameFromCode(codeValue)
+      if (!editing) return derived
+
+      const originalCode = (editing.code || '').trim()
+      const currentCode = codeValue.trim()
+      const existingName = (editing.name_en || '').trim()
+
+      if (existingName && originalCode === currentCode) {
+        return existingName
+      }
+
+      return derived
+    },
+    [editing]
+  )
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.code.trim() || !form.name_ko.trim()) {
@@ -141,10 +157,11 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
     }
     setSaving(true)
     try {
+      const autoNameEn = resolveEnglishName(form.code)
       const payload = {
         code: form.code.trim(),
         name_ko: form.name_ko.trim(),
-        name_en: form.name_en.trim() || null,
+        name_en: autoNameEn || null,
         description: form.description.trim() || null,
         instructions: form.instructions.trim() || null,
         file_types: DEFAULT_FILE_TYPES,
@@ -315,16 +332,6 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
                   />
                 </div>
                 <div>
-                  <Label htmlFor="name_en">이름(영문)</Label>
-                  <Input
-                    id="name_en"
-                    value={form.name_en}
-                    onChange={e => handleInput('name_en', e.target.value)}
-                    placeholder="선택 입력"
-                    className="h-10 text-sm"
-                  />
-                </div>
-                <div>
                   <Label htmlFor="sort_order">정렬 순서</Label>
                   <Input
                     id="sort_order"
@@ -344,6 +351,22 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
                     onChange={e => handleInput('max_file_size_mb', Number(e.target.value))}
                     className="h-10 text-sm"
                   />
+                </div>
+                <div>
+                  <Label htmlFor="is_active_toggle">활성 상태</Label>
+                  <div
+                    id="is_active_toggle"
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-[--neutral-200] bg-white px-3 text-sm text-gray-900"
+                  >
+                    <span className="text-muted-foreground">
+                      {form.is_active ? '사용' : '숨김'}
+                    </span>
+                    <Switch
+                      className="h-5 w-9"
+                      checked={form.is_active}
+                      onCheckedChange={checked => handleInput('is_active', checked)}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
@@ -367,18 +390,6 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
                     className="min-h-[72px] text-sm"
                   />
                 </div>
-              </div>
-              <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-sm sm:flex sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <p className="font-medium text-foreground">활성 상태</p>
-                  <p className="text-xs text-muted-foreground">
-                    비활성 시 모바일 화면에서 숨겨집니다.
-                  </p>
-                </div>
-                <Switch
-                  checked={form.is_active}
-                  onCheckedChange={checked => handleInput('is_active', checked)}
-                />
               </div>
             </form>
           </div>

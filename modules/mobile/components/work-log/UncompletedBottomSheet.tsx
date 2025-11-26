@@ -95,29 +95,14 @@ export const SimplifiedBottomSheet: React.FC<SimplifiedBottomSheetProps> = ({
                 </div>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300 pl-13">
-                임시저장 중인 작업일지가{' '}
-                <span className="font-semibold text-amber-600 dark:text-amber-400">
-                  {totalCount}개
-                </span>{' '}
-                남아 있습니다.
+                임시저장 {totalCount}건이 있습니다.
               </p>
             </div>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="px-3 py-1 text-sm font-semibold text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-gray-400 dark:text-gray-500"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              닫기
             </button>
           </div>
         </div>
@@ -204,11 +189,7 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
                 </h3>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                임시저장 중인 작업일지가{' '}
-                <span className="font-semibold text-amber-600 dark:text-amber-400">
-                  {totalCount}개
-                </span>{' '}
-                있습니다.
+                임시저장 {totalCount}건이 있습니다.
               </p>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 무시를 누르면 선택한 월의 알림이 오늘 하루 동안 표시되지 않습니다.
@@ -216,20 +197,9 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
             </div>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="px-3 py-1 text-sm font-semibold text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-gray-400 dark:text-gray-500"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+              닫기
             </button>
           </div>
         </div>

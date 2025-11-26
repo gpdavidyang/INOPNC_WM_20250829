@@ -88,8 +88,8 @@ export const MEMBER_TYPES = [
   { value: 'other', label: '기타' },
 ] as const
 
-// 공수 값 옵션 (0.5 단위)
-export const MANPOWER_VALUES = [0.5, 1, 1.5, 2, 2.5, 3] as const
+// 공수 값 옵션 (0.5 단위) - 0 공수 및 3.5 공수까지 지원
+export const MANPOWER_VALUES = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5] as const
 
 // ==================== v3 UI Data Models ====================
 

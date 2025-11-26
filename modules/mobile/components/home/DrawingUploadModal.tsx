@@ -154,8 +154,8 @@ export const DrawingUploadModal: React.FC<DrawingUploadModalProps> = ({
       <div className="modal-content drawing-upload-modal" onClick={e => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">새 도면 업로드</h3>
-          <button className="modal-close" onClick={onClose}>
-            ✕
+          <button className="modal-close" onClick={onClose} aria-label="닫기">
+            닫기
           </button>
         </div>
 

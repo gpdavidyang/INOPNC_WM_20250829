@@ -24,6 +24,7 @@ import '@/modules/mobile/styles/attendance.css'
 import '@/modules/mobile/styles/partner.css'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+const SECTION_PREVIEW_COUNT = 5
 
 const formatDateWithWeekday = (date: string) => {
   const formatted = formatDate(date)
@@ -141,6 +142,7 @@ export const WorkLogHomePage: React.FC = () => {
     draft: 10,
     approved: 10,
   })
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
 
   const [visibleUncompleted, setVisibleUncompleted] = useState(uncompletedByMonth)
   useEffect(() => {
@@ -476,6 +478,159 @@ export const WorkLogHomePage: React.FC = () => {
     }))
   }, [activeTab])
 
+  const toggleSectionCollapse = useCallback((key: string, current: boolean) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [key]: !current,
+    }))
+  }, [])
+
+  const renderWorkLogItems = (workLogs: WorkLog[]) => (
+    <div className="task-diary-list">
+      {workLogs.map(workLog => {
+        const main = [workLog.memberTypes?.[0], workLog.workProcesses?.[0]]
+          .filter(Boolean)
+          .join(' ')
+        const subtitle =
+          main ||
+          (workLog.workProcesses && workLog.workProcesses.length > 0
+            ? workLog.workProcesses.join(', ')
+            : '') ||
+          workLog.notes ||
+          '작업 내용 미입력'
+
+        const formattedDate = formatDateWithWeekday(workLog.date)
+        const hasLinkedMarkup = (workLog.attachments?.drawings || []).some(file => {
+          const meta =
+            file && typeof (file as any).metadata === 'object' ? (file as any).metadata : null
+          if (
+            meta &&
+            (typeof meta.markup_document_id === 'string' ||
+              typeof meta.linked_worklog_id === 'string')
+          ) {
+            return true
+          }
+          return Boolean(
+            file?.id &&
+              (file.id.startsWith('markup-') ||
+                file.id.startsWith('linked-') ||
+                file.id.startsWith('drawing-'))
+          )
+        })
+
+        const handleRowClick = () => {
+          if (readOnly) {
+            try {
+              const seed = encodeURIComponent(btoa(JSON.stringify(workLog)))
+              router.push(`/mobile/worklog/${workLog.id}?seed=${seed}`)
+            } catch {
+              router.push(`/mobile/worklog/${workLog.id}`)
+            }
+            return
+          }
+          handleViewWorkLog(workLog)
+        }
+
+        return (
+          <button
+            key={workLog.id}
+            type="button"
+            className="task-diary-list-item"
+            onClick={handleRowClick}
+          >
+            <div className="task-diary-info">
+              <div className="task-diary-site">
+                {(() => {
+                  const abbr = getPartnerAbbr(workLog.partnerCompanyName)
+                  return abbr ? `[${abbr}] ${workLog.siteName}` : workLog.siteName
+                })()}
+              </div>
+              <div className="task-diary-work">{subtitle}</div>
+            </div>
+            <div className="task-diary-right">
+              <span className={`status-badge ${workLog.status}`}>
+                {workLog.status === 'draft' ? '임시저장' : '작성완료'}
+              </span>
+              {hasLinkedMarkup && <span className="markup-badge">도면 연결</span>}
+              <span className="task-diary-date">{formattedDate}</span>
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const renderApprovedSections = (logs: WorkLog[]) => {
+    const sorted = [...logs].sort((a, b) => {
+      const da = new Date(a.date)
+      const db = new Date(b.date)
+      return db.getTime() - da.getTime()
+    })
+    const sectionsMap = new Map<
+      string,
+      {
+        key: string
+        label: string
+        logs: WorkLog[]
+      }
+    >()
+
+    sorted.forEach(log => {
+      const date = new Date(log.date)
+      const isValid = !Number.isNaN(date.getTime())
+      const month = isValid ? date.getMonth() + 1 : null
+      const year = isValid ? date.getFullYear() : null
+      const key = isValid ? `${year}-${String(month).padStart(2, '0')}` : 'invalid'
+      const label = isValid ? `${year}년 ${month}월` : '기간 미지정'
+
+      if (!sectionsMap.has(key)) {
+        sectionsMap.set(key, { key, label, logs: [] })
+      }
+      sectionsMap.get(key)!.logs.push(log)
+    })
+
+    const sections = Array.from(sectionsMap.values()).sort((a, b) => {
+      if (a.key === 'invalid') return 1
+      if (b.key === 'invalid') return -1
+      return a.key < b.key ? 1 : -1
+    })
+
+    return (
+      <div className="worklog-section-group">
+        {sections.map(section => {
+          const canToggle = section.logs.length > SECTION_PREVIEW_COUNT
+          const collapsed = collapsedSections[section.key] ?? true
+          const logsToShow =
+            canToggle && collapsed ? section.logs.slice(0, SECTION_PREVIEW_COUNT) : section.logs
+
+          return (
+            <div key={section.key} className="worklog-section">
+              <div className="worklog-section-header">
+                <div className="worklog-section-title">{section.label}</div>
+                {canToggle && (
+                  <button
+                    type="button"
+                    className="section-toggle"
+                    onClick={() => toggleSectionCollapse(section.key, collapsed)}
+                  >
+                    {collapsed ? '더보기' : '접기'}
+                  </button>
+                )}
+              </div>
+              {renderWorkLogItems(logsToShow)}
+              {canToggle && collapsed && (
+                <div className="worklog-section-hint">
+                  전체 {section.logs.length}건 중{' '}
+                  {Math.min(SECTION_PREVIEW_COUNT, section.logs.length)}건 표시
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   const renderWorkLogList = (logs: WorkLog[], tab: WorkLogTabStatus) => {
     if (loading) {
       return (
@@ -517,117 +672,31 @@ export const WorkLogHomePage: React.FC = () => {
       )
     }
 
+    if (tab === 'approved') {
+      return renderApprovedSections(logs)
+    }
+
     const visibleCount = visibleCounts[tab]
     const displayedLogs = logs.slice(0, visibleCount)
     const hasMore = logs.length > visibleCount
 
     return (
       <>
-        <div className="task-diary-list">
-          {displayedLogs.map(workLog => {
-            const main = [workLog.memberTypes?.[0], workLog.workProcesses?.[0]]
-              .filter(Boolean)
-              .join(' ')
-            const subtitle =
-              main ||
-              (workLog.workProcesses && workLog.workProcesses.length > 0
-                ? workLog.workProcesses.join(', ')
-                : '') ||
-              workLog.notes ||
-              '작업 내용 미입력'
-
-            const formattedDate = formatDateWithWeekday(workLog.date)
-            const hasLinkedMarkup =
-              (workLog.attachments?.drawings || []).some(file => {
-                const meta =
-                  file && typeof (file as any).metadata === 'object' ? (file as any).metadata : null
-                if (
-                  meta &&
-                  (typeof meta.markup_document_id === 'string' ||
-                    typeof meta.linked_worklog_id === 'string')
-                ) {
-                  return true
-                }
-                return Boolean(
-                  file?.id &&
-                    (file.id.startsWith('markup-') ||
-                      file.id.startsWith('linked-') ||
-                      file.id.startsWith('drawing-'))
-                )
-              })
-
-            const handleRowClick = () => {
-              if (readOnly) {
-                // 파트너/고객담당자: 페이지형 상세로 이동
-                try {
-                  const seed = encodeURIComponent(btoa(JSON.stringify(workLog)))
-                  router.push(`/mobile/worklog/${workLog.id}?seed=${seed}`)
-                } catch {
-                  router.push(`/mobile/worklog/${workLog.id}`)
-                }
-                return
-              }
-              // 그 외: 바텀시트 상세
-              handleViewWorkLog(workLog)
-            }
-
-            return (
-              <button
-                key={workLog.id}
-                type="button"
-                className="task-diary-list-item"
-                onClick={handleRowClick}
-              >
-                <div className="task-diary-info">
-                  <div className="task-diary-site">
-                    {(() => {
-                      const abbr = getPartnerAbbr(workLog.partnerCompanyName)
-                      return abbr ? `[${abbr}] ${workLog.siteName}` : workLog.siteName
-                    })()}
-                  </div>
-                  <div className="task-diary-work">{subtitle}</div>
-                </div>
-                <div className="task-diary-right">
-                  <span className={`status-badge ${workLog.status}`}>
-                    {workLog.status === 'draft' ? '임시저장' : '작성완료'}
-                  </span>
-                  {hasLinkedMarkup && <span className="markup-badge">도면 연결</span>}
-                  <span className="task-diary-date">{formattedDate}</span>
-                </div>
-              </button>
-            )
-          })}
-        </div>
-        {(hasMore || visibleCount > 10) && (
+        {renderWorkLogItems(displayedLogs)}
+        {hasMore && (
           <div className="more-button-container">
-            {visibleCount > 10 && (
-              <button
-                type="button"
-                className="view-all-link more-collapse"
-                onClick={() =>
-                  setVisibleCounts(prev => ({
-                    ...prev,
-                    [tab]: 10,
-                  }))
-                }
-              >
-                간단히
-              </button>
-            )}
-            {hasMore && (
-              <button
-                type="button"
-                className="more-btn"
-                onClick={() =>
-                  setVisibleCounts(prev => ({
-                    ...prev,
-                    [tab]: prev[tab] + 10,
-                  }))
-                }
-              >
-                더보기
-              </button>
-            )}
+            <button
+              type="button"
+              className="more-btn"
+              onClick={() =>
+                setVisibleCounts(prev => ({
+                  ...prev,
+                  [tab]: prev[tab] + 10,
+                }))
+              }
+            >
+              더보기
+            </button>
           </div>
         )}
       </>
@@ -678,7 +747,7 @@ export const WorkLogHomePage: React.FC = () => {
           :root {
             --brand: #1a254f;
             --num: #0068fe;
-            --bg: #f5f7fb;
+            --bg: #f6f9ff;
             --card: #ffffff;
             --text: #101828;
             --muted: #667085;
@@ -712,6 +781,53 @@ export const WorkLogHomePage: React.FC = () => {
             padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
           }
 
+          .worklog-section-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .worklog-section {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: var(--shadow);
+          }
+
+          .worklog-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+          }
+
+          .worklog-section-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+          }
+
+          .section-toggle {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a254f;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+          }
+
+          [data-theme='dark'] .section-toggle {
+            color: #cbd5f5;
+          }
+
+          .worklog-section-hint {
+            margin-top: 6px;
+            font-size: 12px;
+            color: var(--muted);
+          }
+
           /* 탭을 좌우 풀블리드로 확장 (컨텐츠 좌우 패딩 상쇄) */
           .worklog-body > .line-tabs {
             width: calc(100% + 32px);
@@ -729,11 +845,8 @@ export const WorkLogHomePage: React.FC = () => {
           /* Tabs now use global line-tabs/line-tab styles for full-width white bar */
 
           .worklog-search-section {
-            display: flex;
-            align-items: center;
-            gap: 12px;
             margin-top: 18px;
-            margin-bottom: 12px; /* tighter spacing above selects */
+            margin-bottom: 12px;
           }
           /* Hide inline labels to match left (spec) style */
           .filter-label {
@@ -776,30 +889,27 @@ export const WorkLogHomePage: React.FC = () => {
             margin-top: 0; /* separation handled by selects block */
           }
 
-          .worklog-search-section .search-input-wrapper {
-            position: relative;
-            flex: 1;
+          .worklog-search-field {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 0 18px;
-            height: 44px;
-            border-radius: 999px;
+            padding: 10px 14px;
+            border-radius: 12px;
             border: 1px solid var(--border);
-            background: var(--card);
-            box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+            background: #f9fafb;
+            box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.05);
           }
 
-          /* 전역 .search-icon(absolute) 규칙을 무력화하여 겹침 방지 */
-          .worklog-search-section .search-icon {
-            position: static !important;
-            color: var(--muted);
-            flex-shrink: 0;
-            transform: translateY(1px); /* 살짝 위로 보이던 정렬 보정 */
-            display: block; /* baseline 영향 제거로 완전 중앙 정렬 */
+          .worklog-search-field:focus-within {
+            border-color: #e5eaf3;
+            box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.05);
           }
 
-          .worklog-search-section .search-input {
+          .worklog-search-icon {
+            color: #64748b;
+          }
+
+          .worklog-search-input {
             flex: 1;
             border: none;
             background: transparent;
@@ -809,12 +919,22 @@ export const WorkLogHomePage: React.FC = () => {
             outline: none;
           }
 
-          .worklog-search-section .search-input::placeholder {
-            color: var(--muted);
+          .worklog-search-input:focus {
+            outline: none;
+          }
+          .worklog-search-input:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+            --tw-ring-offset-width: 0;
+            --tw-ring-color: transparent;
+          }
+
+          .worklog-search-input::placeholder {
+            color: rgba(100, 116, 139, 0.8);
             font-weight: 500;
           }
 
-          .worklog-search-section .clear-search {
+          .worklog-search-clear {
             width: 24px;
             height: 24px;
             display: inline-flex;
@@ -822,28 +942,11 @@ export const WorkLogHomePage: React.FC = () => {
             justify-content: center;
             border: none;
             background: rgba(148, 163, 184, 0.18);
-            color: var(--muted);
+            color: #475467;
             border-radius: 999px;
             cursor: pointer;
             font-size: 16px;
             line-height: 1;
-          }
-
-          .worklog-search-section .search-cancel {
-            background: none;
-            border: none;
-            color: var(--muted);
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            padding: 8px 12px;
-            transition: background 0.2s ease;
-            border-radius: 10px;
-          }
-
-          .worklog-search-section .search-cancel:hover {
-            background: rgba(153, 164, 190, 0.12);
-            color: var(--text);
           }
 
           .filter-row {
@@ -1054,10 +1157,24 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           /* Dark-specific shadow and control tweaks */
-          [data-theme='dark'] .worklog-search-section .search-input-wrapper {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+          [data-theme='dark'] .worklog-search-field {
+            background: rgba(15, 23, 42, 0.7);
+            border-color: #3b4765;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
           }
-          [data-theme='dark'] .worklog-search-section .clear-search {
+          [data-theme='dark'] .worklog-search-field:focus-within {
+            border-color: #3b4765;
+          }
+          [data-theme='dark'] .worklog-search-input {
+            color: #e2e8f0;
+          }
+          [data-theme='dark'] .worklog-search-input::placeholder {
+            color: rgba(148, 163, 184, 0.9);
+          }
+          [data-theme='dark'] .worklog-search-icon {
+            color: rgba(148, 163, 184, 0.9);
+          }
+          [data-theme='dark'] .worklog-search-clear {
             background: rgba(148, 163, 184, 0.28);
             color: #e2e8f0;
           }
@@ -1186,19 +1303,20 @@ export const WorkLogHomePage: React.FC = () => {
           )}
 
           <section className="worklog-search-section">
-            <div className="search-input-wrapper">
-              <SearchIcon className="search-icon" width={18} height={18} />
+            <div className="worklog-search-field">
+              <SearchIcon className="worklog-search-icon" width={18} height={18} />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
                 placeholder="작업일지 검색"
-                className="search-input"
+                className="worklog-search-input"
+                aria-label="작업일지 검색"
               />
               {searchQuery && (
                 <button
                   type="button"
-                  className="clear-search"
+                  className="worklog-search-clear"
                   onClick={() => setSearchQuery('')}
                   aria-label="검색어 지우기"
                 >
@@ -1206,9 +1324,6 @@ export const WorkLogHomePage: React.FC = () => {
                 </button>
               )}
             </div>
-            <button type="button" className="search-cancel" onClick={() => setSearchQuery('')}>
-              취소
-            </button>
           </section>
 
           {/* 작업일지 필터 (컨테이너 최소화: 바로 행 배치) */}

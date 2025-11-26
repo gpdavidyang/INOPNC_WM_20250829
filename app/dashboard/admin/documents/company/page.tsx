@@ -29,6 +29,51 @@ type Row = {
   description?: string
 }
 
+const MAX_COMPANY_DOC_SLUG_LENGTH = 64
+
+const slugifyDocTypeName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\s/]+/g, '_')
+    .replace(/[^a-z0-9_-]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, MAX_COMPANY_DOC_SLUG_LENGTH)
+
+const ensureSlugLength = (value: string): string => {
+  const trimmed = value.replace(/_+$/g, '')
+  if (trimmed.length >= 2) return trimmed.slice(0, MAX_COMPANY_DOC_SLUG_LENGTH)
+  if (!trimmed) return 'doc'
+  return (trimmed + 'xx').slice(0, 2)
+}
+
+const buildSlugCandidate = (base: string, suffix: number): string => {
+  const suffixText = suffix === 0 ? '' : `_${suffix}`
+  const maxBaseLength = Math.max(2, MAX_COMPANY_DOC_SLUG_LENGTH - suffixText.length)
+  const sanitizedBase = (base || 'doc').slice(0, maxBaseLength).replace(/_+$/g, '') || 'doc'
+  return ensureSlugLength(`${sanitizedBase}${suffixText}`)
+}
+
+const generateCompanyDocSlug = (label: string, usedSlugs: Iterable<string>): string => {
+  const used = new Set<string>()
+  Array.from(usedSlugs).forEach(slug => {
+    if (typeof slug === 'string') {
+      used.add(slug.toLowerCase())
+    }
+  })
+  const base = slugifyDocTypeName(label) || 'doc'
+  let suffix = 0
+  while (suffix < 10_000) {
+    const candidate = buildSlugCandidate(base, suffix)
+    if (!used.has(candidate)) return candidate
+    suffix += 1
+  }
+  return `doc_${Math.random().toString(36).slice(2, 8)}`
+}
+
 export default function AdminCompanyDocumentsPage() {
   const { toast } = useToast()
   const [docTypes, setDocTypes] = useState<(CompanyDocumentType & { documents?: Row[] })[]>([])
@@ -49,6 +94,10 @@ export default function AdminCompanyDocumentsPage() {
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({})
   const fileActionButtonClass =
     'inline-flex items-center justify-center min-w-[80px] px-3 py-1 text-[11px] font-medium rounded border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-blue-400 disabled:opacity-50'
+  const existingSlugs = useMemo(
+    () => docTypes.map(type => type.slug).filter(Boolean) as string[],
+    [docTypes]
+  )
 
   const loadDocTypes = useCallback(async (activeOnly = false, includeDocs = false) => {
     setTypesLoading(true)
@@ -248,6 +297,21 @@ export default function AdminCompanyDocumentsPage() {
 
   const { confirm } = useConfirm()
 
+  useEffect(() => {
+    if (!typeFormOpen || editingType) return
+    const trimmed = typeForm.name.trim()
+    if (!trimmed) {
+      if (typeForm.slug) {
+        setTypeForm(f => ({ ...f, slug: '' }))
+      }
+      return
+    }
+    const nextSlug = generateCompanyDocSlug(trimmed, existingSlugs)
+    if (nextSlug !== typeForm.slug) {
+      setTypeForm(f => ({ ...f, slug: nextSlug }))
+    }
+  }, [typeForm.name, typeForm.slug, typeFormOpen, editingType, existingSlugs])
+
   const onDelete = async (id: string) => {
     const ok = await confirm({
       title: '삭제',
@@ -279,8 +343,6 @@ export default function AdminCompanyDocumentsPage() {
         title="이노피앤씨 설정"
         description="사업자등록증/통장사본/NPC-1000/완료확인서 및 유형 관리"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '시스템' }, { label: '이노피앤씨 설정' }]}
-        showBackButton
-        backButtonHref="/dashboard/admin/system"
       />
       <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -299,13 +361,15 @@ export default function AdminCompanyDocumentsPage() {
           </button>
         </div>
         {msg && <div className="text-xs text-blue-600">{msg}</div>}
-        {typeFormOpen && !editingType && (
+        {typeFormOpen && (
           <section className="rounded-lg border bg-card p-4 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-semibold">새 회사 문서 유형</h2>
+                <h2 className="text-lg font-semibold">
+                  {editingType ? '회사 문서 유형 수정' : '새 회사 문서 유형'}
+                </h2>
                 <p className="text-sm text-muted-foreground">
-                  한글 이름과 문서유형 ID를 입력해 새로운 카테고리를 추가하세요.
+                  {editingType ? '필요한 항목만 수정하세요.' : '한글 이름을 입력하면 문서유형 ID가 자동으로 생성됩니다.'}
                 </p>
               </div>
               <button className="text-sm text-muted-foreground" onClick={closeTypeForm}>
@@ -319,14 +383,6 @@ export default function AdminCompanyDocumentsPage() {
                   className="border rounded px-2 py-1 text-sm"
                   value={typeForm.name}
                   onChange={e => setTypeForm(f => ({ ...f, name: e.target.value }))}
-                />
-              </label>
-              <label className="flex flex-col gap-1 text-sm">
-                <span>문서유형 ID (영문/숫자/하이픈)</span>
-                <input
-                  className="border rounded px-2 py-1 text-sm"
-                  value={typeForm.slug}
-                  onChange={e => setTypeForm(f => ({ ...f, slug: e.target.value }))}
                 />
               </label>
               <label className="flex flex-col gap-1 text-sm">
@@ -434,9 +490,6 @@ export default function AdminCompanyDocumentsPage() {
                           </span>
                         )}
                       </div>
-                      <div className="text-[11px] text-muted-foreground font-mono">
-                        ID: {type.slug}
-                      </div>
                       {type.description && (
                         <p className="text-xs text-muted-foreground">{type.description}</p>
                       )}
@@ -516,10 +569,6 @@ export default function AdminCompanyDocumentsPage() {
                         value={typeForm.name}
                         onChange={e => setTypeForm(f => ({ ...f, name: e.target.value }))}
                       />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                      <span>문서유형 ID (수정 불가)</span>
-                      <input className="border rounded px-2 py-1 text-xs bg-muted" value={typeForm.slug} disabled />
                     </label>
                     <label className="flex flex-col gap-1">
                       <span>설명</span>

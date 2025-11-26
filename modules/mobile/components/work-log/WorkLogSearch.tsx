@@ -322,6 +322,14 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
         style={{
           position: 'relative',
           width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          height: '48px',
+          borderRadius: '999px',
+          border: '1px solid var(--border, #e0e0e0)',
+          background: 'var(--surface, #f6f9ff)',
+          padding: '0 48px',
+          transition: 'border-color 0.2s ease',
         }}
       >
         <input
@@ -330,24 +338,15 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
           value={localValue}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
-          onFocus={e => {
-            e.currentTarget.style.border = '2px solid var(--num, #0068FE)'
-            e.currentTarget.style.padding = '0 47px'
-            handleInputFocus()
-          }}
-          onBlur={e => {
-            e.currentTarget.style.border = '1px solid var(--border, #e0e0e0)'
-            e.currentTarget.style.padding = '0 48px'
-          }}
+          onFocus={handleInputFocus}
           placeholder={placeholder}
           className="search-input"
           style={{
             width: '100%',
             height: '48px',
-            padding: '0 48px',
-            background: 'var(--card, #ffffff)',
-            border: '1px solid var(--border, #e0e0e0)',
-            borderRadius: '12px',
+            padding: '0',
+            background: 'transparent',
+            border: 'none',
             fontSize: '15px',
             fontWeight: '500',
             color: 'var(--text, #101828)',
@@ -390,7 +389,7 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
             onClick={handleClear}
             style={{
               position: 'absolute',
-              right: '16px',
+              right: '14px',
               top: '50%',
               transform: 'translateY(-50%)',
               width: '24px',
@@ -465,7 +464,7 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
                     : 'none',
                 transition: 'all 0.2s ease',
                 background:
-                  selectedSuggestionIndex === index ? 'var(--bg, #f5f7fb)' : 'transparent',
+                  selectedSuggestionIndex === index ? 'var(--bg, #F6F9FF)' : 'transparent',
                 color: 'var(--text, #101828)',
                 minHeight: '44px',
                 display: 'flex',
@@ -473,7 +472,7 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
               }}
               onMouseEnter={e => {
                 if (selectedSuggestionIndex !== index) {
-                  e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
+                  e.currentTarget.style.background = 'var(--bg, #F6F9FF)'
                 }
               }}
               onMouseLeave={e => {
@@ -576,7 +575,7 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
                         padding: '2px 8px',
                         fontSize: '12px',
                         fontWeight: '600',
-                        background: 'var(--bg, #f5f7fb)',
+                        background: 'var(--bg, #F6F9FF)',
                         color: 'var(--muted, #667085)',
                         borderRadius: '12px',
                         minWidth: '20px',

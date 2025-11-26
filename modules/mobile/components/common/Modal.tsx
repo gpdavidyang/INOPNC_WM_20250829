@@ -44,7 +44,7 @@ export const Modal: React.FC<ModalProps> = ({
     if (isOpen) {
       // 모달 열릴 때 body 스크롤 방지
       document.body.style.overflow = 'hidden'
-      
+
       // 첫 번째 포커스 가능한 요소에 포커스
       const focusableElements = contentRef.current?.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -82,7 +82,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div
         ref={contentRef}
         className={`modal-content modal-content-${size} ${isOpen ? 'modal-content-open' : ''}`}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
           <div className="modal-header">
@@ -93,21 +93,12 @@ export const Modal: React.FC<ModalProps> = ({
             )}
             {showCloseButton && (
               <button
+                type="button"
                 className="modal-close-button"
                 onClick={onClose}
                 aria-label="모달 닫기"
               >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                닫기
               </button>
             )}
           </div>

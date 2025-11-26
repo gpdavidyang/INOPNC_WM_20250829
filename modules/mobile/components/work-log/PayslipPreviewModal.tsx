@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, Download, FileText, Calendar, DollarSign, User, Building } from 'lucide-react'
+import { Download, FileText, Calendar, DollarSign, User, Building } from 'lucide-react'
 
 interface PayslipData {
   // 기본 정보
@@ -267,7 +267,7 @@ export default function PayslipPreviewModal({
             <span className="header-month">{month}</span>
           </div>
           <button className="close-btn" onClick={onClose} aria-label="닫기">
-            <X size={24} />
+            닫기
           </button>
         </div>
 

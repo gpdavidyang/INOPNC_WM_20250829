@@ -24,7 +24,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   filters,
   onFiltersChange,
   className,
-  showCompact = false
+  showCompact = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(!showCompact)
   const [localFilters, setLocalFilters] = useState<SearchFilter>(filters)
@@ -45,8 +45,8 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       dateRange: {
         ...localFilters.dateRange,
         start: field === 'start' ? date : localFilters.dateRange?.start || null,
-        end: field === 'end' ? date : localFilters.dateRange?.end || null
-      }
+        end: field === 'end' ? date : localFilters.dateRange?.end || null,
+      },
     }
     setLocalFilters(newFilters)
     onFiltersChange(newFilters)
@@ -55,7 +55,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   const handleStatusChange = (status: SearchFilter['status']) => {
     const newFilters = {
       ...localFilters,
-      status
+      status,
     }
     setLocalFilters(newFilters)
     onFiltersChange(newFilters)
@@ -64,7 +64,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   const handleAuthorChange = (author: string) => {
     const newFilters = {
       ...localFilters,
-      author
+      author,
     }
     setLocalFilters(newFilters)
     onFiltersChange(newFilters)
@@ -74,7 +74,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
     const clearedFilters: SearchFilter = {
       dateRange: { start: null, end: null },
       status: 'all',
-      author: ''
+      author: '',
     }
     setLocalFilters(clearedFilters)
     onFiltersChange(clearedFilters)
@@ -104,8 +104,8 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
             gap: '8px',
             padding: '8px 16px',
             borderRadius: '12px',
-            border: hasActiveFilters() 
-              ? '1px solid var(--brand, #1A254F)' 
+            border: hasActiveFilters()
+              ? '1px solid var(--brand, #1A254F)'
               : '1px solid var(--border, #e0e0e0)',
             background: hasActiveFilters()
               ? 'var(--brand-light, rgba(26, 37, 79, 0.05))'
@@ -119,12 +119,12 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           }}
           aria-label="필터 열기"
           aria-expanded={false}
-          onMouseEnter={(e) => {
+          onMouseEnter={e => {
             e.currentTarget.style.background = hasActiveFilters()
               ? 'var(--brand-light, rgba(26, 37, 79, 0.1))'
-              : 'var(--bg, #f5f7fb)'
+              : 'var(--bg, #F6F9FF)'
           }}
-          onMouseLeave={(e) => {
+          onMouseLeave={e => {
             e.currentTarget.style.background = hasActiveFilters()
               ? 'var(--brand-light, rgba(26, 37, 79, 0.05))'
               : 'var(--card, #ffffff)'
@@ -200,7 +200,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           <input
             type="date"
             value={formatDate(localFilters.dateRange?.start)}
-            onChange={(e) => handleDateRangeChange('start', e.target.value)}
+            onChange={e => handleDateRangeChange('start', e.target.value)}
             className="flex-1 px-3 py-2 text-sm border border-[var(--line)] rounded-lg bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent"
             placeholder="시작일"
             aria-label="시작일"
@@ -209,7 +209,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
           <input
             type="date"
             value={formatDate(localFilters.dateRange?.end)}
-            onChange={(e) => handleDateRangeChange('end', e.target.value)}
+            onChange={e => handleDateRangeChange('end', e.target.value)}
             className="flex-1 px-3 py-2 text-sm border border-[var(--line)] rounded-lg bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent"
             placeholder="종료일"
             aria-label="종료일"
@@ -225,8 +225,8 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
             { value: 'all', label: '전체' },
             { value: 'draft', label: '임시저장' },
             { value: 'approved', label: '승인' },
-            { value: 'rejected', label: '반려' }
-          ].map((option) => (
+            { value: 'rejected', label: '반려' },
+          ].map(option => (
             <button
               key={option.value}
               onClick={() => handleStatusChange(option.value as SearchFilter['status'])}
@@ -254,7 +254,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
         <input
           type="text"
           value={localFilters.author || ''}
-          onChange={(e) => handleAuthorChange(e.target.value)}
+          onChange={e => handleAuthorChange(e.target.value)}
           placeholder="작성자 이름 입력"
           className="w-full px-3 py-2 text-sm border border-[var(--line)] rounded-lg bg-[var(--card)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)] focus:border-transparent"
           aria-label="작성자 검색"
@@ -277,7 +277,12 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
             )}
             {localFilters.status && localFilters.status !== 'all' && (
               <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-[var(--bg-secondary)] rounded-full">
-                상태: {localFilters.status === 'draft' ? '임시저장' : localFilters.status === 'approved' ? '승인' : '반려'}
+                상태:{' '}
+                {localFilters.status === 'draft'
+                  ? '임시저장'
+                  : localFilters.status === 'approved'
+                    ? '승인'
+                    : '반려'}
               </span>
             )}
             {localFilters.author && (

@@ -27,9 +27,14 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
   className = '',
   required = false,
 }) => {
+  const [isMounted, setIsMounted] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     const fetchOrganizations = async () => {
@@ -68,6 +73,15 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
 
     fetchOrganizations()
   }, [])
+
+  if (!isMounted) {
+    return (
+      <div className={`form-group department-select-container ${className}`}>
+        <label className="form-label">소속 {required && <span className="required">*</span>}</label>
+        <div className="form-select bg-gray-100 text-gray-400">소속 선택</div>
+      </div>
+    )
+  }
 
   return (
     <div className={`form-group department-select-container ${className}`}>

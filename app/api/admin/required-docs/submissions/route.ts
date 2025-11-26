@@ -146,6 +146,7 @@ export async function GET(request: NextRequest) {
           role: doc.uploader?.role || 'worker',
         },
         site: doc.site || null,
+        submission_id: metadata?.submission_id || null,
         _key: uniqueKey,
         is_placeholder: false,
       }
@@ -280,6 +281,7 @@ export async function GET(request: NextRequest) {
             role: profile?.role || 'worker',
           },
           site: null,
+          submission_id: sub?.id || null,
           _key: key,
           is_placeholder: !document?.file_url,
         })

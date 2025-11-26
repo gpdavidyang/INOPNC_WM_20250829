@@ -491,7 +491,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                   onClick={() => setShowChooser(false)}
                   aria-label="닫기"
                 >
-                  ×
+                  닫기
                 </button>
               </div>
               <div className="diary-viewer-body" style={{ gridTemplateColumns: '1fr' }}>

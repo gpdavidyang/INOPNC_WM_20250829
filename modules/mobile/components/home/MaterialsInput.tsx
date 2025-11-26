@@ -177,7 +177,9 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
                 }}
               >
                 <CustomSelectTrigger className="form-select">
-                  <CustomSelectValue placeholder="자재 선택" />
+                  <CustomSelectValue asChild>
+                    <span>{matchedOption ? matchedOption.name : '자재 선택'}</span>
+                  </CustomSelectValue>
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   {optionsLoading ? (

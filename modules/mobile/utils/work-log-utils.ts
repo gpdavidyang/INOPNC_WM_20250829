@@ -155,7 +155,7 @@ export const getStatusColor = (status: WorkLogStatus): string => {
     case 'approved':
       return 'bg-[rgba(20,184,166,0.15)] text-[#14B8A6]'
     default:
-      return 'bg-[#f5f7fb] text-[#667085]'
+      return 'bg-[#F6F9FF] text-[#667085]'
   }
 }
 

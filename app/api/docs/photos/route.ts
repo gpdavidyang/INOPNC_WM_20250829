@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -96,7 +97,13 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
-    const supabase = createClient()
+    let supabase
+    try {
+      supabase = createServiceClient()
+    } catch (error) {
+      console.warn('[docs/photos] Service key missing, falling back to user session client')
+      supabase = createClient()
+    }
 
     const form = await request.formData()
     const file = form.get('file') as File
@@ -126,15 +133,17 @@ export async function POST(request: NextRequest) {
 
     const ext = file.name.split('.').pop() || 'jpg'
     const path = `photos/${siteId}/${category}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const bucket = 'documents'
     const { data: up, error: upErr } = await supabase.storage
-      .from('documents')
+      .from(bucket)
       .upload(path, file, { contentType: file.type, duplex: 'half' })
     if (upErr)
       return NextResponse.json(
         { success: false, error: upErr.message || 'Upload failed' },
         { status: 500 }
       )
-    const { data: pub } = supabase.storage.from('documents').getPublicUrl(up.path)
+    const storagePath = up.path
+    const { data: pub } = supabase.storage.from(bucket).getPublicUrl(storagePath)
 
     const { data: row, error: dbErr } = await supabase
       .from('documents')
@@ -145,7 +154,9 @@ export async function POST(request: NextRequest) {
         file_size: file.size,
         mime_type: file.type,
         document_type: 'photo',
-        folder_path: up.path,
+        folder_path: storagePath,
+        storage_bucket: bucket,
+        storage_path: storagePath,
         owner_id: auth.userId,
         site_id: siteId,
         is_public: false,

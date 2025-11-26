@@ -321,6 +321,20 @@
   caret-color: transparent !important;
 }
 
+.cal-cell.cal-cell--clickable {
+  cursor: pointer;
+}
+
+.cal-cell.cal-cell--clickable:hover {
+  border-color: #31a3fa;
+  background: rgba(49, 163, 250, 0.08) !important;
+}
+
+.cal-cell.cal-cell--clickable:focus-visible {
+  outline: 2px solid #31a3fa;
+  outline-offset: 2px;
+}
+
 /* Inner content should not capture hit testing to avoid transient insertion caret */
 .cal-cell .date,
 .cal-cell .site-name,
@@ -653,4 +667,302 @@ html.dark .recent-salary-item .t-cap.text-muted-foreground.value {
 
 [data-theme='dark'] .pay-preview .preview-zoomgroup button {
   color: #e9eef5;
+}
+
+.attendance-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.attendance-detail-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(229, 234, 243, 0.8);
+}
+
+.detail-date {
+  font-size: 14px;
+  color: #667085;
+  margin-bottom: 4px;
+}
+
+.detail-site {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a254f;
+  margin-bottom: 4px;
+}
+
+.detail-address {
+  font-size: 13px;
+  color: #98a2b3;
+}
+
+.detail-mandays {
+  text-align: right;
+  min-width: 90px;
+}
+
+.detail-mandays span {
+  display: block;
+  font-size: 13px;
+  color: #98a2b3;
+}
+
+.detail-mandays strong {
+  font-size: 22px;
+  color: #1a254f;
+}
+
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-section-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2a44;
+}
+
+.detail-empty {
+  font-size: 14px;
+  color: #98a2b3;
+}
+
+.team-list,
+.worklog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.team-item,
+.worklog-item {
+  border: 1px solid rgba(229, 234, 243, 0.8);
+  border-radius: 14px;
+  padding: 12px;
+  background: #f9fafb;
+}
+
+.team-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a254f;
+}
+
+.team-hours {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.worklog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.worklog-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a254f;
+}
+
+.worklog-status {
+  font-size: 12px;
+  color: #63b3ed;
+}
+
+.worklog-link {
+  border: none;
+  background: none;
+  color: #31a3fa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.worklog-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.worklog-tag {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(49, 163, 250, 0.1);
+  color: #2563eb;
+}
+
+.worklog-materials {
+  margin-top: 10px;
+}
+
+.worklog-material-label {
+  font-size: 12px;
+  color: #98a2b3;
+}
+
+.worklog-material-text {
+  font-size: 13px;
+  color: #1f2a44;
+}
+
+.worklog-notes {
+  font-size: 13px;
+  color: #475467;
+  margin-top: 8px;
+}
+
+[data-theme='dark'] .attendance-detail-header {
+  border-color: rgba(99, 164, 190, 0.35);
+}
+
+[data-theme='dark'] .detail-date {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .detail-site {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .detail-address {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .detail-mandays strong {
+  color: #f8fafc;
+}
+
+[data-theme='dark'] .detail-section-title {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .detail-empty {
+  color: #94a3b8;
+}
+
+[data-theme='dark'] .team-item,
+[data-theme='dark'] .worklog-item {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(99, 164, 190, 0.25);
+}
+
+[data-theme='dark'] .team-name,
+[data-theme='dark'] .worklog-title {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .team-hours,
+[data-theme='dark'] .worklog-material-text,
+[data-theme='dark'] .worklog-notes {
+  color: #cbd5f5;
+}
+[data-theme='dark'] .navigation-bar {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(99, 164, 190, 0.35);
+}
+[data-theme='dark'] .payslip-frame {
+  background: rgba(15, 23, 42, 0.95);
+}
+.payslip-mobile-container {
+  min-height: 100vh;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+.payslip-mobile-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid rgba(229, 234, 243, 0.8);
+}
+
+.payslip-back-btn {
+  border: 1px solid rgba(26, 37, 79, 0.15);
+  background: transparent;
+  color: #1a254f;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.payslip-back-btn:hover {
+  background: rgba(26, 37, 79, 0.05);
+}
+
+.payslip-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.payslip-period {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.payslip-mobile-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a254f;
+  margin: 0;
+}
+
+.payslip-mobile-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.payslip-mobile-loading,
+.payslip-mobile-error {
+  padding: 32px;
+  text-align: center;
+  color: #667085;
+}
+
+.payslip-mobile-error {
+  color: #dc2626;
+}
+
+.payslip-mobile-html {
+  padding: 0;
+}
+
+[data-theme='dark'] .payslip-mobile-container {
+  background: #0f172a;
+}
+
+[data-theme='dark'] .payslip-mobile-toolbar {
+  border-color: rgba(99, 164, 190, 0.35);
+}
+
+[data-theme='dark'] .payslip-mobile-title {
+  color: #e2e8f0;
+}
+
+[data-theme='dark'] .payslip-back-btn {
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+[data-theme='dark'] .payslip-mobile-html {
+  background: #0f172a;
 }

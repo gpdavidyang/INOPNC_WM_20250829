@@ -95,7 +95,7 @@ export const InDeviceFrame: Story = {
       <style>{`
         /* Scope override to this story only */
         #device-frame .phone-shell { position: relative; width: 390px; height: 844px; border-radius: 24px; overflow: hidden; border: 1px solid #e5e7eb; background: #fff; }
-        #device-frame .phone-shell .scroll { height: 760px; margin: 16px; border-radius: 12px; background: #f5f7fb; border: 1px dashed #d1d5db; }
+        #device-frame .phone-shell .scroll { height: 760px; margin: 16px; border-radius: 12px; background: #F6F9FF; border: 1px dashed #d1d5db; }
         #device-frame .phone-shell nav.fixed { position: absolute !important; bottom: 0; left: 0; right: 0; }
       `}</style>
       <div className="phone-shell">

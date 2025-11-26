@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +12,13 @@ export async function GET(request: NextRequest) {
       return authResult
     }
 
-    const serviceClient = createServiceRoleClient()
+    let serviceClient
+    try {
+      serviceClient = createServiceRoleClient()
+    } catch (error) {
+      console.warn('[mobile/work-records] service role unavailable, falling back to server client')
+      serviceClient = createClient()
+    }
     const { searchParams } = new URL(request.url)
 
     const startDate = searchParams.get('start_date')

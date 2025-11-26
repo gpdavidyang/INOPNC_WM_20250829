@@ -618,7 +618,7 @@ export interface Notification {
 }
 
 // 공지사항 우선순위
-export type AnnouncementPriority = 'low' | 'normal' | 'high' | 'urgent'
+export type AnnouncementPriority = 'low' | 'medium' | 'high' | 'critical' | 'urgent'
 
 // 공지사항
 export interface Announcement {

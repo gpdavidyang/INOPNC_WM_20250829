@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useRef, useCallback } from 'react'
+import '@/modules/mobile/styles/bottom-sheet.css'
 
 interface BottomSheetProps {
   isOpen: boolean
@@ -36,38 +37,44 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   )
 
   // Handle swipe gestures
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    if (!swipeable) return
-    startY.current = e.touches[0].clientY
-    isDragging.current = true
-    if (sheetRef.current) {
-      sheetRef.current.classList.add('swiping')
-    }
-  }, [swipeable])
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (!swipeable) return
+      startY.current = e.touches[0].clientY
+      isDragging.current = true
+      if (sheetRef.current) {
+        sheetRef.current.classList.add('swiping')
+      }
+    },
+    [swipeable]
+  )
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!swipeable || !isDragging.current) return
-    
-    currentY.current = e.touches[0].clientY
-    const deltaY = currentY.current - startY.current
-    
-    if (deltaY > 0 && sheetRef.current) {
-      // Only allow downward swipe
-      const transform = `translateY(${deltaY}px)`
-      sheetRef.current.style.transform = transform
-    }
-  }, [swipeable])
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!swipeable || !isDragging.current) return
+
+      currentY.current = e.touches[0].clientY
+      const deltaY = currentY.current - startY.current
+
+      if (deltaY > 0 && sheetRef.current) {
+        // Only allow downward swipe
+        const transform = `translateY(${deltaY}px)`
+        sheetRef.current.style.transform = transform
+      }
+    },
+    [swipeable]
+  )
 
   const handleTouchEnd = useCallback(() => {
     if (!swipeable || !isDragging.current) return
-    
+
     const deltaY = currentY.current - startY.current
     isDragging.current = false
-    
+
     if (sheetRef.current) {
       sheetRef.current.classList.remove('swiping')
       sheetRef.current.style.transform = ''
-      
+
       // Close if swiped down more than 100px
       if (deltaY > 100) {
         onClose()
@@ -117,12 +124,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         aria-modal="true"
         aria-labelledby="bottom-sheet-title"
       >
-        {swipeable && (
-          <div className="bottom-sheet-handle" onClick={onClose} />
-        )}
-        <div className="bottom-sheet-content">
-          {children}
-        </div>
+        {swipeable && <div className="bottom-sheet-handle" onClick={onClose} />}
+        <div className="bottom-sheet-content">{children}</div>
       </div>
     </>
   )

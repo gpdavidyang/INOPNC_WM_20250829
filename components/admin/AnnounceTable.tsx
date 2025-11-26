@@ -28,10 +28,12 @@ export default function AnnounceTable({ announcements }: { announcements: any[] 
     (
       ({
         low: '낮음',
-        normal: '보통',
+        medium: '보통',
+        medium: '보통',
         high: '높음',
         critical: '최우선',
         urgent: '긴급',
+        normal: '보통',
       }) as Record<string, string>
     )[p] || p
 

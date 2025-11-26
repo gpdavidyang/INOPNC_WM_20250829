@@ -19,7 +19,7 @@ type AnnouncementRecord = {
   id: string
   title: string
   content: string
-  priority: 'low' | 'normal' | 'high' | 'critical' | 'urgent'
+  priority: 'low' | 'medium' | 'high' | 'critical' | 'urgent'
   target_sites: string[] | null
   target_roles: string[] | null
   is_active?: boolean | null
@@ -39,7 +39,7 @@ const roleOptions = [
   { value: 'system_admin', label: '시스템관리자' },
 ]
 
-const DEFAULT_PRIORITY: AnnouncementRecord['priority'] = 'normal'
+const DEFAULT_PRIORITY: AnnouncementRecord['priority'] = 'medium'
 
 export default function AnnouncementForm({
   mode,
@@ -102,7 +102,7 @@ export default function AnnouncementForm({
   const priorityItems = useMemo(
     () => [
       { value: 'low', label: '낮음' },
-      { value: 'normal', label: '보통' },
+      { value: 'medium', label: '보통' },
       { value: 'high', label: '높음' },
       { value: 'critical', label: '최우선' },
       { value: 'urgent', label: '긴급' },

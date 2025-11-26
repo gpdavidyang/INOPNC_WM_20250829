@@ -93,7 +93,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         <div className="upload-header">
           <h3>{documentTitle} 파일 업로드</h3>
           <button className="upload-close-btn" onClick={handleCloseUpload} aria-label="업로드 닫기">
-            ✕
+            닫기
           </button>
         </div>
 
@@ -294,19 +294,19 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         .upload-close-btn {
-          background: none;
-          border: none;
-          font-size: 20px;
-          color: var(--text-secondary, #666666);
+          background: transparent;
+          border: 1px solid rgba(148, 163, 184, 0.35);
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary, #1a1a1a);
           cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
+          padding: 6px 14px;
+          border-radius: 999px;
           transition: all 0.2s ease;
         }
 
         .upload-close-btn:hover {
           background: var(--hover-bg, #f1f5f9);
-          color: var(--text-primary, #1a1a1a);
         }
 
         .drag-drop-zone {

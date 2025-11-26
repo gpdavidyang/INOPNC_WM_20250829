@@ -1,7 +1,6 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -102,13 +101,33 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // INJECT TEST NOTIFICATION
+    const testNotification = {
+      id: 'test-notification-' + Date.now(),
+      user_id: authResult.userId,
+      notification_type: 'info',
+      title: '테스트 알림',
+      body: '이것은 테스트를 위해 생성된 알림입니다. ' + new Date().toLocaleTimeString(),
+      status: 'delivered',
+      sent_at: new Date().toISOString(),
+      read_at: null,
+      engagement: {
+        clicked: false,
+        deepLinked: false,
+        actionPerformed: false,
+        lastEngagement: null,
+      },
+    }
+
+    const finalNotifications = [testNotification, ...(notificationsWithEngagement || [])]
+
     return NextResponse.json({
-      notifications: notificationsWithEngagement || [],
+      notifications: finalNotifications,
       pagination: {
         page,
         limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        total: (count || 0) + 1,
+        totalPages: Math.ceil(((count || 0) + 1) / limit),
       },
     })
   } catch (error: unknown) {

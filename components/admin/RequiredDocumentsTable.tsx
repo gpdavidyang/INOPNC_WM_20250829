@@ -81,7 +81,7 @@ export default function RequiredDocumentsTable({ docs, onOpen, onApprove, onReje
           header: '동작',
           sortable: false,
           render: (d: any) => {
-            const actionable = !d?.is_placeholder || !!d?.document_id
+            const actionable = Boolean(d?.file_url) && (!d?.is_placeholder || !!d?.document_id)
             const fileRecord = {
               file_url: d?.file_url,
               storage_bucket: d?.storage_bucket || d?.document?.storage_bucket || undefined,

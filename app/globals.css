@@ -36,7 +36,7 @@
   --stat-blue-border: #dbeafe;
 
   /* Light theme colors */
-  --bg: #ffffff;
+  --bg: #f6f9ff;
   --card: #ffffff;
   --border: #e5e7eb;
   --text: #1f2937;
@@ -758,7 +758,8 @@ body.role-customer-manager {
   }
 
   body {
-    @apply bg-white text-toss-gray-900;
+    @apply text-toss-gray-900;
+    background-color: var(--bg, #f6f9ff);
     font-family:
       var(--font-noto-sans-kr),
       system-ui,

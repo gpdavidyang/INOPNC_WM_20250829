@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { generateEnglishNameFromCode } from '@/lib/documents/required-document-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -85,9 +86,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       updated_at: new Date().toISOString(),
     }
 
-    if (code !== undefined) updateData.code = code
-    if (name_ko !== undefined) updateData.name_ko = name_ko
-    if (name_en !== undefined) updateData.name_en = name_en
+    const normalizedCode = typeof code === 'string' ? code.trim() : undefined
+    const normalizedNameKo = typeof name_ko === 'string' ? name_ko.trim() : undefined
+    const normalizedNameEn = typeof name_en === 'string' ? name_en.trim() : undefined
+
+    if (normalizedCode !== undefined) updateData.code = normalizedCode
+    if (normalizedNameKo !== undefined) updateData.name_ko = normalizedNameKo
+    if (normalizedNameEn !== undefined) {
+      updateData.name_en = normalizedNameEn || null
+    } else if (normalizedCode !== undefined) {
+      const autoNameEn = generateEnglishNameFromCode(normalizedCode)
+      updateData.name_en = autoNameEn || null
+    }
     if (description !== undefined) updateData.description = description
     if (instructions !== undefined) updateData.instructions = instructions
     if (file_types !== undefined) updateData.file_types = file_types

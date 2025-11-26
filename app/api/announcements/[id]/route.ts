@@ -21,7 +21,7 @@ async function loadAnnouncement(supabase: ReturnType<typeof createClient>, id: s
   return data
 }
 
-const allowedPriorities = new Set(['low', 'normal', 'high', 'critical', 'urgent'])
+const allowedPriorities = new Set(['low', 'medium', 'high', 'critical', 'urgent'])
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -57,7 +57,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       if (profile.role === 'site_manager') {
         updateData.target_sites = profile.site_id ? [profile.site_id] : nextSites
       } else {
-        updateData.target_sites = nextSites
+        updateData.target_sites = nextSites.length ? nextSites : null
       }
     }
     if (body.targetRoles !== undefined || body.target_roles !== undefined) {

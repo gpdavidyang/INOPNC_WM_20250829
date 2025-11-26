@@ -1,13 +1,13 @@
 'use client'
 
 import React, { useEffect, useMemo, useState, useCallback } from 'react'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { format, addMonths } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import clsx from 'clsx'
 import '@/modules/mobile/styles/attendance.css'
+import { useRouter } from 'next/navigation'
 
 type MonthItem = {
   year: number
@@ -18,27 +18,14 @@ type MonthItem = {
 }
 
 function useOpenPayslip() {
-  return useCallback(async (userId: string, y: number, m: number) => {
-    const href = `/payslip/${userId}/${y}/${m}`
-    const isStandalone =
-      typeof window !== 'undefined' &&
-      (window.matchMedia?.('(display-mode: standalone)').matches ||
-        (navigator as any)?.standalone === true)
-    if (isStandalone) {
-      window.location.assign(href)
-      return
-    }
-    try {
-      await openFileRecordInNewTab({
-        file_url: href,
-        file_name: `payslip-${y}-${String(m).padStart(2, '0')}.html`,
-        title: `급여명세서 ${y}-${m}`,
-      })
-    } catch (error) {
-      console.error('Failed to open payslip', error)
-      window.open(href, '_blank', 'noopener,noreferrer')
-    }
-  }, [])
+  const router = useRouter()
+  return useCallback(
+    (year: number, month: number) => {
+      const paddedMonth = String(month).padStart(2, '0')
+      router.push(`/mobile/payslip/${year}/${paddedMonth}`)
+    },
+    [router]
+  )
 }
 
 export default function SalaryHistoryPage() {
@@ -140,19 +127,7 @@ function SalaryHistoryContent() {
                     <div className="t-body font-semibold">₩{m.netPay.toLocaleString()}</div>
                     <button
                       className="btn btn--outline"
-                      onClick={() => {
-                        // userId는 서버에서 결정되므로 dummy를 사용하지 않고 현재 URL에서 추출 불가 → /api/auth/me로 보정
-                        // 단, payslip 라우트는 본인일 때 workerId 생략 불가하므로, openPayslip에 userId를 전달해야 함
-                        // 따라서 아래에서 /api/auth/me 호출로 userId 획득
-                        ;(async () => {
-                          const me = await fetch('/api/auth/me', { cache: 'no-store' })
-                            .then(r => r.json())
-                            .catch(() => null)
-                          const uid = me?.user?.id || me?.profile?.id
-                          if (!uid) return
-                          openPayslip(uid, m.year, m.month)
-                        })()
-                      }}
+                      onClick={() => openPayslip(m.year, m.month)}
                     >
                       보기
                     </button>

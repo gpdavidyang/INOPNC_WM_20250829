@@ -71,7 +71,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
         </div>
         {showClose && (
           <button className="notification-close" onClick={handleClose} aria-label="닫기">
-            ×
+            닫기
           </button>
         )}
       </div>
@@ -158,18 +158,17 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({
 
         .notification-close {
           background: none;
-          border: none;
-          font-size: 20px;
+          border: 1px solid var(--border-color, #e0e0e0);
+          font-size: 13px;
           color: var(--text-secondary, #666666);
           cursor: pointer;
-          padding: 0;
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 4px;
+          padding: 4px 12px;
+          border-radius: 999px;
           flex-shrink: 0;
+          font-weight: 600;
+          transition:
+            background 0.2s ease,
+            color 0.2s ease;
         }
 
         .notification-close:hover {

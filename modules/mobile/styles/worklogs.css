@@ -588,21 +588,25 @@
 }
 
 .diary-viewer-close {
-  border: none;
-  background: rgba(148, 163, 184, 0.2);
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: transparent;
   color: #475569;
-  width: 34px;
-  height: 34px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+  padding: 4px 14px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .diary-viewer-close:hover {
-  background: rgba(148, 163, 184, 0.35);
+  background: rgba(148, 163, 184, 0.15);
+  color: #1a254f;
 }
 
 .diary-viewer-body {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { generateEnglishNameFromCode } from '@/lib/documents/required-document-types'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,18 +115,28 @@ export async function POST(request: NextRequest) {
       site_customizations,
     } = body
 
-    if (!code || !name_ko) {
+    const trimmedCode = typeof code === 'string' ? code.trim() : ''
+    const trimmedNameKo = typeof name_ko === 'string' ? name_ko.trim() : ''
+    const trimmedNameEn = typeof name_en === 'string' ? name_en.trim() : ''
+    const trimmedDescription =
+      typeof description === 'string' ? description.trim() || null : description || null
+    const trimmedInstructions =
+      typeof instructions === 'string' ? instructions.trim() || null : instructions || null
+
+    if (!trimmedCode || !trimmedNameKo) {
       return NextResponse.json({ error: 'Code and Korean name are required' }, { status: 400 })
     }
+
+    const autoNameEn = trimmedNameEn || generateEnglishNameFromCode(trimmedCode)
 
     const { data: newDocType, error: insertError } = await supabase
       .from('required_document_types')
       .insert({
-        code,
-        name_ko,
-        name_en,
-        description,
-        instructions,
+        code: trimmedCode,
+        name_ko: trimmedNameKo,
+        name_en: autoNameEn || null,
+        description: trimmedDescription,
+        instructions: trimmedInstructions,
         file_types: file_types || ['pdf', 'jpg', 'jpeg', 'png'],
         max_file_size: max_file_size || 10485760,
         sort_order: sort_order || 0,

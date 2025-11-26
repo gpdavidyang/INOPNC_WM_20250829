@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { Card, CardContent, Stack, Row } from '@/modules/shared/ui'
 import { createClient } from '@/lib/supabase/client'
+import { BottomSheet } from '@/modules/mobile/components/ui/BottomSheet'
+import { WorkLogService } from '@/modules/mobile/services/work-log.service'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -32,7 +33,8 @@ import {
 import { ko } from 'date-fns/locale'
 // charts removed – recharts import not needed
 import clsx from 'clsx'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react'
 import '@/modules/mobile/styles/attendance.css'
 
 interface AttendanceRecord {
@@ -48,6 +50,9 @@ interface AttendanceRecord {
   site_id: string | null
   siteId: string | null
   siteName: string
+  siteAddress?: string | null
+  workerName?: string | null
+  notes?: string | null
   raw?: Record<string, unknown>
 }
 
@@ -73,9 +78,34 @@ interface CalendarDaySummary {
   totalHours: number
   totalManDays: number
   sites: string[]
+  hasRecords: boolean
+}
+
+const extractWorkProcesses = (log: any): string[] => {
+  if (Array.isArray(log?.workProcesses)) return log.workProcesses
+  const workContent = log?.work_content
+  if (workContent) {
+    if (Array.isArray(workContent.workProcesses)) return workContent.workProcesses
+    if (Array.isArray(workContent.memberTypes)) return workContent.memberTypes
+  }
+  return []
+}
+
+const extractMaterials = (log: any): any[] => {
+  if (Array.isArray(log?.materials)) return log.materials
+  if (Array.isArray(log?.material_usage)) return log.material_usage
+  return []
 }
 
 // MonthlySalaryApi interface removed with summary section
+
+const formatManDays = (value?: number | null) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '0'
+  const hasFraction = Math.abs(value % 1) > 0
+  return hasFraction
+    ? value.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+    : value.toLocaleString()
+}
 
 export const AttendancePage: React.FC = () => {
   return (
@@ -87,6 +117,7 @@ export const AttendancePage: React.FC = () => {
 
 const AttendanceContent: React.FC = () => {
   const { profile, user } = useUnifiedAuth()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'work' | 'salary'>('work')
 
   // Filters & UI states
@@ -111,6 +142,12 @@ const AttendanceContent: React.FC = () => {
   // Real-time data states
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false)
+  const [selectedDayISO, setSelectedDayISO] = useState<string | null>(null)
+  const [selectedDayRecords, setSelectedDayRecords] = useState<AttendanceRecord[]>([])
+  const [dayWorkLogs, setDayWorkLogs] = useState<any[]>([])
+  const [dayWorkLogsLoading, setDayWorkLogsLoading] = useState(false)
+  const [dayWorkLogsError, setDayWorkLogsError] = useState<string | null>(null)
 
   // Supabase client initialization
   const supabase = useMemo(() => createClient(), [])
@@ -154,6 +191,9 @@ const AttendanceContent: React.FC = () => {
       site_id: record.site_id ?? null,
       siteId: record.site_id ?? null,
       siteName: record.sites?.name ?? '현장 미지정',
+      siteAddress: record.sites?.address ?? null,
+      workerName: record.profiles?.full_name ?? null,
+      notes: record.notes ?? record.additional_notes ?? null,
       raw: record,
     }
   }, [])
@@ -637,6 +677,109 @@ const AttendanceContent: React.FC = () => {
     setViewMode(prev => (prev === 'month' ? 'week' : 'month'))
   }
 
+  const closeDetailSheet = useCallback(() => {
+    setIsDetailSheetOpen(false)
+    setSelectedDayISO(null)
+    setSelectedDayRecords([])
+    setDayWorkLogs([])
+    setDayWorkLogsError(null)
+    setDayWorkLogsLoading(false)
+  }, [])
+
+  const openDetailSheetForDay = useCallback(
+    (isoDate: string) => {
+      const recordsForDay = filteredAttendanceData.filter(record => record.date === isoDate)
+      if (recordsForDay.length === 0) return
+      setSelectedDayISO(isoDate)
+      setSelectedDayRecords(recordsForDay)
+      setIsDetailSheetOpen(true)
+      setDayWorkLogs([])
+      setDayWorkLogsError(null)
+
+      const siteIdForDay = recordsForDay[0]?.site_id
+      if (!siteIdForDay) {
+        setDayWorkLogsLoading(false)
+        setDayWorkLogsError('현장 정보가 없어 작업일지를 불러올 수 없습니다.')
+        return
+      }
+
+      setDayWorkLogsLoading(true)
+
+      const mapWorkLogSummary = (log: any) => ({
+        id: String(log?.id || ''),
+        date: log?.date || log?.work_date || isoDate,
+        siteName: log?.siteName || log?.site_name || recordsForDay[0]?.siteName || '작업일지',
+        workProcesses: extractWorkProcesses(log),
+        materials: extractMaterials(log),
+        notes: log?.notes || log?.additional_notes || null,
+        status: log?.status || 'draft',
+      })
+
+      const loadWorkLogs = async () => {
+        try {
+          const params = new URLSearchParams({
+            site_id: siteIdForDay,
+            start_date: isoDate,
+            end_date: isoDate,
+            limit: '5',
+          })
+          const response = await fetch(`/api/mobile/daily-reports?${params.toString()}`, {
+            cache: 'no-store',
+          })
+          if (!response.ok) {
+            throw new Error(`daily-reports fetch failed: ${response.status}`)
+          }
+          const payload = await response.json().catch(() => null)
+          const reports = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
+          const summaries = reports.map(report => {
+            const workContent = report?.work_content || {}
+            const processes = Array.isArray(workContent.workProcesses)
+              ? workContent.workProcesses
+              : Array.isArray(workContent.memberTypes)
+                ? workContent.memberTypes
+                : []
+            return {
+              id: String(report?.id || ''),
+              date: report?.work_date || isoDate,
+              siteName: report?.sites?.name || recordsForDay[0]?.siteName || '작업일지',
+              workProcesses: processes,
+              materials: Array.isArray(report?.material_usage) ? report.material_usage : [],
+              notes: report?.additional_notes || report?.notes || null,
+              status: report?.status || '',
+            }
+          })
+          if (summaries.length > 0) {
+            return summaries
+          }
+          console.info('No daily reports found for day, attempting work log fallback.')
+        } catch (error) {
+          console.warn('Primary fetch for daily reports failed, falling back to work logs:', error)
+        }
+
+        const logs = await WorkLogService.getWorkLogs(
+          { siteId: siteIdForDay, dateFrom: isoDate, dateTo: isoDate },
+          { field: 'date', order: 'desc' }
+        )
+        return logs.slice(0, 5).map(mapWorkLogSummary)
+      }
+
+      loadWorkLogs()
+        .then(data => {
+          setDayWorkLogs(data)
+          setDayWorkLogsError(null)
+        })
+        .catch(error => {
+          console.error('Failed to load work logs for day:', error)
+          setDayWorkLogs([])
+          setDayWorkLogsError('작업일지를 불러오지 못했습니다.')
+        })
+        .finally(() => {
+          setDayWorkLogsLoading(false)
+        })
+    },
+    [filteredAttendanceData]
+  )
+
   // Get filtered attendance data based on current view
   const getFilteredAttendanceData = () => {
     if (!filteredAttendanceData) return []
@@ -784,6 +927,7 @@ const AttendanceContent: React.FC = () => {
         totalHours: Number(totalHours.toFixed(1)),
         totalManDays: Number(totalManDays.toFixed(1)),
         sites: dayRecords.length > 0 ? uniqueSiteLabels : [],
+        hasRecords: dayRecords.length > 0,
       }
     }
 
@@ -865,6 +1009,32 @@ const AttendanceContent: React.FC = () => {
     return format(new Date(), 'yyyy년 MM월', { locale: ko })
   }, [salaryYearMonthOptions, salarySelectedYearMonth])
 
+  const selectedDaySummary = useMemo(() => {
+    const totalManDays = selectedDayRecords.reduce((sum, record) => {
+      const hours = Number(record.workHours ?? 0)
+      return sum + hours / 8
+    }, 0)
+    const memberMap = selectedDayRecords.reduce((map, record) => {
+      const key = record.workerName || record.id
+      const existing = map.get(key) || {
+        name: record.workerName || '작업자',
+        hours: 0,
+      }
+      const hours = Number(record.workHours ?? 0)
+      existing.hours += Number.isFinite(hours) ? hours : 0
+      map.set(key, existing)
+      return map
+    }, new Map<string, { name: string; hours: number }>())
+    return { totalManDays, teamMembers: Array.from(memberMap.values()) }
+  }, [selectedDayRecords])
+  const totalSelectedManDaysRaw = Number(selectedDaySummary?.totalManDays ?? 0)
+  const totalSelectedManDays = Number.isFinite(totalSelectedManDaysRaw)
+    ? totalSelectedManDaysRaw
+    : 0
+  const selectedTeamMembers = Array.isArray(selectedDaySummary?.teamMembers)
+    ? selectedDaySummary.teamMembers
+    : []
+
   // 현장 라벨은 사용하지 않음(드롭다운 제거)
   const salarySiteLabel = useMemo(() => '전체 현장', [])
 
@@ -912,6 +1082,7 @@ const AttendanceContent: React.FC = () => {
   const [apiMonthly, setApiMonthly] = useState<any | null>(null)
   const [showAllSalaryHistory, setShowAllSalaryHistory] = useState(false)
   const [recentSalaryHistory, setRecentSalaryHistory] = useState<any[]>([])
+  const [isSalarySummaryHidden, setIsSalarySummaryHidden] = useState(false)
 
   // 현재 선택 월 API 호출
   useEffect(() => {
@@ -948,34 +1119,6 @@ const AttendanceContent: React.FC = () => {
   }, [salarySelectedYearMonth, showAllSalaryHistory])
 
   // charts removed – related helper functions deleted
-
-  const openPayslip = useCallback(
-    async (y: number, m: number) => {
-      if (!userId) return
-      const href = `/payslip/${userId}/${y}/${m}`
-      const isStandalone =
-        typeof window !== 'undefined' &&
-        (window.matchMedia?.('(display-mode: standalone)').matches ||
-          (navigator as any)?.standalone === true)
-
-      if (isStandalone) {
-        window.location.assign(href)
-        return
-      }
-
-      try {
-        await openFileRecordInNewTab({
-          file_url: href,
-          file_name: `payslip-${y}-${String(m).padStart(2, '0')}.html`,
-          title: `급여명세서 ${y}-${m}`,
-        })
-      } catch (error) {
-        console.error('Failed to open payslip', error)
-        window.open(href, '_blank', 'noopener,noreferrer')
-      }
-    },
-    [userId]
-  )
 
   return (
     <MobileLayoutShell>
@@ -1083,7 +1226,29 @@ const AttendanceContent: React.FC = () => {
               </div>
               <div className="cal-grid cal-grid-body">
                 {calendarDays.map(day => (
-                  <div key={day.iso} className={clsx('cal-cell', !day.isCurrentMonth && 'out')}>
+                  <div
+                    key={day.iso}
+                    className={clsx(
+                      'cal-cell',
+                      !day.isCurrentMonth && 'out',
+                      day.hasRecords && 'cal-cell--clickable'
+                    )}
+                    role={day.hasRecords ? 'button' : undefined}
+                    tabIndex={day.hasRecords ? 0 : -1}
+                    onClick={() => day.hasRecords && openDetailSheetForDay(day.iso)}
+                    onKeyDown={event => {
+                      if (!day.hasRecords) return
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        openDetailSheetForDay(day.iso)
+                      }
+                    }}
+                    aria-label={
+                      day.hasRecords
+                        ? `${format(day.date, 'M월 d일', { locale: ko })} 상세 보기`
+                        : undefined
+                    }
+                  >
                     <div className={clsx('date', day.isSunday && 'sun')}>{day.date.getDate()}</div>
                     <div className="site-name">
                       {day.sites.length > 0
@@ -1166,35 +1331,65 @@ const AttendanceContent: React.FC = () => {
 
             <Card>
               <CardContent className="p-3 space-y-2">
-                <div className="pay-summary-row">
-                  <span className="t-body">기본급</span>
-                  <span className="t-body font-medium">
-                    ₩{(apiMonthly?.salary?.base_pay ?? 0).toLocaleString()}
-                  </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="t-body font-semibold text-[var(--text)]">급여 요약</span>
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-sm font-medium text-[#1a254f]"
+                    onClick={() => setIsSalarySummaryHidden(prev => !prev)}
+                    aria-pressed={isSalarySummaryHidden}
+                    aria-label={isSalarySummaryHidden ? '급여 요약 표시' : '급여 요약 숨김'}
+                  >
+                    {isSalarySummaryHidden ? (
+                      <>
+                        <Eye className="w-4 h-4" />
+                        보기
+                      </>
+                    ) : (
+                      <>
+                        <EyeOff className="w-4 h-4" />
+                        숨김
+                      </>
+                    )}
+                  </button>
                 </div>
-                <div className="pay-summary-row">
-                  <span className="t-body">총지급액</span>
-                  <span className="t-body font-medium">
-                    ₩{(apiMonthly?.salary?.total_gross_pay ?? 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="pay-summary-row">
-                  <span className="t-body">총 공제</span>
-                  <span className="t-body font-medium text-[#dc2626]">
-                    -₩
-                    {(
-                      apiMonthly?.salary?.total_deductions ??
-                      apiMonthly?.salary?.tax_deduction ??
-                      0
-                    ).toLocaleString()}
-                  </span>
-                </div>
-                <div className="pay-summary-row border-t pt-2">
-                  <span className="t-body font-bold">실수령액</span>
-                  <span className="t-body font-bold text-primary">
-                    ₩{(apiMonthly?.salary?.net_pay ?? 0).toLocaleString()}
-                  </span>
-                </div>
+                {isSalarySummaryHidden ? (
+                  <div className="py-6 text-center text-sm text-muted-foreground">
+                    급여 요약이 숨겨져 있습니다.
+                  </div>
+                ) : (
+                  <>
+                    <div className="pay-summary-row">
+                      <span className="t-body">총 공수</span>
+                      <span className="t-body font-medium">
+                        {formatManDays(apiMonthly?.totalManDays)} 공수
+                      </span>
+                    </div>
+                    <div className="pay-summary-row">
+                      <span className="t-body">총지급액</span>
+                      <span className="t-body font-medium">
+                        ₩{(apiMonthly?.salary?.total_gross_pay ?? 0).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="pay-summary-row">
+                      <span className="t-body">총 공제</span>
+                      <span className="t-body font-medium text-[#dc2626]">
+                        -₩
+                        {(
+                          apiMonthly?.salary?.total_deductions ??
+                          apiMonthly?.salary?.tax_deduction ??
+                          0
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="pay-summary-row border-t pt-2">
+                      <span className="t-body font-bold">실수령액</span>
+                      <span className="t-body font-bold text-primary">
+                        ₩{(apiMonthly?.salary?.net_pay ?? 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -1204,24 +1399,17 @@ const AttendanceContent: React.FC = () => {
                   <h3 className="t-h3 mb-3">최근 급여 내역</h3>
                   <Stack gap="sm">
                     {recentSalaryHistory.map((salaryRecord: any, index) => (
-                      <div
+                      <button
                         key={index}
-                        role="button"
-                        tabIndex={0}
+                        type="button"
                         onClick={() => {
-                          const y = salaryRecord.yearNumber
-                          const m = salaryRecord.monthNumber
-                          if (y && m) openPayslip(y, m)
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            const y = salaryRecord.yearNumber
-                            const m = salaryRecord.monthNumber
-                            if (y && m) openPayslip(y, m)
+                          if (salaryRecord.yearNumber && salaryRecord.monthNumber) {
+                            router.push(
+                              `/mobile/payslip/${salaryRecord.yearNumber}/${salaryRecord.monthNumber}`
+                            )
                           }
                         }}
-                        className="card hover-lift p-3 cursor-pointer transition-colors"
+                        className="card hover-lift p-3 w-full text-left transition-colors"
                       >
                         <Row justify="between" className="items-center recent-salary-item">
                           <span className="t-body font-medium text-[var(--text)] dark:text-[var(--text)]">
@@ -1241,7 +1429,7 @@ const AttendanceContent: React.FC = () => {
                             ₩{(salaryRecord?.salary?.net_pay ?? 0).toLocaleString()}
                           </span>
                         </Row>
-                      </div>
+                      </button>
                     ))}
                   </Stack>
                   <div className="mt-3 space-y-2">
@@ -1278,6 +1466,113 @@ const AttendanceContent: React.FC = () => {
           </section>
         )}
       </div>
+      <BottomSheet
+        isOpen={isDetailSheetOpen}
+        onClose={closeDetailSheet}
+        className="attendance-detail-sheet"
+      >
+        {selectedDayISO ? (
+          <div className="attendance-detail">
+            <header className="attendance-detail-header">
+              <div>
+                <p className="detail-date">
+                  {format(parseISO(selectedDayISO), 'yyyy년 M월 d일 (EEE)', { locale: ko })}
+                </p>
+                <p className="detail-site">{selectedDayRecords[0]?.siteName || '현장 미지정'}</p>
+                <p className="detail-address">
+                  {selectedDayRecords[0]?.siteAddress || '주소 정보 없음'}
+                </p>
+              </div>
+              <div className="detail-mandays">
+                <span>총 공수</span>
+                <strong>{totalSelectedManDays.toFixed(1)}</strong>
+              </div>
+            </header>
+
+            <section className="detail-section">
+              <h3 className="detail-section-title">함께 근무한 팀원</h3>
+              {selectedTeamMembers.length === 0 ? (
+                <p className="detail-empty">출석 정보가 없습니다.</p>
+              ) : (
+                <ul className="team-list">
+                  {selectedTeamMembers.map((member, index) => (
+                    <li key={`${selectedDayISO}-${member.name || index}`} className="team-item">
+                      <div>
+                        <p className="team-name">{member.name}</p>
+                        <p className="team-hours">
+                          {Number(member.hours ?? 0).toFixed(1)}시간 근무
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <section className="detail-section">
+              <h3 className="detail-section-title">같은날 작업일지</h3>
+              {dayWorkLogsLoading && <p className="detail-empty">작업일지를 불러오는 중...</p>}
+              {!dayWorkLogsLoading && dayWorkLogsError && (
+                <p className="detail-empty text-red-500">{dayWorkLogsError}</p>
+              )}
+              {!dayWorkLogsLoading && !dayWorkLogsError && dayWorkLogs.length === 0 && (
+                <p className="detail-empty">등록된 작업일지가 없습니다.</p>
+              )}
+              {!dayWorkLogsLoading && dayWorkLogs.length > 0 && (
+                <ul className="worklog-list">
+                  {dayWorkLogs.map(log => (
+                    <li key={log.id} className="worklog-item">
+                      <div className="worklog-header">
+                        <div>
+                          <p className="worklog-title">{log.siteName}</p>
+                          <p className="worklog-status">
+                            {log.status === 'approved' ? '승인완료' : '작성중'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="worklog-link"
+                          onClick={() => router.push(`/mobile/worklog/${log.id}`)}
+                        >
+                          상세보기
+                        </button>
+                      </div>
+                      {Array.isArray(log.workProcesses) && log.workProcesses.length > 0 && (
+                        <div className="worklog-tags">
+                          {log.workProcesses.map((process: string) => (
+                            <span key={process} className="worklog-tag">
+                              {process}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {Array.isArray(log.materials) && log.materials.length > 0 && (
+                        <div className="worklog-materials">
+                          <span className="worklog-material-label">자재</span>
+                          <p className="worklog-material-text">
+                            {log.materials
+                              .map((material: any) => {
+                                const qty = material.quantity ? ` ${material.quantity}` : ''
+                                const unit = material.unit ? `${material.unit}` : ''
+                                return `${material.material_type || '자재'}${qty}${unit}`
+                              })
+                              .join(', ')}
+                          </p>
+                        </div>
+                      )}
+                      {log.notes && <p className="worklog-notes">{log.notes}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </div>
+        ) : (
+          <div className="attendance-detail">
+            <p className="detail-empty">선택된 날짜가 없습니다.</p>
+          </div>
+        )}
+      </BottomSheet>
     </MobileLayoutShell>
   )
 }
