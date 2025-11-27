@@ -2646,16 +2646,12 @@ export default function SiteInfoPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-          margin: var(--block-gap) 0 calc(var(--block-gap) * 0.75);
+          margin: calc(var(--block-gap) * 1.25) 0 calc(var(--block-gap) * 1.1);
         }
 
         .card.site-search-card .stat-grid {
-          margin-top: var(--block-gap);
-          margin-bottom: calc(var(--block-gap) * 0.75);
-        }
-
-        .site-summary-list {
-          margin-top: var(--block-gap);
+          margin-top: calc(var(--block-gap) * 1.1);
+          margin-bottom: calc(var(--block-gap) * 1.25);
         }
 
         .search-input-wrapper {
@@ -2670,7 +2666,7 @@ export default function SiteInfoPage() {
         }
 
         .site-summary-list {
-          margin: var(--block-gap) 0 0;
+          margin: calc(var(--block-gap) * 1.25) 0 0;
         }
 
         /* 검색 아이콘(돋보기) - 입력필드 좌측에 고정 표시 */
@@ -2963,7 +2959,8 @@ export default function SiteInfoPage() {
           z-index: 1300;
           display: flex;
           align-items: flex-end;
-          justify-content: center;
+          justify-content: stretch;
+          padding: 0;
         }
 
         .site-info-bottomsheet-overlay {
@@ -2973,17 +2970,26 @@ export default function SiteInfoPage() {
         }
 
         .site-info-bottomsheet-content {
-          position: relative;
-          width: min(640px, 100%);
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100%;
+          max-width: none;
+          align-self: stretch;
           background: var(--card);
           border-radius: 28px 28px 0 0;
-          padding: 28px 24px 32px;
+          padding: 28px 24px calc(32px + env(safe-area-inset-bottom, 0px));
           box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.18);
           max-height: 90vh;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
           gap: 24px;
+          margin: 0;
+          margin-left: auto;
+          margin-right: auto;
+          z-index: 1;
         }
 
         .site-info-bottomsheet-header {
@@ -3179,7 +3185,7 @@ export default function SiteInfoPage() {
 
         @media (max-width: 480px) {
           .site-info-bottomsheet-content {
-            padding: 24px 18px 28px;
+            padding: 24px 18px calc(28px + env(safe-area-inset-bottom, 0px));
           }
 
           .site-info-sheet-address-actions {
@@ -3533,16 +3539,35 @@ export default function SiteInfoPage() {
           inset: 0;
           z-index: 1200;
           display: flex;
-          align-items: flex-end;
-          justify-content: center;
-          padding: 0 16px 16px;
-          background: rgba(17, 24, 39, 0.45);
-          backdrop-filter: blur(4px);
+          flex-direction: column;
+          align-items: stretch;
+          justify-content: flex-end;
+          padding: 0;
+          padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          background: transparent;
+          backdrop-filter: none;
+        }
+
+        .npc-modal-dim {
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: calc(56px + env(safe-area-inset-top, 0px));
+          bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          background: rgba(17, 24, 39, 0.35);
+          backdrop-filter: blur(8px);
+          pointer-events: none;
         }
 
         .npc-modal {
-          width: min(520px, 100%);
+          position: fixed;
+          left: 0;
+          right: 0;
+          bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+          width: 100%;
+          max-width: 100%;
           max-height: 82vh;
+          align-self: stretch;
           background: var(--card);
           border-radius: 24px 24px 0 0;
           border: 1px solid rgba(209, 213, 219, 0.5);
@@ -3551,6 +3576,8 @@ export default function SiteInfoPage() {
           flex-direction: column;
           overflow: hidden;
           animation: npcSheetSlideUp 0.32s ease-out;
+          margin: 0;
+          transform: translateZ(0);
         }
 
         @keyframes npcSheetSlideUp {
@@ -4686,8 +4713,20 @@ export default function SiteInfoPage() {
           background: #f8f9fa !important;
         }
         .site-container .site-search-card .site-summary-item.selected {
-          background: rgba(0, 104, 254, 0.1) !important;
-          border-color: rgba(0, 104, 254, 0.2) !important;
+          background: rgba(0, 104, 254, 0.04) !important;
+          border-color: rgba(0, 104, 254, 0.12) !important;
+          border-radius: 0 !important;
+        }
+        .site-container .site-search-card .site-summary-item.selected:first-child {
+          border-top-left-radius: 0 !important;
+          border-top-right-radius: 0 !important;
+        }
+        .site-container .site-search-card .site-summary-item.selected:last-child {
+          border-bottom-left-radius: 0 !important;
+          border-bottom-right-radius: 0 !important;
+        }
+        .site-container .site-search-card .site-summary-list {
+          overflow: visible !important;
         }
         .site-container .site-search-card .site-summary-header {
           display: flex !important;
@@ -4729,6 +4768,19 @@ export default function SiteInfoPage() {
           color: #0068fe !important;
           font-size: 12px !important;
           font-weight: 700 !important;
+        }
+
+        /* 참여 현장 카드: 통계 → 검색 → 리스트 상하 간격 확장 */
+        .site-container .site-search-card .stat-grid {
+          margin-top: 10px !important;
+          margin-bottom: 10px !important;
+        }
+        .site-container .site-search-card .search-bar-container {
+          margin-top: 10px !important;
+          margin-bottom: 10px !important;
+        }
+        .site-container .site-search-card .site-summary-list {
+          margin-top: 10px !important;
         }
 
         /* NPC-1000 KPI - 3등분 그리드 카드 복원 */
@@ -5623,6 +5675,7 @@ export default function SiteInfoPage() {
             }
           }}
         >
+          <div className="npc-modal-dim" aria-hidden="true" />
           <div className="npc-modal" onClick={event => event.stopPropagation()}>
             <div className="npc-modal-header">
               <h3>입고/사용 기록</h3>
@@ -5770,6 +5823,7 @@ export default function SiteInfoPage() {
             }
           }}
         >
+          <div className="npc-modal-dim" aria-hidden="true" />
           <div className="npc-modal npc-request-modal" onClick={event => event.stopPropagation()}>
             <div className="npc-modal-header npc-request-header">
               <div className="npc-request-headline">
@@ -5934,6 +5988,7 @@ export default function SiteInfoPage() {
           aria-modal="true"
           onClick={() => setShowNpcLogSheet(false)}
         >
+          <div className="npc-modal-dim" aria-hidden="true" />
           <div className="npc-modal npc-log-modal" onClick={event => event.stopPropagation()}>
             <div className="npc-modal-header npc-log-header">
               <div className="npc-log-titlebar">

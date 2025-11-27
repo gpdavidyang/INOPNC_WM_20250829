@@ -387,9 +387,7 @@ export const PhotoUploadCard: React.FC<
               </p>
             )}
             {!lastSavedAt && !lastError && (
-              <p className="materials-hint mt-2">
-                저장하면 사진이 기기에 임시 보관되고, 작업일지 제출 시 서버로 함께 업로드됩니다.
-              </p>
+              <p className="materials-hint mt-2">저장하면 기기에 임시 보관, 제출 시 서버 업로드.</p>
             )}
           </div>
         </div>

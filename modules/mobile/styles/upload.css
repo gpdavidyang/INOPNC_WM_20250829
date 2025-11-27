@@ -706,17 +706,32 @@
 }
 
 .upload-label {
+  font-family:
+    'Nano Sans KR',
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
   font-size: 14px;
-  font-weight: 900;
-  color: var(--text);
+  font-weight: 600;
+  color: #6b7280;
 }
 
 .upload-counter {
   display: flex;
   align-items: center;
-  gap: 2px;
-  font-size: 13px;
-  font-weight: 800;
+  gap: 4px;
+  font-family:
+    'Nano Sans KR',
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
 }
 
 /* Saved status message (home > photo upload) — improve readability to match home fonts */
@@ -738,16 +753,16 @@
 }
 
 .counter-number {
-  color: var(--brand);
-  font-weight: 900;
+  color: inherit;
+  font-weight: 700;
 }
 
 .counter-divider {
-  color: var(--muted);
+  color: inherit;
 }
 
 .counter-total {
-  color: var(--muted);
+  color: inherit;
 }
 
 .upload-dropzone {

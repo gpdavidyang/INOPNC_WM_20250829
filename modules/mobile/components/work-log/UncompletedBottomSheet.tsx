@@ -100,7 +100,8 @@ export const SimplifiedBottomSheet: React.FC<SimplifiedBottomSheetProps> = ({
             </div>
             <button
               onClick={handleClose}
-              className="px-3 py-1 text-sm font-semibold text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="px-3 py-1 text-sm font-semibold text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              style={{ borderRadius: 10 }}
             >
               닫기
             </button>
@@ -197,7 +198,8 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
             </div>
             <button
               onClick={handleClose}
-              className="px-3 py-1 text-sm font-semibold text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              className="px-3 py-1 text-sm font-semibold text-gray-500 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-[10px] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              style={{ borderRadius: 10 }}
             >
               닫기
             </button>
@@ -224,13 +226,13 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
                 <div className="flex gap-2">
                   <button
                     onClick={() => onNavigate(item.month)}
-                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-[10px] hover:bg-blue-600 transition-colors"
                   >
                     열기
                   </button>
                   <button
                     onClick={() => onDismiss(item.month)}
-                    className="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                    className="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded-[10px] hover:bg-gray-400 transition-colors"
                     title="오늘 하루 동안 숨김"
                   >
                     무시
@@ -245,7 +247,8 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
         <div className="px-6 pb-6">
           <button
             onClick={handleClose}
-            className="w-full h-12 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors"
+            className="w-full h-12 bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-[10px] font-medium transition-colors"
+            style={{ borderRadius: 10 }}
           >
             닫기
           </button>

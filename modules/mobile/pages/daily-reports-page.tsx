@@ -1,28 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
-import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import {
-  useTodayDailyReports,
-  useRecentDailyReports,
   useDailyReportsStats,
+  useRecentDailyReports,
+  useTodayDailyReports,
   type DailyReportItem,
 } from '@/hooks/api/use-mobile-daily-reports'
-import {
-  Card,
-  CardContent,
-  Button,
-  Stack,
-  Row,
-  Chip,
-  Input,
-  Grid,
-  Badge,
-} from '@/modules/shared/ui'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
+import { Badge, Button, Card, CardContent, Chip, Row, Stack } from '@/modules/shared/ui'
 import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
 
 export const DailyReportsPage: React.FC = () => {
   return (
@@ -128,7 +117,7 @@ const DailyReportsContent: React.FC = () => {
       const prefill = {
         siteId: report.site_id || report.sites?.id || '',
         workDate: report.work_date || '',
-        department: '',
+        department: report.sites?.organization_id || '',
         location: {
           block: String(loc.block || firstTask?.location?.block || ''),
           dong: String(loc.dong || firstTask?.location?.dong || ''),

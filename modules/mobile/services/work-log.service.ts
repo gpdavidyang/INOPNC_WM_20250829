@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
-import { WorkLog, WorkLogFilter, WorkLogSort, AttachedFile } from '../types/work-log.types'
+import { AttachedFile, WorkLog, WorkLogFilter, WorkLogSort } from '../types/work-log.types'
 
 const supabase = createClient()
 
@@ -441,12 +441,14 @@ function mapReportToWorkLog(item: any): WorkLog {
     item?.site_name ||
     item?.site_label ||
     '알 수 없는 현장'
+  const organizationId = siteRelation?.organization_id || item?.organization_id || undefined
 
   return {
     id: item?.id,
     date: item?.work_date,
     siteId: item?.site_id,
     siteName,
+    organizationId,
     partnerCompanyName: item?.partner_company_name || item?.partnerCompanyName || undefined,
     title: item?.title || siteName || item?.work_description,
     author: authorName,
@@ -708,7 +710,9 @@ function normalizeProfileRelation(item: any): { full_name?: string; name?: strin
   return undefined
 }
 
-function normalizeSiteRelation(item: any): { name?: string; site_name?: string } | undefined {
+function normalizeSiteRelation(
+  item: any
+): { name?: string; site_name?: string; organization_id?: string } | undefined {
   const candidates = [item?.sites, item?.site, item?.site_info, item?.site_detail]
 
   for (const candidate of candidates) {

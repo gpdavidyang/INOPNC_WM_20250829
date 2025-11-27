@@ -1,7 +1,5 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import Link from 'next/link'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -9,30 +7,30 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import { QuickMenu } from './QuickMenu'
-import { NoticeSection } from './NoticeSection'
-import { DepartmentSelect } from './DepartmentSelect'
-import { LocationInput } from './LocationInput'
-import { MultiSelectButtons } from './MultiSelectButtons'
-import { NumberInput } from './NumberInput'
-import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalManpower'
-import { PhotoUploadCard } from './PhotoUploadCard'
-import { DrawingQuickAction } from './DrawingQuickAction'
-import { SummarySection } from './SummarySection'
-import { MaterialsInput } from './MaterialsInput'
-import { toast } from 'sonner'
-import { WorkLogLocation, WorkSection, AdditionalManpower, MANPOWER_VALUES } from '@/types/worklog'
-import { useAuth } from '@/modules/mobile/providers/AuthProvider'
-import { User } from '@supabase/supabase-js'
-import { useCreateWorklog, MaterialEntry } from '@/modules/mobile/hooks/use-worklog-mutations'
-import '@/modules/mobile/styles/home.css'
-import '@/modules/mobile/styles/work-form.css'
-import '@/modules/mobile/styles/upload.css'
-import '@/modules/mobile/styles/summary.css'
-import '@/modules/mobile/styles/summary-section.css'
-import '@/modules/mobile/styles/drawing-quick.css'
 import { useWorkOptions } from '@/hooks/use-work-options'
 import { createClient } from '@/lib/supabase/client'
+import { MaterialEntry, useCreateWorklog } from '@/modules/mobile/hooks/use-worklog-mutations'
+import { useAuth } from '@/modules/mobile/providers/AuthProvider'
+import '@/modules/mobile/styles/drawing-quick.css'
+import '@/modules/mobile/styles/home.css'
+import '@/modules/mobile/styles/summary-section.css'
+import '@/modules/mobile/styles/summary.css'
+import '@/modules/mobile/styles/upload.css'
+import '@/modules/mobile/styles/work-form.css'
+import { AdditionalManpower, MANPOWER_VALUES, WorkLogLocation, WorkSection } from '@/types/worklog'
+import { User } from '@supabase/supabase-js'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { DepartmentSelect } from './DepartmentSelect'
+import { DrawingQuickAction } from './DrawingQuickAction'
+import { LocationInput } from './LocationInput'
+import { MaterialsInput } from './MaterialsInput'
+import { MultiSelectButtons } from './MultiSelectButtons'
+import { NoticeSection } from './NoticeSection'
+import { NumberInput } from './NumberInput'
+import { PhotoUploadCard } from './PhotoUploadCard'
+import { QuickMenu } from './QuickMenu'
+import { SummarySection } from './SummarySection'
 
 const WORK_TYPE_OPTIONS = [
   { value: '지하', label: '지하' },
@@ -130,6 +128,9 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     type: 'success' | 'error'
     message: string
   } | null>(null)
+  const [hasPrefill, setHasPrefill] = useState(false)
+  const [prefillCompleted, setPrefillCompleted] = useState(false)
+  const [prefillData, setPrefillData] = useState<any>(null)
 
   // 사용자(작성자/작업자) 선택용 옵션 - 관리자에서 등록된 사용자 중 작업자/현장관리자만
   const [allUserOptions, setAllUserOptions] = useState<
@@ -218,48 +219,140 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [sitesLoading, setSitesLoading] = useState(false)
   const [sitesError, setSitesError] = useState<string | null>(null)
 
-  // Prefill from localStorage (draft redirect)
+  // Prefill from localStorage (draft redirect) - Stage 1: Load department first
   useEffect(() => {
+    const loadPrefillData = async () => {
+      try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('worklog_prefill') : null
+        if (!raw) return
+        const data = JSON.parse(raw)
+
+        console.log('[Prefill Stage 1] Loaded data:', data)
+
+        // Store prefill data in state for Stage 2
+        setPrefillData(data)
+
+        // Stage 1: Set department first to trigger site loading
+        if (data?.department) {
+          console.log('[Prefill Stage 1] Setting department:', data.department)
+          setDepartment(String(data.department))
+        } else if (data?.siteId) {
+          // If no department but we have siteId, fetch site details to get organization_id
+          console.log('[Prefill Stage 1] No department, fetching site details for:', data.siteId)
+          try {
+            const res = await fetch(`/api/mobile/sites/${encodeURIComponent(data.siteId)}`, {
+              cache: 'no-store',
+            })
+            if (res.ok) {
+              const json = await res.json()
+              const siteData = json?.data || json
+              if (siteData?.organization_id) {
+                console.log(
+                  '[Prefill Stage 1] Found organization_id from site:',
+                  siteData.organization_id
+                )
+                setDepartment(String(siteData.organization_id))
+              }
+            }
+          } catch (err) {
+            console.error('[Prefill Stage 1] Failed to fetch site details:', err)
+          }
+        }
+
+        // Set hasPrefill flag if we have any prefill data (department or siteId)
+        if (data?.department || data?.siteId) {
+          setHasPrefill(true)
+        }
+
+        // Remove from localStorage immediately to prevent conflicts
+        localStorage.removeItem('worklog_prefill')
+      } catch (e) {
+        console.error('Prefill stage 1 error:', e)
+      }
+    }
+
+    loadPrefillData()
+  }, [])
+
+  // Prefill from localStorage (draft redirect) - Stage 2: Load site and other data after sites are loaded
+  useEffect(() => {
+    if (!hasPrefill || prefillCompleted || sites.length === 0 || !prefillData) return
+
     try {
-      const raw = typeof window !== 'undefined' ? localStorage.getItem('worklog_prefill') : null
-      if (!raw) return
-      const data = JSON.parse(raw)
-      if (data?.siteId) setSelectedSite(String(data.siteId))
-      if (data?.workDate) setWorkDate(String(data.workDate))
-      if (data?.department) setDepartment(String(data.department))
-      if (data?.location)
+      console.log('[Prefill Stage 2] Starting with data:', prefillData)
+      console.log('[Prefill Stage 2] Sites available:', sites.length)
+
+      // Stage 2: Set site and all other data after sites are loaded
+      if (prefillData?.siteId) {
+        console.log('[Prefill Stage 2] Setting siteId:', prefillData.siteId)
+        setSelectedSite(String(prefillData.siteId))
+      }
+      if (prefillData?.workDate) {
+        console.log('[Prefill Stage 2] Setting workDate:', prefillData.workDate)
+        setWorkDate(String(prefillData.workDate))
+      }
+      if (prefillData?.location) {
+        console.log('[Prefill Stage 2] Setting location:', prefillData.location)
         setLocation({
-          block: String(data.location.block || ''),
-          dong: String(data.location.dong || ''),
-          unit: String(data.location.unit || ''),
+          block: String(prefillData.location.block || ''),
+          dong: String(prefillData.location.dong || ''),
+          unit: String(prefillData.location.unit || ''),
         })
-      if (Array.isArray(data?.memberTypes)) setMemberTypes(data.memberTypes)
-      if (Array.isArray(data?.workProcesses)) setWorkContents(data.workProcesses)
-      if (Array.isArray(data?.workTypes)) setWorkTypes(data.workTypes)
-      if (typeof data?.mainManpower === 'number') setMainManpower(data.mainManpower)
-      if (Array.isArray(data?.materials)) setMaterials(data.materials)
-      if (Array.isArray(data?.additionalManpower)) setAdditionalManpower(data.additionalManpower)
-      // one-time use
-      localStorage.removeItem('worklog_prefill')
+      }
+      if (Array.isArray(prefillData?.memberTypes)) {
+        console.log('[Prefill Stage 2] Setting memberTypes:', prefillData.memberTypes)
+        setMemberTypes(prefillData.memberTypes)
+      }
+      if (Array.isArray(prefillData?.workProcesses)) {
+        console.log('[Prefill Stage 2] Setting workProcesses:', prefillData.workProcesses)
+        setWorkContents(prefillData.workProcesses)
+      }
+      if (Array.isArray(prefillData?.workTypes)) {
+        console.log('[Prefill Stage 2] Setting workTypes:', prefillData.workTypes)
+        setWorkTypes(prefillData.workTypes)
+      }
+      if (typeof prefillData?.mainManpower === 'number') {
+        console.log('[Prefill Stage 2] Setting mainManpower:', prefillData.mainManpower)
+        setMainManpower(prefillData.mainManpower)
+      }
+      if (Array.isArray(prefillData?.materials)) {
+        console.log('[Prefill Stage 2] Setting materials:', prefillData.materials)
+        setMaterials(prefillData.materials)
+      }
+      if (Array.isArray(prefillData?.additionalManpower)) {
+        console.log('[Prefill Stage 2] Setting additionalManpower:', prefillData.additionalManpower)
+        setAdditionalManpower(prefillData.additionalManpower)
+      }
+      if (Array.isArray(prefillData?.tasks)) {
+        console.log('[Prefill Stage 2] Setting tasks:', prefillData.tasks)
+        setTasks(prefillData.tasks)
+      }
+
+      console.log('[Prefill Stage 2] Completed successfully')
+
+      // Mark prefill as completed
+      setPrefillCompleted(true)
+
       // scroll to form
       setTimeout(() => {
         const el = document.querySelector('.work-form-container')
         if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 100)
     } catch (e) {
-      void e
+      console.error('Prefill stage 2 error:', e)
     }
-  }, [])
+  }, [hasPrefill, prefillCompleted, sites, prefillData])
 
   // Set today's date on mount
   useEffect(() => {
+    if (hasPrefill) return
     const today = new Date().toISOString().split('T')[0]
     setWorkDate(today)
 
     // CRITICAL FIX: Removed initSessionSync() to prevent duplicate session monitoring
     // Session sync is now handled entirely by the AuthProvider to avoid validation conflicts
     console.log('[HomePage] Initialized without duplicate session sync')
-  }, [])
+  }, [hasPrefill])
 
   // Update profile when auth context changes
   useEffect(() => {
@@ -436,37 +529,25 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   // 선택된 시공업체(소속)에 따라 현장 목록 불러오기
   useEffect(() => {
-    if (!department) {
-      setSites([])
-      setSitesLoading(false)
-      setSitesError(null)
-      return
-    }
-
     const controller = new AbortController()
     let isActive = true
 
-    const fetchSites = async () => {
+    const fetchSitesByOrg = async () => {
       setSitesLoading(true)
       setSitesError(null)
-
       try {
         const response = await fetch(
           `/api/mobile/sites/by-organization?organization_id=${encodeURIComponent(department)}`,
           {
             method: 'GET',
             signal: controller.signal,
-            headers: {
-              Accept: 'application/json',
-            },
+            headers: { Accept: 'application/json' },
             cache: 'no-store',
           }
         )
-
         if (!response.ok) {
           throw new Error(`Failed to load organization sites (status: ${response.status})`)
         }
-
         const payload = await response.json()
         const responseSites: any[] = Array.isArray(payload)
           ? payload
@@ -478,39 +559,97 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           name: site.name,
           organization_id: site.organization_id ?? null,
         }))
-
-        if (isActive) {
-          setSites(siteList)
-        }
+        if (isActive) setSites(siteList)
       } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return
-        }
-
+        if (err instanceof DOMException && err.name === 'AbortError') return
         console.error('현장 조회 오류:', err)
         if (isActive) {
           setSitesError('현장 목록을 불러올 수 없습니다.')
           setSites([])
         }
       } finally {
-        if (isActive) {
-          setSitesLoading(false)
-        }
+        if (isActive) setSitesLoading(false)
       }
     }
 
-    fetchSites()
+    const fetchSitesAll = async () => {
+      setSitesLoading(true)
+      setSitesError(null)
+      try {
+        const res = await fetch('/api/mobile/sites/list', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error(`Failed to load sites (status: ${res.status})`)
+        const json = await res.json().catch(() => ({}))
+        const responseSites: any[] = Array.isArray(json?.data)
+          ? json.data
+          : Array.isArray(json)
+            ? json
+            : []
+        const siteList: Site[] = responseSites.map(site => ({
+          id: site.id,
+          name: site.name,
+          organization_id: site.organization_id ?? null,
+        }))
+        if (isActive) setSites(siteList)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        console.error('현장 조회 오류:', err)
+        if (isActive) {
+          setSitesError('현장 목록을 불러올 수 없습니다.')
+          setSites([])
+        }
+      } finally {
+        if (isActive) setSitesLoading(false)
+      }
+    }
+
+    const ensurePrefillSiteOption = () => {
+      if (!selectedSite) return
+      // sites state might be stale here, but we use functional update for setSites to avoid duplicates
+      if (isActive) {
+        setSites(prev => {
+          if (prev.some(s => s.id === selectedSite)) return prev
+          return [
+            ...prev,
+            {
+              id: selectedSite,
+              name: '선택된 현장',
+              organization_id: null,
+            },
+          ]
+        })
+      }
+    }
+
+    const isUuid = (val: string) => /^[0-9a-fA-F-]{36}$/.test(val)
+
+    if (department && isUuid(department)) {
+      fetchSitesByOrg()
+    } else if (department) {
+      // department가 문자열이지만 UUID가 아니면 전체 목록 fallback
+      fetchSitesAll()
+    } else if (selectedSite) {
+      // 프리필된 siteId가 있을 때는 department 여부와 무관하게 전체 목록을 불러온 뒤 옵션에 추가
+      fetchSitesAll().then(() => ensurePrefillSiteOption())
+    } else {
+      setSites([])
+      setSitesLoading(false)
+      setSitesError(null)
+    }
 
     return () => {
       isActive = false
       controller.abort()
     }
-  }, [department])
+  }, [department, hasPrefill, selectedSite])
 
-  // 소속 변경시 현장 선택 초기화
+  // 소속 변경시 현장 선택 초기화 (프리필 상태는 유지)
   useEffect(() => {
+    if (hasPrefill) return
     setSelectedSite('')
-  }, [department])
+  }, [department, hasPrefill])
 
   const handleAddCard = () => {
     const newId = Math.max(...workCards.map(c => c.id)) + 1
@@ -571,9 +710,27 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         ? location
         : firstTask?.location || { block: '', dong: '', unit: '' }
 
-    const workDesc = (normalizedWorkProcesses.length ? normalizedWorkProcesses : repProcesses).join(
-      ', '
-    )
+    // work_description 생성 - 부재명과 작업공정 조합
+    let workDesc = ''
+    const processesForDesc = normalizedWorkProcesses.length ? normalizedWorkProcesses : repProcesses
+    const memberTypesForDesc = normalizedMemberTypes.length ? normalizedMemberTypes : repMemberTypes
+
+    if (processesForDesc.length > 0) {
+      workDesc = processesForDesc.join(', ')
+    } else if (memberTypesForDesc.length > 0) {
+      workDesc = memberTypesForDesc.join(', ')
+    } else {
+      workDesc = '작업 내용'
+    }
+
+    console.log('[buildPayload] Building payload:', {
+      status,
+      memberTypes: repMemberTypes,
+      processes: repProcesses,
+      workTypes: repWorkTypes,
+      workDesc,
+      tasksCount: tasks.length,
+    })
 
     return {
       site_id: selectedSite,
@@ -606,7 +763,16 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      const res: any = await createWorklogMutation.mutateAsync({ ...buildPayload('draft'), tasks })
+      const basePayload = buildPayload('draft')
+      const fullPayload = { ...basePayload, tasks }
+
+      console.log('[handleTemporarySave] Sending payload:', fullPayload)
+      console.log('[handleTemporarySave] Tasks:', tasks)
+      console.log('[handleTemporarySave] MemberTypes:', memberTypes)
+      console.log('[handleTemporarySave] WorkContents:', workContents)
+      console.log('[handleTemporarySave] WorkTypes:', workTypes)
+
+      const res: any = await createWorklogMutation.mutateAsync(fullPayload)
       const msg = res?.message || '임시저장되었습니다.'
       toast.success(msg)
       setActionStatus({ type: 'success', message: msg })

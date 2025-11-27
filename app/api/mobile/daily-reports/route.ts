@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
         sites(
           id,
           name,
-          address
+          address,
+          organization_id
         ),
         profiles!daily_reports_created_by_fkey(
           id,

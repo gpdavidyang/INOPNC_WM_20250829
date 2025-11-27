@@ -3,7 +3,7 @@
  * Connects to /api/mobile/daily-reports endpoint
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 // API Response types
 interface ApiResponse<T> {
@@ -63,6 +63,7 @@ export interface DailyReportItem {
     id: string
     name: string
     address: string
+    organization_id?: string
   }
   profiles?: {
     id: string

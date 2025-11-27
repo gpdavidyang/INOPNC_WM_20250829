@@ -355,9 +355,9 @@ export default function DocumentHubPage() {
         }
         :global(.doc-hub .drawing-card__actions) {
           display: flex;
-          flex-wrap: wrap;
+          justify-content: flex-end;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           width: 100%;
         }
         :global(.doc-hub .drawing-card__actions-left),
@@ -366,16 +366,12 @@ export default function DocumentHubPage() {
           flex-wrap: wrap;
           gap: 6px;
         }
-        :global(.doc-hub .drawing-card__actions-right) {
-          margin-left: auto;
+        :global(.doc-hub .drawing-card__actions-left) {
+          margin-right: auto;
         }
         @media (max-width: 520px) {
           :global(.doc-hub .drawing-card__actions) {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          :global(.doc-hub .drawing-card__actions-right) {
-            margin-left: 0;
+            justify-content: flex-end;
           }
         }
         :global(.doc-hub .drawing-card__actions .company-doc-btn) {
@@ -580,12 +576,13 @@ export default function DocumentHubPage() {
         }
         :global(.doc-hub .filters .btn) {
           min-height: 44px;
-          padding: 0 16px;
+          padding: 0 12px;
           border-radius: 10px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           font-weight: 600;
+          white-space: nowrap;
         }
         :global(.doc-hub .filters .doc-filter-trigger),
         :global(.doc-hub .filters .upload-trigger) {
@@ -611,11 +608,54 @@ export default function DocumentHubPage() {
           border-radius: 10px;
           font-weight: 600;
         }
+        .grid-thumbs {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+          gap: 14px;
+        }
         .grid-thumbs .thumb {
           background: var(--card, #fff);
           border: 1px solid var(--line, #e5e7eb);
-          border-radius: 10px;
+          border-radius: 12px;
           overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          min-height: 210px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+        }
+        .grid-thumbs .thumb-image-wrapper {
+          position: relative;
+          width: 100%;
+          padding-top: 80%;
+          background: #f8fafc;
+        }
+        .grid-thumbs .thumb-image-wrapper img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .grid-thumbs .thumb-meta {
+          padding: 8px 10px;
+          border-top: 1px solid var(--line, #e5e7eb);
+          background: #f9fafb;
+        }
+        .grid-thumbs .thumb-title {
+          display: block;
+          font-size: 12px;
+          font-weight: 700;
+          color: #0f172a;
+          word-break: break-all;
+          line-height: 1.2;
+        }
+        .grid-thumbs .thumb-subtitle {
+          display: block;
+          font-size: 11px;
+          font-weight: 500;
+          color: #6b7280;
+          line-height: 1.2;
+          margin-top: 2px;
         }
 
         /* Dark mode overrides */
@@ -1794,10 +1834,10 @@ function DrawingsTab() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const fileInput = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
-  const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const limit = 24
   const [totalPages, setTotalPages] = useState(1)
+  // 검색 입력 제거
   const [queue, setQueue] = useState<
     Array<{ file: File; siteId: string; category: 'plan' | 'progress' | 'other' }>
   >([])
@@ -1947,7 +1987,6 @@ function DrawingsTab() {
       if (category) params.set('category', category)
       params.set('limit', String(limit))
       params.set('page', String(page))
-      if (q.trim()) params.set('q', q.trim())
       if (worklogLinkId.trim()) params.set('worklogId', worklogLinkId.trim())
       const res = await fetch(`/api/docs/drawings?${params.toString()}`)
       const json = await res.json()
@@ -2431,42 +2470,6 @@ function DrawingsTab() {
               </CustomSelectContent>
             </CustomSelect>
           </div>
-          <div className="filter-row filter-row-search">
-            <input
-              className="input"
-              placeholder="검색"
-              value={q}
-              onChange={e => setQ(e.target.value)}
-            />
-            <button
-              className="btn search-btn"
-              onClick={() => {
-                setPage(1)
-                fetchList()
-              }}
-            >
-              검색
-            </button>
-          </div>
-          <div className="filter-row">
-            <input
-              className="input"
-              placeholder="작업일지 ID (연결 모드)"
-              value={worklogDraft}
-              onChange={e => setWorklogDraft(e.target.value)}
-            />
-            <button
-              className="btn"
-              onClick={() => setWorklogLinkId(worklogDraft.trim())}
-              disabled={!worklogDraft.trim()}
-            >
-              적용
-            </button>
-            <button className="btn" onClick={() => setWorklogLinkId('')}>
-              해제
-            </button>
-          </div>
-          <div className="filters-divider horizontal" aria-hidden="true" />
           <div className="upload-row">
             <CustomSelect
               value={uploadCategory}
@@ -2809,11 +2812,12 @@ function PhotosTab() {
   const [site, setSite] = useState('')
   const [category, setCategory] = useState<'before' | 'after' | 'other' | ''>('')
   const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
-  const [items, setItems] = useState<Array<{ id: string; url: string }>>([])
+  const [items, setItems] = useState<
+    Array<{ id: string; url: string; name?: string; createdAt?: string }>
+  >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
-  const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
   const limit = 24
   const [totalPages, setTotalPages] = useState(1)
@@ -2897,6 +2901,17 @@ function PhotosTab() {
       return n
     })
 
+  const formatDateLabel = (iso: string) => {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const yy = String(d.getFullYear()).slice(2)
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const weekday = '일월화수목금토'.charAt(d.getDay())
+    return `${yy}.${mm}.${dd} (${weekday})`
+  }
+
   const fetchList = async () => {
     setLoading(true)
     try {
@@ -2905,11 +2920,17 @@ function PhotosTab() {
       if (category) params.set('category', category)
       params.set('limit', String(limit))
       params.set('page', String(page))
-      if (q.trim()) params.set('q', q.trim())
-      const res = await fetch(`/api/docs/photos?${params.toString()}`)
+      const res = await fetch(`/api/docs/photos?${params.toString()}`, { cache: 'no-store' })
       const json = await res.json()
       if (res.ok && json?.success) {
-        setItems((json.data || []).map((d: any) => ({ id: String(d.id), url: String(d.url) })))
+        setItems(
+          (json.data || []).map((d: any) => ({
+            id: String(d.id),
+            url: String(d.url),
+            name: String(d.name || d.title || d.file_name || `photo-${d.id}`),
+            createdAt: d.created_at || '',
+          }))
+        )
         if (json.pagination) setTotalPages(json.pagination.totalPages || 1)
       } else setItems([])
     } finally {
@@ -2964,21 +2985,6 @@ function PhotosTab() {
             <CustomSelectItem value="other">기타</CustomSelectItem>
           </CustomSelectContent>
         </CustomSelect>
-        <input
-          className="input"
-          placeholder="검색"
-          value={q}
-          onChange={e => setQ(e.target.value)}
-        />
-        <button
-          className="btn"
-          onClick={() => {
-            setPage(1)
-            fetchList()
-          }}
-        >
-          검색
-        </button>
         <button className="btn" onClick={onUpload}>
           업로드
         </button>
@@ -3035,23 +3041,37 @@ function PhotosTab() {
       <div className="grid-thumbs">
         {loading && <div className="doc-selection-title">불러오는 중...</div>}
         {!loading &&
-          items.map(it => (
-            <div
-              key={it.id}
-              className="thumb"
-              onClick={() => toggle(it.id)}
-              style={{ outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none' }}
-            >
-              <Image
-                src={it.url}
-                alt={`photo-${it.id}`}
-                width={320}
-                height={180}
-                className="h-full w-full object-cover"
-                sizes="(max-width: 768px) 50vw, 320px"
-              />
-            </div>
-          ))}
+          items.map(it => {
+            const fileName = it.name || it.url?.split('/')?.pop() || ''
+            const shortName =
+              fileName.length > 18 ? `${fileName.slice(0, 9)}…${fileName.slice(-6)}` : fileName
+            const label = shortName || `photo-${it.id}`
+            const dateLabel = formatDateLabel(it.createdAt || '')
+
+            return (
+              <div
+                key={it.id}
+                className="thumb"
+                onClick={() => toggle(it.id)}
+                style={{ outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none' }}
+              >
+                <div className="thumb-image-wrapper">
+                  <Image
+                    src={it.url}
+                    alt={label}
+                    width={320}
+                    height={220}
+                    className="h-full w-full object-cover"
+                    sizes="(max-width: 768px) 50vw, 320px"
+                  />
+                </div>
+                <div className="thumb-meta">
+                  <span className="thumb-title">{label || '사진'}</span>
+                  {dateLabel && <span className="thumb-subtitle">{dateLabel}</span>}
+                </div>
+              </div>
+            )
+          })}
       </div>
       <div className="foot equal">
         <button

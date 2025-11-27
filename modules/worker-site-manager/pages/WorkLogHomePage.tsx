@@ -1,27 +1,27 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
-import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
-import { PartnerMobileLayout } from '@/modules/mobile/components/layout/PartnerMobileLayout'
-import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
-import { useRouter } from 'next/navigation'
-import { DiaryDetailViewer } from '@/modules/mobile/components/worklogs'
-import type { WorklogDetail, WorklogAttachment } from '@/types/worklog'
-import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
-import { WorkLog, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
-import { UncompletedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
-import { dismissAlert, formatDate } from '@/modules/mobile/utils/work-log-utils'
-import { Plus, Search as SearchIcon, ChevronDown } from 'lucide-react'
 import {
   CustomSelect,
-  PhSelectTrigger,
-  CustomSelectValue,
   CustomSelectContent,
   CustomSelectItem,
+  CustomSelectValue,
+  PhSelectTrigger,
 } from '@/components/ui/custom-select'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
+import { PartnerMobileLayout } from '@/modules/mobile/components/layout/PartnerMobileLayout'
+import { UncompletedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
+import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
+import { DiaryDetailViewer } from '@/modules/mobile/components/worklogs'
+import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
 import '@/modules/mobile/styles/attendance.css'
 import '@/modules/mobile/styles/partner.css'
+import { WorkLog, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
+import { dismissAlert, formatDate } from '@/modules/mobile/utils/work-log-utils'
+import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
+import { Search as SearchIcon } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 const SECTION_PREVIEW_COUNT = 5
@@ -136,8 +136,6 @@ export const WorkLogHomePage: React.FC = () => {
     return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
   }, [draftWorkLogs, approvedWorkLogs])
 
-  const [selectedSite, setSelectedSite] = useState('all')
-  const [selectedPeriod, setSelectedPeriod] = useState('all')
   const [visibleCounts, setVisibleCounts] = useState<{ draft: number; approved: number }>({
     draft: 10,
     approved: 10,
@@ -159,12 +157,39 @@ export const WorkLogHomePage: React.FC = () => {
     setVisibleUncompleted(prev => prev.filter(item => item.month !== month))
   }, [])
 
+  const applyMonthFilter = useCallback(
+    (month: string) => {
+      const [yearStr, monthStr] = month.split('-')
+      const year = Number(yearStr)
+      const monthIndex = Number(monthStr) - 1
+
+      if (Number.isNaN(year) || Number.isNaN(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+        return
+      }
+
+      const format = (y: number, m: number, d: number) =>
+        `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+
+      const startDay = 1
+      const endDay = new Date(year, monthIndex + 1, 0).getDate()
+
+      setFilter(prev => ({
+        ...prev,
+        status: 'draft',
+        dateFrom: format(year, monthIndex + 1, startDay),
+        dateTo: format(year, monthIndex + 1, endDay),
+      }))
+    },
+    [setFilter]
+  )
+
   const handleNavigateToMonth = useCallback(
     (_month: string) => {
+      applyMonthFilter(_month)
       setActiveTab(readOnly ? 'approved' : 'draft')
       setUncompletedSheetOpen(false)
     },
-    [readOnly]
+    [applyMonthFilter, readOnly]
   )
 
   const filterStatus = filter.status
@@ -186,84 +211,58 @@ export const WorkLogHomePage: React.FC = () => {
   }, [activeTab, filterStatus, setFilter])
 
   useEffect(() => {
-    if (!siteOptions.some(option => option.value === selectedSite)) {
-      setSelectedSite('all')
-      return
+    if (!filterSiteId) return
+    if (!siteOptions.some(option => option.value === filterSiteId)) {
+      setFilter(prev => ({ ...prev, siteId: undefined }))
     }
+  }, [filterSiteId, siteOptions, setFilter])
 
-    if (selectedSite === 'all') {
-      if (filterSiteId !== undefined) {
-        setFilter(prev => ({ ...prev, siteId: undefined }))
-      }
-    } else {
-      if (filterSiteId !== selectedSite) {
-        setFilter(prev => ({ ...prev, siteId: selectedSite }))
-      }
-    }
-  }, [selectedSite, siteOptions, filterSiteId, setFilter])
-
-  useEffect(() => {
-    const option = PERIOD_OPTIONS.find(item => item.id === selectedPeriod)
-    if (!option) return
-
-    if (option.months === null) {
-      if (filterDateFrom !== undefined || filterDateTo !== undefined) {
-        setFilter(prev => ({ ...prev, dateFrom: undefined, dateTo: undefined }))
-      }
-      return
-    }
-
-    const end = new Date()
-    const start = new Date()
-    start.setMonth(start.getMonth() - (option.months - 1))
-
-    const format = (date: Date) => date.toISOString().split('T')[0]
-
-    const nextDateFrom = format(start)
-    const nextDateTo = format(end)
-
-    if (filterDateFrom !== nextDateFrom || filterDateTo !== nextDateTo) {
-      setFilter(prev => ({ ...prev, dateFrom: nextDateFrom, dateTo: nextDateTo }))
-    }
-  }, [PERIOD_OPTIONS, selectedPeriod, filterDateFrom, filterDateTo, setFilter])
-
-  useEffect(() => {
-    if (!siteOptions.length) return
-
+  const selectedSite = useMemo(() => {
     if (filterSiteId && siteOptions.some(option => option.value === filterSiteId)) {
-      if (selectedSite !== filterSiteId) {
-        setSelectedSite(filterSiteId)
-      }
-    } else if (!filterSiteId && selectedSite !== 'all') {
-      setSelectedSite('all')
+      return filterSiteId
     }
-  }, [filterSiteId, selectedSite, siteOptions])
+    return 'all'
+  }, [filterSiteId, siteOptions])
 
-  useEffect(() => {
-    // If date range is not set, do not auto-switch the period to 'all'.
-    // This avoids a feedback loop with the effect that sets filter dates from selectedPeriod.
-    if (!filterDateFrom || !filterDateTo) {
-      return
-    }
+  const selectedPeriod = useMemo(() => {
+    if (!filterDateFrom || !filterDateTo) return 'all'
 
     const fromDate = new Date(filterDateFrom)
     const toDate = new Date(filterDateTo)
-    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
-      return
-    }
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return 'all'
 
     const diffMonths =
       (toDate.getFullYear() - fromDate.getFullYear()) * 12 +
       (toDate.getMonth() - fromDate.getMonth()) +
       1
 
-    const matchingOption = PERIOD_OPTIONS.find(option => option.months === diffMonths)
-    const nextPeriod = matchingOption ? matchingOption.id : 'all'
+    const matching = PERIOD_OPTIONS.find(option => option.months === diffMonths)
+    return matching ? matching.id : 'custom'
+  }, [PERIOD_OPTIONS, filterDateFrom, filterDateTo])
 
-    if (selectedPeriod !== nextPeriod) {
-      setSelectedPeriod(nextPeriod)
+  const selectedSiteLabel = useMemo(
+    () => siteOptions.find(o => o.value === selectedSite)?.label || '현장 선택',
+    [selectedSite, siteOptions]
+  )
+
+  const selectedPeriodLabel = useMemo(() => {
+    const labelMap: Record<string, string> = {
+      all: '전체 기간',
+      '3m': '최근 3개월',
+      '6m': '최근 6개월',
+      '12m': '최근 12개월',
+      custom:
+        filterDateFrom && filterDateTo
+          ? (() => {
+              const y = filterDateFrom.slice(0, 4)
+              const m = filterDateFrom.slice(5, 7)
+              return `${y}.${m}`
+            })()
+          : '선택된 기간',
     }
-  }, [PERIOD_OPTIONS, filterDateFrom, filterDateTo, selectedPeriod])
+
+    return labelMap[selectedPeriod] || '기간 선택'
+  }, [filterDateFrom, filterDateTo, selectedPeriod])
 
   const handleCreateWorkLog = useCallback(() => {
     if (readOnly) return
@@ -356,17 +355,45 @@ export const WorkLogHomePage: React.FC = () => {
     const workLog = pendingDraft
     if (!workLog) return
     try {
+      const additionalManpower =
+        (workLog.workers || []).map(worker => ({
+          workerName: worker.name,
+          manpower: Number(worker.hours || 0) / 8 || 0,
+        })) || []
+      const additionalTotal = additionalManpower.reduce(
+        (sum, worker) => sum + (Number(worker.manpower) || 0),
+        0
+      )
+      const estimatedMain =
+        Number(workLog.totalHours || 0) / 8 -
+        (Number.isFinite(additionalTotal) ? additionalTotal : 0)
+      const mainManpower = estimatedMain > 0 && Number.isFinite(estimatedMain) ? estimatedMain : 1
+
       const prefill = {
         siteId: workLog.siteId,
         workDate: workLog.date,
-        department: '',
+        department: workLog.organizationId || '',
         location: workLog.location || { block: '', dong: '', unit: '' },
         memberTypes: workLog.memberTypes || [],
         workProcesses: workLog.workProcesses || [],
         workTypes: workLog.workTypes || [],
-        mainManpower: Number(workLog.totalHours || 0) / 8,
-        materials: [],
-        additionalManpower: [],
+        mainManpower,
+        materials:
+          (workLog.materials || []).map(material => ({
+            material_name: material.material_name || '',
+            material_code: material.material_code || material.material_id || null,
+            quantity: material.quantity || 0,
+            unit: material.unit || '',
+            notes: material.notes || '',
+          })) || [],
+        additionalManpower,
+        tasks:
+          ((workLog as any).tasks || []).map((task: any) => ({
+            memberTypes: task?.memberTypes || [],
+            processes: task?.workProcesses || task?.processes || [],
+            workTypes: task?.workTypes || [],
+            location: task?.location || { block: '', dong: '', unit: '' },
+          })) || [],
       }
       if (typeof window !== 'undefined') {
         localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
@@ -450,6 +477,43 @@ export const WorkLogHomePage: React.FC = () => {
     [deleteWorkLog]
   )
 
+  const handleSiteChange = useCallback(
+    (value: string) => {
+      setFilter(prev => ({ ...prev, siteId: value === 'all' ? undefined : value }))
+    },
+    [setFilter]
+  )
+
+  const handlePeriodChange = useCallback(
+    (value: string) => {
+      if (value === 'custom') return
+
+      if (value === 'all') {
+        setFilter(prev => ({ ...prev, dateFrom: undefined, dateTo: undefined }))
+        return
+      }
+
+      const option = PERIOD_OPTIONS.find(item => item.id === value)
+      if (!option || option.months === null) return
+
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - (option.months - 1))
+
+      const format = (date: Date) => date.toISOString().split('T')[0]
+
+      const nextDateFrom = format(start)
+      const nextDateTo = format(end)
+
+      setFilter(prev => ({
+        ...prev,
+        dateFrom: nextDateFrom,
+        dateTo: nextDateTo,
+      }))
+    },
+    [PERIOD_OPTIONS, setFilter]
+  )
+
   useEffect(() => {
     setVisibleCounts(prev => {
       let nextDraft = prev.draft
@@ -492,9 +556,13 @@ export const WorkLogHomePage: React.FC = () => {
           .filter(Boolean)
           .join(' ')
         const subtitle =
+          workLog.title ||
           main ||
           (workLog.workProcesses && workLog.workProcesses.length > 0
             ? workLog.workProcesses.join(', ')
+            : '') ||
+          (workLog.memberTypes && workLog.memberTypes.length > 0
+            ? workLog.memberTypes.join(', ')
             : '') ||
           workLog.notes ||
           '작업 내용 미입력'
@@ -1329,11 +1397,9 @@ export const WorkLogHomePage: React.FC = () => {
           {/* 작업일지 필터 (컨테이너 최소화: 바로 행 배치) */}
           <section aria-label="작업일지 필터" className="select-row">
             {/* 현장 선택 */}
-            <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
+            <CustomSelect value={selectedSite} onValueChange={handleSiteChange}>
               <PhSelectTrigger>
-                <CustomSelectValue className="text-left">
-                  {siteOptions.find(o => o.value === selectedSite)?.label || '현장 선택'}
-                </CustomSelectValue>
+                <CustomSelectValue className="text-left">{selectedSiteLabel}</CustomSelectValue>
               </PhSelectTrigger>
               <CustomSelectContent align="start" className="custom-select-content">
                 <CustomSelectItem value="all">전체 현장</CustomSelectItem>
@@ -1348,18 +1414,16 @@ export const WorkLogHomePage: React.FC = () => {
             </CustomSelect>
 
             {/* 기간 선택 */}
-            <CustomSelect value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <CustomSelect value={selectedPeriod} onValueChange={handlePeriodChange}>
               <PhSelectTrigger>
-                <CustomSelectValue className="text-left">
-                  {{
-                    all: '전체 기간',
-                    '3m': '최근 3개월',
-                    '6m': '최근 6개월',
-                    '12m': '최근 12개월',
-                  }[selectedPeriod] || '기간 선택'}
-                </CustomSelectValue>
+                <CustomSelectValue className="text-left">{selectedPeriodLabel}</CustomSelectValue>
               </PhSelectTrigger>
               <CustomSelectContent align="start" className="custom-select-content">
+                {selectedPeriod === 'custom' && filterDateFrom && filterDateTo && (
+                  <CustomSelectItem value="custom" disabled>
+                    {selectedPeriodLabel}
+                  </CustomSelectItem>
+                )}
                 <CustomSelectItem value="all">전체 기간</CustomSelectItem>
                 <CustomSelectItem value="3m">최근 3개월</CustomSelectItem>
                 <CustomSelectItem value="6m">최근 6개월</CustomSelectItem>
