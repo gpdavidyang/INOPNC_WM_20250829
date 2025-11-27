@@ -198,6 +198,10 @@ Thumbs.db
 *.sln
 *.sw?
 
+# Large binary assets
+dy_memo/**/*.mp4
+dy_memo/**/*.zip
+
 # OS generated files
 .DS_Store*
 .Trashes
