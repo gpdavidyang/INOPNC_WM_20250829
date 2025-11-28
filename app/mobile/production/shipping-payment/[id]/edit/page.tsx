@@ -71,6 +71,12 @@ type ShippingEditContext = 'mobile' | 'admin'
 async function updateShipment(id: string, formData: FormData) {
   'use server'
   const supabase = createClient()
+  let writer = supabase
+  try {
+    writer = createServiceClient()
+  } catch (error) {
+    console.warn('[ShippingEdit] service client unavailable, falling back to session client', error)
+  }
   const {
     data: { session },
   } = await supabase.auth.getSession()
@@ -217,7 +223,7 @@ async function updateShipment(id: string, formData: FormData) {
   let updated = false
   for (let attempt = 0; attempt < OPTIONAL_COLUMN_KEYS.length + 1; attempt++) {
     const payload = buildPayload(detectedMissing)
-    const { error } = await supabase
+    const { error } = await writer
       .from('material_shipments')
       .update(payload as any)
       .eq('id', id)
@@ -249,16 +255,13 @@ async function updateShipment(id: string, formData: FormData) {
     throw new Error('출고 정보를 수정하지 못했습니다.')
   }
 
-  const { error: deleteError } = await supabase
-    .from('shipment_items')
-    .delete()
-    .eq('shipment_id', id)
+  const { error: deleteError } = await writer.from('shipment_items').delete().eq('shipment_id', id)
   if (deleteError) {
     console.error('[ShippingEdit] failed to remove existing shipment items', deleteError)
     throw new Error('출고 품목을 갱신하지 못했습니다.')
   }
   if (effectiveItems.length > 0) {
-    await insertShipmentItems(supabase, id, effectiveItems)
+    await insertShipmentItems(writer, id, effectiveItems)
   }
 
   const auth = await getAuth()

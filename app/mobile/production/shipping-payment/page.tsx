@@ -26,12 +26,14 @@ export default async function ShippingPaymentPage({
     site_id?: string
     partner_company_id?: string
     status?: string
+    sort?: string
   }
 }) {
   await requireAuth('/mobile/production')
   const supabase = createClient()
 
   // 최근 출고 이력 (간단 검색 포함)
+  const sortOrder = (searchParams?.sort || '').trim().toLowerCase() === 'asc' ? 'asc' : 'desc'
   let shipmentsRaw: any[] = []
   const missingSelectParts = new Set<ShipmentSelectPart>()
   let selectResolved = false
@@ -39,8 +41,8 @@ export default async function ShippingPaymentPage({
     const { data, error } = await supabase
       .from('material_shipments')
       .select(buildShipmentSelectClause(missingSelectParts))
-      .order('shipment_date', { ascending: false })
-      .order('created_at', { ascending: false })
+      .order('shipment_date', { ascending: sortOrder === 'asc' })
+      .order('created_at', { ascending: sortOrder === 'asc' })
       .limit(200)
     if (!error) {
       shipmentsRaw = (data as any[]) || []
@@ -179,6 +181,7 @@ export default async function ShippingPaymentPage({
     ;(s as any).__meta = metadata
     if (q) {
       const lower = q.toLowerCase()
+      const items = Array.isArray(s.shipment_items) ? s.shipment_items : []
       const site = String(s.sites?.name || '').toLowerCase()
       const mappedPartner =
         s.site_id && partnerBySite.has(String(s.site_id))
@@ -193,11 +196,25 @@ export default async function ShippingPaymentPage({
       const metadataPartner = metadata?.partner_company_label
         ? metadata.partner_company_label.toLowerCase()
         : ''
+      const materialKeywords = items
+        .map((it: any) => `${it.materials?.name || ''} ${it.materials?.code || ''}`.toLowerCase())
+        .join(' ')
+      const itemNotes = items
+        .map((it: any) => (typeof it.notes === 'string' ? it.notes.toLowerCase() : ''))
+        .join(' ')
+      const metaNotes = Array.isArray(metadata?.item_notes)
+        ? metadata.item_notes
+            .map((entry: any) => (typeof entry?.note === 'string' ? entry.note.toLowerCase() : ''))
+            .join(' ')
+        : ''
       const matchKeyword =
         site.includes(lower) ||
         mappedPartner.includes(lower) ||
         directPartner.includes(lower) ||
-        metadataPartner.includes(lower)
+        metadataPartner.includes(lower) ||
+        materialKeywords.includes(lower) ||
+        itemNotes.includes(lower) ||
+        metaNotes.includes(lower)
       if (!matchKeyword) return false
     }
     if (periodStartISO && periodEndISO) {
@@ -212,13 +229,18 @@ export default async function ShippingPaymentPage({
     if (selectedSiteId && String(s.site_id) !== selectedSiteId) return false
     if (selectedPartnerCompanyId) {
       if (partnerColumnAvailable) {
-        const matchesDirect = String(s.partner_company_id || '') === selectedPartnerCompanyId
-        const matchesMapped = s.site_id ? Boolean(allowedSites?.has(String(s.site_id))) : false
-        if (!matchesDirect && !matchesMapped) return false
+        const partnerId = String(s.partner_company_id || '')
+        const hasPartnerId = Boolean(partnerId)
+        const directMatch = hasPartnerId && partnerId === selectedPartnerCompanyId
+        const mappedMatch =
+          !hasPartnerId && s.site_id ? Boolean(allowedSites?.has(String(s.site_id))) : false
+        if (!(directMatch || mappedMatch)) return false
       } else if (selectedPartnerLabel) {
-        const matchesMetadata = metadata?.partner_company_label === selectedPartnerLabel
+        const normalizedMeta = (metadata?.partner_company_label || '').trim().toLowerCase()
+        const normalizedSelected = selectedPartnerLabel.trim().toLowerCase()
+        const matchesMetadata = normalizedMeta && normalizedMeta === normalizedSelected
         const matchesMapped = s.site_id ? Boolean(allowedSites?.has(String(s.site_id))) : false
-        if (!matchesMetadata && !matchesMapped) return false
+        if (!(matchesMetadata || matchesMapped)) return false
       }
     }
     if (statusFilter && statusFilter !== 'all') {
@@ -240,6 +262,7 @@ export default async function ShippingPaymentPage({
   if (selectedMaterialId && selectedMaterialId !== 'all')
     baseParams.set('material_id', selectedMaterialId)
   if (statusFilter && statusFilter !== 'all') baseParams.set('status', statusFilter)
+  if (sortOrder && sortOrder !== 'desc') baseParams.set('sort', sortOrder)
   const baseQuery = baseParams.toString()
   const nextTake = Math.min(take + 20, 200)
 
@@ -251,6 +274,10 @@ export default async function ShippingPaymentPage({
     return d && d >= startOfMonth
   })
   const totalShipmentsThisMonth = monthlyShipments.length
+  const totalCompletedShipmentsThisMonth = monthlyShipments.filter((s: any) => {
+    const st = String((s as any)?.status || '').toLowerCase()
+    return st === 'shipped' || st === 'delivered'
+  }).length
   const totalQtyThisMonth = monthlyShipments.reduce((acc: number, s: any) => {
     const items = s.shipment_items || []
     return acc + items.reduce((a: number, it: any) => a + Number(it.quantity || 0), 0)
@@ -386,7 +413,13 @@ export default async function ShippingPaymentPage({
           <div className="grid grid-cols-3 gap-3">
             <div className="pm-kpi">
               <div className="pm-kpi-label">출고건수</div>
-              <div className="pm-kpi-value">{totalShipmentsThisMonth.toLocaleString()}</div>
+              <div className="pm-kpi-value">
+                {totalCompletedShipmentsThisMonth.toLocaleString()}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                완료 / 전체 : {totalCompletedShipmentsThisMonth.toLocaleString()} /{' '}
+                {totalShipmentsThisMonth.toLocaleString()}
+              </div>
             </div>
             <div className="pm-kpi pm-kpi--sales">
               <div className="pm-kpi-label">출고수량</div>
@@ -420,7 +453,60 @@ export default async function ShippingPaymentPage({
         <div className="rounded-lg border p-4 bg-white">
           <div className="flex items-center justify-between mb-3">
             <div className="pm-section-title">출고 리스트</div>
-            {/* 검색 섹션에서 이미 폼 제공 */}
+            <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-1">
+                {(['all', 'pending', 'completed'] as const).map(st => {
+                  const label = st === 'all' ? '전체' : st === 'pending' ? '대기' : '완료'
+                  const params = new URLSearchParams(baseQuery)
+                  if (st === 'all') {
+                    params.delete('status')
+                  } else {
+                    params.set('status', st)
+                  }
+                  const href = `/mobile/production/shipping-payment${params.toString() ? `?${params.toString()}` : ''}`
+                  const isActive = (st === 'all' && statusFilter === 'all') || statusFilter === st
+                  return (
+                    <a
+                      key={st}
+                      href={href}
+                      className={`inline-flex items-center rounded-full border px-2 py-0.5 ${
+                        isActive
+                          ? 'border-blue-400 bg-blue-50 text-blue-700'
+                          : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                    >
+                      {label}
+                    </a>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-1">
+                {(['desc', 'asc'] as const).map(ord => {
+                  const label = ord === 'desc' ? '최신순' : '오래된순'
+                  const params = new URLSearchParams(baseQuery)
+                  if (ord === 'desc') {
+                    params.delete('sort')
+                  } else {
+                    params.set('sort', ord)
+                  }
+                  const href = `/mobile/production/shipping-payment${params.toString() ? `?${params.toString()}` : ''}`
+                  const isActive = sortOrder === ord || (ord === 'desc' && !baseParams.has('sort'))
+                  return (
+                    <a
+                      key={ord}
+                      href={href}
+                      className={`inline-flex items-center rounded-full border px-2 py-0.5 ${
+                        isActive
+                          ? 'border-blue-400 bg-blue-50 text-blue-700'
+                          : 'border-slate-200 bg-white text-slate-600'
+                      }`}
+                    >
+                      {label}
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
           </div>
           {(!shipments || shipments.length === 0) && (
             <div className="text-sm text-muted-foreground">출고 이력이 없습니다.</div>
@@ -447,6 +533,14 @@ export default async function ShippingPaymentPage({
               const totalAmount =
                 storedTotalAmount > 0 ? storedTotalAmount : Math.max(0, derivedAmount)
               const sanitize = (name: string) => name.replace(/\s*\([^)]*\)\s*$/g, '').trim()
+              const formatItemLabel = (it: any) => {
+                const name = sanitize(String(it.materials?.name || ''))
+                const code = String(it.materials?.code || '').trim()
+                if (name && code) return `${name} (${code})`
+                if (name) return name
+                if (code) return code
+                return '-'
+              }
               const mats = items
                 .map((it: any) => sanitize(String(it.materials?.name || '')))
                 .filter(Boolean)
@@ -456,6 +550,7 @@ export default async function ShippingPaymentPage({
                   : mats.length === 1
                     ? mats[0]
                     : `${mats[0]} 외 ${mats.length - 1}건`
+              const extraItems = items.length > 1 ? items.slice(1) : []
               const itemNoteLines: string[] = []
               const noteKeys = new Set<string>()
               const pushNote = (text: string) => {
@@ -526,7 +621,7 @@ export default async function ShippingPaymentPage({
                           {(() => {
                             const tone = isCompleted
                               ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                              : 'border-amber-300 bg-amber-50 text-amber-700'
+                              : 'border-rose-300 bg-rose-50 text-rose-700'
                             const label = isCompleted ? '완료' : '대기'
                             return (
                               <button
@@ -605,6 +700,21 @@ export default async function ShippingPaymentPage({
                     <span className="text-muted-foreground">자재</span>:{' '}
                     <span className="font-semibold">{matSummary}</span>
                   </div>
+                  {extraItems.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                      <div className="text-sm font-semibold text-gray-700">추가 자재</div>
+                      <ul className="mt-1 space-y-1 text-sm text-gray-700">
+                        {extraItems.map((it: any, idx: number) => (
+                          <li key={idx} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{formatItemLabel(it)}</span>
+                            <span className="font-semibold">
+                              {Number(it.quantity || 0).toLocaleString()}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {itemNoteLines.length > 0 && (
                     <div className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap break-words">
                       메모: {itemNoteLines.join(' / ')}
@@ -649,14 +759,21 @@ export default async function ShippingPaymentPage({
               )
             })}
           </div>
-          {shipments.length > take && (
-            <div className="mt-4 flex justify-center">
-              <a
-                href={`/mobile/production/shipping-payment?${baseQuery}${baseQuery ? '&' : ''}take=${nextTake}`}
-                className="close-btn"
-              >
-                더보기
-              </a>
+          {(shipments.length > visibleShipments.length || take > 20) && (
+            <div className="mt-4 flex justify-center gap-2">
+              {shipments.length > visibleShipments.length ? (
+                <a
+                  href={`/mobile/production/shipping-payment?${baseQuery}${baseQuery ? '&' : ''}take=${nextTake}`}
+                  className="close-btn"
+                >
+                  더보기
+                </a>
+              ) : null}
+              {take > 20 ? (
+                <a href={`/mobile/production/shipping-payment?${baseQuery}`} className="close-btn">
+                  접기
+                </a>
+              ) : null}
             </div>
           )}
         </div>

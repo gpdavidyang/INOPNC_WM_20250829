@@ -348,6 +348,7 @@ export default async function ShippingCreatePage() {
     ? pickDefaultValue(shippingOptions, '택배')
     : ''
   const defaultFreightValue = freightOptions.length ? pickDefaultValue(freightOptions, '선불') : ''
+  const todayISO = new Date().toISOString().slice(0, 10)
 
   return (
     <MobileLayoutWithAuth topTabs={<ProductionManagerTabs active="shipping" />}>
@@ -358,15 +359,17 @@ export default async function ShippingCreatePage() {
             <p className="text-[#31A3FA] font-semibold text-base">필수입력(*)후 저장</p>
           </div>
           <form action={submit} className="pm-form pm-form--dense space-y-3">
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">
-                출고 품목<span className="req-mark"> *</span>
-              </label>
-              <ShipmentItemsFieldArray materialOptions={materialOptions} />
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1.6fr_1fr]">
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  출고 품목<span className="req-mark"> *</span>
+                </label>
+                <ShipmentItemsFieldArray materialOptions={materialOptions} />
+              </div>
             </div>
 
-            {/* 출고날짜 */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* 출고일 + 금액 (1행2열 고정) */}
+            <div className="grid grid-cols-2 gap-3 items-end">
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">
                   출고일<span className="req-mark"> *</span>
@@ -375,40 +378,41 @@ export default async function ShippingCreatePage() {
                   type="date"
                   name="shipment_date"
                   className="w-full rounded-lg border px-3 py-2"
+                  defaultValue={todayISO}
                   required
+                />
+              </div>
+              <div>
+                <ShipmentAmountInput name="amount_net" />
+              </div>
+            </div>
+
+            {/* 3. 현장/거래처 (1행2열 고정) */}
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div className="min-w-0">
+                <label className="block text-sm text-muted-foreground mb-1">현장 선택</label>
+                <SelectField
+                  name="site_id"
+                  options={(sites || []).map(s => ({ value: s.id, label: s.name }))}
+                  placeholder="현장 선택"
+                />
+              </div>
+              <div className="min-w-0">
+                <label className="block text-sm text-muted-foreground mb-1">자재거래처</label>
+                <MaterialPartnerSelect
+                  name="partner_company_id"
+                  options={materialPartnerOptions}
+                  placeholder="자재거래처 선택"
                 />
               </div>
             </div>
 
-            {/* 3. 현장명 선택 (1행1열) */}
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">현장명 선택</label>
-              <SelectField
-                name="site_id"
-                options={(sites || []).map(s => ({ value: s.id, label: s.name }))}
-                placeholder="현장 선택"
-              />
-            </div>
-
             <input type="hidden" name="carrier" value="" />
 
-            {/* 4. 자재거래처 선택 (1행1열) */}
-            <div>
-              <label className="block text-sm text-muted-foreground mb-1">자재거래처</label>
-              <MaterialPartnerSelect
-                name="partner_company_id"
-                options={materialPartnerOptions}
-                placeholder="자재거래처 선택"
-              />
-            </div>
-
-            {/* 5. 출고금액 + 상태 (1행2열) */}
-            <div className="grid grid-cols-2 gap-3">
-              <ShipmentAmountInput name="amount_net" />
+            {/* 4. 상태/청구/배송/운임 (1행4열) */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  상태<span className="req-mark"> *</span>
-                </label>
+                <label className="block text-sm text-muted-foreground mb-1">상태</label>
                 <SelectField
                   name="status"
                   options={[
@@ -416,50 +420,36 @@ export default async function ShippingCreatePage() {
                     { value: 'delivered', label: '완료' },
                   ]}
                   placeholder="상태 선택"
-                  required
                 />
               </div>
-            </div>
-
-            {/* 6. 청구방식 + 배송방식 + 선불/착불 (1행3열) */}
-            <div className="grid grid-cols-3 gap-3">
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  청구방식<span className="req-mark"> *</span>
-                </label>
+                <label className="block text-sm text-muted-foreground mb-1">청구방식</label>
                 <SelectField
                   name="billing_method_id"
                   labelFieldName="billing_method_label"
                   options={billingOptions}
-                  placeholder="선택"
+                  placeholder="청구방식 선택"
                   defaultValue={defaultBillingValue}
-                  required
                 />
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  배송방식<span className="req-mark"> *</span>
-                </label>
+                <label className="block text-sm text-muted-foreground mb-1">배송방식</label>
                 <SelectField
                   name="shipping_method_id"
                   labelFieldName="shipping_method_label"
                   options={shippingOptions}
-                  placeholder="선택"
+                  placeholder="배송방식 선택"
                   defaultValue={defaultShippingValue}
-                  required
                 />
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">
-                  선불/착불<span className="req-mark"> *</span>
-                </label>
+                <label className="block text-sm text-muted-foreground mb-1">선불/착불</label>
                 <SelectField
                   name="freight_charge_method_id"
                   labelFieldName="freight_charge_method_label"
                   options={freightOptions}
-                  placeholder="선택"
+                  placeholder="선불/착불 선택"
                   defaultValue={defaultFreightValue}
-                  required
                 />
               </div>
             </div>

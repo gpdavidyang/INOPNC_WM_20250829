@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
@@ -176,6 +177,13 @@ export default async function ProductionCreatePage() {
       <div className="p-5 space-y-5 pb-safe min-h-screen-safe">
         <div className="rounded-lg border p-4 bg-white">
           <div className="flex items-center justify-between mb-3">
+            <Link
+              href="/mobile/production/production"
+              className="text-sm text-primary hover:underline"
+              prefetch={false}
+            >
+              ← 뒤로가기
+            </Link>
             <div className="pm-section-title">생산 정보 입력</div>
             <p className="text-[#31A3FA] font-semibold text-base">필수입력(*)후 저장</p>
           </div>

@@ -12,6 +12,8 @@ type Row = {
   defaults?: ShipmentItemDefaults
 }
 
+const DEFAULT_UNIT_PRICE = 38000
+
 const createRow = (defaults?: ShipmentItemDefaults): Row => ({
   id:
     typeof crypto !== 'undefined' && crypto.randomUUID
@@ -40,12 +42,28 @@ export default function ShipmentItemsFieldArray({
   >(() => {
     const map: Record<string, { quantity: string; unitPrice: string }> = {}
     initialRows.forEach(row => {
-      if (!row.defaults) return
-      const qty = Number(row.defaults.quantity || 0)
-      const unitPrice = typeof row.defaults.unit_price === 'number' ? row.defaults.unit_price : null
+      const qty = Number(row.defaults?.quantity || 0)
+      const unitPrice =
+        typeof row.defaults?.unit_price === 'number' ? row.defaults.unit_price : null
       map[row.id] = {
         quantity: qty > 0 ? String(qty) : '',
-        unitPrice: unitPrice != null ? String(unitPrice) : '',
+        unitPrice:
+          unitPrice != null
+            ? String(unitPrice)
+            : row.defaults
+              ? '' // keep empty when defaults explicitly provided without unit_price
+              : String(DEFAULT_UNIT_PRICE),
+      }
+    })
+    if (initialRows.length === 0) {
+      // fallback, but initialRows always has at least one entry
+      const rowId = createRow().id
+      map[rowId] = { quantity: '', unitPrice: String(DEFAULT_UNIT_PRICE) }
+    }
+    // Ensure rows with no defaults also get the default unit price
+    initialRows.forEach(row => {
+      if (!map[row.id]) {
+        map[row.id] = { quantity: '', unitPrice: String(DEFAULT_UNIT_PRICE) }
       }
     })
     return map
@@ -91,6 +109,19 @@ export default function ShipmentItemsFieldArray({
     }
   }
 
+  useEffect(() => {
+    // When a new row is added without defaults, seed default unit price
+    setItemValues(prev => {
+      const next = { ...prev }
+      rows.forEach(row => {
+        if (!next[row.id]) {
+          next[row.id] = { quantity: '', unitPrice: String(DEFAULT_UNIT_PRICE) }
+        }
+      })
+      return next
+    })
+  }, [rows])
+
   return (
     <div className="space-y-3">
       {rows.map((row, index) => (
@@ -107,8 +138,8 @@ export default function ShipmentItemsFieldArray({
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div>
+          <div className="grid grid-cols-[1.2fr_0.8fr_0.8fr] gap-3 items-end">
+            <div className="min-w-0">
               <label className="block text-sm text-muted-foreground mb-1">
                 자재<span className="req-mark"> *</span>
               </label>
@@ -121,7 +152,7 @@ export default function ShipmentItemsFieldArray({
                 defaultValue={row.defaults?.material_id || ''}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="block text-sm text-muted-foreground mb-1">
                 출고수량<span className="req-mark"> *</span>
               </label>
@@ -137,7 +168,7 @@ export default function ShipmentItemsFieldArray({
                 onChange={event => updateItemValue(row.id, 'quantity', event.target.value)}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="block text-sm text-muted-foreground mb-1">단가</label>
               <input
                 className="w-full rounded-lg border px-3 py-2"

@@ -74,7 +74,9 @@ export default function ProductionItemsFieldArray({
                 />
               </div>
               <div>
-                <label className="block text-sm text-muted-foreground mb-1">생산수량 *</label>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  생산수량<span className="req-mark"> *</span>
+                </label>
                 <input
                   className="w-full rounded-lg border px-3 py-2"
                   type="number"

@@ -96,15 +96,24 @@ export default async function ProductionManagePage({
   const siteIdRaw = (searchParams?.site_id || '').trim()
   const partnerCompanyIdRaw = (searchParams?.partner_company_id || '').trim()
   const materialIdRaw = (searchParams?.material_id || '').trim()
+  const sortParamRaw = (searchParams?.sort || '').trim()
+  const sortKey: 'date_desc' | 'date_asc' | 'name_asc' | 'name_desc' =
+    sortParamRaw === 'date_asc' || sortParamRaw === 'name_asc' || sortParamRaw === 'name_desc'
+      ? (sortParamRaw as any)
+      : 'date_desc'
 
   const selectedSiteId = siteIdRaw && siteIdRaw !== 'all' ? siteIdRaw : ''
   const selectedPartnerCompanyId =
     partnerCompanyIdRaw && partnerCompanyIdRaw !== 'all' ? partnerCompanyIdRaw : ''
   const selectedMaterialId = materialIdRaw && materialIdRaw !== 'all' ? materialIdRaw : ''
+  const defaultTake = 20
   const takeParam = (searchParams?.take || '').trim()
   const take = Math.max(
-    20,
-    Math.min(200, Number.isFinite(Number(takeParam)) && takeParam ? parseInt(takeParam, 10) : 20)
+    defaultTake,
+    Math.min(
+      200,
+      Number.isFinite(Number(takeParam)) && takeParam ? parseInt(takeParam, 10) : defaultTake
+    )
   )
 
   // Load filter options
@@ -113,6 +122,13 @@ export default async function ProductionManagePage({
     .select('id, name, code, is_active')
     .eq('is_active', true)
     .order('name', { ascending: true })
+  const materialMap = new Map<string, { name: string | null; code: string | null }>()
+  ;(materialRows || []).forEach((m: any) => {
+    materialMap.set(String(m.id), {
+      name: (m.name as string | null) ?? null,
+      code: (m.code as string | null) ?? null,
+    })
+  })
   const { data: siteRows } = await supabase
     .from('sites')
     .select('id, name, is_deleted')
@@ -225,7 +241,54 @@ export default async function ProductionManagePage({
     return true
   })
 
-  const visibleProductions = productions.slice(0, take)
+  // Sorting (applied after filtering, before slicing)
+  const getDateValue = (p: any) => {
+    const d = p.production_date ? new Date(p.production_date) : null
+    return d ? d.getTime() : 0
+  }
+  const resolveBaseMaterialLabel = (p: any) => {
+    const metadata = metadataById.get(String(p.id)) || parseProductionMetadata(p.quality_notes)
+    const fallbackItems: ProductionMetadataItem[] = Array.isArray(metadata?.fallback_items)
+      ? (metadata!.fallback_items as ProductionMetadataItem[]).filter(
+          item => item && item.material_id
+        )
+      : []
+    const firstItem =
+      Array.isArray(p.material_production_items) && p.material_production_items.length > 0
+        ? p.material_production_items[0]
+        : null
+    const firstFallback = !firstItem && fallbackItems.length > 0 ? fallbackItems[0] : null
+    const fallbackSnapshot = firstFallback?.material_snapshot || null
+    const fallbackMaterialInfo =
+      firstFallback?.material_id && materialMap.has(String(firstFallback.material_id))
+        ? materialMap.get(String(firstFallback.material_id))
+        : null
+    const formatMaterial = (name?: string | null, code?: string | null) => {
+      const normalizedName = (name || '').toString().trim()
+      if (normalizedName) return normalizedName
+      const normalizedCode = (code || '').toString().trim()
+      return normalizedCode || ''
+    }
+    const label = firstItem
+      ? formatMaterial(firstItem.materials?.name, firstItem.materials?.code)
+      : firstFallback
+        ? formatMaterial(
+            fallbackSnapshot?.name ?? fallbackMaterialInfo?.name ?? null,
+            fallbackSnapshot?.code ?? fallbackMaterialInfo?.code ?? null
+          )
+        : formatMaterial(p.materials?.name, p.materials?.code)
+    return label.toLowerCase()
+  }
+  const sortedProductions = [...productions].sort((a, b) => {
+    if (sortKey === 'date_asc') return getDateValue(a) - getDateValue(b)
+    if (sortKey === 'name_asc')
+      return resolveBaseMaterialLabel(a).localeCompare(resolveBaseMaterialLabel(b))
+    if (sortKey === 'name_desc')
+      return resolveBaseMaterialLabel(b).localeCompare(resolveBaseMaterialLabel(a))
+    // default date_desc
+    return getDateValue(b) - getDateValue(a)
+  })
+  const visibleProductions = sortedProductions.slice(0, take)
   // Build next link (preserve filters)
   const baseParams = new URLSearchParams()
   if (q) baseParams.set('q', q)
@@ -233,19 +296,12 @@ export default async function ProductionManagePage({
   if (siteIdRaw) baseParams.set('site_id', siteIdRaw)
   if (partnerCompanyIdRaw) baseParams.set('partner_company_id', partnerCompanyIdRaw)
   if (materialIdRaw) baseParams.set('material_id', materialIdRaw)
+  if (sortKey) baseParams.set('sort', sortKey)
   const baseQuery = baseParams.toString()
   const nextTake = Math.min(take + 20, 200)
 
   // Build partner name map by site (first active mapping)
   // Build Select options
-  const materialMap = new Map<string, { name: string | null; code: string | null }>()
-  ;(materialRows || []).forEach((m: any) => {
-    materialMap.set(String(m.id), {
-      name: (m.name as string | null) ?? null,
-      code: (m.code as string | null) ?? null,
-    })
-  })
-
   const materialOptions: OptionItem[] = [
     { value: 'all', label: '전체 자재' },
     ...(materialRows || []).map(m => ({
@@ -264,6 +320,16 @@ export default async function ProductionManagePage({
     includeAllOption: true,
     allLabel: '전체 자재거래처',
   })
+  const sortOptions: Array<{ value: typeof sortKey; label: string }> = [
+    { value: 'date_desc', label: '날짜 최신순' },
+    { value: 'date_asc', label: '날짜 오래된순' },
+    { value: 'name_asc', label: '이름순' },
+  ]
+  const sortHref = (value: string) => {
+    const params = new URLSearchParams(baseQuery)
+    params.set('sort', value)
+    return `/mobile/production/production?${params.toString()}`
+  }
   // Map site_id → 자재거래처명 (partner_companies.company_name) for display on cards
   const partnerNameBySite = new Map<string, string>()
   if (productionSiteIds.length > 0) {
@@ -375,9 +441,27 @@ export default async function ProductionManagePage({
 
         {/* 1.3 생산 리스트 조회 */}
         <div className="rounded-lg border p-4 bg-white">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div className="pm-section-title">생산 리스트</div>
-            {/* 생산 검색 섹션에서 이미 검색 폼을 제공하므로 여기서는 제거 */}
+            <div className="flex items-center gap-2 text-sm">
+              {sortOptions.map(opt => {
+                const isActive = sortKey === opt.value
+                return (
+                  <a
+                    key={opt.value}
+                    href={sortHref(opt.value)}
+                    className={`inline-flex items-center rounded-full border px-3 py-1.5 ${
+                      isActive
+                        ? 'border-[#31a3fa] bg-[#e8f4ff] text-[#1a254f] font-semibold'
+                        : 'border-[#e5e7eb] text-gray-600'
+                    }`}
+                    aria-pressed={isActive}
+                  >
+                    {opt.label}
+                  </a>
+                )
+              })}
+            </div>
           </div>
           {(!productions || productions.length === 0) && (
             <div className="text-sm text-muted-foreground">생산 리스트가 없습니다.</div>
@@ -437,6 +521,35 @@ export default async function ProductionManagePage({
                 p.site_id && partnerNameBySite.has(String(p.site_id))
                   ? partnerNameBySite.get(String(p.site_id))
                   : ''
+              const extraMaterialItems =
+                firstItem && Array.isArray(p.material_production_items)
+                  ? p.material_production_items.slice(1)
+                  : firstFallback
+                    ? fallbackItems.slice(1)
+                    : []
+              const resolveExtraLabel = (item: any) => {
+                if (item?.materials) {
+                  return formatMaterial(item.materials?.name, item.materials?.code)
+                }
+                if (item?.material_snapshot) {
+                  return formatMaterial(item.material_snapshot?.name, item.material_snapshot?.code)
+                }
+                if (item?.material_id && materialMap.has(String(item.material_id))) {
+                  const info = materialMap.get(String(item.material_id))
+                  return formatMaterial(info?.name ?? null, info?.code ?? null)
+                }
+                return '-'
+              }
+              const resolveExtraQty = (item: any) => {
+                const qtyValue =
+                  item?.produced_quantity ??
+                  item?.order_quantity ??
+                  item?.quantity ??
+                  item?.amount ??
+                  0
+                const num = Number(qtyValue)
+                return Number.isFinite(num) ? num : 0
+              }
               return (
                 <div key={p.id} className="block rounded-lg border p-4 bg-white">
                   {/* Top row: Production number and quantity */}
@@ -460,6 +573,22 @@ export default async function ProductionManagePage({
                     <span className="text-muted-foreground">자재</span>:{' '}
                     <span className="font-semibold">{materialText}</span>
                   </div>
+                  {/* Extra materials list when "외 n건" 존재 */}
+                  {extraMaterialItems.length > 0 && (
+                    <div className="mt-2 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                      <div className="text-sm font-semibold text-gray-700">추가 자재</div>
+                      <ul className="mt-1 space-y-1 text-sm text-gray-700">
+                        {extraMaterialItems.map((item: any, idx: number) => (
+                          <li key={idx} className="flex items-center justify-between gap-2">
+                            <span className="truncate">{resolveExtraLabel(item)}</span>
+                            <span className="font-semibold">
+                              {resolveExtraQty(item).toLocaleString()}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                   {/* Partner */}
                   <div className="mt-1 text-base">
                     <span className="text-muted-foreground">자재거래처</span>:{' '}
@@ -490,14 +619,24 @@ export default async function ProductionManagePage({
                 </div>
               )
             })}
-            {productions.length > take && (
-              <div className="mt-4 flex justify-center">
-                <a
-                  href={`/mobile/production/production?${baseQuery}${baseQuery ? '&' : ''}take=${nextTake}`}
-                  className="close-btn"
-                >
-                  더보기
-                </a>
+            {(productions.length > take || take > defaultTake) && (
+              <div className="mt-4 flex justify-center gap-3">
+                {productions.length > take && (
+                  <a
+                    href={`/mobile/production/production?${baseQuery}${baseQuery ? '&' : ''}take=${nextTake}`}
+                    className="close-btn"
+                  >
+                    더보기
+                  </a>
+                )}
+                {take > defaultTake && (
+                  <a
+                    href={`/mobile/production/production${baseQuery ? `?${baseQuery}` : ''}`}
+                    className="close-btn"
+                  >
+                    접기
+                  </a>
+                )}
               </div>
             )}
           </div>
