@@ -808,6 +808,9 @@ export const WorkLogHomePage: React.FC = () => {
   }, [monthlyLogs])
 
   const LayoutShell = readOnly ? PartnerMobileLayout : MobileLayoutShell
+  const worklogBodyClassName = readOnly
+    ? 'main-container worklog-body'
+    : 'main-container worklog-body spacious'
   return (
     <LayoutShell>
       <div className="worklog-page">
@@ -845,7 +848,10 @@ export const WorkLogHomePage: React.FC = () => {
             background: var(--bg);
             padding: 0 16px 20px; /* 헤더와 간격 제거: 상단 0, 좌우 16 유지 */
             max-width: 100%;
-            /* ensure content can scroll behind bottom nav by reserving extra space */
+            padding-bottom: calc(var(--page-bottom-gap, 24px) + env(safe-area-inset-bottom, 0px));
+          }
+
+          .worklog-body.spacious {
             padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
           }
 
@@ -1331,7 +1337,8 @@ export const WorkLogHomePage: React.FC = () => {
 
           @media (min-width: 640px) {
             .worklog-body {
-              padding: 24px;
+              padding-left: 24px;
+              padding-right: 24px;
             }
           }
 
@@ -1339,12 +1346,14 @@ export const WorkLogHomePage: React.FC = () => {
             .worklog-body {
               max-width: 1200px;
               margin: 0 auto;
-              padding: 32px;
+              padding-top: 32px;
+              padding-left: 32px;
+              padding-right: 32px;
             }
           }
         `}</style>
 
-        <div className="main-container worklog-body">
+        <div className={worklogBodyClassName}>
           {/* Title removed per spec */}
 
           {!readOnly && (

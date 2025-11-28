@@ -126,7 +126,7 @@ export default function ShipmentItemsFieldArray({
                 출고수량<span className="req-mark"> *</span>
               </label>
               <input
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
                 type="number"
                 name={`items[${index}][quantity]`}
                 min="0"
@@ -140,7 +140,7 @@ export default function ShipmentItemsFieldArray({
             <div>
               <label className="block text-sm text-muted-foreground mb-1">단가</label>
               <input
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
                 type="number"
                 name={`items[${index}][unit_price]`}
                 min="0"
@@ -154,7 +154,7 @@ export default function ShipmentItemsFieldArray({
           <div>
             <label className="block text-sm text-muted-foreground mb-1">메모</label>
             <textarea
-              className="w-full rounded border px-3 py-2"
+              className="w-full rounded-lg border px-3 py-2"
               name={`items[${index}][notes]`}
               rows={2}
               placeholder="품목 메모를 입력하세요."
@@ -163,7 +163,7 @@ export default function ShipmentItemsFieldArray({
           </div>
         </div>
       ))}
-      <button type="button" className="w-full rounded border px-3 py-2" onClick={addRow}>
+      <button type="button" className="w-full rounded-lg border px-3 py-2" onClick={addRow}>
         품목 추가
       </button>
     </div>

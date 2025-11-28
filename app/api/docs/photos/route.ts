@@ -220,3 +220,119 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+
+    let supabase
+    try {
+      supabase = createServiceClient()
+    } catch {
+      supabase = createClient()
+    }
+
+    const payload = await request.json().catch(() => ({}))
+    const id = String(payload?.id || '')
+    const title = (payload?.title || '').toString().trim()
+
+    if (!id || !title) {
+      return NextResponse.json(
+        { success: false, error: 'id and title are required' },
+        { status: 400 }
+      )
+    }
+
+    const { error } = await supabase
+      .from('documents')
+      .update({ title, file_name: title })
+      .eq('id', id)
+      .eq('document_type', 'other')
+
+    if (error) {
+      console.error('[docs/photos] update failed', error)
+      return NextResponse.json(
+        { success: false, error: error.message || 'Update failed' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (e: any) {
+    console.error('[docs/photos] PATCH error', e)
+    return NextResponse.json(
+      { success: false, error: e?.message || 'Internal error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+
+    let supabase
+    try {
+      supabase = createServiceClient()
+    } catch {
+      supabase = createClient()
+    }
+
+    const payload = await request.json().catch(() => ({}))
+    const ids: string[] = Array.isArray(payload?.ids)
+      ? payload.ids.map((id: any) => String(id)).filter(Boolean)
+      : []
+
+    if (!ids.length) {
+      return NextResponse.json({ success: false, error: 'ids required' }, { status: 400 })
+    }
+
+    const { data, error: fetchErr } = await supabase
+      .from('documents')
+      .select('id, folder_path')
+      .in('id', ids)
+      .eq('document_type', 'other')
+
+    if (fetchErr) {
+      console.error('[docs/photos] delete fetch failed', fetchErr)
+      return NextResponse.json(
+        { success: false, error: fetchErr.message || 'Delete failed' },
+        { status: 500 }
+      )
+    }
+
+    const pathsToRemove = (data || [])
+      .map((row: any) => String(row?.folder_path || '').trim())
+      .filter(p => p.length > 0)
+
+    if (pathsToRemove.length > 0) {
+      const { error: rmErr } = await supabase.storage.from('documents').remove(pathsToRemove)
+      if (rmErr) {
+        console.error('[docs/photos] storage delete failed', rmErr)
+        return NextResponse.json(
+          { success: false, error: rmErr.message || 'Storage delete failed' },
+          { status: 500 }
+        )
+      }
+    }
+
+    const { error: delErr } = await supabase.from('documents').delete().in('id', ids)
+    if (delErr) {
+      console.error('[docs/photos] db delete failed', delErr)
+      return NextResponse.json(
+        { success: false, error: delErr.message || 'Delete failed' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ success: true, deleted: ids.length })
+  } catch (e: any) {
+    console.error('[docs/photos] DELETE error', e)
+    return NextResponse.json(
+      { success: false, error: e?.message || 'Internal error' },
+      { status: 500 }
+    )
+  }
+}

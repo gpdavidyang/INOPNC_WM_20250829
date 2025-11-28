@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
       .single()
 
     const isPartner = ['customer_manager', 'partner'].includes(profile?.role || '')
-    let allowedSiteIds: string[] | null = null
+    const orgId = profile?.organization_id || null
+    let allowedSiteIds: string[] = []
 
     if (isPartner) {
       const partnerCompanyId: string | null =
@@ -52,11 +53,11 @@ export async function GET(request: NextRequest) {
           .from('partner_site_mappings')
           .select('site_id')
           .eq('partner_company_id', partnerCompanyId)
-        if (!mapErr) {
-          allowedSiteIds = (mappings || []).map((m: any) => m.site_id).filter(Boolean)
+        if (!mapErr && mappings) {
+          allowedSiteIds = mappings.map((m: any) => m.site_id).filter(Boolean)
         }
         const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
-        if ((mapErr || (allowedSiteIds?.length || 0) === 0) && legacyFallbackEnabled) {
+        if ((mapErr || allowedSiteIds.length === 0) && legacyFallbackEnabled) {
           const { data: legacyRows } = await supabase
             .from('site_partners')
             .select('site_id')
@@ -67,25 +68,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Start building query
-    let query = supabase
-      .from('sites')
-      .select(
-        `
+    let query = supabase.from('sites').select(
+      `
         id,
         name,
         address,
         start_date,
         end_date,
-        status
+        status,
+        organization_id
       `
-      )
-      .eq('status', 'active')
+    )
+    // Note: status filter applied later for non-partner
 
     if (isPartner) {
-      if (!allowedSiteIds || allowedSiteIds.length === 0) {
+      const ors: string[] = []
+      if (orgId) ors.push(`organization_id.eq.${orgId}`)
+      if (allowedSiteIds.length) {
+        const ids = allowedSiteIds.map(id => `"${id}"`).join(',')
+        ors.push(`id.in.(${ids})`)
+      }
+      if (!ors.length) {
         return NextResponse.json({ data: [], total: 0 })
       }
-      query = query.in('id', allowedSiteIds)
+      query = query.or(ors.join(','))
+    } else {
+      query = query.eq('status', 'active')
     }
 
     // Apply site name filter (case-insensitive)

@@ -63,7 +63,7 @@ export default async function NewPaymentPage() {
       <div className="p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-semibold">결제 등록</h1>
-          <a href="/mobile/production" className="rounded-md border px-3 py-1.5 text-sm">
+          <a href="/mobile/production" className="rounded-lg border px-3 py-1.5 text-sm">
             홈으로
           </a>
         </div>
@@ -72,7 +72,7 @@ export default async function NewPaymentPage() {
           <form action={submit} className="grid md:grid-cols-3 gap-3 items-end">
             <div className="md:col-span-3">
               <label className="block text-sm text-muted-foreground mb-1">출고 *</label>
-              <select name="shipment_id" className="w-full rounded border px-3 py-2" required>
+              <select name="shipment_id" className="w-full rounded-lg border px-3 py-2" required>
                 <option value="">출고 선택</option>
                 {(shipments || []).map((s: any) => (
                   <option key={s.id} value={s.id}>
@@ -90,7 +90,7 @@ export default async function NewPaymentPage() {
                 name="amount"
                 min="0"
                 step="1"
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
                 required
               />
               <input type="hidden" name="currency" value="KRW" />
@@ -98,7 +98,7 @@ export default async function NewPaymentPage() {
 
             <div>
               <label className="block text-sm text-muted-foreground mb-1">청구방식</label>
-              <select name="payment_method_id" className="w-full rounded border px-3 py-2">
+              <select name="payment_method_id" className="w-full rounded-lg border px-3 py-2">
                 <option value="">선택 안 함</option>
                 {(methods || []).map((m: any) => (
                   <option key={m.id} value={m.id}>
@@ -110,16 +110,19 @@ export default async function NewPaymentPage() {
 
             <div>
               <label className="block text-sm text-muted-foreground mb-1">지급일</label>
-              <input type="date" name="paid_at" className="w-full rounded border px-3 py-2" />
+              <input type="date" name="paid_at" className="w-full rounded-lg border px-3 py-2" />
             </div>
 
             <div className="md:col-span-3">
               <label className="block text-sm text-muted-foreground mb-1">메모</label>
-              <input type="text" name="memo" className="w-full rounded border px-3 py-2" />
+              <input type="text" name="memo" className="w-full rounded-lg border px-3 py-2" />
             </div>
 
             <div className="md:col-span-3">
-              <button type="submit" className="w-full rounded border px-3 py-2 bg-black text-white">
+              <button
+                type="submit"
+                className="w-full rounded-lg border px-3 py-2 bg-black text-white"
+              >
                 등록
               </button>
             </div>

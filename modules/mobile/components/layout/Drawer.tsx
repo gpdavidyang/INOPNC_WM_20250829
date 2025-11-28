@@ -164,7 +164,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     const roleMap: { [key: string]: string } = {
       worker: '작업자',
       site_manager: '현장관리자',
-      customer_manager: '고객관리자',
+      customer_manager: '파트너사',
       production_manager: '생산관리자',
       admin: '관리자',
       system_admin: '시스템관리자',
@@ -218,27 +218,18 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const isProductionManager = profile?.role === 'production_manager'
   const baseMenuItems = isProductionManager
     ? [
-        { label: '입고요청', href: '/mobile/production/requests' },
+        { label: '주문요청', href: '/mobile/production/requests' },
         { label: '생산정보', href: '/mobile/production/production' },
         { label: '출고배송', href: '/mobile/production/shipping-payment' },
       ]
     : [
         { label: '홈', href: '/mobile' },
-        { label: '출력정보', href: '/mobile/attendance' },
-        { label: '작업일지', href: '/mobile/worklog' },
         { label: '현장정보', href: '/mobile/sites' },
+        { label: '작업일지', href: '/mobile/worklog' },
+        { label: '출력정보', href: '/mobile/attendance' },
         { label: '문서함', href: '/mobile/documents' },
       ]
-
-  const shouldShowCommunication =
-    profile?.role === 'site_manager' ||
-    profile?.role === 'worker' ||
-    profile?.role === 'customer_manager' ||
-    profile?.role === 'partner'
-
-  const menuItems = shouldShowCommunication
-    ? [...baseMenuItems, { label: '커뮤니케이션 로그', href: '/mobile/communication/logs' }]
-    : baseMenuItems
+  const menuItems = baseMenuItems
 
   // No overlay scrollbar: menu count is small, scrolling disabled
 

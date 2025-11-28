@@ -97,6 +97,34 @@ export async function GET(request: NextRequest) {
       }
     >()
 
+    // 0) Prefer explicit organization_id if present: fetch org-owned sites first
+    if (!authResult.isRestricted && profile.organization_id) {
+      const { data: orgSites, error: orgSitesError } = await supabase
+        .from('sites')
+        .select('id, name, address, status, start_date, end_date, organization_id')
+        .eq('organization_id', profile.organization_id)
+        .order('name', { ascending: true })
+
+      if (!orgSitesError && orgSites?.length) {
+        orgSites.forEach(site => {
+          if (!site?.id) return
+          siteMap.set(site.id, {
+            site: {
+              id: site.id,
+              name: site.name || '알 수 없는 현장',
+              address: site.address ?? null,
+              status: site.status ?? null,
+              start_date: site.start_date ?? null,
+              end_date: site.end_date ?? null,
+            },
+            contractValue: null,
+            assignedDate: site.start_date ?? null,
+            contractStatus: site.end_date ? 'completed' : 'organization',
+          })
+        })
+      }
+    }
+
     const { data: mappingRows, error: mappingError } = await supabase
       .from('partner_site_mappings')
       .select(
@@ -112,7 +140,8 @@ export async function GET(request: NextRequest) {
           address,
           status,
           start_date,
-          end_date
+          end_date,
+          organization_id
         )
       `
       )
@@ -125,7 +154,15 @@ export async function GET(request: NextRequest) {
       }
     } else {
       mappingRows
-        ?.filter(row => row.is_active && row.sites?.id)
+        ?.filter(row => {
+          if (!row.is_active || !row.sites?.id) return false
+          // If organization_id is set, require exact match (skip null org to avoid leakage)
+          if (profile.organization_id) {
+            if (!row.sites?.organization_id) return false
+            return String(row.sites.organization_id) === String(profile.organization_id)
+          }
+          return true
+        })
         .forEach(row => {
           const meta = parseContractNotes(row.notes)
           siteMap.set(row.site_id, {
@@ -136,6 +173,7 @@ export async function GET(request: NextRequest) {
               status: row.sites?.status ?? null,
               start_date: row.sites?.start_date ?? null,
               end_date: row.sites?.end_date ?? null,
+              organization_id: row.sites?.organization_id ?? null,
             },
             contractValue: meta.contract_value ?? null,
             assignedDate: row.start_date ?? null,
@@ -177,6 +215,11 @@ export async function GET(request: NextRequest) {
           ?.filter(row => {
             if (!row.sites?.id) return false
             if (legacyInactiveStatuses.has(row.contract_status ?? '')) return false
+            // If profile has org, require org match (skip null org)
+            if (profile.organization_id) {
+              if (!row.sites?.organization_id) return false
+              return String(row.sites.organization_id) === String(profile.organization_id)
+            }
             return true
           })
           .forEach(row => {
@@ -190,6 +233,7 @@ export async function GET(request: NextRequest) {
                   status: row.sites?.status ?? null,
                   start_date: row.sites?.start_date ?? null,
                   end_date: row.sites?.end_date ?? null,
+                  organization_id: row.sites?.organization_id ?? null,
                 },
                 contractValue: meta.contract_value ?? row.contract_value ?? null,
                 assignedDate: row.assigned_date ?? null,
@@ -200,8 +244,52 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    if (siteMap.size === 0 && !authResult.isRestricted && profile.organization_id) {
+      const { data: orgSites, error: orgSitesError } = await supabase
+        .from('sites')
+        .select('id, name, address, status, start_date, end_date, organization_id')
+        .eq('organization_id', profile.organization_id)
+        .order('name', { ascending: true })
+
+      if (!orgSitesError && orgSites?.length) {
+        orgSites.forEach(site => {
+          if (!site?.id) return
+          siteMap.set(site.id, {
+            site: {
+              id: site.id,
+              name: site.name || '알 수 없는 현장',
+              address: site.address ?? null,
+              status: site.status ?? null,
+              start_date: site.start_date ?? null,
+              end_date: site.end_date ?? null,
+              organization_id: site.organization_id ?? null,
+            },
+            contractValue: null,
+            assignedDate: site.start_date ?? null,
+            contractStatus: site.end_date ? 'completed' : 'organization',
+          })
+        })
+      }
+    }
+
+    // Final safety: if orgId is set, drop any entries not matching it
+    if (profile.organization_id && siteMap.size > 0) {
+      const orgIdStr = String(profile.organization_id)
+      for (const [key, entry] of siteMap.entries()) {
+        const org = (entry.site as any)?.organization_id
+        if (!org || String(org) !== orgIdStr) {
+          siteMap.delete(key)
+        }
+      }
+    }
+
     if (siteMap.size === 0) {
-      return NextResponse.json([])
+      return NextResponse.json({
+        sites: [],
+        period,
+        dateRange: { startDate, endDate },
+        totalCount: 0,
+      })
     }
 
     const siteEntries = Array.from(siteMap.values()).filter(entry => entry.site)
@@ -318,19 +406,21 @@ export async function GET(request: NextRequest) {
     })
 
     const siteLabor = await Promise.all(siteLaborPromises)
-    // Filter out sites with zero totals (both man-days and worker counts are 0)
-    const validSiteLabor = (siteLabor.filter((site: any) => site !== null) as any[]).filter(
-      s => Number(s?.totalManDays || 0) > 0 || Number(s?.workerDays || 0) > 0
-    )
+    const normalizedSiteLabor = (siteLabor.filter(Boolean) as any[]).map(entry => ({
+      ...entry,
+      totalLaborHours: Number(entry?.totalLaborHours ?? 0),
+      totalManDays: Number(entry?.totalManDays ?? 0),
+      workerDays: Number(entry?.workerDays ?? 0),
+    }))
 
-    // Sort by total labor hours descending
-    validSiteLabor.sort((a, b) => (b?.totalLaborHours || 0) - (a?.totalLaborHours || 0))
+    // Sort by total labor hours descending (stable even when zero)
+    normalizedSiteLabor.sort((a, b) => (b?.totalLaborHours || 0) - (a?.totalLaborHours || 0))
 
     return NextResponse.json({
-      sites: validSiteLabor,
+      sites: normalizedSiteLabor,
       period,
       dateRange: { startDate, endDate },
-      totalCount: validSiteLabor.length,
+      totalCount: normalizedSiteLabor.length,
     })
   } catch (error) {
     console.error('Partner site labor error:', error)

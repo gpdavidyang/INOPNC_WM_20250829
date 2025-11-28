@@ -223,7 +223,7 @@ export const PartnerOutputPage: React.FC = () => {
   }, [])
 
   return (
-    <div className="p-3 pb-24">
+    <div className="partner-output-wrapper">
       {/* Tabs removed: only output view remains (hide tab title) */}
 
       {/* Filters: 1행 2열, 독립 CustomSelect (둥근 사각형) */}
@@ -410,6 +410,12 @@ export const PartnerOutputPage: React.FC = () => {
           )}
         </div>
       </>
+      <style jsx>{`
+        .partner-output-wrapper {
+          padding: 12px;
+          padding-bottom: calc(var(--page-bottom-gap, 24px) + env(safe-area-inset-bottom, 0px));
+        }
+      `}</style>
     </div>
   )
 }

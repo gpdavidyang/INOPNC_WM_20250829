@@ -7,7 +7,7 @@ import type { MaterialPartnerOption } from '@/modules/mobile/types/material-part
 
 interface ProductionSearchSectionProps {
   materialOptions: OptionItem[]
-  siteOptions: OptionItem[]
+  siteOptions?: OptionItem[]
   partnerOptions: MaterialPartnerOption[]
   defaultPeriod?: string
   defaultMaterialId?: string
@@ -23,11 +23,12 @@ interface ProductionSearchSectionProps {
   statusName?: string
   partnerFieldLabel?: string
   partnerPlaceholder?: string
+  includeSiteSelect?: boolean
 }
 
 export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = ({
   materialOptions,
-  siteOptions,
+  siteOptions = [],
   partnerOptions,
   defaultPeriod = '',
   defaultMaterialId = 'all',
@@ -47,8 +48,10 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
   statusName = 'status',
   partnerFieldLabel = '자재거래처',
   partnerPlaceholder = '자재거래처 선택',
+  includeSiteSelect = true,
 }) => {
   const [collapsed, setCollapsed] = useState(true)
+  const showSiteSelect = includeSiteSelect && siteOptions.length > 0
 
   return (
     <div className="rounded-lg border p-4 bg-white">
@@ -68,12 +71,12 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
         <form id="production-search-form" className="pm-form space-y-3" method="get">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-muted-foreground mb-1">기간 (년월)</label>
+              <label className="block text-xs text-muted-foreground mb-1">조회 기간</label>
               <input
                 type="month"
                 name="period"
                 defaultValue={defaultPeriod}
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
               />
             </div>
             <div>
@@ -97,16 +100,30 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
               />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-muted-foreground mb-1">현장 선택</label>
-              <SelectField
-                name="site_id"
-                options={siteOptions}
-                defaultValue={defaultSiteId || 'all'}
-                placeholder="현장 선택"
-              />
+          {showSiteSelect ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">현장 선택</label>
+                <SelectField
+                  name="site_id"
+                  options={siteOptions}
+                  defaultValue={defaultSiteId || 'all'}
+                  placeholder="현장 선택"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">
+                  {partnerFieldLabel}
+                </label>
+                <MaterialPartnerSelect
+                  name="partner_company_id"
+                  options={partnerOptions}
+                  defaultValue={defaultPartnerCompanyId || 'all'}
+                  placeholder={partnerPlaceholder}
+                />
+              </div>
             </div>
+          ) : (
             <div>
               <label className="block text-xs text-muted-foreground mb-1">
                 {partnerFieldLabel}
@@ -118,7 +135,7 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
                 placeholder={partnerPlaceholder}
               />
             </div>
-          </div>
+          )}
           <div>
             <label className="block text-xs text-muted-foreground mb-1">검색어</label>
             <input
@@ -126,7 +143,7 @@ export const ProductionSearchSection: React.FC<ProductionSearchSectionProps> = (
               name="q"
               defaultValue={defaultKeyword}
               placeholder="검색어를 입력하세요."
-              className="w-full rounded border px-3 py-2"
+              className="w-full rounded-lg border px-3 py-2"
             />
           </div>
           <div className="pm-form-actions">

@@ -88,7 +88,7 @@ export default async function ProductionManagePage({
     .from('material_productions')
     .select(productionSelect.join(',\n'))
     .order('production_date', { ascending: false })
-    .limit(200)
+    .limit(500)
 
   // Search filters (mirroring 요청 검색)
   const q = (searchParams?.q || '').trim()
@@ -120,14 +120,32 @@ export default async function ProductionManagePage({
     .order('name', { ascending: true })
   const partnerRows = await loadMaterialPartnerRows('active')
 
-  // For partner filter, resolve allowed site ids
+  // For partner filter, resolve allowed site ids and a site → partner map
   let allowedSites: Set<string> | null = null
+  let partnerBySite = new Map<string, string>()
   if (selectedPartnerCompanyId) {
     const { data: mappings } = await supabase
       .from('partner_site_mappings')
       .select('site_id')
       .eq('partner_company_id', selectedPartnerCompanyId)
+      .eq('is_active', true)
     allowedSites = new Set(((mappings || []) as any[]).map(m => String((m as any).site_id)))
+  }
+  const productionSiteIds = Array.from(
+    new Set((productionsRaw || []).map((p: any) => String(p.site_id || '')).filter(Boolean))
+  )
+  if (productionSiteIds.length > 0) {
+    const { data: sitePartnerRows } = await supabase
+      .from('partner_site_mappings')
+      .select('site_id, partner_company_id')
+      .in('site_id', productionSiteIds)
+      .eq('is_active', true)
+    partnerBySite = new Map(
+      (sitePartnerRows || []).map((row: any) => [
+        String(row.site_id),
+        String(row.partner_company_id || ''),
+      ])
+    )
   }
 
   // Period range from filter (YYYY-MM)
@@ -141,25 +159,69 @@ export default async function ProductionManagePage({
     periodEndISO = e.toISOString()
   }
 
-  // Apply filters in memory (dataset limited to 100)
+  // Precompute metadata and memo for search
+  const metadataById = new Map<string, any>()
+  const memoById = new Map<string, string>()
+  const materialIdsByProduction = new Map<string, string[]>()
+  ;(productionsRaw || []).forEach((p: any) => {
+    const meta = parseProductionMetadata(p.quality_notes)
+    metadataById.set(String(p.id), meta)
+    memoById.set(String(p.id), extractProductionMemo(p.quality_notes, meta) || '')
+    const matIds: string[] = []
+    if (Array.isArray(p.material_production_items)) {
+      p.material_production_items.forEach((item: any) => {
+        if (item?.material_id) matIds.push(String(item.material_id))
+      })
+    } else if (Array.isArray(meta?.fallback_items)) {
+      meta!.fallback_items!.forEach((item: any) => {
+        if (item?.material_id) matIds.push(String(item.material_id))
+      })
+    }
+    materialIdsByProduction.set(String(p.id), matIds)
+  })
+
+  // Apply filters in memory (dataset limited to 200)
   const productions = (productionsRaw || []).filter((p: any) => {
     if (q) {
       const lower = q.toLowerCase()
-      const inMaterial = String(p.materials?.name || '')
-        .toLowerCase()
-        .includes(lower)
+      const matName = String(p.materials?.name || '')
+      const inMaterial = matName.toLowerCase().includes(lower)
+      const matCodes = Array.isArray(p.material_production_items)
+        ? p.material_production_items
+            .map((it: any) => `${it.materials?.name ?? ''} ${it.materials?.code ?? ''}`.trim())
+            .join(' ')
+        : ''
+      const inMaterialItems = matCodes.toLowerCase().includes(lower)
       const inSite = String(p.sites?.name || '')
         .toLowerCase()
         .includes(lower)
-      if (!(inMaterial || inSite)) return false
+      const inProdNumber = String(p.production_number || p.id || '')
+        .toLowerCase()
+        .includes(lower)
+      const memoText = memoById.get(String(p.id)) || ''
+      const inMemo = memoText.toLowerCase().includes(lower)
+      if (!(inMaterial || inMaterialItems || inSite || inProdNumber || inMemo)) return false
     }
     if (periodStartISO && periodEndISO) {
       const d = p.production_date ? new Date(p.production_date) : null
       if (!d || !(d >= new Date(periodStartISO) && d < new Date(periodEndISO))) return false
     }
     if (selectedSiteId && String(p.site_id) !== selectedSiteId) return false
-    if (selectedMaterialId && String(p.material_id) !== selectedMaterialId) return false
-    if (allowedSites && !allowedSites.has(String(p.site_id))) return false
+    if (selectedMaterialId) {
+      const directMatch = p.material_id && String(p.material_id) === selectedMaterialId
+      const itemsMatch = (materialIdsByProduction.get(String(p.id)) || []).includes(
+        selectedMaterialId
+      )
+      if (!(directMatch || itemsMatch)) return false
+    }
+    if (selectedPartnerCompanyId) {
+      const siteIdStr = String(p.site_id || '')
+      const mappedPartner = partnerBySite.get(siteIdStr) || ''
+      if (allowedSites && allowedSites.size > 0 && !allowedSites.has(siteIdStr)) return false
+      if (!mappedPartner || mappedPartner !== selectedPartnerCompanyId) {
+        return false
+      }
+    }
     return true
   })
 
@@ -202,6 +264,21 @@ export default async function ProductionManagePage({
     includeAllOption: true,
     allLabel: '전체 자재거래처',
   })
+  // Map site_id → 자재거래처명 (partner_companies.company_name) for display on cards
+  const partnerNameBySite = new Map<string, string>()
+  if (productionSiteIds.length > 0) {
+    const { data: partnerMappings } = await supabase
+      .from('partner_site_mappings')
+      .select('site_id, partner_companies(company_name)')
+      .in('site_id', productionSiteIds as string[])
+      .eq('is_active', true)
+    ;(partnerMappings || []).forEach((row: any) => {
+      const name = row?.partner_companies?.company_name || ''
+      if (row?.site_id && name && !partnerNameBySite.has(String(row.site_id))) {
+        partnerNameBySite.set(String(row.site_id), name)
+      }
+    })
+  }
 
   async function deleteProduction(formData: FormData) {
     'use server'
@@ -291,6 +368,7 @@ export default async function ProductionManagePage({
           defaultSiteId={siteIdRaw || 'all'}
           defaultPartnerCompanyId={partnerCompanyIdRaw || 'all'}
           defaultKeyword={q}
+          includeSiteSelect={false}
         />
 
         {/* 1.2 생산등록 이력 리스트 */}
@@ -310,7 +388,8 @@ export default async function ProductionManagePage({
                 ? new Date(p.production_date).toLocaleDateString('ko-KR')
                 : '-'
               const qty = p.produced_quantity ?? 0
-              const metadata = parseProductionMetadata(p.quality_notes)
+              const metadata =
+                metadataById.get(String(p.id)) || parseProductionMetadata(p.quality_notes)
               const fallbackItems: ProductionMetadataItem[] = Array.isArray(
                 metadata?.fallback_items
               )
@@ -352,20 +431,23 @@ export default async function ProductionManagePage({
                 : Math.max(0, fallbackItems.length - 1)
               const materialText =
                 extraItems > 0 ? `${baseMaterialLabel} 외 ${extraItems}건` : baseMaterialLabel
-              const memo = extractProductionMemo(p.quality_notes, metadata)
+              const memo =
+                memoById.get(String(p.id)) || extractProductionMemo(p.quality_notes, metadata)
+              const partnerLabel =
+                p.site_id && partnerNameBySite.has(String(p.site_id))
+                  ? partnerNameBySite.get(String(p.site_id))
+                  : ''
               return (
                 <div key={p.id} className="block rounded-lg border p-4 bg-white">
                   {/* Top row: Production number and quantity */}
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 pr-3">
-                      <div className="text-lg font-bold truncate">
+                      <div className="text-xl font-bold leading-tight text-gray-900">
+                        {dateText}
+                      </div>
+                      <span className="sr-only">
                         {p.production_number || `생산ID ${String(p.id).slice(0, 8)}`}
-                      </div>
-                      <div className="mt-1 flex items-center text-base text-muted-foreground">
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-sm text-gray-700">
-                          {dateText}
-                        </span>
-                      </div>
+                      </span>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-sm text-muted-foreground">생산수량</div>
@@ -377,6 +459,11 @@ export default async function ProductionManagePage({
                   <div className="mt-2 text-base">
                     <span className="text-muted-foreground">자재</span>:{' '}
                     <span className="font-semibold">{materialText}</span>
+                  </div>
+                  {/* Partner */}
+                  <div className="mt-1 text-base">
+                    <span className="text-muted-foreground">자재거래처</span>:{' '}
+                    <span className="font-semibold">{partnerLabel || '-'}</span>
                   </div>
 
                   {/* Memo */}

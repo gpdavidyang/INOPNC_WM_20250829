@@ -48,6 +48,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Check unified_documents, legacy documents, and site_documents(blueprint)
     let unifiedDocuments = []
     let legacyDocuments = []
+    let siteDocuments: any[] = []
 
     // Query unified_documents table
     const unifiedQuery = supabase

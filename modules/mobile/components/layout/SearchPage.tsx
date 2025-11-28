@@ -357,25 +357,25 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         .search-input-wrapper {
           flex: 1;
           position: relative;
-          display: flex;
-          align-items: center;
+          display: block; /* isolate absolute children inside the input area */
         }
 
         .search-icon {
           position: absolute;
-          left: 12px;
+          left: 14px;
           top: 50%;
           transform: translateY(-50%);
           width: 20px;
           height: 20px;
           color: var(--muted-ink);
-          pointer-events: none;
+          pointer-events: none; /* icon sits inside the input without blocking clicks */
+          z-index: 1;
         }
 
         .search-input {
           width: 100%;
           height: 40px;
-          padding: 0 40px 0 40px;
+          padding: 0 44px 0 44px; /* leave room for the icon and clear button inside */
           background: var(--surface-2);
           border: 1px solid var(--line);
           border-radius: 20px;

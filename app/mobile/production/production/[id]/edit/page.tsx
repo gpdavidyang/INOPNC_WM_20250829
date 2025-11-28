@@ -192,7 +192,7 @@ export default async function ProductionEditPage({ params }: { params: { id: str
             <input type="hidden" name="production_id" value={id} />
             <input type="hidden" name="site_id" value={production.site_id ?? ''} />
             <input type="hidden" name="site_name" value={siteName} />
-            <div className="rounded bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            <div className="rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">
               현장: {siteName || '미지정'}
             </div>
 
@@ -203,7 +203,7 @@ export default async function ProductionEditPage({ params }: { params: { id: str
               <input
                 type="date"
                 name="production_date"
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
                 required
                 defaultValue={
                   production.production_date ? String(production.production_date).slice(0, 10) : ''
@@ -229,7 +229,7 @@ export default async function ProductionEditPage({ params }: { params: { id: str
                 name="memo"
                 placeholder="요청사항을 입력하세요."
                 rows={3}
-                className="w-full rounded border px-3 py-2 h-20"
+                className="w-full rounded-lg border px-3 py-2 h-20"
                 defaultValue={memoDefault}
               />
             </div>

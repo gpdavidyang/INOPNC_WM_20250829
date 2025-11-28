@@ -7,7 +7,12 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
 
-export default function AnnounceTable({ announcements }: { announcements: any[] }) {
+interface AnnounceTableProps {
+  announcements: any[]
+  siteNameMap?: Record<string, string>
+}
+
+export default function AnnounceTable({ announcements, siteNameMap = {} }: AnnounceTableProps) {
   const router = useRouter()
   const { toast } = useToast()
   const { confirm } = useConfirm()
@@ -127,10 +132,26 @@ export default function AnnounceTable({ announcements }: { announcements: any[] 
             accessor: (a: any) => (Array.isArray(a?.target_roles) ? a.target_roles.join(', ') : ''),
             render: (a: any) => {
               const roles = Array.isArray(a?.target_roles) ? a.target_roles : []
-              const labels = roles.map((r: string) => roleLabel(r))
+              const labels = roles.length > 0 ? roles.map((r: string) => roleLabel(r)) : ['전체']
               return (
                 <span className="truncate inline-block max-w-[320px]" title={labels.join(', ')}>
                   {labels.join(', ') || '-'}
+                </span>
+              )
+            },
+          },
+          {
+            key: 'target_sites',
+            header: '대상 현장',
+            sortable: true,
+            accessor: (a: any) => (Array.isArray(a?.target_sites) ? a.target_sites.length : 0),
+            render: (a: any) => {
+              const sites = Array.isArray(a?.target_sites) ? a.target_sites : []
+              const labels =
+                sites.length > 0 ? sites.map((site: string) => siteNameMap[site] || site) : ['전체']
+              return (
+                <span className="truncate inline-block max-w-[320px]" title={labels.join(', ')}>
+                  {labels.join(', ')}
                 </span>
               )
             },

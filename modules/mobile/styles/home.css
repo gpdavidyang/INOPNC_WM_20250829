@@ -78,7 +78,7 @@
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius, 8px);
   box-shadow: var(--shadow);
   overflow: hidden;
 }
@@ -90,7 +90,7 @@
 /* Quick Menu Grid - main.html 100% match */
 .quick-grid {
   display: grid !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)) !important;
   gap: 1px !important; /* main.html: gap 1px */
   margin: 0 !important;
   margin-bottom: 0 !important;

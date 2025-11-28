@@ -12,7 +12,7 @@ import NotificationsTable from '@/components/admin/NotificationsTable'
 import { AdminAuditTimeline } from '@/components/admin/communication/AdminAuditTimeline'
 import { createClient } from '@/lib/supabase/server'
 
-export const metadata: Metadata = { title: '커뮤니케이션' }
+export const metadata: Metadata = { title: '공지사항 관리' }
 
 export default async function CommunicationManagementPage({
   searchParams,
@@ -30,6 +30,7 @@ export default async function CommunicationManagementPage({
   // 공지 목록 (탭 무관: 상단 지표에 사용)
   let announcements: any[] = []
   let announcementStats = { total: 0, active: 0 }
+  let siteNameMap: Record<string, string> = {}
   {
     let announcementsQuery = supabase
       .from('announcements')
@@ -51,6 +52,21 @@ export default async function CommunicationManagementPage({
       announcementStats = {
         total: Number.isFinite(count) ? (count ?? data.length) : data.length,
         active,
+      }
+      const siteIds = Array.from(
+        new Set(
+          data.flatMap(row =>
+            Array.isArray(row?.target_sites)
+              ? (row.target_sites as string[]).filter(site => typeof site === 'string')
+              : []
+          )
+        )
+      )
+      if (siteIds.length) {
+        const { data: siteRows } = await supabase.from('sites').select('id, name').in('id', siteIds)
+        siteRows?.forEach(site => {
+          if (site?.id) siteNameMap[site.id] = site?.name || site.id
+        })
       }
     }
   }
@@ -147,9 +163,9 @@ export default async function CommunicationManagementPage({
   return (
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
-        title="커뮤니케이션"
+        title="공지사항 관리"
         description="공지 작성과 전달 로그를 통합 관리합니다"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '커뮤니케이션' }]}
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '공지사항 관리' }]}
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* 상단 지표 */}
@@ -227,7 +243,7 @@ export default async function CommunicationManagementPage({
                   </Button>
                 </form>
               </div>
-              <AnnounceTable announcements={announcements} />
+              <AnnounceTable announcements={announcements} siteNameMap={siteNameMap} />
             </CardContent>
           </Card>
         )}

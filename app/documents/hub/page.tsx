@@ -610,8 +610,13 @@ export default function DocumentHubPage() {
         }
         .grid-thumbs {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-          gap: 14px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 18px;
+        }
+        :global(.doc-hub .grid-thumbs) {
+          display: grid !important;
+          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          gap: 18px !important;
         }
         .grid-thumbs .thumb {
           background: var(--card, #fff);
@@ -620,14 +625,46 @@ export default function DocumentHubPage() {
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          min-height: 210px;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+          min-height: 260px;
+          box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+          position: relative;
+          transition:
+            transform 0.15s ease,
+            box-shadow 0.15s ease;
+        }
+        .grid-thumbs .thumb:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 32px rgba(17, 24, 39, 0.12);
+        }
+        .grid-thumbs .thumb-actions {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          display: flex;
+          gap: 6px;
+          z-index: 2;
+        }
+        .grid-thumbs .thumb-actions button {
+          border: 1px solid var(--line, #e5e7eb);
+          background: rgba(255, 255, 255, 0.95);
+          border-radius: 8px;
+          padding: 4px 10px;
+          font-size: 11px;
+          font-weight: 700;
+          color: #0f172a;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+          min-width: 48px;
+          text-align: center;
+        }
+        .grid-thumbs .thumb-actions button:hover {
+          background: #e5e7eb;
         }
         .grid-thumbs .thumb-image-wrapper {
           position: relative;
           width: 100%;
-          padding-top: 80%;
+          padding-top: 70%;
           background: #f8fafc;
+          flex: 1 1 auto;
         }
         .grid-thumbs .thumb-image-wrapper img {
           position: absolute;
@@ -637,25 +674,34 @@ export default function DocumentHubPage() {
           object-fit: cover;
         }
         .grid-thumbs .thumb-meta {
-          padding: 8px 10px;
+          padding: 10px 12px 8px;
           border-top: 1px solid var(--line, #e5e7eb);
           background: #f9fafb;
+          flex: 0 0 auto;
+          display: grid;
+          grid-template-rows: repeat(3, auto);
+          gap: 2px;
         }
-        .grid-thumbs .thumb-title {
+        .grid-thumbs .thumb-site {
           display: block;
           font-size: 12px;
           font-weight: 700;
           color: #0f172a;
+          line-height: 1.15;
           word-break: break-all;
-          line-height: 1.2;
         }
-        .grid-thumbs .thumb-subtitle {
-          display: block;
+        .grid-thumbs .thumb-file {
+          font-size: 12px;
+          font-weight: 600;
+          color: #1f2937;
+          line-height: 1.2;
+          word-break: break-all;
+        }
+        .grid-thumbs .thumb-date {
           font-size: 11px;
           font-weight: 500;
           color: #6b7280;
           line-height: 1.2;
-          margin-top: 2px;
         }
 
         /* Dark mode overrides */
@@ -2323,6 +2369,57 @@ function DrawingsTab() {
       return n
     })
 
+  const deleteSelected = async () => {
+    if (selected.size === 0) {
+      toast({
+        title: '선택 필요',
+        description: '삭제할 사진을 먼저 선택하세요.',
+        variant: 'warning',
+      })
+      return
+    }
+    const ids = Array.from(selected)
+    try {
+      const res = await fetch('/api/docs/photos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || '삭제 실패')
+      setSelected(new Set())
+      fetchList()
+      toast({ title: '삭제 완료', description: `${ids.length}건을 삭제했습니다.` })
+    } catch (err: any) {
+      toast({
+        title: '삭제 실패',
+        description: err?.message || '삭제 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const editItem = async (id: string) => {
+    const current = items.find(it => it.id === id)
+    const nextTitle = window.prompt('파일명을 입력하세요', current?.name || '')
+    if (!nextTitle) return
+    try {
+      const res = await fetch('/api/docs/photos', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, title: nextTitle }),
+      })
+      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || '수정 실패')
+      fetchList()
+      toast({ title: '수정 완료', description: '파일명이 변경되었습니다.' })
+    } catch (err: any) {
+      toast({
+        title: '수정 실패',
+        description: err?.message || '파일명 수정 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   useEffect(() => {
     fetchList()
   }, [site, category, page, isRestricted, worklogLinkId])
@@ -2741,6 +2838,9 @@ function DrawingsTab() {
         >
           저장하기
         </button>
+        <button className="btn" onClick={deleteSelected}>
+          삭제하기
+        </button>
         <button
           className="btn btn-primary"
           onClick={async () => {
@@ -3046,6 +3146,7 @@ function PhotosTab() {
             const shortName =
               fileName.length > 18 ? `${fileName.slice(0, 9)}…${fileName.slice(-6)}` : fileName
             const label = shortName || `photo-${it.id}`
+            const siteLabel = siteSelectLabel || '현장 정보 없음'
             const dateLabel = formatDateLabel(it.createdAt || '')
 
             return (
@@ -3066,8 +3167,34 @@ function PhotosTab() {
                   />
                 </div>
                 <div className="thumb-meta">
-                  <span className="thumb-title">{label || '사진'}</span>
-                  {dateLabel && <span className="thumb-subtitle">{dateLabel}</span>}
+                  <span className="thumb-site" title={siteLabel}>
+                    {siteLabel}
+                  </span>
+                  <span className="thumb-file" title={label || '사진'}>
+                    {label || '사진'}
+                  </span>
+                  <span className="thumb-date">{dateLabel || '날짜 정보 없음'}</span>
+                </div>
+                <div className="thumb-actions">
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation()
+                      editItem(it.id)
+                    }}
+                  >
+                    수정
+                  </button>
+                  <button
+                    type="button"
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSelected(new Set([it.id]))
+                      deleteSelected()
+                    }}
+                  >
+                    삭제
+                  </button>
                 </div>
               </div>
             )

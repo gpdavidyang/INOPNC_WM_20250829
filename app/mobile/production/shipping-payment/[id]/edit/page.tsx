@@ -740,7 +740,7 @@ export default async function ShippingEditPage({ params }: { params: { id: strin
               <input
                 type="date"
                 name="shipment_date"
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
                 defaultValue={defaultShipmentDate}
                 required
               />

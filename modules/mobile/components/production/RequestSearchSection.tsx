@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { SelectField, type OptionItem } from '@/modules/mobile/components/production/SelectField'
+import { MATERIAL_PRIORITY_OPTIONS } from '@/lib/materials/priorities'
 
 interface RequestSearchSectionProps {
   materialOptions: OptionItem[]
@@ -12,6 +13,7 @@ interface RequestSearchSectionProps {
   defaultSiteId?: string
   defaultPartnerCompanyId?: string
   defaultKeyword?: string
+  defaultPriority?: string
   resetHref?: string
 }
 
@@ -24,9 +26,15 @@ export const RequestSearchSection: React.FC<RequestSearchSectionProps> = ({
   defaultSiteId = 'all',
   defaultPartnerCompanyId = 'all',
   defaultKeyword = '',
+  defaultPriority = 'all',
   resetHref = '/mobile/production/requests',
 }) => {
   const [collapsed, setCollapsed] = useState(true)
+
+  const priorityOptions: OptionItem[] = [
+    { value: 'all', label: '전체 긴급도' },
+    ...MATERIAL_PRIORITY_OPTIONS,
+  ]
 
   return (
     <div className="rounded-lg border p-4 bg-white">
@@ -51,7 +59,7 @@ export const RequestSearchSection: React.FC<RequestSearchSectionProps> = ({
                 type="month"
                 name="period"
                 defaultValue={defaultPeriod}
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
               />
             </div>
             <div>
@@ -91,7 +99,16 @@ export const RequestSearchSection: React.FC<RequestSearchSectionProps> = ({
               name="q"
               defaultValue={defaultKeyword}
               placeholder="요청번호/현장/자재/요청자 검색"
-              className="w-full rounded border px-3 py-2"
+              className="w-full rounded-lg border px-3 py-2"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-muted-foreground mb-1">긴급도</label>
+            <SelectField
+              name="priority"
+              options={priorityOptions}
+              defaultValue={defaultPriority}
+              placeholder="긴급도 선택"
             />
           </div>
           <div className="pm-form-actions">

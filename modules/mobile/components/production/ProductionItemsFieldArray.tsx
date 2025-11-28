@@ -76,7 +76,7 @@ export default function ProductionItemsFieldArray({
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">생산수량 *</label>
                 <input
-                  className="w-full rounded border px-3 py-2"
+                  className="w-full rounded-lg border px-3 py-2"
                   type="number"
                   name={`items[${index}][produced_quantity]`}
                   min="0"
@@ -94,7 +94,7 @@ export default function ProductionItemsFieldArray({
                 <div>
                   <label className="block text-sm text-muted-foreground mb-1">주문수량</label>
                   <input
-                    className="w-full rounded border px-3 py-2"
+                    className="w-full rounded-lg border px-3 py-2"
                     type="number"
                     name={`items[${index}][order_quantity]`}
                     min="0"
@@ -113,7 +113,7 @@ export default function ProductionItemsFieldArray({
               <div>
                 <label className="block text-sm text-muted-foreground mb-1">메모</label>
                 <textarea
-                  className="w-full rounded border px-3 py-2"
+                  className="w-full rounded-lg border px-3 py-2"
                   name={`items[${index}][notes]`}
                   rows={2}
                   placeholder="품목 메모를 입력하세요."
@@ -124,7 +124,7 @@ export default function ProductionItemsFieldArray({
           </div>
         )
       })}
-      <button type="button" className="w-full rounded border px-3 py-2" onClick={addRow}>
+      <button type="button" className="w-full rounded-lg border px-3 py-2" onClick={addRow}>
         품목 추가
       </button>
     </div>

@@ -374,7 +374,7 @@ export default async function ShippingCreatePage() {
                 <input
                   type="date"
                   name="shipment_date"
-                  className="w-full rounded border px-3 py-2"
+                  className="w-full rounded-lg border px-3 py-2"
                   required
                 />
               </div>

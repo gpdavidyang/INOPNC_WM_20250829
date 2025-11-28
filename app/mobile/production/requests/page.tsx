@@ -10,6 +10,8 @@ import { SelectField } from '@/modules/mobile/components/production/SelectField'
 // no dynamic imports needed on this page
 import {
   MATERIAL_PRIORITY_LABELS,
+  MATERIAL_PRIORITY_OPTIONS,
+  isMaterialPriorityValue,
   normalizeMaterialPriority,
   type MaterialPriorityValue,
 } from '@/lib/materials/priorities'
@@ -36,6 +38,7 @@ export default async function ProductionRequestsPage({
     material_id?: string
     page?: string
     page_size?: string
+    priority?: string
   }
 }) {
   await requireAuth('/mobile/production')
@@ -50,9 +53,11 @@ export default async function ProductionRequestsPage({
   const partnerQuery = (searchParams?.partner || '').trim()
   const partnerCompanyIdFilterRaw = (searchParams?.partner_company_id || '').trim()
   const keyword = (searchParams?.q || '').trim()
+  const isKeywordSearch = Boolean(keyword)
   const materialIdRaw = (searchParams?.material_id || '').trim()
   const pageParam = (searchParams?.page || '').trim()
   const pageSizeParam = (searchParams?.page_size || '').trim()
+  const priorityRaw = (searchParams?.priority || '').trim().toLowerCase()
 
   // Normalize 'all' sentinel from CustomSelect to empty string for filtering
   const selectedSiteId = siteIdFilterRaw && siteIdFilterRaw !== 'all' ? siteIdFilterRaw : ''
@@ -61,8 +66,11 @@ export default async function ProductionRequestsPage({
       ? partnerCompanyIdFilterRaw
       : ''
   const selectedMaterialId = materialIdRaw && materialIdRaw !== 'all' ? materialIdRaw : ''
-  const page = Math.max(1, Number.parseInt(pageParam || '1') || 1)
-  const pageSize = Math.min(50, Math.max(10, Number.parseInt(pageSizeParam || '20') || 20))
+  const selectedPriority = isMaterialPriorityValue(priorityRaw) ? priorityRaw : ''
+  const page = isKeywordSearch ? 1 : Math.max(1, Number.parseInt(pageParam || '1') || 1)
+  const pageSize = isKeywordSearch
+    ? 200 // broaden search scope to make keyword search effective
+    : Math.min(50, Math.max(10, Number.parseInt(pageSizeParam || '20') || 20))
   const from = (page - 1) * pageSize
   const to = from + pageSize // inclusive to fetch pageSize+1 rows for hasMore check
 
@@ -123,6 +131,9 @@ export default async function ProductionRequestsPage({
   if (selectedSiteId) {
     query = query.eq('site_id', selectedSiteId)
   }
+  if (selectedPriority) {
+    query = query.eq('priority', selectedPriority)
+  }
   // Pagination window
   query = query.range(from, to)
 
@@ -133,7 +144,7 @@ export default async function ProductionRequestsPage({
   }
 
   const requestsAll = (rawRequests || []) as Array<any>
-  const hasMore = requestsAll.length > pageSize
+  const hasMore = !isKeywordSearch && requestsAll.length > pageSize
   const requests = hasMore ? requestsAll.slice(0, pageSize) : requestsAll
 
   // Load site names for display (avoid join to prevent embed failures)
@@ -158,6 +169,7 @@ export default async function ProductionRequestsPage({
     new Set((requests || []).map(r => r.requested_by).filter(Boolean))
   ) as string[]
   let userPartnerNameMap: Record<string, string> = {}
+  let userPartnerIdMap: Record<string, string> = {}
   if (userIds.length > 0) {
     const { data: profRows } = await supabase
       .from('profiles')
@@ -181,6 +193,9 @@ export default async function ProductionRequestsPage({
         p.id as string,
         partnerNameById[p.partner_company_id as string] || '-',
       ])
+    )
+    userPartnerIdMap = Object.fromEntries(
+      (profRows || []).map((p: any) => [p.id as string, (p.partner_company_id as string) || ''])
     )
   }
 
@@ -241,6 +256,7 @@ export default async function ProductionRequestsPage({
       selectedSiteId ||
       selectedPartnerCompanyId ||
       selectedMaterialId ||
+      selectedPriority ||
       keyword
   )
 
@@ -253,13 +269,19 @@ export default async function ProductionRequestsPage({
         }
         // material filter (skipped: items not embedded)
         if (selectedMaterialId) {
-          // optional: server-side filter by joining items
+          const matIds = itemMatIdsByReq[rq.id] || []
+          if (!matIds.includes(selectedMaterialId)) return false
         }
         // text site filter removed (UI uses select)
         // partner/company name filter skipped (no requester join)
         // partner by id filter
         if (selectedPartnerCompanyId) {
-          // no requester join → cannot filter by partner id
+          const partnerId = userPartnerIdMap[rq.requested_by as string] || ''
+          if (partnerId !== selectedPartnerCompanyId) return false
+        }
+        if (selectedPriority) {
+          const normalizedPriority = normalizeMaterialPriority(rq.priority as string | null)
+          if (normalizedPriority !== selectedPriority) return false
         }
         // keyword search (request_number, notes, site name, material names/codes)
         if (keyword) {
@@ -273,18 +295,20 @@ export default async function ProductionRequestsPage({
           const inSite = String(siteNameMap[rq.site_id] || '')
             .toLowerCase()
             .includes(lower)
+          const partnerName = userPartnerNameMap[rq.requested_by as string] || ''
+          const inPartner = partnerName.toLowerCase().includes(lower)
           const matIds = itemMatIdsByReq[rq.id] || []
           const inMaterials = matIds.some(mid =>
             (materialInfoMap[mid]?.search || '').toLowerCase().includes(lower)
           )
-          if (!(inRequestNo || inNotes || inSite || inMaterials)) return false
+          if (!(inRequestNo || inNotes || inSite || inMaterials || inPartner)) return false
         }
         return true
       })
     : requests
 
-  // Safety fallback: if filters resulted in empty but data exists, show unfiltered
-  const finalList = filtered.length === 0 && requests.length > 0 ? requests : filtered
+  // Use filtered results when filters are active; otherwise show the raw list
+  const finalList = hasActiveFilter ? filtered : requests
   // Build base query string for detail links
   const baseParams = new URLSearchParams()
   if (period) baseParams.set('period', period)
@@ -292,6 +316,7 @@ export default async function ProductionRequestsPage({
   if (partnerCompanyIdFilterRaw) baseParams.set('partner_company_id', partnerCompanyIdFilterRaw)
   if (materialIdRaw) baseParams.set('material_id', materialIdRaw)
   if (keyword) baseParams.set('q', keyword)
+  if (selectedPriority) baseParams.set('priority', selectedPriority)
   const baseQuery = baseParams.toString()
   const nextParams = new URLSearchParams(baseQuery)
   nextParams.set('page', String(page + 1))
@@ -318,6 +343,10 @@ export default async function ProductionRequestsPage({
   const materialOptions: OptionItem[] = [
     { value: 'all', label: '전체 자재' },
     ...materials.map(m => ({ value: m.id, label: m.name })),
+  ]
+  const priorityOptions: OptionItem[] = [
+    { value: 'all', label: '전체 긴급도' },
+    ...MATERIAL_PRIORITY_OPTIONS,
   ]
 
   // This month stats (no joins; fetch requests then items by id)
@@ -384,12 +413,12 @@ export default async function ProductionRequestsPage({
                 <input type="hidden" name="page_size" value={String(pageSize)} />
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-muted-foreground mb-1">기간 (년월)</label>
+                    <label className="block text-xs text-muted-foreground mb-1">조회 기간</label>
                     <input
                       type="month"
                       name="period"
                       defaultValue={period || ''}
-                      className="w-full rounded border px-3 py-2"
+                      className="w-full rounded-lg border px-3 py-2"
                     />
                   </div>
                   <div>
@@ -429,7 +458,18 @@ export default async function ProductionRequestsPage({
                     name="q"
                     defaultValue={keyword}
                     placeholder="검색어를 입력하세요"
-                    className="w-full rounded border px-3 py-2"
+                    className="w-full rounded-lg border px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">
+                    긴급도 (낮음/보통/높음/긴급)
+                  </label>
+                  <SelectField
+                    name="priority"
+                    options={priorityOptions}
+                    defaultValue={selectedPriority || 'all'}
+                    placeholder="긴급도 선택"
                   />
                 </div>
                 <div className="pm-form-actions">
@@ -449,7 +489,9 @@ export default async function ProductionRequestsPage({
         <div className="rounded-lg border p-4 bg-white">
           <div className="pm-section-title mb-3">주문 리스트</div>
           {finalList.length === 0 ? (
-            <div className="text-sm text-muted-foreground">요청이 없습니다.</div>
+            <div className="text-sm text-muted-foreground">
+              {hasActiveFilter ? '검색 결과가 없습니다.' : '요청이 없습니다.'}
+            </div>
           ) : (
             <div className="space-y-3">
               {finalList.map(rq => {

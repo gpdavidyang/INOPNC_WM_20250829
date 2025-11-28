@@ -32,6 +32,8 @@ import { PhotoUploadCard } from './PhotoUploadCard'
 import { QuickMenu } from './QuickMenu'
 import { SummarySection } from './SummarySection'
 
+const isUuid = (val: string) => /^[0-9a-fA-F-]{36}$/.test(String(val || ''))
+
 const WORK_TYPE_OPTIONS = [
   { value: '지하', label: '지하' },
   { value: '지상', label: '지상' },
@@ -233,34 +235,13 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         setPrefillData(data)
 
         // Stage 1: Set department first to trigger site loading
-        if (data?.department) {
+        if (data?.department && isUuid(data.department)) {
           console.log('[Prefill Stage 1] Setting department:', data.department)
           setDepartment(String(data.department))
-        } else if (data?.siteId) {
-          // If no department but we have siteId, fetch site details to get organization_id
-          console.log('[Prefill Stage 1] No department, fetching site details for:', data.siteId)
-          try {
-            const res = await fetch(`/api/mobile/sites/${encodeURIComponent(data.siteId)}`, {
-              cache: 'no-store',
-            })
-            if (res.ok) {
-              const json = await res.json()
-              const siteData = json?.data || json
-              if (siteData?.organization_id) {
-                console.log(
-                  '[Prefill Stage 1] Found organization_id from site:',
-                  siteData.organization_id
-                )
-                setDepartment(String(siteData.organization_id))
-              }
-            }
-          } catch (err) {
-            console.error('[Prefill Stage 1] Failed to fetch site details:', err)
-          }
         }
 
         // Set hasPrefill flag if we have any prefill data (department or siteId)
-        if (data?.department || data?.siteId) {
+        if ((data?.department && isUuid(data.department)) || data?.siteId) {
           setHasPrefill(true)
         }
 
@@ -276,16 +257,31 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   // Prefill from localStorage (draft redirect) - Stage 2: Load site and other data after sites are loaded
   useEffect(() => {
-    if (!hasPrefill || prefillCompleted || sites.length === 0 || !prefillData) return
+    if (!hasPrefill || prefillCompleted || !prefillData) return
+    if (sitesLoading) return
 
     try {
       console.log('[Prefill Stage 2] Starting with data:', prefillData)
       console.log('[Prefill Stage 2] Sites available:', sites.length)
 
+      const prefillSiteId = prefillData?.siteId ? String(prefillData.siteId) : ''
+      const matchedSite = prefillSiteId ? sites.find(s => s.id === prefillSiteId) : null
+
+      if (prefillSiteId && !matchedSite && sites.length > 0) {
+        // 프리필된 현장이 존재하지 않을 때는 초기화하고 안내
+        setSelectedSite('')
+        setPrefillCompleted(true)
+        toast.warning('저장된 현장을 찾을 수 없습니다. 소속과 현장을 다시 선택해 주세요.')
+        return
+      }
+
       // Stage 2: Set site and all other data after sites are loaded
-      if (prefillData?.siteId) {
-        console.log('[Prefill Stage 2] Setting siteId:', prefillData.siteId)
-        setSelectedSite(String(prefillData.siteId))
+      if (matchedSite) {
+        console.log('[Prefill Stage 2] Setting siteId:', prefillSiteId)
+        setSelectedSite(prefillSiteId)
+        if (!department && matchedSite.organization_id) {
+          setDepartment(matchedSite.organization_id)
+        }
       }
       if (prefillData?.workDate) {
         console.log('[Prefill Stage 2] Setting workDate:', prefillData.workDate)
@@ -341,7 +337,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     } catch (e) {
       console.error('Prefill stage 2 error:', e)
     }
-  }, [hasPrefill, prefillCompleted, sites, prefillData])
+  }, [hasPrefill, prefillCompleted, sites, prefillData, sitesLoading, department])
 
   // Set today's date on mount
   useEffect(() => {
@@ -527,6 +523,13 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     }
   }
 
+  // department 값을 UUID가 아닐 경우 비워서 by-organization 호출을 방지
+  useEffect(() => {
+    if (department && !isUuid(department)) {
+      setDepartment('')
+    }
+  }, [department])
+
   // 선택된 시공업체(소속)에 따라 현장 목록 불러오기
   useEffect(() => {
     const controller = new AbortController()
@@ -605,34 +608,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       }
     }
 
-    const ensurePrefillSiteOption = () => {
-      if (!selectedSite) return
-      // sites state might be stale here, but we use functional update for setSites to avoid duplicates
-      if (isActive) {
-        setSites(prev => {
-          if (prev.some(s => s.id === selectedSite)) return prev
-          return [
-            ...prev,
-            {
-              id: selectedSite,
-              name: '선택된 현장',
-              organization_id: null,
-            },
-          ]
-        })
-      }
-    }
-
-    const isUuid = (val: string) => /^[0-9a-fA-F-]{36}$/.test(val)
-
     if (department && isUuid(department)) {
       fetchSitesByOrg()
     } else if (department) {
       // department가 문자열이지만 UUID가 아니면 전체 목록 fallback
       fetchSitesAll()
-    } else if (selectedSite) {
-      // 프리필된 siteId가 있을 때는 department 여부와 무관하게 전체 목록을 불러온 뒤 옵션에 추가
-      fetchSitesAll().then(() => ensurePrefillSiteOption())
+    } else if (hasPrefill && prefillData?.siteId) {
+      // 프리필 site가 있을 때는 전체 목록을 불러와 검증
+      fetchSitesAll()
     } else {
       setSites([])
       setSitesLoading(false)
@@ -643,13 +626,27 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       isActive = false
       controller.abort()
     }
-  }, [department, hasPrefill, selectedSite])
+  }, [department, hasPrefill, selectedSite, prefillData?.siteId])
 
   // 소속 변경시 현장 선택 초기화 (프리필 상태는 유지)
   useEffect(() => {
     if (hasPrefill) return
     setSelectedSite('')
   }, [department, hasPrefill])
+
+  // 프리필 시 사이트 목록에서 조직/소속 보완 (department가 비어 있을 때)
+  useEffect(() => {
+    if (!hasPrefill) return
+    if (department) return
+    if (!selectedSite) return
+
+    const matched = sites.find(s => s.id === selectedSite)
+    if (matched?.organization_id) {
+      setDepartment(matched.organization_id)
+    } else if (userProfile?.organization_id) {
+      setDepartment(userProfile.organization_id)
+    }
+  }, [hasPrefill, department, selectedSite, sites, userProfile?.organization_id])
 
   const handleAddCard = () => {
     const newId = Math.max(...workCards.map(c => c.id)) + 1
@@ -682,6 +679,19 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       toast.success('초기화되었습니다.')
     }
   }
+
+  // 프리필 시 siteId가 유효하지 않은 경우 안전하게 초기화
+  useEffect(() => {
+    if (!hasPrefill || !selectedSite) return
+    const exists = sites.some(s => s.id === selectedSite)
+    if (!exists && sitesLoading === false) {
+      // 선택된 site가 리스트에도 없고 세부 조회도 실패한 경우 초기화
+      setSelectedSite('')
+      setDepartment(prev => {
+        return isUuid(prev) ? prev : ''
+      })
+    }
+  }, [hasPrefill, selectedSite, sites, sitesLoading])
 
   const buildPayload = (status: 'draft' | 'submitted') => {
     const totalWorkers =

@@ -331,7 +331,7 @@ export const PartnerHomePage: React.FC = () => {
 
       <style jsx>{`
         .home-container {
-          padding: 12px 12px 84px;
+          padding: 12px 12px calc(var(--page-bottom-gap, 24px) + env(safe-area-inset-bottom, 0px));
         }
         .home-header {
           margin-bottom: 12px;

@@ -96,7 +96,7 @@
 /* Daily sites */
 .ph-card {
   border: 1px solid var(--ph-line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--ph-surface);
 }
 .ph-card:hover {
@@ -240,7 +240,7 @@
 /* Simple table */
 .ph-table {
   border: 1px solid var(--ph-line);
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
 }
 .ph-table-row {
@@ -308,7 +308,7 @@
   justify-content: space-between;
   height: 44px; /* match search field height */
   width: 100%;
-  border-radius: 14px;
+  border-radius: 8px;
   border: 1px solid #e5eaf3;
   background: #ffffff;
   font-size: 16px;

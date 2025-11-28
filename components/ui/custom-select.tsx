@@ -48,7 +48,7 @@ export const PhSelectTrigger = React.forwardRef<
   <CustomSelectTrigger
     ref={ref}
     className={cn(
-      'ph-select-trigger w-full h-10 text-[16px] font-semibold rounded-[14px] border border-[#E5EAF3] bg-white dark:bg-white justify-between text-left',
+      'ph-select-trigger w-full h-10 text-[16px] font-semibold !rounded-lg border border-[#E5EAF3] bg-white dark:bg-white justify-between text-left',
       className
     )}
     {...props}

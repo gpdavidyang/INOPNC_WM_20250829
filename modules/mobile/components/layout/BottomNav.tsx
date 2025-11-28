@@ -11,13 +11,13 @@ export const BottomNav: React.FC = () => {
   const { profile } = useUnifiedAuth()
   const isPartner = profile?.role === 'customer_manager' || profile?.role === 'partner'
 
-  // 생산관리자 전용 하단 내비게이션 (문서 정의: 입고요청 조회 / 생산정보 관리 / 출고·배송·결제 관리)
+  // 생산관리자 전용 하단 내비게이션 (문서 정의: 주문요청 조회 / 생산정보 관리 / 출고·배송·결제 관리)
   const navItems =
     profile?.role === 'production_manager'
       ? [
           {
             route: 'pm-requests',
-            label: '입고요청',
+            label: '주문요청',
             href: '/mobile/production/requests',
             icon: ClipboardList,
           },

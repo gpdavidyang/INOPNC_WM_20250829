@@ -14,6 +14,19 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
+    // Load profile to enforce partner/customer scope
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, organization_id')
+      .eq('id', authResult.userId)
+      .maybeSingle()
+
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    const isRestrictedRole = profile.role === 'partner' || profile.role === 'customer_manager'
+
     const { searchParams } = new URL(request.url)
     const statusParam = (searchParams.get('status') || '').toLowerCase()
     const includeDeleted = ['1', 'true', 'yes'].includes(
@@ -27,11 +40,24 @@ export async function GET(request: NextRequest) {
         id,
         name,
         address,
+        organization_id,
         status,
+        organization_id,
         created_at
       `
       )
       .order('created_at', { ascending: false })
+
+    // Restrict partner/customer to their organization only
+    if (isRestrictedRole) {
+      if (!profile.organization_id) {
+        return NextResponse.json(
+          { success: true, data: [], warning: 'No organization assigned to this profile.' },
+          { status: 200 }
+        )
+      }
+      query = query.eq('organization_id', profile.organization_id)
+    }
 
     if (!includeDeleted) {
       query = query.eq('is_deleted', false)

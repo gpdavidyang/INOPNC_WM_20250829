@@ -24,7 +24,7 @@ export function FillTabs({ items, value, className }: FillTabsProps) {
     <nav
       className={`flex w-full items-stretch rounded-md border border-gray-200 bg-white p-0.5 ${className ?? ''}`.trim()}
       role="tablist"
-      aria-label="커뮤니케이션 센터 탭"
+      aria-label="공지사항 관리 탭"
     >
       {items.map(item => {
         const active = item.value === value

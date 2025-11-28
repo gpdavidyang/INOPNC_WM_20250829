@@ -17,7 +17,7 @@ export default async function ProductionHomePage() {
             className="rounded-lg border p-4 bg-white hover:bg-accent"
             href="/mobile/production/requests"
           >
-            입고요청 조회
+            주문요청 조회
           </a>
           <a
             className="rounded-lg border p-4 bg-white hover:bg-accent"

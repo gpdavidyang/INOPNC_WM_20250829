@@ -183,7 +183,7 @@ export default async function ProductionCreatePage() {
             <input type="hidden" name="site_id" value={defaultSite?.id ?? ''} />
             <input type="hidden" name="site_name" value={defaultSite?.name ?? ''} />
             {!defaultSite && (
-              <div className="rounded-md bg-amber-50 text-amber-800 text-sm px-3 py-2">
+              <div className="rounded-lg bg-amber-50 text-amber-800 text-sm px-3 py-2">
                 등록된 현장이 없어 생산 정보를 저장할 수 없습니다. 관리자에게 문의해 주세요.
               </div>
             )}
@@ -195,7 +195,7 @@ export default async function ProductionCreatePage() {
               <input
                 type="date"
                 name="production_date"
-                className="w-full rounded border px-3 py-2"
+                className="w-full rounded-lg border px-3 py-2"
                 required
               />
             </div>
@@ -221,7 +221,7 @@ export default async function ProductionCreatePage() {
                 name="memo"
                 placeholder="요청사항을 입력하세요."
                 rows={3}
-                className="w-full rounded border px-3 py-2 h-20"
+                className="w-full rounded-lg border px-3 py-2 h-20"
               />
             </div>
 

@@ -26,6 +26,9 @@ import {
   MaterialPriorityValue,
   formatMaterialPriority,
 } from '@/lib/materials/priorities'
+import SiteInfoBottomSheet, {
+  buildSiteContactItems,
+} from '@/modules/mobile/components/site/SiteInfoBottomSheet'
 
 type ManagerRole = 'construction_manager' | 'assistant_manager' | 'safety_manager'
 
@@ -446,7 +449,69 @@ async function loadNpcSummary(siteId: string): Promise<NpcSummary | null> {
 }
 
 async function loadSiteSearch(siteName: string): Promise<SiteSearchResult[]> {
+  // Partner roles: prefer partner labor endpoint to ensure org/mapping filter consistency
+  const normalizeLaborSites = (sites: any[]): SiteSearchResult[] => {
+    const calculateProgress = (startDate?: string | null, endDate?: string | null): number => {
+      if (!startDate || !endDate) return 0
+      const start = new Date(startDate).getTime()
+      const end = new Date(endDate).getTime()
+      const now = Date.now()
+      if (Number.isNaN(start) || Number.isNaN(end)) return 0
+      if (now < start) return 0
+      if (now > end) return 100
+      const total = end - start
+      const elapsed = now - start
+      return total > 0 ? Math.min(100, Math.max(0, Math.round((elapsed / total) * 100))) : 0
+    }
+
+    return (sites || []).map((s: any) => {
+      const start = s?.start_date ?? s?.site?.start_date ?? null
+      const end = s?.end_date ?? s?.site?.end_date ?? null
+      const address = s?.address ?? s?.site?.address ?? '주소 정보 없음'
+      const name = s?.name ?? s?.site?.name ?? '이름 없음'
+      const id = s?.id ?? s?.site?.id ?? ''
+      const lastWork = s?.recentWorkDate || end || start || null
+
+      return {
+        id: String(id),
+        name: String(name),
+        address: address || '주소 정보 없음',
+        construction_period: {
+          start_date: start,
+          end_date: end,
+        },
+        last_work_date: lastWork,
+        customer_company_name: null,
+        progress_percentage: calculateProgress(start, end),
+        participant_count: Number(s?.workerDays ?? s?.totalManDays ?? 0),
+        is_active: (s?.status || s?.contractStatus || '').toString() !== 'completed',
+      } as SiteSearchResult
+    })
+  }
+
   try {
+    // 1) Partner-filtered list first (covers partner/customer roles)
+    try {
+      const partnerRes = await fetch('/api/partner/labor/by-site?period=monthly', {
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      if (partnerRes.ok) {
+        const partnerJson = await partnerRes.json().catch(() => null)
+        const partnerSites = Array.isArray(partnerJson?.sites) ? partnerJson.sites : []
+        if (partnerSites.length) {
+          let normalized = normalizeLaborSites(partnerSites)
+          if (siteName.trim()) {
+            const q = siteName.trim().toLowerCase()
+            normalized = normalized.filter(s => s.name.toLowerCase().includes(q))
+          }
+          return normalized
+        }
+      }
+    } catch (e) {
+      console.warn('[SiteInfo] partner labor site load failed, falling back to generic search', e)
+    }
+
     // NPC 섹션의 현장 선택은 전체 리스트가 필요하므로 넉넉한 상한(백엔드 cap 100)에 맞춰 요청
     const params = new URLSearchParams({ limit: '100' })
     if (siteName.trim()) {
@@ -1221,11 +1286,6 @@ export default function SiteInfoPage() {
 
   const closeSiteBottomSheet = () => setShowSiteBottomSheet(false)
 
-  const handleCallContact = (phone?: string) => {
-    if (!phone) return
-    window.location.href = `tel:${phone}`
-  }
-
   const handleOpenOtherDocuments = () => {
     closeSiteBottomSheet()
     window.location.href = '/mobile/documents'
@@ -1569,28 +1629,10 @@ export default function SiteInfoPage() {
     ]
   }, [attachments])
 
-  const contactItems = useMemo(() => {
-    if (!currentSite) return [] as Array<{ label: string; contact?: ManagerContact }>
-
-    const siteManager = currentSite.managers.find(
-      manager => manager.role === 'construction_manager'
-    )
-    const safetyManager = currentSite.managers.find(manager => manager.role === 'safety_manager')
-    const others = currentSite.managers.filter(
-      manager => manager.role !== 'construction_manager' && manager.role !== 'safety_manager'
-    )
-
-    const items: Array<{ label: string; contact?: ManagerContact }> = [
-      { label: '담당자', contact: siteManager },
-      { label: '안전', contact: safetyManager },
-    ]
-
-    others.forEach(other => {
-      items.push({ label: '담당', contact: other })
-    })
-
-    return items
-  }, [currentSite])
+  const contactItems = useMemo(
+    () => buildSiteContactItems(currentSite?.managers || []),
+    [currentSite?.managers]
+  )
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -1602,27 +1644,6 @@ export default function SiteInfoPage() {
 
   const accommodationAddress = currentSite?.accommodation?.full_address?.trim() ?? ''
   const workerCount = todayHeadcount
-
-  useEffect(() => {
-    if (!showSiteBottomSheet) {
-      document.body.style.overflow = ''
-      return
-    }
-
-    document.body.style.overflow = 'hidden'
-
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeSiteBottomSheet()
-      }
-    }
-
-    document.addEventListener('keydown', handleKey)
-    return () => {
-      document.body.style.overflow = ''
-      document.removeEventListener('keydown', handleKey)
-    }
-  }, [showSiteBottomSheet])
 
   return (
     <div className="site-container">
@@ -5445,143 +5466,17 @@ export default function SiteInfoPage() {
         </section>
       </div>
 
-      {showSiteBottomSheet && currentSite && (
-        <div className="site-info-bottomsheet" role="dialog" aria-modal="true">
-          <div className="site-info-bottomsheet-overlay" onClick={closeSiteBottomSheet} />
-          <div className="site-info-bottomsheet-content">
-            <div className="site-info-bottomsheet-header">
-              <h3 className="site-info-bottomsheet-title">{currentSite.name}</h3>
-              <button
-                type="button"
-                className="site-info-bottomsheet-close"
-                onClick={closeSiteBottomSheet}
-              >
-                닫기
-              </button>
-            </div>
-
-            <div className="site-info-sheet-summary" role="group" aria-label="현장 요약">
-              <div className="site-info-sheet-summary-row">
-                <span className="site-info-sheet-summary-label">소속</span>
-                <span className="site-info-sheet-summary-value">
-                  {currentSite.customer_company?.company_name?.trim() || '미배정'}
-                </span>
-              </div>
-              <div className="site-info-sheet-summary-row">
-                <span className="site-info-sheet-summary-label">현장명</span>
-                <span className="site-info-sheet-summary-value">{currentSite.name}</span>
-              </div>
-              <div className="site-info-sheet-summary-row">
-                <span className="site-info-sheet-summary-label">작업일</span>
-                <span className="site-info-sheet-summary-value">{todayDisplay}</span>
-              </div>
-              <div className="site-info-sheet-summary-row">
-                <span className="site-info-sheet-summary-label">출력인원</span>
-                <span className="site-info-sheet-summary-value">
-                  {workerCount.toLocaleString()}명
-                </span>
-              </div>
-            </div>
-
-            {contactItems.length > 0 && (
-              <div className="site-info-sheet-section" role="group" aria-label="담당자 정보">
-                {contactItems.map(item => {
-                  const phone = item.contact?.phone?.trim() || ''
-                  return (
-                    <div
-                      className="site-info-sheet-contact"
-                      key={`${item.label}-${item.contact?.name ?? 'unknown'}`}
-                    >
-                      <div className="site-info-sheet-contact-meta">
-                        <span className="site-info-sheet-contact-label">{item.label}</span>
-                        <span className="site-info-sheet-contact-name">
-                          {item.contact?.name || '-'}
-                        </span>
-                      </div>
-                      <div className="site-info-sheet-contact-actions">
-                        <span className="site-info-sheet-contact-phone">{phone || '-'}</span>
-                        <button
-                          type="button"
-                          className="site-info-sheet-contact-call"
-                          onClick={() => handleCallContact(phone)}
-                          disabled={!phone}
-                        >
-                          전화
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            <div className="site-info-sheet-section" role="group" aria-label="주소 정보">
-              <div className="site-info-sheet-address-row">
-                <div className="site-info-sheet-address-meta">
-                  <span className="site-info-sheet-address-label">주소</span>
-                  <span className="site-info-sheet-address-value">
-                    {currentSite.address.full_address || '-'}
-                  </span>
-                </div>
-                <div className="site-info-sheet-address-actions">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      copyToClipboard(currentSite.address.full_address, '현장 주소를 복사했습니다.')
-                    }
-                    disabled={!currentSite.address.full_address}
-                  >
-                    복사
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openMapForAddress(currentSite.address.full_address)}
-                    disabled={!currentSite.address.full_address}
-                  >
-                    T맵
-                  </button>
-                </div>
-              </div>
-
-              <div className="site-info-sheet-address-row">
-                <div className="site-info-sheet-address-meta">
-                  <span className="site-info-sheet-address-label">숙소</span>
-                  <span className="site-info-sheet-address-value">
-                    {accommodationAddress || '미지정'}
-                  </span>
-                </div>
-                <div className="site-info-sheet-address-actions">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      copyToClipboard(accommodationAddress, '숙소 주소를 복사했습니다.')
-                    }
-                    disabled={!accommodationAddress}
-                  >
-                    복사
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openMapForAddress(accommodationAddress)}
-                    disabled={!accommodationAddress}
-                  >
-                    T맵
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="site-info-sheet-actions" role="group" aria-label="현장 관련 작업">
-              <button type="button" className="ghost" onClick={handleOpenOtherDocuments}>
-                기타서류업로드
-              </button>
-              <button type="button" className="primary" onClick={handleOpenWorklogList}>
-                작업일지목록
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <SiteInfoBottomSheet
+        open={Boolean(showSiteBottomSheet && currentSite)}
+        site={currentSite}
+        dateLabel={todayDisplay}
+        workerCount={workerCount}
+        contactItems={contactItems}
+        accommodationAddress={accommodationAddress}
+        onClose={closeSiteBottomSheet}
+        onOpenOtherDocuments={handleOpenOtherDocuments}
+        onOpenWorklogList={handleOpenWorklogList}
+      />
 
       {progressModal.open && (
         <div

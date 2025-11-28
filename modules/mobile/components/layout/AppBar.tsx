@@ -14,6 +14,8 @@ import { isNotificationHiddenToday } from '@/modules/mobile/lib/notification-pre
 interface AppBarProps {
   onMenuClick?: () => void
   onSearchClick?: () => void
+  /** Allows parent layouts to render the shared SearchPage overlay */
+  renderInlineSearchPage?: boolean
   /** Storybook-only visual controls (safe defaults keep prod behavior) */
   titleText?: string
   showLabels?: boolean
@@ -23,6 +25,7 @@ interface AppBarProps {
 export const AppBar: React.FC<AppBarProps> = ({
   onMenuClick,
   onSearchClick,
+  renderInlineSearchPage = true,
   titleText = 'INOPNC',
   showLabels = true,
   notificationCountOverride,
@@ -132,7 +135,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             onClick={() => {
               if (onSearchClick) {
                 onSearchClick()
-              } else {
+              } else if (renderInlineSearchPage) {
                 setShowSearchPage(true)
               }
             }}
@@ -351,7 +354,9 @@ export const AppBar: React.FC<AppBarProps> = ({
       {/* Drawer is now rendered by MobileLayout */}
 
       {/* Search Page */}
-      <SearchPage isOpen={showSearchPage} onClose={() => setShowSearchPage(false)} />
+      {renderInlineSearchPage ? (
+        <SearchPage isOpen={showSearchPage} onClose={() => setShowSearchPage(false)} />
+      ) : null}
     </header>
   )
 }

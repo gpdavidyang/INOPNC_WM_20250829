@@ -73,7 +73,7 @@ export function AdminDashboardContent() {
     '/dashboard/admin/salary': '급여관리 도구',
     '/dashboard/admin/documents/required': '필수서류 관리',
     '/dashboard/admin/organizations': '소속(시공사) 관리',
-    '/dashboard/admin/communication': '커뮤니케이션',
+    '/dashboard/admin/communication': '공지사항 관리',
     '/dashboard/admin/notifications': '알림 관리',
     '/dashboard/admin/documents/company': '이노피앤씨 설정',
   }

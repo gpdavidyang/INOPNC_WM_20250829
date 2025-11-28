@@ -78,7 +78,7 @@ export function MaterialPartnerSelect({
       />
       <input type="hidden" name={`${name}_label`} value={partnerLabelValue} />
       <CustomSelect value={value} onValueChange={setValue} disabled={effectiveDisabled}>
-        <PhSelectTrigger className="w-full h-10 rounded-[14px] border border-[#E5EAF3] bg-white">
+        <PhSelectTrigger className="w-full h-10 rounded-lg border border-[#E5EAF3] bg-white">
           <CustomSelectValue placeholder={placeholder}>
             {findLabel(value) || placeholder}
           </CustomSelectValue>

@@ -43,7 +43,7 @@ export default async function CommunicationEditorPage({
         description="기존 공지의 내용을 수정합니다."
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
-          { label: '커뮤니케이션', href: '/dashboard/admin/communication?tab=announcements' },
+          { label: '공지사항 관리', href: '/dashboard/admin/communication?tab=announcements' },
           { label: '공지 수정' },
         ]}
         showBackButton

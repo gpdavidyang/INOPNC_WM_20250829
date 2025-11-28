@@ -252,10 +252,6 @@ export async function GET(request: NextRequest) {
       if (!profile.site_id) {
         return NextResponse.json({ success: true, announcements: [] })
       }
-    } else if (authResult.isRestricted) {
-      if (!accessibleSiteIds || accessibleSiteIds.length === 0) {
-        return NextResponse.json({ success: true, announcements: [] })
-      }
     }
 
     let query = supabase.from('announcements').select('*').eq('is_active', true)
@@ -292,7 +288,9 @@ export async function GET(request: NextRequest) {
         return targets.length === 0 || targets.includes(profile.site_id)
       }
       if (authResult.isRestricted) {
-        if (!accessibleSiteIds || accessibleSiteIds.length === 0) return false
+        if (!accessibleSiteIds || accessibleSiteIds.length === 0) {
+          return targets.length === 0
+        }
         return targets.length === 0 || targets.some(site => accessibleSiteIds!.includes(site))
       }
       return true

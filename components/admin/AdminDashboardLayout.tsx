@@ -170,7 +170,7 @@ const menuCategories = [
       },
       {
         id: 'communication',
-        label: '커뮤니케이션',
+        label: '공지사항 관리',
         icon: MessageSquare,
         href: '/dashboard/admin/communication',
       },

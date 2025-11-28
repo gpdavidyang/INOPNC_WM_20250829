@@ -3,11 +3,19 @@
 import React from 'react'
 import Link from 'next/link'
 
-const quickMenuItemsBase = [
+interface QuickMenuItem {
+  id?: string
+  href: string
+  icon: string
+  label: string
+  external?: boolean
+}
+
+const quickMenuItemsBase: QuickMenuItem[] = [
   {
-    href: '/mobile/attendance',
-    icon: '/icons/pay_output.png',
-    label: '출력정보',
+    href: '/mobile/sites',
+    icon: '/icons/map_site.png',
+    label: '현장정보',
   },
   {
     href: '/mobile/worklog',
@@ -15,9 +23,10 @@ const quickMenuItemsBase = [
     label: '작업일지',
   },
   {
-    href: '/mobile/sites',
-    icon: '/icons/map_site.png',
-    label: '현장정보',
+    id: 'output',
+    href: '/mobile/attendance',
+    icon: '/icons/pay_output.png',
+    label: '출력정보',
   },
   {
     href: '/mobile/documents',
@@ -29,11 +38,6 @@ const quickMenuItemsBase = [
     icon: '/icons/request_hq.png',
     label: '본사요청',
     external: true,
-  },
-  {
-    href: '/mobile/sites#materials-inventory-section',
-    icon: '/icons/stock_inventory.png',
-    label: '재고관리',
   },
 ]
 
@@ -58,9 +62,9 @@ export const QuickMenu: React.FC = () => {
   }, [])
 
   const quickMenuItems = React.useMemo(() => {
-    const arr = [...quickMenuItemsBase]
-    arr[0] = { ...arr[0], href: outputHref }
-    return arr
+    return quickMenuItemsBase.map(item =>
+      item.id === 'output' ? { ...item, href: outputHref } : item
+    )
   }, [outputHref])
 
   return (
