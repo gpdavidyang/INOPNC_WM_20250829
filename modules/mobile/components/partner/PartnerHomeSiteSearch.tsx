@@ -18,6 +18,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<RecentSiteItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [abbr, setAbbr] = useState<string>('')
   const [sheetOpen, setSheetOpen] = useState(false)
   const [currentSite, setCurrentSite] = useState<PartnerSiteDetailResult['site'] | null>(null)
@@ -89,12 +90,25 @@ export const PartnerHomeSiteSearch: React.FC = () => {
     const controller = new AbortController()
     async function run() {
       setLoading(true)
+      setError(null)
       try {
         const res = await fetch('/api/partner/labor/by-site?period=monthly', {
           cache: 'no-store',
           signal: controller.signal,
         })
         const payload = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          const msg =
+            (payload?.error as string) ||
+            '현장을 불러올 수 없습니다. 파트너사 연결 상태를 확인해 주세요.'
+          if (alive) {
+            setError(msg)
+            setItems([])
+          }
+          return
+        }
+
         const list = Array.isArray(payload?.sites)
           ? payload.sites.map((s: any) => ({
               id: s.id,
@@ -189,7 +203,8 @@ export const PartnerHomeSiteSearch: React.FC = () => {
 
         {/* 최근 현장 3건 (동일 섹션에 표기) */}
         {loading && <div className="text-xs text-gray-500 p-2">불러오는 중...</div>}
-        {!loading && top3.length === 0 && (
+        {!loading && error && <div className="text-xs text-red-500 p-2">{error}</div>}
+        {!loading && !error && top3.length === 0 && (
           <div className="text-xs text-gray-500 p-2">표시할 현장이 없습니다.</div>
         )}
         {!loading && top3.length > 0 && (

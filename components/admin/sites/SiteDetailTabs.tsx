@@ -1613,7 +1613,9 @@ export default function SiteDetailTabs({
               </div>
               {organization?.id ? (
                 <Button asChild variant="outline" size="sm">
-                  <a href={`/dashboard/admin/organizations/${organization.id}`}>시공사 상세보기</a>
+                  <a href={`/dashboard/admin/organizations/${organization.id}`}>
+                    소속(시공)사 상세
+                  </a>
                 </Button>
               ) : null}
             </div>

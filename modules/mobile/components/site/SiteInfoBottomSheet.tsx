@@ -110,8 +110,8 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
       ?.writeText(value)
       .then(() => {
         toast({
-          title: '복사 완료',
-          description: message || '클립보드에 복사했습니다.',
+          title: '복사 되었습니다.',
+          description: message || '선택한 내용을 복사했습니다.',
           variant: 'success',
         })
       })
@@ -220,7 +220,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
                   className="site-info-sheet-contact"
                   key={`${item.label}-${phone || item.contact?.name || 'empty'}`}
                 >
-                  <div className="site-info-sheet-contact-meta">
+                  <div className="site-info-sheet-contact-left">
                     <span className="site-info-sheet-contact-label">{item.label}</span>
                     <span className="site-info-sheet-contact-name">
                       {item.contact?.name || '-'}
@@ -249,7 +249,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
               <span className="site-info-sheet-address-label">주소</span>
               <span className="site-info-sheet-address-value">{address || '-'}</span>
             </div>
-            <div className="site-info-sheet-address-actions">
+            <div className="site-info-sheet-address-actions row">
               <button
                 type="button"
                 onClick={() => copyHandler(address, '현장 주소를 복사했습니다.')}
@@ -268,7 +268,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
               <span className="site-info-sheet-address-label">숙소</span>
               <span className="site-info-sheet-address-value">{accommodation || '미지정'}</span>
             </div>
-            <div className="site-info-sheet-address-actions">
+            <div className="site-info-sheet-address-actions row">
               <button
                 type="button"
                 onClick={() => copyHandler(accommodation, '숙소 주소를 복사했습니다.')}
@@ -315,14 +315,14 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           position: relative;
           width: min(640px, 100%);
           background: var(--card, #ffffff);
-          border-radius: 28px 28px 0 0;
-          padding: 28px 24px calc(32px + env(safe-area-inset-bottom, 0px));
+          border-radius: 20px 20px 0 0;
+          padding: 14px 14px calc(18px + env(safe-area-inset-bottom, 0px));
           box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.18);
           max-height: 90vh;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 24px;
+          gap: 10px;
         }
         .site-info-bottomsheet-header {
           display: flex;
@@ -355,11 +355,11 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         .site-info-sheet-summary {
           background: #f6f9ff;
           border: 1px solid #e4e8f4;
-          border-radius: 18px;
-          padding: 18px;
+          border-radius: 12px;
+          padding: 10px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 4px;
         }
         .site-info-sheet-summary-row {
           display: flex;
@@ -381,24 +381,19 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         .site-info-sheet-section {
           display: flex;
           flex-direction: column;
-          gap: 16px;
+          gap: 6px;
         }
         .site-info-sheet-contact {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          padding: 12px 0;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+          gap: 6px;
+          padding: 6px 0;
         }
-        .site-info-sheet-contact:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-        .site-info-sheet-contact-meta {
+        .site-info-sheet-contact-left {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
+          align-items: center;
+          gap: 8px;
         }
         .site-info-sheet-contact-label {
           font-size: 13px;
@@ -436,13 +431,8 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         .site-info-sheet-address-row {
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          padding: 12px 0;
-          border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-        }
-        .site-info-sheet-address-row:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
+          gap: 3px;
+          padding: 6px 0;
         }
         .site-info-sheet-address-meta {
           display: flex;
@@ -463,8 +453,17 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           display: flex;
           gap: 8px;
         }
+        .site-info-sheet-address-actions.row {
+          flex-direction: row;
+          justify-content: flex-end;
+        }
+        .site-info-sheet-address-actions.row button {
+          flex: 0 0 auto;
+          width: auto;
+          min-width: auto;
+          padding: 6px 12px;
+        }
         .site-info-sheet-address-actions button {
-          flex: 1;
           border: 1px solid #d4dcf0;
           background: #fff;
           border-radius: 10px;
@@ -477,12 +476,11 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         }
 
         .site-info-sheet-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 4px;
         }
         .site-info-sheet-actions button {
-          width: 100%;
           padding: 14px;
           border-radius: 16px;
           font-weight: 700;
@@ -525,6 +523,13 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           }
           .site-info-sheet-address-actions {
             flex-direction: column;
+          }
+          .site-info-sheet-address-actions.row {
+            flex-direction: row !important;
+            justify-content: flex-end;
+          }
+          .site-info-sheet-address-actions.row button {
+            width: auto;
           }
           .site-info-sheet-address-actions button {
             width: 100%;

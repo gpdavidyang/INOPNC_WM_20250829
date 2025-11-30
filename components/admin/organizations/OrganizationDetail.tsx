@@ -3,8 +3,8 @@
 import { Building2, Mail, MapPin, Phone, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import DataTable, { type Column } from '@/components/admin/DataTable'
 import { OrganizationSitesManager } from './OrganizationSitesManager'
+import { OrganizationMembersManager } from './OrganizationMembersManager'
 
 const TYPE_LABEL: Record<string, string> = {
   general_contractor: '원청',
@@ -42,17 +42,6 @@ export function OrganizationDetail({
   members = [],
   sites = [],
 }: OrganizationDetailProps) {
-  const roleLabels: Record<string, string> = {
-    admin: '본사관리자',
-    system_admin: '시스템 관리자',
-    site_manager: '현장관리자',
-    supervisor: '감리',
-    worker: '작업자',
-    partner_admin: '파트너 관리자',
-    production_manager: '생산관리자',
-    customer_manager: '소속사관리자',
-  }
-
   return (
     <div className="space-y-6">
       <Card>
@@ -137,49 +126,7 @@ export function OrganizationDetail({
           <CardDescription>조직에 연동된 사용자 목록입니다.</CardDescription>
         </CardHeader>
         <CardContent className="px-0">
-          {members.length === 0 ? (
-            <p className="px-6 py-8 text-sm text-muted-foreground">연동된 구성원이 없습니다.</p>
-          ) : (
-            <DataTable<{ id: string; name: string; role: string; email?: string }>
-              data={members}
-              rowKey={m => m.id}
-              stickyHeader
-              columns={
-                [
-                  {
-                    key: 'name',
-                    header: '이름',
-                    sortable: true,
-                    width: '35%',
-                    render: m => (
-                      <a
-                        href={`/dashboard/admin/users/${m.id}`}
-                        className="font-medium text-foreground underline underline-offset-2"
-                        title="사용자 상세"
-                      >
-                        {m.name}
-                      </a>
-                    ),
-                  },
-                  {
-                    key: 'role',
-                    header: '역할',
-                    sortable: true,
-                    width: '25%',
-                    render: m => (
-                      <Badge variant="outline">{roleLabels[m.role] || m.role || '미지정'}</Badge>
-                    ),
-                  },
-                  {
-                    key: 'email',
-                    header: '이메일',
-                    sortable: true,
-                    render: m => m.email ?? '-',
-                  },
-                ] as Column<{ id: string; name: string; role: string; email?: string }>[]
-              }
-            />
-          )}
+          <OrganizationMembersManager organizationId={organization.id} initialMembers={members} />
         </CardContent>
       </Card>
 
@@ -188,7 +135,12 @@ export function OrganizationDetail({
           <CardTitle className="flex items-center gap-2 text-lg">
             <Building2 className="h-5 w-5" /> 연동 현장
           </CardTitle>
-          <CardDescription>이 조직과 연결된 현장 목록입니다.</CardDescription>
+          <CardDescription className="flex flex-wrap items-center gap-2">
+            <span>이 조직과 연결된 현장 목록입니다.</span>
+            <span className="text-muted-foreground">
+              이미 다른 소속에 연결된 현장은 목록에서 제외되어 표시되지 않습니다.
+            </span>
+          </CardDescription>
         </CardHeader>
         <CardContent className="px-0">
           <OrganizationSitesManager organizationId={organization.id} initialSites={sites} />

@@ -112,7 +112,11 @@ export function OrganizationSitesManager({
         })
       }
       setSelectedSiteId('')
-      toast({ title: '연결 완료', description: '현장이 소속에 연결되었습니다.', variant: 'success' })
+      toast({
+        title: '연결 완료',
+        description: '현장이 소속에 연결되었습니다.',
+        variant: 'success',
+      })
       await loadSiteOptions()
     } catch (error) {
       toast({
@@ -178,11 +182,7 @@ export function OrganizationSitesManager({
           width: '15%',
           render: (site: AssignedSite) => (
             <Badge variant={site.status === 'active' ? 'secondary' : 'outline'}>
-              {site.status === 'active'
-                ? '활성'
-                : site.status === 'inactive'
-                  ? '비활성'
-                  : '준비중'}
+              {site.status === 'active' ? '활성' : site.status === 'inactive' ? '비활성' : '준비중'}
             </Badge>
           ),
         },
@@ -255,9 +255,10 @@ export function OrganizationSitesManager({
             <Button
               type="button"
               variant="primary"
+              size="sm"
               onClick={() => void assignSite()}
               disabled={assigning || !selectedSiteId}
-              className="md:w-32"
+              className="md:w-32 text-xs"
             >
               {assigning ? (
                 <span className="flex items-center gap-1">

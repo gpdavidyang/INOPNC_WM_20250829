@@ -27,7 +27,14 @@ export async function GET(request: NextRequest) {
     }
 
     if (!profile.partner_company_id) {
-      return NextResponse.json({ error: 'Not a partner user' }, { status: 403 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: '파트너사에 연결되지 않은 계정입니다. 관리자에게 파트너사 연결을 요청하세요.',
+          code: 'MISSING_PARTNER_COMPANY',
+        },
+        { status: 403 }
+      )
     }
 
     // Parse query parameters
@@ -294,6 +301,29 @@ export async function GET(request: NextRequest) {
 
     const siteEntries = Array.from(siteMap.values()).filter(entry => entry.site)
 
+    // Resolve organization names for sites (used by partner UI to display 소속)
+    const orgIds = Array.from(
+      new Set(
+        siteEntries
+          .map(entry => (entry.site as any)?.organization_id)
+          .filter(id => typeof id === 'string' && id.length > 0)
+      )
+    )
+    const orgNameMap = new Map<string, string>()
+    if (orgIds.length > 0) {
+      try {
+        const { data: orgRows } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .in('id', orgIds)
+        ;(orgRows || []).forEach((row: any) => {
+          if (row?.id) orgNameMap.set(String(row.id), row.name || '')
+        })
+      } catch (e) {
+        // ignore org lookup failure; keep map empty
+      }
+    }
+
     // Get labor data for each site
     const siteLaborPromises = siteEntries.map(async entry => {
       const site = entry.site
@@ -391,6 +421,11 @@ export async function GET(request: NextRequest) {
         name: site.name,
         address: site.address,
         status: contractStatus === 'completed' ? 'completed' : site.status || 'active',
+        organization_id: (site as any)?.organization_id || null,
+        organization_name:
+          ((site as any)?.organization_id &&
+            orgNameMap.get(String((site as any).organization_id))) ||
+          null,
         contractStatus,
         // For compatibility, keep totalLaborHours but return man-days value
         totalLaborHours: totalManDays,

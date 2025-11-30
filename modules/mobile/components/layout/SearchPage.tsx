@@ -357,36 +357,54 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         .search-input-wrapper {
           flex: 1;
           position: relative;
-          display: block; /* isolate absolute children inside the input area */
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 20px;
-          height: 20px;
-          color: var(--muted-ink);
-          pointer-events: none; /* icon sits inside the input without blocking clicks */
-          z-index: 1;
-        }
-
-        .search-input {
-          width: 100%;
-          height: 40px;
-          padding: 0 44px 0 44px; /* leave room for the icon and clear button inside */
+          display: flex;
+          align-items: center;
+          gap: 8px;
           background: var(--surface-2);
           border: 1px solid var(--line);
           border-radius: 20px;
+          min-height: 40px;
+          padding: 0 44px 0 14px; /* leave room for the clear button on the right */
+        }
+
+        .search-icon {
+          width: 20px;
+          height: 20px;
+          color: var(--muted-ink);
+          flex-shrink: 0;
+          pointer-events: none;
+        }
+
+        .search-input {
+          flex: 1 1 auto;
+          min-width: 0;
+          width: auto;
+          height: 40px;
+          padding: 0 4px 0 4px;
+          padding-right: 0; /* right padding handled by wrapper to reserve clear button space */
+          background: transparent;
+          border: none;
+          border-radius: 0;
           font-size: 16px;
           color: var(--text);
           outline: none;
           transition: all 0.2s;
         }
+
+        .search-input::placeholder {
+          color: var(--muted-ink);
+        }
+
+        .search-input-wrapper:focus-within {
+          border-color: var(--tag-blue);
+          background: var(--surface);
+          box-shadow: 0 0 0 2px rgba(49, 163, 250, 0.1);
+        }
         .search-clear-btn {
           position: absolute;
           right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
           background: rgba(0, 0, 0, 0.05);
           color: var(--text);
           border: none;

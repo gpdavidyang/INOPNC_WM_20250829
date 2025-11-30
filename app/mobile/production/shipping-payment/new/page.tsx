@@ -420,6 +420,7 @@ export default async function ShippingCreatePage() {
                     { value: 'delivered', label: '완료' },
                   ]}
                   placeholder="상태 선택"
+                  defaultValue="preparing"
                 />
               </div>
               <div>

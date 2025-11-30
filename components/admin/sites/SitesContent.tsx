@@ -319,6 +319,7 @@ export function SitesContent({
         key: 'status',
         header: t('sites.table.status'),
         sortable: true,
+        className: 'whitespace-nowrap',
         render: s => (
           <Badge variant={s.status === 'active' ? 'default' : 'outline'}>
             {STATUS_LABELS[(s.status || 'all') as StatusFilterOption] || '미정'}
@@ -364,8 +365,9 @@ export function SitesContent({
         header: '작업',
         sortable: false,
         align: 'left',
+        className: 'whitespace-nowrap',
         render: s => (
-          <div className="flex items-center justify-start gap-1">
+          <div className="flex items-center justify-start gap-1 flex-nowrap">
             <Button asChild variant="outline" size="sm">
               <a href={`/dashboard/admin/sites/${s.id}`}>상세</a>
             </Button>

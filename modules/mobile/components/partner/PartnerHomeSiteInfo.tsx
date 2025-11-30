@@ -82,6 +82,18 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
         if (!active) return
         const label = deriveOrganizationLabel(payload?.profile)
         if (label) setOrganizationName(label)
+        // Partner 전용: auth/me에 없으면 조직 API로 한 번 더 시도
+        if (!label && payload?.profile?.organization_id) {
+          const orgRes = await fetch('/api/partner/organization', {
+            cache: 'no-store',
+            credentials: 'include',
+          })
+          const orgJson = await orgRes.json().catch(() => null)
+          const orgName = orgJson?.organization?.name
+          if (orgRes.ok && orgName && active) {
+            setOrganizationName(orgName)
+          }
+        }
       } catch {
         /* ignore */
       }
@@ -133,6 +145,9 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
         const payload = await byDay.json().catch(() => ({}))
         const sites = Array.isArray(payload?.sites) ? payload.sites : []
         const top = sites[0] ? { id: sites[0].id, name: sites[0].name } : null
+        if (!organizationLabel && sites[0]?.organization_name) {
+          setOrganizationName(sites[0].organization_name)
+        }
         if (!top) {
           // fallback: any monthly site
           const monthly = await fetch('/api/partner/labor/by-site?period=monthly', {
@@ -142,6 +157,9 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
           const arr = Array.isArray(pj?.sites) ? pj.sites : []
           if (arr[0]) {
             setSite({ id: arr[0].id, name: arr[0].name })
+            if (!organizationLabel && arr[0]?.organization_name) {
+              setOrganizationName(arr[0].organization_name)
+            }
             try {
               await fetch('/api/sites/switch', {
                 method: 'POST',
