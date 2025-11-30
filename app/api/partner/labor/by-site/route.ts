@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const runtime = 'nodejs'
@@ -13,7 +14,14 @@ export async function GET(request: NextRequest) {
       return authResult
     }
 
-    const supabase = await createClient()
+    // Prefer service role to bypass worker-only RLS; fall back to server client if unavailable
+    let supabase: ReturnType<typeof createClient>
+    try {
+      supabase = createServiceRoleClient()
+    } catch (e) {
+      console.warn('[partner/labor/by-site] service role unavailable, using server client')
+      supabase = createClient()
+    }
 
     // Get user profile
     const { data: profile, error: profileError } = await supabase
@@ -161,15 +169,7 @@ export async function GET(request: NextRequest) {
       }
     } else {
       mappingRows
-        ?.filter(row => {
-          if (!row.is_active || !row.sites?.id) return false
-          // If organization_id is set, require exact match (skip null org to avoid leakage)
-          if (profile.organization_id) {
-            if (!row.sites?.organization_id) return false
-            return String(row.sites.organization_id) === String(profile.organization_id)
-          }
-          return true
-        })
+        ?.filter(row => row.is_active && row.sites?.id)
         .forEach(row => {
           const meta = parseContractNotes(row.notes)
           siteMap.set(row.site_id, {
@@ -352,7 +352,8 @@ export async function GET(request: NextRequest) {
         const lh = Number((rec as any).labor_hours) || 0
         totalWorkHours += wh
         totalLaborHoursRaw += lh
-        sumManDaysRecords += lh > 0 ? lh : wh > 0 ? wh / 8 : 0
+        const md = lh > 0 ? lh : wh > 0 ? wh / 8 : 1
+        sumManDaysRecords += md
       }
 
       // Sum of daily worker counts across the range (count each record; do not de-duplicate)
@@ -364,7 +365,7 @@ export async function GET(request: NextRequest) {
         perDateCounts.set(d, (perDateCounts.get(d) || 0) + 1)
         const wh = Number((rec as any).work_hours) || 0
         const lh = Number((rec as any).labor_hours) || 0
-        const md = lh > 0 ? lh : wh > 0 ? wh / 8 : 0
+        const md = lh > 0 ? lh : wh > 0 ? wh / 8 : 1
         perDateManDays.set(d, (perDateManDays.get(d) || 0) + md)
       }
       // Per-date fallback to daily_reports; use max logic per date to avoid undercount

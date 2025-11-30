@@ -283,11 +283,6 @@ export function OrganizationMembersManager({
                   ))}
                 </CustomSelectContent>
               </CustomSelect>
-              {visibleCandidates.length === 0 && !loadingCandidates && (
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  선택 가능한 사용자가 없습니다. 검색어를 변경해 보세요.
-                </p>
-              )}
             </div>
             <Button
               type="button"

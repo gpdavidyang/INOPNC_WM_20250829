@@ -412,6 +412,59 @@
   text-decoration: none;
 }
 
+/* 현장 정보 카드 - site 페이지 스타일 가이드 맞춤 */
+.ph-site-card {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--ph-line);
+  background: var(--ph-surface);
+  box-shadow: 0 8px 22px rgba(26, 37, 79, 0.08);
+}
+.ph-site-card:hover {
+  box-shadow: 0 10px 26px rgba(26, 37, 79, 0.12);
+}
+.ph-site-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.ph-site-card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a254f;
+}
+.ph-site-kv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ph-site-kv {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 0;
+}
+.ph-site-kv-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ph-muted);
+  line-height: 1.35;
+}
+.ph-site-kv-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ph-ink);
+  line-height: 1.35;
+  text-align: right;
+}
+.ph-site-kv-value-strong {
+  font-weight: 700;
+}
+
 /* 현장 정보 섹션 '상세' 버튼 - p-main.html의 .site-status 스타일 매칭 */
 .ph-site-detail-btn {
   font-size: 16px;

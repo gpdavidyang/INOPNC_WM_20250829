@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +10,14 @@ type DateKey = string // YYYY-MM-DD
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = createClient()
+    // Prefer service role to avoid RLS holes; fall back to server client
+    let supabase: ReturnType<typeof createClient>
+    try {
+      supabase = createServiceRoleClient()
+    } catch (e) {
+      console.warn('[partner/labor/debug-breakdown] service role unavailable, using server client')
+      supabase = createClient()
+    }
     const sp = req.nextUrl.searchParams
     const isDevBypass =
       process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'

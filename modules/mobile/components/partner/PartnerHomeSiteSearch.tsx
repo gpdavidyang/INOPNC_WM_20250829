@@ -11,6 +11,7 @@ import {
 interface RecentSiteItem {
   id: string
   name: string
+  status?: string
   recentWorkDate?: string
 }
 
@@ -19,7 +20,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
   const [items, setItems] = useState<RecentSiteItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [abbr, setAbbr] = useState<string>('')
+  const [showCount, setShowCount] = useState(3)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [currentSite, setCurrentSite] = useState<PartnerSiteDetailResult['site'] | null>(null)
   const [sheetWorkerCount, setSheetWorkerCount] = useState<number>(0)
@@ -37,53 +38,6 @@ export const PartnerHomeSiteSearch: React.FC = () => {
     const w = weekdays[d.getDay()]
     return `${y}.${m}.${day}(${w})`
   }, [])
-
-  // 시공업체 약어(2글자) 계산: 한글은 2글자, 영문은 그대로 대문자 유지
-  const getPartnerAbbr = (raw?: string | null): string => {
-    if (!raw) return ''
-    let s = String(raw)
-      .trim()
-      .replace(/^\s*(주식회사|\(주\)|㈜|유한회사|\(유\))\s*/g, '')
-      .replace(/[\s\-_.·'"\[\]\(\){}<>]/g, '')
-
-    const suffixes = [
-      '종합건설',
-      '엔지니어링',
-      '건설',
-      '산업개발',
-      '산업',
-      '개발',
-      '기술',
-      '테크',
-      '그룹',
-      '홀딩스',
-      '코퍼레이션',
-      '주식회사',
-      '유한회사',
-      '㈜',
-      '(주)',
-      '(유)',
-    ]
-
-    let removed = true
-    while (removed && s.length > 0) {
-      removed = false
-      for (const suf of suffixes) {
-        if (s.endsWith(suf)) {
-          s = s.slice(0, s.length - suf.length)
-          removed = true
-        }
-      }
-    }
-
-    if (!s) return ''
-    const units = Array.from(s)
-    let ab = units.slice(0, 2).join('')
-    if (ab.length === 1) ab = ab + ab
-    if (ab.length === 0) return ''
-    if (/^[A-Za-z]+$/.test(ab)) return ab.toUpperCase()
-    return ab
-  }
 
   useEffect(() => {
     let alive = true
@@ -113,6 +67,7 @@ export const PartnerHomeSiteSearch: React.FC = () => {
           ? payload.sites.map((s: any) => ({
               id: s.id,
               name: s.name,
+              status: s.status || s.contractStatus || '',
               recentWorkDate: s.recentWorkDate,
             }))
           : []
@@ -121,26 +76,6 @@ export const PartnerHomeSiteSearch: React.FC = () => {
           String(b.recentWorkDate || '').localeCompare(String(a.recentWorkDate || ''))
         )
         if (alive) setItems(list)
-
-        // 현재 사용자 프로필의 시공업체 약어 계산 (p-main 동일 표시: [롯데], [삼성], ...)
-        try {
-          const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
-          const me = (await meRes.json().catch(() => null)) || {}
-          const profile = me?.profile || null
-          const partnerId = profile?.partner_company_id || profile?.organization_id || null
-          if (partnerId) {
-            const pcRes = await fetch('/api/partner-companies', { cache: 'no-store' })
-            const companies = (await pcRes.json().catch(() => ({})))?.data || []
-            const found = Array.isArray(companies)
-              ? companies.find((c: any) => c?.id === partnerId)
-              : null
-            const ab = getPartnerAbbr(found?.company_name || '')
-            if (alive) setAbbr(ab)
-          }
-        } catch (e) {
-          // 무시: 약어 없으면 표시만 생략
-          if (alive) setAbbr('')
-        }
       } finally {
         if (alive) setLoading(false)
       }
@@ -158,7 +93,22 @@ export const PartnerHomeSiteSearch: React.FC = () => {
     return items.filter(i => i.name?.toLowerCase().includes(q))
   }, [items, query])
 
-  const top3 = filtered.slice(0, 3)
+  useEffect(() => {
+    setShowCount(prev => Math.min(Math.max(prev, 3), Math.max(filtered.length, 3)))
+  }, [filtered.length])
+
+  const visible = filtered.slice(0, Math.max(showCount, 3))
+
+  const statusBadge = (raw?: string | null) => {
+    const s = (raw || '').toLowerCase()
+    if (['planning', 'pending', 'preparing', 'ready'].includes(s))
+      return { label: '준비중', bg: '#f1f5f9', color: '#475569' }
+    if (['completed', 'done', 'closed', 'finished'].includes(s))
+      return { label: '완료', bg: '#ecfdf3', color: '#15803d' }
+    if (['inactive', 'terminated', 'cancelled', 'stopped', 'halted'].includes(s))
+      return { label: '중단', bg: '#fef2f2', color: '#b91c1c' }
+    return { label: '진행중', bg: '#eef2ff', color: '#4338ca' }
+  }
 
   const handleSiteSheetOpen = useCallback(
     async (siteId: string) => {
@@ -175,6 +125,14 @@ export const PartnerHomeSiteSearch: React.FC = () => {
     },
     [formatDateWithWeekday, toast]
   )
+
+  const statusLabel = (raw?: string | null) => {
+    const s = (raw || '').toLowerCase()
+    if (s === 'active') return '활성'
+    if (s === 'completed') return '종료'
+    if (s === 'inactive') return '비활성'
+    return '진행중'
+  }
 
   return (
     <section className="mt-3">
@@ -198,18 +156,19 @@ export const PartnerHomeSiteSearch: React.FC = () => {
             placeholder="현장명 검색"
             value={query}
             onChange={e => setQuery(e.target.value)}
+            style={{ outline: 'none', boxShadow: 'none' }}
           />
         </div>
 
         {/* 최근 현장 3건 (동일 섹션에 표기) */}
         {loading && <div className="text-xs text-gray-500 p-2">불러오는 중...</div>}
         {!loading && error && <div className="text-xs text-red-500 p-2">{error}</div>}
-        {!loading && !error && top3.length === 0 && (
+        {!loading && !error && visible.length === 0 && (
           <div className="text-xs text-gray-500 p-2">표시할 현장이 없습니다.</div>
         )}
-        {!loading && top3.length > 0 && (
+        {!loading && visible.length > 0 && (
           <ul className="ph-recent-list mt-2">
-            {top3.map(item => (
+            {visible.map(item => (
               <li key={item.id} className="ph-recent-item">
                 <a
                   className="ph-recent-link"
@@ -219,8 +178,32 @@ export const PartnerHomeSiteSearch: React.FC = () => {
                     await handleSiteSheetOpen(item.id)
                   }}
                 >
-                  <span className="ph-recent-name">
-                    {abbr ? <span className="ph-recent-abbr">[{abbr}]</span> : null} {item.name}
+                  <span
+                    className="ph-recent-name"
+                    style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+                  >
+                    <span style={{ flex: 1 }}>{item.name}</span>
+                    {(() => {
+                      const { label, bg, color } = statusBadge(item.status)
+                      return (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            padding: '2px 8px',
+                            borderRadius: 9999,
+                            background: bg,
+                            color,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            marginLeft: 'auto',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {label}
+                        </span>
+                      )
+                    })()}
                   </span>
                   <span className="ph-recent-date">
                     {formatDateWithWeekday(item.recentWorkDate)}
@@ -232,9 +215,17 @@ export const PartnerHomeSiteSearch: React.FC = () => {
         )}
 
         <div className="flex items-center justify-center mt-1">
-          <a className="ph-more-btn" href="/mobile/sites">
-            더보기
-          </a>
+          {visible.length < filtered.length ? (
+            <button
+              type="button"
+              className="ph-more-btn"
+              onClick={() => setShowCount(Math.min(filtered.length, showCount + 5))}
+            >
+              더보기
+            </button>
+          ) : (
+            <span className="ph-more-btn ph-more-disabled">전체</span>
+          )}
         </div>
       </div>
 

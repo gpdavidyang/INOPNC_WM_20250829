@@ -160,9 +160,20 @@
   color: #63b3ed !important;
 }
 
+.site-keyword-search {
+  border: 1px solid #d6deef;
+  background: #ffffff;
+  margin-top: 4px;
+}
+
+[data-theme='dark'] .site-keyword-search {
+  border-color: var(--attendance-border-dark);
+  background: rgba(15, 23, 42, 0.9);
+}
+
 .cal-wrap {
   position: static;
-  margin: 18px 0 0 0;
+  margin: 12px 0 0 0;
   border: 1px solid #e6ecf4;
   border-radius: 10px;
   background: #fff;
@@ -465,7 +476,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 /* (removed) full-bleed override to match salary stat layout */

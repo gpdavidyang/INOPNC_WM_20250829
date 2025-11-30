@@ -215,6 +215,10 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           <div className="site-info-sheet-section" role="group" aria-label="담당자 정보">
             {derivedContacts.map(item => {
               const phone = item.contact?.phone?.trim() || ''
+              const isUnassigned =
+                !item.contact?.name ||
+                item.contact.name.trim() === '' ||
+                item.contact.name.trim() === '미지정'
               return (
                 <div
                   className="site-info-sheet-contact"
@@ -232,7 +236,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
                       type="button"
                       className="site-info-sheet-contact-call"
                       onClick={() => callHandler(phone)}
-                      disabled={!phone}
+                      disabled={!phone || isUnassigned}
                     >
                       전화
                     </button>

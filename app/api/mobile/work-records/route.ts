@@ -27,6 +27,15 @@ export async function GET(request: NextRequest) {
     const limitParam = parseInt(searchParams.get('limit') ?? '0', 10)
     const limit = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 1000) : 1000
 
+    const isRestrictedOrgUser = authResult.isRestricted && authResult.restrictedOrgId
+
+    if (authResult.isRestricted && !authResult.restrictedOrgId) {
+      return NextResponse.json(
+        { success: false, error: '조직 정보가 없어 데이터를 조회할 수 없습니다.' },
+        { status: 403 }
+      )
+    }
+
     let query = serviceClient
       .from('work_records')
       .select(
@@ -45,7 +54,7 @@ export async function GET(request: NextRequest) {
           notes,
           created_at,
           updated_at,
-          sites:sites(id, name, address),
+          sites:sites!inner(id, name, address, customer_company_id),
           profiles:profiles!work_records_profile_id_fkey(id, full_name)
         `
       )
@@ -53,9 +62,14 @@ export async function GET(request: NextRequest) {
       .order('check_in_time', { ascending: true })
       .limit(limit)
 
-    // Return only the authenticated user's records (user_id or profile_id)
-    const targetUserId = authResult.userId
-    query = query.or(`user_id.eq.${targetUserId},profile_id.eq.${targetUserId}`)
+    if (isRestrictedOrgUser) {
+      // Partner/고객사 계정: 해당 조직에 속한 현장 데이터만 조회 (모든 작업자 포함)
+      query = query.eq('sites.customer_company_id', authResult.restrictedOrgId)
+    } else {
+      // 일반 계정: 본인 기록만
+      const targetUserId = authResult.userId
+      query = query.or(`user_id.eq.${targetUserId},profile_id.eq.${targetUserId}`)
+    }
 
     if (startDate) {
       query = query.gte('work_date', startDate)

@@ -418,7 +418,6 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
             htmlFor="site-organization"
             label="소속(시공사)"
             className="md:col-span-6 xl:col-span-4"
-            hint="현장이 속한 시공업체를 선택하세요."
           >
             <CustomSelect
               value={form.organization_id || 'none'}

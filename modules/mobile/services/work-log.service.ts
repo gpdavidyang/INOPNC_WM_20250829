@@ -103,33 +103,41 @@ export class WorkLogService {
       if (!response.ok) return []
       const payload = await response.json()
       const list = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
-      const workLogs = list.map((it: any) => ({
-        id: String(it?.id),
-        date: String(it?.workDate || it?.work_date || ''),
-        siteId: String(it?.siteId || it?.site_id || ''),
-        siteName: String(it?.siteName || it?.site_name || '현장'),
-        partnerCompanyName: undefined,
-        title: String(it?.siteName || it?.work_description || '작업일지'),
-        author: '작성자',
-        status: ['approved', 'submitted', 'completed'].includes(
-          String(it?.status || '').toLowerCase()
-        )
-          ? ('approved' as const)
-          : ('draft' as const),
-        memberTypes: [],
-        workProcesses: [],
-        workTypes: [],
-        location: { block: '', dong: '', unit: '' },
-        workers: [],
-        totalHours: 0,
-        materials: [],
-        attachments: { photos: [], drawings: [], confirmations: [] },
-        progress: 0,
-        notes: undefined,
-        createdAt: undefined,
-        updatedAt: undefined,
-        createdBy: undefined,
-      }))
+      const workLogs = list.map((it: any) => {
+        const description = String(it?.work_description || it?.workDescription || '').trim()
+        const siteName = String(it?.siteName || it?.site_name || '현장')
+        const title = String(
+          it?.work_description || it?.workDescription || siteName || '작업일지'
+        ).trim()
+
+        return {
+          id: String(it?.id),
+          date: String(it?.workDate || it?.work_date || ''),
+          siteId: String(it?.siteId || it?.site_id || ''),
+          siteName,
+          partnerCompanyName: undefined,
+          title,
+          author: '작성자',
+          status: ['approved', 'submitted', 'completed'].includes(
+            String(it?.status || '').toLowerCase()
+          )
+            ? ('approved' as const)
+            : ('draft' as const),
+          memberTypes: [],
+          workProcesses: [],
+          workTypes: [],
+          location: { block: '', dong: '', unit: '' },
+          workers: [],
+          totalHours: 0,
+          materials: [],
+          attachments: { photos: [], drawings: [], confirmations: [] },
+          progress: 0,
+          notes: description || undefined,
+          createdAt: undefined,
+          updatedAt: undefined,
+          createdBy: undefined,
+        }
+      })
       return sort ? this.sortWorkLogs(workLogs, sort) : workLogs
     } catch (e: any) {
       if (e?.name === 'AbortError') return []
@@ -442,6 +450,10 @@ function mapReportToWorkLog(item: any): WorkLog {
     item?.site_label ||
     '알 수 없는 현장'
   const organizationId = siteRelation?.organization_id || item?.organization_id || undefined
+  const workDescription =
+    typeof item?.work_description === 'string' && item.work_description.trim()
+      ? item.work_description.trim()
+      : undefined
 
   return {
     id: item?.id,
@@ -463,7 +475,13 @@ function mapReportToWorkLog(item: any): WorkLog {
     materials: materials.length > 0 ? materials : undefined,
     attachments,
     progress: item?.progress_rate ?? item?.progress ?? 0,
-    notes: item?.additional_notes ?? item?.special_notes ?? item?.notes ?? undefined,
+    notes:
+      item?.additional_notes ??
+      item?.special_notes ??
+      item?.notes ??
+      workContent.description ??
+      workDescription ??
+      undefined,
     createdAt: item?.created_at,
     updatedAt: item?.updated_at,
     createdBy: item?.created_by,
@@ -474,6 +492,7 @@ function parseWorkContent(raw: unknown): {
   memberTypes: string[]
   workProcesses: string[]
   workTypes: string[]
+  description?: string
   tasks?: Array<{
     memberTypes: string[]
     workProcesses: string[]
@@ -482,7 +501,7 @@ function parseWorkContent(raw: unknown): {
   }>
 } {
   if (!raw) {
-    return { memberTypes: [], workProcesses: [], workTypes: [] }
+    return { memberTypes: [], workProcesses: [], workTypes: [], description: undefined }
   }
 
   if (typeof raw === 'string') {
@@ -492,11 +511,12 @@ function parseWorkContent(raw: unknown): {
         memberTypes: Array.isArray(parsed?.memberTypes) ? parsed.memberTypes : [],
         workProcesses: Array.isArray(parsed?.workProcesses) ? parsed.workProcesses : [],
         workTypes: Array.isArray(parsed?.workTypes) ? parsed.workTypes : [],
+        description: typeof parsed?.description === 'string' ? parsed.description : undefined,
         tasks: Array.isArray(parsed?.tasks) ? parsed.tasks : undefined,
       }
     } catch (error) {
       console.warn('Failed to parse work_content JSON:', error)
-      return { memberTypes: [], workProcesses: [], workTypes: [] }
+      return { memberTypes: [], workProcesses: [], workTypes: [], description: undefined }
     }
   }
 
@@ -504,6 +524,8 @@ function parseWorkContent(raw: unknown): {
     memberTypes: Array.isArray((raw as any)?.memberTypes) ? (raw as any).memberTypes : [],
     workProcesses: Array.isArray((raw as any)?.workProcesses) ? (raw as any).workProcesses : [],
     workTypes: Array.isArray((raw as any)?.workTypes) ? (raw as any).workTypes : [],
+    description:
+      typeof (raw as any)?.description === 'string' ? (raw as any).description : undefined,
     tasks: Array.isArray((raw as any)?.tasks) ? (raw as any).tasks : undefined,
   }
 }

@@ -408,8 +408,8 @@ export default function LoginPage() {
 
         .form-input:focus {
           outline: none;
-          border-color: #31a3fa;
-          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+          border-color: #d1d5db;
+          box-shadow: none;
           background: #ffffff !important;
         }
 
@@ -695,8 +695,8 @@ export default function LoginPage() {
         }
         .modal-body .form-group input:focus {
           background: #ffffff !important;
-          border-color: #31a3fa;
-          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+          border-color: #d1d5db;
+          box-shadow: none;
         }
         .modal-button {
           width: 100%;
@@ -770,7 +770,6 @@ export default function LoginPage() {
           }
         }
 
-        .form-input:focus-visible,
         .login-button:focus-visible,
         .checkbox:focus-visible {
           outline: 2px solid #31a3fa;

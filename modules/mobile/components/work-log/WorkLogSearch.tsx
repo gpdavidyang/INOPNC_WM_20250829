@@ -327,9 +327,10 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
           height: '48px',
           borderRadius: '999px',
           border: '1px solid var(--border, #e0e0e0)',
-          background: 'var(--surface, #f6f9ff)',
+          background: 'var(--surface, #f6f8fb)',
           padding: '0 48px',
           transition: 'border-color 0.2s ease',
+          boxShadow: 'none',
         }}
       >
         <input
@@ -351,7 +352,7 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
             fontWeight: '500',
             color: 'var(--text, #101828)',
             outline: 'none',
-            transition: 'all 0.3s ease',
+            transition: 'none',
             fontFamily: 'Noto Sans KR, system-ui, -apple-system, sans-serif',
           }}
           role="combobox"

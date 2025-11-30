@@ -289,9 +289,9 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
 
   return (
     <section className="mt-3">
-      <div className="ph-card p-3">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="ph-section-title">현장 정보</h3>
+      <div className="ph-card ph-site-card">
+        <div className="ph-site-card-header">
+          <h3 className="ph-site-card-title">현장 정보</h3>
           <button
             type="button"
             className="ph-site-detail-btn"
@@ -301,22 +301,22 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
             {sheetLoading ? '불러오는 중...' : '상세'}
           </button>
         </div>
-        <div className="space-y-1 text-sm">
-          <div className="flex items-center justify-between">
-            <div className="text-gray-600">소속</div>
-            <div className="font-medium">{organizationLabel || '-'}</div>
+        <div className="ph-site-kv-list" role="list">
+          <div className="ph-site-kv" role="listitem">
+            <span className="ph-site-kv-label">소속</span>
+            <span className="ph-site-kv-value">{organizationLabel || '-'}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-600">현장명</div>
-            <div className="font-semibold">{site?.name || '-'}</div>
+          <div className="ph-site-kv" role="listitem">
+            <span className="ph-site-kv-label">현장명</span>
+            <span className="ph-site-kv-value ph-site-kv-value-strong">{site?.name || '-'}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-600">작업일</div>
-            <div className="font-medium">{prettyDate}</div>
+          <div className="ph-site-kv" role="listitem">
+            <span className="ph-site-kv-label">작업일</span>
+            <span className="ph-site-kv-value">{prettyDate}</span>
           </div>
-          <div className="flex items-center justify-between">
-            <div className="text-gray-600">출입인원</div>
-            <div className="font-medium">{workers != null ? `${workers}명` : '-'}</div>
+          <div className="ph-site-kv" role="listitem">
+            <span className="ph-site-kv-label">출입인원</span>
+            <span className="ph-site-kv-value">{workers != null ? `${workers}명` : '-'}</span>
           </div>
         </div>
       </div>

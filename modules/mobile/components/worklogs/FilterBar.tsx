@@ -115,7 +115,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           </select>
           <ChevronDown className="select-chevron" size={18} aria-hidden="true" />
         </div>
+      </div>
 
+      <div className="filter-search-row">
         <div className={clsx('search-wrapper', query ? 'active' : undefined)}>
           <Search className="search-icon" size={18} aria-hidden="true" />
           <input

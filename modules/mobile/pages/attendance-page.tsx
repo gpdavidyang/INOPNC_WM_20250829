@@ -34,7 +34,7 @@ import { ko } from 'date-fns/locale'
 // charts removed – recharts import not needed
 import clsx from 'clsx'
 import { useRouter } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Search } from 'lucide-react'
 import '@/modules/mobile/styles/attendance.css'
 
 interface AttendanceRecord {
@@ -122,6 +122,7 @@ const AttendanceContent: React.FC = () => {
 
   // Filters & UI states
   const [selectedSiteId, setSelectedSiteId] = useState<string>('all')
+  const [siteSearchTerm, setSiteSearchTerm] = useState('')
   const [siteOptions, setSiteOptions] = useState<SiteOption[]>([
     { value: 'all', label: '전체 현장' },
   ])
@@ -508,13 +509,19 @@ const AttendanceContent: React.FC = () => {
   }, [allSites, assignmentOptions, attendanceData])
 
   const filteredAttendanceData = useMemo(() => {
+    const keyword = siteSearchTerm.trim().toLowerCase()
+
     return attendanceData.filter(record => {
       if (selectedSiteId !== 'all' && record.site_id && record.site_id !== selectedSiteId) {
         return false
       }
+      if (keyword) {
+        const name = record.siteName?.toLowerCase() || ''
+        if (!name.includes(keyword)) return false
+      }
       return true
     })
-  }, [attendanceData, selectedSiteId])
+  }, [attendanceData, selectedSiteId, siteSearchTerm])
 
   const salaryAttendanceData = useMemo(() => {
     return attendanceData.filter(record => {
@@ -1122,7 +1129,7 @@ const AttendanceContent: React.FC = () => {
 
   return (
     <MobileLayoutShell>
-      <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pt-0 pb-6 space-y-4">
+      <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pt-0 pb-6 space-y-2">
         <nav
           className="line-tabs"
           style={{ width: 'calc(100% + 32px)', marginLeft: '-16px', marginRight: '-16px' }}
@@ -1146,7 +1153,7 @@ const AttendanceContent: React.FC = () => {
         </nav>
 
         {activeTab === 'work' && (
-          <section className="space-y-4">
+          <section className="space-y-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="w-full">
                 <CustomSelect value={selectedSiteId} onValueChange={setSelectedSiteId}>
@@ -1187,6 +1194,33 @@ const AttendanceContent: React.FC = () => {
                     ))}
                   </CustomSelectContent>
                 </CustomSelect>
+              </div>
+            </div>
+
+            {/* 현장 키워드 검색 (캘린더 상단) */}
+            <div className="space-y-1" role="search">
+              <div className="px-1 text-xs font-semibold text-slate-600 dark:text-slate-200">
+                현장 키워드 검색
+              </div>
+              <div className="site-keyword-search flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-[#3a4048] dark:bg-slate-900/80">
+                <Search className="h-4 w-4 text-slate-400 dark:text-slate-300" aria-hidden="true" />
+                <input
+                  type="text"
+                  value={siteSearchTerm}
+                  onChange={e => setSiteSearchTerm(e.target.value)}
+                  placeholder="현장 키워드로 검색"
+                  className="flex-1 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-400"
+                  aria-label="현장 키워드 검색"
+                />
+                {siteSearchTerm ? (
+                  <button
+                    type="button"
+                    className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white"
+                    onClick={() => setSiteSearchTerm('')}
+                  >
+                    지우기
+                  </button>
+                ) : null}
               </div>
             </div>
 

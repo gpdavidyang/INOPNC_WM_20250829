@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import '@/modules/mobile/styles/attendance.css'
 import { TMap } from '@/lib/external-apps'
-import { Download, Search, X } from 'lucide-react'
+import { Download, RefreshCcw, Search, X } from 'lucide-react'
 import {
   recordInventoryTransaction,
   getMaterialsData as getNPCMaterialsData,
@@ -29,6 +29,7 @@ import {
 import SiteInfoBottomSheet, {
   buildSiteContactItems,
 } from '@/modules/mobile/components/site/SiteInfoBottomSheet'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 
 type ManagerRole = 'construction_manager' | 'assistant_manager' | 'safety_manager'
 
@@ -185,18 +186,15 @@ const createRequestItem = (materialCode?: string): RequestItemState => ({
 
 const DEFAULT_SITE_DISPLAY_COUNT = 3
 
-const getCompanyAbbreviation = (companyName?: string | null, fallbackName?: string | null) => {
-  // Prefer explicit company name
-  if (companyName && companyName.trim()) return companyName.trim()
-
-  const src = (fallbackName || '').trim()
-  if (!src) return '미정'
-  // If fallback starts with [브랜드], extract the bracket content
-  const m = src.match(/^\[([^\]]+)\]/)
-  if (m && m[1]) return m[1]
-  // Otherwise use first 2 visible characters (Korean-safe)
-  const characters = Array.from(src.replace(/\s+/g, ''))
-  return characters.slice(0, 2).join('')
+const getStatusBadge = (status?: string | null) => {
+  const s = (status || '').toLowerCase()
+  if (['planning', 'pending', 'preparing', 'ready'].includes(s))
+    return { label: '준비중', bg: '#f1f5f9', color: '#475569' }
+  if (['completed', 'done', 'closed', 'finished'].includes(s))
+    return { label: '완료', bg: '#ecfdf3', color: '#15803d' }
+  if (['inactive', 'terminated', 'cancelled', 'stopped', 'halted'].includes(s))
+    return { label: '중단', bg: '#fef2f2', color: '#b91c1c' }
+  return { label: '진행중', bg: '#eef2ff', color: '#4338ca' }
 }
 
 const getLastWorkDateValue = (site: SiteSearchResult) =>
@@ -564,6 +562,33 @@ async function loadMonthlyStats(date = new Date()): Promise<MonthlyStats | null>
   }
 }
 
+async function loadPartnerMonthlyStats(): Promise<MonthlyStats | null> {
+  try {
+    const res = await fetch('/api/partner/labor/by-site?period=monthly', { cache: 'no-store' })
+    const payload = await res.json().catch(() => null)
+    if (!res.ok || !payload?.sites || !Array.isArray(payload.sites)) {
+      return null
+    }
+    const siteCount = payload.sites.length
+    const totalManDays = (payload.sites as any[]).reduce(
+      (sum, site) => sum + Number(site.totalLaborHours ?? site.totalManDays ?? 0),
+      0
+    )
+    const workDays = (payload.sites as any[]).reduce(
+      (sum, site) => sum + Number(site.workingDays ?? site.workerDays ?? 0),
+      0
+    )
+    return {
+      siteCount,
+      totalManDays,
+      workDays,
+    }
+  } catch (error) {
+    console.error('[SiteInfo] Failed to load partner monthly stats', error)
+    return null
+  }
+}
+
 async function loadSiteLaborStats(siteId: string): Promise<SiteLaborStats> {
   try {
     const response = await fetchJSON<{
@@ -643,6 +668,8 @@ async function loadTodayReportSummary(
 }
 
 export default function SiteInfoPage() {
+  const { profile } = useUnifiedAuth()
+  const isPartnerRole = profile?.role === 'partner' || profile?.role === 'customer_manager'
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentSite, setCurrentSite] = useState<SiteInfoResponse | null>(null)
@@ -890,7 +917,10 @@ export default function SiteInfoPage() {
     let shouldOpenSheet = Boolean(options?.openSheet)
 
     try {
-      const [site, stats] = await Promise.all([loadCurrentSite(), loadMonthlyStats()])
+      const [site, stats] = await Promise.all([
+        loadCurrentSite(),
+        isPartnerRole ? loadPartnerMonthlyStats() : loadMonthlyStats(),
+      ])
 
       setMonthlyStats(
         stats ?? {
@@ -1041,8 +1071,9 @@ export default function SiteInfoPage() {
   }, [showNpcRequestSheet, getDefaultMaterialCode])
 
   useEffect(() => {
+    if (!profile) return
     loadAll()
-  }, [])
+  }, [isPartnerRole, profile?.id])
 
   useEffect(() => {
     let cancelled = false
@@ -1683,18 +1714,18 @@ export default function SiteInfoPage() {
           background: var(--bg);
           font-family: var(--font);
           color: var(--text);
-          padding: 20px;
+          padding: 14px;
           padding-bottom: 80px;
         }
 
         .site-content-stack {
           display: flex;
           flex-direction: column;
-          gap: var(--section-gap);
+          gap: 12px;
         }
 
         .site-section > * + * {
-          margin-top: var(--block-gap);
+          margin-top: 10px;
         }
 
         .request-success-banner {
@@ -1891,18 +1922,25 @@ export default function SiteInfoPage() {
         }
 
         .update-btn {
-          font-size: 14px;
-          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 34px;
+          height: 34px;
+          padding: 0;
           color: #1a254f;
           background: #f3f4f6;
           border: 1px solid #d1d5db;
           border-radius: 8px;
-          padding: 4px 12px;
           cursor: pointer;
+          transition:
+            background 0.15s ease,
+            border-color 0.15s ease;
         }
 
         .update-btn:hover {
           background: #e5e7eb;
+          border-color: #cbd5e1;
         }
 
         .contact-section {
@@ -2726,6 +2764,12 @@ export default function SiteInfoPage() {
             sans-serif;
           color: var(--text);
         }
+        .search-input-new:focus,
+        .search-input-new:focus-visible {
+          outline: none;
+          box-shadow: none;
+          border-color: var(--line);
+        }
         :global([data-theme='dark']) .site-container .search-input-new {
           background: var(--card);
           border-color: var(--line);
@@ -2815,6 +2859,7 @@ export default function SiteInfoPage() {
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
+          flex-wrap: nowrap;
         }
         .site-summary-name {
           overflow: hidden;
@@ -2921,9 +2966,7 @@ export default function SiteInfoPage() {
         }
 
         .site-summary-tag {
-          font-weight: 600;
-          color: #1a254f;
-          flex-shrink: 0;
+          display: none;
         }
 
         .site-summary-name {
@@ -2932,6 +2975,17 @@ export default function SiteInfoPage() {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        .site-status-badge {
+          display: inline-flex;
+          align-items: center;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
 
         .site-summary-date {
@@ -4968,8 +5022,13 @@ export default function SiteInfoPage() {
                     <h4 className="detail-title">상세정보</h4>
                     <div className="detail-date-section">
                       <span className="detail-date">{formatDateDisplay(todayISO())}</span>
-                      <button type="button" className="update-btn" onClick={() => loadAll()}>
-                        새로고침
+                      <button
+                        type="button"
+                        className="update-btn"
+                        aria-label="데이터 새로고침"
+                        onClick={() => loadAll()}
+                      >
+                        <RefreshCcw size={16} strokeWidth={2} />
                       </button>
                     </div>
                   </div>
@@ -5230,7 +5289,21 @@ export default function SiteInfoPage() {
                   onClick={() => setSearchQuery('')}
                   aria-label="검색어 지우기"
                 >
-                  <X size={12} />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      width: 1,
+                      height: 1,
+                      padding: 0,
+                      margin: -1,
+                      overflow: 'hidden',
+                      clip: 'rect(0, 0, 0, 0)',
+                      whiteSpace: 'nowrap',
+                      border: 0,
+                    }}
+                  >
+                    검색어 지우기
+                  </span>
                 </button>
               )}
             </div>
@@ -5244,10 +5317,14 @@ export default function SiteInfoPage() {
             ) : displayedSiteResults.length ? (
               displayedSiteResults.map(site => {
                 const isSelected = currentSite?.id === site.id
-                const companyBadge = getCompanyAbbreviation(site.customer_company_name, site.name)
                 const lastWorkDateText = formatDateDisplayWithWeekday(
                   getLastWorkDateValue(site) || undefined
                 )
+                const {
+                  label: statusLabel,
+                  bg: statusBg,
+                  color: statusColor,
+                } = getStatusBadge((site as any)?.status || (site as any)?.contract_status)
 
                 return (
                   <div
@@ -5259,8 +5336,17 @@ export default function SiteInfoPage() {
                     <div className="site-summary-header">
                       <div className="site-summary-main">
                         <div className="site-summary-title" title={site.name}>
-                          <span className="site-summary-tag">[{companyBadge}]</span>
                           <span className="site-summary-name">{site.name}</span>
+                          <span
+                            className="site-status-badge"
+                            style={{
+                              background: statusBg,
+                              color: statusColor,
+                              marginLeft: 8,
+                            }}
+                          >
+                            {statusLabel}
+                          </span>
                         </div>
                       </div>
                       <div className="site-summary-right">
@@ -5291,179 +5377,185 @@ export default function SiteInfoPage() {
           )}
         </section>
 
-        <section
-          id="materials-inventory-section"
-          className="card npc-card-section site-section"
-          role="region"
-          aria-label="자재 재고관리"
-        >
-          <div className="npc-card">
-            <div className="card-header">
-              <div className="q">자재 재고관리</div>
-              {isRefreshing && (
-                <span style={{ fontSize: 13, color: '#6b7280' }}>업데이트 중...</span>
-              )}
-            </div>
+        {!isPartnerRole && (
+          <section
+            id="materials-inventory-section"
+            className="card npc-card-section site-section"
+            role="region"
+            aria-label="자재 재고관리"
+          >
+            <div className="npc-card">
+              <div className="card-header">
+                <div className="q">자재 재고관리</div>
+                {isRefreshing && (
+                  <span style={{ fontSize: 13, color: '#6b7280' }}>업데이트 중...</span>
+                )}
+              </div>
 
-            <div className="npc-site-filter">
-              {npcSiteOptions.length ? (
-                <CustomSelect
-                  value={selectedNpcSiteId}
-                  onValueChange={value => {
-                    if (!value || value === currentSite?.id) return
-                    void handleSiteSelection(value)
-                  }}
-                >
-                  <PhSelectTrigger
-                    id="npc-site-select"
-                    className="npc-site-trigger"
-                    aria-label="현장 선택"
+              <div className="npc-site-filter">
+                {npcSiteOptions.length ? (
+                  <CustomSelect
+                    value={selectedNpcSiteId}
+                    onValueChange={value => {
+                      if (!value || value === currentSite?.id) return
+                      void handleSiteSelection(value)
+                    }}
                   >
-                    <CustomSelectValue placeholder="현장을 선택하세요" />
-                  </PhSelectTrigger>
-                  <CustomSelectContent className="npc-site-content" align="start">
-                    {npcSiteOptions.map(option => (
-                      <CustomSelectItem key={option.id} value={option.id} className="npc-site-item">
-                        {option.name}
-                      </CustomSelectItem>
-                    ))}
-                  </CustomSelectContent>
-                </CustomSelect>
-              ) : (
-                <div className="npc-site-empty">선택 가능한 현장이 없습니다.</div>
-              )}
-            </div>
+                    <PhSelectTrigger
+                      id="npc-site-select"
+                      className="npc-site-trigger"
+                      aria-label="현장 선택"
+                    >
+                      <CustomSelectValue placeholder="현장을 선택하세요" />
+                    </PhSelectTrigger>
+                    <CustomSelectContent className="npc-site-content" align="start">
+                      {npcSiteOptions.map(option => (
+                        <CustomSelectItem
+                          key={option.id}
+                          value={option.id}
+                          className="npc-site-item"
+                        >
+                          {option.name}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                ) : (
+                  <div className="npc-site-empty">선택 가능한 현장이 없습니다.</div>
+                )}
+              </div>
 
-            {/* 자재 선택(섹션 상단) - KPI와 연동 */}
-            <div className="npc-material-filter" role="group" aria-label="자재 선택">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
-                <CustomSelect
-                  value={selectedLogMaterialCode}
-                  onValueChange={value => setSelectedLogMaterialCode(value)}
+              {/* 자재 선택(섹션 상단) - KPI와 연동 */}
+              <div className="npc-material-filter" role="group" aria-label="자재 선택">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                  <CustomSelect
+                    value={selectedLogMaterialCode}
+                    onValueChange={value => setSelectedLogMaterialCode(value)}
+                  >
+                    <CustomSelectTrigger className="npc-material-trigger" aria-label="자재 선택">
+                      <CustomSelectValue placeholder="전체" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent className="npc-material-content" align="start">
+                      <CustomSelectItem className="modal-select-item" value="ALL">
+                        전체
+                      </CustomSelectItem>
+                      {materialsOptions.map(m => (
+                        <CustomSelectItem key={m.code} className="modal-select-item" value={m.code}>
+                          {m.name || m.code}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+              </div>
+
+              {/* 선택 배지(라벨 제거, 배지 유지) */}
+              <div className="npc-selected-material" aria-live="polite">
+                <span className="npc-selected-value">{selectedMaterialInfo.label}</span>
+              </div>
+
+              <div className="npc-kpi" role="group" aria-label="재고 지표">
+                <div className="npc-kpi-item npc-kpi-item--incoming" role="group">
+                  <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.incoming)}</p>
+                  <p className="npc-kpi-label">
+                    {selectedMaterialInfo.unit ? `입고 (${selectedMaterialInfo.unit})` : '입고'}
+                  </p>
+                </div>
+                <div className="npc-kpi-item npc-kpi-item--usage" role="group">
+                  <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.used)}</p>
+                  <p className="npc-kpi-label">
+                    {selectedMaterialInfo.unit ? `사용 (${selectedMaterialInfo.unit})` : '사용'}
+                  </p>
+                </div>
+                <div className="npc-kpi-item npc-kpi-item--stock" role="group">
+                  <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.stock)}</p>
+                  <p className="npc-kpi-label">
+                    {selectedMaterialInfo.unit ? `재고 (${selectedMaterialInfo.unit})` : '재고'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 재고 리스트 (간단 카드) */}
+              <div className="npc-inventory-list" role="list" aria-label="자재 재고 목록">
+                {isLoadingInventory ? (
+                  <div className="npc-inventory-empty" role="listitem">
+                    재고를 불러오는 중입니다...
+                  </div>
+                ) : inventoryItems.length === 0 ? (
+                  <div className="npc-inventory-empty" role="listitem">
+                    등록된 재고가 없습니다.
+                  </div>
+                ) : (
+                  inventoryItems.slice(0, 5).map((item: any, idx: number) => {
+                    const name = item.materials?.name || item.materials?.code || '자재'
+                    const unit = normalizeUnitLabel(item.materials?.unit)
+                    const current =
+                      typeof item.current_stock === 'string'
+                        ? Number(item.current_stock.replace(/[^0-9.-]/g, ''))
+                        : Number(item.current_stock) || 0
+                    const minRaw = (item.materials as any)?.min_stock_level ?? 0
+                    const min =
+                      typeof minRaw === 'string'
+                        ? Number(minRaw.replace(/[^0-9.-]/g, ''))
+                        : Number(minRaw) || 0
+                    const status = current === 0 ? 'none' : current < min && min > 0 ? 'low' : 'ok'
+                    return (
+                      <div key={idx} className="npc-inventory-row" role="listitem">
+                        <div className="npc-inv-left">
+                          <div className="npc-inv-name">{name}</div>
+                          <div className="npc-inv-sub">
+                            최소 재고 {min.toLocaleString()}
+                            {unit ? ` ${unit}` : ''}
+                          </div>
+                        </div>
+                        <div className="npc-inv-right">
+                          <span className={`npc-inv-badge npc-inv-badge--${status}`}>
+                            {status === 'none'
+                              ? '재고 없음'
+                              : status === 'low'
+                                ? '재고 부족'
+                                : '정상'}
+                          </span>
+                          <div className="npc-inv-stock">
+                            <span className="npc-inv-stock-value">{current.toLocaleString()}</span>
+                            {unit ? <span className="npc-inv-stock-unit">{unit}</span> : null}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div className="npc-buttons">
+                <button
+                  type="button"
+                  className="btn btn--outline"
+                  style={{ width: '100%' }}
+                  onClick={handleOpenNpcLogs}
                 >
-                  <CustomSelectTrigger className="npc-material-trigger" aria-label="자재 선택">
-                    <CustomSelectValue placeholder="전체" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent className="npc-material-content" align="start">
-                    <CustomSelectItem className="modal-select-item" value="ALL">
-                      전체
-                    </CustomSelectItem>
-                    {materialsOptions.map(m => (
-                      <CustomSelectItem key={m.code} className="modal-select-item" value={m.code}>
-                        {m.name || m.code}
-                      </CustomSelectItem>
-                    ))}
-                  </CustomSelectContent>
-                </CustomSelect>
+                  로그 보기
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  style={{ width: '100%' }}
+                  onClick={handleOpenNpcRequest}
+                >
+                  자재 요청
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  style={{ width: '100%' }}
+                  onClick={handleOpenNpcRecord}
+                >
+                  입고 기록
+                </button>
               </div>
             </div>
-
-            {/* 선택 배지(라벨 제거, 배지 유지) */}
-            <div className="npc-selected-material" aria-live="polite">
-              <span className="npc-selected-value">{selectedMaterialInfo.label}</span>
-            </div>
-
-            <div className="npc-kpi" role="group" aria-label="재고 지표">
-              <div className="npc-kpi-item npc-kpi-item--incoming" role="group">
-                <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.incoming)}</p>
-                <p className="npc-kpi-label">
-                  {selectedMaterialInfo.unit ? `입고 (${selectedMaterialInfo.unit})` : '입고'}
-                </p>
-              </div>
-              <div className="npc-kpi-item npc-kpi-item--usage" role="group">
-                <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.used)}</p>
-                <p className="npc-kpi-label">
-                  {selectedMaterialInfo.unit ? `사용 (${selectedMaterialInfo.unit})` : '사용'}
-                </p>
-              </div>
-              <div className="npc-kpi-item npc-kpi-item--stock" role="group">
-                <p className="npc-kpi-value">{formatQuantityValue(materialsKPI.stock)}</p>
-                <p className="npc-kpi-label">
-                  {selectedMaterialInfo.unit ? `재고 (${selectedMaterialInfo.unit})` : '재고'}
-                </p>
-              </div>
-            </div>
-
-            {/* 재고 리스트 (간단 카드) */}
-            <div className="npc-inventory-list" role="list" aria-label="자재 재고 목록">
-              {isLoadingInventory ? (
-                <div className="npc-inventory-empty" role="listitem">
-                  재고를 불러오는 중입니다...
-                </div>
-              ) : inventoryItems.length === 0 ? (
-                <div className="npc-inventory-empty" role="listitem">
-                  등록된 재고가 없습니다.
-                </div>
-              ) : (
-                inventoryItems.slice(0, 5).map((item: any, idx: number) => {
-                  const name = item.materials?.name || item.materials?.code || '자재'
-                  const unit = normalizeUnitLabel(item.materials?.unit)
-                  const current =
-                    typeof item.current_stock === 'string'
-                      ? Number(item.current_stock.replace(/[^0-9.-]/g, ''))
-                      : Number(item.current_stock) || 0
-                  const minRaw = (item.materials as any)?.min_stock_level ?? 0
-                  const min =
-                    typeof minRaw === 'string'
-                      ? Number(minRaw.replace(/[^0-9.-]/g, ''))
-                      : Number(minRaw) || 0
-                  const status = current === 0 ? 'none' : current < min && min > 0 ? 'low' : 'ok'
-                  return (
-                    <div key={idx} className="npc-inventory-row" role="listitem">
-                      <div className="npc-inv-left">
-                        <div className="npc-inv-name">{name}</div>
-                        <div className="npc-inv-sub">
-                          최소 재고 {min.toLocaleString()}
-                          {unit ? ` ${unit}` : ''}
-                        </div>
-                      </div>
-                      <div className="npc-inv-right">
-                        <span className={`npc-inv-badge npc-inv-badge--${status}`}>
-                          {status === 'none'
-                            ? '재고 없음'
-                            : status === 'low'
-                              ? '재고 부족'
-                              : '정상'}
-                        </span>
-                        <div className="npc-inv-stock">
-                          <span className="npc-inv-stock-value">{current.toLocaleString()}</span>
-                          {unit ? <span className="npc-inv-stock-unit">{unit}</span> : null}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
-            </div>
-
-            <div className="npc-buttons">
-              <button
-                type="button"
-                className="btn btn--outline"
-                style={{ width: '100%' }}
-                onClick={handleOpenNpcLogs}
-              >
-                로그 보기
-              </button>
-              <button
-                type="button"
-                className="btn btn--ghost"
-                style={{ width: '100%' }}
-                onClick={handleOpenNpcRequest}
-              >
-                자재 요청
-              </button>
-              <button
-                type="button"
-                className="btn btn--primary"
-                style={{ width: '100%' }}
-                onClick={handleOpenNpcRecord}
-              >
-                입고 기록
-              </button>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
       </div>
 
       <SiteInfoBottomSheet

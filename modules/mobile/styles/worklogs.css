@@ -39,6 +39,10 @@
   flex-wrap: wrap;
   gap: 12px;
 }
+.filter-search-row {
+  display: flex;
+  width: 100%;
+}
 
 .filter-field {
   flex: 1 1 160px;
