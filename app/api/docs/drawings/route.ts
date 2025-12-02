@@ -34,13 +34,45 @@ export async function GET(request: NextRequest) {
     // If no siteId, aggregate across allowed sites
     let partnerAllowedSiteIds: string[] | null = null
     if (auth.role === 'customer_manager') {
-      if (auth.organizationId) {
-        const { data: maps } = await supabase
+      const partnerCompanyId =
+        auth.restrictedOrgId ||
+        (auth as any).organizationId ||
+        (auth as any).partnerCompanyId ||
+        null
+
+      if (partnerCompanyId) {
+        const { data: maps, error: mapError } = await supabase
           .from('partner_site_mappings')
           .select('site_id')
-          .eq('partner_company_id', auth.organizationId)
+          .eq('partner_company_id', partnerCompanyId)
           .eq('is_active', true)
-        partnerAllowedSiteIds = (maps || []).map((m: any) => m.site_id)
+
+        const mappedIds =
+          !mapError && Array.isArray(maps)
+            ? maps
+                .map(row =>
+                  typeof (row as any)?.site_id === 'string' ? (row as any).site_id : null
+                )
+                .filter((id): id is string => Boolean(id))
+            : []
+
+        if (mappedIds.length > 0) {
+          partnerAllowedSiteIds = Array.from(new Set(mappedIds))
+        } else {
+          const { data: legacyRows, error: legacyError } = await supabase
+            .from('site_partners')
+            .select('site_id')
+            .eq('partner_company_id', partnerCompanyId)
+
+          partnerAllowedSiteIds =
+            !legacyError && Array.isArray(legacyRows)
+              ? legacyRows
+                  .map(row =>
+                    typeof (row as any)?.site_id === 'string' ? (row as any).site_id : null
+                  )
+                  .filter((id): id is string => Boolean(id))
+              : []
+        }
       } else {
         partnerAllowedSiteIds = []
       }

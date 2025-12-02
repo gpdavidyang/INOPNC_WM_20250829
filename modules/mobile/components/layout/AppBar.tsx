@@ -35,6 +35,7 @@ export const AppBar: React.FC<AppBarProps> = ({
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   const [notificationHiddenToday, setNotificationHiddenToday] = useState(false)
+  const [hasAutoOpenedToday, setHasAutoOpenedToday] = useState(false)
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user, profile } = useUnifiedAuth()
@@ -101,10 +102,31 @@ export const AppBar: React.FC<AppBarProps> = ({
   }
 
   const handleNotificationButtonClick = () => {
-    // Always show modal when user clicks the button, regardless of "don't show today" setting.
-    // The setting will be reflected in the checkbox inside the modal.
+    const hidden = isNotificationHiddenToday()
+    setNotificationHiddenToday(hidden)
+    // Manual open should bypass the per-day auto-hide so users can still read notifications
+    setHasAutoOpenedToday(true)
     setShowNotificationModal(true)
   }
+
+  // Auto-open the notification modal once per day if there are unread items and the user
+  // has not opted out for the day. This covers the "오늘 하루 보지 않기" requirement.
+  useEffect(() => {
+    if (!user?.id) return
+    if (showNotificationModal) return
+    if (notificationHiddenToday) return
+    if (hasAutoOpenedToday) return
+    if (notificationCount <= 0) return
+
+    setShowNotificationModal(true)
+    setHasAutoOpenedToday(true)
+  }, [
+    hasAutoOpenedToday,
+    notificationCount,
+    notificationHiddenToday,
+    showNotificationModal,
+    user?.id,
+  ])
 
   return (
     <header className="app-header">

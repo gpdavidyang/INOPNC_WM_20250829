@@ -90,14 +90,19 @@
 /* Quick Menu Grid - main.html 100% match */
 .quick-grid {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)) !important;
-  gap: 1px !important; /* main.html: gap 1px */
+  grid-template-columns: repeat(var(--quick-menu-columns, 5), minmax(0, 1fr)) !important;
+  gap: clamp(2px, 1vw, 8px) !important; /* shrink gap on small screens */
   margin: 0 !important;
   margin-bottom: 0 !important;
   padding: 0 !important;
   list-style: none !important;
   justify-items: center !important;
   align-items: start !important;
+}
+
+.quick-grid li {
+  width: 100%;
+  min-width: 0;
 }
 
 .quick-item {
@@ -129,8 +134,8 @@
 }
 
 .qm-icon {
-  width: 64px !important; /* main.html: 64px */
-  height: 64px !important; /* main.html: 64px */
+  width: clamp(44px, 12vw, 64px) !important; /* responsive: fit 5 icons per row */
+  height: clamp(44px, 12vw, 64px) !important;
   object-fit: contain !important;
   display: block !important;
   transition: transform 0.3s ease;
@@ -159,6 +164,9 @@
   color: #1a254f !important;
   margin-top: 2px !important; /* Reduced margin */
   white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: color 0.3s ease;
 }
 

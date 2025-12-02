@@ -2,6 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 
 interface QuickMenuItem {
   id?: string
@@ -67,6 +68,11 @@ export const QuickMenu: React.FC = () => {
     )
   }, [outputHref])
 
+  const quickMenuStyle = React.useMemo(
+    () => ({ '--quick-menu-columns': quickMenuItems.length }) as CSSProperties,
+    [quickMenuItems.length]
+  )
+
   return (
     <section className="section" id="home-quick">
       <div className="section-header">
@@ -79,7 +85,7 @@ export const QuickMenu: React.FC = () => {
         <h3 className="section-title">빠른메뉴</h3>
       </div>
       {/* Direct quick menu grid - main.html 100% match */}
-      <ul className="quick-grid" id="quick-menu">
+      <ul className="quick-grid" id="quick-menu" style={quickMenuStyle}>
         {quickMenuItems.map((item, index) => (
           <li key={index}>
             {item.external ? (

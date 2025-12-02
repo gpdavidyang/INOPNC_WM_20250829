@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(120, Math.max(1, Number(searchParams.get('limit') || '60')))
     const page = Math.max(1, Number(searchParams.get('page') || '1'))
     const q = (searchParams.get('q') || '').trim()
+    const partnerCompanyId = (auth as any).organizationId || auth.restrictedOrgId || null
 
     // Customer-manager (partner alias) site access restriction
     if (auth.role === 'customer_manager') {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
         .from('partner_site_mappings')
         .select('id')
         .eq('site_id', siteId)
-        .eq('partner_company_id', auth.organizationId || '')
+        .eq('partner_company_id', partnerCompanyId || '')
         .eq('is_active', true)
         .maybeSingle()
       if (!mapping)
@@ -129,6 +130,7 @@ export async function POST(request: NextRequest) {
     const file = form.get('file') as File
     const siteId = String(form.get('siteId') || '')
     const category = String(form.get('category') || 'other') as 'before' | 'after' | 'other'
+    const partnerCompanyId = (auth as any).organizationId || auth.restrictedOrgId || null
     if (!file || !siteId)
       return NextResponse.json({ success: false, error: 'file, siteId required' }, { status: 400 })
 
@@ -138,7 +140,7 @@ export async function POST(request: NextRequest) {
         .from('partner_site_mappings')
         .select('id')
         .eq('site_id', siteId)
-        .eq('partner_company_id', auth.organizationId || '')
+        .eq('partner_company_id', partnerCompanyId || '')
         .eq('is_active', true)
         .maybeSingle()
       if (!mapping)

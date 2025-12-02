@@ -3054,48 +3054,52 @@ function PhotosTab() {
 
   return (
     <div>
-      <div className="filters">
-        <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
-          <CustomSelectTrigger
-            className="doc-filter-trigger min-w-[150px] w-full"
-            aria-label="현장 선택"
-          >
-            <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
-          </CustomSelectTrigger>
-          <CustomSelectContent>
-            <CustomSelectItem value="all">현장 전체</CustomSelectItem>
-            {siteOptions.map(s => (
-              <CustomSelectItem key={s.id} value={s.id}>
-                {s.name}
-              </CustomSelectItem>
-            ))}
-          </CustomSelectContent>
-        </CustomSelect>
-        <CustomSelect value={category || 'all'} onValueChange={handleCategoryChange}>
-          <CustomSelectTrigger
-            className="doc-filter-trigger min-w-[140px] w-full"
-            aria-label="상태 선택"
-          >
-            <CustomSelectValue>{categorySelectLabel}</CustomSelectValue>
-          </CustomSelectTrigger>
-          <CustomSelectContent>
-            <CustomSelectItem value="all">상태 전체</CustomSelectItem>
-            <CustomSelectItem value="before">보수 전</CustomSelectItem>
-            <CustomSelectItem value="after">보수 후</CustomSelectItem>
-            <CustomSelectItem value="other">기타</CustomSelectItem>
-          </CustomSelectContent>
-        </CustomSelect>
-        <button className="btn" onClick={onUpload}>
-          업로드
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          hidden
-          accept="image/*"
-          multiple
-          onChange={e => onFiles(e.target.files)}
-        />
+      <div className="filters filter-section">
+        <div className="filter-row">
+          <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
+            <CustomSelectTrigger
+              className="doc-filter-trigger min-w-[150px] w-full"
+              aria-label="현장 선택"
+            >
+              <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">현장 전체</CustomSelectItem>
+              {siteOptions.map(s => (
+                <CustomSelectItem key={s.id} value={s.id}>
+                  {s.name}
+                </CustomSelectItem>
+              ))}
+            </CustomSelectContent>
+          </CustomSelect>
+          <CustomSelect value={category || 'all'} onValueChange={handleCategoryChange}>
+            <CustomSelectTrigger
+              className="doc-filter-trigger min-w-[140px] w-full"
+              aria-label="상태 선택"
+            >
+              <CustomSelectValue>{categorySelectLabel}</CustomSelectValue>
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">상태 전체</CustomSelectItem>
+              <CustomSelectItem value="before">보수 전</CustomSelectItem>
+              <CustomSelectItem value="after">보수 후</CustomSelectItem>
+              <CustomSelectItem value="other">기타</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
+        </div>
+        <div className="upload-actions">
+          <button className="btn" onClick={onUpload}>
+            업로드
+          </button>
+          <input
+            ref={inputRef}
+            type="file"
+            hidden
+            accept="image/*"
+            multiple
+            onChange={e => onFiles(e.target.files)}
+          />
+        </div>
       </div>
       {uploadWarning ? (
         <p className="my-2 text-xs font-medium text-[--accent-600]">{uploadWarning}</p>

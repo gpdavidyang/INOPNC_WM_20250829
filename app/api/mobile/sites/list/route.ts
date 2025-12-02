@@ -32,6 +32,125 @@ export async function GET() {
       return NextResponse.json({ success: true, data: [] })
     }
 
+    const role = (authResult.role || profile.role || '').trim()
+    const partnerCompanyId: string | null =
+      (profile as any).partner_company_id ||
+      (profile as any).organization_id ||
+      authResult.restrictedOrgId ||
+      null
+
+    // Partner user: resolve organization-aligned site list
+    if (role === 'customer_manager') {
+      // Build possible organization ids (aligns with admin org detail)
+      const orgIds = new Set<string>()
+      if (profile.organization_id) orgIds.add(String(profile.organization_id))
+      if (profile.partner_company_id) orgIds.add(String(profile.partner_company_id))
+      if (authResult.restrictedOrgId) orgIds.add(String(authResult.restrictedOrgId))
+
+      // If we only have partner_company_id and it isn't an organization id, map via company name -> organizations
+      if (orgIds.size === 0 && profile.partner_company_id) {
+        try {
+          const { data: pc } = await serviceClient
+            .from('partner_companies')
+            .select('company_name')
+            .eq('id', profile.partner_company_id)
+            .maybeSingle()
+          const name = pc?.company_name?.trim()
+          if (name) {
+            const { data: orgStrict } = await serviceClient
+              .from('organizations')
+              .select('id, name')
+              .eq('name', name)
+            const { data: orgLike } =
+              !orgStrict || orgStrict.length === 0
+                ? await serviceClient.from('organizations').select('id, name').ilike('name', name)
+                : { data: [] as any }
+            ;[...(orgStrict || []), ...(orgLike || [])].forEach((o: any) => {
+              if (o?.id) orgIds.add(String(o.id))
+            })
+          }
+        } catch (err) {
+          console.error('[mobile/sites/list] partner->org mapping failed:', err)
+        }
+      }
+
+      const sites: Array<{
+        id: string
+        name: string
+        status?: string
+        organization_id?: string | null
+      }> = []
+      const pushSite = (row: any) => {
+        if (!row?.id) return
+        const id = String(row.id)
+        if (sites.some(s => s.id === id)) return
+        sites.push({
+          id,
+          name: row.name || '현장',
+          status: row.status,
+          organization_id: row.organization_id ?? null,
+        })
+      }
+
+      // 1) Primary: organization-based (matches admin org detail)
+      if (orgIds.size > 0) {
+        const { data: orgSites, error: orgError } = await serviceClient
+          .from('sites')
+          .select('id, name, status, organization_id')
+          .in('organization_id', Array.from(orgIds))
+          .order('name', { ascending: true })
+        if (orgError) {
+          console.error('[mobile/sites/list] org site query error:', orgError)
+        } else {
+          ;(orgSites || []).forEach(pushSite)
+        }
+      }
+
+      // 2) partner_site_mappings with joined sites (active only)
+      const { data: mappings, error: mappingError } = await serviceClient
+        .from('partner_site_mappings')
+        .select('site_id, is_active, sites(id, name, status, organization_id)')
+        .eq(
+          'partner_company_id',
+          partnerCompanyId || authResult.restrictedOrgId || profile.organization_id || ''
+        )
+        .eq('is_active', true)
+        .order('site_id', { ascending: true })
+
+      if (mappingError) {
+        console.error('[mobile/sites/list] partner_site_mappings error:', mappingError)
+      } else if (Array.isArray(mappings)) {
+        mappings.forEach(row => {
+          if ((row as any)?.sites) pushSite((row as any).sites)
+        })
+      }
+
+      // 3) Legacy fallback: site_partners (optional)
+      const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+      if (legacyFallbackEnabled) {
+        const { data: legacyRows, error: legacyError } = await serviceClient
+          .from('site_partners')
+          .select('site_id, sites(id, name, status, organization_id)')
+          .eq(
+            'partner_company_id',
+            partnerCompanyId || authResult.restrictedOrgId || profile.organization_id || ''
+          )
+
+        if (legacyError) {
+          console.error('[mobile/sites/list] site_partners fallback error:', legacyError)
+        } else if (Array.isArray(legacyRows)) {
+          legacyRows.forEach(row => {
+            if ((row as any)?.sites) pushSite((row as any).sites)
+          })
+        }
+      }
+
+      // Final: only return what we gathered (no additional fallbacks)
+      sites.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+      return NextResponse.json({ success: true, data: sites })
+    }
+
+    // Other roles: basic visibility (worker/site_manager restricted to assigned site)
     let query = serviceClient
       .from('sites')
       .select('id, name, status, organization_id')
@@ -43,12 +162,10 @@ export async function GET() {
       }
       query = query.eq('id', profile.site_id)
     } else if (authResult.isRestricted) {
-      const orgId =
-        profile.partner_company_id || profile.organization_id || authResult.restrictedOrgId
-      if (!orgId) {
+      if (!partnerCompanyId) {
         return NextResponse.json({ success: true, data: [] })
       }
-      query = query.eq('organization_id', orgId)
+      query = query.eq('organization_id', partnerCompanyId)
     }
 
     const { data, error } = await query
