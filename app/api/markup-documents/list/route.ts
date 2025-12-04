@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
           : doc.markup_data
             ? doc.markup_data.length
             : 0,
+      linkedWorklogs: [] as string[],
     }))
 
     // include_shared=true + siteId가 지정되면, 본인 소유이며 site_id가 비어있는 개인 문서도 추가 노출
@@ -112,6 +113,32 @@ export async function GET(request: NextRequest) {
         }
       } catch (_) {
         // ignore
+      }
+    }
+
+    // linked worklogs (마킹-작업일지 매핑)
+    if (formattedDocuments.length > 0) {
+      try {
+        const ids = formattedDocuments.map(d => d.id)
+        const { data: links } = await supabase
+          .from('markup_document_worklog_links')
+          .select('markup_document_id, worklog_id')
+          .in('markup_document_id', ids)
+        const map = new Map<string, string[]>()
+        ;(links || []).forEach(row => {
+          const mId = row?.markup_document_id
+          const wId = row?.worklog_id
+          if (!mId || !wId) return
+          const arr = map.get(mId) || []
+          arr.push(String(wId))
+          map.set(mId, arr)
+        })
+        formattedDocuments = formattedDocuments.map(doc => ({
+          ...doc,
+          linkedWorklogs: map.get(doc.id) || [],
+        }))
+      } catch (err) {
+        console.warn('Failed to fetch linked worklogs for markup documents:', err)
       }
     }
 

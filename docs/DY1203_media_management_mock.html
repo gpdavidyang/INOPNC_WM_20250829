@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>사진·도면 관리 (컴팩트)</title>
+    <style>
+      :root {
+        --bg: #f9fafb;
+        --card: #ffffff;
+        --line: #e5e7eb;
+        --muted: #6b7280;
+        --ink: #111827;
+        --primary: #2563eb;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: 'Inter', 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+        padding: 10px;
+      }
+      .shell {
+        max-width: 900px;
+        margin: 0 auto;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 10px;
+        box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
+      }
+      .header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      .title { font-weight: 700; font-size: 17px; }
+      .chip { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: #f3f4f6; font-weight: 600; font-size: 12px; }
+      .toolbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin: 10px 0; }
+      .input, .select { width: 100%; padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); background: #f8fafc; color: var(--ink); font-size: 14px; }
+      .input::placeholder { color: var(--muted); }
+      .tabs { display: flex; gap: 6px; padding: 4px; border-radius: 10px; background: #f3f4f6; border: 1px solid var(--line); margin-bottom: 8px; }
+      .tab { flex: 1; text-align: center; padding: 9px; border-radius: 8px; font-weight: 700; border: 1px solid transparent; cursor: pointer; font-size: 13px; }
+      .tab.active { background: #e5edff; border-color: #cddafc; }
+      .section { display: none; }
+      .section.active { display: block; }
+      .section-title { font-weight: 700; font-size: 14px; margin: 4px 0; }
+      .hint { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+      .before-after { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+      .column { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--card); display: flex; flex-direction: column; gap: 8px; }
+      .pill { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: #f8fafc; font-weight: 700; font-size: 12px; width: fit-content; }
+      .drop { border: 1px dashed #d8dde3; border-radius: 8px; background: #f3f4f6; padding: 12px; text-align: center; font-size: 13px; color: var(--muted); }
+      .thumbs { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 6px; }
+      .thumb { position: relative; border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; height: 70px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); }
+      .del { position: absolute; top: 4px; right: 4px; border: none; background: #fff; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; cursor: pointer; border: 1px solid var(--line); }
+      .status { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+      .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+      .btn { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: #f8fafc; color: var(--ink); font-weight: 600; font-size: 12px; cursor: pointer; }
+      .btn.primary { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+      .list { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+      .card { border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--card); display: flex; flex-direction: column; gap: 6px; }
+      .thumb-simple { height: 80px; border: 1px dashed #d8dde3; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+      .meta { font-size: 12px; color: var(--muted); display: flex; justify-content: space-between; }
+      .floating { position: fixed; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+      @media (max-width: 540px) { body { padding: 8px; } .shell { padding: 8px; } .before-after { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="header">
+        <div class="title">📸 사진·도면 관리</div>
+        <div class="chip">현장: 한빛타워 12공구</div>
+      </div>
+
+      <div class="toolbar">
+        <input class="input" placeholder="검색 (파일명/태그/작성자)" />
+        <select class="select">
+          <option>현장 선택 (최근/배정 우선)</option>
+          <option>한빛타워 12공구</option>
+          <option>신림 복합몰</option>
+        </select>
+        <select class="select">
+          <option>정렬: 최신순</option>
+          <option>정렬: 태그</option>
+          <option>정렬: 상태</option>
+        </select>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" data-target="photos">사진관리</div>
+        <div class="tab" data-target="drawings">도면관리</div>
+      </div>
+
+      <section class="section active" data-section="photos">
+        <div class="section-title">보수 전/후 사진 (멀티 업로드)</div>
+        <div class="hint">좌/우로 전·후 구분, 멀티 선택 업로드, 위치 스위칭, 삭제 지원.</div>
+        <div class="actions" style="margin-bottom:8px;">
+          <button class="btn" id="switchBtn">전/후 위치 스위칭</button>
+        </div>
+        <div class="before-after" id="beforeAfter">
+          <div class="column" data-role="before">
+            <div class="pill">보수 전</div>
+            <label class="drop" for="beforeUpload">보수 전 사진 선택 (멀티 가능)</label>
+            <input id="beforeUpload" type="file" multiple style="display:none;" />
+            <div class="thumbs">
+              <div class="thumb">사진1<button class="del" aria-label="삭제">×</button></div>
+              <div class="thumb">사진2<button class="del" aria-label="삭제">×</button></div>
+            </div>
+            <div class="status"><span>업로드 완료</span><span>작업일지 연결됨</span></div>
+            <div class="actions">
+              <button class="btn primary">작업일지 연결</button>
+              <button class="btn">태그 편집</button>
+            </div>
+          </div>
+          <div class="column" data-role="after">
+            <div class="pill">보수 후</div>
+            <label class="drop" for="afterUpload">보수 후 사진 선택 (멀티 가능)</label>
+            <input id="afterUpload" type="file" multiple style="display:none;" />
+            <div class="thumbs">
+              <div class="thumb">후-사진1<button class="del" aria-label="삭제">×</button></div>
+            </div>
+            <div class="status"><span>업로드 완료</span><span>미연결</span></div>
+            <div class="actions">
+              <button class="btn primary">작업일지 연결</button>
+              <button class="btn">다운로드</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" data-section="drawings">
+        <div class="section-title">도면 관리</div>
+        <div class="hint">업로드 → 마킹 → 작업일지 링크 상태 확인.</div>
+        <div class="list">
+          <div class="card">
+            <div class="thumb-simple">B2 기계실 도면 v3</div>
+            <div class="status"><span>마킹 완료</span><span>작업일지 2건</span></div>
+            <div class="meta"><span>수정 2025-01-11</span><span>김도면</span></div>
+            <div class="actions">
+              <button class="btn primary">마킹 열기</button>
+              <button class="btn">버전 보기</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="thumb-simple">5층 평면도 v1</div>
+            <div class="status"><span>미마킹</span><span>미연결</span></div>
+            <div class="meta"><span>업로드 2025-01-09</span><span>이설계</span></div>
+            <div class="actions">
+              <button class="btn primary">마킹 시작</button>
+              <button class="btn">작업일지 연결</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="thumb-simple">옥상 배수 v2</div>
+            <div class="status"><span>마킹 완료</span><span>작업일지 1건</span></div>
+            <div class="meta"><span>수정 2025-01-05</span><span>박현장</span></div>
+            <div class="actions">
+              <button class="btn primary">마킹 열기</button>
+              <button class="btn">작업일지 연결</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="floating">
+      <button class="btn primary">+ 사진 업로드</button>
+      <button class="btn">+ 도면 업로드</button>
+    </div>
+
+    <script>
+      const tabs = document.querySelectorAll('.tab')
+      const sections = document.querySelectorAll('.section')
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          const target = tab.getAttribute('data-target')
+          tabs.forEach(t => t.classList.toggle('active', t === tab))
+          sections.forEach(sec => sec.classList.toggle('active', sec.getAttribute('data-section') === target))
+        })
+      })
+
+      const switchBtn = document.getElementById('switchBtn')
+      const beforeAfter = document.getElementById('beforeAfter')
+      switchBtn?.addEventListener('click', () => {
+        const cols = Array.from(beforeAfter.children)
+        if (cols.length === 2) {
+          beforeAfter.appendChild(cols[0])
+        }
+      })
+    </script>
+  </body>
+</html>

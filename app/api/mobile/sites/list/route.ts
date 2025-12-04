@@ -150,17 +150,19 @@ export async function GET() {
       return NextResponse.json({ success: true, data: sites })
     }
 
-    // Other roles: basic visibility (worker/site_manager restricted to assigned site)
+    // Other roles: basic visibility
     let query = serviceClient
       .from('sites')
       .select('id, name, status, organization_id')
       .order('name', { ascending: true })
 
-    if (authResult.role === 'worker' || authResult.role === 'site_manager') {
+    if (authResult.role === 'worker') {
       if (!profile.site_id) {
         return NextResponse.json({ success: true, data: [] })
       }
       query = query.eq('id', profile.site_id)
+    } else if (authResult.role === 'site_manager') {
+      // 현장관리자는 전체 목록을 노출 (추가 필터 없음)
     } else if (authResult.isRestricted) {
       if (!partnerCompanyId) {
         return NextResponse.json({ success: true, data: [] })
@@ -168,7 +170,7 @@ export async function GET() {
       query = query.eq('organization_id', partnerCompanyId)
     }
 
-    const { data, error } = await query
+    const { data, error } = await query.limit(500)
 
     if (error) {
       console.error('[mobile/sites/list] query error:', error)

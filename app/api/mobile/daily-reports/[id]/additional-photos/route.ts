@@ -45,8 +45,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     let uploaded = 0
     const errors: string[] = []
 
-    async function uploadSet(files: File[], type: 'before' | 'after') {
-      // Fetch last order
+    const uploadSet = async (files: File[], type: 'before' | 'after') => {
+      // Fetch last order and current count to enforce 30 limit
       const { data: lastRows } = await supabase
         .from('daily_report_additional_photos')
         .select('upload_order')
@@ -54,10 +54,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         .eq('photo_type', type)
         .order('upload_order', { ascending: false })
         .limit(1)
+      const { count: currentCount } = await supabase
+        .from('daily_report_additional_photos')
+        .select('id', { count: 'exact', head: true })
+        .eq('daily_report_id', reportId)
+        .eq('photo_type', type)
+      const MAX_PER_TYPE = 30
+      const available = Math.max(0, MAX_PER_TYPE - (currentCount || 0))
+      const toUpload = files.slice(0, available)
+      if (available === 0) {
+        errors.push(`'${type}'는 최대 ${MAX_PER_TYPE}장까지 가능합니다.`)
+        return
+      }
+      if (toUpload.length < files.length) {
+        errors.push(`'${type}' 추가 가능 수량: ${available}장 (요청 ${files.length}장)`)
+      }
       let order = lastRows && lastRows.length ? Number(lastRows[0].upload_order) : 0
 
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i]
+      for (let i = 0; i < toUpload.length; i++) {
+        const file = toUpload[i]
         try {
           const arrayBuffer = await file.arrayBuffer()
           // @ts-ignore - Buffer available in node runtime
@@ -96,7 +111,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     await uploadSet(beforeFiles, 'before')
     await uploadSet(afterFiles, 'after')
 
-    return NextResponse.json({ success: true, uploaded, errors: errors.length ? errors : undefined })
+    return NextResponse.json({
+      success: true,
+      uploaded,
+      errors: errors.length ? errors : undefined,
+    })
   } catch (error) {
     console.error('additional-photos upload error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

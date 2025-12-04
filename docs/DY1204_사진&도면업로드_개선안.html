@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>사진 · 도면 관리</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Noto Sans KR",
+        system-ui, sans-serif;
+      background: #f4f6fb;
+      color: #1f2942;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 24px auto 40px;
+      padding: 16px 16px 32px;
+      background: #f4f6fb;
+    }
+
+    /* 상단 바 */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .top-bar-title {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .top-bar-action {
+      font-size: 13px;
+      color: #31a3fa;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      padding: 4px 0;
+    }
+
+    /* 검색 바 */
+    .search-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .search-input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 10px 36px 10px 32px;
+      border-radius: 999px;
+      border: 1px solid #e0e6f3;
+      background: #f9fbff;
+      font-size: 13px;
+      color: #1f2942;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: #a5afc3;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      stroke: #a5afc3;
+    }
+
+    .search-cancel {
+      font-size: 13px;
+      color: #a5afc3;
+      cursor: pointer;
+      white-space: nowrap;
+      border: none;
+      background: transparent;
+      padding: 0 2px;
+    }
+
+    /* 필터 */
+    .filter-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .filter-pill {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 14px; /* 전체 현장 / 전체 기간 라운드 14px */
+      border: 1px solid #dde3f2;
+      background: #ffffff;
+      font-size: 13px;
+      color: #485270;
+      cursor: pointer;
+    }
+
+    .filter-pill span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chevron-icon {
+      width: 14px;
+      height: 14px;
+      stroke: #9ba6c5;
+    }
+
+    /* 라인 탭 (출력현황 / 급여현황 스타일) */
+    .tabs-line {
+      display: flex;
+      border-bottom: 1px solid #e3e7f2;
+      margin-bottom: 12px;
+      margin-top: 4px;
+    }
+
+    .tab-line-button {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      font-weight: 600;
+      color: #7f8ba7;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tab-line-button.active {
+      color: #31a3fa;
+    }
+
+    .tab-line-button::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 2px;
+      background: transparent;
+    }
+
+    .tab-line-button.active::after {
+      background: #31a3fa;
+    }
+
+    /* 카드 공통 */
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e0e6f3;
+      box-shadow: 0 6px 20px rgba(16, 36, 94, 0.08);
+      padding: 16px 18px 14px;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1f2942;
+    }
+
+    .card-subtitle {
+      margin-top: 2px;
+      font-size: 11px;
+      color: #99a4c3;
+    }
+
+    /* 인라인 링크 버튼 (전/후 업로드) */
+    .link-inline {
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      color: #31a3fa;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    /* 버튼 */
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      margin-bottom: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s ease, box-shadow 0.15s ease,
+        transform 0.05s ease;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: #111f4d;
+      color: #ffffff;
+      box-shadow: 0 6px 14px rgba(8, 29, 96, 0.35);
+    }
+
+    .btn-primary:hover {
+      background: #0c1740;
+    }
+
+    .btn-outline {
+      flex: 1;
+      background: #f5f7fe;
+      color: #111f4d;
+      border: 1px solid #d2ddf4;
+    }
+
+    .btn-outline:hover {
+      background: #e9edfd;
+    }
+
+    .btn-chip {
+      padding: 6px 14px;
+      font-size: 12px;
+      border-radius: 999px;
+      border: 1px solid #dde3f2;
+      background: #f7f9ff;
+      color: #4c5a80;
+      box-shadow: none;
+      min-width: 72px;
+    }
+
+    .btn-chip-primary {
+      background: #31a3fa;
+      border-color: #31a3fa;
+      color: #ffffff;
+      box-shadow: 0 4px 10px rgba(49, 163, 250, 0.3);
+    }
+
+    .btn-chip-primary:hover {
+      background: #1f8edc;
+    }
+
+    /* 도면 리스트 */
+    .drawing-list {
+      margin-top: 6px;
+    }
+
+    .drawing-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 0;
+      border-top: 1px solid #eef1f8;
+    }
+
+    .drawing-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .drawing-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #222b45;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .drawing-meta {
+      font-size: 11px;
+      color: #9aa4c5;
+    }
+
+    /* 통계 카드 */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .stat-card {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1px solid #e0e6f3;
+      box-shadow: 0 4px 12px rgba(16, 36, 94, 0.06);
+      padding: 10px 0;
+      text-align: center;
+      font-size: 11px;
+      color: #7a86a5;
+    }
+
+    .stat-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #111f4d;
+      margin-bottom: 2px;
+    }
+
+    /* 탭 패널 */
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* 사진 업로드 카드 (두번째 이미지 스타일) */
+    .photo-upload-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    .photo-upload-col {}
+
+    .photo-upload-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .photo-upload-label {
+      color: #7a86a5;
+      font-weight: 600;
+    }
+
+    .photo-upload-count {
+      color: #b0bad5;
+      font-weight: 500;
+    }
+
+    .photo-dropzone {
+      width: 100%;
+      border-radius: 12px;
+      padding: 24px 8px;
+      border: 1.5px dashed #d5def3;
+      background: #f9fbff;
+      cursor: pointer;
+    }
+
+    .photo-dropzone-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #9aa4c5;
+    }
+
+    .icon-camera-line {
+      width: 32px;
+      height: 32px;
+      stroke: #b4bfdc;
+    }
+
+    .photo-upload-help {
+      font-size: 11px;
+      color: #9aa4c5;
+      margin-top: 2px;
+    }
+
+    @media (max-width: 480px) {
+      .app {
+        margin: 16px auto 24px;
+        padding: 12px 12px 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 상단 바 -->
+    <header class="top-bar">
+      <div class="top-bar-title">사진 · 도면 관리</div>
+      <button class="top-bar-action" type="button">작성완료</button>
+    </header>
+
+    <!-- 검색 -->
+    <div class="search-row">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="6.5" fill="none" stroke-width="1.7" />
+          <line x1="16" y1="16" x2="20" y2="20" stroke-width="1.7" />
+        </svg>
+        <input
+          class="search-input"
+          placeholder="사진·도면 검색"
+          type="search"
+        />
+      </div>
+      <button class="search-cancel" type="button">취소</button>
+    </div>
+
+    <!-- 필터 -->
+    <div class="filter-row">
+      <button class="filter-pill" type="button">
+        <span>전체 현장</span>
+        <svg class="chevron-icon" viewBox="0 0 24 24">
+          <polyline
+            points="7 10 12 15 17 10"
+            fill="none"
+            stroke-width="1.7"
+          />
+        </svg>
+      </button>
+      <button class="filter-pill" type="button">
+        <span>전체 기간</span>
+        <svg class="chevron-icon" viewBox="0 0 24 24">
+          <polyline
+            points="7 10 12 15 17 10"
+            fill="none"
+            stroke-width="1.7"
+          />
+        </svg>
+      </button>
+    </div>
+
+    <!-- 탭 (라인 스타일) -->
+    <div class="tabs-line">
+      <button class="tab-line-button active" data-tab="photo" type="button">
+        사진
+      </button>
+      <button class="tab-line-button" data-tab="drawing" type="button">
+        도면
+      </button>
+    </div>
+
+    <!-- 사진 탭 패널 (두번째 이미지 스타일) -->
+    <div class="tab-panel active" data-tab-panel="photo">
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">사진업로드</h2>
+          </div>
+          <button class="link-inline" type="button">↔ 전/후 업로드</button>
+        </div>
+
+        <div class="photo-upload-grid">
+          <!-- 보수 전 -->
+          <div class="photo-upload-col">
+            <div class="photo-upload-label-row">
+              <span class="photo-upload-label">보수 전</span>
+              <span class="photo-upload-count">0 / 30</span>
+            </div>
+            <button class="photo-dropzone" type="button">
+              <div class="photo-dropzone-inner">
+                <svg
+                  class="icon-camera-line"
+                  viewBox="0 0 24 24"
+                >
+                  <rect
+                    x="4"
+                    y="7"
+                    width="16"
+                    height="11"
+                    rx="2"
+                    ry="2"
+                    fill="none"
+                    stroke-width="1.5"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12.5"
+                    r="3"
+                    fill="none"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M9 7l1-2h4l1 2"
+                    fill="none"
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <span>사진을 추가하세요</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- 보수 후 -->
+          <div class="photo-upload-col">
+            <div class="photo-upload-label-row">
+              <span class="photo-upload-label">보수 후</span>
+              <span class="photo-upload-count">0 / 30</span>
+            </div>
+            <button class="photo-dropzone" type="button">
+              <div class="photo-dropzone-inner">
+                <svg
+                  class="icon-camera-line"
+                  viewBox="0 0 24 24"
+                >
+                  <rect
+                    x="4"
+                    y="7"
+                    width="16"
+                    height="11"
+                    rx="2"
+                    ry="2"
+                    fill="none"
+                    stroke-width="1.5"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12.5"
+                    r="3"
+                    fill="none"
+                    stroke-width="1.5"
+                  />
+                  <path
+                    d="M9 7l1-2h4l1 2"
+                    fill="none"
+                    stroke-width="1.5"
+                  />
+                </svg>
+                <span>사진을 추가하세요</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-outline" type="button">처음부터</button>
+          <button class="btn btn-primary" type="button">저장하기</button>
+        </div>
+        <p class="photo-upload-help">
+          저장하면 기기에 임시 보관, 제출 시 서버 업로드.
+        </p>
+      </section>
+    </div>
+
+    <!-- 도면 탭 패널 -->
+    <div class="tab-panel" data-tab-panel="drawing">
+      <!-- 도면 마킹 관리 카드 -->
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">도면 마킹 관리</h2>
+            <p class="card-subtitle">
+              도면파일을 업로드하고, 보수위치를 마킹하여 작업일지와 연결합니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-outline" type="button">새 도면 업로드</button>
+          <button class="btn btn-primary" type="button">마킹 이어하기</button>
+        </div>
+
+        <!-- 도면 리스트 -->
+        <div class="drawing-list">
+          <div class="drawing-item">
+            <div class="drawing-info">
+              <div class="drawing-title">2층 평면도_v3</div>
+              <div class="drawing-meta">마킹 완료 · 작업일지 2건</div>
+            </div>
+            <button class="btn btn-chip" type="button">열기</button>
+          </div>
+
+          <div class="drawing-item">
+            <div class="drawing-info">
+              <div class="drawing-title">B1 주차장 크랙 점검</div>
+              <div class="drawing-meta">진행중 · 작업일지 1건</div>
+            </div>
+            <button class="btn btn-chip btn-chip-primary" type="button">
+              이어하기
+            </button>
+          </div>
+
+          <div class="drawing-item">
+            <div class="drawing-info">
+              <div class="drawing-title">101동 입면도</div>
+              <div class="drawing-meta">미마킹 · 작업일지 0건</div>
+            </div>
+            <button class="btn btn-chip" type="button">마킹 시작</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 하단 통계 -->
+      <section class="stats-row">
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div>사진 수</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div>도면 수</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">0</div>
+          <div>연결된 작업일지</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // 탭 전환 기능
+    const tabButtons = document.querySelectorAll(".tab-line-button");
+    const tabPanels = document.querySelectorAll(".tab-panel");
+
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.tab;
+
+        tabButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+
+        tabPanels.forEach((panel) => {
+          panel.classList.toggle(
+            "active",
+            panel.dataset.tabPanel === tab
+          );
+        });
+      });
+    });
+  </script>
+</body>
+</html>
