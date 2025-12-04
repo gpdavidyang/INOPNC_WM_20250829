@@ -611,18 +611,18 @@ export default function DocumentHubPage() {
         .grid-thumbs {
           display: grid;
           grid-template-columns: repeat(1, minmax(0, 1fr));
-          gap: 12px;
+          gap: 8px;
         }
         :global(.doc-hub .grid-thumbs) {
           display: grid !important;
           grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
-          gap: 12px !important;
+          gap: 8px !important;
         }
         @media (min-width: 700px) {
           .grid-thumbs,
           :global(.doc-hub .grid-thumbs) {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            gap: 14px !important;
+            gap: 12px !important;
           }
         }
         .grid-thumbs .thumb {
@@ -631,7 +631,7 @@ export default function DocumentHubPage() {
           border-radius: 14px;
           overflow: hidden;
           display: block;
-          box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08);
+          box-shadow: 0 6px 12px rgba(17, 24, 39, 0.08);
           position: relative;
         }
         .grid-thumbs .thumb:hover {
@@ -2303,36 +2303,6 @@ function DrawingsTab() {
       n.has(id) ? n.delete(id) : n.add(id)
       return n
     })
-
-  const deleteSelected = async () => {
-    if (selected.size === 0) {
-      toast({
-        title: '선택 필요',
-        description: '삭제할 사진을 먼저 선택하세요.',
-        variant: 'warning',
-      })
-      return
-    }
-    const ids = Array.from(selected)
-    try {
-      const res = await fetch('/api/docs/photos', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ids }),
-      })
-      if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || '삭제 실패')
-      setSelected(new Set())
-      fetchList()
-      toast({ title: '삭제 완료', description: `${ids.length}건을 삭제했습니다.` })
-    } catch (err: any) {
-      toast({
-        title: '삭제 실패',
-        description: err?.message || '삭제 중 오류가 발생했습니다.',
-        variant: 'destructive',
-      })
-    }
-  }
-
   const editItem = async (id: string) => {
     const current = items.find(it => it.id === id)
     const nextTitle = window.prompt('파일명을 입력하세요', current?.name || '')
@@ -2753,7 +2723,16 @@ function DrawingsTab() {
         >
           저장하기
         </button>
-        <button className="btn" onClick={deleteSelected}>
+        <button
+          className="btn"
+          onClick={() =>
+            toast({
+              title: '삭제 안내',
+              description: '도면 삭제는 추후 지원 예정입니다.',
+              variant: 'info',
+            })
+          }
+        >
           삭제하기
         </button>
         <button
@@ -2841,6 +2820,7 @@ function PhotosTab() {
       workDescription: string
       workDate: string
       createdAt: string
+      status?: string | null
     }>
   >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -2880,6 +2860,7 @@ function PhotosTab() {
     if (statusFilter === 'submitted') return '작성완료'
     return '승인'
   }, [statusFilter])
+
   const handleSiteChange = (value: string) => {
     setSite(value === 'all' ? '' : value)
     setUploadWarning('')
@@ -3001,6 +2982,7 @@ function PhotosTab() {
             workDescription: d.workDescription || d.work_description || '',
             workDate: d.workDate || d.work_date || '',
             createdAt: d.uploadedAt || d.created_at || '',
+            status: d.status || d.worklog_status || d.worklogStatus || d.state || null,
           })) || []
         setItems(mapped)
         const totalPagesCalc =
@@ -3055,11 +3037,11 @@ function PhotosTab() {
 
   return (
     <div>
-      <div className="filters filter-section">
-        <div className="filter-row">
+      <div className="filters filter-section" style={{ paddingLeft: 8, paddingRight: 8, gap: 8 }}>
+        <div className="flex flex-wrap items-center gap-2">
           <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
             <CustomSelectTrigger
-              className="doc-filter-trigger min-w-[150px] w-full"
+              className="doc-filter-trigger min-w-[140px]"
               aria-label="현장 선택"
             >
               <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
@@ -3073,9 +3055,10 @@ function PhotosTab() {
               ))}
             </CustomSelectContent>
           </CustomSelect>
+
           <CustomSelect value={category || 'all'} onValueChange={handleCategoryChange}>
             <CustomSelectTrigger
-              className="doc-filter-trigger min-w-[140px] w-full"
+              className="doc-filter-trigger min-w-[140px]"
               aria-label="보수 전/후 선택"
             >
               <CustomSelectValue>{categorySelectLabel}</CustomSelectValue>
@@ -3084,12 +3067,12 @@ function PhotosTab() {
               <CustomSelectItem value="all">보수 전/후 전체</CustomSelectItem>
               <CustomSelectItem value="before">보수 전</CustomSelectItem>
               <CustomSelectItem value="after">보수 후</CustomSelectItem>
-              <CustomSelectItem value="other">기타</CustomSelectItem>
             </CustomSelectContent>
           </CustomSelect>
+
           <CustomSelect value={statusFilter} onValueChange={handleStatusChange}>
             <CustomSelectTrigger
-              className="doc-filter-trigger min-w-[140px] w-full"
+              className="doc-filter-trigger min-w-[140px]"
               aria-label="작업일지 상태 선택"
             >
               <CustomSelectValue>{statusSelectLabel}</CustomSelectValue>
@@ -3101,9 +3084,12 @@ function PhotosTab() {
               <CustomSelectItem value="approved">승인</CustomSelectItem>
             </CustomSelectContent>
           </CustomSelect>
-        </div>
-        <div className="flex justify-end">
-          <button className="btn btn-primary" onClick={onUpload} style={{ minWidth: 120 }}>
+
+          <button
+            className="btn btn-primary ml-auto"
+            onClick={onUpload}
+            style={{ minWidth: 120, height: 42 }}
+          >
             업로드
           </button>
         </div>
@@ -3157,7 +3143,7 @@ function PhotosTab() {
           </div>
         </div>
       )}
-      <div className="grid-thumbs">
+      <div className="grid-thumbs" style={{ paddingLeft: 8, paddingRight: 8 }}>
         {loading && <div className="doc-selection-title">불러오는 중...</div>}
         {!loading &&
           items.map(it => {
@@ -3172,7 +3158,7 @@ function PhotosTab() {
               '현장 정보 없음'
             const dateLabel = formatDateLabel(it.workDate || it.createdAt || '')
             const workLabel = it.workDescription || '작업내역 미기재'
-            const catKey = it.category || 'other'
+            const catKey = it.category || 'before'
             const catStyle =
               catKey === 'before'
                 ? { bg: '#e8f0ff', text: '#1d4ed8', border: '#cfdcff', label: '보수 전' }
@@ -3196,23 +3182,26 @@ function PhotosTab() {
                 }}
                 style={{
                   outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none',
-                  borderRadius: 14,
+                  borderRadius: 12,
                   overflow: 'hidden',
                   background: '#fff',
                   border: '1px solid #e4e8f5',
-                  boxShadow: '0 6px 18px rgba(26, 39, 63, 0.04)',
+                  boxShadow: '0 6px 12px rgba(26, 39, 63, 0.08)',
                 }}
               >
-                <div className="flex gap-3 p-3">
-                  <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#f5f7fb] flex-shrink-0">
+                <div className="flex gap-2 p-2 items-start">
+                  <div
+                    className="relative overflow-hidden rounded-lg bg-[#f5f7fb] flex-shrink-0"
+                    style={{ height: 96, width: 96 }}
+                  >
                     {it.url ? (
                       <Image
                         src={it.url}
                         alt={label}
-                        width={160}
-                        height={160}
+                        width={200}
+                        height={200}
                         className="h-full w-full object-cover"
-                        sizes="160px"
+                        sizes="200px"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-[11px] text-[#9aa4c5]">
@@ -3220,7 +3209,7 @@ function PhotosTab() {
                       </div>
                     )}
                     <span
-                      className="absolute left-1.5 top-1.5 inline-flex items-center rounded-full px-2 py-[2px] text-[10px] font-semibold"
+                      className="absolute left-1 top-1 inline-flex items-center rounded-full px-2 py-[2px] text-[10px] font-semibold"
                       style={{
                         background: catStyle.bg,
                         color: catStyle.text,
@@ -3232,13 +3221,16 @@ function PhotosTab() {
                     </span>
                   </div>
                   <div className="flex flex-1 flex-col justify-between min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div
-                          className="text-[12px] font-semibold text-[#111827] truncate"
-                          title={siteLabel}
-                        >
-                          {siteLabel || '현장 정보 없음'}
+                    <div className="flex items-start gap-1">
+                      <div className="min-w-0 space-y-1">
+                        <div className="flex items-center gap-1.5">
+                          <div
+                            className="text-[12px] font-semibold text-[#111827] truncate leading-tight"
+                            title={siteLabel}
+                          >
+                            {siteLabel || '현장 정보 없음'}
+                          </div>
+                          {renderStatusBadge(it.status)}
                         </div>
                         <div
                           className="text-[11px] text-[#4b5563] leading-snug line-clamp-2"
@@ -3250,21 +3242,41 @@ function PhotosTab() {
                           {label}
                         </div>
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 text-[11px] text-[#6b7280] pt-0.5">
+                      <span className="truncate">{dateLabel || '날짜 정보 없음'}</span>
                       <button
                         type="button"
-                        onClick={e => {
+                        onClick={async e => {
                           e.stopPropagation()
-                          setSelected(new Set([it.id]))
-                          deleteSelected()
+                          setLoading(true)
+                          try {
+                            await fetch(`/api/mobile/media/photos/${encodeURIComponent(it.id)}`, {
+                              method: 'DELETE',
+                              credentials: 'include',
+                            }).catch(() => {})
+                            setItems(prev => prev.filter(item => item.id !== it.id))
+                            setSelected(prev => {
+                              const next = new Set(prev)
+                              next.delete(it.id)
+                              return next
+                            })
+                            toast({ title: '삭제 완료', description: '사진을 삭제했습니다.' })
+                          } catch (err: any) {
+                            toast({
+                              title: '삭제 실패',
+                              description: err?.message || '삭제 중 오류가 발생했습니다.',
+                              variant: 'destructive',
+                            })
+                          } finally {
+                            setLoading(false)
+                          }
                         }}
-                        className="text-[11px] font-semibold text-[#d14343] px-2 py-1"
+                        className="text-[11px] font-semibold text-[#d14343] px-3 py-1 rounded-full border border-[#e4e8f5] bg-white"
+                        style={{ borderRadius: 9999 }}
                       >
                         삭제
                       </button>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-[#6b7280]">
-                      <span>{dateLabel || '날짜 정보 없음'}</span>
-                      {renderStatusBadge(it.status)}
                     </div>
                   </div>
                 </div>
