@@ -610,98 +610,33 @@ export default function DocumentHubPage() {
         }
         .grid-thumbs {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 18px;
+          grid-template-columns: repeat(1, minmax(0, 1fr));
+          gap: 12px;
         }
         :global(.doc-hub .grid-thumbs) {
           display: grid !important;
-          grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-          gap: 18px !important;
+          grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+          gap: 12px !important;
+        }
+        @media (min-width: 700px) {
+          .grid-thumbs,
+          :global(.doc-hub .grid-thumbs) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 14px !important;
+          }
         }
         .grid-thumbs .thumb {
           background: var(--card, #fff);
           border: 1px solid var(--line, #e5e7eb);
-          border-radius: 12px;
+          border-radius: 14px;
           overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          min-height: 260px;
-          box-shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+          display: block;
+          box-shadow: 0 8px 18px rgba(17, 24, 39, 0.08);
           position: relative;
-          transition:
-            transform 0.15s ease,
-            box-shadow 0.15s ease;
         }
         .grid-thumbs .thumb:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 14px 32px rgba(17, 24, 39, 0.12);
-        }
-        .grid-thumbs .thumb-actions {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          display: flex;
-          gap: 6px;
-          z-index: 2;
-        }
-        .grid-thumbs .thumb-actions button {
-          border: 1px solid var(--line, #e5e7eb);
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 8px;
-          padding: 4px 10px;
-          font-size: 11px;
-          font-weight: 700;
-          color: #0f172a;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-          min-width: 48px;
-          text-align: center;
-        }
-        .grid-thumbs .thumb-actions button:hover {
-          background: #e5e7eb;
-        }
-        .grid-thumbs .thumb-image-wrapper {
-          position: relative;
-          width: 100%;
-          padding-top: 70%;
-          background: #f8fafc;
-          flex: 1 1 auto;
-        }
-        .grid-thumbs .thumb-image-wrapper img {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-        .grid-thumbs .thumb-meta {
-          padding: 10px 12px 8px;
-          border-top: 1px solid var(--line, #e5e7eb);
-          background: #f9fafb;
-          flex: 0 0 auto;
-          display: grid;
-          grid-template-rows: repeat(3, auto);
-          gap: 2px;
-        }
-        .grid-thumbs .thumb-site {
-          display: block;
-          font-size: 12px;
-          font-weight: 700;
-          color: #0f172a;
-          line-height: 1.15;
-          word-break: break-all;
-        }
-        .grid-thumbs .thumb-file {
-          font-size: 12px;
-          font-weight: 600;
-          color: #1f2937;
-          line-height: 1.2;
-          word-break: break-all;
-        }
-        .grid-thumbs .thumb-date {
-          font-size: 11px;
-          font-weight: 500;
-          color: #6b7280;
-          line-height: 1.2;
+          transform: none;
+          box-shadow: 0 10px 22px rgba(17, 24, 39, 0.1);
         }
 
         /* Dark mode overrides */
@@ -2433,32 +2368,22 @@ function DrawingsTab() {
         const restricted = Boolean(me?.isRestricted)
         setIsRestricted(restricted)
         setOrgId(me?.restrictedOrgId || null)
+        setUserRole(me?.role || '')
 
         // Fetch site options
-        if (restricted && me?.restrictedOrgId) {
-          // Partner-only sites
-          const r = await fetch(
-            `/api/sites/by-partner?partner_company_id=${encodeURIComponent(me.restrictedOrgId)}`,
-            { cache: 'no-store', credentials: 'include' }
-          )
-          const list = await r.json().catch(() => [])
-          const opts: Array<{ id: string; name: string }> = Array.isArray(list)
-            ? list.map((s: any) => ({ id: String(s.id), name: String(s.name || '현장') }))
-            : []
+        // Use unified site list (server handles access control)
+        const r = await fetch('/api/mobile/sites/list', {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const j = await r.json().catch(() => ({}))
+        if (r.ok && j?.success) {
+          const opts = (j.data || []).map((s: any) => ({
+            id: String(s.id),
+            name: String(s.name),
+          }))
           setSiteOptions(opts)
-          // Auto-select first allowed site for partner users
-          if (!site && opts.length > 0) setSite(opts[0].id)
-        } else {
-          // All sites for non-restricted users
-          const r = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
-          const j = await r.json().catch(() => ({}))
-          if (r.ok && j?.success) {
-            const opts = (j.data || []).map((s: any) => ({
-              id: String(s.id),
-              name: String(s.name),
-            }))
-            setSiteOptions(opts)
-          }
+          // Default: keep "전체" (empty) unless 사용자가 직접 선택
         }
       } finally {
         setAuthLoaded(true)
@@ -2479,16 +2404,6 @@ function DrawingsTab() {
             {uploadWarning ? (
               <p className="my-2 text-xs font-medium text-[--accent-600]">{uploadWarning}</p>
             ) : null}
-          </div>
-        </div>
-      )}
-      {authLoaded && isRestricted && !site && siteOptions.length > 0 && (
-        <div className="doc-selection-card" style={{ marginBottom: 8 }}>
-          <div className="doc-selection-content">
-            <div className="doc-selection-title">현장을 먼저 선택하세요</div>
-            <div style={{ fontSize: 12, color: '#6B7280' }}>
-              시공업체 사용자는 배정된 현장 선택 후 도면을 조회할 수 있습니다.
-            </div>
           </div>
         </div>
       )}
@@ -2912,8 +2827,21 @@ function PhotosTab() {
   const [site, setSite] = useState('')
   const [category, setCategory] = useState<'before' | 'after' | 'other' | ''>('')
   const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [isRestricted, setIsRestricted] = useState(false)
+  const [userRole, setUserRole] = useState<string>('')
+  const [authLoaded, setAuthLoaded] = useState(false)
   const [items, setItems] = useState<
-    Array<{ id: string; url: string; name?: string; createdAt?: string }>
+    Array<{
+      id: string
+      url: string
+      name: string
+      siteId: string
+      siteName: string
+      category: 'before' | 'after'
+      workDescription: string
+      workDate: string
+      createdAt: string
+    }>
   >([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const inputRef = useRef<HTMLInputElement>(null)
@@ -2922,42 +2850,77 @@ function PhotosTab() {
   const limit = 24
   const [totalPages, setTotalPages] = useState(1)
   const [queue, setQueue] = useState<
-    Array<{ file: File; siteId: string; category: 'before' | 'after' | 'other' }>
+    Array<{ file: File; siteId: string; category: 'before' | 'after' }>
   >([])
   const [uploadWarning, setUploadWarning] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'submitted' | 'approved'>(
+    'all'
+  )
+  const [preview, setPreview] = useState<{
+    url: string
+    title: string
+    site: string
+    work: string
+    date: string
+  } | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const siteSelectLabel = useMemo(() => {
     if (!site) return '현장 전체'
     return siteOptions.find(s => s.id === site)?.name || '현장 선택'
   }, [site, siteOptions])
   const categorySelectLabel = useMemo(() => {
-    if (!category) return '상태 전체'
+    if (!category) return '보수 전/후 전체'
     if (category === 'before') return '보수 전'
     if (category === 'after') return '보수 후'
-    if (category === 'other') return '기타'
     return '상태 선택'
   }, [category])
+  const statusSelectLabel = useMemo(() => {
+    if (statusFilter === 'all') return '작업일지 전체'
+    if (statusFilter === 'draft') return '임시저장'
+    if (statusFilter === 'submitted') return '작성완료'
+    return '승인'
+  }, [statusFilter])
   const handleSiteChange = (value: string) => {
     setSite(value === 'all' ? '' : value)
     setUploadWarning('')
   }
   const handleCategoryChange = (value: string) => {
-    const normalized: '' | 'before' | 'after' | 'other' =
-      value === 'all' ? '' : (value as 'before' | 'after' | 'other')
+    const normalized: '' | 'before' | 'after' = value === 'all' ? '' : (value as 'before' | 'after')
     setCategory(normalized)
+  }
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value as typeof statusFilter)
+  }
+
+  const renderStatusBadge = (status?: string | null) => {
+    const key = (status || '').toLowerCase()
+    const normalized =
+      key === 'approved'
+        ? 'approved'
+        : key === 'submitted' || key === 'completed'
+          ? 'submitted'
+          : 'draft'
+    const cfg =
+      normalized === 'approved'
+        ? { bg: '#ecfdf3', text: '#15803d', label: '승인' }
+        : normalized === 'submitted'
+          ? { bg: '#eff6ff', text: '#2563eb', label: '작성완료' }
+          : { bg: '#f3f4f6', text: '#4b5563', label: '임시저장' }
+    return (
+      <span
+        className="inline-flex items-center rounded-full px-2 py-[2px] text-[10px] font-semibold"
+        style={{ background: cfg.bg, color: cfg.text }}
+      >
+        {cfg.label}
+      </span>
+    )
   }
 
   const onUpload = () => {
-    if (!site) {
-      setUploadWarning('사진을 업로드할 현장을 먼저 선택하세요.')
-      toast({
-        title: '현장을 먼저 선택하세요',
-        description: '사진을 올릴 현장을 선택한 뒤 다시 시도하세요.',
-        variant: 'warning',
-      })
-      return
+    // 사진·도면 관리 화면으로 이동하여 업로드 진행
+    if (typeof window !== 'undefined') {
+      window.location.href = '/mobile/media?tab=photo'
     }
-    setUploadWarning('')
-    inputRef.current?.click()
   }
   const onFiles = async (files: FileList | null) => {
     if (!files) return
@@ -3016,23 +2979,40 @@ function PhotosTab() {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (site) params.set('siteId', site)
-      if (category) params.set('category', category)
       params.set('limit', String(limit))
       params.set('page', String(page))
-      const res = await fetch(`/api/docs/photos?${params.toString()}`, { cache: 'no-store' })
+      if (site) params.set('site_id', site)
+      if (statusFilter !== 'all') params.set('status', statusFilter)
+      const res = await fetch(`/api/mobile/media/photos?${params.toString()}`, {
+        cache: 'no-store',
+        credentials: 'include',
+      })
       const json = await res.json()
       if (res.ok && json?.success) {
-        setItems(
-          (json.data || []).map((d: any) => ({
+        const photos = json.data?.photos || []
+        const mapped =
+          photos.map((d: any) => ({
             id: String(d.id),
-            url: String(d.url),
-            name: String(d.name || d.title || d.file_name || `photo-${d.id}`),
-            createdAt: d.created_at || '',
-          }))
-        )
-        if (json.pagination) setTotalPages(json.pagination.totalPages || 1)
-      } else setItems([])
+            url: d.url ? String(d.url) : '',
+            name: String(d.name || d.file_name || d.title || `photo-${d.id}`),
+            siteId: d.siteId ? String(d.siteId) : d.site_id ? String(d.site_id) : '',
+            siteName: d.siteName || d.site_name || '',
+            category: d.type === 'after' || d.photo_type === 'after' ? 'after' : 'before',
+            workDescription: d.workDescription || d.work_description || '',
+            workDate: d.workDate || d.work_date || '',
+            createdAt: d.uploadedAt || d.created_at || '',
+          })) || []
+        setItems(mapped)
+        const totalPagesCalc =
+          json.data?.total && limit > 0 ? Math.max(1, Math.ceil(json.data.total / limit)) : 1
+        setTotalPages(totalPagesCalc)
+      } else {
+        setItems([])
+        // If API blocked due to missing site, try selecting first available site automatically
+        if (!site && siteOptions.length > 0) {
+          setSite(siteOptions[0].id)
+        }
+      }
     } finally {
       setLoading(false)
     }
@@ -3040,17 +3020,38 @@ function PhotosTab() {
 
   useEffect(() => {
     fetchList()
-  }, [site, category, page])
+  }, [site, category, page, isRestricted, userRole])
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
-      const json = await res.json().catch(() => ({}))
-      if (res.ok && json?.success)
-        setSiteOptions(
-          (json.data || []).map((s: any) => ({ id: String(s.id), name: String(s.name) }))
-        )
+      try {
+        const meRes = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' })
+        const me = await meRes.json().catch(() => ({}))
+        setIsRestricted(Boolean(me?.isRestricted))
+        setUserRole(me?.role || '')
+      } catch {
+        setIsRestricted(false)
+        setUserRole('')
+      } finally {
+        setAuthLoaded(true)
+      }
     })()
   }, [])
+
+  useEffect(() => {
+    ;(async () => {
+      const res = await fetch('/api/mobile/sites/list', {
+        cache: 'no-store',
+        credentials: 'include',
+      })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.success) {
+        const opts = (json.data || []).map((s: any) => ({ id: String(s.id), name: String(s.name) }))
+        setSiteOptions(opts)
+        // Auto-pick first available site to satisfy API requirement for all roles
+        if (!site && opts.length > 0) setSite(opts[0].id)
+      }
+    })()
+  }, [isRestricted, userRole])
 
   return (
     <div>
@@ -3075,31 +3076,45 @@ function PhotosTab() {
           <CustomSelect value={category || 'all'} onValueChange={handleCategoryChange}>
             <CustomSelectTrigger
               className="doc-filter-trigger min-w-[140px] w-full"
-              aria-label="상태 선택"
+              aria-label="보수 전/후 선택"
             >
               <CustomSelectValue>{categorySelectLabel}</CustomSelectValue>
             </CustomSelectTrigger>
             <CustomSelectContent>
-              <CustomSelectItem value="all">상태 전체</CustomSelectItem>
+              <CustomSelectItem value="all">보수 전/후 전체</CustomSelectItem>
               <CustomSelectItem value="before">보수 전</CustomSelectItem>
               <CustomSelectItem value="after">보수 후</CustomSelectItem>
               <CustomSelectItem value="other">기타</CustomSelectItem>
             </CustomSelectContent>
           </CustomSelect>
+          <CustomSelect value={statusFilter} onValueChange={handleStatusChange}>
+            <CustomSelectTrigger
+              className="doc-filter-trigger min-w-[140px] w-full"
+              aria-label="작업일지 상태 선택"
+            >
+              <CustomSelectValue>{statusSelectLabel}</CustomSelectValue>
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">작업일지 전체</CustomSelectItem>
+              <CustomSelectItem value="draft">임시저장</CustomSelectItem>
+              <CustomSelectItem value="submitted">작성완료</CustomSelectItem>
+              <CustomSelectItem value="approved">승인</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
-        <div className="upload-actions">
-          <button className="btn" onClick={onUpload}>
+        <div className="flex justify-end">
+          <button className="btn btn-primary" onClick={onUpload} style={{ minWidth: 120 }}>
             업로드
           </button>
-          <input
-            ref={inputRef}
-            type="file"
-            hidden
-            accept="image/*"
-            multiple
-            onChange={e => onFiles(e.target.files)}
-          />
         </div>
+        <input
+          ref={inputRef}
+          type="file"
+          hidden
+          accept="image/*"
+          multiple
+          onChange={e => onFiles(e.target.files)}
+        />
       </div>
       {uploadWarning ? (
         <p className="my-2 text-xs font-medium text-[--accent-600]">{uploadWarning}</p>
@@ -3150,55 +3165,108 @@ function PhotosTab() {
             const shortName =
               fileName.length > 18 ? `${fileName.slice(0, 9)}…${fileName.slice(-6)}` : fileName
             const label = shortName || `photo-${it.id}`
-            const siteLabel = siteSelectLabel || '현장 정보 없음'
-            const dateLabel = formatDateLabel(it.createdAt || '')
+            const siteLabel =
+              it.siteName ||
+              siteOptions.find(s => s.id === it.siteId)?.name ||
+              siteSelectLabel ||
+              '현장 정보 없음'
+            const dateLabel = formatDateLabel(it.workDate || it.createdAt || '')
+            const workLabel = it.workDescription || '작업내역 미기재'
+            const catKey = it.category || 'other'
+            const catStyle =
+              catKey === 'before'
+                ? { bg: '#e8f0ff', text: '#1d4ed8', border: '#cfdcff', label: '보수 전' }
+                : catKey === 'after'
+                  ? { bg: '#e9f8ef', text: '#15803d', border: '#c7f3d6', label: '보수 후' }
+                  : { bg: '#f3f4f6', text: '#4b5563', border: '#e5e7eb', label: '기타' }
 
             return (
               <div
                 key={it.id}
                 className="thumb"
-                onClick={() => toggle(it.id)}
-                style={{ outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none' }}
+                onClick={() => {
+                  setPreview({
+                    url: it.url,
+                    title: label,
+                    site: siteLabel || '현장 정보 없음',
+                    work: workLabel || '작업내역 미기재',
+                    date: dateLabel || '',
+                  })
+                  setIsPreviewOpen(true)
+                }}
+                style={{
+                  outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none',
+                  borderRadius: 14,
+                  overflow: 'hidden',
+                  background: '#fff',
+                  border: '1px solid #e4e8f5',
+                  boxShadow: '0 6px 18px rgba(26, 39, 63, 0.04)',
+                }}
               >
-                <div className="thumb-image-wrapper">
-                  <Image
-                    src={it.url}
-                    alt={label}
-                    width={320}
-                    height={220}
-                    className="h-full w-full object-cover"
-                    sizes="(max-width: 768px) 50vw, 320px"
-                  />
-                </div>
-                <div className="thumb-meta">
-                  <span className="thumb-site" title={siteLabel}>
-                    {siteLabel}
-                  </span>
-                  <span className="thumb-file" title={label || '사진'}>
-                    {label || '사진'}
-                  </span>
-                  <span className="thumb-date">{dateLabel || '날짜 정보 없음'}</span>
-                </div>
-                <div className="thumb-actions">
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation()
-                      editItem(it.id)
-                    }}
-                  >
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    onClick={e => {
-                      e.stopPropagation()
-                      setSelected(new Set([it.id]))
-                      deleteSelected()
-                    }}
-                  >
-                    삭제
-                  </button>
+                <div className="flex gap-3 p-3">
+                  <div className="relative h-20 w-20 overflow-hidden rounded-xl bg-[#f5f7fb] flex-shrink-0">
+                    {it.url ? (
+                      <Image
+                        src={it.url}
+                        alt={label}
+                        width={160}
+                        height={160}
+                        className="h-full w-full object-cover"
+                        sizes="160px"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[11px] text-[#9aa4c5]">
+                        미리보기 없음
+                      </div>
+                    )}
+                    <span
+                      className="absolute left-1.5 top-1.5 inline-flex items-center rounded-full px-2 py-[2px] text-[10px] font-semibold"
+                      style={{
+                        background: catStyle.bg,
+                        color: catStyle.text,
+                        border: `1px solid ${catStyle.border}`,
+                        borderRadius: 9999,
+                      }}
+                    >
+                      {catStyle.label}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col justify-between min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div
+                          className="text-[12px] font-semibold text-[#111827] truncate"
+                          title={siteLabel}
+                        >
+                          {siteLabel || '현장 정보 없음'}
+                        </div>
+                        <div
+                          className="text-[11px] text-[#4b5563] leading-snug line-clamp-2"
+                          title={workLabel}
+                        >
+                          {workLabel}
+                        </div>
+                        <div className="text-[11px] text-[#6b7280] truncate" title={label}>
+                          {label}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={e => {
+                          e.stopPropagation()
+                          setSelected(new Set([it.id]))
+                          deleteSelected()
+                        }}
+                        className="text-[11px] font-semibold text-[#d14343] px-2 py-1"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-[#6b7280]">
+                      <span>{dateLabel || '날짜 정보 없음'}</span>
+                      {renderStatusBadge(it.status)}
+                    </div>
+                  </div>
                 </div>
               </div>
             )
@@ -3281,6 +3349,48 @@ function PhotosTab() {
           다음
         </button>
       </div>
+
+      {isPreviewOpen && preview?.url && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-t-2xl bg-white p-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[#111827] truncate">
+                  {preview.title || '사진'}
+                </div>
+                <div className="text-[11px] text-[#6b7280]">{preview.site}</div>
+                <div className="text-[11px] text-[#4b5563] line-clamp-2">
+                  작업내역: {preview.work || '작업내역 미기재'}
+                </div>
+                <div className="text-[11px] text-[#6b7280]">{preview.date}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPreviewOpen(false)}
+                className="rounded-lg bg-[#f4f7ff] px-3 py-1 text-[12px] font-semibold text-[#1f2942]"
+              >
+                닫기
+              </button>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-[#e0e6f3] bg-[#f9fbff]">
+              <Image
+                src={preview.url}
+                alt={preview.title || '사진'}
+                width={1200}
+                height={900}
+                className="h-[60vh] w-full object-contain bg-black/5"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

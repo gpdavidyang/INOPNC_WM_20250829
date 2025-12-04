@@ -116,9 +116,11 @@ export default function MediaManagementPage() {
       if (worklogStatusFilter === 'approved') return s === 'approved'
       return true
     }
-    return photoItems.filter(
-      item => matchPeriod(item.workDate || item.uploadedAt) && matchStatus(item.status)
-    )
+    return photoItems.filter(item => {
+      // Prefer uploadedAt so newly added photos on 오래된 작업일지도 보인다
+      const targetDate = item.uploadedAt || item.workDate
+      return matchPeriod(targetDate) && matchStatus(item.status)
+    })
   }, [photoItems, periodValue, worklogStatusFilter])
 
   const photosByWorklog = useMemo(() => {
@@ -1052,6 +1054,20 @@ function PhotoUploadInline({
     <div className="space-y-3">
       <section className="space-y-2 rounded-xl border border-[#d5def3] bg-white p-3">
         <div className="text-xs font-semibold text-[#1f2942]">사진 업로드</div>
+        <div className="grid grid-cols-2 text-[12px] font-semibold text-[#1f2942]">
+          <div className="flex items-center justify-between pr-2">
+            <span>보수 전</span>
+            <span className="text-[#6b7280]">
+              {beforeCount} / {MAX_PER_TYPE}
+            </span>
+          </div>
+          <div className="flex items-center justify-between pl-2">
+            <span>보수 후</span>
+            <span className="text-[#6b7280]">
+              {afterCount} / {MAX_PER_TYPE}
+            </span>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <InlineDropzone
             label="보수 전"
@@ -1076,11 +1092,11 @@ function PhotoUploadInline({
         <div className="text-xs font-semibold text-[#1f2942]">업로드 된 사진</div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border border-[#e0e6f3] bg-[#f9fbff] p-2">
-            <div className="mb-1 text-[11px] font-semibold text-[#1f2942]">보수 전 미리보기</div>
+            <div className="mb-1 text-[11px] font-semibold text-[#1f2942]">보수 전</div>
             {renderPreview(beforeList, 'before')}
           </div>
           <div className="rounded-lg border border-[#e0e6f3] bg-[#f9fbff] p-2">
-            <div className="mb-1 text-[11px] font-semibold text-[#1f2942]">보수 후 미리보기</div>
+            <div className="mb-1 text-[11px] font-semibold text-[#1f2942]">보수 후</div>
             {renderPreview(afterList, 'after')}
           </div>
         </div>
@@ -1221,10 +1237,7 @@ function InlineDropzone({
         <circle cx="12" cy="12.5" r="3" fill="none" strokeWidth="1.5" />
         <path d="M9 7l1-2h4l1 2" fill="none" strokeWidth="1.5" />
       </svg>
-      <span className="text-[11px] font-normal text-[#9aa4c5] leading-snug">
-        {label} 사진을 <br />
-        추가하세요
-      </span>
+      <span className="text-[11px] font-normal text-[#9aa4c5] leading-snug">사진을 추가하세요</span>
       {uploading && <span className="text-[10px] font-normal text-[#31a3fa]">업로드 중...</span>}
       {success && <span className="text-[10px] font-normal text-[#2f8f46]">완료</span>}
       {error && <span className="text-[10px] font-normal text-red-500">{error}</span>}

@@ -11,6 +11,12 @@ export async function GET(request: NextRequest) {
     if (auth instanceof NextResponse) return auth
 
     const supabase = createClient()
+    let svc: ReturnType<typeof createServiceClient> | ReturnType<typeof createClient> = supabase
+    try {
+      svc = createServiceClient()
+    } catch {
+      svc = supabase
+    }
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('siteId') || undefined
     const category =
@@ -23,7 +29,7 @@ export async function GET(request: NextRequest) {
     // Customer-manager (partner alias) site access restriction
     if (auth.role === 'customer_manager') {
       if (!siteId) return NextResponse.json({ success: true, data: [] })
-      const { data: mapping } = await supabase
+      const { data: mapping } = await (svc as any)
         .from('partner_site_mappings')
         .select('id')
         .eq('site_id', siteId)
@@ -44,9 +50,11 @@ export async function GET(request: NextRequest) {
       'file_name.ilike.%.heic',
     ].join(',')
 
-    let query = supabase
+    let query = (svc as any)
       .from('documents')
-      .select('id, site_id, file_name, file_url, file_size, mime_type, folder_path, created_at')
+      .select(
+        'id, site_id, file_name, file_url, file_size, mime_type, folder_path, created_at, sites (name)'
+      )
       .or(IMAGE_OR)
       .order('created_at', { ascending: false })
 
@@ -58,51 +66,177 @@ export async function GET(request: NextRequest) {
     const to = from + limit - 1
     query = query.range(from, to)
 
-    const { data, error } = await query
-    if (error)
+    const [docRes] = await Promise.all([query])
+
+    const { data, error } = docRes
+    if (error) {
       return NextResponse.json({
         success: true,
         data: [],
         pagination: { page, limit, total: 0, totalPages: 0 },
       })
+    }
 
-    const items = (data || [])
-      .filter((d: any) => {
-        const mime = String(d?.mime_type || '')
-        const name = String(d?.file_name || '')
-        const looksImage =
-          mime.toLowerCase().startsWith('image/') || /\.(png|jpe?g|webp|gif|heic)$/i.test(name)
-        return looksImage && d?.file_url
-      })
-      .map((d: any) => ({
+    const docs = (data || []).filter((d: any) => {
+      const mime = String(d?.mime_type || '')
+      const name = String(d?.file_name || '')
+      const looksImage =
+        mime.toLowerCase().startsWith('image/') || /\.(png|jpe?g|webp|gif|heic)$/i.test(name)
+      return looksImage
+    })
+
+    const derivePath = (row: any) => {
+      const folder = String(row.folder_path || '')
+        .replace(/^\/+/, '')
+        .replace(/\/+$/, '')
+      const file = String(row.file_name || '')
+      if (folder || file) {
+        return folder ? `${folder}/${file}` : file || null
+      }
+      const url = String(row.file_url || '')
+      if (!url) return null
+      // Match /object/(public|sign)/documents/<path>
+      const match = url.match(/\/object\/[^/]+\/documents\/(.+)$/)
+      if (match && match[1]) return `documents/${match[1]}`
+      return null
+    }
+
+    const docPaths = docs.map((d: any) => derivePath(d)).filter((p): p is string => !!p)
+
+    const signedDocMap = new Map<string, string>()
+    if (docPaths.length) {
+      try {
+        const svc = createServiceClient()
+        const { data: signed } = await (svc as any).storage
+          .from('documents')
+          .createSignedUrls(docPaths, 60 * 60)
+        if (Array.isArray(signed)) {
+          signed.forEach((s: any) => {
+            if (s?.path && s?.signedUrl) signedDocMap.set(s.path, s.signedUrl)
+          })
+        }
+      } catch (e) {
+        console.warn('[docs/photos] doc signed url skipped', e)
+      }
+    }
+
+    const docItems = docs.map((d: any) => {
+      const path = derivePath(d)
+      const url = path ? signedDocMap.get(path) || d.file_url || '' : d.file_url || ''
+      const category = (() => {
+        const p = String(d.folder_path || '')
+        if (p.includes('/before/')) return 'before'
+        if (p.includes('/after/')) return 'after'
+        return 'other'
+      })()
+      return {
         id: d.id,
         site_id: d.site_id,
+        site_name: d?.sites?.name || null,
         title: d.file_name,
-        url: d.file_url,
+        url,
         size: d.file_size,
         mime: d.mime_type,
         created_at: d.created_at,
-        category: (() => {
-          const p = String(d.folder_path || '')
-          if (p.includes('/before/')) return 'before'
-          if (p.includes('/after/')) return 'after'
-          return 'other'
-        })(),
-      }))
+        category,
+        source: 'documents',
+      }
+    })
 
-    let countQuery = supabase
-      .from('documents')
-      .select('*', { count: 'exact', head: true })
-      .or(IMAGE_OR)
-    if (siteId) countQuery = countQuery.eq('site_id', siteId)
-    if (category) countQuery = countQuery.ilike('folder_path', `%/${category}/%`)
-    if (q) countQuery = countQuery.ilike('file_name', `%${q}%`)
-    const { count } = await countQuery
+    // Additional photos from daily reports
+    let addlItems: any[] = []
+    try {
+      const { data: addlData, error: addlError } = await (svc as any)
+        .from('daily_report_additional_photos')
+        .select(
+          `
+          id,
+          photo_type,
+          file_url,
+          file_path,
+          file_name,
+          file_size,
+          created_at,
+          daily_reports (
+            site_id,
+            work_date,
+            work_description,
+            sites (
+              name
+            )
+          )
+        `
+        )
+        .order('created_at', { ascending: false })
+        .limit(limit * 3) // buffer before pagination merge
+        .ilike('file_name', q ? `%${q}%` : '%')
+
+      let filtered = addlData || []
+      if (siteId)
+        filtered = filtered.filter((row: any) => String(row?.daily_reports?.site_id) === siteId)
+      if (category)
+        filtered = filtered.filter((row: any) => (row?.photo_type || 'other') === category)
+
+      const paths = filtered.map((r: any) => r.file_path).filter(Boolean)
+      const signedMap = new Map<string, string>()
+      if (paths.length) {
+        try {
+          const svc = createServiceClient()
+          const { data: signedList } = await (svc as any).storage
+            .from('daily-reports')
+            .createSignedUrls(paths, 60 * 60)
+          if (Array.isArray(signedList)) {
+            signedList.forEach((s: any) => {
+              if (s?.path && s?.signedUrl) signedMap.set(s.path, s.signedUrl)
+            })
+          }
+        } catch (e) {
+          console.warn('[docs/photos] additional photo signed url skipped', e)
+        }
+      }
+
+      addlItems = filtered.map((row: any) => {
+        const signed = row.file_path ? signedMap.get(row.file_path) : null
+        return {
+          id: row.id,
+          site_id: row?.daily_reports?.site_id || null,
+          site_name: row?.daily_reports?.sites?.name || null,
+          work_description: row?.daily_reports?.work_description || null,
+          work_date: row?.daily_reports?.work_date || null,
+          title: row.file_name,
+          url: signed || row.file_url,
+          size: row.file_size,
+          mime: 'image/jpeg',
+          created_at: row.created_at,
+          category: row.photo_type || 'other',
+          source: 'additional',
+        }
+      })
+
+      if (addlError) {
+        console.warn('[docs/photos] additional photo query error', addlError)
+      }
+    } catch (e) {
+      console.warn('[docs/photos] additional photo fetch failed', e)
+    }
+
+    const combined = [...docItems, ...addlItems].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    const total = combined.length
+    const start = (page - 1) * limit
+    const end = start + limit
+    const pageItems = combined.slice(start, end)
 
     return NextResponse.json({
       success: true,
-      data: items,
-      pagination: { page, limit, total: count || 0, totalPages: Math.ceil((count || 0) / limit) },
+      data: pageItems,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
     })
   } catch (e: any) {
     return NextResponse.json(
