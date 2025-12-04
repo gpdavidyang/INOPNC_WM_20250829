@@ -3189,7 +3189,7 @@ function PhotosTab() {
                   boxShadow: '0 6px 12px rgba(26, 39, 63, 0.08)',
                 }}
               >
-                <div className="flex gap-2 p-2 items-start">
+                <div className="flex gap-3 p-2 items-start">
                   <div
                     className="relative overflow-hidden rounded-lg bg-[#f5f7fb] flex-shrink-0"
                     style={{ height: 96, width: 96 }}
@@ -3221,29 +3221,27 @@ function PhotosTab() {
                     </span>
                   </div>
                   <div className="flex flex-1 flex-col justify-between min-w-0">
-                    <div className="flex items-start gap-1">
-                      <div className="min-w-0 space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <div
-                            className="text-[12px] font-semibold text-[#111827] truncate leading-tight"
-                            title={siteLabel}
-                          >
-                            {siteLabel || '현장 정보 없음'}
-                          </div>
-                          {renderStatusBadge(it.status)}
-                        </div>
-                        <div
-                          className="text-[11px] text-[#4b5563] leading-snug line-clamp-2"
-                          title={workLabel}
-                        >
-                          {workLabel}
-                        </div>
-                        <div className="text-[11px] text-[#6b7280] truncate" title={label}>
+                    <div className="min-w-0 space-y-1.5">
+                      <div
+                        className="text-[12px] font-semibold text-[#111827] leading-tight truncate"
+                        title={siteLabel}
+                      >
+                        {siteLabel || '현장 정보 없음'}
+                      </div>
+                      <div
+                        className="text-[11px] text-[#4b5563] leading-snug line-clamp-2"
+                        title={workLabel}
+                      >
+                        {workLabel}
+                      </div>
+                      <div className="flex items-center justify-between gap-2 text-[11px] text-[#6b7280]">
+                        <div className="truncate" title={label}>
                           {label}
                         </div>
+                        {renderStatusBadge(it.status)}
                       </div>
                     </div>
-                    <div className="flex items-center justify-between gap-2 text-[11px] text-[#6b7280] pt-0.5">
+                    <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-[#6b7280]">
                       <span className="truncate">{dateLabel || '날짜 정보 없음'}</span>
                       <button
                         type="button"
@@ -3272,8 +3270,7 @@ function PhotosTab() {
                             setLoading(false)
                           }
                         }}
-                        className="text-[11px] font-semibold text-[#d14343] px-3 py-1 rounded-full border border-[#e4e8f5] bg-white"
-                        style={{ borderRadius: 9999 }}
+                        className="rounded-lg border border-[#f5c2c7] bg-[#fff5f5] px-3 py-1 text-[11px] font-semibold text-[#b42318]"
                       >
                         삭제
                       </button>
@@ -3371,15 +3368,15 @@ function PhotosTab() {
             className="w-full max-w-md rounded-t-2xl bg-white p-4"
             onClick={e => e.stopPropagation()}
           >
-            <div className="mb-2 flex items-center justify-between">
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-[#111827] truncate">
-                  {preview.title || '사진'}
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0 space-y-1">
+                <div className="text-[13px] font-semibold text-[#1f2942] truncate">
+                  {preview.site || '현장 정보 없음'}
                 </div>
-                <div className="text-[11px] text-[#6b7280]">{preview.site}</div>
-                <div className="text-[11px] text-[#4b5563] line-clamp-2">
-                  작업내역: {preview.work || '작업내역 미기재'}
+                <div className="text-[11px] text-[#4b5563] truncate">
+                  {preview.work || '작업내역 미기재'}
                 </div>
+                <div className="text-[11px] text-[#111827] truncate">{preview.title || '사진'}</div>
                 <div className="text-[11px] text-[#6b7280]">{preview.date}</div>
               </div>
               <button
