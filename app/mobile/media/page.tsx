@@ -500,7 +500,7 @@ export default function MediaManagementPage() {
               onValueChange={handleSelectSite}
               disabled={siteLoading}
             >
-              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none focus:ring-2 focus:ring-[#31a3fa] focus:border-transparent">
+              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none">
                 <CustomSelectValue placeholder="전체 현장">
                   {siteLoading ? '현장 불러오는 중...' : siteFilterLabel}
                 </CustomSelectValue>
@@ -515,7 +515,7 @@ export default function MediaManagementPage() {
             </CustomSelect>
 
             <CustomSelect value={periodValue} onValueChange={handleSelectPeriod}>
-              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none focus:ring-2 focus:ring-[#31a3fa] focus:border-transparent">
+              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none">
                 <CustomSelectValue placeholder="전체 기간">{periodFilterLabel}</CustomSelectValue>
               </CustomSelectTrigger>
               <CustomSelectContent className="rounded-xl border border-[#dde3f2]">
@@ -531,7 +531,7 @@ export default function MediaManagementPage() {
               value={worklogStatusFilter}
               onValueChange={v => setWorklogStatusFilter(v as any)}
             >
-              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none focus:ring-2 focus:ring-[#31a3fa] focus:border-transparent">
+              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none">
                 <CustomSelectValue placeholder="작업일지 상태">
                   {worklogStatusFilter === 'all'
                     ? '전체'

@@ -2804,7 +2804,6 @@ function DrawingsTab() {
 function PhotosTab() {
   const { toast } = useToast()
   const [site, setSite] = useState('')
-  const [category, setCategory] = useState<'before' | 'after' | 'other' | ''>('')
   const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
   const [isRestricted, setIsRestricted] = useState(false)
   const [userRole, setUserRole] = useState<string>('')
@@ -2830,7 +2829,7 @@ function PhotosTab() {
   const limit = 24
   const [totalPages, setTotalPages] = useState(1)
   const [queue, setQueue] = useState<
-    Array<{ file: File; siteId: string; category: 'before' | 'after' }>
+    Array<{ file: File; siteId: string; category: 'before' | 'after' | 'other' }>
   >([])
   const [uploadWarning, setUploadWarning] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'submitted' | 'approved'>(
@@ -2848,12 +2847,6 @@ function PhotosTab() {
     if (!site) return '현장 전체'
     return siteOptions.find(s => s.id === site)?.name || '현장 선택'
   }, [site, siteOptions])
-  const categorySelectLabel = useMemo(() => {
-    if (!category) return '보수 전/후 전체'
-    if (category === 'before') return '보수 전'
-    if (category === 'after') return '보수 후'
-    return '상태 선택'
-  }, [category])
   const statusSelectLabel = useMemo(() => {
     if (statusFilter === 'all') return '작업일지 전체'
     if (statusFilter === 'draft') return '임시저장'
@@ -2864,10 +2857,6 @@ function PhotosTab() {
   const handleSiteChange = (value: string) => {
     setSite(value === 'all' ? '' : value)
     setUploadWarning('')
-  }
-  const handleCategoryChange = (value: string) => {
-    const normalized: '' | 'before' | 'after' = value === 'all' ? '' : (value as 'before' | 'after')
-    setCategory(normalized)
   }
   const handleStatusChange = (value: string) => {
     setStatusFilter(value as typeof statusFilter)
@@ -2918,7 +2907,7 @@ function PhotosTab() {
       toast({ title: '선택 필요', description: '현장을 먼저 선택하세요.', variant: 'warning' })
       return
     }
-    const cat = (category || 'other') as 'before' | 'after' | 'other'
+    const cat: 'before' | 'after' | 'other' = 'other'
     for (const f of arr) {
       try {
         const form = new FormData()
@@ -3002,7 +2991,7 @@ function PhotosTab() {
 
   useEffect(() => {
     fetchList()
-  }, [site, category, page, isRestricted, userRole])
+  }, [site, page, statusFilter, isRestricted, userRole])
   useEffect(() => {
     ;(async () => {
       try {
@@ -3036,62 +3025,52 @@ function PhotosTab() {
   }, [isRestricted, userRole])
 
   return (
-    <div>
-      <div className="filters filter-section" style={{ paddingLeft: 8, paddingRight: 8, gap: 8 }}>
-        <div className="flex flex-wrap items-center gap-2">
-          <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
-            <CustomSelectTrigger
-              className="doc-filter-trigger min-w-[140px]"
-              aria-label="현장 선택"
-            >
-              <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">현장 전체</CustomSelectItem>
-              {siteOptions.map(s => (
-                <CustomSelectItem key={s.id} value={s.id}>
-                  {s.name}
-                </CustomSelectItem>
-              ))}
-            </CustomSelectContent>
-          </CustomSelect>
+    <div className="space-y-4 px-2 md:px-4">
+      <div className="filters filter-section" style={{ gap: 8 }}>
+        <div className="flex flex-col gap-2">
+          <div className="grid w-full grid-cols-2 gap-2">
+            <CustomSelect value={site || 'all'} onValueChange={handleSiteChange}>
+              <CustomSelectTrigger
+                className="doc-filter-trigger min-w-[140px] w-full"
+                aria-label="현장 선택"
+              >
+                <CustomSelectValue>{siteSelectLabel}</CustomSelectValue>
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">현장 전체</CustomSelectItem>
+                {siteOptions.map(s => (
+                  <CustomSelectItem key={s.id} value={s.id}>
+                    {s.name}
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
 
-          <CustomSelect value={category || 'all'} onValueChange={handleCategoryChange}>
-            <CustomSelectTrigger
-              className="doc-filter-trigger min-w-[140px]"
-              aria-label="보수 전/후 선택"
-            >
-              <CustomSelectValue>{categorySelectLabel}</CustomSelectValue>
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">보수 전/후 전체</CustomSelectItem>
-              <CustomSelectItem value="before">보수 전</CustomSelectItem>
-              <CustomSelectItem value="after">보수 후</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
+            <CustomSelect value={statusFilter} onValueChange={handleStatusChange}>
+              <CustomSelectTrigger
+                className="doc-filter-trigger min-w-[140px] w-full"
+                aria-label="작업일지 상태 선택"
+              >
+                <CustomSelectValue>{statusSelectLabel}</CustomSelectValue>
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">작업일지 전체</CustomSelectItem>
+                <CustomSelectItem value="draft">임시저장</CustomSelectItem>
+                <CustomSelectItem value="submitted">작성완료</CustomSelectItem>
+                <CustomSelectItem value="approved">승인</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
 
-          <CustomSelect value={statusFilter} onValueChange={handleStatusChange}>
-            <CustomSelectTrigger
-              className="doc-filter-trigger min-w-[140px]"
-              aria-label="작업일지 상태 선택"
+          <div className="flex justify-end">
+            <button
+              className="btn btn-primary"
+              onClick={onUpload}
+              style={{ minWidth: 120, height: 42 }}
             >
-              <CustomSelectValue>{statusSelectLabel}</CustomSelectValue>
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">작업일지 전체</CustomSelectItem>
-              <CustomSelectItem value="draft">임시저장</CustomSelectItem>
-              <CustomSelectItem value="submitted">작성완료</CustomSelectItem>
-              <CustomSelectItem value="approved">승인</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-
-          <button
-            className="btn btn-primary ml-auto"
-            onClick={onUpload}
-            style={{ minWidth: 120, height: 42 }}
-          >
-            업로드
-          </button>
+              업로드
+            </button>
+          </div>
         </div>
         <input
           ref={inputRef}
@@ -3143,7 +3122,7 @@ function PhotosTab() {
           </div>
         </div>
       )}
-      <div className="grid-thumbs" style={{ paddingLeft: 8, paddingRight: 8 }}>
+      <div className="grid-thumbs">
         {loading && <div className="doc-selection-title">불러오는 중...</div>}
         {!loading &&
           items.map(it => {

@@ -69,6 +69,64 @@
   line-height: 1.4;
 }
 
+.media-cta-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px dashed rgba(49, 163, 250, 0.5);
+  background: #f0f6ff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.media-cta-text {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2942;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.media-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 9999px;
+  background: #1a254f;
+  color: #fdfdff;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  width: fit-content;
+  align-self: center;
+  box-shadow: 0 6px 18px rgba(26, 37, 79, 0.18);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.media-cta-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(26, 37, 79, 0.24);
+}
+
+.media-cta-helper {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7f8ba7;
+  margin: 0;
+}
+
 /* Quick Menu section title override (Home only) */
 #home-quick .section-title {
   font-size: 20px;
