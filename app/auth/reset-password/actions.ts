@@ -1,6 +1,6 @@
-import { requestPasswordReset } from '@/app/auth/actions'
+'use server'
 
-;('use server')
+import { requestPasswordReset } from '@/app/auth/actions'
 
 export type ResetPasswordState = {
   success: boolean
