@@ -1,5 +1,7 @@
 import { requestPasswordReset } from '@/app/auth/actions'
 
+;('use server')
+
 export type ResetPasswordState = {
   success: boolean
   message: string
@@ -9,8 +11,6 @@ export async function sendResetLinkAction(
   _prevState: ResetPasswordState,
   formData: FormData
 ): Promise<ResetPasswordState> {
-  'use server'
-
   const email = (formData.get('email') || '').toString().trim()
 
   if (!email) {
