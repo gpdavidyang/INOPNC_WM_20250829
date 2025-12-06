@@ -6,14 +6,14 @@ export const dailyReportSearchFields: SearchFieldConfig[] = [
     label: '작업일자',
     type: 'date',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: '날짜 선택'
+    placeholder: '날짜 선택',
   },
   {
     field: 'member_name',
     label: '담당자명',
     type: 'text',
     operators: ['contains', 'equals', 'startsWith'],
-    placeholder: '담당자명 입력'
+    placeholder: '담당자명 입력',
   },
   {
     field: 'process_type',
@@ -29,8 +29,8 @@ export const dailyReportSearchFields: SearchFieldConfig[] = [
       { value: '방수공사', label: '방수공사' },
       { value: '타일공사', label: '타일공사' },
       { value: '도장공사', label: '도장공사' },
-      { value: '기타', label: '기타' }
-    ]
+      { value: '기타', label: '기타' },
+    ],
   },
   {
     field: 'status',
@@ -38,66 +38,66 @@ export const dailyReportSearchFields: SearchFieldConfig[] = [
     type: 'select',
     operators: ['equals'],
     options: [
-      { value: 'draft', label: '임시저장' },
-      { value: 'submitted', label: '제출됨' }
-    ]
+      { value: 'draft', label: '임시' },
+      { value: 'submitted', label: '제출됨' },
+    ],
   },
   {
     field: 'site_id',
     label: '현장',
     type: 'select',
     operators: ['equals'],
-    options: [] // Will be populated dynamically
+    options: [], // Will be populated dynamically
   },
   {
     field: 'total_workers',
     label: '작업인원',
     type: 'number',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: '인원 수'
+    placeholder: '인원 수',
   },
   {
     field: 'npc1000_used',
     label: 'NPC-1000 사용량',
     type: 'number',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: 'kg 단위'
+    placeholder: 'kg 단위',
   },
   {
     field: 'npc1000_remaining',
     label: 'NPC-1000 잔량',
     type: 'number',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: 'kg 단위'
+    placeholder: 'kg 단위',
   },
   {
     field: 'issues',
     label: '특이사항',
     type: 'text',
     operators: ['contains', 'equals'],
-    placeholder: '특이사항 내용'
+    placeholder: '특이사항 내용',
   },
   {
     field: 'created_at',
     label: '작성일',
     type: 'date',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: '작성일 선택'
+    placeholder: '작성일 선택',
   },
   {
     field: 'submitted_at',
     label: '제출일',
     type: 'date',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: '제출일 선택'
+    placeholder: '제출일 선택',
   },
   {
     field: 'approved_at',
     label: '승인일',
     type: 'date',
     operators: ['equals', 'gte', 'lte', 'between'],
-    placeholder: '승인일 선택'
-  }
+    placeholder: '승인일 선택',
+  },
 ]
 
 export const dailyReportQuickFilters: QuickFilter[] = [
@@ -109,9 +109,9 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'work_date',
         operator: 'equals',
-        value: new Date().toISOString().split('T')[0]
-      }
-    ]
+        value: new Date().toISOString().split('T')[0],
+      },
+    ],
   },
   {
     id: 'pending_approval',
@@ -121,9 +121,9 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'status',
         operator: 'equals',
-        value: 'submitted'
-      }
-    ]
+        value: 'submitted',
+      },
+    ],
   },
   {
     id: 'has_issues',
@@ -133,9 +133,9 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'issues',
         operator: 'contains',
-        value: ''
-      }
-    ]
+        value: '',
+      },
+    ],
   },
   {
     id: 'high_workers',
@@ -145,9 +145,9 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'total_workers',
         operator: 'gte',
-        value: 10
-      }
-    ]
+        value: 10,
+      },
+    ],
   },
   {
     id: 'high_npc1000',
@@ -157,9 +157,9 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'npc1000_used',
         operator: 'gte',
-        value: 1000
-      }
-    ]
+        value: 1000,
+      },
+    ],
   },
   {
     id: 'this_week',
@@ -169,14 +169,14 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'work_date',
         operator: 'gte',
-        value: getStartOfWeek().toISOString().split('T')[0]
+        value: getStartOfWeek().toISOString().split('T')[0],
       },
       {
         field: 'work_date',
         operator: 'lte',
-        value: getEndOfWeek().toISOString().split('T')[0]
-      }
-    ]
+        value: getEndOfWeek().toISOString().split('T')[0],
+      },
+    ],
   },
   {
     id: 'this_month',
@@ -186,21 +186,21 @@ export const dailyReportQuickFilters: QuickFilter[] = [
       {
         field: 'work_date',
         operator: 'gte',
-        value: getStartOfMonth().toISOString().split('T')[0]
+        value: getStartOfMonth().toISOString().split('T')[0],
       },
       {
         field: 'work_date',
         operator: 'lte',
-        value: getEndOfMonth().toISOString().split('T')[0]
-      }
-    ]
-  }
+        value: getEndOfMonth().toISOString().split('T')[0],
+      },
+    ],
+  },
 ]
 
 export const dailyReportSearchConfig: DailyReportSearchConfig = {
   fields: dailyReportSearchFields,
   defaultSort: { field: 'work_date', order: 'desc' },
-  quickFilters: dailyReportQuickFilters
+  quickFilters: dailyReportQuickFilters,
 }
 
 // Helper functions for date calculations

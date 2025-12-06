@@ -169,7 +169,7 @@ export const getStatusColor = (status: WorkLogStatus): string => {
 export const getStatusText = (status: WorkLogStatus): string => {
   switch (status) {
     case 'draft':
-      return '임시저장'
+      return '임시'
     case 'submitted':
       return '제출'
     case 'approved':
@@ -267,7 +267,7 @@ export const dismissAlert = (month: string): void => {
 }
 
 /**
- * 작업일지 임시저장 로드
+ * 작업일지 임시 저장 로드
  */
 export const loadDraftWorkLog = (): Partial<WorkLog> | null => {
   const draft = localStorage.getItem(STORAGE_KEYS.DRAFT_WORK_LOG)
@@ -281,14 +281,14 @@ export const loadDraftWorkLog = (): Partial<WorkLog> | null => {
 }
 
 /**
- * 작업일지 임시저장
+ * 작업일지 임시 저장
  */
 export const saveDraftWorkLog = (workLog: Partial<WorkLog>): void => {
   localStorage.setItem(STORAGE_KEYS.DRAFT_WORK_LOG, JSON.stringify(workLog))
 }
 
 /**
- * 작업일지 임시저장 삭제
+ * 작업일지 임시 저장 삭제
  */
 export const clearDraftWorkLog = (): void => {
   localStorage.removeItem(STORAGE_KEYS.DRAFT_WORK_LOG)

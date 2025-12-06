@@ -17,10 +17,6 @@ export const PhotoUploadCard: React.FC<
     return `/mobile/media?${params.toString()}`
   }, [selectedSite])
 
-  const photoCtaHelper = selectedSite
-    ? '선택한 현장 필터가 적용된 상태로 사진 탭이 열립니다.'
-    : null
-
   return (
     <section className={`section ${className}`}>
       <div className="work-form-container">
@@ -30,9 +26,8 @@ export const PhotoUploadCard: React.FC<
           </div>
           <div className="media-cta-banner" role="note">
             <p className="media-cta-text">
-              전용 사진 탭에서 보수 전/후 업로드와 작업일지 연결을 한 번에 처리하세요.
+              사진·도면 관리 페이지에서 현장별 업로드, 정리, 작업일지 연결을 이어서 진행하세요.
             </p>
-            {photoCtaHelper && <p className="media-cta-helper">{photoCtaHelper}</p>}
             <Link
               href={photoMediaHref}
               className="media-cta-button"

@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType } from '@/lib/error-handling'
@@ -101,9 +102,6 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       dateFrom,
       dateTo,
       search,
-      component_name,
-      work_process,
-      work_section,
       created_by,
       page = 1,
       itemsPerPage = 20,
@@ -119,9 +117,6 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
         sites!inner(
           name, 
           address,
-          work_process,
-          work_section,
-          component_name,
           manager_name,
           safety_manager_name,
           organization_id
@@ -147,40 +142,72 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       const sanitized = search.replace(/'/g, "''")
       const pattern = `%${sanitized}%`
 
-      query = query.or(
-        [
-          `member_name.ilike.${pattern}`,
-          `process_type.ilike.${pattern}`,
-          `issues.ilike.${pattern}`,
-          `component_name.ilike.${pattern}`,
-          `work_process.ilike.${pattern}`,
-          `work_section.ilike.${pattern}`,
-          `work_description.ilike.${pattern}`,
-          `special_notes.ilike.${pattern}`,
-          `safety_notes.ilike.${pattern}`,
-        ].join(',')
-      )
+      // Resolve matches across related tables first, then combine into a single OR on the main table
+      const [creatorMatchIds, workerMatchReportIds, siteMatchIds, orgSiteMatchIds] =
+        await Promise.all([
+          (async () => {
+            const { data } = await supabase
+              .from('profiles')
+              .select('id, full_name, email')
+              .or(`full_name.ilike.${pattern},email.ilike.${pattern}`)
+              .limit(50)
+            return (data || []).map(row => String((row as any).id)).filter(Boolean)
+          })(),
+          (async () => {
+            const { data } = await supabase
+              .from('daily_report_workers')
+              .select('daily_report_id')
+              .ilike('worker_name', pattern)
+              .limit(200)
+            return (data || []).map(row => String((row as any).daily_report_id)).filter(id => !!id)
+          })(),
+          (async () => {
+            const { data } = await supabase
+              .from('sites')
+              .select('id')
+              .or(`name.ilike.${pattern},address.ilike.${pattern}`)
+              .limit(200)
+            return (data || []).map(row => String((row as any).id)).filter(Boolean)
+          })(),
+          (async () => {
+            const { data: orgs } = await supabase
+              .from('organizations')
+              .select('id')
+              .ilike('name', pattern)
+              .limit(100)
+            const orgIds = (orgs || []).map(row => String((row as any).id)).filter(Boolean)
+            if (orgIds.length === 0) return []
+            const { data: sitesByOrg } = await supabase
+              .from('sites')
+              .select('id')
+              .in('organization_id', orgIds)
+              .limit(500)
+            return (sitesByOrg || []).map(row => String((row as any).id)).filter(Boolean)
+          })(),
+        ])
 
-      query = query.or(
-        [
-          `name.ilike.${pattern}`,
-          `address.ilike.${pattern}`,
-          `manager_name.ilike.${pattern}`,
-          `safety_manager_name.ilike.${pattern}`,
-        ].join(','),
-        { foreignTable: 'sites' }
-      )
-    }
-    if (component_name) {
-      query = query.ilike('component_name', `%${component_name}%`)
-    }
-    if (work_process) {
-      query = query.ilike('work_process', `%${work_process}%`)
-    }
-    if (work_section) {
-      query = query.ilike('work_section', `%${work_section}%`)
-    }
+      const combinedSiteMatchIds = Array.from(new Set([...siteMatchIds, ...orgSiteMatchIds]))
 
+      const searchFilters = [
+        `member_name.ilike.${pattern}`,
+        `process_type.ilike.${pattern}`,
+        `issues.ilike.${pattern}`,
+      ]
+
+      if (creatorMatchIds.length > 0) {
+        searchFilters.push(`created_by.in.(${creatorMatchIds.join(',')})`)
+      }
+      if (workerMatchReportIds.length > 0) {
+        searchFilters.push(`id.in.(${workerMatchReportIds.join(',')})`)
+      }
+      if (combinedSiteMatchIds.length > 0) {
+        searchFilters.push(`site_id.in.(${combinedSiteMatchIds.join(',')})`)
+      }
+
+      if (searchFilters.length > 0) {
+        query = query.or(searchFilters.join(','))
+      }
+    }
     if (auth.isRestricted) {
       if (!auth.restrictedOrgId) {
         throw new AppError('조직 정보가 필요합니다.', ErrorType.AUTHORIZATION, 403)
@@ -238,6 +265,9 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       case 'work_section':
         query = query.order('work_section', { ascending, nullsFirst: false })
         break
+      case 'organization':
+        query = query.order('sites(organization_id)', { ascending })
+        break
       default:
         query = query.order('work_date', { ascending: false })
     }
@@ -260,6 +290,14 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
     const reportIds = Array.from(new Set(reports.map(r => r.id)))
     const creatorIds = Array.from(new Set(reports.map(r => r.created_by).filter(Boolean)))
     const siteIds = Array.from(new Set(reports.map(r => r.site_id).filter(Boolean)))
+    const organizationIds = Array.from(
+      new Set(
+        reports
+          .map(r => (r as any)?.sites?.organization_id)
+          .filter((org): org is string | number => Boolean(org))
+          .map(org => String(org))
+      )
+    )
 
     // 1) Profiles (creators)
     let profiles: Array<{
@@ -338,17 +376,37 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       }
     }
 
+    let organizationMap = new Map<string, { id: string; name: string | null }>()
+    if (organizationIds.length > 0) {
+      const { data: orgData } = await supabase
+        .from('organizations')
+        .select('id,name')
+        .in('id', organizationIds)
+      if (orgData && Array.isArray(orgData)) {
+        organizationMap = new Map(
+          orgData.map(org => [
+            String((org as any).id),
+            { id: String((org as any).id), name: (org as any).name ?? null },
+          ])
+        )
+      }
+    }
+
     const enrichedReports = reports.map(r => {
       const rid = String(r.id)
       const sid = String(r.site_id)
       const dateStr = String(r.work_date || r.report_date)
       const docsKey = `${sid}|${dateStr}`
+      const orgId = (r as any)?.sites?.organization_id
+        ? String((r as any).sites.organization_id)
+        : null
       return {
         ...r,
         profiles: pMap.get(String(r.created_by)) || null,
         worker_details_count: workerCountMap.get(rid) || 0,
         daily_documents_count: docsCountMap.get(docsKey) || 0,
         total_manhours: manhoursMap.get(rid) || 0,
+        organization: orgId ? organizationMap.get(orgId) || null : null,
       }
     })
 
@@ -440,7 +498,9 @@ export async function createDailyReport(reportData: any) {
 
     await ensureSiteAccess(supabase, auth, reportData.site_id)
 
-    const { worker_ids, created_by, ...reportFields } = reportData
+    // Strip fields that are not actual columns on daily_reports
+    const { worker_ids, created_by, additional_photos, material_usage, ...reportFields } =
+      reportData
 
     // Allow admin to override creator; restricted users cannot override
     const creatorId =
@@ -489,10 +549,12 @@ export async function updateDailyReport(id: string, updates: any) {
       delete updates.created_by
     }
 
+    const { material_usage, additional_photos, ...updateFields } = updates
+
     const { data, error } = await supabase
       .from('daily_reports')
       .update({
-        ...updates,
+        ...updateFields,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -544,6 +606,61 @@ export async function setDailyReportApproval(id: string, nextStatus: 'approved' 
       data,
       message: nextStatus === 'approved' ? '작업일지를 승인했습니다.' : '승인을 취소했습니다.',
     }
+  })
+}
+
+export async function reorderAdditionalPhotos(
+  reportId: string,
+  updates: Array<{ id: string; upload_order: number }>
+) {
+  return withAdminAuth(async (supabase, profile) => {
+    const auth = profile.auth
+
+    if (!reportId) {
+      throw new AppError('작업일지 ID가 필요합니다.', ErrorType.VALIDATION, 400)
+    }
+    if (!Array.isArray(updates) || updates.length === 0) {
+      throw new AppError('재정렬할 사진이 없습니다.', ErrorType.VALIDATION, 400)
+    }
+
+    await fetchReportWithAccess(supabase, auth, reportId)
+
+    const normalized = updates
+      .map(update => ({
+        id: typeof update?.id === 'string' ? update.id : '',
+        upload_order: Number(update?.upload_order) || 0,
+      }))
+      .filter(item => item.id && item.upload_order > 0)
+
+    if (normalized.length === 0) {
+      throw new AppError('유효한 재정렬 정보가 없습니다.', ErrorType.VALIDATION, 400)
+    }
+
+    const ids = normalized.map(update => update.id)
+    const { data: existing, error } = await supabase
+      .from('daily_report_additional_photos')
+      .select('id')
+      .eq('daily_report_id', reportId)
+      .in('id', ids)
+
+    if (error) throw error
+    if ((existing?.length || 0) !== normalized.length) {
+      throw new AppError('일부 사진을 찾을 수 없습니다.', ErrorType.NOT_FOUND, 404)
+    }
+
+    for (const update of normalized) {
+      const { error: updateError } = await supabase
+        .from('daily_report_additional_photos')
+        .update({ upload_order: update.upload_order })
+        .eq('id', update.id)
+
+      if (updateError) throw updateError
+    }
+
+    revalidatePath('/dashboard/admin/daily-reports')
+    revalidatePath(`/dashboard/admin/daily-reports/${reportId}`)
+
+    return { success: true }
   })
 }
 

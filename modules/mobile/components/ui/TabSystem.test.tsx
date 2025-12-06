@@ -5,7 +5,7 @@ import { TabSystem, TabPanel, Tab } from './TabSystem'
 // Mock 데이터
 const mockTabs: Tab[] = [
   { id: 'tab1', label: '전체', count: 5 },
-  { id: 'tab2', label: '임시저장', count: 2 },
+  { id: 'tab2', label: '임시', count: 2 },
   { id: 'tab3', label: '제출/승인', count: 3 },
 ]
 
@@ -15,7 +15,7 @@ const mockOnTabChange = jest.fn()
 const TestTabSystem = ({ activeTab = 'tab1', tabs = mockTabs }) => (
   <TabSystem tabs={tabs} activeTab={activeTab} onTabChange={mockOnTabChange}>
     <TabPanel data-panel="tab1">전체 탭 내용</TabPanel>
-    <TabPanel data-panel="tab2">임시저장 탭 내용</TabPanel>
+    <TabPanel data-panel="tab2">임시 탭 내용</TabPanel>
     <TabPanel data-panel="tab3">제출/승인 탭 내용</TabPanel>
   </TabSystem>
 )
@@ -231,7 +231,7 @@ describe('TabSystem Keyboard Navigation', () => {
     test('should change tab when clicked', () => {
       render(<TestTabSystem activeTab="tab1" />)
 
-      const secondTab = screen.getByRole('tab', { name: /임시저장/ })
+      const secondTab = screen.getByRole('tab', { name: /임시/ })
       fireEvent.click(secondTab)
 
       expect(mockOnTabChange).toHaveBeenCalledWith('tab2')
@@ -241,7 +241,7 @@ describe('TabSystem Keyboard Navigation', () => {
       render(<TestTabSystem />)
 
       expect(screen.getByText('5')).toBeInTheDocument() // 전체 탭 count
-      expect(screen.getByText('2')).toBeInTheDocument() // 임시저장 탭 count
+      expect(screen.getByText('2')).toBeInTheDocument() // 임시 탭 count
       expect(screen.getByText('3')).toBeInTheDocument() // 완료 탭 count
     })
   })
@@ -251,7 +251,7 @@ describe('TabSystem Keyboard Navigation', () => {
     test('should show correct panel content for active tab', () => {
       render(<TestTabSystem activeTab="tab2" />)
 
-      expect(screen.getByText('임시저장 탭 내용')).toBeVisible()
+      expect(screen.getByText('임시 탭 내용')).toBeVisible()
       expect(screen.queryByText('전체 탭 내용')).not.toBeVisible()
       expect(screen.queryByText('제출/승인 탭 내용')).not.toBeVisible()
     })

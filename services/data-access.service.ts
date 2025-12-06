@@ -99,7 +99,12 @@ export class DataAccessService {
   async getWorkers() {
     if (!this.profile) throw new Error('Service not initialized')
 
-    let query = this.supabase.from('profiles').select('*').in('role', ['worker', 'site_manager'])
+    const profileFields =
+      'id, full_name, email, phone, role, status, organization_id, partner_company_id, site_id, last_login_at, login_count'
+    let query = this.supabase
+      .from('profiles')
+      .select(profileFields)
+      .in('role', ['worker', 'site_manager'])
 
     // Customer managers only see their company's workers
     if (this.profile.role === 'customer_manager' && this.profile.partner_company_id) {

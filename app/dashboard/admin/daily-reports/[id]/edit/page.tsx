@@ -7,6 +7,7 @@ import { ToggleAllSectionsButton } from '@/components/daily-reports/ToggleAllSec
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { unifiedReportToLegacyPayload } from '@/lib/daily-reports/unified'
 import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
+import type { Profile } from '@/types'
 
 async function fetchSites(preferredSiteId?: string) {
   const supabase = createClient()
@@ -34,7 +35,7 @@ async function fetchSites(preferredSiteId?: string) {
   return Array.from(uniq.values())
 }
 
-async function fetchWorkers() {
+async function fetchWorkers(currentProfile?: Profile | null) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('profiles')
@@ -47,7 +48,20 @@ async function fetchWorkers() {
     return []
   }
 
-  return data ?? []
+  const workers = Array.isArray(data) ? [...data] : []
+
+  if (currentProfile?.id && currentProfile?.full_name) {
+    const alreadyExists = workers.some(worker => worker?.id === currentProfile.id)
+    if (!alreadyExists) {
+      workers.unshift({
+        id: currentProfile.id,
+        full_name: currentProfile.full_name,
+        role: currentProfile.role,
+      })
+    }
+  }
+
+  return workers
 }
 
 const interpretMaterialFlag = (value: unknown): boolean | null => {
@@ -121,7 +135,7 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
 
   const [sites, workers, materials] = await Promise.all([
     fetchSites(unifiedReport.siteId),
-    fetchWorkers(),
+    fetchWorkers(profile),
     fetchMaterials(),
   ])
 

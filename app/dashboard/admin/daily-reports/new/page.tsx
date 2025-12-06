@@ -35,11 +35,23 @@ export default async function AdminNewDailyReportPage() {
     .order('name')
 
   // Get all workers
-  const { data: workers } = await supabase
+  const { data: workersData } = await supabase
     .from('profiles')
     .select('*')
     .in('role', ['worker', 'site_manager'])
     .order('full_name')
+  const workers = Array.isArray(workersData) ? [...workersData] : []
+
+  if (profile?.id && profile?.full_name) {
+    const alreadyExists = workers.some(worker => worker?.id === profile.id)
+    if (!alreadyExists) {
+      workers.unshift({
+        id: profile.id,
+        full_name: profile.full_name,
+        role: profile.role,
+      } as (typeof workers)[number])
+    }
+  }
 
   const interpretMaterialFlag = (value: unknown): boolean | null => {
     if (value === null || value === undefined) return null

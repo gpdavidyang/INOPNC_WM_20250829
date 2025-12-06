@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     const supabase = createClient()
 
     const { searchParams } = new URL(request.url)
-    
+
     // Get filters from query params
     const filters = {
       site: searchParams.get('site') || '',
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
       page: 1,
       itemsPerPage: 99999,
       sortField: 'work_date' as const,
-      sortDirection: 'desc' as const
+      sortDirection: 'desc' as const,
     }
 
     // Get daily reports data
@@ -91,31 +91,31 @@ export async function GET(request: NextRequest) {
 
     // Prepare main data
     const mainData = reports.map(report => ({
-      '작업일자': format(new Date(report.work_date), 'yyyy-MM-dd (EEEE)', { locale: ko }),
-      '현장명': report.sites?.name || '-',
-      '현장주소': report.sites?.address || '-',
-      '담당자': report.member_name,
-      '공정': report.process_type,
-      '부재명': report.component_name || '-',
-      '작업공정': report.work_process || '-',
-      '작업구간': report.work_section || '-',
-      '작업인원': report.total_workers || 0,
+      작업일자: format(new Date(report.work_date), 'yyyy-MM-dd (EEEE)', { locale: ko }),
+      현장명: report.sites?.name || '-',
+      현장주소: report.sites?.address || '-',
+      담당자: report.member_name,
+      공정: report.process_type,
+      부재명: report.component_name || '-',
+      작업공정: report.work_process || '-',
+      작업구간: report.work_section || '-',
+      작업인원: report.total_workers || 0,
       'NPC-1000 입고': report.npc1000_incoming || 0,
       'NPC-1000 사용': report.npc1000_used || 0,
       'NPC-1000 잔량': report.npc1000_remaining || 0,
-      '상태': getStatusText(report.status),
-      '특이사항': report.issues || '-',
-      '작성자': report.profiles?.full_name || '알 수 없음',
-      '작성자역할': getRoleText(report.profiles?.role),
-      '작성일': format(new Date(report.created_at), 'yyyy-MM-dd HH:mm'),
-      '수정일': format(new Date(report.updated_at), 'yyyy-MM-dd HH:mm'),
-      '첨부문서수': report.daily_documents_count || 0,
-      '상세인원수': report.worker_details_count || 0
+      상태: getStatusText(report.status),
+      특이사항: report.issues || '-',
+      작성자: report.profiles?.full_name || '알 수 없음',
+      작성자역할: getRoleText(report.profiles?.role),
+      작성일: format(new Date(report.created_at), 'yyyy-MM-dd HH:mm'),
+      수정일: format(new Date(report.updated_at), 'yyyy-MM-dd HH:mm'),
+      첨부문서수: report.daily_documents_count || 0,
+      상세인원수: report.worker_details_count || 0,
     }))
 
     // Create main worksheet
     const mainWorksheet = XLSX.utils.json_to_sheet(mainData)
-    
+
     // Set column widths
     const columnWidths = [
       { wch: 18 }, // 작업일자
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
       { wch: 18 }, // 작성일
       { wch: 18 }, // 수정일
       { wch: 12 }, // 첨부문서수
-      { wch: 12 }  // 상세인원수
+      { wch: 12 }, // 상세인원수
     ]
     mainWorksheet['!cols'] = columnWidths
 
@@ -154,22 +154,30 @@ export async function GET(request: NextRequest) {
     const activeSites = new Set(reports.map(r => r.site_id)).size
 
     const summaryData = [
-      { '항목': '총 작업일지 수', '값': totalReports, '단위': '개' },
-      { '항목': '제출된 일지', '값': submittedReports, '단위': '개' },
-      { '항목': '임시저장 일지', '값': draftReports, '단위': '개' },
-      { '항목': '제출률', '값': totalReports > 0 ? Math.round((submittedReports / totalReports) * 100) : 0, '단위': '%' },
-      { '항목': '총 작업인원', '값': totalWorkers, '단위': '명' },
-      { '항목': '평균 작업인원', '값': totalReports > 0 ? Math.round(totalWorkers / totalReports) : 0, '단위': '명' },
-      { '항목': 'NPC-1000 총 입고량', '값': (totalNPC1000Incoming / 1000).toFixed(1), '단위': 't' },
-      { '항목': 'NPC-1000 총 사용량', '값': (totalNPC1000Used / 1000).toFixed(1), '단위': 't' },
-      { '항목': '활성 현장 수', '값': activeSites, '단위': '개' }
+      { 항목: '총 작업일지 수', 값: totalReports, 단위: '개' },
+      { 항목: '제출된 일지', 값: submittedReports, 단위: '개' },
+      { 항목: '임시 일지', 값: draftReports, 단위: '개' },
+      {
+        항목: '제출률',
+        값: totalReports > 0 ? Math.round((submittedReports / totalReports) * 100) : 0,
+        단위: '%',
+      },
+      { 항목: '총 작업인원', 값: totalWorkers, 단위: '명' },
+      {
+        항목: '평균 작업인원',
+        값: totalReports > 0 ? Math.round(totalWorkers / totalReports) : 0,
+        단위: '명',
+      },
+      { 항목: 'NPC-1000 총 입고량', 값: (totalNPC1000Incoming / 1000).toFixed(1), 단위: 't' },
+      { 항목: 'NPC-1000 총 사용량', 값: (totalNPC1000Used / 1000).toFixed(1), 단위: 't' },
+      { 항목: '활성 현장 수', 값: activeSites, 단위: '개' },
     ]
 
     const summaryWorksheet = XLSX.utils.json_to_sheet(summaryData)
     summaryWorksheet['!cols'] = [
       { wch: 20 }, // 항목
       { wch: 15 }, // 값
-      { wch: 10 }  // 단위
+      { wch: 10 }, // 단위
     ]
     XLSX.utils.book_append_sheet(workbook, summaryWorksheet, '요약통계')
 
@@ -183,7 +191,7 @@ export async function GET(request: NextRequest) {
           reportCount: 0,
           totalWorkers: 0,
           totalNPC1000Used: 0,
-          submittedCount: 0
+          submittedCount: 0,
         })
       }
 
@@ -197,11 +205,12 @@ export async function GET(request: NextRequest) {
     })
 
     const siteData = Array.from(siteStats.values()).map(stats => ({
-      '현장명': stats.siteName,
+      현장명: stats.siteName,
       '작업일지 수': stats.reportCount,
       '총 작업인원': stats.totalWorkers,
       'NPC-1000 사용량(t)': (stats.totalNPC1000Used / 1000).toFixed(1),
-      '제출률(%)': stats.reportCount > 0 ? Math.round((stats.submittedCount / stats.reportCount) * 100) : 0
+      '제출률(%)':
+        stats.reportCount > 0 ? Math.round((stats.submittedCount / stats.reportCount) * 100) : 0,
     }))
 
     const siteWorksheet = XLSX.utils.json_to_sheet(siteData)
@@ -210,7 +219,7 @@ export async function GET(request: NextRequest) {
       { wch: 12 }, // 작업일지 수
       { wch: 12 }, // 총 작업인원
       { wch: 15 }, // NPC-1000 사용량
-      { wch: 10 }  // 제출률
+      { wch: 10 }, // 제출률
     ]
     XLSX.utils.book_append_sheet(workbook, siteWorksheet, '현장별요약')
 
@@ -222,19 +231,17 @@ export async function GET(request: NextRequest) {
 
     // Log export activity (simplified version to avoid authentication issues)
     try {
-      await (supabase
-        .from('activity_logs')
-        .insert({
-          user_id: authResult.userId,
-          action: 'export_data',
-          entity_type: 'daily_reports',
-          entity_id: 'excel_export',
-          details: {
-            format: 'excel',
-            record_count: totalReports,
-            filters: filters
-          }
-        } as unknown) as unknown)
+      await (supabase.from('activity_logs').insert({
+        user_id: authResult.userId,
+        action: 'export_data',
+        entity_type: 'daily_reports',
+        entity_id: 'excel_export',
+        details: {
+          format: 'excel',
+          record_count: totalReports,
+          filters: filters,
+        },
+      } as unknown) as unknown)
     } catch (logError) {
       // Don't fail the export if logging fails
       console.warn('Failed to log export activity:', logError)
@@ -246,35 +253,42 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`,
         'Content-Length': excelBuffer.length.toString(),
-      }
+      },
     })
-
   } catch (error) {
     console.error('Excel export error:', error)
-    return NextResponse.json(
-      { error: '엑셀 파일 생성 중 오류가 발생했습니다.' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: '엑셀 파일 생성 중 오류가 발생했습니다.' }, { status: 500 })
   }
 }
 
 function getStatusText(status: string): string {
   switch (status) {
-    case 'draft': return '임시저장'
-    case 'submitted': return '제출됨'
-    case 'approved': return '승인됨'
-    case 'rejected': return '반려됨'
-    default: return '-'
+    case 'draft':
+      return '임시'
+    case 'submitted':
+      return '제출됨'
+    case 'approved':
+      return '승인됨'
+    case 'rejected':
+      return '반려됨'
+    default:
+      return '-'
   }
 }
 
 function getRoleText(role?: string): string {
   switch (role) {
-    case 'admin': return '관리자'
-    case 'system_admin': return '시스템관리자'
-    case 'site_manager': return '현장담당'
-    case 'worker': return '작업자'
-    case 'partner': return '협력사'
-    default: return role || '-'
+    case 'admin':
+      return '관리자'
+    case 'system_admin':
+      return '시스템관리자'
+    case 'site_manager':
+      return '현장담당'
+    case 'worker':
+      return '작업자'
+    case 'partner':
+      return '협력사'
+    default:
+      return role || '-'
   }
 }

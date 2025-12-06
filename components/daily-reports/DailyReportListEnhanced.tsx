@@ -1,6 +1,6 @@
 'use client'
 
-import { 
+import {
   CustomSelect,
   CustomSelectContent,
   CustomSelectItem,
@@ -41,10 +41,10 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
     const today = new Date()
     const oneMonthAgo = new Date(today)
     oneMonthAgo.setMonth(today.getMonth() - 1)
-    
+
     return {
       from: oneMonthAgo.toISOString().split('T')[0], // 1개월 전부터
-      to: today.toISOString().split('T')[0] // 오늘까지
+      to: today.toISOString().split('T')[0], // 오늘까지
     }
   })
   const [stats, setStats] = useState<ReportStats>({
@@ -55,15 +55,15 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
     rejectedReports: 0,
     totalWorkers: 0,
     totalNPC1000Used: 0,
-    averageWorkersPerDay: 0
+    averageWorkersPerDay: 0,
   })
   const [searchResult, setSearchResult] = useState<SearchResult<DailyReport> | undefined>()
   const [isSearchMode, setIsSearchMode] = useState(false)
   const [showFilters, setShowFilters] = useState(true)
-  
+
   // View mode state
   const [viewMode, setViewMode] = useViewMode('daily-reports', 'card')
-  
+
   // Detail dialog state
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null)
   const [showDetailDialog, setShowDetailDialog] = useState(false)
@@ -71,36 +71,36 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
   // Get active filters for display
   const getActiveFilters = () => {
     const filters: { label: string; value: string; key: string }[] = []
-    
+
     if (selectedSite !== 'all') {
       const site = sites?.find(s => s.id === selectedSite)
-      filters.push({ 
-        label: `현장: ${site?.name || '미지정'}`, 
-        value: selectedSite, 
-        key: 'site' 
+      filters.push({
+        label: `현장: ${site?.name || '미지정'}`,
+        value: selectedSite,
+        key: 'site',
       })
     }
-    
+
     if (selectedStatus !== 'all') {
       const statusNames = {
-        draft: '임시저장',
-        submitted: '제출됨'
+        draft: '임시',
+        submitted: '제출됨',
       }
-      filters.push({ 
-        label: `상태: ${statusNames[selectedStatus as keyof typeof statusNames]}`, 
-        value: selectedStatus, 
-        key: 'status' 
+      filters.push({
+        label: `상태: ${statusNames[selectedStatus as keyof typeof statusNames]}`,
+        value: selectedStatus,
+        key: 'status',
       })
     }
-    
+
     if (searchTerm) {
-      filters.push({ 
-        label: `검색: ${searchTerm}`, 
-        value: searchTerm, 
-        key: 'search' 
+      filters.push({
+        label: `검색: ${searchTerm}`,
+        value: searchTerm,
+        key: 'search',
       })
     }
-    
+
     if (dateRange.from || dateRange.to) {
       let dateLabel = '기간: '
       if (dateRange.from && dateRange.to) {
@@ -110,13 +110,13 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       } else if (dateRange.to) {
         dateLabel += `${dateRange.to} 이전`
       }
-      filters.push({ 
-        label: dateLabel, 
-        value: `${dateRange.from}-${dateRange.to}`, 
-        key: 'date' 
+      filters.push({
+        label: dateLabel,
+        value: `${dateRange.from}-${dateRange.to}`,
+        key: 'date',
       })
     }
-    
+
     return filters
   }
 
@@ -147,19 +147,19 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
     setLoading(true)
     try {
       const filters: unknown = {}
-      
+
       if (selectedSite !== 'all') {
         filters.site_id = selectedSite
       }
-      
+
       if (selectedStatus !== 'all') {
         filters.status = selectedStatus
       }
-      
+
       if (dateRange.from) {
         filters.start_date = dateRange.from
       }
-      
+
       if (dateRange.to) {
         filters.end_date = dateRange.to
       }
@@ -167,7 +167,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       const result = await getDailyReports(filters)
       // console.log('getDailyReports filters:', filters)
       // console.log('getDailyReports result:', result)
-      
+
       if (result.success && result.data) {
         const reportData = result.data as DailyReport[]
         // console.log('Setting reports:', reportData.length, 'items')
@@ -176,29 +176,34 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         setReports(reportData)
 
         // Calculate stats
-        const statsData = reportData.reduce((acc: unknown, report: unknown) => {
-          acc.totalReports++
-          acc[`${report.status}Reports` as keyof ReportStats]++
-          acc.totalWorkers += report.total_workers || 0
-          acc.totalNPC1000Used += report.npc1000_used || 0
-          return acc
-        }, {
-          totalReports: 0,
-          draftReports: 0,
-          submittedReports: 0,
-          approvedReports: 0,
-          rejectedReports: 0,
-          totalWorkers: 0,
-          totalNPC1000Used: 0,
-          averageWorkersPerDay: 0
-        } as ReportStats)
+        const statsData = reportData.reduce(
+          (acc: unknown, report: unknown) => {
+            acc.totalReports++
+            acc[`${report.status}Reports` as keyof ReportStats]++
+            acc.totalWorkers += report.total_workers || 0
+            acc.totalNPC1000Used += report.npc1000_used || 0
+            return acc
+          },
+          {
+            totalReports: 0,
+            draftReports: 0,
+            submittedReports: 0,
+            approvedReports: 0,
+            rejectedReports: 0,
+            totalWorkers: 0,
+            totalNPC1000Used: 0,
+            averageWorkersPerDay: 0,
+          } as ReportStats
+        )
 
-        statsData.averageWorkersPerDay = reportData.length > 0 
-          ? Math.round(statsData.totalWorkers / statsData.totalReports) 
-          : 0
+        statsData.averageWorkersPerDay =
+          reportData.length > 0 ? Math.round(statsData.totalWorkers / statsData.totalReports) : 0
         setStats(statsData)
       } else {
-        showErrorNotification(result.error || '일일보고서를 불러오는데 실패했습니다.', 'loadReports')
+        showErrorNotification(
+          result.error || '일일보고서를 불러오는데 실패했습니다.',
+          'loadReports'
+        )
         setReports([])
         setStats({
           totalReports: 0,
@@ -208,7 +213,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
           rejectedReports: 0,
           totalWorkers: 0,
           totalNPC1000Used: 0,
-          averageWorkersPerDay: 0
+          averageWorkersPerDay: 0,
         })
       }
     } catch (error) {
@@ -222,7 +227,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         rejectedReports: 0,
         totalWorkers: 0,
         totalNPC1000Used: 0,
-        averageWorkersPerDay: 0
+        averageWorkersPerDay: 0,
       })
     } finally {
       setLoading(false)
@@ -238,32 +243,36 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
     setIsSearchMode(true)
     try {
       const result = await searchDailyReports(options)
-      
+
       if (result.success && result.data) {
         setSearchResult(result.data)
         setReports(result.data.items)
-        
-        // Calculate stats for search results
-        const statsData = result.data.items.reduce((acc: unknown, report: unknown) => {
-          acc.totalReports++
-          acc[`${report.status}Reports` as keyof ReportStats]++
-          acc.totalWorkers += report.total_workers || 0
-          acc.totalNPC1000Used += report.npc1000_used || 0
-          return acc
-        }, {
-          totalReports: 0,
-          draftReports: 0,
-          submittedReports: 0,
-          approvedReports: 0,
-          rejectedReports: 0,
-          totalWorkers: 0,
-          totalNPC1000Used: 0,
-          averageWorkersPerDay: 0
-        } as ReportStats)
 
-        statsData.averageWorkersPerDay = result.data.items.length > 0 
-          ? Math.round(statsData.totalWorkers / statsData.totalReports) 
-          : 0
+        // Calculate stats for search results
+        const statsData = result.data.items.reduce(
+          (acc: unknown, report: unknown) => {
+            acc.totalReports++
+            acc[`${report.status}Reports` as keyof ReportStats]++
+            acc.totalWorkers += report.total_workers || 0
+            acc.totalNPC1000Used += report.npc1000_used || 0
+            return acc
+          },
+          {
+            totalReports: 0,
+            draftReports: 0,
+            submittedReports: 0,
+            approvedReports: 0,
+            rejectedReports: 0,
+            totalWorkers: 0,
+            totalNPC1000Used: 0,
+            averageWorkersPerDay: 0,
+          } as ReportStats
+        )
+
+        statsData.averageWorkersPerDay =
+          result.data.items.length > 0
+            ? Math.round(statsData.totalWorkers / statsData.totalReports)
+            : 0
         setStats(statsData)
       } else {
         showErrorNotification(result.error || '검색 중 오류가 발생했습니다.', 'handleSearch')
@@ -284,35 +293,42 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
     setIsSearchMode(true)
     try {
       const result = await getQuickFilterResults(filterId, dailyReportSearchConfig.quickFilters)
-      
+
       if (result.success && result.data) {
         setSearchResult(result.data)
         setReports(result.data.items)
-        
-        // Calculate stats for filtered results
-        const statsData = result.data.items.reduce((acc: unknown, report: unknown) => {
-          acc.totalReports++
-          acc[`${report.status}Reports` as keyof ReportStats]++
-          acc.totalWorkers += report.total_workers || 0
-          acc.totalNPC1000Used += report.npc1000_used || 0
-          return acc
-        }, {
-          totalReports: 0,
-          draftReports: 0,
-          submittedReports: 0,
-          approvedReports: 0,
-          rejectedReports: 0,
-          totalWorkers: 0,
-          totalNPC1000Used: 0,
-          averageWorkersPerDay: 0
-        } as ReportStats)
 
-        statsData.averageWorkersPerDay = result.data.items.length > 0 
-          ? Math.round(statsData.totalWorkers / statsData.totalReports) 
-          : 0
+        // Calculate stats for filtered results
+        const statsData = result.data.items.reduce(
+          (acc: unknown, report: unknown) => {
+            acc.totalReports++
+            acc[`${report.status}Reports` as keyof ReportStats]++
+            acc.totalWorkers += report.total_workers || 0
+            acc.totalNPC1000Used += report.npc1000_used || 0
+            return acc
+          },
+          {
+            totalReports: 0,
+            draftReports: 0,
+            submittedReports: 0,
+            approvedReports: 0,
+            rejectedReports: 0,
+            totalWorkers: 0,
+            totalNPC1000Used: 0,
+            averageWorkersPerDay: 0,
+          } as ReportStats
+        )
+
+        statsData.averageWorkersPerDay =
+          result.data.items.length > 0
+            ? Math.round(statsData.totalWorkers / statsData.totalReports)
+            : 0
         setStats(statsData)
       } else {
-        showErrorNotification(result.error || '빠른 필터 적용 중 오류가 발생했습니다.', 'handleQuickFilter')
+        showErrorNotification(
+          result.error || '빠른 필터 적용 중 오류가 발생했습니다.',
+          'handleQuickFilter'
+        )
       }
     } catch (error) {
       showErrorNotification(error, 'handleQuickFilter')
@@ -322,24 +338,27 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
   }
 
   // In search mode, use the reports as-is since filtering is done server-side
-  // In normal mode, apply client-side filtering for the old search functionality  
-  const filteredReports = isSearchMode ? reports : reports.filter(report => {
-    const matchesSearch = 
-      report.member_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.process_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.issues?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    const matchesSite = selectedSite === 'all' || report.site_id === selectedSite
-    const matchesStatus = selectedStatus === 'all' || report.status === selectedStatus
-    
-    return matchesSearch && matchesSite && matchesStatus
-  })
+  // In normal mode, apply client-side filtering for the old search functionality
+  const filteredReports = isSearchMode
+    ? reports
+    : reports.filter(report => {
+        const matchesSearch =
+          report.member_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          report.process_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          report.issues?.toLowerCase().includes(searchTerm.toLowerCase())
+
+        const matchesSite = selectedSite === 'all' || report.site_id === selectedSite
+        const matchesStatus = selectedStatus === 'all' || report.status === selectedStatus
+
+        return matchesSearch && matchesSite && matchesStatus
+      })
 
   // Sorting state
-  const { data: sortedReports, sortConfig, setSortConfig } = useSortableData(
-    filteredReports,
-    { key: 'report_date', direction: 'desc' }
-  )
+  const {
+    data: sortedReports,
+    sortConfig,
+    setSortConfig,
+  } = useSortableData(filteredReports, { key: 'report_date', direction: 'desc' })
 
   // Table columns configuration
   const tableColumns = [
@@ -352,7 +371,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
           {format(new Date(value), 'MM/dd', { locale: ko })}
         </div>
-      )
+      ),
     },
     {
       key: 'site_id',
@@ -360,13 +379,10 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       sortable: true,
       render: (value: string, report: DailyReport) => {
         // report.site가 join으로 이미 포함되어 있음
-        const siteName = (report as unknown).site?.name || sites?.find(s => s.id === value)?.name || '미지정'
-        return (
-          <div className="text-sm text-gray-900 dark:text-gray-100">
-            {siteName}
-          </div>
-        )
-      }
+        const siteName =
+          (report as unknown).site?.name || sites?.find(s => s.id === value)?.name || '미지정'
+        return <div className="text-sm text-gray-900 dark:text-gray-100">{siteName}</div>
+      },
     },
     {
       key: 'status',
@@ -376,18 +392,26 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       align: 'center' as const,
       render: (value: string) => {
         const statusConfig = {
-          draft: { label: '임시저장', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300' },
-          submitted: { label: '제출됨', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' },
-          approved: { label: '승인됨', color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' },
-          rejected: { label: '반려됨', color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }
+          draft: {
+            label: '임시',
+            color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
+          },
+          submitted: {
+            label: '제출됨',
+            color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+          },
+          approved: {
+            label: '승인됨',
+            color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+          },
+          rejected: {
+            label: '반려됨',
+            color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+          },
         }
         const config = statusConfig[value as keyof typeof statusConfig] || statusConfig.draft
-        return (
-          <Badge className={`text-xs px-2 py-1 ${config.color}`}>
-            {config.label}
-          </Badge>
-        )
-      }
+        return <Badge className={`text-xs px-2 py-1 ${config.color}`}>{config.label}</Badge>
+      },
     },
     {
       key: 'total_workers',
@@ -396,10 +420,8 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       width: '90px',
       align: 'center' as const,
       render: (value: number) => (
-        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-          {value || 0}명
-        </div>
-      )
+        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{value || 0}명</div>
+      ),
     },
     {
       key: 'npc1000_used',
@@ -411,7 +433,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         <div className="text-sm text-gray-900 dark:text-gray-100">
           {value ? `${Math.round(value)}kg` : '-'}
         </div>
-      )
+      ),
     },
     {
       key: 'issues',
@@ -420,7 +442,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         <div className="text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
           {value || '-'}
         </div>
-      )
+      ),
     },
     {
       key: 'actions',
@@ -432,11 +454,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         return (
           <div className="flex items-center justify-center gap-2">
             <Link href={`/dashboard/daily-reports/${report.id}`}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs"
-              >
+              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
                 <FileText className="w-3 h-3 mr-1" />
                 보기
               </Button>
@@ -454,16 +472,14 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
             )}
           </div>
         )
-      }
-    }
+      },
+    },
   ]
 
   const canCreateReport = ['worker', 'site_manager', 'admin'].includes(currentUser.role)
 
   return (
     <div className="space-y-6">
-
-
       {/* Advanced Search Interface */}
       <SearchInterface
         fields={dailyReportSearchConfig.fields}
@@ -493,7 +509,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                   </Badge>
                 )}
               </button>
-              
+
               {/* Active Filters Display when collapsed */}
               {!showFilters && getActiveFilters().length > 0 && (
                 <div className="flex flex-wrap gap-1">
@@ -513,7 +529,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                   ))}
                 </div>
               )}
-              
+
               {!showFilters && (
                 <div className="flex gap-2 items-center">
                   <ViewToggle
@@ -526,19 +542,21 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
               )}
             </div>
           </div>
-          
+
           {/* Filter Controls */}
           {showFilters && (
             <div className="p-3 space-y-2">
               {/* 현장선택 - 첫번째 */}
               <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
-                <CustomSelectTrigger className={cn(
-                  "w-full",
-                  touchMode === 'glove' && "min-h-[60px] text-base",
-                  touchMode === 'precision' && "min-h-[44px] text-sm",
-                  touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm",
-                  getFullTypographyClass('body', 'sm', isLargeFont)
-                )}>
+                <CustomSelectTrigger
+                  className={cn(
+                    'w-full',
+                    touchMode === 'glove' && 'min-h-[60px] text-base',
+                    touchMode === 'precision' && 'min-h-[44px] text-sm',
+                    touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm',
+                    getFullTypographyClass('body', 'sm', isLargeFont)
+                  )}
+                >
                   <CustomSelectValue placeholder="전체 현장" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
@@ -550,25 +568,29 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                       </CustomSelectItem>
                     ))
                   ) : (
-                    <CustomSelectItem value="loading" disabled>현장 데이터 로딩 중...</CustomSelectItem>
+                    <CustomSelectItem value="loading" disabled>
+                      현장 데이터 로딩 중...
+                    </CustomSelectItem>
                   )}
                 </CustomSelectContent>
               </CustomSelect>
-              
+
               {/* 상태선택 - 두번째 */}
               <CustomSelect value={selectedStatus} onValueChange={setSelectedStatus}>
-                <CustomSelectTrigger className={cn(
-                  "w-full",
-                  touchMode === 'glove' && "min-h-[60px] text-base",
-                  touchMode === 'precision' && "min-h-[44px] text-sm",
-                  touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm",
-                  getFullTypographyClass('body', 'sm', isLargeFont)
-                )}>
+                <CustomSelectTrigger
+                  className={cn(
+                    'w-full',
+                    touchMode === 'glove' && 'min-h-[60px] text-base',
+                    touchMode === 'precision' && 'min-h-[44px] text-sm',
+                    touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm',
+                    getFullTypographyClass('body', 'sm', isLargeFont)
+                  )}
+                >
                   <CustomSelectValue placeholder="전체 상태" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   <CustomSelectItem value="all">전체 상태</CustomSelectItem>
-                  <CustomSelectItem value="draft">임시저장</CustomSelectItem>
+                  <CustomSelectItem value="draft">임시</CustomSelectItem>
                   <CustomSelectItem value="submitted">제출됨</CustomSelectItem>
                 </CustomSelectContent>
               </CustomSelect>
@@ -584,12 +606,12 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                     <Input
                       type="date"
                       value={dateRange.from}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, from: e.target.value }))}
+                      onChange={e => setDateRange(prev => ({ ...prev, from: e.target.value }))}
                       className={cn(
-                        "text-sm bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg",
-                        touchMode === 'glove' && "min-h-[60px] text-base",
-                        touchMode === 'precision' && "min-h-[44px] text-sm",
-                        touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
+                        'text-sm bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg',
+                        touchMode === 'glove' && 'min-h-[60px] text-base',
+                        touchMode === 'precision' && 'min-h-[44px] text-sm',
+                        touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
                       )}
                       placeholder="시작일"
                     />
@@ -598,18 +620,18 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                     <Input
                       type="date"
                       value={dateRange.to}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, to: e.target.value }))}
+                      onChange={e => setDateRange(prev => ({ ...prev, to: e.target.value }))}
                       className={cn(
-                        "text-sm bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg",
-                        touchMode === 'glove' && "min-h-[60px] text-base",
-                        touchMode === 'precision' && "min-h-[44px] text-sm",
-                        touchMode !== 'precision' && touchMode !== 'glove' && "min-h-[40px] text-sm"
+                        'text-sm bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-lg',
+                        touchMode === 'glove' && 'min-h-[60px] text-base',
+                        touchMode === 'precision' && 'min-h-[44px] text-sm',
+                        touchMode !== 'precision' && touchMode !== 'glove' && 'min-h-[40px] text-sm'
                       )}
                       placeholder="종료일"
                     />
                   </div>
                 </div>
-                
+
                 {/* Quick Date Presets */}
                 <div className="flex flex-wrap gap-1">
                   <button
@@ -619,7 +641,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                       oneWeekAgo.setDate(today.getDate() - 7)
                       setDateRange({
                         from: oneWeekAgo.toISOString().split('T')[0],
-                        to: today.toISOString().split('T')[0]
+                        to: today.toISOString().split('T')[0],
                       })
                     }}
                     className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
@@ -633,7 +655,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                       oneMonthAgo.setMonth(today.getMonth() - 1)
                       setDateRange({
                         from: oneMonthAgo.toISOString().split('T')[0],
-                        to: today.toISOString().split('T')[0]
+                        to: today.toISOString().split('T')[0],
                       })
                     }}
                     className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
@@ -646,7 +668,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
                       setDateRange({
                         from: startOfMonth.toISOString().split('T')[0],
-                        to: today.toISOString().split('T')[0]
+                        to: today.toISOString().split('T')[0],
                       })
                     }}
                     className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
@@ -669,23 +691,20 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                   type="text"
                   placeholder="부재명, 공정, 특이사항으로 검색..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   className={`pl-9 ${
-                    touchMode === 'glove' ? 'h-14' : 
-                    touchMode === 'precision' ? 'h-9' : 
-                    'h-10'
+                    touchMode === 'glove' ? 'h-14' : touchMode === 'precision' ? 'h-9' : 'h-10'
                   } ${getFullTypographyClass('body', 'sm', isLargeFont)} bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 rounded-xl focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-blue-500 dark:text-white`}
                 />
               </div>
 
-
               {/* Action Buttons */}
               <div className="flex gap-2 justify-between">
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="compact" 
-                    onClick={loadReports} 
+                  <Button
+                    variant="outline"
+                    size="compact"
+                    onClick={loadReports}
                     className="h-8 px-3 rounded-lg dark:border-gray-600 dark:text-gray-300"
                   >
                     <RefreshCw className="w-3 h-3 mr-1" />
@@ -693,13 +712,12 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                   </Button>
                   {canCreateReport && (
                     <Link href="/dashboard/daily-reports/new">
-                      <Button 
-                        variant="primary" 
-                        size="compact" 
+                      <Button
+                        variant="primary"
+                        size="compact"
                         className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
                       >
-                        <Plus className="w-3 h-3 mr-1" />
-                        새 작업일지
+                        <Plus className="w-3 h-3 mr-1" />새 작업일지
                       </Button>
                     </Link>
                   )}
@@ -711,10 +729,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                     size="sm"
                     availableModes={['card', 'list']}
                   />
-                  <ExportButton 
-                    sites={sites}
-                    className="h-8 px-3"
-                  />
+                  <ExportButton sites={sites} className="h-8 px-3" />
                 </div>
               </div>
             </div>
@@ -727,9 +742,9 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
           <div className="flex gap-2 justify-between items-center">
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="compact" 
+              <Button
+                variant="outline"
+                size="compact"
                 onClick={() => {
                   setIsSearchMode(false)
                   setSearchResult(undefined)
@@ -742,13 +757,12 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
               </Button>
               {canCreateReport && (
                 <Link href="/dashboard/daily-reports/new">
-                  <Button 
-                    variant="primary" 
-                    size="compact" 
+                  <Button
+                    variant="primary"
+                    size="compact"
                     className="h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    <Plus className="w-3 h-3 mr-1" />
-                    새 작업일지
+                    <Plus className="w-3 h-3 mr-1" />새 작업일지
                   </Button>
                 </Link>
               )}
@@ -760,10 +774,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                 size="sm"
                 availableModes={['card', 'list']}
               />
-              <ExportButton 
-                sites={sites}
-                className="h-8 px-3"
-              />
+              <ExportButton sites={sites} className="h-8 px-3" />
             </div>
           </div>
         </div>
@@ -773,18 +784,36 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       {loading ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className={`mt-3 text-gray-600 dark:text-gray-400 ${getFullTypographyClass('body', 'sm', isLargeFont)}`}>작업일지를 불러오는 중...</p>
+          <p
+            className={`mt-3 text-gray-600 dark:text-gray-400 ${getFullTypographyClass('body', 'sm', isLargeFont)}`}
+          >
+            작업일지를 불러오는 중...
+          </p>
         </div>
       ) : filteredReports.length === 0 ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
           <FileText className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-          <p className={`text-gray-600 dark:text-gray-400 ${getFullTypographyClass('body', 'sm', isLargeFont)} mb-1`}>작업일지가 없습니다.</p>
-          <p className={`text-gray-500 dark:text-gray-500 ${getFullTypographyClass('caption', 'xs', isLargeFont)} mb-3`}>새로운 작업일지를 작성해보세요.</p>
+          <p
+            className={`text-gray-600 dark:text-gray-400 ${getFullTypographyClass('body', 'sm', isLargeFont)} mb-1`}
+          >
+            작업일지가 없습니다.
+          </p>
+          <p
+            className={`text-gray-500 dark:text-gray-500 ${getFullTypographyClass('caption', 'xs', isLargeFont)} mb-3`}
+          >
+            새로운 작업일지를 작성해보세요.
+          </p>
           {canCreateReport && (
             <Link href="/dashboard/daily-reports/new">
-              <Button 
-                variant="primary" 
-                size={touchMode === 'glove' ? 'field' : touchMode === 'precision' ? 'compact' : 'standard'}
+              <Button
+                variant="primary"
+                size={
+                  touchMode === 'glove'
+                    ? 'field'
+                    : touchMode === 'precision'
+                      ? 'compact'
+                      : 'standard'
+                }
                 touchMode={touchMode}
                 className="px-4 rounded-xl"
               >
@@ -800,7 +829,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
               // report.site가 join으로 이미 포함되어 있음
               const site = report.site || sites?.find(s => s.id === report.site_id)
               const canEdit = currentUser.id === report.created_by && report.status === 'draft'
-              
+
               return (
                 <CompactReportCard
                   key={report.id}
@@ -832,7 +861,11 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       {/* Detail Dialog */}
       <DailyReportDetailDialog
         report={selectedReport}
-        site={selectedReport ? (selectedReport as unknown).site || sites?.find(s => s.id === selectedReport.site_id) : undefined}
+        site={
+          selectedReport
+            ? (selectedReport as unknown).site || sites?.find(s => s.id === selectedReport.site_id)
+            : undefined
+        }
         currentUser={currentUser}
         open={showDetailDialog}
         onOpenChange={setShowDetailDialog}

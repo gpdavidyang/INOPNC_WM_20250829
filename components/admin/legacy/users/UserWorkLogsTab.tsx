@@ -1,6 +1,5 @@
 'use client'
 
-
 interface UserWorkLogsTabProps {
   userId: string
   userName: string
@@ -36,10 +35,11 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
   const fetchDailyReports = async () => {
     try {
       setLoading(true)
-      
+
       const { data: reportsData, error: reportsError } = await supabase
         .from('daily_reports')
-        .select(`
+        .select(
+          `
           id,
           work_date,
           site_id,
@@ -54,7 +54,8 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
           sites (
             name
           )
-        `)
+        `
+        )
         .eq('created_by', userId)
         .order('work_date', { ascending: false })
         .limit(50)
@@ -64,20 +65,21 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
         return
       }
 
-      const formattedReports = reportsData?.map(report => ({
-        id: report.id,
-        work_date: report.work_date,
-        site_id: report.site_id,
-        site_name: report.sites?.name || '',
-        process_type: report.process_type,
-        component_name: report.component_name,
-        total_workers: report.total_workers,
-        npc1000_used: report.npc1000_used,
-        issues: report.issues,
-        status: report.status,
-        created_at: report.created_at,
-        updated_at: report.updated_at
-      })) || []
+      const formattedReports =
+        reportsData?.map(report => ({
+          id: report.id,
+          work_date: report.work_date,
+          site_id: report.site_id,
+          site_name: report.sites?.name || '',
+          process_type: report.process_type,
+          component_name: report.component_name,
+          total_workers: report.total_workers,
+          npc1000_used: report.npc1000_used,
+          issues: report.issues,
+          status: report.status,
+          created_at: report.created_at,
+          updated_at: report.updated_at,
+        })) || []
 
       setReports(formattedReports)
     } catch (error) {
@@ -87,30 +89,38 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
     }
   }
 
-
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      draft: { text: '임시저장', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' },
-      submitted: { text: '제출완료', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' }
+      draft: {
+        text: '임시',
+        color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+      },
+      submitted: {
+        text: '제출완료',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
-    
+
     return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+      >
         {config.text}
       </span>
     )
   }
 
   const filteredReports = reports.filter(report => {
-    const matchesSearch = 
+    const matchesSearch =
       report.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.process_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (report.component_name && report.component_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    
+      (report.component_name &&
+        report.component_name.toLowerCase().includes(searchTerm.toLowerCase()))
+
     const matchesStatus = statusFilter === 'all' || report.status === statusFilter
-    
+
     return matchesSearch && matchesStatus
   })
 
@@ -160,7 +170,7 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
               <FileText className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">임시저장</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">임시</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {reports.filter(r => r.status === 'draft').length}
               </p>
@@ -192,11 +202,11 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
               type="text"
               placeholder="현장명, 공정 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full sm:w-80 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -217,12 +227,12 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
                 </label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as unknown)}
+                  onChange={e => setStatusFilter(e.target.value as unknown)}
                   className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                 >
                   <option value="all">전체</option>
                   <option value="submitted">제출완료</option>
-                  <option value="draft">임시저장</option>
+                  <option value="draft">임시</option>
                 </select>
               </div>
             </div>
@@ -280,7 +290,7 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredReports.map((report) => (
+                {filteredReports.map(report => (
                   <tr key={report.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                     <td className="py-4 px-6">
                       <div className="flex items-center">
@@ -326,9 +336,7 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-6">
-                      {getStatusBadge(report.status)}
-                    </td>
+                    <td className="py-4 px-6">{getStatusBadge(report.status)}</td>
                     <td className="py-4 px-6">
                       <span className="text-sm text-gray-500 dark:text-gray-400">
                         {format(new Date(report.created_at), 'MM.dd HH:mm', { locale: ko })}

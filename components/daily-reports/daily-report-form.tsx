@@ -40,6 +40,12 @@ import type {
   UnifiedMaterialEntry,
 } from '@/types/daily-reports'
 import { useWorkOptions } from '@/hooks/use-work-options'
+import { useLaborHourOptions } from '@/hooks/use-labor-hour-options'
+import {
+  FALLBACK_LABOR_HOUR_DEFAULT,
+  FALLBACK_LABOR_HOUR_OPTIONS,
+  normalizeLaborHourOptions,
+} from '@/lib/labor/labor-hour-options'
 import AdditionalPhotoUploadSection from '@/components/daily-reports/additional-photo-upload-section'
 // Use REST endpoints to avoid importing server actions in client
 
@@ -101,16 +107,24 @@ interface MaterialUsageFormEntry {
   notes?: string
 }
 
-const LABOR_HOUR_OPTIONS = [0.5, 1, 1.5, 2, 2.5, 3] as const
-
-const isAllowedLaborHour = (value: number) => LABOR_HOUR_OPTIONS.some(option => option === value)
-
-const coerceLaborHours = (value: unknown): number => {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) && isAllowedLaborHour(numeric) ? numeric : LABOR_HOUR_OPTIONS[0]
+type MaterialInventoryEntry = {
+  materialId: string
+  quantity: number
+  unit?: string | null
+  minimum?: number | null
+  status?: 'normal' | 'low' | 'out'
+  name?: string
 }
 
-const formatLaborHourLabel = (value: number) => value.toFixed(1)
+interface MaterialOptionItem {
+  id: string
+  name: string
+  code: string | null
+  unit: string | null
+}
+
+const formatLaborHourLabel = (value: number) =>
+  Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)
 
 const createReportKey = (reportData?: DailyReportFormProps['reportData'] | null) => {
   if (!reportData) return null
@@ -203,13 +217,15 @@ const buildWorkEntriesFromReport = (
 const buildWorkerEntriesFromReport = (
   mode: DailyReportFormProps['mode'],
   reportData: DailyReportFormProps['reportData'],
-  canManageWorkers: boolean
+  canManageWorkers: boolean,
+  coerceLaborHour: (value: unknown) => number,
+  defaultLaborHour: number
 ): WorkerEntry[] => {
   if (mode === 'edit' && reportData?.worker_entries?.length) {
     return reportData.worker_entries.map((entry: any, index: number) => ({
       id: entry?.id || `worker-${index}-${Math.random().toString(36).slice(2, 8)}`,
       worker_id: entry?.worker_id || '',
-      labor_hours: coerceLaborHours(entry?.labor_hours),
+      labor_hours: coerceLaborHour(entry?.labor_hours),
       worker_name: entry?.worker_name || '',
       is_direct_input: entry?.is_direct_input || false,
     }))
@@ -219,7 +235,7 @@ const buildWorkerEntriesFromReport = (
     {
       id: `worker-${Math.random().toString(36).slice(2, 8)}`,
       worker_id: '',
-      labor_hours: LABOR_HOUR_OPTIONS[0],
+      labor_hours: defaultLaborHour,
       worker_name: '',
       is_direct_input: false,
     },
@@ -244,7 +260,10 @@ const buildMaterialUsageEntriesFromReport = (
     materialId: entry.materialId || null,
     materialCode: entry.materialCode || null,
     materialName: entry.materialName || entry.materialCode || `자재-${index + 1}`,
-    unit: entry.unit || null,
+    unit:
+      sanitizeUnitLabel(
+        entry.unit || (entry as any)?.unit_label || (entry as any)?.unitName || null
+      ) ?? DEFAULT_MATERIAL_UNIT,
     quantity: entry.quantity !== undefined && entry.quantity !== null ? String(entry.quantity) : '',
     notes: entry.notes || '',
   }))
@@ -284,6 +303,25 @@ const interpretMaterialActiveFlag = (value: unknown): boolean | null => {
   if (['false', '0', 'n', 'no', 'inactive', 'disabled'].includes(normalized)) return false
   return null
 }
+
+const sanitizeUnitLabel = (value: unknown): string | null => {
+  if (value === null || value === undefined) return null
+  const normalized = String(value).trim()
+  if (!normalized) return null
+  return normalized
+}
+
+const MATERIAL_UNIT_OPTIONS = ['말', '장', '개', 'kg', 'm', 'm²', 'EA'] as const
+const DEFAULT_MATERIAL_UNIT = MATERIAL_UNIT_OPTIONS[0]
+
+const DEFAULT_MATERIAL_KEYWORD = 'npc1000'
+const normalizeMaterialKeyword = (value?: string | null) =>
+  value
+    ? value
+        .toString()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '')
+    : ''
 
 const isSelectableMaterial = (material: any): boolean => {
   const activeFlag = interpretMaterialActiveFlag(material?.is_active)
@@ -438,6 +476,35 @@ export default function DailyReportForm({
 }: DailyReportFormProps) {
   const router = useRouter()
   const permissions = useRolePermissions(currentUser)
+  const { options: laborHourOptionState } = useLaborHourOptions()
+  const allowedLaborHours = useMemo(
+    () =>
+      normalizeLaborHourOptions(
+        laborHourOptionState.length > 0
+          ? laborHourOptionState
+          : Array.from(FALLBACK_LABOR_HOUR_OPTIONS)
+      ),
+    [laborHourOptionState]
+  )
+  const defaultLaborHour = useMemo(() => {
+    const positive = allowedLaborHours.find(value => value > 0)
+    return typeof positive === 'number'
+      ? positive
+      : (allowedLaborHours[0] ?? FALLBACK_LABOR_HOUR_DEFAULT)
+  }, [allowedLaborHours])
+  const isAllowedLaborHourValue = useCallback(
+    (value: number) => allowedLaborHours.some(option => option === value),
+    [allowedLaborHours]
+  )
+  const coerceLaborHourValue = useCallback(
+    (value: unknown) => {
+      const numeric = Number(value)
+      return Number.isFinite(numeric) && isAllowedLaborHourValue(numeric)
+        ? numeric
+        : defaultLaborHour
+    },
+    [defaultLaborHour, isAllowedLaborHourValue]
+  )
   const [loading, setLoading] = useState(false)
   const [loadingType, setLoadingType] = useState<'draft' | 'submit' | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -463,6 +530,19 @@ export default function DailyReportForm({
   const [formData, setFormData] = useState(() =>
     buildFormDataFromReport(mode, reportData, currentUser)
   )
+  const selectedSiteId = useMemo(() => {
+    const reportSiteId = (reportData as any)?.site_id
+    const initialSiteId =
+      initialUnifiedReport && 'siteId' in initialUnifiedReport
+        ? (initialUnifiedReport as UnifiedDailyReport).siteId
+        : undefined
+    return formData.site_id || reportSiteId || initialSiteId || ''
+  }, [formData.site_id, reportData?.site_id, initialUnifiedReport?.siteId])
+  const [materialInventory, setMaterialInventory] = useState<
+    Record<string, MaterialInventoryEntry>
+  >({})
+  const [materialInventoryLoading, setMaterialInventoryLoading] = useState(false)
+  const [materialInventoryError, setMaterialInventoryError] = useState<string | null>(null)
 
   // Work options
   const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
@@ -553,8 +633,23 @@ export default function DailyReportForm({
 
   // Worker entries
   const [workerEntries, setWorkerEntries] = useState<WorkerEntry[]>(() =>
-    buildWorkerEntriesFromReport(mode, reportData, permissions.canManageWorkers)
+    buildWorkerEntriesFromReport(
+      mode,
+      reportData,
+      permissions.canManageWorkers,
+      coerceLaborHourValue,
+      defaultLaborHour
+    )
   )
+  useEffect(() => {
+    setWorkerEntries(prev =>
+      prev.map(entry =>
+        isAllowedLaborHourValue(entry.labor_hours)
+          ? entry
+          : { ...entry, labor_hours: defaultLaborHour }
+      )
+    )
+  }, [isAllowedLaborHourValue, defaultLaborHour])
 
   // Material usage entries
   const [materialUsageEntries, setMaterialUsageEntries] = useState<MaterialUsageFormEntry[]>(() =>
@@ -562,7 +657,7 @@ export default function DailyReportForm({
   )
 
   const mapMaterialToOption = useCallback(
-    (material: any) => ({
+    (material: any): MaterialOptionItem => ({
       id: String(material.id),
       name:
         material.name ||
@@ -571,7 +666,7 @@ export default function DailyReportForm({
         material.code ||
         '이름 없는 자재',
       code: material.code || material.material_code || null,
-      unit: material.unit || material.unit_name || material.unit_symbol || null,
+      unit: sanitizeUnitLabel(material.unit || material.unit_name || material.unit_symbol || null),
     }),
     []
   )
@@ -588,33 +683,181 @@ export default function DailyReportForm({
   }, [materialOptionsFromProps])
 
   useEffect(() => {
+    if (!selectedSiteId) {
+      setMaterialInventory({})
+      setMaterialInventoryError(null)
+      setMaterialInventoryLoading(false)
+      return
+    }
     let ignore = false
-    ;(async () => {
-      try {
-        const res = await fetch('/api/admin/materials/active', {
-          credentials: 'include',
-          cache: 'no-store',
+    setMaterialInventoryLoading(true)
+    setMaterialInventoryError(null)
+    fetch(`/api/admin/sites/${selectedSiteId}/materials/summary`, {
+      cache: 'no-store',
+      credentials: 'include',
+    })
+      .then(async response => {
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok || payload?.success === false) {
+          throw new Error(payload?.error || 'INVENTORY_FETCH_FAILED')
+        }
+        const inventoryList = Array.isArray(payload?.data?.inventory) ? payload.data.inventory : []
+        const map: Record<string, MaterialInventoryEntry> = {}
+        inventoryList.forEach((item: any) => {
+          const materialId = item?.material_id ? String(item.material_id) : null
+          if (!materialId) return
+          const rawQuantity =
+            typeof item.quantity === 'number'
+              ? item.quantity
+              : typeof item.current_stock === 'number'
+                ? item.current_stock
+                : 0
+          const quantity = Number.isFinite(rawQuantity) ? rawQuantity : 0
+          map[materialId] = {
+            materialId,
+            quantity,
+            unit:
+              (typeof item?.materials?.unit === 'string' && item.materials.unit) ||
+              (typeof item?.unit === 'string' && item.unit) ||
+              null,
+            minimum:
+              item?.minimum_stock === null || item?.minimum_stock === undefined
+                ? null
+                : Number.isFinite(Number(item.minimum_stock))
+                  ? Number(item.minimum_stock)
+                  : null,
+            status: item?.status || null,
+            name: item?.materials?.name || item?.material_name || '',
+          }
         })
-        if (!res.ok) return
-        const json = await res.json().catch(() => null)
-        if (!json?.success || !Array.isArray(json.data) || ignore) return
-        console.info('[DailyReportForm] fetched active materials', json.data.length)
-        const active = json.data.filter((item: any) => item?.is_active !== false)
-        setMaterialOptionsState(active.map(mapMaterialToOption))
-      } catch {
-        console.warn('[DailyReportForm] active materials fetch failed')
+        if (!ignore) {
+          setMaterialInventory(map)
+        }
+      })
+      .catch(error => {
+        console.error('[DailyReportForm] inventory fetch failed', error)
+        const friendlyMessage = (() => {
+          if (error instanceof Error) {
+            const raw = error.message || ''
+            if (raw === 'INVENTORY_FETCH_FAILED') {
+              return '재고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
+            }
+            const normalized = raw.toLowerCase()
+            if (
+              normalized.includes('internal server error') ||
+              normalized.includes('failed to fetch')
+            ) {
+              return '재고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
+            }
+            return raw
+          }
+          return '재고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
+        })()
+        if (!ignore) {
+          setMaterialInventory({})
+          setMaterialInventoryError(friendlyMessage)
+        }
+      })
+      .finally(() => {
+        if (!ignore) {
+          setMaterialInventoryLoading(false)
+        }
+      })
+    return () => {
+      ignore = true
+    }
+  }, [selectedSiteId])
+
+  useEffect(() => {
+    let ignore = false
+    const endpoints: Array<{
+      url: string
+      label: string
+      normalize: (json: any) => any[]
+    }> = [
+      {
+        url: '/api/admin/materials/active',
+        label: 'admin',
+        normalize: json =>
+          json?.success && Array.isArray(json.data)
+            ? json.data.filter((item: any) => {
+                if (typeof item?.is_deleted === 'boolean' && item.is_deleted) return false
+                return isSelectableMaterial(item)
+              })
+            : [],
+      },
+      {
+        url: '/api/mobile/materials',
+        label: 'mobile',
+        normalize: json =>
+          json?.success && Array.isArray(json.data)
+            ? json.data.filter((item: any) => item && item.id)
+            : [],
+      },
+    ]
+
+    const loadMaterials = async () => {
+      for (const endpoint of endpoints) {
+        try {
+          const res = await fetch(endpoint.url, { credentials: 'include', cache: 'no-store' })
+          if (!res.ok) continue
+          const json = await res.json().catch(() => null)
+          const rows = endpoint.normalize(json)
+          if (!rows.length) continue
+          const mapped = rows.map(mapMaterialToOption)
+          if (ignore) return
+          console.info(`[DailyReportForm] loaded ${mapped.length} materials from ${endpoint.label}`)
+          setMaterialOptionsState(mapped)
+          return
+        } catch (error) {
+          console.warn(`[DailyReportForm] ${endpoint.label} materials fetch failed`, error)
+        }
       }
-    })()
+      console.warn('[DailyReportForm] no material endpoints returned data')
+    }
+
+    loadMaterials()
     return () => {
       ignore = true
     }
   }, [mapMaterialToOption])
 
+  const getDefaultMaterialOption = useCallback(() => {
+    if (!materialOptionsState.length) return null
+    const match = materialOptionsState.find(option => {
+      const nameToken = normalizeMaterialKeyword(option.name)
+      const codeToken = normalizeMaterialKeyword(option.code)
+      return (
+        nameToken.includes(DEFAULT_MATERIAL_KEYWORD) ||
+        (codeToken ? codeToken.includes(DEFAULT_MATERIAL_KEYWORD) : false)
+      )
+    })
+    return match ?? materialOptionsState[0]
+  }, [materialOptionsState])
+
+  useEffect(() => {
+    if (!materialOptionsState.length) return
+    const defaultOption = getDefaultMaterialOption()
+    if (!defaultOption) return
+    setMaterialUsageEntries(prev => {
+      let changed = false
+      const next = prev.map(entry => {
+        if (entry.materialId || entry.materialName.trim().length > 0) return entry
+        changed = true
+        return {
+          ...entry,
+          materialId: defaultOption.id,
+          materialCode: defaultOption.code ?? null,
+          materialName: defaultOption.name,
+          unit: sanitizeUnitLabel(defaultOption.unit) ?? DEFAULT_MATERIAL_UNIT,
+        }
+      })
+      return changed ? next : prev
+    })
+  }, [materialOptionsState, getDefaultMaterialOption])
+
   const materialOptionMap = useMemo(() => {
-    const map = new Map<
-      string,
-      { id: string; name: string; code: string | null; unit: string | null }
-    >()
+    const map = new Map<string, MaterialOptionItem>()
     materialOptionsState.forEach(option => {
       map.set(option.id, option)
     })
@@ -622,19 +865,22 @@ export default function DailyReportForm({
   }, [materialOptionsState])
 
   const addMaterialEntry = useCallback(() => {
-    setMaterialUsageEntries(prev => [
-      ...prev,
-      {
-        id: `material-${Date.now()}`,
-        materialId: null,
-        materialCode: null,
-        materialName: '',
-        unit: null,
-        quantity: '',
-        notes: '',
-      },
-    ])
-  }, [])
+    setMaterialUsageEntries(prev => {
+      const defaultOption = getDefaultMaterialOption()
+      return [
+        ...prev,
+        {
+          id: `material-${Date.now()}`,
+          materialId: defaultOption?.id ?? null,
+          materialCode: defaultOption?.code ?? null,
+          materialName: defaultOption?.name ?? '',
+          unit: sanitizeUnitLabel(defaultOption?.unit ?? null) ?? DEFAULT_MATERIAL_UNIT,
+          quantity: '',
+          notes: '',
+        },
+      ]
+    })
+  }, [getDefaultMaterialOption])
 
   const handleRemoveMaterial = useCallback((entryId: string) => {
     setMaterialUsageEntries(prev => prev.filter(entry => entry.id !== entryId))
@@ -660,7 +906,7 @@ export default function DailyReportForm({
             materialId: selectedValue,
             materialCode: option?.code ?? null,
             materialName: option?.name ?? entry.materialName,
-            unit: option?.unit ?? entry.unit ?? null,
+            unit: sanitizeUnitLabel(option?.unit ?? entry.unit ?? null) ?? DEFAULT_MATERIAL_UNIT,
           }
         })
       )
@@ -675,8 +921,9 @@ export default function DailyReportForm({
   }, [])
 
   const handleMaterialUnitChange = useCallback((entryId: string, value: string) => {
+    const sanitized = sanitizeUnitLabel(value) ?? DEFAULT_MATERIAL_UNIT
     setMaterialUsageEntries(prev =>
-      prev.map(entry => (entry.id === entryId ? { ...entry, unit: value } : entry))
+      prev.map(entry => (entry.id === entryId ? { ...entry, unit: sanitized } : entry))
     )
   }, [])
 
@@ -685,6 +932,15 @@ export default function DailyReportForm({
       prev.map(entry => (entry.id === entryId ? { ...entry, notes: value } : entry))
     )
   }, [])
+
+  const materialUnitOptions = useMemo(() => {
+    const unique = new Set<string>(MATERIAL_UNIT_OPTIONS)
+    materialUsageEntries.forEach(entry => {
+      const unit = sanitizeUnitLabel(entry.unit)
+      if (unit) unique.add(unit)
+    })
+    return Array.from(unique)
+  }, [materialUsageEntries])
 
   const materialSummary = useMemo(() => {
     const aggregate = new Map<string, { name: string; unit: string | null; quantity: number }>()
@@ -696,7 +952,7 @@ export default function DailyReportForm({
       const quantityValue = Number(entry.quantity)
       if (!Number.isFinite(quantityValue) || quantityValue === 0) return
 
-      const unitValue = entry.unit || option?.unit || null
+      const unitValue = sanitizeUnitLabel(entry.unit || option?.unit || null)
       const key = `${label}|${unitValue || ''}`
       const current = aggregate.get(key)
       aggregate.set(key, {
@@ -719,11 +975,27 @@ export default function DailyReportForm({
     if (nextKey && nextKey === reportHydrationKey) return
     setFormData(buildFormDataFromReport(mode, reportData, currentUser))
     setWorkEntries(buildWorkEntriesFromReport(mode, reportData))
-    setWorkerEntries(buildWorkerEntriesFromReport(mode, reportData, permissions.canManageWorkers))
+    setWorkerEntries(
+      buildWorkerEntriesFromReport(
+        mode,
+        reportData,
+        permissions.canManageWorkers,
+        coerceLaborHourValue,
+        defaultLaborHour
+      )
+    )
     setMaterialUsageEntries(buildMaterialUsageEntriesFromReport(mode, reportData))
     setAdditionalPhotos(buildAdditionalPhotosFromReport(mode, reportData))
     setReportHydrationKey(nextKey ?? null)
-  }, [mode, reportData, currentUser, permissions.canManageWorkers, reportHydrationKey])
+  }, [
+    mode,
+    reportData,
+    currentUser,
+    permissions.canManageWorkers,
+    reportHydrationKey,
+    coerceLaborHourValue,
+    defaultLaborHour,
+  ])
 
   // Users list for admin: current user + workers (deduped)
   const userOptions = useMemo(() => {
@@ -842,6 +1114,23 @@ export default function DailyReportForm({
           } => Boolean(item && item.material_name)
         )
 
+      const exceededMaterials = materialUsageEntries.filter(entry => {
+        if (!entry.materialId) return false
+        const inventoryInfo = materialInventory[entry.materialId]
+        if (!inventoryInfo) return false
+        const quantityValue = Number(entry.quantity)
+        return Number.isFinite(quantityValue) && quantityValue > inventoryInfo.quantity
+      })
+
+      if (exceededMaterials.length > 0) {
+        const message = '재고를 초과한 자재 사용량이 있습니다. 수량을 조정해 주세요.'
+        setError(message)
+        toast.error(message)
+        setLoading(false)
+        setLoadingType(null)
+        return
+      }
+
       const primaryEntry = workEntries[0]
       const normalizeLabel = (value?: string | null) => (value || '').trim()
       const resolvedMemberName = primaryEntry
@@ -881,7 +1170,7 @@ export default function DailyReportForm({
               }
             })
             .filter(entry => {
-              const hasLabor = isAllowedLaborHour(entry.labor_hours) && entry.labor_hours > 0
+              const hasLabor = isAllowedLaborHourValue(entry.labor_hours) && entry.labor_hours > 0
               const hasWorkerInfo =
                 (typeof entry.worker_id === 'string' && entry.worker_id.length > 0) ||
                 (entry.worker_name && entry.worker_name.trim().length > 0)
@@ -889,8 +1178,8 @@ export default function DailyReportForm({
             })
         : []
 
-      const resolvedSiteId = formData.site_id || (reportData as any)?.site_id
-      if (!resolvedSiteId) {
+      const effectiveSiteId = selectedSiteId
+      if (!effectiveSiteId) {
         throw new Error('현장 정보가 비어 있어 저장할 수 없습니다.')
       }
 
@@ -899,7 +1188,7 @@ export default function DailyReportForm({
 
       const submitData: Record<string, any> = {
         id: reportData?.id,
-        site_id: resolvedSiteId,
+        site_id: effectiveSiteId,
         partner_company_id: formData.partner_company_id || null,
         work_date: formData.work_date,
         // created_by should be a user id in DB
@@ -983,7 +1272,7 @@ export default function DailyReportForm({
       }
 
       if (ok) {
-        toast.success(`작업일지가 ${isDraft ? '임시저장' : '제출'}되었습니다.`)
+        toast.success(`작업일지가 ${isDraft ? '임시 상태로 저장' : '제출'}되었습니다.`)
         router.push(getBreadcrumb())
       } else {
         setError('작업일지 저장에 실패했습니다.')
@@ -1366,7 +1655,7 @@ export default function DailyReportForm({
                         <Label>공수</Label>
                         <CustomSelect
                           value={
-                            isAllowedLaborHour(entry.labor_hours)
+                            isAllowedLaborHourValue(entry.labor_hours)
                               ? formatLaborHourLabel(entry.labor_hours)
                               : ''
                           }
@@ -1374,7 +1663,7 @@ export default function DailyReportForm({
                             const newEntries = [...workerEntries]
                             newEntries[index] = {
                               ...newEntries[index],
-                              labor_hours: coerceLaborHours(parseFloat(value)),
+                              labor_hours: coerceLaborHourValue(parseFloat(value)),
                             }
                             setWorkerEntries(newEntries)
                           }}
@@ -1383,7 +1672,7 @@ export default function DailyReportForm({
                             <CustomSelectValue placeholder="공수를 선택하세요" />
                           </CustomSelectTrigger>
                           <CustomSelectContent>
-                            {LABOR_HOUR_OPTIONS.map(option => {
+                            {allowedLaborHours.map(option => {
                               const optionValue = formatLaborHourLabel(option)
                               return (
                                 <CustomSelectItem key={optionValue} value={optionValue}>
@@ -1406,7 +1695,7 @@ export default function DailyReportForm({
                       {
                         id: `worker-${Date.now()}`,
                         worker_id: '',
-                        labor_hours: LABOR_HOUR_OPTIONS[0],
+                        labor_hours: defaultLaborHour,
                         worker_name: '',
                         is_direct_input: false,
                       },
@@ -1463,6 +1752,14 @@ export default function DailyReportForm({
                     const selectedOption =
                       entry.materialId && materialOptionMap.get(entry.materialId)
                     const selectValue = entry.materialId ?? '__unset__'
+                    const inventoryInfo = entry.materialId
+                      ? materialInventory[entry.materialId]
+                      : null
+                    const quantityValue = Number(entry.quantity)
+                    const exceedsInventory =
+                      Boolean(inventoryInfo) &&
+                      Number.isFinite(quantityValue) &&
+                      quantityValue > (inventoryInfo?.quantity ?? 0)
                     return (
                       <div
                         key={entry.id}
@@ -1478,11 +1775,6 @@ export default function DailyReportForm({
                                 ? entry.materialName
                                 : selectedOption?.name || '자재 미지정'}
                             </span>
-                            {selectedOption?.code && (
-                              <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                                {selectedOption.code}
-                              </Badge>
-                            )}
                           </div>
                           <Button
                             type="button"
@@ -1513,11 +1805,6 @@ export default function DailyReportForm({
                                   <CustomSelectItem key={option.id} value={option.id}>
                                     <div className="flex flex-col">
                                       <span className="font-medium">{option.name}</span>
-                                      <span className="text-xs text-muted-foreground">
-                                        {option.code
-                                          ? `${option.code} · ${option.unit || '단위 없음'}`
-                                          : option.unit || '단위 없음'}
-                                      </span>
                                     </div>
                                   </CustomSelectItem>
                                 ))}
@@ -1544,15 +1831,61 @@ export default function DailyReportForm({
                               value={entry.quantity}
                               onChange={e => handleMaterialQuantityChange(entry.id, e.target.value)}
                               placeholder="예: 12.5"
+                              className={cn(
+                                exceedsInventory &&
+                                  'border-destructive text-destructive focus-visible:ring-destructive'
+                              )}
+                              aria-invalid={exceedsInventory || undefined}
                             />
+                            <div className="text-xs text-muted-foreground">
+                              {materialInventoryLoading ? (
+                                '현장 재고를 확인하는 중입니다...'
+                              ) : inventoryInfo ? (
+                                <span
+                                  className={cn(
+                                    inventoryInfo.quantity <= 0 && 'text-destructive font-medium'
+                                  )}
+                                >
+                                  현재 재고{' '}
+                                  <strong>
+                                    {inventoryInfo.quantity.toLocaleString()}
+                                    {inventoryInfo.unit ? ` ${inventoryInfo.unit}` : ''}
+                                  </strong>
+                                  {typeof inventoryInfo.minimum === 'number'
+                                    ? ` / 최소 ${inventoryInfo.minimum.toLocaleString()}`
+                                    : ''}
+                                </span>
+                              ) : materialInventoryError ? (
+                                <span className="text-muted-foreground">
+                                  {materialInventoryError}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground">재고 정보 없음</span>
+                              )}
+                              {exceedsInventory && (
+                                <span className="mt-1 block text-destructive font-medium">
+                                  입력 수량이 현재 재고를 초과합니다.
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label>단위</Label>
-                            <Input
-                              value={entry.unit ?? ''}
-                              onChange={e => handleMaterialUnitChange(entry.id, e.target.value)}
-                              placeholder="예: 개, 말, 장"
-                            />
+                            <CustomSelect
+                              value={entry.unit || DEFAULT_MATERIAL_UNIT}
+                              onValueChange={value => handleMaterialUnitChange(entry.id, value)}
+                            >
+                              <CustomSelectTrigger className="w-full">
+                                <CustomSelectValue placeholder="단위를 선택하세요" />
+                              </CustomSelectTrigger>
+                              <CustomSelectContent>
+                                {materialUnitOptions.map(option => (
+                                  <CustomSelectItem key={option} value={option}>
+                                    {option}
+                                  </CustomSelectItem>
+                                ))}
+                              </CustomSelectContent>
+                            </CustomSelect>
                           </div>
                           <div className="space-y-2 md:col-span-2">
                             <Label>비고</Label>
@@ -1736,7 +2069,7 @@ export default function DailyReportForm({
               disabled={loading}
               className="min-w-[120px] border-[#8DA0CD] text-[#5F7AB9] hover:bg-[#F3F7FA]"
             >
-              {loading && loadingType === 'draft' ? '저장 중...' : '임시저장'}
+              {loading && loadingType === 'draft' ? '저장 중...' : '임시 저장'}
             </Button>
             <Button
               type="button"

@@ -6,6 +6,31 @@ import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
 
 export const dynamic = 'force-dynamic'
 
+const computeWorkerStats = (rows: any[]) =>
+  rows.reduce(
+    (stats, row) => {
+      stats.total_workers += 1
+      const hours = Number(row?.labor_hours ?? row?.hours ?? 0)
+      const overtime = Number(row?.overtime_hours ?? 0)
+      if (Number.isFinite(hours)) stats.total_hours += hours
+      if (Number.isFinite(overtime)) stats.total_overtime += overtime
+      if (row?.is_present === false) stats.absent_workers += 1
+      const trade = row?.trade_type || row?.role_type || '기타'
+      const skill = row?.skill_level || '일반'
+      if (trade) stats.by_trade[trade] = (stats.by_trade[trade] || 0) + 1
+      if (skill) stats.by_skill[skill] = (stats.by_skill[skill] || 0) + 1
+      return stats
+    },
+    {
+      total_workers: 0,
+      total_hours: 0,
+      total_overtime: 0,
+      absent_workers: 0,
+      by_trade: {} as Record<string, number>,
+      by_skill: {} as Record<string, number>,
+    }
+  )
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
@@ -75,6 +100,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
               avatar_url
             )
           ),
+          worker_entries(
+            id,
+            worker_id,
+            worker_name,
+            labor_hours,
+            notes,
+            is_present,
+            absence_reason,
+            role_type,
+            trade_type,
+            skill_level
+          ),
           unified_documents(
             id,
             document_type,
@@ -129,7 +166,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const { data: minimal, error: minimalErr } = await supabase
         .from('daily_reports')
         .select(
-          `id, site_id, work_date, member_name, process_type, component_name, work_process, work_section, before_photos, after_photos, additional_before_photos, additional_after_photos, created_by`
+          `id, site_id, work_date, member_name, process_type, component_name, work_process, work_section, before_photos, after_photos, additional_before_photos, additional_after_photos, created_by, worker_entries(id, worker_id, worker_name, labor_hours, notes)`
         )
         .eq('id', reportId)
         .maybeSingle()
@@ -152,21 +189,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
         .eq('id', minimal.created_by)
         .maybeSingle()
 
+      const fallbackWorkerRows = Array.isArray(minimal.worker_entries) ? minimal.worker_entries : []
+      const fallbackWorkerStats = computeWorkerStats(fallbackWorkerRows)
+
       const fallbackResponse = {
         daily_report: {
           ...minimal,
           ...(await fetchAdditionalPhotosForReport(reportId)),
         },
         site,
-        worker_assignments: [],
-        worker_statistics: {
-          total_workers: 0,
-          total_hours: 0,
-          total_overtime: 0,
-          absent_workers: 0,
-          by_trade: {},
-          by_skill: {},
-        },
+        worker_assignments: fallbackWorkerRows,
+        worker_entries: fallbackWorkerRows,
+        worker_statistics: fallbackWorkerStats,
         documents: {},
         document_counts: {},
         related_reports: [],
@@ -196,42 +230,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .limit(10)
 
     // Calculate labor statistics
-    const workerStats = reportData.worker_assignments?.reduce(
-      (stats: unknown, assignment: unknown) => {
-        stats.total_workers++
-        stats.total_hours += assignment.labor_hours || 0
-        stats.total_overtime += assignment.overtime_hours || 0
+    const workerRows =
+      (Array.isArray(reportData.worker_assignments) && reportData.worker_assignments.length > 0
+        ? reportData.worker_assignments
+        : Array.isArray(reportData.worker_entries)
+          ? reportData.worker_entries
+          : []) || []
 
-        if (!assignment.is_present) {
-          stats.absent_workers++
-        }
-
-        // Count by trade type
-        const trade = assignment.trade_type || '기타'
-        stats.by_trade[trade] = (stats.by_trade[trade] || 0) + 1
-
-        // Count by skill level
-        const skill = assignment.skill_level || '견습'
-        stats.by_skill[skill] = (stats.by_skill[skill] || 0) + 1
-
-        return stats
-      },
-      {
-        total_workers: 0,
-        total_hours: 0,
-        total_overtime: 0,
-        absent_workers: 0,
-        by_trade: {} as Record<string, number>,
-        by_skill: {} as Record<string, number>,
-      }
-    ) || {
-      total_workers: 0,
-      total_hours: 0,
-      total_overtime: 0,
-      absent_workers: 0,
-      by_trade: {},
-      by_skill: {},
-    }
+    const workerStats = computeWorkerStats(workerRows)
 
     // Organize documents by type
     const documentsByType =
@@ -265,6 +271,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ...reportData,
         sites: undefined, // Remove to avoid duplication
         worker_assignments: undefined,
+        worker_entries: undefined,
         unified_documents: undefined,
       },
       site: reportData.sites,
@@ -275,7 +282,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
           relationship_type: cs.relationship_type,
           is_primary_customer: cs.is_primary_customer,
         })) || [],
-      worker_assignments: reportData.worker_assignments || [],
+      worker_assignments: workerRows,
+      worker_entries: Array.isArray(reportData.worker_entries) ? reportData.worker_entries : [],
       worker_statistics: workerStats,
       documents: documentsByType,
       document_counts: Object.entries(documentsByType).reduce(

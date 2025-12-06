@@ -50,7 +50,7 @@ export function DailyReportFilters({
       : '전체 현장'
 
   const statusDisplayLabel =
-    status === 'draft' ? '임시저장' : status === 'submitted' ? '제출' : '전체 상태'
+    status === 'draft' ? '임시' : status === 'submitted' ? '제출' : '전체 상태'
 
   const applyFilters = React.useCallback(() => {
     const params = new URLSearchParams(searchParams?.toString() || '')
@@ -95,6 +95,11 @@ export function DailyReportFilters({
   }
 
   const handleReset = () => {
+    setSiteId('')
+    setSearch('')
+    setStatus('')
+    setDateFrom('')
+    setDateTo('')
     router.push(pathname)
   }
 
@@ -129,7 +134,7 @@ export function DailyReportFilters({
           name="search"
           value={search}
           onChange={event => setSearch(event.target.value)}
-          placeholder="작성자/공종/특이사항 등"
+          placeholder="검색어 입력"
         />
       </div>
       <div>
@@ -143,7 +148,7 @@ export function DailyReportFilters({
           </CustomSelectTrigger>
           <CustomSelectContent>
             <CustomSelectItem value="__all__">전체 상태</CustomSelectItem>
-            <CustomSelectItem value="draft">임시저장</CustomSelectItem>
+            <CustomSelectItem value="draft">임시</CustomSelectItem>
             <CustomSelectItem value="submitted">제출</CustomSelectItem>
           </CustomSelectContent>
         </CustomSelect>

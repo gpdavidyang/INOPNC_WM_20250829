@@ -1,31 +1,30 @@
 'use client'
 
-
 interface DailyReportListProps {
   sites: Site[]
   initialReports?: DailyReport[]
   currentUserRole?: string
 }
 
-export default function DailyReportList({ 
-  sites, 
+export default function DailyReportList({
+  sites,
   initialReports = [],
-  currentUserRole 
+  currentUserRole,
 }: DailyReportListProps) {
   const router = useRouter()
   const [reports, setReports] = useState<DailyReport[]>(initialReports)
   const [loading, setLoading] = useState(false)
   const [totalCount, setTotalCount] = useState(0)
-  
+
   // Filters
   const [filters, setFilters] = useState({
     site_id: '',
     status: '' as DailyReportStatus | '',
     start_date: '',
     end_date: '',
-    search: ''
+    search: '',
   })
-  
+
   // Pagination
   const [page, setPage] = useState(1)
   const limit = 20
@@ -41,7 +40,7 @@ export default function DailyReportList({
         ...filters,
         status: filters.status || undefined,
         limit,
-        offset: (page - 1) * limit
+        offset: (page - 1) * limit,
       })
 
       if (result.success && result.data) {
@@ -62,8 +61,8 @@ export default function DailyReportList({
 
   const getStatusBadge = (status: DailyReportStatus) => {
     const statusConfig = {
-      draft: { label: '임시저장', variant: 'secondary' as const, icon: Clock },
-      submitted: { label: '제출됨', variant: 'outline' as const, icon: CheckCircle }
+      draft: { label: '임시', variant: 'secondary' as const, icon: Clock },
+      submitted: { label: '제출됨', variant: 'outline' as const, icon: CheckCircle },
     }
 
     const config = statusConfig[status]
@@ -77,7 +76,9 @@ export default function DailyReportList({
     )
   }
 
-  const canCreateReport = ['worker', 'site_manager', 'admin', 'system_admin'].includes(currentUserRole || '')
+  const canCreateReport = ['worker', 'site_manager', 'admin', 'system_admin'].includes(
+    currentUserRole || ''
+  )
 
   const totalPages = Math.ceil(totalCount / limit)
 
@@ -88,8 +89,7 @@ export default function DailyReportList({
         <h1 className="text-2xl font-bold">작업일지 목록</h1>
         {canCreateReport && (
           <Button onClick={() => router.push('/dashboard/daily-reports/new')}>
-            <Plus className="h-4 w-4 mr-2" />
-            새 작업일지
+            <Plus className="h-4 w-4 mr-2" />새 작업일지
           </Button>
         )}
       </div>
@@ -100,7 +100,7 @@ export default function DailyReportList({
           <Filter className="h-4 w-4 text-gray-500" />
           <span className="text-xs font-medium">필터</span>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
           {/* 현장 선택 */}
           <div className="space-y-1">
@@ -110,11 +110,11 @@ export default function DailyReportList({
                 { value: '', label: '전체 현장' },
                 ...sites.map(site => ({
                   value: site.id,
-                  label: site.name
-                }))
+                  label: site.name,
+                })),
               ]}
               value={filters.site_id}
-              onChange={(value) => handleFilterChange('site_id', value)}
+              onChange={value => handleFilterChange('site_id', value)}
               placeholder="현장 선택"
               icon={<Building2 className="h-4 w-4" />}
             />
@@ -127,8 +127,8 @@ export default function DailyReportList({
               <button
                 onClick={() => handleFilterChange('status', '')}
                 className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  filters.status === '' 
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' 
+                  filters.status === ''
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
@@ -137,18 +137,18 @@ export default function DailyReportList({
               <button
                 onClick={() => handleFilterChange('status', 'draft')}
                 className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  filters.status === 'draft' 
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' 
+                  filters.status === 'draft'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
-                임시저장
+                임시
               </button>
               <button
                 onClick={() => handleFilterChange('status', 'submitted')}
                 className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
-                  filters.status === 'submitted' 
-                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' 
+                  filters.status === 'submitted'
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
                 }`}
               >
@@ -164,14 +164,14 @@ export default function DailyReportList({
               <Input
                 type="date"
                 value={filters.start_date}
-                onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                onChange={e => handleFilterChange('start_date', e.target.value)}
                 className="text-xs h-8"
               />
               <span className="text-gray-400 text-xs">~</span>
               <Input
                 type="date"
                 value={filters.end_date}
-                onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                onChange={e => handleFilterChange('end_date', e.target.value)}
                 className="text-xs h-8"
               />
             </div>
@@ -184,7 +184,7 @@ export default function DailyReportList({
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
               <Input
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={e => handleFilterChange('search', e.target.value)}
                 placeholder="검색..."
                 className="pl-8 text-sm h-8"
               />
@@ -205,18 +205,15 @@ export default function DailyReportList({
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <p className="mt-4 text-gray-500">작업일지가 없습니다</p>
             {canCreateReport && (
-              <Button 
-                onClick={() => router.push('/dashboard/daily-reports/new')}
-                className="mt-4"
-              >
+              <Button onClick={() => router.push('/dashboard/daily-reports/new')} className="mt-4">
                 첫 작업일지 작성하기
               </Button>
             )}
           </Card>
         ) : (
           reports.map(report => (
-            <Card 
-              key={report.id} 
+            <Card
+              key={report.id}
               className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => router.push(`/dashboard/daily-reports/${report.id}`)}
             >
@@ -228,7 +225,9 @@ export default function DailyReportList({
                     </h3>
                     <span className="text-sm text-gray-500">
                       <Calendar className="inline h-3 w-3 mr-1" />
-                      {new Date((report as unknown).report_date || report.work_date).toLocaleDateString('ko-KR')}
+                      {new Date(
+                        (report as unknown).report_date || report.work_date
+                      ).toLocaleDateString('ko-KR')}
                     </span>
                     {getStatusBadge(report.status || 'draft')}
                   </div>
@@ -246,11 +245,13 @@ export default function DailyReportList({
                         <span className="ml-1">{(report as unknown).weather}</span>
                       </div>
                     )}
-                    {((report as unknown).temperature_high || (report as unknown).temperature_low) && (
+                    {((report as unknown).temperature_high ||
+                      (report as unknown).temperature_low) && (
                       <div>
                         <span className="text-gray-500">기온:</span>
                         <span className="ml-1">
-                          {(report as unknown).temperature_high}°C ~ {(report as unknown).temperature_low}°C
+                          {(report as unknown).temperature_high}°C ~{' '}
+                          {(report as unknown).temperature_low}°C
                         </span>
                       </div>
                     )}
@@ -275,7 +276,7 @@ export default function DailyReportList({
                   <Button
                     variant="ghost"
                     size="compact"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       router.push(`/dashboard/daily-reports/${report.id}`)
                     }}
@@ -285,7 +286,7 @@ export default function DailyReportList({
                   <Button
                     variant="ghost"
                     size="compact"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       // TODO: Implement download functionality
                     }}
@@ -310,12 +311,12 @@ export default function DailyReportList({
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
+
           <div className="flex items-center gap-1">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = page > 3 ? page - 2 + i : i + 1
               if (pageNum > totalPages) return null
-              
+
               return (
                 <Button
                   key={pageNum}

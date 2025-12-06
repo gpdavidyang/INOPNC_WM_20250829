@@ -1,6 +1,8 @@
 import { Buffer } from 'node:buffer'
+import path from 'node:path'
 import { createServiceClient } from '@/lib/supabase/service'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
+import sharp from 'sharp'
 
 export type SiteRow = {
   id: string
@@ -52,12 +54,22 @@ export function mapPhotoRow(
     ? ['admin', 'system_admin'].includes(String(uploader.role))
     : false
 
+  const displayUrl = row.file_url
+  const thumbnailUrl =
+    row.file_url && row.file_url.includes('_display.')
+      ? row.file_url.replace('_display.', '_thumb.')
+      : row.file_url && row.file_url.includes('_orig.')
+        ? row.file_url.replace('_orig.', '_thumb.')
+        : row.file_url
+
   return {
     id: row.id,
     daily_report_id: row.daily_report_id,
     photo_type: row.photo_type,
     filename: row.file_name,
-    url: row.file_url,
+    url: displayUrl,
+    display_url: displayUrl,
+    thumbnail_url: thumbnailUrl,
     path: row.file_path,
     storage_path: row.file_path,
     file_size: row.file_size,
@@ -281,10 +293,23 @@ export async function aggregateAdditionalPhotos(reportId: string) {
     const before: Array<Record<string, unknown>> = []
     const after: Array<Record<string, unknown>> = []
     for (const row of data || []) {
+      const variants = deriveVariantPathsFromStoredPath(row.file_path)
+      const displayUrl = row.file_url
+      const thumbnailUrl =
+        displayUrl && displayUrl.includes('_display.')
+          ? displayUrl.replace('_display.', '_thumb.')
+          : displayUrl
+
       const entry: Record<string, unknown> = {
-        url: row.file_url,
+        url: displayUrl,
+        display_url: displayUrl,
+        thumbnail_url: thumbnailUrl,
+        original_url: row.file_url && row.file_url.includes('_orig.') ? row.file_url : undefined,
         path: row.file_path || undefined,
         storage_path: row.file_path || undefined,
+        display_path: variants.displayPath,
+        thumbnail_path: variants.thumbPath,
+        original_path: variants.originalPath,
         filename: row.file_name || undefined,
         description: row.description || undefined,
         upload_order: row.upload_order || 0,
@@ -311,6 +336,59 @@ export async function aggregateAdditionalPhotos(reportId: string) {
 
 function sanitizeFileName(fileName: string) {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, '_')
+}
+
+export function buildVariantStoragePaths(
+  reportId: string,
+  type: 'before' | 'after',
+  originalName: string
+) {
+  const timestamp = Date.now()
+  const random = Math.random().toString(36).slice(2, 8)
+  const parsed = path.parse(sanitizeFileName(originalName))
+  const base = `daily-reports/${reportId}/additional/${type}/${timestamp}_${random}_${parsed.name}`
+  const extension = parsed.ext?.replace(/^\./, '') || 'jpg'
+  return {
+    base,
+    originalPath: `${base}_orig.${extension}`,
+    displayPath: `${base}_display.jpg`,
+    thumbPath: `${base}_thumb.jpg`,
+    originalExt: extension,
+  }
+}
+
+export function deriveVariantPathsFromStoredPath(storedPath: string) {
+  if (!storedPath) {
+    return {
+      originalPath: storedPath,
+      displayPath: storedPath,
+      thumbPath: storedPath,
+    }
+  }
+  const parsed = path.parse(storedPath)
+  const name = parsed.name.replace(/_(orig|display|thumb)$/, '')
+  const base = path.join(parsed.dir, name)
+  const extension = parsed.ext?.replace(/^\./, '') || 'jpg'
+  return {
+    originalPath: `${base}_orig.${extension}`,
+    displayPath: `${base}_display.jpg`,
+    thumbPath: `${base}_thumb.jpg`,
+  }
+}
+
+export async function generateImageVariants(buffer: Buffer) {
+  const sharpInstance = sharp(buffer, { failOn: 'none' }).rotate()
+  const displayBuffer = await sharpInstance
+    .clone()
+    .resize({ width: 1280, withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toBuffer()
+  const thumbBuffer = await sharpInstance
+    .clone()
+    .resize({ width: 400, withoutEnlargement: true })
+    .jpeg({ quality: 75 })
+    .toBuffer()
+  return { displayBuffer, thumbBuffer }
 }
 
 export function buildStoragePath(reportId: string, type: 'before' | 'after', originalName: string) {

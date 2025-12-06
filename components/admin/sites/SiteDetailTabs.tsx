@@ -1806,7 +1806,7 @@ export default function SiteDetailTabs({
                             {r?.status === 'submitted'
                               ? '제출됨'
                               : r?.status === 'draft'
-                                ? '임시저장'
+                                ? '임시'
                                 : r?.status || '미정'}
                           </Badge>
                         ),
@@ -2340,7 +2340,7 @@ export default function SiteDetailTabs({
                         {r?.status === 'submitted'
                           ? '제출됨'
                           : r?.status === 'draft'
-                            ? '임시저장'
+                            ? '임시'
                             : r?.status || '미정'}
                       </Badge>
                     ),

@@ -1,13 +1,18 @@
 'use client'
 
-import React from 'react'
-import { AdditionalManpower as AdditionalManpowerType, MANPOWER_VALUES } from '@/types/worklog'
+import React, { useMemo } from 'react'
+import { AdditionalManpower as AdditionalManpowerType } from '@/types/worklog'
 import NumberInput from './NumberInput'
+import {
+  FALLBACK_LABOR_HOUR_DEFAULT,
+  FALLBACK_LABOR_HOUR_OPTIONS,
+} from '@/lib/labor/labor-hour-options'
 
 interface AdditionalManpowerProps {
   items: AdditionalManpowerType[]
   onChange: (items: AdditionalManpowerType[]) => void
   className?: string
+  laborHourOptions?: readonly number[]
 }
 
 // 작업자 목록 (실제로는 API에서 가져와야 함)
@@ -23,13 +28,26 @@ export const AdditionalManpower: React.FC<AdditionalManpowerProps> = ({
   items,
   onChange,
   className = '',
+  laborHourOptions,
 }) => {
+  const normalizedOptions = useMemo(
+    () =>
+      laborHourOptions && laborHourOptions.length > 0
+        ? Array.from(laborHourOptions)
+        : Array.from(FALLBACK_LABOR_HOUR_OPTIONS),
+    [laborHourOptions]
+  )
+  const defaultManpower =
+    normalizedOptions.find(value => value > 0) ??
+    normalizedOptions[0] ??
+    FALLBACK_LABOR_HOUR_DEFAULT
+
   const addManpower = () => {
     const newItem: AdditionalManpowerType = {
       id: `manpower_${Date.now()}`,
       workerId: '',
       workerName: '',
-      manpower: 1,
+      manpower: defaultManpower,
     }
     onChange([...items, newItem])
   }
@@ -108,7 +126,7 @@ export const AdditionalManpower: React.FC<AdditionalManpowerProps> = ({
                 label="공수"
                 value={item.manpower}
                 onChange={value => updateManpower(item.id, { manpower: value })}
-                values={Array.from(MANPOWER_VALUES)}
+                values={normalizedOptions}
               />
             </div>
           </div>

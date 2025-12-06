@@ -44,7 +44,7 @@ export const WorkLogListItem: React.FC<WorkLogListItemProps> = ({ workLog, onSel
           }`}
         >
           {workLog.status === 'draft'
-            ? '임시저장'
+            ? '임시'
             : workLog.status === 'submitted'
               ? '제출'
               : workLog.status === 'approved'

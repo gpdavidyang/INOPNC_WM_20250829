@@ -143,6 +143,9 @@ export interface WorkerData {
 export interface PhotoData {
   id?: string
   url?: string
+  thumbnail_url?: string
+  display_url?: string
+  original_url?: string
   path?: string
   filename: string
   description?: string
@@ -155,6 +158,9 @@ export interface AdditionalPhotoData {
   id?: string
   file?: File
   url?: string
+  thumbnail_url?: string
+  display_url?: string
+  original_url?: string
   path?: string
   filename: string
   description?: string

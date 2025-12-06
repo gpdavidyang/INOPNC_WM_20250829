@@ -527,7 +527,7 @@ export default function DailyReportFormEdit({
         
         <div className="flex items-center gap-3">
           <Badge variant={report.status === 'draft' ? 'secondary' : 'default'}>
-            임시저장
+            임시 저장
           </Badge>
           <Button
             variant="outline"

@@ -58,7 +58,7 @@ export type ComponentType =
 // 작업 옵션 설정 타입
 export interface WorkOptionSetting {
   id: string
-  option_type: 'component_type' | 'process_type'
+  option_type: 'component_type' | 'process_type' | 'labor_hour'
   option_value: string
   option_label: string
   display_order: number

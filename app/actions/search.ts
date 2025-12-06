@@ -248,7 +248,7 @@ function getDisplayValue(field: string, value: unknown): string {
   // Handle select field display values
   const selectValues: Record<string, Record<string, string>> = {
     status: {
-      draft: '임시저장',
+      draft: '임시',
       submitted: '제출됨',
       approved: '승인됨',
       rejected: '반려됨',

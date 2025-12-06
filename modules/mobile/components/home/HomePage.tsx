@@ -17,7 +17,7 @@ import '@/modules/mobile/styles/summary-section.css'
 import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/work-form.css'
-import { AdditionalManpower, MANPOWER_VALUES, WorkLogLocation, WorkSection } from '@/types/worklog'
+import { AdditionalManpower, WorkLogLocation, WorkSection } from '@/types/worklog'
 import { User } from '@supabase/supabase-js'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -31,6 +31,12 @@ import { NumberInput } from './NumberInput'
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { QuickMenu } from './QuickMenu'
 import { SummarySection } from './SummarySection'
+import { useLaborHourOptions } from '@/hooks/use-labor-hour-options'
+import {
+  FALLBACK_LABOR_HOUR_DEFAULT,
+  FALLBACK_LABOR_HOUR_OPTIONS,
+  normalizeLaborHourOptions,
+} from '@/lib/labor/labor-hour-options'
 
 const isUuid = (val: string) => /^[0-9a-fA-F-]{36}$/.test(String(val || ''))
 
@@ -99,6 +105,22 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser }) => {
   // Use auth context
   const { user, session, profile: authProfile, loading: authLoading, refreshSession } = useAuth()
+  const { options: laborHourOptionState } = useLaborHourOptions()
+  const laborHourValues = useMemo(
+    () =>
+      normalizeLaborHourOptions(
+        laborHourOptionState.length > 0
+          ? laborHourOptionState
+          : Array.from(FALLBACK_LABOR_HOUR_OPTIONS)
+      ),
+    [laborHourOptionState]
+  )
+  const defaultLaborHour = useMemo(() => {
+    const positive = laborHourValues.find(value => value > 0)
+    return typeof positive === 'number'
+      ? positive
+      : (laborHourValues[0] ?? FALLBACK_LABOR_HOUR_DEFAULT)
+  }, [laborHourValues])
 
   // 기본 상태
   const [selectedSite, setSelectedSite] = useState('')
@@ -122,9 +144,33 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       location: WorkLogLocation
     }>
   >([])
-  const [mainManpower, setMainManpower] = useState(1)
+  const [mainManpower, setMainManpower] = useState(() => defaultLaborHour)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
+  useEffect(() => {
+    setMainManpower(prev => {
+      if (laborHourValues.includes(prev)) {
+        return prev
+      }
+      if (laborHourValues.includes(1)) {
+        return 1
+      }
+      return defaultLaborHour
+    })
+  }, [laborHourValues, defaultLaborHour])
+  useEffect(() => {
+    setAdditionalManpower(prev => {
+      let changed = false
+      const next = prev.map(entry => {
+        if (laborHourValues.includes(entry.manpower)) {
+          return entry
+        }
+        changed = true
+        return { ...entry, manpower: defaultLaborHour }
+      })
+      return changed ? next : prev
+    })
+  }, [laborHourValues, defaultLaborHour])
   const [materials, setMaterials] = useState<MaterialEntry[]>([])
   const [actionStatus, setActionStatus] = useState<{
     type: 'success' | 'error'
@@ -671,7 +717,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       setMemberTypes([])
       setWorkContents([])
       setWorkTypes([])
-      setMainManpower(1)
+      setMainManpower(defaultLaborHour)
       setWorkSections([])
       setAdditionalManpower([])
       setMaterials([])
@@ -766,7 +812,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       toast.error('현장을 선택해주세요.')
       setActionStatus({
         type: 'error',
-        message: '현장을 선택한 뒤 임시저장을 진행해주세요.',
+        message: '현장을 선택한 뒤 임시 저장을 진행해주세요.',
       })
       return
     }
@@ -783,15 +829,15 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       console.log('[handleTemporarySave] WorkTypes:', workTypes)
 
       const res: any = await createWorklogMutation.mutateAsync(fullPayload)
-      const msg = res?.message || '임시저장되었습니다.'
+      const msg = res?.message || '임시 상태로 저장되었습니다.'
       toast.success(msg)
       setActionStatus({ type: 'success', message: msg })
     } catch (error) {
       console.error('Temporary save error:', error)
-      toast.error(error instanceof Error ? error.message : '임시저장에 실패했습니다.')
+      toast.error(error instanceof Error ? error.message : '임시 저장에 실패했습니다.')
       setActionStatus({
         type: 'error',
-        message: error instanceof Error ? error.message : '임시저장에 실패했습니다.',
+        message: error instanceof Error ? error.message : '임시 저장에 실패했습니다.',
       })
     }
   }
@@ -1135,7 +1181,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                   id: Date.now().toString(),
                   workerId: userProfile?.id || '',
                   workerName: userProfile?.full_name || '사용자',
-                  manpower: 1,
+                  manpower: defaultLaborHour,
                 }
                 setAdditionalManpower([...additionalManpower, newManpower])
               }}
@@ -1177,7 +1223,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                 label="공수"
                 value={mainManpower}
                 onChange={setMainManpower}
-                values={Array.from(MANPOWER_VALUES)}
+                values={laborHourValues}
               />
             </div>
           </div>
@@ -1244,7 +1290,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                     )
                     setAdditionalManpower(updated)
                   }}
-                  values={Array.from(MANPOWER_VALUES)}
+                  values={laborHourValues}
                 />
               </div>
             </div>
@@ -1263,7 +1309,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             onClick={handleTemporarySave}
             disabled={createWorklogMutation.isPending}
           >
-            임시저장
+            임시 저장
           </button>
           <button
             className="btn btn-primary"
@@ -1281,11 +1327,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       <PhotoUploadCard selectedSite={selectedSite} workDate={workDate} />
 
       {/* 도면마킹 - 간소화된 Quick Action */}
-      <DrawingQuickAction
-        selectedSite={selectedSite}
-        siteName={sites.find(s => s.id === selectedSite)?.name}
-        userId={userProfile?.id || user?.id}
-      />
+      <DrawingQuickAction selectedSite={selectedSite} />
 
       {/* 작성 내용 요약 - 페이지 맨 아래 배치 */}
       <SummarySection

@@ -524,6 +524,11 @@ export type Database = {
           id: string
           last_login_at: string | null
           login_count: number | null
+          mfa_enabled: boolean | null
+          mfa_enabled_at: string | null
+          mfa_secret: string | null
+          mfa_session_expires_at: string | null
+          mfa_session_token: string | null
           phone: string | null
           role: string
           status: string | null
@@ -537,6 +542,11 @@ export type Database = {
           id: string
           last_login_at?: string | null
           login_count?: number | null
+          mfa_enabled?: boolean | null
+          mfa_enabled_at?: string | null
+          mfa_secret?: string | null
+          mfa_session_expires_at?: string | null
+          mfa_session_token?: string | null
           phone?: string | null
           role?: string
           status?: string | null
@@ -550,6 +560,11 @@ export type Database = {
           id?: string
           last_login_at?: string | null
           login_count?: number | null
+          mfa_enabled?: boolean | null
+          mfa_enabled_at?: string | null
+          mfa_secret?: string | null
+          mfa_session_expires_at?: string | null
+          mfa_session_token?: string | null
           phone?: string | null
           role?: string
           status?: string | null

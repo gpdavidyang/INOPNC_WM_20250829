@@ -4,7 +4,7 @@
 
 /**
  * 작업일지 상태
- * draft: 임시저장
+ * draft: 임시
  * submitted: 제출
  * approved: 승인
  * rejected: 반려
@@ -13,7 +13,7 @@ export type WorkLogStatus = 'draft' | 'submitted' | 'approved' | 'rejected'
 
 /**
  * 작업일지 탭 상태
- * draft: 작성중 (임시저장 포함)
+ * draft: 작성중 (임시 상태 포함)
  * approved: 제출/승인
  */
 export type WorkLogTabStatus = 'draft' | 'approved'

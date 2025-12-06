@@ -1,6 +1,5 @@
 'use client'
 
-
 interface DailyReport {
   id: string
   work_date: string
@@ -48,24 +47,30 @@ interface DailyReportDetailModalProps {
 }
 
 const statusLabels = {
-  draft: '임시저장',
-  submitted: '제출됨'
+  draft: '임시',
+  submitted: '제출됨',
 }
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-800',
-  submitted: 'bg-blue-100 text-blue-800'
+  submitted: 'bg-blue-100 text-blue-800',
 }
 
-export default function DailyReportDetailModal({ report: initialReport, onClose, onUpdated }: DailyReportDetailModalProps) {
+export default function DailyReportDetailModal({
+  report: initialReport,
+  onClose,
+  onUpdated,
+}: DailyReportDetailModalProps) {
   const [report, setReport] = useState(initialReport)
   const [saving, setSaving] = useState(false)
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'attachments' | 'photos' | 'receipts' | 'markup'>('info')
+  const [activeTab, setActiveTab] = useState<
+    'info' | 'workers' | 'attachments' | 'photos' | 'receipts' | 'markup'
+  >('info')
   const [actualWorkersCount, setActualWorkersCount] = useState<number>(0)
   const [loadingWorkers, setLoadingWorkers] = useState(true)
-  
+
   // Tab-specific edit states
   const [tabEditStates, setTabEditStates] = useState({
     info: false,
@@ -73,9 +78,9 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
     attachments: false,
     photos: false,
     receipts: false,
-    markup: false
+    markup: false,
   })
-  
+
   // Load work options from database
   const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
 
@@ -91,11 +96,16 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
     npc1000_used: report.npc1000_used,
     npc1000_remaining: report.npc1000_remaining,
     issues: report.issues,
-    status: report.status
+    status: report.status,
   })
 
   useEffect(() => {
-    if (activeTab === 'attachments' || activeTab === 'photos' || activeTab === 'receipts' || activeTab === 'markup') {
+    if (
+      activeTab === 'attachments' ||
+      activeTab === 'photos' ||
+      activeTab === 'receipts' ||
+      activeTab === 'markup'
+    ) {
       fetchPhotos()
     }
   }, [activeTab])
@@ -107,12 +117,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
   const fetchActualWorkers = async () => {
     try {
       setLoadingWorkers(true)
-      
+
       // Use API route instead of direct Supabase
       const response = await fetch(`/api/admin/daily-reports/workers?reportId=${report.id}`, {
-        cache: 'no-store'
+        cache: 'no-store',
       })
-      
+
       if (response.ok) {
         const result = await response.json()
         const workers = result.data || []
@@ -130,19 +140,19 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
     setEditData(prev => ({ ...prev, total_workers: totalWorkers }))
     setActualWorkersCount(totalWorkers)
   }
-  
+
   const handleTabEditToggle = (tab: typeof activeTab) => {
     setTabEditStates(prev => ({
       ...prev,
-      [tab]: !prev[tab]
+      [tab]: !prev[tab],
     }))
   }
-  
+
   const handleTabSaveComplete = () => {
     // Reset edit mode for current tab after save
     setTabEditStates(prev => ({
       ...prev,
-      [activeTab]: false
+      [activeTab]: false,
     }))
   }
 
@@ -175,7 +185,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
 
     try {
       const supabase = createClient()
-      
+
       // Upload file to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('daily-reports')
@@ -201,7 +211,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
           file_type: fileType,
           file_size: file.size,
           mime_type: file.type,
-          created_by: report.created_by
+          created_by: report.created_by,
         })
         .select()
         .single()
@@ -222,7 +232,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
 
     try {
       const supabase = createClient()
-      
+
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('daily-reports')
@@ -231,10 +241,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
       if (storageError) console.error('Storage delete error:', storageError)
 
       // Delete from database
-      const { error: dbError } = await supabase
-        .from('daily_documents')
-        .delete()
-        .eq('id', photoId)
+      const { error: dbError } = await supabase.from('daily_documents').delete().eq('id', photoId)
 
       if (dbError) throw dbError
 
@@ -251,7 +258,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
     setSaving(true)
     try {
       const supabase = createClient()
-      
+
       // First, update the report
       const { error: updateError } = await supabase
         .from('daily_reports')
@@ -268,7 +275,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
           npc1000_remaining: editData.npc1000_remaining,
           issues: editData.issues,
           status: editData.status,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', report.id)
 
@@ -277,10 +284,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
       // Then fetch the updated report with site info
       const { data: updatedReport, error: fetchError } = await supabase
         .from('daily_reports')
-        .select(`
+        .select(
+          `
           *,
           sites(name, address)
-        `)
+        `
+        )
         .eq('id', report.id)
         .single()
 
@@ -290,12 +299,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
         // Just update with the edit data
         setReport(prev => ({
           ...prev,
-          ...editData
+          ...editData,
         }))
       } else if (updatedReport) {
         setReport(prev => ({
           ...prev,
-          ...updatedReport
+          ...updatedReport,
         }))
       }
 
@@ -354,10 +363,10 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
           <div className="flex items-center gap-3">
-            <h2 className="text-xl font-semibold text-gray-900">
-              작업일지 상세보기
-            </h2>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[editData.status]}`}>
+            <h2 className="text-xl font-semibold text-gray-900">작업일지 상세보기</h2>
+            <span
+              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[editData.status]}`}
+            >
               {statusLabels[editData.status]}
             </span>
           </div>
@@ -401,7 +410,16 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              첨부파일 ({photos.filter(p => p.file_type !== 'photo_before' && p.file_type !== 'photo_after' && p.file_type !== 'receipt').length})
+              첨부파일 (
+              {
+                photos.filter(
+                  p =>
+                    p.file_type !== 'photo_before' &&
+                    p.file_type !== 'photo_after' &&
+                    p.file_type !== 'receipt'
+                ).length
+              }
+              )
             </button>
             <button
               onClick={() => setActiveTab('photos')}
@@ -411,7 +429,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              사진 ({photos.filter(p => p.file_type === 'photo_before' || p.file_type === 'photo_after').length})
+              사진 (
+              {
+                photos.filter(p => p.file_type === 'photo_before' || p.file_type === 'photo_after')
+                  .length
+              }
+              )
             </button>
             <button
               onClick={() => setActiveTab('receipts')}
@@ -451,10 +474,18 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 w-1/6">현장명</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 w-1/3">{report.sites?.name}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 w-1/6">주소</td>
-                      <td className="px-4 py-3 text-sm text-gray-900 w-1/3">{report.sites?.address}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 w-1/6">
+                        현장명
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 w-1/3">
+                        {report.sites?.name}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 w-1/6">
+                        주소
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 w-1/3">
+                        {report.sites?.address}
+                      </td>
                     </tr>
 
                     {/* Work Information */}
@@ -464,26 +495,36 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업일</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        작업일
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="date"
                             value={editData.work_date}
-                            onChange={(e) => setEditData(prev => ({ ...prev, work_date: e.target.value }))}
+                            onChange={e =>
+                              setEditData(prev => ({ ...prev, work_date: e.target.value }))
+                            }
                             className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                           />
                         ) : (
-                          format(new Date(report.work_date), 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })
+                          format(new Date(report.work_date), 'yyyy년 MM월 dd일 (EEEE)', {
+                            locale: ko,
+                          })
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업책임자</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        작업책임자
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="text"
                             value={editData.member_name}
-                            onChange={(e) => setEditData(prev => ({ ...prev, member_name: e.target.value }))}
+                            onChange={e =>
+                              setEditData(prev => ({ ...prev, member_name: e.target.value }))
+                            }
                             className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                           />
                         ) : (
@@ -492,20 +533,26 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">공정 유형</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        공정 유형
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="text"
                             value={editData.process_type}
-                            onChange={(e) => setEditData(prev => ({ ...prev, process_type: e.target.value }))}
+                            onChange={e =>
+                              setEditData(prev => ({ ...prev, process_type: e.target.value }))
+                            }
                             className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                           />
                         ) : (
                           report.process_type
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">공수</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        공수
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {loadingWorkers ? (
                           <div className="flex items-center">
@@ -544,13 +591,19 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">부재명</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        부재명
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <div>
                             <CustomSelect
-                              value={editData.component_name?.startsWith('기타:') ? '기타' : editData.component_name || ''}
-                              onValueChange={(value) => {
+                              value={
+                                editData.component_name?.startsWith('기타:')
+                                  ? '기타'
+                                  : editData.component_name || ''
+                              }
+                              onValueChange={value => {
                                 if (value === '기타') {
                                   setEditData(prev => ({ ...prev, component_name: '기타:' }))
                                 } else {
@@ -562,7 +615,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                                 <CustomSelectValue placeholder="선택하세요" />
                               </CustomSelectTrigger>
                               <CustomSelectContent className="bg-white border border-gray-300">
-                                {componentTypes.map((type) => (
+                                {componentTypes.map(type => (
                                   <CustomSelectItem key={type.id} value={type.option_label}>
                                     {type.option_label}
                                   </CustomSelectItem>
@@ -573,7 +626,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                               <input
                                 type="text"
                                 value={editData.component_name.replace('기타:', '')}
-                                onChange={(e) => setEditData(prev => ({ ...prev, component_name: '기타:' + e.target.value }))}
+                                onChange={e =>
+                                  setEditData(prev => ({
+                                    ...prev,
+                                    component_name: '기타:' + e.target.value,
+                                  }))
+                                }
                                 className="w-full mt-2 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                                 placeholder="기타 부재명 입력"
                               />
@@ -583,13 +641,19 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                           report.component_name || '-'
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업공정</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        작업공정
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <div>
                             <CustomSelect
-                              value={editData.work_process?.startsWith('기타:') ? '기타' : editData.work_process || ''}
-                              onValueChange={(value) => {
+                              value={
+                                editData.work_process?.startsWith('기타:')
+                                  ? '기타'
+                                  : editData.work_process || ''
+                              }
+                              onValueChange={value => {
                                 if (value === '기타') {
                                   setEditData(prev => ({ ...prev, work_process: '기타:' }))
                                 } else {
@@ -601,7 +665,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                                 <CustomSelectValue placeholder="선택하세요" />
                               </CustomSelectTrigger>
                               <CustomSelectContent className="bg-white border border-gray-300">
-                                {processTypes.map((type) => (
+                                {processTypes.map(type => (
                                   <CustomSelectItem key={type.id} value={type.option_label}>
                                     {type.option_label}
                                   </CustomSelectItem>
@@ -612,7 +676,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                               <input
                                 type="text"
                                 value={editData.work_process.replace('기타:', '')}
-                                onChange={(e) => setEditData(prev => ({ ...prev, work_process: '기타:' + e.target.value }))}
+                                onChange={e =>
+                                  setEditData(prev => ({
+                                    ...prev,
+                                    work_process: '기타:' + e.target.value,
+                                  }))
+                                }
                                 className="w-full mt-2 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                                 placeholder="기타 작업공정 입력"
                               />
@@ -624,13 +693,17 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업구간</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        작업구간
+                      </td>
                       <td colSpan={3} className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="text"
                             value={editData.work_section}
-                            onChange={(e) => setEditData(prev => ({ ...prev, work_section: e.target.value }))}
+                            onChange={e =>
+                              setEditData(prev => ({ ...prev, work_section: e.target.value }))
+                            }
                             className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             placeholder="작업구간 입력"
                           />
@@ -647,13 +720,20 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">입고량</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        입고량
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="number"
                             value={editData.npc1000_incoming}
-                            onChange={(e) => setEditData(prev => ({ ...prev, npc1000_incoming: parseInt(e.target.value) || 0 }))}
+                            onChange={e =>
+                              setEditData(prev => ({
+                                ...prev,
+                                npc1000_incoming: parseInt(e.target.value) || 0,
+                              }))
+                            }
                             className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             min="0"
                           />
@@ -661,13 +741,20 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                           report.npc1000_incoming.toLocaleString()
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">사용량</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        사용량
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="number"
                             value={editData.npc1000_used}
-                            onChange={(e) => setEditData(prev => ({ ...prev, npc1000_used: parseInt(e.target.value) || 0 }))}
+                            onChange={e =>
+                              setEditData(prev => ({
+                                ...prev,
+                                npc1000_used: parseInt(e.target.value) || 0,
+                              }))
+                            }
                             className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             min="0"
                           />
@@ -677,13 +764,20 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">잔여량</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        잔여량
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {tabEditStates.info ? (
                           <input
                             type="number"
                             value={editData.npc1000_remaining}
-                            onChange={(e) => setEditData(prev => ({ ...prev, npc1000_remaining: parseInt(e.target.value) || 0 }))}
+                            onChange={e =>
+                              setEditData(prev => ({
+                                ...prev,
+                                npc1000_remaining: parseInt(e.target.value) || 0,
+                              }))
+                            }
                             className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             min="0"
                           />
@@ -693,14 +787,21 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                       {tabEditStates.info && (
                         <>
-                          <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">상태</td>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                            상태
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
                             <select
                               value={editData.status}
-                              onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as unknown }))}
+                              onChange={e =>
+                                setEditData(prev => ({
+                                  ...prev,
+                                  status: e.target.value as unknown,
+                                }))
+                              }
                               className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             >
-                              <option value="draft">임시저장</option>
+                              <option value="draft">임시</option>
                               <option value="submitted">제출됨</option>
                             </select>
                           </td>
@@ -719,7 +820,9 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                         {tabEditStates.info ? (
                           <textarea
                             value={editData.issues}
-                            onChange={(e) => setEditData(prev => ({ ...prev, issues: e.target.value }))}
+                            onChange={e =>
+                              setEditData(prev => ({ ...prev, issues: e.target.value }))
+                            }
                             rows={4}
                             className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             placeholder="특이사항을 입력하세요..."
@@ -739,17 +842,23 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작성자</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        작성자
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {report.profiles?.full_name} ({report.profiles?.email})
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작성일시</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        작성일시
+                      </td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {format(new Date(report.created_at), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">최종 수정일시</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">
+                        최종 수정일시
+                      </td>
                       <td colSpan={3} className="px-4 py-3 text-sm text-gray-900">
                         {format(new Date(report.updated_at), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}
                       </td>
@@ -888,35 +997,35 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                 </button>
               )}
             </div>
-            
+
             {/* Save/Close buttons */}
             <div className="flex gap-3">
-            {tabEditStates.info ? (
-              <>
+              {tabEditStates.info ? (
+                <>
+                  <button
+                    onClick={() => handleTabEditToggle('info')}
+                    className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                    disabled={saving}
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    <Save className="h-4 w-4" />
+                    {saving ? '저장 중...' : '저장'}
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={() => handleTabEditToggle('info')}
+                  onClick={onClose}
                   className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                  disabled={saving}
                 >
-                  취소
+                  닫기
                 </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  <Save className="h-4 w-4" />
-                  {saving ? '저장 중...' : '저장'}
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                닫기
-              </button>
-            )}
+              )}
             </div>
           </div>
         </div>

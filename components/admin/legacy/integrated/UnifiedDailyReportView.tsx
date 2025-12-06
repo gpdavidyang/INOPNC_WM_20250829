@@ -1,6 +1,5 @@
 'use client'
 
-
 interface UnifiedDailyReportViewProps {
   reportId: string
   isOpen: boolean
@@ -21,7 +20,11 @@ interface IntegratedReportData {
   report_author: unknown
 }
 
-export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: UnifiedDailyReportViewProps) {
+export default function UnifiedDailyReportView({
+  reportId,
+  isOpen,
+  onClose,
+}: UnifiedDailyReportViewProps) {
   const [data, setData] = useState<IntegratedReportData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,13 +38,13 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
   const fetchIntegratedData = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`/api/admin/daily-reports/${reportId}/integrated`)
       if (!response.ok) {
         throw new Error('Failed to fetch integrated report data')
       }
-      
+
       const result = await response.json()
       setData(result)
     } catch (err) {
@@ -64,7 +67,7 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
               <span>작업일지 통합 보기</span>
               {data?.daily_report && (
                 <Badge variant={data.daily_report.status === 'submitted' ? 'default' : 'secondary'}>
-                  {data.daily_report.status === 'submitted' ? '제출됨' : '임시저장'}
+                  {data.daily_report.status === 'submitted' ? '제출됨' : '임시'}
                 </Badge>
               )}
             </div>
@@ -224,26 +227,35 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                           <div>
                             <label className="text-sm font-medium text-gray-600">상태</label>
                             <Badge className="ml-2">
-                              {data.site.status === 'active' ? '활성' : 
-                               data.site.status === 'completed' ? '완료' : '비활성'}
+                              {data.site.status === 'active'
+                                ? '활성'
+                                : data.site.status === 'completed'
+                                  ? '완료'
+                                  : '비활성'}
                             </Badge>
                           </div>
                         </div>
                         <div className="space-y-4">
                           {data.site.manager_name && (
                             <div>
-                              <label className="text-sm font-medium text-gray-600">현장 담당자</label>
+                              <label className="text-sm font-medium text-gray-600">
+                                현장 담당자
+                              </label>
                               <p className="font-medium">{data.site.manager_name}</p>
                             </div>
                           )}
                           {data.site.safety_manager_name && (
                             <div>
-                              <label className="text-sm font-medium text-gray-600">안전 담당자</label>
+                              <label className="text-sm font-medium text-gray-600">
+                                안전 담당자
+                              </label>
                               <p className="font-medium">{data.site.safety_manager_name}</p>
                             </div>
                           )}
                           <div>
-                            <label className="text-sm font-medium text-gray-600">프로젝트 기간</label>
+                            <label className="text-sm font-medium text-gray-600">
+                              프로젝트 기간
+                            </label>
                             <p className="text-gray-700">
                               {data.site.start_date} ~ {data.site.end_date || '진행중'}
                             </p>
@@ -262,12 +274,12 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                               <div className="flex items-center justify-between mb-2">
                                 <h4 className="font-medium">{customer.name}</h4>
                                 <div className="flex gap-2">
-                                  <Badge variant={customer.is_primary_customer ? 'default' : 'secondary'}>
+                                  <Badge
+                                    variant={customer.is_primary_customer ? 'default' : 'secondary'}
+                                  >
                                     {customer.is_primary_customer ? '주요 고객사' : '협력사'}
                                   </Badge>
-                                  <Badge variant="outline">
-                                    {customer.relationship_type}
-                                  </Badge>
+                                  <Badge variant="outline">{customer.relationship_type}</Badge>
                                 </div>
                               </div>
                               <div className="grid grid-cols-2 gap-4 text-sm">
@@ -291,9 +303,7 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    현장 정보가 없습니다.
-                  </div>
+                  <div className="text-center py-12 text-gray-500">현장 정보가 없습니다.</div>
                 )}
               </TabsContent>
 
@@ -305,7 +315,9 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                     <div className="bg-white rounded-lg border p-4">
                       <h4 className="font-medium mb-2">출근 현황</h4>
                       <div className="text-2xl font-bold text-green-600">
-                        {data.worker_statistics.total_workers - data.worker_statistics.absent_workers}명
+                        {data.worker_statistics.total_workers -
+                          data.worker_statistics.absent_workers}
+                        명
                       </div>
                       <div className="text-sm text-gray-600">
                         총 {data.worker_statistics.total_workers}명 중 출근
@@ -358,12 +370,15 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className={`font-medium ${assignment.is_present ? 'text-green-600' : 'text-red-600'}`}>
+                                <div
+                                  className={`font-medium ${assignment.is_present ? 'text-green-600' : 'text-red-600'}`}
+                                >
                                   {assignment.is_present ? '출근' : '결근'}
                                 </div>
                                 <div className="text-sm text-gray-600">
                                   {assignment.labor_hours || 0}시간
-                                  {assignment.overtime_hours > 0 && ` (+${assignment.overtime_hours})`}
+                                  {assignment.overtime_hours > 0 &&
+                                    ` (+${assignment.overtime_hours})`}
                                 </div>
                               </div>
                             </div>
@@ -377,9 +392,7 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-12 text-gray-500">
-                      작업자 정보가 없습니다.
-                    </div>
+                    <div className="text-center py-12 text-gray-500">작업자 정보가 없습니다.</div>
                   )}
                 </div>
               </TabsContent>
@@ -417,7 +430,7 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                       <div className="text-sm text-gray-600">사용률</div>
                     </div>
                   </div>
-                  
+
                   {/* Usage Progress Bar */}
                   <div className="mt-6">
                     <div className="flex justify-between text-sm text-gray-600 mb-2">
@@ -425,10 +438,10 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                       <span>{data.material_usage.usage_rate}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
+                      <div
                         className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                        style={{ 
-                          width: data.material_usage.usage_rate
+                        style={{
+                          width: data.material_usage.usage_rate,
                         }}
                       />
                     </div>
@@ -444,13 +457,15 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                       <div className="p-4 border-b">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold capitalize">
-                            {type === 'photo' ? '사진' :
-                             type === 'receipt' ? '영수증' :
-                             type === 'document' ? '문서' : type}
+                            {type === 'photo'
+                              ? '사진'
+                              : type === 'receipt'
+                                ? '영수증'
+                                : type === 'document'
+                                  ? '문서'
+                                  : type}
                           </h3>
-                          <Badge variant="outline">
-                            {docs.length}개
-                          </Badge>
+                          <Badge variant="outline">{docs.length}개</Badge>
                         </div>
                       </div>
                       <div className="p-4">
@@ -500,8 +515,10 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                               <div className="flex items-center gap-2 mb-1">
                                 <Calendar className="h-4 w-4 text-gray-400" />
                                 <span className="font-medium">{report.work_date}</span>
-                                <Badge variant={report.status === 'submitted' ? 'default' : 'secondary'}>
-                                  {report.status === 'submitted' ? '제출됨' : '임시저장'}
+                                <Badge
+                                  variant={report.status === 'submitted' ? 'default' : 'secondary'}
+                                >
+                                  {report.status === 'submitted' ? '제출됨' : '임시'}
                                 </Badge>
                               </div>
                               <div className="text-sm text-gray-600">
@@ -521,9 +538,7 @@ export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: Un
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
-                    관련된 작업일지가 없습니다.
-                  </div>
+                  <div className="text-center py-12 text-gray-500">관련된 작업일지가 없습니다.</div>
                 )}
               </TabsContent>
             </Tabs>

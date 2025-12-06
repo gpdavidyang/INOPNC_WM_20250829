@@ -1,6 +1,5 @@
 'use client'
 
-
 interface DailyReport {
   id: string
   work_date: string
@@ -43,13 +42,13 @@ interface SortState {
 }
 
 const statusLabels = {
-  draft: '임시저장',
-  submitted: '제출됨'
+  draft: '임시',
+  submitted: '제출됨',
 }
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-800',
-  submitted: 'bg-blue-100 text-blue-800'
+  submitted: 'bg-blue-100 text-blue-800',
 }
 
 export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyReportsTabProps) {
@@ -58,10 +57,10 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
   const [filter, setFilter] = useState<'all' | 'submitted' | 'draft'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
-  
+
   const [sortState, setSortState] = useState<SortState>({
     field: 'work_date',
-    direction: 'desc'
+    direction: 'desc',
   })
 
   useEffect(() => {
@@ -73,7 +72,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
       setLoading(true)
       let url = `/api/admin/sites/${siteId}/daily-reports`
       const params = new URLSearchParams()
-      
+
       if (filter !== 'all') {
         params.append('status', filter)
       }
@@ -84,7 +83,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
         params.append('sortField', sortState.field)
         params.append('sortDirection', sortState.direction)
       }
-      
+
       if (params.toString()) {
         url += `?${params.toString()}`
       }
@@ -104,7 +103,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
   const handleSort = (field: SortField) => {
     setSortState(prev => ({
       field,
-      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
     }))
   }
 
@@ -112,20 +111,23 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
     if (sortState.field !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
     }
-    return sortState.direction === 'asc' 
-      ? <ChevronUp className="h-4 w-4 text-blue-600" />
-      : <ChevronDown className="h-4 w-4 text-blue-600" />
+    return sortState.direction === 'asc' ? (
+      <ChevronUp className="h-4 w-4 text-blue-600" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-blue-600" />
+    )
   }
 
   const filteredReports = reports.filter(report => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch =
+      searchTerm === '' ||
       report.member_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.process_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.component_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.work_process?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.work_section?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       report.issues?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     return matchesSearch
   })
 
@@ -135,12 +137,12 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
 
   const handleDeleteReport = async (reportId: string) => {
     if (!confirm('작업일지를 삭제하시겠습니까?')) return
-    
+
     try {
       const response = await fetch(`/api/admin/daily-reports/${reportId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       if (response.ok) {
         fetchReports()
         alert('작업일지가 삭제되었습니다.')
@@ -207,7 +209,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
               <Edit className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">임시저장</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">임시</p>
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{draftCount}</p>
             </div>
           </div>
@@ -237,34 +239,33 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                 placeholder="작업자명, 부재명, 공정, 구간, 특이사항으로 검색..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
           </div>
           <div className="flex gap-2">
-            <select 
-              value={filter} 
-              onChange={(e) => setFilter(e.target.value as unknown)}
+            <select
+              value={filter}
+              onChange={e => setFilter(e.target.value as unknown)}
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">모든 상태</option>
               <option value="submitted">제출됨</option>
-              <option value="draft">임시저장</option>
+              <option value="draft">임시</option>
             </select>
-            
+
             <input
               type="month"
               value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
+              onChange={e => setDateFilter(e.target.value)}
               className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
-            
+
             <Link
               href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <Plus className="h-4 w-4" />
-              새 작업일지
+              <Plus className="h-4 w-4" />새 작업일지
             </Link>
           </div>
         </div>
@@ -273,7 +274,11 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
       {/* Results Summary */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          총 <span className="font-semibold text-gray-900 dark:text-gray-100">{filteredReports.length}</span>개의 작업일지
+          총{' '}
+          <span className="font-semibold text-gray-900 dark:text-gray-100">
+            {filteredReports.length}
+          </span>
+          개의 작업일지
         </p>
         <button className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
           <Download className="h-4 w-4" />
@@ -287,7 +292,9 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
           <div className="p-12 text-center">
             <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 dark:text-gray-400">
-              {searchTerm || filter !== 'all' || dateFilter ? '조건에 맞는 작업일지가 없습니다.' : '작성된 작업일지가 없습니다.'}
+              {searchTerm || filter !== 'all' || dateFilter
+                ? '조건에 맞는 작업일지가 없습니다.'
+                : '작성된 작업일지가 없습니다.'}
             </p>
           </div>
         ) : (
@@ -295,12 +302,15 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
             <table className="w-full min-w-[1400px]">
               <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('work_date')}
                   >
                     <div className="flex items-center gap-1">
-                      작업일 <span className="text-blue-600 dark:text-blue-400 text-xs normal-case">(클릭시 상세)</span>
+                      작업일{' '}
+                      <span className="text-blue-600 dark:text-blue-400 text-xs normal-case">
+                        (클릭시 상세)
+                      </span>
                       {getSortIcon('work_date')}
                     </div>
                   </th>
@@ -313,7 +323,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     작업구간
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('member_name')}
                   >
@@ -322,7 +332,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                       {getSortIcon('member_name')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('total_workers')}
                   >
@@ -337,7 +347,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     특이사항
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('status')}
                   >
@@ -349,7 +359,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     문서/상세
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                     onClick={() => handleSort('created_at')}
                   >
@@ -364,8 +374,11 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
-                {filteredReports.map((report) => (
-                  <tr key={report.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                {filteredReports.map(report => (
+                  <tr
+                    key={report.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
@@ -396,8 +409,12 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{report.member_name}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">{report.process_type}</div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {report.member_name}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          {report.process_type}
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -416,21 +433,30 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                       <div className="text-xs">
                         <div className="flex items-center text-gray-700 dark:text-gray-300">
                           <span className="font-medium mr-1">입고:</span>
-                          <span className="text-blue-600 dark:text-blue-400">{report.npc1000_incoming}</span>
+                          <span className="text-blue-600 dark:text-blue-400">
+                            {report.npc1000_incoming}
+                          </span>
                         </div>
                         <div className="flex items-center text-gray-700 dark:text-gray-300">
                           <span className="font-medium mr-1">사용:</span>
-                          <span className="text-orange-600 dark:text-orange-400">{report.npc1000_used}</span>
+                          <span className="text-orange-600 dark:text-orange-400">
+                            {report.npc1000_used}
+                          </span>
                         </div>
                         <div className="flex items-center text-gray-700 dark:text-gray-300">
                           <span className="font-medium mr-1">잔여:</span>
-                          <span className="text-green-600 dark:text-green-400">{report.npc1000_remaining}</span>
+                          <span className="text-green-600 dark:text-green-400">
+                            {report.npc1000_remaining}
+                          </span>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 max-w-xs">
                       {report.issues ? (
-                        <div className="text-xs text-gray-700 dark:text-gray-300 truncate" title={report.issues}>
+                        <div
+                          className="text-xs text-gray-700 dark:text-gray-300 truncate"
+                          title={report.issues}
+                        >
                           {report.issues}
                         </div>
                       ) : (
@@ -438,7 +464,9 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[report.status]}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[report.status]}`}
+                      >
                         {statusLabels[report.status]}
                       </span>
                     </td>
@@ -463,9 +491,13 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
                         </div>
                         {report.profiles?.role && (
                           <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {report.profiles.role === 'admin' ? '관리자' : 
-                             report.profiles.role === 'site_manager' ? '현장담당' :
-                             report.profiles.role === 'worker' ? '작업자' : report.profiles.role}
+                            {report.profiles.role === 'admin'
+                              ? '관리자'
+                              : report.profiles.role === 'site_manager'
+                                ? '현장담당'
+                                : report.profiles.role === 'worker'
+                                  ? '작업자'
+                                  : report.profiles.role}
                           </div>
                         )}
                         <div className="text-xs text-gray-400">
@@ -510,9 +542,9 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500 dark:text-gray-400">
           총 {filteredReports.length}개의 작업일지
-          {filter !== 'all' && ` (${filter === 'submitted' ? '제출됨' : '임시저장'})`}
+          {filter !== 'all' && ` (${filter === 'submitted' ? '제출됨' : '임시'})`}
         </div>
-        
+
         <Link
           href={`/dashboard/admin/daily-reports?site_id=${siteId}`}
           className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"

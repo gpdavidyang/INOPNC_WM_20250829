@@ -554,9 +554,9 @@ const DailyReportsContent: React.FC = () => {
           <div className="fixed bottom-0 left-0 right-0 z-[2001]">
             <div className="bg-white rounded-t-3xl shadow-xl p-5 pb-7">
               <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">임시저장 안내</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">임시 상태 안내</h3>
               <p className="text-sm text-gray-600 mb-3">
-                선택한 임시저장 항목의 내용을 작업일지 작성 페이지로 불러옵니다. 사진/도면은 자동
+                선택한 임시 상태 항목의 내용을 작업일지 작성 페이지로 불러옵니다. 사진/도면은 자동
                 업로드되지 않으며, 작성 페이지에서 추가하실 수 있습니다.
               </p>
               <div className="flex gap-2">

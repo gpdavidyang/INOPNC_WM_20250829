@@ -1,6 +1,5 @@
 'use client'
 
-
 interface DailyReport {
   id: string
   work_date: string
@@ -69,7 +68,7 @@ export default function UnifiedDailyReportListView() {
       ) : (
         <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {reports.map((report) => (
+            {reports.map(report => (
               <li key={report.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -84,12 +83,14 @@ export default function UnifiedDailyReportListView() {
                           <Calendar className="h-4 w-4 mr-1" />
                           {new Date(report.work_date).toLocaleDateString('ko-KR')}
                         </div>
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                          report.status === 'submitted' 
-                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
-                        }`}>
-                          {report.status === 'submitted' ? '제출됨' : '임시저장'}
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            report.status === 'submitted'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400'
+                          }`}
+                        >
+                          {report.status === 'submitted' ? '제출됨' : '임시'}
                         </span>
                       </div>
                       <div className="flex items-center space-x-4 mt-1">
@@ -111,7 +112,7 @@ export default function UnifiedDailyReportListView() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex space-x-2">
                     <Link
                       href={`/dashboard/admin/daily-reports/${report.id}`}

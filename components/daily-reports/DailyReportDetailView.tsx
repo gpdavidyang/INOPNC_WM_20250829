@@ -34,7 +34,7 @@ export function DailyReportDetailView({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'draft':
-        return <Badge className="bg-gray-100 text-gray-800">임시저장</Badge>
+        return <Badge className="bg-gray-100 text-gray-800">임시</Badge>
       case 'submitted':
         return <Badge className="bg-blue-100 text-blue-800">제출됨</Badge>
       case 'approved':

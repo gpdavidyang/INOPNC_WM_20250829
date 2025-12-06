@@ -4,7 +4,7 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
@@ -18,12 +18,21 @@ export async function GET() {
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase
+    const searchParams = new URL(request.url).searchParams
+    const optionType = searchParams.get('option_type')
+
+    let query = supabase
       .from('work_option_settings')
       .select('*')
       .eq('is_active', true)
       .order('option_type', { ascending: true })
       .order('display_order', { ascending: true })
+
+    if (optionType) {
+      query = query.eq('option_type', optionType)
+    }
+
+    const { data, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

@@ -72,7 +72,7 @@ export default function DocumentDetailModal({
   const getStatusBadge = (status: string) => {
     const configs = {
       active: { label: '활성', className: 'bg-green-100 text-green-800' },
-      draft: { label: '임시저장', className: 'bg-gray-100 text-gray-800' },
+      draft: { label: '임시', className: 'bg-gray-100 text-gray-800' },
       pending: { label: '검토중', className: 'bg-yellow-100 text-yellow-800' },
       approved: { label: '승인됨', className: 'bg-blue-100 text-blue-800' },
       rejected: { label: '반려됨', className: 'bg-red-100 text-red-800' },

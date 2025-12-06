@@ -2,19 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { buildVariantStoragePaths, generateImageVariants } from '@/lib/admin/site-photos'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 60
-
-function sanitizeFilename(filename: string): string {
-  const ext = filename.split('.').pop() || 'jpg'
-  const base = filename
-    .replace(/[^\x20-\x7E]/g, '')
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9._-]/g, '')
-  return base || `photo.${ext}`
-}
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -78,22 +70,51 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           // @ts-ignore - Buffer available in node runtime
           const buffer = Buffer.from(arrayBuffer)
           order += 1
-          const sanitized = sanitizeFilename(file.name)
-          const path = `daily-reports/${reportId}/additional/${type}/${Date.now()}_${order}_${sanitized}`
-          const { error: upErr } = await (svc as any).storage
+
+          const paths = buildVariantStoragePaths(reportId, type, file.name)
+          const { displayBuffer, thumbBuffer } = await generateImageVariants(buffer)
+
+          // Original
+          const { error: origErr } = await (svc as any).storage
             .from('daily-reports')
-            .upload(path, buffer, { contentType: file.type || 'image/jpeg', upsert: false })
-          if (upErr) throw upErr
+            .upload(paths.originalPath, buffer, {
+              contentType: file.type || 'image/jpeg',
+              upsert: false,
+            })
+          if (origErr) throw origErr
+
+          // Display (1280w)
+          const { error: displayErr } = await (svc as any).storage
+            .from('daily-reports')
+            .upload(paths.displayPath, displayBuffer, {
+              contentType: 'image/jpeg',
+              upsert: false,
+            })
+          if (displayErr) throw displayErr
+
+          // Thumb (400w)
+          const { error: thumbErr } = await (svc as any).storage
+            .from('daily-reports')
+            .upload(paths.thumbPath, thumbBuffer, {
+              contentType: 'image/jpeg',
+              upsert: false,
+            })
+          if (thumbErr) throw thumbErr
+
           const {
-            data: { publicUrl },
-          } = (svc as any).storage.from('daily-reports').getPublicUrl(path)
+            data: { publicUrl: displayUrl },
+          } = (svc as any).storage.from('daily-reports').getPublicUrl(paths.displayPath)
+          const {
+            data: { publicUrl: thumbUrl },
+          } = (svc as any).storage.from('daily-reports').getPublicUrl(paths.thumbPath)
+
           const { error: dbErr } = await (svc as any)
             .from('daily_report_additional_photos')
             .insert({
               daily_report_id: reportId,
               photo_type: type,
-              file_url: publicUrl,
-              file_path: path,
+              file_url: displayUrl,
+              file_path: paths.originalPath,
               file_name: file.name,
               file_size: file.size,
               description: '',
@@ -104,6 +125,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           uploaded += 1
         } catch (e: any) {
           errors.push(`${file.name}: ${e?.message || 'upload failed'}`)
+        } finally {
+          // no-op
         }
       }
     }

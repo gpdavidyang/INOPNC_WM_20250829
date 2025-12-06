@@ -1,16 +1,15 @@
 'use client'
 
-
 export class CSVExporter {
   static exportDailyReports(
-    reports: DailyReport[], 
-    sites: Site[], 
+    reports: DailyReport[],
+    sites: Site[],
     options: {
       fileName?: string
       includeBOM?: boolean
     } = {}
   ): Promise<{ success: boolean; fileName?: string; error?: string }> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       try {
         // Prepare headers (Korean)
         const headers = [
@@ -26,13 +25,13 @@ export class CSVExporter {
           '특이사항',
           '작성일시',
           '제출일시',
-          '승인일시'
+          '승인일시',
         ]
 
         // Prepare data rows
         const rows = reports.map(report => {
           const site = sites.find(s => s.id === report.site_id)
-          
+
           return [
             format(new Date(report.work_date), 'yyyy-MM-dd (EEEE)', { locale: ko }),
             site?.name || '-',
@@ -45,14 +44,18 @@ export class CSVExporter {
             this.getStatusText(report.status || undefined),
             this.escapeCsvField(report.issues || '-'),
             format(new Date(report.created_at), 'yyyy-MM-dd HH:mm'),
-            (report as unknown).submitted_at ? format(new Date((report as unknown).submitted_at), 'yyyy-MM-dd HH:mm') : '-',
-            (report as unknown).approved_at ? format(new Date((report as unknown).approved_at), 'yyyy-MM-dd HH:mm') : '-'
+            (report as unknown).submitted_at
+              ? format(new Date((report as unknown).submitted_at), 'yyyy-MM-dd HH:mm')
+              : '-',
+            (report as unknown).approved_at
+              ? format(new Date((report as unknown).approved_at), 'yyyy-MM-dd HH:mm')
+              : '-',
           ]
         })
 
         // Create CSV content
         let csvContent = ''
-        
+
         // Add BOM for proper Korean encoding in Excel
         if (options.includeBOM !== false) {
           csvContent = '\uFEFF'
@@ -67,15 +70,15 @@ export class CSVExporter {
         })
 
         // Generate filename
-        const fileName = options.fileName || 
-          `일일보고서_${format(new Date(), 'yyyy-MM-dd_HHmm')}.csv`
+        const fileName =
+          options.fileName || `일일보고서_${format(new Date(), 'yyyy-MM-dd_HHmm')}.csv`
 
         // Create and download file
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-        
+
         if ((navigator as unknown).msSaveBlob) {
           // IE 10+
-          (navigator as unknown).msSaveBlob(blob, fileName)
+          ;(navigator as unknown).msSaveBlob(blob, fileName)
         } else {
           const link = document.createElement('a')
           if (link.download !== undefined) {
@@ -90,15 +93,15 @@ export class CSVExporter {
           }
         }
 
-        resolve({ 
-          success: true, 
-          fileName 
+        resolve({
+          success: true,
+          fileName,
         })
       } catch (error) {
         console.error('CSV export error:', error)
-        resolve({ 
-          success: false, 
-          error: error instanceof Error ? error.message : 'CSV 내보내기에 실패했습니다.' 
+        resolve({
+          success: false,
+          error: error instanceof Error ? error.message : 'CSV 내보내기에 실패했습니다.',
         })
       }
     })
@@ -113,11 +116,16 @@ export class CSVExporter {
 
   private static getStatusText(status?: string): string {
     switch (status) {
-      case 'draft': return '임시저장'
-      case 'submitted': return '제출됨'
-      case 'approved': return '승인됨'
-      case 'rejected': return '반려됨'
-      default: return '-'
+      case 'draft':
+        return '임시'
+      case 'submitted':
+        return '제출됨'
+      case 'approved':
+        return '승인됨'
+      case 'rejected':
+        return '반려됨'
+      default:
+        return '-'
     }
   }
 }

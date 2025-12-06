@@ -13,6 +13,11 @@ import {
 import type { DailyReport, DailyReportStatus } from '@/types'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
 import type { Database } from '@/types/database'
+import {
+  buildVariantStoragePaths,
+  deriveVariantPathsFromStoredPath,
+  generateImageVariants,
+} from '@/lib/admin/site-photos'
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -831,28 +836,59 @@ export async function uploadAdditionalPhotos(
           continue
         }
 
-        // Generate unique filename
-        const fileExt = photoData.file.name.split('.').pop()
-        const fileName = `${reportId}_${photoData.type}_${nextOrder}_${Date.now()}.${fileExt}`
-        const filePath = `daily-reports/${reportId}/additional/${photoData.type}/${fileName}`
+        const arrayBuffer = await photoData.file.arrayBuffer()
+        // @ts-ignore Buffer available in node runtime
+        const buffer = Buffer.from(arrayBuffer)
+        const paths = buildVariantStoragePaths(reportId, photoData.type, photoData.file.name)
+        const { displayBuffer, thumbBuffer } = await generateImageVariants(buffer)
 
-        // Upload to Supabase Storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        // Upload original
+        const { error: origError } = await supabase.storage
           .from('daily-reports')
-          .upload(filePath, photoData.file, {
+          .upload(paths.originalPath, buffer, {
             upsert: false,
             contentType: photoData.file.type,
           })
-
-        if (uploadError) {
-          errors.push(`${photoData.file.name}: 업로드 실패 - ${uploadError.message}`)
+        if (origError) {
+          errors.push(`${photoData.file.name}: 업로드 실패 - ${origError.message}`)
           continue
         }
 
-        // Get public URL
+        // Upload display
+        const { error: displayError } = await supabase.storage
+          .from('daily-reports')
+          .upload(paths.displayPath, displayBuffer, {
+            upsert: false,
+            contentType: 'image/jpeg',
+          })
+        if (displayError) {
+          // clean up original
+          await supabase.storage.from('daily-reports').remove([paths.originalPath])
+          errors.push(`${photoData.file.name}: 업로드 실패 - ${displayError.message}`)
+          continue
+        }
+
+        // Upload thumb
+        const { error: thumbError } = await supabase.storage
+          .from('daily-reports')
+          .upload(paths.thumbPath, thumbBuffer, {
+            upsert: false,
+            contentType: 'image/jpeg',
+          })
+        if (thumbError) {
+          await supabase.storage
+            .from('daily-reports')
+            .remove([paths.originalPath, paths.displayPath])
+          errors.push(`${photoData.file.name}: 업로드 실패 - ${thumbError.message}`)
+          continue
+        }
+
         const {
-          data: { publicUrl },
-        } = supabase.storage.from('daily-reports').getPublicUrl(uploadData.path)
+          data: { publicUrl: displayUrl },
+        } = supabase.storage.from('daily-reports').getPublicUrl(paths.displayPath)
+        const {
+          data: { publicUrl: thumbUrl },
+        } = supabase.storage.from('daily-reports').getPublicUrl(paths.thumbPath)
 
         // Save to database
         const { data: dbData, error: dbError } = await supabase
@@ -860,8 +896,8 @@ export async function uploadAdditionalPhotos(
           .insert({
             daily_report_id: reportId,
             photo_type: photoData.type,
-            file_url: publicUrl,
-            file_path: uploadData.path,
+            file_url: displayUrl,
+            file_path: paths.originalPath,
             file_name: photoData.file.name,
             file_size: photoData.file.size,
             description: photoData.description || '',
@@ -873,7 +909,9 @@ export async function uploadAdditionalPhotos(
 
         if (dbError) {
           // If database insert fails, clean up storage
-          await supabase.storage.from('daily-reports').remove([uploadData.path])
+          await supabase.storage
+            .from('daily-reports')
+            .remove([paths.originalPath, paths.displayPath, paths.thumbPath])
 
           errors.push(`${photoData.file.name}: 데이터베이스 저장 실패 - ${dbError.message}`)
           continue
@@ -883,6 +921,8 @@ export async function uploadAdditionalPhotos(
           id: dbData.id,
           filename: dbData.file_name,
           url: dbData.file_url,
+          thumbnail_url: dbData.thumbnail_url ?? thumbUrl,
+          display_url: dbData.display_url ?? displayUrl,
           path: dbData.file_path,
           storage_path: dbData.file_path,
           photo_type: dbData.photo_type as 'before' | 'after',
@@ -949,10 +989,12 @@ export async function deleteAdditionalPhoto(photoId: string) {
       throw new AppError('사진을 삭제할 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
     }
 
-    // Delete from storage
-    const { error: storageError } = await supabase.storage
-      .from('daily-reports')
-      .remove([photo.file_path])
+    // Delete from storage (all variants)
+    const variants = deriveVariantPathsFromStoredPath(photo.file_path)
+    const removeList = Array.from(
+      new Set([photo.file_path, variants.originalPath, variants.displayPath, variants.thumbPath])
+    )
+    const { error: storageError } = await supabase.storage.from('daily-reports').remove(removeList)
 
     if (storageError) {
       console.warn('Storage deletion failed:', storageError)

@@ -682,7 +682,7 @@ export const WorkLogHomePage: React.FC = () => {
             <div className="task-diary-right">
               <span className={`status-badge ${workLog.status}`}>
                 {workLog.status === 'draft'
-                  ? '임시저장'
+                  ? '임시'
                   : workLog.status === 'submitted'
                     ? '제출'
                     : workLog.status === 'approved'
@@ -796,7 +796,7 @@ export const WorkLogHomePage: React.FC = () => {
             {readOnly
               ? '표시할 작업일지가 없습니다.'
               : tab === 'draft'
-                ? '임시저장된 작업일지가 없습니다.'
+                ? '임시 상태 작업일지가 없습니다.'
                 : '제출 또는 승인된 작업일지가 없습니다.'}
           </p>
           <p className="mt-2 text-sm text-[#667085]">
@@ -804,7 +804,7 @@ export const WorkLogHomePage: React.FC = () => {
               ? '파트너 전용 조회 화면입니다.'
               : tab === 'draft'
                 ? '새로운 작업일지를 작성해보세요.'
-                : '임시저장을 제출로 전환해보세요.'}
+                : '임시 상태를 제출로 전환해보세요.'}
           </p>
         </div>
       )
@@ -1389,7 +1389,7 @@ export const WorkLogHomePage: React.FC = () => {
                 className={`line-tab ${activeTab === 'draft' ? 'active' : ''}`}
                 onClick={() => setActiveTab('draft')}
               >
-                임시저장
+                임시
               </button>
               <button
                 type="button"
@@ -1558,9 +1558,9 @@ export const WorkLogHomePage: React.FC = () => {
             <div className="fixed bottom-0 left-0 right-0 z-[2001]">
               <div className="bg-white rounded-t-3xl shadow-xl p-5 pb-7">
                 <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">임시저장 안내</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">임시 상태 안내</h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  선택한 임시저장 항목의 내용을 작업일지 작성 페이지로 불러옵니다. 사진/도면은 자동
+                  선택한 임시 상태 항목의 내용을 작업일지 작성 페이지로 불러옵니다. 사진/도면은 자동
                   업로드되지 않으며, 작성 페이지에서 추가하실 수 있습니다.
                 </p>
                 <div className="flex gap-2">

@@ -180,7 +180,13 @@ export const integratedResponseToUnifiedReport = (
   const dailyReport = response.daily_report || {}
   const attachments = mapDocumentsToAttachments(response.documents)
   const additionalPhotos = mapAdditionalPhotos(dailyReport)
-  const workerAssignments = mapWorkers(response.worker_assignments)
+  const workerSource =
+    (Array.isArray(response.worker_assignments) && response.worker_assignments.length > 0
+      ? response.worker_assignments
+      : Array.isArray((dailyReport as any)?.worker_entries)
+        ? (dailyReport as any).worker_entries
+        : []) || []
+  const workerAssignments = mapWorkers(workerSource)
   const materials = mapMaterials(dailyReport.material_usage)
 
   const memberTypes = ensureArray(
@@ -190,6 +196,8 @@ export const integratedResponseToUnifiedReport = (
     dailyReport.additional_notes?.workProcesses ?? dailyReport.process_type
   )
   const workTypes = ensureArray(dailyReport.additional_notes?.workTypes)
+  const workEntries = mapWorkEntries(dailyReport)
+  const primaryEntry = workEntries[0]
 
   return {
     id: dailyReport.id ? String(dailyReport.id) : undefined,
@@ -205,7 +213,7 @@ export const integratedResponseToUnifiedReport = (
     memberTypes,
     workProcesses,
     workTypes,
-    workEntries: mapWorkEntries(dailyReport),
+    workEntries,
     taskGroups: mapTaskGroups(dailyReport),
     workers: workerAssignments,
     materials,
@@ -222,9 +230,9 @@ export const integratedResponseToUnifiedReport = (
     notes: dailyReport.notes || '',
     progress: dailyReport.progress_rate ?? undefined,
     meta: {
-      componentName: dailyReport.component_name,
-      workProcess: dailyReport.work_process,
-      workSection: dailyReport.work_section,
+      componentName: dailyReport.component_name || primaryEntry?.memberName || '',
+      workProcess: dailyReport.work_process || primaryEntry?.processType || '',
+      workSection: dailyReport.work_section || primaryEntry?.workSection || '',
       totalWorkers: response.worker_statistics?.total_workers,
       totalHours: response.worker_statistics?.total_hours,
       workContents: dailyReport.additional_notes?.workContents || [],

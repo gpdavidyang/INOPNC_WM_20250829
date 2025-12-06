@@ -1,21 +1,42 @@
 'use client'
 
-import React, { useState } from 'react'
-import { MANPOWER_VALUES } from '@/types/worklog'
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  FALLBACK_LABOR_HOUR_DEFAULT,
+  FALLBACK_LABOR_HOUR_OPTIONS,
+} from '@/lib/labor/labor-hour-options'
 
 interface WorkCardProps {
   cardId: number
   onRemove?: () => void
   showRemoveButton?: boolean
+  laborHourOptions?: readonly number[]
 }
 
 export const WorkCard: React.FC<WorkCardProps> = ({
   cardId,
   onRemove,
   showRemoveButton = false,
+  laborHourOptions = FALLBACK_LABOR_HOUR_OPTIONS,
 }) => {
-  const laborValues = Array.from(MANPOWER_VALUES)
-  const [laborCount, setLaborCount] = useState(laborValues.includes(1) ? 1 : laborValues[0])
+  const laborValues = useMemo(() => {
+    const options =
+      laborHourOptions && laborHourOptions.length > 0
+        ? Array.from(laborHourOptions)
+        : Array.from(FALLBACK_LABOR_HOUR_OPTIONS)
+    return options
+  }, [laborHourOptions])
+  const [laborCount, setLaborCount] = useState(() =>
+    laborValues.includes(1) ? 1 : (laborValues[0] ?? FALLBACK_LABOR_HOUR_DEFAULT)
+  )
+  useEffect(() => {
+    setLaborCount(prev => {
+      if (laborValues.includes(prev)) {
+        return prev
+      }
+      return laborValues.includes(1) ? 1 : (laborValues[0] ?? FALLBACK_LABOR_HOUR_DEFAULT)
+    })
+  }, [laborValues])
   const [selectedPart, setSelectedPart] = useState('')
   const [selectedProc, setSelectedProc] = useState('')
   const [selectedArea, setSelectedArea] = useState('')

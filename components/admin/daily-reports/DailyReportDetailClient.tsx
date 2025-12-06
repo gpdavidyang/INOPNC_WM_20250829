@@ -1,11 +1,11 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { LayoutGrid, List } from 'lucide-react'
+import { GripVertical, LayoutGrid, List, Loader2, Trash2 } from 'lucide-react'
 import type {
   UnifiedAttachment,
   UnifiedDailyReport,
@@ -17,6 +17,7 @@ import {
   integratedResponseToUnifiedReport,
   type AdminIntegratedResponse,
 } from '@/lib/daily-reports/unified-admin'
+import { useToast } from '@/components/ui/use-toast'
 
 interface DailyReportDetailClientProps {
   reportId: string
@@ -62,6 +63,34 @@ const formatNumber = (value: unknown, fractionDigits = 1) => {
 
 const WORK_CONTENT_DESCRIPTION = '부재명 / 작업공정 / 구간 / 상세'
 
+type PhotoBuckets = {
+  before: AdditionalPhotoData[]
+  after: AdditionalPhotoData[]
+}
+
+const buildPhotoBuckets = (photos?: AdditionalPhotoData[]): PhotoBuckets => {
+  const list = Array.isArray(photos) ? [...photos] : []
+  const normalize = (items: AdditionalPhotoData[]) =>
+    items
+      .sort((a, b) => (a.upload_order ?? 0) - (b.upload_order ?? 0))
+      .map((photo, index) => ({ ...photo, upload_order: index + 1 }))
+
+  const before = normalize(list.filter(photo => photo.photo_type === 'before'))
+  const after = normalize(list.filter(photo => photo.photo_type === 'after'))
+
+  return { before, after }
+}
+
+const cloneBuckets = (input: PhotoBuckets): PhotoBuckets => ({
+  before: input.before.map(photo => ({ ...photo })),
+  after: input.after.map(photo => ({ ...photo })),
+})
+
+const mergeBuckets = (buckets: PhotoBuckets): AdditionalPhotoData[] => [
+  ...buckets.before,
+  ...buckets.after,
+]
+
 const mapWorkersToStats = (workers: UnifiedWorkerEntry[]): WorkerStatistics => {
   return workers.reduce(
     (stats, worker) => {
@@ -83,11 +112,19 @@ export default function DailyReportDetailClient({
   author,
   initialReport,
 }: DailyReportDetailClientProps) {
+  const { toast } = useToast()
   const [report, setReport] = useState<UnifiedDailyReport | null>(initialReport ?? null)
   const [integrated, setIntegrated] = useState<AdminIntegratedResponse | null>(null)
   const [loading, setLoading] = useState(!initialReport)
   const [error, setError] = useState<string | null>(null)
   const [photosViewMode, setPhotosViewMode] = useState<'preview' | 'list'>('preview')
+  const [photoBuckets, setPhotoBuckets] = useState<PhotoBuckets>(() =>
+    buildPhotoBuckets(initialReport?.additionalPhotos)
+  )
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set())
+  const [photoActionLoading, setPhotoActionLoading] = useState(false)
+  const [orderSaving, setOrderSaving] = useState(false)
+  const dragRef = useRef<{ type: 'before' | 'after'; index: number } | null>(null)
 
   useEffect(() => {
     setReport(initialReport ?? null)
@@ -160,6 +197,214 @@ export default function DailyReportDetailClient({
     }
     return initialWorkerStats
   }, [integrated, report])
+
+  useEffect(() => {
+    setPhotoBuckets(buildPhotoBuckets(report?.additionalPhotos))
+    setSelectedPhotoIds(new Set())
+  }, [report?.additionalPhotos])
+
+  const updateReportPhotos = (next: PhotoBuckets) => {
+    setPhotoBuckets(next)
+    setReport(prev =>
+      prev
+        ? {
+            ...prev,
+            additionalPhotos: mergeBuckets(next),
+          }
+        : prev
+    )
+  }
+
+  const totalPhotoCount = photoBuckets.before.length + photoBuckets.after.length
+  const selectedCount = selectedPhotoIds.size
+  const reorderDisabled = photoActionLoading || orderSaving
+
+  const togglePhotoSelection = (photoId?: string | null) => {
+    if (!photoId) return
+    setSelectedPhotoIds(prev => {
+      const next = new Set(prev)
+      if (next.has(photoId)) {
+        next.delete(photoId)
+      } else {
+        next.add(photoId)
+      }
+      return next
+    })
+  }
+
+  const toggleGroupSelection = (type: 'before' | 'after') => {
+    const ids = photoBuckets[type].map(photo => photo.id).filter((id): id is string => Boolean(id))
+    if (ids.length === 0) return
+    const allSelected = ids.every(id => selectedPhotoIds.has(id))
+    setSelectedPhotoIds(prev => {
+      const next = new Set(prev)
+      if (allSelected) {
+        ids.forEach(id => next.delete(id))
+      } else {
+        ids.forEach(id => next.add(id))
+      }
+      return next
+    })
+  }
+
+  const toggleAllSelection = () => {
+    if (totalPhotoCount === 0) return
+    const ids = [...photoBuckets.before, ...photoBuckets.after]
+      .map(photo => photo.id)
+      .filter((id): id is string => Boolean(id))
+    if (ids.length === 0) return
+    const allSelected = ids.every(id => selectedPhotoIds.has(id))
+    setSelectedPhotoIds(allSelected ? new Set() : new Set(ids))
+  }
+
+  const persistOrder = async (type: 'before' | 'after', list: AdditionalPhotoData[]) => {
+    const updates = list
+      .map((photo, index) => ({
+        id: photo.id,
+        upload_order: index + 1,
+      }))
+      .filter((item): item is { id: string; upload_order: number } => Boolean(item.id))
+
+    if (updates.length === 0) return
+
+    const response = await fetch(
+      `/api/admin/daily-reports/${encodeURIComponent(reportId)}/additional-photos/reorder`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ updates }),
+      }
+    )
+    const payload = await response.json().catch(() => ({}))
+    if (!response.ok || payload?.success === false) {
+      throw new Error(payload?.error || '순서를 저장하지 못했습니다.')
+    }
+  }
+
+  const handleReorder = (type: 'before' | 'after', fromIndex: number, toIndex: number) => {
+    if (reorderDisabled) return
+    if (fromIndex === toIndex) return
+    const list = photoBuckets[type]
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= list.length ||
+      toIndex >= list.length ||
+      list.length < 2
+    ) {
+      return
+    }
+    const previousState = cloneBuckets(photoBuckets)
+    const nextState = cloneBuckets(photoBuckets)
+    const workingList = nextState[type]
+    const [moved] = workingList.splice(fromIndex, 1)
+    workingList.splice(toIndex, 0, moved)
+    nextState[type] = workingList.map((photo, index) => ({ ...photo, upload_order: index + 1 }))
+    updateReportPhotos(nextState)
+    setOrderSaving(true)
+    persistOrder(type, nextState[type])
+      .then(() => {
+        toast({ title: '순서를 변경했습니다.' })
+      })
+      .catch(error => {
+        console.error('[daily-report-detail] reorder failed', error)
+        updateReportPhotos(previousState)
+        toast({
+          title: '순서 변경 실패',
+          description:
+            error instanceof Error ? error.message : '순서를 저장하는 중 오류가 발생했습니다.',
+          variant: 'destructive',
+        })
+      })
+      .finally(() => setOrderSaving(false))
+  }
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedPhotoIds).filter(Boolean)
+    if (ids.length === 0 || photoActionLoading) return
+    setPhotoActionLoading(true)
+    const failed: string[] = []
+    for (const id of ids) {
+      try {
+        const response = await fetch(`/api/mobile/media/photos/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok || result?.error) {
+          throw new Error(result?.error || '삭제 실패')
+        }
+      } catch (err) {
+        console.error('[daily-report-detail] delete photo error', err)
+        failed.push(id)
+      }
+    }
+    const deletedIds = ids.filter(id => !failed.includes(id))
+    if (deletedIds.length > 0) {
+      const nextState: PhotoBuckets = {
+        before: photoBuckets.before
+          .filter(photo => !deletedIds.includes(photo.id ?? ''))
+          .map((photo, index) => ({ ...photo, upload_order: index + 1 })),
+        after: photoBuckets.after
+          .filter(photo => !deletedIds.includes(photo.id ?? ''))
+          .map((photo, index) => ({ ...photo, upload_order: index + 1 })),
+      }
+      updateReportPhotos(nextState)
+      setSelectedPhotoIds(prev => {
+        const next = new Set(prev)
+        deletedIds.forEach(id => next.delete(id))
+        return next
+      })
+      try {
+        await Promise.all([
+          persistOrder('before', nextState.before),
+          persistOrder('after', nextState.after),
+        ])
+      } catch (err) {
+        console.warn('[daily-report-detail] reorder after delete failed', err)
+      }
+      toast({
+        title: '사진 삭제 완료',
+        description: `${deletedIds.length}건의 사진을 삭제했습니다.`,
+      })
+    }
+    if (failed.length > 0) {
+      toast({
+        title: '일부 사진 삭제 실패',
+        description: `${failed.length}건의 사진을 삭제하지 못했습니다.`,
+        variant: 'destructive',
+      })
+    }
+    setPhotoActionLoading(false)
+  }
+
+  const handleDragStart =
+    (type: 'before' | 'after', index: number) => (event: ReactDragEvent<HTMLElement>) => {
+      if (reorderDisabled) return
+      dragRef.current = { type, index }
+      event.dataTransfer?.setData('text/plain', `${type}-${index}`)
+    }
+
+  const handleDragOver =
+    (type: 'before' | 'after', index: number) => (event: ReactDragEvent<HTMLElement>) => {
+      if (reorderDisabled) return
+      if (!dragRef.current || dragRef.current.type !== type) return
+      event.preventDefault()
+    }
+
+  const handleDrop =
+    (type: 'before' | 'after', index: number) => (event: ReactDragEvent<HTMLElement>) => {
+      if (!dragRef.current || dragRef.current.type !== type) return
+      event.preventDefault()
+      const { index: fromIndex } = dragRef.current
+      dragRef.current = null
+      handleReorder(type, fromIndex, index)
+    }
+
+  const handleDragEnd = () => {
+    dragRef.current = null
+  }
 
   const attachments = useMemo(
     () => ({
@@ -258,13 +503,6 @@ export default function DailyReportDetailClient({
   }
 
   const renderArray = (values?: string[]) => (values && values.length > 0 ? values.join(', ') : '-')
-
-  const documentsLinkUrl = useMemo(() => {
-    const params = new URLSearchParams()
-    if (report?.siteId) params.set('siteId', report.siteId)
-    params.set('worklogId', reportId)
-    return `/documents/hub?${params.toString()}`
-  }, [report?.siteId, reportId])
 
   const memberNames = useMemo(() => {
     const entries = (report?.workEntries || [])
@@ -391,175 +629,298 @@ export default function DailyReportDetailClient({
   }
 
   const renderAdditionalPhotos = () => {
-    const photos = report?.additionalPhotos || []
-    if (photos.length === 0) return null
+    if (totalPhotoCount === 0) return null
 
-    const sorted = [...photos].sort((a, b) => {
-      if (a.photo_type === b.photo_type) {
-        return (a.upload_order ?? 0) - (b.upload_order ?? 0)
-      }
-      return a.photo_type === 'before' ? -1 : 1
-    })
-    const before = sorted.filter(photo => photo.photo_type === 'before')
-    const after = sorted.filter(photo => photo.photo_type === 'after')
-    const totalCount = photos.length
+    const renderPreviewGroup = (title: string, type: 'before' | 'after') => {
+      const items = photoBuckets[type]
+      const ids = items.map(photo => photo.id).filter((id): id is string => Boolean(id))
+      const groupSelected = ids.length > 0 && ids.every(id => selectedPhotoIds.has(id))
 
-    const renderPreviewGroup = (title: string, items: typeof photos) => (
-      <div className="space-y-2">
-        <div className="text-sm font-medium text-foreground">{title}</div>
-        {items.length === 0 ? (
-          <div className="flex h-24 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
-            사진 없음
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-foreground">{title}</div>
+            {items.length > 0 && (
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4"
+                  checked={groupSelected}
+                  onChange={() => toggleGroupSelection(type)}
+                />
+                선택
+              </label>
+            )}
           </div>
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {items.map(photo => (
-              <div
-                key={`${title}-${photo.id ?? photo.filename}`}
-                className="overflow-hidden rounded-lg border bg-card shadow-sm"
-              >
-                <div className="relative h-48 w-full bg-muted">
-                  {photo.url ? (
-                    <Image
-                      src={photo.url}
-                      alt={photo.filename || 'photo'}
-                      fill
-                      sizes="(min-width: 768px) 50vw, 100vw"
-                      className="object-cover"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                      미리보기 없음
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 p-3 text-sm text-muted-foreground">
+          {items.length === 0 ? (
+            <div className="flex h-24 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
+              사진 없음
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {items.map((photo, index) => {
+                const key = photo.id || `${type}-${photo.filename}-${index}`
+                const isSelected = photo.id ? selectedPhotoIds.has(photo.id) : false
+                const draggableEnabled = !reorderDisabled && items.length > 1 && Boolean(photo.id)
+
+                return (
                   <div
-                    className="text-sm font-semibold text-foreground"
-                    title={photo.filename || ''}
+                    key={key}
+                    className="relative overflow-hidden rounded-lg border bg-card shadow-sm"
+                    draggable={draggableEnabled || undefined}
+                    onDragStart={handleDragStart(type, index)}
+                    onDragOver={handleDragOver(type, index)}
+                    onDrop={handleDrop(type, index)}
+                    onDragEnd={handleDragEnd}
                   >
-                    {photo.filename || '사진'}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="font-medium text-foreground">{title}</span>
-                    <span>{photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}</span>
-                  </div>
-                  <div className="text-xs">업로더: {photo.uploaded_by_name || '알 수 없음'}</div>
-                  {photo.description && (
-                    <div className="text-sm leading-relaxed text-foreground">
-                      {photo.description}
+                    <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={isSelected}
+                        disabled={!photo.id}
+                        onChange={event => {
+                          event.stopPropagation()
+                          togglePhotoSelection(photo.id)
+                        }}
+                        onClick={event => event.stopPropagation()}
+                      />
+                      <GripVertical className="h-4 w-4" />
                     </div>
-                  )}
-                  <div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleOpenFile(photo)}
-                      disabled={!hasFileReference(photo)}
-                    >
-                      원본 보기
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-
-    const renderListGroup = (title: string, items: typeof photos) => (
-      <div className="rounded-lg border bg-muted/20">
-        <div className="flex items-center justify-between border-b px-3 py-2">
-          <div className="text-sm font-semibold text-foreground">{title}</div>
-          <Badge variant="secondary">{items.length}장</Badge>
-        </div>
-        {items.length === 0 ? (
-          <div className="flex h-24 items-center justify-center text-xs text-muted-foreground">
-            사진 없음
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-xs text-muted-foreground">
-              <thead>
-                <tr className="bg-muted/40 text-left uppercase tracking-wide">
-                  <th className="px-3 py-2 font-medium">미리보기</th>
-                  <th className="px-3 py-2 font-medium">파일명</th>
-                  <th className="px-3 py-2 font-medium">업로드일</th>
-                  <th className="px-3 py-2 font-medium">업로더</th>
-                  <th className="px-3 py-2 font-medium">메모</th>
-                  <th className="px-3 py-2 font-medium">원본</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {items.map(photo => (
-                  <tr key={photo.id || photo.filename} className="bg-background/70">
-                    <td className="px-3 py-2">
-                      <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
-                        {photo.url ? (
-                          <Image
-                            src={photo.url}
-                            alt={photo.filename || 'photo'}
-                            fill
-                            sizes="80px"
-                            className="object-cover"
-                            unoptimized
-                          />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                            없음
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2 text-foreground">
-                      <span className="line-clamp-2" title={photo.filename || ''}>
-                        {photo.filename || '-'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">
-                      {photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}
-                    </td>
-                    <td className="px-3 py-2">{photo.uploaded_by_name || '알 수 없음'}</td>
-                    <td className="px-3 py-2">
-                      {photo.description ? (
-                        <span className="line-clamp-2">{photo.description}</span>
+                    <div className="relative h-48 w-full bg-muted">
+                      {photo.url ? (
+                        <Image
+                          src={photo.url}
+                          alt={photo.filename || 'photo'}
+                          fill
+                          sizes="(min-width: 768px) 50vw, 100vw"
+                          className="object-cover"
+                          unoptimized
+                        />
                       ) : (
-                        '-'
+                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
+                          미리보기 없음
+                        </div>
                       )}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleOpenFile(photo)}
-                        disabled={!hasFileReference(photo)}
+                    </div>
+                    <div className="flex flex-col gap-2 p-3 text-sm text-muted-foreground">
+                      <div
+                        className="text-sm font-semibold text-foreground"
+                        title={photo.filename || ''}
                       >
-                        보기
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        {photo.filename || '사진'}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="font-medium text-foreground">{title}</span>
+                        <span>{photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}</span>
+                      </div>
+                      <div className="text-xs">
+                        업로더: {photo.uploaded_by_name || '알 수 없음'}
+                      </div>
+                      {photo.description && (
+                        <div className="text-sm leading-relaxed text-foreground">
+                          {photo.description}
+                        </div>
+                      )}
+                      <div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenFile(photo)}
+                          disabled={!hasFileReference(photo)}
+                        >
+                          원본 보기
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )
+    }
+
+    const renderListGroup = (title: string, type: 'before' | 'after') => {
+      const items = photoBuckets[type]
+      const ids = items.map(photo => photo.id).filter((id): id is string => Boolean(id))
+      const groupSelected = ids.length > 0 && ids.every(id => selectedPhotoIds.has(id))
+
+      return (
+        <div className="rounded-lg border bg-muted/20">
+          <div className="flex items-center justify-between border-b px-3 py-2">
+            <div className="text-sm font-semibold text-foreground">{title}</div>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+              <Badge variant="secondary">{items.length}장</Badge>
+              {items.length > 0 && (
+                <label className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={groupSelected}
+                    onChange={() => toggleGroupSelection(type)}
+                  />
+                  선택
+                </label>
+              )}
+            </div>
           </div>
-        )}
-      </div>
-    )
+          {items.length === 0 ? (
+            <div className="flex h-24 items-center justify-center text-xs text-muted-foreground">
+              사진 없음
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-xs text-muted-foreground">
+                <thead>
+                  <tr className="bg-muted/40 text-left uppercase tracking-wide">
+                    <th className="px-3 py-2 font-medium">선택</th>
+                    <th className="px-3 py-2 font-medium">순서</th>
+                    <th className="px-3 py-2 font-medium">미리보기</th>
+                    <th className="px-3 py-2 font-medium">파일명</th>
+                    <th className="px-3 py-2 font-medium">업로드일</th>
+                    <th className="px-3 py-2 font-medium">업로더</th>
+                    <th className="px-3 py-2 font-medium">메모</th>
+                    <th className="px-3 py-2 font-medium">원본</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {items.map((photo, index) => {
+                    const key = photo.id || `${type}-${photo.filename}-${index}`
+                    const isSelected = photo.id ? selectedPhotoIds.has(photo.id) : false
+                    const draggableEnabled =
+                      !reorderDisabled && items.length > 1 && Boolean(photo.id)
+
+                    return (
+                      <tr
+                        key={key}
+                        className="bg-background/70"
+                        draggable={draggableEnabled || undefined}
+                        onDragStart={handleDragStart(type, index)}
+                        onDragOver={handleDragOver(type, index)}
+                        onDrop={handleDrop(type, index)}
+                        onDragEnd={handleDragEnd}
+                      >
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4"
+                            checked={isSelected}
+                            disabled={!photo.id}
+                            onChange={event => {
+                              event.stopPropagation()
+                              togglePhotoSelection(photo.id)
+                            }}
+                            onClick={event => event.stopPropagation()}
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <GripVertical className="h-4 w-4 text-muted-foreground" />
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
+                            {photo.url ? (
+                              <Image
+                                src={photo.url}
+                                alt={photo.filename || 'photo'}
+                                fill
+                                sizes="80px"
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                                없음
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-foreground">
+                          <span className="line-clamp-2" title={photo.filename || ''}>
+                            {photo.filename || '-'}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          {photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}
+                        </td>
+                        <td className="px-3 py-2">{photo.uploaded_by_name || '알 수 없음'}</td>
+                        <td className="px-3 py-2">
+                          {photo.description ? (
+                            <span className="line-clamp-2">{photo.description}</span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenFile(photo)}
+                            disabled={!hasFileReference(photo)}
+                          >
+                            보기
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )
+    }
 
     return (
       <Card className="border shadow-sm">
-        <CardHeader className="px-4 py-3">
+        <CardHeader className="px-4 py-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle className="text-base">추가 사진</CardTitle>
               <CardDescription>작업 전/후 사진</CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">전체 {totalCount}장</Badge>
-              <Badge variant="outline">보수 전 {before.length}장</Badge>
-              <Badge variant="outline">보수 후 {after.length}장</Badge>
+              <Badge variant="outline">전체 {totalPhotoCount}장</Badge>
+              <Badge variant="outline">보수 전 {photoBuckets.before.length}장</Badge>
+              <Badge variant="outline">보수 후 {photoBuckets.after.length}장</Badge>
+              {selectedCount > 0 && <Badge variant="secondary">선택 {selectedCount}장</Badge>}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={toggleAllSelection}
+                disabled={totalPhotoCount === 0}
+              >
+                전체 선택
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setSelectedPhotoIds(new Set())}
+                disabled={selectedCount === 0}
+              >
+                선택 해제
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleBulkDelete}
+                disabled={selectedCount === 0 || photoActionLoading}
+              >
+                {photoActionLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="mr-2 h-4 w-4" />
+                )}
+                선택 삭제
+              </Button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 variant={photosViewMode === 'preview' ? 'primary' : 'outline'}
@@ -584,13 +945,13 @@ export default function DailyReportDetailClient({
         <CardContent className="space-y-4 px-4 pb-4">
           {photosViewMode === 'preview' ? (
             <div className="grid gap-4 md:grid-cols-2">
-              {renderPreviewGroup('보수 전', before)}
-              {renderPreviewGroup('보수 후', after)}
+              {renderPreviewGroup('보수 전', 'before')}
+              {renderPreviewGroup('보수 후', 'after')}
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
-              {renderListGroup('보수 전', before)}
-              {renderListGroup('보수 후', after)}
+              {renderListGroup('보수 전', 'before')}
+              {renderListGroup('보수 후', 'after')}
             </div>
           )}
         </CardContent>
@@ -728,14 +1089,6 @@ export default function DailyReportDetailClient({
           )}
         </CardContent>
       </Card>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Button asChild variant="outline" size="sm">
-          <a href={documentsLinkUrl} target="_blank" rel="noreferrer">
-            현장공유함 열기
-          </a>
-        </Button>
-      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {linkedDrawings.length > 0 && (

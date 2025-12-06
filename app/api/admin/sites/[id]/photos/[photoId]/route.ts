@@ -3,6 +3,7 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import {
   aggregateAdditionalPhotos,
   buildStoragePath,
+  deriveVariantPathsFromStoredPath,
   fetchSiteRecord,
   getAdditionalPhotosTableStatus,
   getNextUploadOrder,
@@ -267,9 +268,25 @@ export async function DELETE(
     }
 
     const service = createServiceClient()
-    const { error: storageError } = await service.storage
-      .from('daily-reports')
-      .remove([photoRow.file_path])
+    const variants = photoRow.file_path
+      ? deriveVariantPathsFromStoredPath(photoRow.file_path)
+      : {
+          originalPath: photoRow.file_path,
+          displayPath: photoRow.file_path,
+          thumbPath: photoRow.file_path,
+        }
+    const removeList = Array.from(
+      new Set(
+        [
+          photoRow.file_path,
+          variants.originalPath,
+          variants.displayPath,
+          variants.thumbPath,
+        ].filter(Boolean) as string[]
+      )
+    )
+
+    const { error: storageError } = await service.storage.from('daily-reports').remove(removeList)
     if (storageError) {
       console.warn('[admin/sites/photos][DELETE] storage removal warning:', storageError)
     }

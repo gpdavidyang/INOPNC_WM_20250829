@@ -21,12 +21,12 @@ import {
   Edit3,
   Bell,
   MessageSquare,
+  Inbox,
   ChevronDown,
   ChevronRight,
   LogOut,
   Menu,
   X,
-  ClipboardList,
   Receipt,
 } from 'lucide-react'
 import { getFullTypographyClass } from '@/contexts/FontSizeContext'
@@ -84,7 +84,7 @@ const menuCategories = [
       {
         id: 'daily-reports',
         label: '작업일지 관리',
-        icon: ClipboardList,
+        icon: FileText,
         href: '/dashboard/admin/daily-reports',
       },
       {
@@ -175,6 +175,12 @@ const menuCategories = [
         label: '공지사항 관리',
         icon: MessageSquare,
         href: '/dashboard/admin/communication',
+      },
+      {
+        id: 'hq-requests',
+        label: '본사요청 관리',
+        icon: Inbox,
+        href: '/dashboard/admin/hq-requests',
       },
     ],
   },

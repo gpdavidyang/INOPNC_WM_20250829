@@ -1,14 +1,12 @@
 'use client'
 
-import { 
-  Edit, Save, Trash2, RefreshCw, Plus, Settings 
-} from 'lucide-react'
+import { Edit, Save, Trash2, RefreshCw, Plus, Settings } from 'lucide-react'
 import {
   PageHeader,
   DashboardPageHeader,
   AdminPageHeader,
   ReportsPageHeader,
-  DocumentsPageHeader
+  DocumentsPageHeader,
 } from '@/components/page-header'
 
 export default function PageHeaderDemoPage() {
@@ -20,14 +18,10 @@ export default function PageHeaderDemoPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 space-y-8">
       <div className="max-w-7xl mx-auto">
         <div className="space-y-8">
-          
           {/* Basic Page Header */}
           <div>
             <h2 className="text-2xl font-bold mb-4 px-4">Basic Page Header</h2>
-            <PageHeader
-              title="기본 페이지 헤더"
-              subtitle="기본적인 페이지 헤더 예시입니다"
-            />
+            <PageHeader title="기본 페이지 헤더" subtitle="기본적인 페이지 헤더 예시입니다" />
           </div>
 
           {/* Page Header with Breadcrumbs */}
@@ -39,7 +33,7 @@ export default function PageHeaderDemoPage() {
               breadcrumbs={[
                 { label: '홈', href: '/dashboard' },
                 { label: '상위 메뉴', href: '/dashboard/parent' },
-                { label: '현재 페이지' }
+                { label: '현재 페이지' },
               ]}
             />
           </div>
@@ -50,29 +44,26 @@ export default function PageHeaderDemoPage() {
             <PageHeader
               title="액션 버튼이 있는 페이지"
               subtitle="다양한 액션을 수행할 수 있습니다"
-              breadcrumbs={[
-                { label: '홈', href: '/dashboard' },
-                { label: '현재 페이지' }
-              ]}
+              breadcrumbs={[{ label: '홈', href: '/dashboard' }, { label: '현재 페이지' }]}
               actions={[
                 {
                   label: '수정',
                   onClick: () => handleAction('edit'),
                   variant: 'secondary',
-                  icon: <Edit className="h-4 w-4" />
+                  icon: <Edit className="h-4 w-4" />,
                 },
                 {
                   label: '저장',
                   onClick: () => handleAction('save'),
                   variant: 'primary',
-                  icon: <Save className="h-4 w-4" />
+                  icon: <Save className="h-4 w-4" />,
                 },
                 {
                   label: '삭제',
                   onClick: () => handleAction('delete'),
                   variant: 'danger',
-                  icon: <Trash2 className="h-4 w-4" />
-                }
+                  icon: <Trash2 className="h-4 w-4" />,
+                },
               ]}
             />
           </div>
@@ -87,15 +78,15 @@ export default function PageHeaderDemoPage() {
               breadcrumbs={[
                 { label: '홈', href: '/dashboard' },
                 { label: '상위 페이지', href: '/dashboard/parent' },
-                { label: '현재 페이지' }
+                { label: '현재 페이지' },
               ]}
               actions={[
                 {
                   label: '저장',
                   onClick: () => handleAction('save'),
                   variant: 'primary',
-                  icon: <Save className="h-4 w-4" />
-                }
+                  icon: <Save className="h-4 w-4" />,
+                },
               ]}
             />
           </div>
@@ -111,14 +102,14 @@ export default function PageHeaderDemoPage() {
                   label: '새로고침',
                   onClick: () => handleAction('refresh'),
                   variant: 'ghost',
-                  icon: <RefreshCw className="h-4 w-4" />
+                  icon: <RefreshCw className="h-4 w-4" />,
                 },
                 {
                   label: '새 항목',
                   onClick: () => handleAction('new'),
                   variant: 'primary',
-                  icon: <Plus className="h-4 w-4" />
-                }
+                  icon: <Plus className="h-4 w-4" />,
+                },
               ]}
             />
           </div>
@@ -134,8 +125,8 @@ export default function PageHeaderDemoPage() {
                   label: '설정',
                   onClick: () => handleAction('settings'),
                   variant: 'primary',
-                  icon: <Settings className="h-4 w-4" />
-                }
+                  icon: <Settings className="h-4 w-4" />,
+                },
               ]}
             />
           </div>
@@ -148,11 +139,11 @@ export default function PageHeaderDemoPage() {
               subtitle="일일 작업 내용을 기록하세요"
               actions={[
                 {
-                  label: '임시저장',
+                  label: '임시',
                   onClick: () => handleAction('draft'),
                   variant: 'secondary',
-                  icon: <Save className="h-4 w-4" />
-                }
+                  icon: <Save className="h-4 w-4" />,
+                },
               ]}
             />
           </div>
@@ -168,8 +159,8 @@ export default function PageHeaderDemoPage() {
                   label: '새 문서',
                   onClick: () => handleAction('new-doc'),
                   variant: 'primary',
-                  icon: <Plus className="h-4 w-4" />
-                }
+                  icon: <Plus className="h-4 w-4" />,
+                },
               ]}
             />
           </div>
@@ -184,18 +175,17 @@ export default function PageHeaderDemoPage() {
                 {
                   label: '사용 가능',
                   onClick: () => handleAction('available'),
-                  variant: 'primary'
+                  variant: 'primary',
                 },
                 {
                   label: '비활성화',
                   onClick: () => handleAction('disabled'),
                   variant: 'secondary',
-                  disabled: true
-                }
+                  disabled: true,
+                },
               ]}
             />
           </div>
-
         </div>
       </div>
     </div>

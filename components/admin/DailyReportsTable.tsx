@@ -15,9 +15,49 @@ const STATUS_META: Record<
     className: string
   }
 > = {
-  draft: { label: '임시저장', className: 'bg-gray-100 text-gray-700' },
+  draft: { label: '임시', className: 'bg-gray-100 text-gray-700' },
   submitted: { label: '제출', className: 'bg-sky-100 text-sky-700' },
   approved: { label: '승인', className: 'bg-emerald-100 text-emerald-700' },
+}
+
+const isBlankValue = (value: unknown) => {
+  if (value === null || value === undefined) return true
+  const str = String(value).trim()
+  if (!str) return true
+  const lowered = str.toLowerCase()
+  return lowered === 'null' || lowered === 'undefined' || str === '-'
+}
+
+const formatMemberTypes = (row: any) => {
+  if (Array.isArray(row?.member_types)) {
+    const filtered = row.member_types
+      .map((item: unknown) => (typeof item === 'string' ? item.trim() : String(item ?? '')))
+      .filter(item => !isBlankValue(item))
+    if (filtered.length > 0) {
+      return filtered.join(', ')
+    }
+  }
+  if (!isBlankValue(row?.component_name)) {
+    return String(row.component_name).trim()
+  }
+  return ''
+}
+
+const formatProcessName = (row: any) => {
+  if (!isBlankValue(row?.work_process)) {
+    return String(row.work_process).trim()
+  }
+  if (!isBlankValue(row?.process_type)) {
+    return String(row.process_type).trim()
+  }
+  return ''
+}
+
+const formatSectionName = (row: any) => {
+  if (!isBlankValue(row?.work_section)) {
+    return String(row.work_section).trim()
+  }
+  return ''
 }
 
 export default function DailyReportsTable({ reports }: { reports: any[] }) {
@@ -286,20 +326,25 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             headerClassName: 'whitespace-nowrap',
           },
           {
+            key: 'organization',
+            header: '소속',
+            sortable: true,
+            accessor: (r: any) => (r?.organization?.name ? String(r.organization.name) : ''),
+            render: (r: any) => r?.organization?.name || '미기입',
+            width: 180,
+            headerClassName: 'whitespace-nowrap',
+          },
+          {
             key: 'component_name',
             header: '부재명',
             sortable: true,
             accessor: (r: any) => {
-              const component = Array.isArray(r?.member_types)
-                ? r.member_types.join(', ')
-                : r?.component_name
-              return component || ''
+              const component = formatMemberTypes(r)
+              return component || '미기입'
             },
             render: (r: any) => {
-              if (Array.isArray(r?.member_types) && r.member_types.length > 0) {
-                return r.member_types.join(', ')
-              }
-              return r?.component_name || '-'
+              const component = formatMemberTypes(r)
+              return component || '미기입'
             },
             width: 180,
             headerClassName: 'whitespace-nowrap',
@@ -308,8 +353,8 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             key: 'work_process',
             header: '작업공정',
             sortable: true,
-            accessor: (r: any) => r?.work_process || r?.process_type || '',
-            render: (r: any) => r?.work_process || r?.process_type || '-',
+            accessor: (r: any) => formatProcessName(r) || '미기입',
+            render: (r: any) => formatProcessName(r) || '미기입',
             width: 160,
             headerClassName: 'whitespace-nowrap',
           },
@@ -317,8 +362,8 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             key: 'work_section',
             header: '작업구간',
             sortable: true,
-            accessor: (r: any) => r?.work_section || '',
-            render: (r: any) => r?.work_section || '-',
+            accessor: (r: any) => formatSectionName(r) || '미기입',
+            render: (r: any) => formatSectionName(r) || '미기입',
             width: 160,
             headerClassName: 'whitespace-nowrap',
           },

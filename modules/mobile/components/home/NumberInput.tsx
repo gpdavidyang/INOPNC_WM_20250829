@@ -1,14 +1,14 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { MANPOWER_VALUES } from '@/types/worklog'
+import React, { useState, useEffect, useMemo } from 'react'
+import { FALLBACK_LABOR_HOUR_OPTIONS } from '@/lib/labor/labor-hour-options'
 
-const DEFAULT_MANPOWER_VALUES = Array.from(MANPOWER_VALUES)
+const DEFAULT_MANPOWER_VALUES = Array.from(FALLBACK_LABOR_HOUR_OPTIONS)
 
 interface NumberInputProps {
   value: number
   onChange: (value: number) => void
-  values?: number[] // 선택 가능한 값들
+  values?: readonly number[] // 선택 가능한 값들
   min?: number
   max?: number
   step?: number
@@ -20,52 +20,58 @@ export const NumberInput: React.FC<NumberInputProps> = ({
   value,
   onChange,
   values = DEFAULT_MANPOWER_VALUES,
-  min = DEFAULT_MANPOWER_VALUES[0],
-  max = DEFAULT_MANPOWER_VALUES[DEFAULT_MANPOWER_VALUES.length - 1],
+  min,
+  max,
   step = 0.5,
   label,
   className = '',
 }) => {
+  const normalizedValues = useMemo(
+    () => (values.length > 0 ? Array.from(values) : Array.from(DEFAULT_MANPOWER_VALUES)),
+    [values]
+  )
+  const minValue = min ?? normalizedValues[0]
+  const maxValue = max ?? normalizedValues[normalizedValues.length - 1]
   const [currentIndex, setCurrentIndex] = useState(0)
 
   // 현재 값에 맞는 인덱스 찾기
   useEffect(() => {
-    const index = values.findIndex(v => v === value)
+    const index = normalizedValues.findIndex(v => v === value)
     if (index !== -1) {
       setCurrentIndex(index)
     }
-  }, [value, values])
+  }, [value, normalizedValues])
 
   const handleDecrease = () => {
     if (currentIndex > 0) {
       const newIndex = currentIndex - 1
       setCurrentIndex(newIndex)
-      onChange(values[newIndex])
+      onChange(normalizedValues[newIndex])
     }
   }
 
   const handleIncrease = () => {
-    if (currentIndex < values.length - 1) {
+    if (currentIndex < normalizedValues.length - 1) {
       const newIndex = currentIndex + 1
       setCurrentIndex(newIndex)
-      onChange(values[newIndex])
+      onChange(normalizedValues[newIndex])
     }
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = parseFloat(e.target.value)
-    if (Number.isNaN(inputValue) || inputValue < min || inputValue > max) return
+    if (Number.isNaN(inputValue) || inputValue < minValue || inputValue > maxValue) return
 
-    const matchingIndex = values.findIndex(v => v === inputValue)
+    const matchingIndex = normalizedValues.findIndex(v => v === inputValue)
     if (matchingIndex !== -1) {
       setCurrentIndex(matchingIndex)
-      onChange(values[matchingIndex])
+      onChange(normalizedValues[matchingIndex])
       return
     }
 
     let closestIndex = 0
-    let minDiff = Math.abs(values[0] - inputValue)
-    values.forEach((v, i) => {
+    let minDiff = Math.abs(normalizedValues[0] - inputValue)
+    normalizedValues.forEach((v, i) => {
       const diff = Math.abs(v - inputValue)
       if (diff < minDiff) {
         minDiff = diff
@@ -73,7 +79,7 @@ export const NumberInput: React.FC<NumberInputProps> = ({
       }
     })
     setCurrentIndex(closestIndex)
-    onChange(values[closestIndex])
+    onChange(normalizedValues[closestIndex])
   }
 
   return (
@@ -94,8 +100,8 @@ export const NumberInput: React.FC<NumberInputProps> = ({
           className="number-field"
           value={value}
           onChange={handleInputChange}
-          min={min}
-          max={max}
+          min={minValue}
+          max={maxValue}
           step={step}
         />
         <button

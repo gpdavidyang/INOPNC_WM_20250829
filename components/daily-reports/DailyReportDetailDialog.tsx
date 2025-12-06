@@ -1,6 +1,5 @@
 'use client'
 
-
 interface DailyReportDetailDialogProps {
   report: DailyReport | null
   site?: Site
@@ -14,16 +13,36 @@ export function DailyReportDetailDialog({
   site,
   currentUser,
   open,
-  onOpenChange
+  onOpenChange,
 }: DailyReportDetailDialogProps) {
   if (!report) return null
 
   const getStatusBadge = (status: string) => {
     const statusConfig: unknown = {
-      draft: { label: '임시저장', variant: 'secondary', icon: Clock, className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
-      submitted: { label: '제출됨', variant: 'primary', icon: FileText, className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
-      approved: { label: '승인됨', variant: 'success', icon: CheckCircle, className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
-      rejected: { label: '반려됨', variant: 'danger', icon: XCircle, className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' }
+      draft: {
+        label: '임시',
+        variant: 'secondary',
+        icon: Clock,
+        className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
+      },
+      submitted: {
+        label: '제출됨',
+        variant: 'primary',
+        icon: FileText,
+        className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+      },
+      approved: {
+        label: '승인됨',
+        variant: 'success',
+        icon: CheckCircle,
+        className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+      },
+      rejected: {
+        label: '반려됨',
+        variant: 'danger',
+        icon: XCircle,
+        className: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300',
+      },
     }
 
     const config = statusConfig[status] || statusConfig.draft
@@ -108,7 +127,7 @@ export function DailyReportDetailDialog({
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">

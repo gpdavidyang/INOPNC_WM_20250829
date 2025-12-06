@@ -7,6 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 import LogoImage from '@/components/LogoImage'
 import { getLoginLogoSrc } from '@/lib/ui/brand'
 import { getDemoAccountPassword, isDemoAccountEmail } from '@/lib/auth/demo-accounts'
+import { generateMfaSecret, verifyMfaCode } from './actions'
+
+type LoginPhase = 'credentials' | 'mfa-setup' | 'mfa-verify'
+type PendingSession = {
+  access_token: string
+  refresh_token: string
+}
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -16,6 +23,14 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [email, setEmail] = useState('')
   const [devHelp, setDevHelp] = useState<string | null>(null)
+  const [phase, setPhase] = useState<LoginPhase>('credentials')
+  const [pendingSession, setPendingSession] = useState<PendingSession | null>(null)
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null)
+  const [mfaUri, setMfaUri] = useState<string | null>(null)
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaError, setMfaError] = useState<string | null>(null)
+  const [mfaIntent, setMfaIntent] = useState<'setup' | 'login'>('login')
+  const [isMfaSubmitting, setIsMfaSubmitting] = useState(false)
   const passwordInputRef = useRef<HTMLInputElement | null>(null)
   // Logo handled by client component
 
@@ -97,6 +112,49 @@ export default function LoginPage() {
       cancelled = true
     }
   }, [])
+
+  const syncSession = async (
+    tokens: PendingSession,
+    options?: { mfaToken?: string }
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/auth/sync-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          mfa_session_token: options?.mfaToken,
+        }),
+        cache: 'no-store',
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok || !payload?.success) {
+        setError(payload?.error || '세션 동기화에 실패했습니다.')
+        return false
+      }
+      return true
+    } catch (err) {
+      console.error('Session sync error:', err)
+      setError('세션 동기화 중 오류가 발생했습니다.')
+      return false
+    }
+  }
+
+  const redirectAfterLogin = async () => {
+    try {
+      const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
+      let redirectPath = '/mobile'
+      if (meRes.ok) {
+        const me = await meRes.json().catch(() => null)
+        if (me?.uiTrack) redirectPath = me.uiTrack
+      }
+      window.location.replace(redirectPath)
+    } catch (err) {
+      console.error('Redirect fetch error:', err)
+      window.location.replace('/mobile')
+    }
+  }
 
   const requestDemoAccountRepair = async (
     targetEmail: string
@@ -227,7 +285,6 @@ export default function LoginPage() {
         return
       }
 
-      // 2) 서버 세션 동기화 (쿠키 세팅)
       const access_token = signInData.session?.access_token
       const refresh_token = signInData.session?.refresh_token
       if (!access_token || !refresh_token) {
@@ -236,34 +293,87 @@ export default function LoginPage() {
         return
       }
 
-      const syncRes = await fetch('/api/auth/sync-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token, refresh_token }),
-        cache: 'no-store',
-      })
+      const { data: profileRow } = await supabase
+        .from('profiles')
+        .select('mfa_enabled')
+        .eq('id', signInData.user.id)
+        .maybeSingle()
 
-      if (!syncRes.ok) {
-        const payload = await syncRes.json().catch(() => ({}))
-        console.error('Session sync failed:', payload)
-        setError('서버와의 세션 동기화에 실패했습니다. 다시 시도해주세요.')
+      const tokens = { access_token, refresh_token }
+
+      if (!profileRow?.mfa_enabled) {
+        setPendingSession(tokens)
+        setPhase('mfa-setup')
+        setMfaIntent('setup')
+        setMfaCode('')
+        setMfaError(null)
+        setInfo('OTP 앱에 아래 키를 등록한 후 6자리 코드를 입력해주세요.')
+
+        const secretResult = await generateMfaSecret(access_token)
+        if (!secretResult?.success || !secretResult.secret) {
+          setError(secretResult?.error || 'MFA 설정 정보를 불러오지 못했습니다.')
+          setPhase('credentials')
+          setPendingSession(null)
+          await supabase.auth.signOut()
+        } else {
+          setMfaSecret(secretResult.secret)
+          setMfaUri(secretResult.otpauthUrl || null)
+        }
+
         setIsLoading(false)
         return
       }
 
-      // 3) 역할 기반 UI 트랙으로 이동
-      const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
-      let redirectPath = '/mobile'
-      if (meRes.ok) {
-        const me = await meRes.json().catch(() => null)
-        if (me?.uiTrack) redirectPath = me.uiTrack
-      }
-
-      window.location.replace(redirectPath)
+      setPendingSession(tokens)
+      setPhase('mfa-verify')
+      setMfaIntent('login')
+      setMfaCode('')
+      setMfaError(null)
+      setInfo('Google Authenticator 앱에서 생성된 6자리 코드를 입력해주세요.')
+      setIsLoading(false)
+      return
     } catch (err) {
       console.error('Login exception:', err)
       setError('로그인에 실패했습니다.')
       setIsLoading(false)
+    }
+  }
+
+  const handleMfaSubmit = async () => {
+    if (!pendingSession) return
+    setIsMfaSubmitting(true)
+    setMfaError(null)
+    try {
+      const verifyResult = await verifyMfaCode({
+        accessToken: pendingSession.access_token,
+        code: mfaCode,
+        intent: mfaIntent,
+      })
+
+      if (!verifyResult?.success || !verifyResult?.token) {
+        setMfaError(verifyResult?.error || '인증에 실패했습니다.')
+        setIsMfaSubmitting(false)
+        return
+      }
+
+      const synced = await syncSession(pendingSession, { mfaToken: verifyResult.token })
+      if (!synced) {
+        setIsMfaSubmitting(false)
+        return
+      }
+
+      setPhase('credentials')
+      setPendingSession(null)
+      setMfaSecret(null)
+      setMfaUri(null)
+      setMfaCode('')
+      setInfo(null)
+      await redirectAfterLogin()
+    } catch (error) {
+      console.error('MFA submit error:', error)
+      setMfaError('인증 과정에서 오류가 발생했습니다.')
+    } finally {
+      setIsMfaSubmitting(false)
     }
   }
 
@@ -427,6 +537,45 @@ export default function LoginPage() {
           -webkit-text-fill-color: #6b7280 !important;
           caret-color: #1f2937 !important; /* gray-800 */
           background: #ffffff !important;
+        }
+
+        .mfa-card {
+          background: #fff;
+          border-radius: 12px;
+          border: 1px solid #e5e7eb;
+          padding: 24px;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.05);
+          margin-top: 24px;
+        }
+
+        .mfa-card h2 {
+          font-size: 20px;
+          font-weight: 600;
+          margin-bottom: 12px;
+          color: #111827;
+        }
+
+        .mfa-secret {
+          font-family:
+            'SFMono-Regular', Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+          background: #f3f4f6;
+          border-radius: 8px;
+          padding: 12px;
+          text-align: center;
+          letter-spacing: 2px;
+          color: #1f2937;
+          margin: 16px 0;
+        }
+
+        .mfa-link {
+          color: #2563eb;
+          text-decoration: underline;
+        }
+
+        .mfa-helper {
+          color: #6b7280;
+          font-size: 14px;
+          margin-top: 12px;
         }
 
         .input-wrapper {
@@ -792,127 +941,181 @@ export default function LoginPage() {
               {info}
             </div>
           )}
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <div className="input-wrapper">
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  className="form-input"
-                  placeholder="이메일을 입력하세요"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
 
-            <div className="form-group">
-              <div className="input-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  name="password"
-                  ref={passwordInputRef}
-                  className="form-input"
-                  placeholder="비밀번호를 입력하세요"
-                  required
-                  autoComplete="current-password"
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  className="password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label="비밀번호 표시/숨기기"
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff /> : <Eye />}
+          {phase === 'credentials' ? (
+            <>
+              <form onSubmit={handleLogin}>
+                <div className="form-group">
+                  <div className="input-wrapper">
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      className="form-input"
+                      placeholder="이메일을 입력하세요"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      disabled={isLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <div className="input-wrapper">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      id="password"
+                      name="password"
+                      ref={passwordInputRef}
+                      className="form-input"
+                      placeholder="비밀번호를 입력하세요"
+                      required
+                      autoComplete="current-password"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label="비밀번호 표시/숨기기"
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-options">
+                  <label className="checkbox" htmlFor="rememberMe">
+                    <input
+                      type="checkbox"
+                      id="rememberMe"
+                      name="rememberMe"
+                      className="checkbox-input"
+                      checked={rememberMe}
+                      onChange={e => setRememberMe(e.target.checked)}
+                      disabled={isLoading}
+                    />
+                    <span>자동로그인</span>
+                  </label>
+
+                  <div className="forgot-links">
+                    <button type="button" className="forgot-password" onClick={openFindId}>
+                      아이디찾기
+                    </button>
+                    <span className="separator">|</span>
+                    <Link href="/auth/reset-password" className="forgot-password">
+                      비밀번호찾기
+                    </Link>
+                  </div>
+                </div>
+
+                {error && <div className="error-message">{error}</div>}
+
+                {devHelp && process.env.NODE_ENV !== 'production' && (
+                  <div
+                    className="error-message"
+                    style={{ backgroundColor: '#f8fafc', color: '#111827', borderColor: '#cbd5e1' }}
+                  >
+                    <div style={{ marginBottom: 8 }}>{devHelp}</div>
+                    <button
+                      type="button"
+                      className="login-button"
+                      onClick={async () => {
+                        try {
+                          setIsLoading(true)
+                          const res = await fetch('/api/admin/create-partner-user', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              email: 'partner@inopnc.com',
+                              password: 'password123',
+                            }),
+                          })
+                          const payload = await res.json().catch(() => ({}))
+                          if (!res.ok || payload?.error) {
+                            setError(payload?.error || '테스트 계정 생성에 실패했습니다.')
+                          } else {
+                            setError(null)
+                            setDevHelp('테스트 계정이 준비되었습니다. 다시 시도해주세요.')
+                            setEmail('partner@inopnc.com')
+                          }
+                        } catch (e) {
+                          setError('테스트 계정 생성 중 오류가 발생했습니다.')
+                        } finally {
+                          setIsLoading(false)
+                        }
+                      }}
+                    >
+                      파트너 테스트 계정 생성
+                    </button>
+                  </div>
+                )}
+
+                <button type="submit" className="login-button" disabled={isLoading}>
+                  {isLoading ? '로그인 중...' : '로그인'}
                 </button>
-              </div>
-            </div>
+              </form>
 
-            <div className="form-options">
-              <label className="checkbox" htmlFor="rememberMe">
-                <input
-                  type="checkbox"
-                  id="rememberMe"
-                  name="rememberMe"
-                  className="checkbox-input"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  disabled={isLoading}
-                />
-                <span>자동로그인</span>
-              </label>
-
-              <div className="forgot-links">
-                <button type="button" className="forgot-password" onClick={openFindId}>
-                  아이디찾기
-                </button>
-                <span className="separator">|</span>
-                <Link href="/auth/reset-password" className="forgot-password">
-                  비밀번호찾기
+              <div className="signup-link">
+                계정이 없으신가요?{' '}
+                <Link href="/auth/signup-request">
+                  <span className="signup-cta">회원가입</span>
                 </Link>
               </div>
-            </div>
-
-            {error && <div className="error-message">{error}</div>}
-
-            {devHelp && process.env.NODE_ENV !== 'production' && (
-              <div
-                className="error-message"
-                style={{ backgroundColor: '#f8fafc', color: '#111827', borderColor: '#cbd5e1' }}
+            </>
+          ) : (
+            <div className="mfa-card">
+              <h2>{mfaIntent === 'setup' ? '보안 인증 설정' : '보안 인증 코드'}</h2>
+              {phase === 'mfa-setup' ? (
+                <>
+                  <p>
+                    OTP 앱(Google Authenticator 등)에 아래 키를 등록하거나,{' '}
+                    {mfaUri ? (
+                      <a href={mfaUri} className="mfa-link">
+                        앱에서 열기
+                      </a>
+                    ) : (
+                      '앱에서 직접 입력'
+                    )}
+                    후 생성된 6자리 코드를 입력해주세요.
+                  </p>
+                  <div className="mfa-secret">{mfaSecret || '비밀키 생성 중...'}</div>
+                </>
+              ) : (
+                <p>등록된 OTP 앱에서 생성된 6자리 코드를 입력해주세요.</p>
+              )}
+              <form
+                onSubmit={e => {
+                  e.preventDefault()
+                  handleMfaSubmit()
+                }}
               >
-                <div style={{ marginBottom: 8 }}>{devHelp}</div>
-                <button
-                  type="button"
-                  className="login-button"
-                  onClick={async () => {
-                    try {
-                      setIsLoading(true)
-                      const res = await fetch('/api/admin/create-partner-user', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          email: 'partner@inopnc.com',
-                          password: 'password123',
-                        }),
-                      })
-                      const payload = await res.json().catch(() => ({}))
-                      if (!res.ok || payload?.error) {
-                        setError(payload?.error || '테스트 계정 생성에 실패했습니다.')
-                      } else {
-                        setError(null)
-                        setDevHelp('테스트 계정이 준비되었습니다. 다시 시도해주세요.')
-                        setEmail('partner@inopnc.com')
-                      }
-                    } catch (e) {
-                      setError('테스트 계정 생성 중 오류가 발생했습니다.')
-                    } finally {
-                      setIsLoading(false)
-                    }
-                  }}
-                >
-                  파트너 테스트 계정 생성
+                <div className="form-group">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={6}
+                    className="form-input"
+                    placeholder="6자리 코드"
+                    value={mfaCode}
+                    onChange={e => setMfaCode(e.target.value)}
+                    disabled={isMfaSubmitting}
+                  />
+                </div>
+                {mfaError && <div className="error-message">{mfaError}</div>}
+                <button type="submit" className="login-button" disabled={isMfaSubmitting}>
+                  {isMfaSubmitting ? '인증 중...' : '확인'}
                 </button>
-              </div>
-            )}
-
-            <button type="submit" className="login-button" disabled={isLoading}>
-              {isLoading ? '로그인 중...' : '로그인'}
-            </button>
-          </form>
-
-          <div className="signup-link">
-            계정이 없으신가요?{' '}
-            <Link href="/auth/signup-request">
-              <span className="signup-cta">회원가입</span>
-            </Link>
-          </div>
+              </form>
+              {phase === 'mfa-setup' && (
+                <p className="mfa-helper">등록 후에는 매 로그인 시 6자리 코드를 입력해야 합니다.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

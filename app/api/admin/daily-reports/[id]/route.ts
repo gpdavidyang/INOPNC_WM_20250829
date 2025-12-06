@@ -3,7 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { updateDailyReport, deleteDailyReport } from '@/app/actions/admin/daily-reports'
 import { createServiceClient } from '@/lib/supabase/service'
-import { aggregateAdditionalPhotos, resequenceUploadOrder } from '@/lib/admin/site-photos'
+import {
+  aggregateAdditionalPhotos,
+  resequenceUploadOrder,
+  deriveVariantPathsFromStoredPath,
+} from '@/lib/admin/site-photos'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,9 +101,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         for (const row of toDelete) {
           try {
             if (row.file_path) {
+              const variants = deriveVariantPathsFromStoredPath(row.file_path)
+              const removeList = Array.from(
+                new Set([
+                  row.file_path,
+                  variants.originalPath,
+                  variants.displayPath,
+                  variants.thumbPath,
+                ])
+              )
               const { error: storageError } = await service.storage
                 .from('daily-reports')
-                .remove([row.file_path])
+                .remove(removeList)
               if (storageError) {
                 console.warn('[admin/daily-reports:PATCH] storage remove warning:', storageError)
               }

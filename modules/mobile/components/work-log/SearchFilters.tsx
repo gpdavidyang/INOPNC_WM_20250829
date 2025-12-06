@@ -223,7 +223,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
         <div className="flex gap-2 flex-wrap">
           {[
             { value: 'all', label: '전체' },
-            { value: 'draft', label: '임시저장' },
+            { value: 'draft', label: '임시' },
             { value: 'submitted', label: '제출' },
             { value: 'approved', label: '승인' },
             { value: 'rejected', label: '반려' },
@@ -280,7 +280,7 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
               <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-[var(--bg-secondary)] rounded-full">
                 상태:{' '}
                 {localFilters.status === 'draft'
-                  ? '임시저장'
+                  ? '임시'
                   : localFilters.status === 'submitted'
                     ? '제출'
                     : localFilters.status === 'approved'

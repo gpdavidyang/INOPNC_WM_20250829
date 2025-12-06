@@ -1,6 +1,5 @@
 'use client'
 
-
 interface UnifiedUserViewProps {
   userId: string
   isOpen: boolean
@@ -47,14 +46,14 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
   const fetchIntegratedData = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       // This is a placeholder API endpoint - would need to be implemented
       const response = await fetch(`/api/admin/users/${userId}/integrated`)
       if (!response.ok) {
         throw new Error('Failed to fetch integrated user data')
       }
-      
+
       const result = await response.json()
       setData(result)
     } catch (err) {
@@ -67,11 +66,16 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
 
   const getRoleLabel = (role: string) => {
     switch (role) {
-      case 'admin': return '관리자'
-      case 'site_manager': return '현장 담당자'
-      case 'worker': return '작업자'
-      case 'client': return '고객'
-      default: return role
+      case 'admin':
+        return '관리자'
+      case 'site_manager':
+        return '현장 담당자'
+      case 'worker':
+        return '작업자'
+      case 'client':
+        return '고객'
+      default:
+        return role
     }
   }
 
@@ -149,7 +153,7 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                         {getStatusBadge(data.user.status)}
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center gap-3">
                         <Mail className="h-4 w-4 text-gray-400" />
@@ -171,7 +175,8 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                         <div className="flex items-center gap-3">
                           <Clock className="h-4 w-4 text-gray-400" />
                           <span className="text-sm">
-                            최근 로그인: {new Date(data.user.last_login_at).toLocaleDateString('ko-KR')}
+                            최근 로그인:{' '}
+                            {new Date(data.user.last_login_at).toLocaleDateString('ko-KR')}
                           </span>
                         </div>
                       )}
@@ -218,7 +223,10 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                   <h3 className="font-semibold mb-4">최근 활동</h3>
                   <div className="space-y-3">
                     {data.daily_reports.slice(0, 5).map((report, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded"
+                      >
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-blue-500" />
                           <div>
@@ -229,7 +237,7 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                           </div>
                         </div>
                         <Badge variant={report.status === 'submitted' ? 'default' : 'secondary'}>
-                          {report.status === 'submitted' ? '제출됨' : '임시저장'}
+                          {report.status === 'submitted' ? '제출됨' : '임시'}
                         </Badge>
                       </div>
                     ))}
@@ -254,13 +262,20 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                               <p className="text-sm text-gray-600">{site.address}</p>
                             </div>
                           </div>
-                          <Badge className={
-                            site.status === 'active' ? 'bg-green-100 text-green-800' :
-                            site.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
-                          }>
-                            {site.status === 'active' ? '진행중' :
-                             site.status === 'completed' ? '완료' : '비활성'}
+                          <Badge
+                            className={
+                              site.status === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : site.status === 'completed'
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : 'bg-gray-100 text-gray-800'
+                            }
+                          >
+                            {site.status === 'active'
+                              ? '진행중'
+                              : site.status === 'completed'
+                                ? '완료'
+                                : '비활성'}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -311,8 +326,10 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Badge variant={report.status === 'submitted' ? 'default' : 'secondary'}>
-                                {report.status === 'submitted' ? '제출됨' : '임시저장'}
+                              <Badge
+                                variant={report.status === 'submitted' ? 'default' : 'secondary'}
+                              >
+                                {report.status === 'submitted' ? '제출됨' : '임시'}
                               </Badge>
                               <span className="text-sm text-gray-500">
                                 {report.total_workers}명
@@ -352,18 +369,16 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">
-                              {assignment.trade_type || '일반'}
-                            </Badge>
-                            <Badge variant="outline">
-                              {assignment.skill_level || '견습'}
-                            </Badge>
+                            <Badge variant="outline">{assignment.trade_type || '일반'}</Badge>
+                            <Badge variant="outline">{assignment.skill_level || '견습'}</Badge>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">출근 여부: </span>
-                            <span className={assignment.is_present ? 'text-green-600' : 'text-red-600'}>
+                            <span
+                              className={assignment.is_present ? 'text-green-600' : 'text-red-600'}
+                            >
                               {assignment.is_present ? '출근' : '결근'}
                             </span>
                           </div>
@@ -377,7 +392,11 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                           </div>
                           <div>
                             <span className="text-gray-600">시급: </span>
-                            <span>{assignment.hourly_rate ? `${assignment.hourly_rate.toLocaleString()}원` : '미지정'}</span>
+                            <span>
+                              {assignment.hourly_rate
+                                ? `${assignment.hourly_rate.toLocaleString()}원`
+                                : '미지정'}
+                            </span>
                           </div>
                         </div>
                         {assignment.notes && (
@@ -405,13 +424,15 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                       <div className="p-4 border-b">
                         <div className="flex items-center justify-between">
                           <h3 className="font-semibold capitalize">
-                            {type === 'photo' ? '사진' :
-                             type === 'receipt' ? '영수증' :
-                             type === 'document' ? '문서' : type}
+                            {type === 'photo'
+                              ? '사진'
+                              : type === 'receipt'
+                                ? '영수증'
+                                : type === 'document'
+                                  ? '문서'
+                                  : type}
                           </h3>
-                          <Badge variant="outline">
-                            {docs.length}개
-                          </Badge>
+                          <Badge variant="outline">{docs.length}개</Badge>
                         </div>
                       </div>
                       <div className="p-4">
@@ -442,7 +463,7 @@ export default function UnifiedUserView({ userId, isOpen, onClose }: UnifiedUser
                       </div>
                     </div>
                   ))}
-                  
+
                   {Object.keys(data.documents || {}).length === 0 && (
                     <div className="text-center py-12 text-gray-500">
                       <FileText className="h-12 w-12 mx-auto mb-4 text-gray-300" />

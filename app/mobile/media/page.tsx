@@ -500,7 +500,7 @@ export default function MediaManagementPage() {
               onValueChange={handleSelectSite}
               disabled={siteLoading}
             >
-              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none">
+              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 focus:border-[#dde3f2]">
                 <CustomSelectValue placeholder="전체 현장">
                   {siteLoading ? '현장 불러오는 중...' : siteFilterLabel}
                 </CustomSelectValue>
@@ -515,7 +515,7 @@ export default function MediaManagementPage() {
             </CustomSelect>
 
             <CustomSelect value={periodValue} onValueChange={handleSelectPeriod}>
-              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none">
+              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 focus:border-[#dde3f2]">
                 <CustomSelectValue placeholder="전체 기간">{periodFilterLabel}</CustomSelectValue>
               </CustomSelectTrigger>
               <CustomSelectContent className="rounded-xl border border-[#dde3f2]">
@@ -531,12 +531,12 @@ export default function MediaManagementPage() {
               value={worklogStatusFilter}
               onValueChange={v => setWorklogStatusFilter(v as any)}
             >
-              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none">
+              <CustomSelectTrigger className="h-11 rounded-[14px] border border-[#dde3f2] bg-white px-3 py-2.5 text-sm font-semibold text-[#485270] shadow-none focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus:ring-offset-0 focus-visible:ring-offset-0 focus:border-[#dde3f2]">
                 <CustomSelectValue placeholder="작업일지 상태">
                   {worklogStatusFilter === 'all'
                     ? '전체'
                     : worklogStatusFilter === 'draft'
-                      ? '임시저장'
+                      ? '임시'
                       : worklogStatusFilter === 'submitted'
                         ? '제출'
                         : '승인'}
@@ -547,7 +547,7 @@ export default function MediaManagementPage() {
                   전체
                 </CustomSelectItem>
                 <CustomSelectItem value="draft" className="text-sm">
-                  임시저장
+                  임시
                 </CustomSelectItem>
                 <CustomSelectItem value="submitted" className="text-sm">
                   제출
@@ -715,9 +715,9 @@ function DrawingTab({
           <p className="mt-1 text-xs text-[#99a4c3]">
             도면파일을 업로드하고, 보수위치를 마킹하여 작업일지와 연결합니다.
           </p>
-          <p className="mt-1 text-[11px] text-[#7a86a5]">
-            {siteRequired ? '현장을 먼저 선택하세요.' : `선택된 현장: ${siteLabel}`}
-          </p>
+          {!siteRequired && (
+            <p className="mt-1 text-[11px] text-[#7a86a5]">선택된 현장: {siteLabel}</p>
+          )}
         </div>
 
         <div className="mb-2 flex gap-2">
@@ -1054,37 +1054,29 @@ function PhotoUploadInline({
     <div className="space-y-3">
       <section className="space-y-2 rounded-xl border border-[#d5def3] bg-white p-3">
         <div className="text-xs font-semibold text-[#1f2942]">사진 업로드</div>
-        <div className="grid grid-cols-2 text-[12px] font-semibold text-[#1f2942]">
-          <div className="flex items-center justify-between pr-2">
-            <span>보수 전</span>
-            <span className="text-[#6b7280]">
-              {beforeCount} / {MAX_PER_TYPE}
-            </span>
-          </div>
-          <div className="flex items-center justify-between pl-2">
-            <span>보수 후</span>
-            <span className="text-[#6b7280]">
-              {afterCount} / {MAX_PER_TYPE}
-            </span>
-          </div>
-        </div>
         <div className="grid grid-cols-2 gap-2">
-          <InlineDropzone
-            label="보수 전"
-            worklogId={worklogId}
-            photoType="before"
-            currentCount={beforeCount}
-            maxCount={MAX_PER_TYPE}
-            onUploaded={onUploaded}
-          />
-          <InlineDropzone
-            label="보수 후"
-            worklogId={worklogId}
-            photoType="after"
-            currentCount={afterCount}
-            maxCount={MAX_PER_TYPE}
-            onUploaded={onUploaded}
-          />
+          <div className="space-y-1">
+            <div className="text-[11px] font-semibold text-[#1f2942]">보수 전</div>
+            <InlineDropzone
+              label="보수 전"
+              worklogId={worklogId}
+              photoType="before"
+              currentCount={beforeCount}
+              maxCount={MAX_PER_TYPE}
+              onUploaded={onUploaded}
+            />
+          </div>
+          <div className="space-y-1">
+            <div className="text-[11px] font-semibold text-[#1f2942]">보수 후</div>
+            <InlineDropzone
+              label="보수 후"
+              worklogId={worklogId}
+              photoType="after"
+              currentCount={afterCount}
+              maxCount={MAX_PER_TYPE}
+              onUploaded={onUploaded}
+            />
+          </div>
         </div>
       </section>
 
@@ -1230,6 +1222,8 @@ function InlineDropzone({
     <button
       type="button"
       onClick={handleClick}
+      aria-label={label}
+      title={label}
       className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#d5def3] bg-white text-xs font-semibold text-[#4c5a80] shadow-sm transition-colors hover:bg-[#f4f7ff]"
     >
       <svg className="h-6 w-6 stroke-[#b4bfdc]" viewBox="0 0 24 24">
@@ -1237,7 +1231,6 @@ function InlineDropzone({
         <circle cx="12" cy="12.5" r="3" fill="none" strokeWidth="1.5" />
         <path d="M9 7l1-2h4l1 2" fill="none" strokeWidth="1.5" />
       </svg>
-      <span className="text-[11px] font-normal text-[#9aa4c5] leading-snug">사진을 추가하세요</span>
       {uploading && <span className="text-[10px] font-normal text-[#31a3fa]">업로드 중...</span>}
       {success && <span className="text-[10px] font-normal text-[#2f8f46]">완료</span>}
       {error && <span className="text-[10px] font-normal text-red-500">{error}</span>}
@@ -1263,13 +1256,7 @@ function StatusBadge({ status }: { status?: string | null }) {
   }
   const key = normalize(status)
   const label =
-    key === 'draft'
-      ? '임시저장'
-      : key === 'submitted'
-        ? '제출'
-        : key === 'approved'
-          ? '승인'
-          : '임시저장'
+    key === 'draft' ? '임시' : key === 'submitted' ? '제출' : key === 'approved' ? '승인' : '임시'
   const theme: Record<string, { bg: string; text: string; border: string }> = {
     draft: { bg: '#f7f7fb', text: '#6b7280', border: '#e5e7eb' },
     submitted: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },

@@ -40,6 +40,10 @@ interface DailyReport {
   }
   worker_details_count?: number
   daily_documents_count?: number
+  organization?: {
+    id?: string
+    name?: string | null
+  } | null
 }
 
 interface Site {
@@ -76,13 +80,51 @@ interface SortState {
 }
 
 const statusLabels = {
-  draft: '임시저장',
+  draft: '임시',
   submitted: '제출됨',
 }
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-800',
   submitted: 'bg-blue-100 text-blue-800',
+}
+
+const isBlankValue = (value: unknown) => {
+  if (value === null || value === undefined) return true
+  const str = String(value).trim()
+  if (!str) return true
+  const lowered = str.toLowerCase()
+  return lowered === 'null' || lowered === 'undefined' || str === '-'
+}
+
+const formatMemberTypes = (report: any) => {
+  if (Array.isArray(report?.member_types)) {
+    const filtered = report.member_types
+      .map((item: unknown) => (typeof item === 'string' ? item.trim() : String(item ?? '')))
+      .filter(item => !isBlankValue(item))
+    if (filtered.length > 0) return filtered.join(', ')
+  }
+  if (!isBlankValue(report?.component_name)) {
+    return String(report.component_name).trim()
+  }
+  return ''
+}
+
+const formatProcessName = (report: any) => {
+  if (!isBlankValue(report?.work_process)) {
+    return String(report.work_process).trim()
+  }
+  if (!isBlankValue(report?.process_type)) {
+    return String(report.process_type).trim()
+  }
+  return ''
+}
+
+const formatSectionName = (report: any) => {
+  if (!isBlankValue(report?.work_section)) {
+    return String(report.work_section).trim()
+  }
+  return ''
 }
 
 // Debounce utility function
@@ -455,7 +497,7 @@ export default function DailyReportsManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">모든 상태</SelectItem>
-                    <SelectItem value="draft">임시저장</SelectItem>
+                    <SelectItem value="draft">임시</SelectItem>
                     <SelectItem value="submitted">제출됨</SelectItem>
                   </SelectContent>
                 </Select>
@@ -586,6 +628,9 @@ export default function DailyReportsManagement() {
                       {getSortIcon('site_name')}
                     </div>
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    소속
+                  </th>
                   <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('component_name')}
@@ -703,13 +748,24 @@ export default function DailyReportsManagement() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{report.component_name || '-'}</div>
+                      <div className="text-sm text-gray-900">
+                        {report.organization?.name || '미기입'}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{report.work_process || '-'}</div>
+                      <div className="text-sm text-gray-900">
+                        {formatMemberTypes(report) || '미기입'}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">{report.work_section || '-'}</div>
+                      <div className="text-sm text-gray-900">
+                        {formatProcessName(report) || '미기입'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900">
+                        {formatSectionName(report) || '미기입'}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div>

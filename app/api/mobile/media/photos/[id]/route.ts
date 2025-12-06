@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { deriveVariantPathsFromStoredPath } from '@/lib/admin/site-photos'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -33,7 +34,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     try {
       const svc = createServiceClient()
       if (filePath) {
-        await (svc as any).storage.from('daily-reports').remove([filePath])
+        const variants = deriveVariantPathsFromStoredPath(filePath)
+        const removeList = Array.from(
+          new Set([filePath, variants.originalPath, variants.displayPath, variants.thumbPath])
+        )
+        await (svc as any).storage.from('daily-reports').remove(removeList)
       }
     } catch (storageErr) {
       console.warn('[media/photos/delete] storage remove skipped:', storageErr)

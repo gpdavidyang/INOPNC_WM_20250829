@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,13 +11,24 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   try {
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
+    if (!['admin', 'system_admin'].includes((auth.role || '').toLowerCase())) {
+      return NextResponse.json({ success: false, error: '접근 권한이 없습니다.' }, { status: 403 })
+    }
 
     const siteId = params.id
     if (!siteId) {
       return NextResponse.json({ success: false, error: 'Missing site id' }, { status: 400 })
     }
 
-    const svc = createServiceRoleClient()
+    let svc
+    try {
+      svc = createServiceRoleClient()
+    } catch (error) {
+      console.warn(
+        '[admin/sites/:id/materials/summary] service role unavailable, falling back to session client'
+      )
+      svc = createClient()
+    }
 
     const [invRes, shipRes, pendingCountRes] = await Promise.all([
       svc
@@ -26,19 +38,21 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
           id,
           site_id,
           material_id,
-          material_name,
-          material_code,
-          specification,
-          unit,
           current_stock,
           minimum_stock,
           maximum_stock,
           updated_at,
-          created_at
+          created_at,
+          materials:materials(
+            name,
+            code,
+            unit,
+            specification
+          )
         `
         )
         .eq('site_id', siteId)
-        .order('material_name', { ascending: true, nullsFirst: false })
+        .order('updated_at', { ascending: false, nullsFirst: false })
         .limit(200),
       svc
         .from('material_shipments')
@@ -80,6 +94,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       const status =
         quantity <= 0 ? 'out' : minimum !== null && quantity <= minimum ? 'low' : 'normal'
 
+      const mat = (row as any).materials || {}
       return {
         id: row.id,
         material_id: row.material_id || null,
@@ -92,10 +107,10 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         last_updated: row.updated_at || row.created_at || null,
         status,
         materials: {
-          name: row.material_name || '',
-          code: row.material_code || '',
-          specification: row.specification || '',
-          unit: row.unit || '',
+          name: mat.name || '',
+          code: mat.code || '',
+          specification: mat.specification || '',
+          unit: mat.unit || '',
         },
       }
     })
@@ -132,6 +147,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ success: true, data: { inventory, shipments, stats } })
   } catch (e) {
     console.error('[admin/sites/:id/materials/summary] error:', e)
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: '재고 정보를 불러오지 못했습니다.' },
+      { status: 500 }
+    )
   }
 }

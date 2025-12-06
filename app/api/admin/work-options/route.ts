@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate option_type
-    if (!['component_type', 'process_type'].includes(option_type)) {
+    if (!['component_type', 'process_type', 'labor_hour'].includes(option_type)) {
       return NextResponse.json({ error: 'Invalid option_type' }, { status: 400 })
     }
 

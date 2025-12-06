@@ -91,11 +91,13 @@ export const SimplifiedBottomSheet: React.FC<SimplifiedBottomSheetProps> = ({
                   <span className="text-amber-600 dark:text-amber-400 text-lg">💾</span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">임시저장 알림</h3>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    임시 작업일지 알림
+                  </h3>
                 </div>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300 pl-13">
-                임시저장 {totalCount}건이 있습니다.
+                임시 작업일지 {totalCount}건이 있습니다.
               </p>
             </div>
             <button
@@ -185,12 +187,10 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="mb-2">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                  임시저장 작업일지
-                </h3>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">임시 작업일지</h3>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                임시저장 {totalCount}건이 있습니다.
+                임시 작업일지 {totalCount}건이 있습니다.
               </p>
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 무시를 누르면 선택한 월의 알림이 오늘 하루 동안 표시되지 않습니다.
@@ -220,7 +220,7 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
                 <div>
                   <span className="font-medium text-gray-900 dark:text-white">{displayMonth}</span>
                   <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                    {item.count}개 임시저장
+                    {item.count}개 임시
                   </span>
                 </div>
                 <div className="flex gap-2">

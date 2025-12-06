@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, data: result.data })
   } catch (e) {
     console.error('[admin/daily-reports:POST] error:', e)
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    const message = e instanceof Error ? e.message : 'Internal server error'
+    return NextResponse.json({ success: false, error: message }, { status: 400 })
   }
 }

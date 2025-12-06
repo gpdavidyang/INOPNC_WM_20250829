@@ -1,14 +1,35 @@
 import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
+const ADMIN_ROLES = new Set(['admin', 'system_admin'])
+
 export async function GET() {
   try {
-    const supabase = createServiceRoleClient()
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+
+    const normalizedRole = (auth.role || '').toLowerCase()
+    if (!ADMIN_ROLES.has(normalizedRole)) {
+      return NextResponse.json({ success: false, error: '접근 권한이 없습니다.' }, { status: 403 })
+    }
+
+    let supabase
+    try {
+      supabase = createServiceRoleClient()
+    } catch (error) {
+      console.warn(
+        '[admin/materials/active] service role unavailable, falling back to session client'
+      )
+      supabase = createClient()
+    }
+
     const { data, error } = await supabase
       .from('materials')
-      .select('id, name, code, unit, is_active, use_yn, use_flag, status, is_deleted')
+      .select('id, name, code, unit, is_active, status, is_deleted')
       .order('name', { ascending: true })
 
     if (error) {

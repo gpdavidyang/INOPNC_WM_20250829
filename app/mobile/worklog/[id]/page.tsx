@@ -124,9 +124,10 @@ function toDetail(report: any): WorklogDetail {
     0
   )
   const statusNorm = String(report?.status || '').toLowerCase()
-  const status = (
-    ['approved', 'submitted', 'completed'].includes(statusNorm) ? 'approved' : 'draft'
-  ) as WorklogDetail['status']
+  let status: WorklogDetail['status'] = 'draft'
+  if (statusNorm === 'approved') status = 'approved'
+  else if (statusNorm === 'rejected') status = 'rejected'
+  else if (['submitted', 'completed'].includes(statusNorm)) status = 'submitted'
 
   return {
     id: report.id,

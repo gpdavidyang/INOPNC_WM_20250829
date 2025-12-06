@@ -588,7 +588,7 @@ export async function POST(request: NextRequest) {
         status === 'submitted'
           ? savedAsSubmitted
             ? '기존 동일 날짜 작업일지를 제출로 저장했습니다.'
-            : '필수 항목이 누락되어 임시저장으로 저장되었습니다.'
+            : '필수 항목이 누락되어 임시 상태로 저장되었습니다.'
           : '기존 동일 날짜 작업일지를 업데이트했습니다.'
 
       return NextResponse.json({ success: true, data: updatedReport, message })
@@ -787,8 +787,8 @@ export async function POST(request: NextRequest) {
       status === 'submitted'
         ? savedAsSubmitted
           ? '작업일지가 저장되었습니다.'
-          : '필수 항목이 누락되어 임시저장으로 저장되었습니다.'
-        : '임시저장되었습니다.'
+          : '필수 항목이 누락되어 임시 상태로 저장되었습니다.'
+        : '임시 상태로 저장되었습니다.'
 
     return NextResponse.json({ success: true, data: report, message })
   } catch (error) {

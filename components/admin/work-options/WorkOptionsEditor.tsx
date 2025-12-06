@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
-type OptionType = 'component_type' | 'process_type'
+type OptionType = 'component_type' | 'process_type' | 'labor_hour'
 
 interface WorkOptionSetting {
   id: string
@@ -58,14 +58,26 @@ function Section({ title, type }: { title: string; type: OptionType }) {
   const handleAdd = async () => {
     const label = newLabel.trim()
     if (!label) return
+    let optionLabel = label
+    let optionValue = slugify(label)
+
+    if (type === 'labor_hour') {
+      const numeric = Number(label)
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        alert('공수 값은 0 이상의 숫자로 입력해주세요. 예: 0.5, 1, 1.5')
+        return
+      }
+      optionValue = numeric.toString()
+      optionLabel = `${numeric} 공수`
+    }
     try {
       const res = await fetch('/api/admin/work-options', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           option_type: type,
-          option_value: slugify(label),
-          option_label: label,
+          option_value: optionValue,
+          option_label: optionLabel,
           display_order: (items[items.length - 1]?.display_order ?? 0) + 1,
         }),
       })
@@ -235,7 +247,9 @@ function Section({ title, type }: { title: string; type: OptionType }) {
             <div className="mt-3 flex items-center gap-2 flex-nowrap">
               <Input
                 className="w-auto flex-1 min-w-0"
-                placeholder={`${title} 추가`}
+                placeholder={
+                  type === 'labor_hour' ? '공수 값 입력 (예: 0.5, 1, 1.5)' : `${title} 추가`
+                }
                 value={newLabel}
                 onChange={e => setNewLabel(e.target.value)}
                 onKeyDown={e => {
@@ -262,9 +276,10 @@ function Section({ title, type }: { title: string; type: OptionType }) {
 
 export default function WorkOptionsEditor() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
       <Section title="부재명 옵션" type="component_type" />
       <Section title="작업공정 옵션" type="process_type" />
+      <Section title="공수 옵션" type="labor_hour" />
     </div>
   )
 }

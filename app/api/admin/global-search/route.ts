@@ -30,7 +30,7 @@ const siteStatusBadge: Record<string, { label: string; color: SearchItem['badgeC
 }
 
 const reportStatusBadge: Record<string, { label: string; color: SearchItem['badgeColor'] }> = {
-  draft: { label: '임시저장', color: 'yellow' },
+  draft: { label: '임시', color: 'yellow' },
   submitted: { label: '제출', color: 'blue' },
   approved: { label: '승인', color: 'green' },
   completed: { label: '승인', color: 'green' },

@@ -17,7 +17,6 @@ interface SignupRequest {
   rejected_by?: string
   rejected_at?: string
   rejection_reason?: string
-  temporary_password?: string
   approved_by_profile?: { full_name: string }
   rejected_by_profile?: { full_name: string }
 }
@@ -37,24 +36,28 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
 
   // Defensive rendering: Ensure requests is always an array
   const safeRequests = Array.isArray(requests) ? requests : []
-  const [sortField, setSortField] = useState<'requested_at' | 'full_name' | 'company'>('requested_at')
+  const [sortField, setSortField] = useState<'requested_at' | 'full_name' | 'company'>(
+    'requested_at'
+  )
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [approvalRequest, setApprovalRequest] = useState<SignupRequest | null>(null)
 
-  const filteredRequests = safeRequests.filter(request => {
-    if (filter === 'all') return true
-    return request.status === filter
-  }).sort((a, b) => {
-    const aValue = a[sortField]
-    const bValue = b[sortField]
-    
-    if (sortOrder === 'asc') {
-      return aValue > bValue ? 1 : -1
-    } else {
-      return aValue < bValue ? 1 : -1
-    }
-  })
+  const filteredRequests = safeRequests
+    .filter(request => {
+      if (filter === 'all') return true
+      return request.status === filter
+    })
+    .sort((a, b) => {
+      const aValue = a[sortField]
+      const bValue = b[sortField]
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
 
   const handleApproveClick = (request: SignupRequest) => {
     // Convert request to format expected by ApprovalModal
@@ -64,7 +67,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
       email: request.email,
       phone: request.phone,
       company_name: request.company,
-      requested_role: request.job_type === 'construction' ? 'worker' : 'site_manager'
+      requested_role: request.job_type === 'construction' ? 'worker' : 'site_manager',
     }
     setApprovalRequest(modalRequest as unknown)
     setShowApprovalModal(true)
@@ -77,13 +80,18 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
   }) => {
     setLoading(data.requestId)
     try {
-      const result = await approveSignupRequest(data.requestId, currentUser.id, data.organizationId, data.siteIds)
+      const result = await approveSignupRequest(
+        data.requestId,
+        currentUser.id,
+        data.organizationId,
+        data.siteIds
+      )
       if (result.success) {
         // Show detailed success message with organization, site, and temporary password info
         if (result.message) {
           toast.success(result.message, {
             duration: 10000, // Show for 10 seconds
-            description: '임시 비밀번호를 사용자에게 전달해주세요.'
+            description: '임시 비밀번호를 사용자에게 전달해주세요.',
           })
         } else {
           toast.success('승인이 완료되었습니다.')
@@ -123,31 +131,37 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs">
-          <Clock className="w-3 h-3 mr-1" />
-          대기중
-        </Badge>
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs"
+          >
+            <Clock className="w-3 h-3 mr-1" />
+            대기중
+          </Badge>
+        )
       case 'approved':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 text-xs">
-          <CheckCircle className="w-3 h-3 mr-1" />
-          승인됨
-        </Badge>
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 text-xs"
+          >
+            <CheckCircle className="w-3 h-3 mr-1" />
+            승인됨
+          </Badge>
+        )
       case 'rejected':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 text-xs">
-          <XCircle className="w-3 h-3 mr-1" />
-          거절됨
-        </Badge>
+        return (
+          <Badge
+            variant="secondary"
+            className="bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 text-xs"
+          >
+            <XCircle className="w-3 h-3 mr-1" />
+            거절됨
+          </Badge>
+        )
       default:
         return null
-    }
-  }
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success('클립보드에 복사되었습니다.')
-    } catch (error) {
-      toast.error('복사에 실패했습니다.')
     }
   }
 
@@ -179,9 +193,21 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
         <div className="flex space-x-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
           {[
             { key: 'all', label: '전체', count: requests.length },
-            { key: 'pending', label: '대기중', count: requests.filter(r => r.status === 'pending').length },
-            { key: 'approved', label: '승인됨', count: requests.filter(r => r.status === 'approved').length },
-            { key: 'rejected', label: '거절됨', count: requests.filter(r => r.status === 'rejected').length },
+            {
+              key: 'pending',
+              label: '대기중',
+              count: requests.filter(r => r.status === 'pending').length,
+            },
+            {
+              key: 'approved',
+              label: '승인됨',
+              count: requests.filter(r => r.status === 'approved').length,
+            },
+            {
+              key: 'rejected',
+              label: '거절됨',
+              count: requests.filter(r => r.status === 'rejected').length,
+            },
           ].map(tab => (
             <button
               key={tab.key}
@@ -214,9 +240,12 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                     className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     요청일
-                    {sortField === 'requested_at' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />
-                    )}
+                    {sortField === 'requested_at' &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="w-3 h-3 ml-1" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      ))}
                   </button>
                 </th>
                 <th className="px-3 py-2 text-left">
@@ -225,9 +254,12 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                     className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     이름
-                    {sortField === 'full_name' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />
-                    )}
+                    {sortField === 'full_name' &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="w-3 h-3 ml-1" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      ))}
                   </button>
                 </th>
                 <th className="px-3 py-2 text-left">
@@ -236,9 +268,12 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                     className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hover:text-gray-700 dark:hover:text-gray-300"
                   >
                     회사
-                    {sortField === 'company' && (
-                      sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 ml-1" /> : <ChevronDown className="w-3 h-3 ml-1" />
-                    )}
+                    {sortField === 'company' &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="w-3 h-3 ml-1" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      ))}
                   </button>
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -265,14 +300,19 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                    {filter === 'all' ? '승인 요청이 없습니다.' : `${filter === 'pending' ? '대기중인' : filter === 'approved' ? '승인된' : '거절된'} 요청이 없습니다.`}
+                  <td
+                    colSpan={10}
+                    className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    {filter === 'all'
+                      ? '승인 요청이 없습니다.'
+                      : `${filter === 'pending' ? '대기중인' : filter === 'approved' ? '승인된' : '거절된'} 요청이 없습니다.`}
                   </td>
                 </tr>
               ) : (
                 filteredRequests.map(request => {
                   const isExpanded = expandedRows.has(request.id)
-                  
+
                   return (
                     <React.Fragment key={request.id}>
                       <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
@@ -302,9 +342,12 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           {request.status === 'rejected' && request.rejection_reason ? (
-                            <span className="text-xs text-gray-600 dark:text-gray-400 max-w-xs truncate block" title={request.rejection_reason}>
-                              {request.rejection_reason.length > 30 
-                                ? request.rejection_reason.substring(0, 30) + '...' 
+                            <span
+                              className="text-xs text-gray-600 dark:text-gray-400 max-w-xs truncate block"
+                              title={request.rejection_reason}
+                            >
+                              {request.rejection_reason.length > 30
+                                ? request.rejection_reason.substring(0, 30) + '...'
                                 : request.rejection_reason}
                             </span>
                           ) : (
@@ -316,7 +359,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                             <div className="flex space-x-1">
                               <Button
                                 type="button"
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.preventDefault()
                                   handleApproveClick(request)
                                 }}
@@ -359,31 +402,22 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                               {request.status === 'approved' && request.approved_by_profile && (
                                 <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded text-xs">
                                   <p className="text-green-800 dark:text-green-400">
-                                    <strong>{request.approved_by_profile.full_name}</strong>님이 {new Date(request.approved_at!).toLocaleDateString('ko-KR')}에 승인
+                                    <strong>{request.approved_by_profile.full_name}</strong>님이{' '}
+                                    {new Date(request.approved_at!).toLocaleDateString('ko-KR')}에
+                                    승인
                                   </p>
-                                  {request.temporary_password && (
-                                    <div className="mt-1 flex items-center space-x-2">
-                                      <span className="text-green-700 dark:text-green-300">임시 비밀번호:</span>
-                                      <code className="bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded">
-                                        {request.temporary_password}
-                                      </code>
-                                      <Button
-                                        variant="ghost"
-                                        size="compact"
-                                        onClick={() => copyToClipboard(request.temporary_password!)}
-                                        className="text-xs min-w-[35px] h-6 px-1 py-0.5"
-                                      >
-                                        복사
-                                      </Button>
-                                    </div>
-                                  )}
+                                  <div className="mt-2 text-green-700 dark:text-green-300">
+                                    임시 비밀번호는 사용자 이메일로만 전송됩니다.
+                                  </div>
                                 </div>
                               )}
-                              
+
                               {request.status === 'rejected' && request.rejected_by_profile && (
                                 <div className="bg-red-50 dark:bg-red-900/20 p-3 rounded text-xs">
                                   <p className="text-red-800 dark:text-red-400">
-                                    <strong>{request.rejected_by_profile.full_name}</strong>님이 {new Date(request.rejected_at!).toLocaleDateString('ko-KR')}에 거절
+                                    <strong>{request.rejected_by_profile.full_name}</strong>님이{' '}
+                                    {new Date(request.rejected_at!).toLocaleDateString('ko-KR')}에
+                                    거절
                                   </p>
                                   {request.rejection_reason && (
                                     <p className="text-red-700 dark:text-red-300 mt-1">
@@ -415,7 +449,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
             </p>
             <textarea
               value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
+              onChange={e => setRejectionReason(e.target.value)}
               className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-none"
               rows={3}
               placeholder="거절 사유를 입력하세요..."
@@ -450,14 +484,19 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
           setShowApprovalModal(false)
           setApprovalRequest(null)
         }}
-        request={approvalRequest ? {
-          id: approvalRequest.id,
-          full_name: approvalRequest.full_name,
-          email: approvalRequest.email,
-          phone: approvalRequest.phone,
-          company_name: approvalRequest.company,
-          requested_role: approvalRequest.job_type === 'construction' ? 'worker' : 'site_manager'
-        } : null}
+        request={
+          approvalRequest
+            ? {
+                id: approvalRequest.id,
+                full_name: approvalRequest.full_name,
+                email: approvalRequest.email,
+                phone: approvalRequest.phone,
+                company_name: approvalRequest.company,
+                requested_role:
+                  approvalRequest.job_type === 'construction' ? 'worker' : 'site_manager',
+              }
+            : null
+        }
         onApprove={handleApprove}
       />
     </div>

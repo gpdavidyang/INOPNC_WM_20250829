@@ -211,6 +211,10 @@ export async function signUp(
       organization_id: organizationId,
       site_id: siteId,
       status: 'active',
+      mfa_enabled: false,
+      mfa_secret: null,
+      mfa_session_token: null,
+      mfa_session_expires_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -562,6 +566,10 @@ export async function approveSignupRequest(
       status: 'active',
       company: request.company,
       job_title: request.job_title,
+      mfa_enabled: false,
+      mfa_secret: null,
+      mfa_session_token: null,
+      mfa_session_expires_at: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }
@@ -639,7 +647,6 @@ export async function approveSignupRequest(
         status: 'approved',
         approved_by: adminUserId,
         approved_at: new Date().toISOString(),
-        temporary_password: tempPassword,
         // clear rejection fields when overriding from rejected
         rejected_by: null,
         rejected_at: null,
@@ -674,13 +681,14 @@ export async function approveSignupRequest(
     }
 
     // Build success message
-    let message = `승인 완료: ${request.full_name} (${request.email})\n임시 비밀번호: ${tempPassword}`
+    let message = `승인 완료: ${request.full_name} (${request.email})`
     if (partnerCompanyName) {
       message += `\n파트너사: ${partnerCompanyName}`
     }
     if (siteNames.length > 0) {
       message += `\n배정 현장: ${siteNames.join(', ')}`
     }
+    message += '\n임시 비밀번호는 이메일로 전송되었습니다.'
 
     return {
       success: true,

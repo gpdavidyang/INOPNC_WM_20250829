@@ -26,15 +26,15 @@ function MyPage() {
       breadcrumbs={[
         { label: '홈', href: '/dashboard' },
         { label: '상위 메뉴', href: '/dashboard/parent' },
-        { label: '현재 페이지' }
+        { label: '현재 페이지' },
       ]}
       actions={[
         {
           label: '저장',
           onClick: handleSave,
           variant: 'primary',
-          icon: <Save className="h-4 w-4" />
-        }
+          icon: <Save className="h-4 w-4" />,
+        },
       ]}
     />
   )
@@ -44,6 +44,7 @@ function MyPage() {
 ## Pre-configured Variants
 
 ### DashboardPageHeader
+
 For main dashboard pages with standard home breadcrumb.
 
 ```tsx
@@ -57,6 +58,7 @@ import { DashboardPageHeader } from '@/components/ui/page-header'
 ```
 
 ### AdminPageHeader
+
 For admin pages with admin section breadcrumb.
 
 ```tsx
@@ -70,22 +72,24 @@ import { AdminPageHeader } from '@/components/ui/page-header'
 ```
 
 ### ReportsPageHeader
+
 For report pages with automatic back button.
 
 ```tsx
 import { ReportsPageHeader } from '@/components/ui/page-header'
 
-<ReportsPageHeader
+;<ReportsPageHeader
   title="새 작업일지"
   subtitle="일일 작업 내용을 기록하세요"
   actions={[
-    { label: '임시저장', onClick: saveDraft, variant: 'secondary' },
-    { label: '제출', onClick: submit, variant: 'primary' }
+    { label: '임시', onClick: saveDraft, variant: 'secondary' },
+    { label: '제출', onClick: submit, variant: 'primary' },
   ]}
 />
 ```
 
 ### DocumentsPageHeader
+
 For document management pages.
 
 ```tsx
@@ -102,48 +106,51 @@ import { DocumentsPageHeader } from '@/components/ui/page-header'
 
 ### PageHeaderProps
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `string` | required | Page title |
-| `subtitle` | `string` | undefined | Optional subtitle |
-| `breadcrumbs` | `BreadcrumbItem[]` | `[]` | Breadcrumb navigation items |
-| `actions` | `PageHeaderAction[]` | `[]` | Action buttons |
-| `showBackButton` | `boolean` | `false` | Show back navigation button |
-| `backButtonHref` | `string` | undefined | Custom back button URL (defaults to browser back) |
-| `className` | `string` | undefined | Additional CSS classes |
+| Prop             | Type                 | Default   | Description                                       |
+| ---------------- | -------------------- | --------- | ------------------------------------------------- |
+| `title`          | `string`             | required  | Page title                                        |
+| `subtitle`       | `string`             | undefined | Optional subtitle                                 |
+| `breadcrumbs`    | `BreadcrumbItem[]`   | `[]`      | Breadcrumb navigation items                       |
+| `actions`        | `PageHeaderAction[]` | `[]`      | Action buttons                                    |
+| `showBackButton` | `boolean`            | `false`   | Show back navigation button                       |
+| `backButtonHref` | `string`             | undefined | Custom back button URL (defaults to browser back) |
+| `className`      | `string`             | undefined | Additional CSS classes                            |
 
 ### BreadcrumbItem
 
-| Prop | Type | Description |
-|------|------|-------------|
-| `label` | `string` | Display text |
-| `href` | `string` | Optional link URL |
-| `icon` | `React.ReactNode` | Optional icon |
+| Prop    | Type              | Description       |
+| ------- | ----------------- | ----------------- |
+| `label` | `string`          | Display text      |
+| `href`  | `string`          | Optional link URL |
+| `icon`  | `React.ReactNode` | Optional icon     |
 
 ### PageHeaderAction
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `label` | `string` | required | Button text |
-| `onClick` | `() => void` | required | Click handler |
-| `variant` | `'primary' \| 'secondary' \| 'danger' \| 'ghost' \| 'outline'` | `'primary'` | Button style |
-| `icon` | `React.ReactNode` | undefined | Optional icon |
-| `disabled` | `boolean` | `false` | Disabled state |
+| Prop       | Type                                                           | Default     | Description    |
+| ---------- | -------------------------------------------------------------- | ----------- | -------------- |
+| `label`    | `string`                                                       | required    | Button text    |
+| `onClick`  | `() => void`                                                   | required    | Click handler  |
+| `variant`  | `'primary' \| 'secondary' \| 'danger' \| 'ghost' \| 'outline'` | `'primary'` | Button style   |
+| `icon`     | `React.ReactNode`                                              | undefined   | Optional icon  |
+| `disabled` | `boolean`                                                      | `false`     | Disabled state |
 
 ## Design Considerations
 
 ### Mobile Responsiveness
+
 - Actions automatically collapse to icon-only on mobile
 - Touch-friendly button sizes based on touch mode context
 - Proper spacing for construction site usage
 
 ### Accessibility
+
 - Full ARIA labeling for screen readers
 - Keyboard navigation support
 - Focus management
 - Semantic HTML structure
 
 ### Performance
+
 - Lightweight component with minimal re-renders
 - Icons are tree-shaken when not used
 - Efficient CSS classes using Tailwind
@@ -151,13 +158,15 @@ import { DocumentsPageHeader } from '@/components/ui/page-header'
 ## Examples in Codebase
 
 See the following files for real usage examples:
+
 - `/app/dashboard/daily-reports/new/page.tsx` - ReportsPageHeader usage
-- `/components/documents/documents-page-client.tsx` - DocumentsPageHeader usage  
+- `/components/documents/documents-page-client.tsx` - DocumentsPageHeader usage
 - `/components/ui/page-header-examples.tsx` - Comprehensive examples
 
 ## Customization
 
 The component follows the project's design system:
+
 - Uses existing font size and touch mode contexts
 - Consistent with button and typography styles
 - Respects dark mode preferences
