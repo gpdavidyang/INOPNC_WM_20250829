@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { logAuthEvent } from '@/lib/auth/audit'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +50,11 @@ export async function POST(request: NextRequest) {
 
     if (profile?.mfa_enabled) {
       if (!mfa_session_token) {
+        await logAuthEvent('MFA_TOKEN_REQUIRED', {
+          userEmail: authUser.user.email,
+          success: false,
+          details: { reason: 'missing_token' },
+        })
         return NextResponse.json(
           { success: false, error: 'MFA 인증이 필요합니다.' },
           { status: 428 }
@@ -64,6 +70,11 @@ export async function POST(request: NextRequest) {
         profile.mfa_session_token !== mfa_session_token ||
         isExpired
       ) {
+        await logAuthEvent('MFA_TOKEN_INVALID', {
+          userEmail: authUser.user.email,
+          success: false,
+          details: { reason: isExpired ? 'expired' : 'mismatch' },
+        })
         return NextResponse.json(
           { success: false, error: 'MFA 세션이 만료되었거나 올바르지 않습니다.' },
           { status: 428 }
@@ -78,6 +89,11 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('[SYNC-SESSION API] Set session error:', error)
+      await logAuthEvent('MFA_SESSION_SYNC_FAIL', {
+        userEmail: authUser.user.email,
+        success: false,
+        details: { error: error.message },
+      })
       return NextResponse.json({ success: false, error: error.message }, { status: 500 })
     }
 
@@ -106,6 +122,11 @@ export async function POST(request: NextRequest) {
         .update({ mfa_session_token: null, mfa_session_expires_at: null })
         .eq('id', userId)
     }
+
+    await logAuthEvent('MFA_SESSION_SYNC_SUCCESS', {
+      userEmail: userData.user.email,
+      details: { userId },
+    })
 
     return NextResponse.json({
       success: true,

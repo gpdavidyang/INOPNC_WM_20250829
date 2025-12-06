@@ -215,6 +215,9 @@ export async function signUp(
       mfa_secret: null,
       mfa_session_token: null,
       mfa_session_expires_at: null,
+      mfa_failed_attempts: 0,
+      mfa_last_failed_at: null,
+      mfa_lock_until: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     })
@@ -570,6 +573,9 @@ export async function approveSignupRequest(
       mfa_secret: null,
       mfa_session_token: null,
       mfa_session_expires_at: null,
+      mfa_failed_attempts: 0,
+      mfa_last_failed_at: null,
+      mfa_lock_until: null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }

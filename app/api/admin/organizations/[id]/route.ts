@@ -4,6 +4,25 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
+type RawOrganization = Record<string, any> & {
+  contact_phone?: string | null
+  contact_email?: string | null
+  phone?: string | null
+  email?: string | null
+}
+
+const normalizeOrganization = (org: RawOrganization) => ({
+  ...org,
+  contact_phone: org.contact_phone ?? org.phone ?? null,
+  contact_email: org.contact_email ?? org.email ?? null,
+})
+
+const extractMissingColumn = (error: any): string | null => {
+  const message = typeof error?.message === 'string' ? error.message : ''
+  const match = message.match(/Could not find the '([^']+)' column/i)
+  return match ? match[1] : null
+}
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
@@ -60,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const organizationWithCounts = {
-      ...organization,
+      ...normalizeOrganization(organization as RawOrganization),
       member_count: related.members.length,
       site_count: related.sites.length,
     }
@@ -88,24 +107,79 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const supabase = await createClient()
 
     body = await request.json()
-    const allowedFields = (({ name, address, contact_email, contact_phone, description }) => ({
-      ...(name ? { name } : {}),
-      ...(address !== undefined ? { address } : {}),
-      ...(contact_email !== undefined ? { contact_email } : {}),
-      ...(contact_phone !== undefined ? { contact_phone } : {}),
-      ...(description !== undefined ? { description } : {}),
-    }))(body as Record<string, string | undefined>)
+    const allowedFields = (({ name, address, contact_email, contact_phone, description }) => {
+      const updates: Record<string, unknown> = {}
+      if (typeof name === 'string' && name.trim().length > 0) updates.name = name.trim()
+      if (address !== undefined) {
+        updates.address =
+          typeof address === 'string' && address.trim().length > 0 ? address.trim() : null
+      }
+      if (description !== undefined) {
+        updates.description =
+          typeof description === 'string' && description.trim().length > 0
+            ? description.trim()
+            : null
+      }
+      if (contact_phone !== undefined) {
+        const sanitizedPhone =
+          typeof contact_phone === 'string' && contact_phone.trim().length > 0
+            ? contact_phone.trim()
+            : null
+        updates.contact_phone = sanitizedPhone
+        updates.phone = sanitizedPhone
+      }
+      if (contact_email !== undefined) {
+        const sanitizedEmail =
+          typeof contact_email === 'string' && contact_email.trim().length > 0
+            ? contact_email.trim()
+            : null
+        updates.contact_email = sanitizedEmail
+        updates.email = sanitizedEmail
+      }
+      return updates
+    })(body as Record<string, string | undefined>)
 
     if (Object.keys(allowedFields).length === 0) {
       return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 })
     }
 
-    const { data: updatedOrganization, error: updateError } = await supabase
-      .from('organizations')
-      .update(allowedFields)
-      .eq('id', params.id)
-      .select()
-      .maybeSingle()
+    let currentUpdates = { ...allowedFields }
+    const attemptUpdate = (payload: Record<string, unknown>) =>
+      supabase.from('organizations').update(payload).eq('id', params.id).select().maybeSingle()
+
+    let updatedOrganization: RawOrganization | null = null
+    let updateError: any = null
+
+    while (true) {
+      if (Object.keys(currentUpdates).length === 0) {
+        updateError = null
+        break
+      }
+      const { data, error: attemptError } = await attemptUpdate(currentUpdates)
+      if (!attemptError) {
+        updatedOrganization = data as RawOrganization
+        updateError = null
+        break
+      }
+      const missingColumn = extractMissingColumn(attemptError)
+      if (!missingColumn || !(missingColumn in currentUpdates)) {
+        updateError = attemptError
+        break
+      }
+      console.warn(
+        `[organizations:PATCH] ${missingColumn} column missing in organizations table, retrying without it.`
+      )
+      delete currentUpdates[missingColumn]
+    }
+
+    if (!updatedOrganization && updateError == null) {
+      const { data } = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('id', params.id)
+        .maybeSingle()
+      updatedOrganization = (data as RawOrganization) ?? null
+    }
 
     if (updateError) {
       throw updateError
@@ -115,7 +189,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: 'Not Found' }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, organization: updatedOrganization })
+    return NextResponse.json({
+      success: true,
+      organization: normalizeOrganization(updatedOrganization),
+    })
   } catch (error) {
     console.error('Organization update error:', error)
     return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })

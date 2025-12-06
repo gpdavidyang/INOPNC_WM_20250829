@@ -298,8 +298,34 @@ export async function POST(request: NextRequest, context: { params: { id: string
       return buildErrorResponse('파일 크기가 10MB를 초과했습니다.')
     }
 
-    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-    if (file.type && !allowedMimeTypes.includes(file.type)) {
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/heic',
+      'image/heif',
+      'image/avif',
+      'image/tiff',
+      'image/bmp',
+    ]
+    const allowedExtensions = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.gif',
+      '.heic',
+      '.heif',
+      '.avif',
+      '.tif',
+      '.tiff',
+      '.bmp',
+    ]
+    const fileExt = file.name ? file.name.toLowerCase().slice(file.name.lastIndexOf('.')) : ''
+    const mimeAllowed = file.type ? allowedMimeTypes.includes(file.type.toLowerCase()) : false
+    const extAllowed = fileExt ? allowedExtensions.includes(fileExt) : false
+    if (!mimeAllowed && !extAllowed) {
       return buildErrorResponse('지원하지 않는 파일 형식입니다.')
     }
 

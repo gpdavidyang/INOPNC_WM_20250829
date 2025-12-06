@@ -57,6 +57,15 @@ const mapDocumentsToAttachments = (documents?: Record<string, any[]>): UnifiedAt
       metadata: item?.metadata || undefined,
     }))
 
+  const fallbackTotalWorkers =
+    response.worker_statistics?.total_workers ??
+    (typeof dailyReport?.total_workers === 'number' ? dailyReport.total_workers : undefined)
+  const fallbackTotalHours =
+    response.worker_statistics?.total_hours ??
+    (typeof dailyReport?.total_labor_hours === 'number'
+      ? dailyReport.total_labor_hours
+      : (dailyReport?.total_hours as number | undefined))
+
   return {
     photos: mapCategory(documents?.photo, 'photo'),
     drawings: mapCategory(documents?.drawing, 'drawing'),
@@ -115,10 +124,10 @@ const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {
 const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
   (workers || []).map((worker, index) => ({
     id: worker?.id || `worker-${index}`,
-    workerId: worker?.worker_id || worker?.profiles?.id || undefined,
+    workerId: worker?.worker_id || worker?.user_id || worker?.profiles?.id || undefined,
     workerName: worker?.profiles?.full_name || worker?.worker_name || worker?.name || '이름없음',
-    hours: Number(worker?.labor_hours ?? 0) || 0,
-    isDirectInput: !worker?.worker_id,
+    hours: Number(worker?.labor_hours ?? worker?.work_hours ?? worker?.hours ?? 0) || 0,
+    isDirectInput: worker?.isDirectInput ?? !worker?.worker_id,
     notes: worker?.notes || '',
   }))
 
@@ -233,8 +242,8 @@ export const integratedResponseToUnifiedReport = (
       componentName: dailyReport.component_name || primaryEntry?.memberName || '',
       workProcess: dailyReport.work_process || primaryEntry?.processType || '',
       workSection: dailyReport.work_section || primaryEntry?.workSection || '',
-      totalWorkers: response.worker_statistics?.total_workers,
-      totalHours: response.worker_statistics?.total_hours,
+      totalWorkers: fallbackTotalWorkers,
+      totalHours: fallbackTotalHours,
       workContents: dailyReport.additional_notes?.workContents || [],
     },
     createdAt: dailyReport.created_at,

@@ -9,6 +9,33 @@ import { getLoginLogoSrc } from '@/lib/ui/brand'
 import { getDemoAccountPassword, isDemoAccountEmail } from '@/lib/auth/demo-accounts'
 import { generateMfaSecret, verifyMfaCode } from './actions'
 
+const TEST_EMAIL_DOMAIN =
+  (typeof process !== 'undefined' &&
+    (process.env.NEXT_PUBLIC_AUTH_TEST_EMAIL_DOMAIN || process.env.AUTH_TEST_EMAIL_DOMAIN)) ||
+  '@inopnc.com'
+const TEST_EMAILS_CONFIG =
+  (typeof process !== 'undefined' &&
+    (process.env.NEXT_PUBLIC_AUTH_TEST_EMAILS || process.env.AUTH_TEST_EMAILS)) ||
+  [
+    'admin@inopnc.com',
+    'partner@inopnc.com',
+    'production@inopnc.com',
+    'manager@inopnc.com',
+    'worker@inopnc.com',
+  ].join(',')
+const TEST_EMAIL_SET = new Set(
+  TEST_EMAILS_CONFIG.split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean)
+)
+
+const isTestBypassEmail = (value?: string | null) => {
+  if (!value) return false
+  const lower = value.toLowerCase()
+  if (lower.endsWith(TEST_EMAIL_DOMAIN.toLowerCase())) return true
+  return TEST_EMAIL_SET.has(lower)
+}
+
 type LoginPhase = 'credentials' | 'mfa-setup' | 'mfa-verify'
 type PendingSession = {
   access_token: string
@@ -34,13 +61,27 @@ export default function LoginPage() {
   const passwordInputRef = useRef<HTMLInputElement | null>(null)
   // Logo handled by client component
 
-  // Find ID modal state (UI only)
+  // Find ID modal state
   const [isFindIdOpen, setIsFindIdOpen] = useState(false)
-  const [isFindIdResultOpen, setIsFindIdResultOpen] = useState(false)
-  const [findIdResultMessage, setFindIdResultMessage] = useState<string>('')
+  const [findIdStep, setFindIdStep] = useState<'form' | 'code' | 'done'>('form')
   const [findIdName, setFindIdName] = useState('')
   const [findIdPhone, setFindIdPhone] = useState('')
-  const [findIdEmail, setFindIdEmail] = useState('')
+  const [findIdVerificationId, setFindIdVerificationId] = useState<string | null>(null)
+  const [findIdCode, setFindIdCode] = useState('')
+  const [findIdResult, setFindIdResult] = useState<string | null>(null)
+  const [findIdError, setFindIdError] = useState<string | null>(null)
+  const [isFindIdSubmitting, setIsFindIdSubmitting] = useState(false)
+  const [findIdHelper, setFindIdHelper] = useState<string | null>(null)
+
+  // Signup status modal state
+  const [isSignupStatusOpen, setIsSignupStatusOpen] = useState(false)
+  const [signupStatusStep, setSignupStatusStep] = useState<'form' | 'code' | 'done'>('form')
+  const [signupStatusEmail, setSignupStatusEmail] = useState('')
+  const [signupStatusVerificationId, setSignupStatusVerificationId] = useState<string | null>(null)
+  const [signupStatusCode, setSignupStatusCode] = useState('')
+  const [signupStatusResult, setSignupStatusResult] = useState<string | null>(null)
+  const [signupStatusError, setSignupStatusError] = useState<string | null>(null)
+  const [isSignupStatusSubmitting, setIsSignupStatusSubmitting] = useState(false)
 
   // Load saved email on mount when rememberMe was set
   useEffect(() => {
@@ -258,23 +299,9 @@ export default function LoginPage() {
         const msgLower = rawMessage.toLowerCase()
         console.error('Login error:', signInError)
         if (msgLower.includes('invalid login credentials')) {
-          // 추가: 가입요청 상태 확인 후 메시지 보완
-          try {
-            const statusRes = await fetch(
-              `/api/auth/signup-request/status?email=${encodeURIComponent(submittedEmail)}`,
-              {
-                cache: 'no-store',
-              }
-            )
-            const statusJson = await statusRes.json().catch(() => ({}))
-            if (statusRes.ok && statusJson?.success && statusJson?.status === 'pending') {
-              setError('가입 승인 대기 중입니다. 승인 완료 후 이메일로 안내됩니다.')
-            } else {
-              setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
-            }
-          } catch {
-            setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
-          }
+          setError(
+            '계정이 존재하지 않거나 비밀번호가 일치하지 않습니다. 가입 승인 여부는 "가입상태확인"에서 확인해주세요.'
+          )
           if (process.env.NODE_ENV !== 'production' && normalizedEmail === 'partner@inopnc.com') {
             setDevHelp('개발 환경에서 파트너 테스트 계정을 생성할 수 있습니다.')
           }
@@ -300,6 +327,16 @@ export default function LoginPage() {
         .maybeSingle()
 
       const tokens = { access_token, refresh_token }
+
+      const bypassMfa = isTestBypassEmail(signInData.user.email)
+      if (bypassMfa) {
+        const synced = await syncSession(tokens)
+        setIsLoading(false)
+        if (synced) {
+          await redirectAfterLogin()
+        }
+        return
+      }
 
       if (!profileRow?.mfa_enabled) {
         setPendingSession(tokens)
@@ -377,41 +414,157 @@ export default function LoginPage() {
     }
   }
 
-  // Simple Find ID handlers (UI only)
   const openFindId = () => {
+    setIsFindIdOpen(true)
+    setFindIdStep('form')
     setFindIdName('')
     setFindIdPhone('')
-    setFindIdEmail('')
-    setIsFindIdResultOpen(false)
-    setFindIdResultMessage('')
-    setIsFindIdOpen(true)
+    setFindIdVerificationId(null)
+    setFindIdCode('')
+    setFindIdResult(null)
+    setFindIdError(null)
+    setFindIdHelper(null)
   }
   const closeFindId = () => setIsFindIdOpen(false)
-  const closeFindIdResult = () => setIsFindIdResultOpen(false)
-  const submitFindId = async (e: React.FormEvent) => {
+
+  const submitFindIdRequest = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsFindIdSubmitting(true)
+    setFindIdError(null)
     try {
-      const res = await fetch('/api/auth/find-id', {
+      const res = await fetch('/api/auth/find-id/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: findIdName,
           phone: findIdPhone,
-          email: findIdEmail || undefined,
         }),
       })
       const data = await res.json().catch(() => ({}))
-      setIsFindIdOpen(false)
-      if (res.ok && data?.success && data?.email) {
-        setFindIdResultMessage(`아이디를 찾았습니다: ${data.email}`)
-      } else {
-        setFindIdResultMessage(data?.message || data?.error || '일치하는 계정을 찾을 수 없습니다.')
+      if (!res.ok || !data?.success || !data?.verificationId) {
+        setFindIdError(data?.error || '인증 코드를 전송하지 못했습니다.')
+        return
       }
-      setIsFindIdResultOpen(true)
-    } catch (err) {
-      setIsFindIdOpen(false)
-      setFindIdResultMessage('조회 중 오류가 발생했습니다.')
-      setIsFindIdResultOpen(true)
+      setFindIdVerificationId(data.verificationId)
+      setFindIdStep('code')
+      setFindIdHelper(
+        '입력하신 이름·전화번호와 연결된 이메일 주소로 인증 코드를 전송했습니다. 받은 편지함과 스팸함을 확인해주세요.'
+      )
+    } catch (error) {
+      console.error('Find ID request error', error)
+      setFindIdError('요청 중 오류가 발생했습니다.')
+    } finally {
+      setIsFindIdSubmitting(false)
+    }
+  }
+
+  const submitFindIdVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!findIdVerificationId) {
+      setFindIdError('인증 정보를 다시 요청해주세요.')
+      return
+    }
+    setIsFindIdSubmitting(true)
+    setFindIdError(null)
+    try {
+      const res = await fetch('/api/auth/find-id/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verificationId: findIdVerificationId,
+          code: findIdCode,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success || !data?.email) {
+        setFindIdError(data?.error || '인증에 실패했습니다.')
+        return
+      }
+      setFindIdResult(data.email)
+      setFindIdStep('done')
+    } catch (error) {
+      console.error('Find ID verify error', error)
+      setFindIdError('인증 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsFindIdSubmitting(false)
+    }
+  }
+
+  const openSignupStatus = () => {
+    setIsSignupStatusOpen(true)
+    setSignupStatusStep('form')
+    setSignupStatusEmail('')
+    setSignupStatusVerificationId(null)
+    setSignupStatusCode('')
+    setSignupStatusResult(null)
+    setSignupStatusError(null)
+  }
+  const closeSignupStatus = () => setIsSignupStatusOpen(false)
+
+  const submitSignupStatusRequest = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSignupStatusSubmitting(true)
+    setSignupStatusError(null)
+    try {
+      const res = await fetch('/api/auth/signup-status/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupStatusEmail }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success || !data?.verificationId) {
+        setSignupStatusError(data?.error || '인증 코드를 전송하지 못했습니다.')
+        return
+      }
+      setSignupStatusVerificationId(data.verificationId)
+      setSignupStatusStep('code')
+    } catch (error) {
+      console.error('Signup status request error', error)
+      setSignupStatusError('요청 중 오류가 발생했습니다.')
+    } finally {
+      setIsSignupStatusSubmitting(false)
+    }
+  }
+
+  const submitSignupStatusVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!signupStatusVerificationId) {
+      setSignupStatusError('인증 정보를 다시 요청해주세요.')
+      return
+    }
+    setIsSignupStatusSubmitting(true)
+    setSignupStatusError(null)
+    try {
+      const res = await fetch('/api/auth/signup-status/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          verificationId: signupStatusVerificationId,
+          code: signupStatusCode,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success) {
+        setSignupStatusError(data?.error || '인증에 실패했습니다.')
+        return
+      }
+      const statusLabel =
+        data?.status === 'approved'
+          ? '승인 완료'
+          : data?.status === 'rejected'
+            ? '반려됨'
+            : data?.status === 'pending'
+              ? '승인 대기중'
+              : '요청 없음'
+      const detail =
+        typeof data?.message === 'string' && data.message.length > 0 ? `\n${data.message}` : ''
+      setSignupStatusResult(`${statusLabel}${detail}`)
+      setSignupStatusStep('done')
+    } catch (error) {
+      console.error('Signup status verify error', error)
+      setSignupStatusError('인증 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsSignupStatusSubmitting(false)
     }
   }
 
@@ -868,6 +1021,12 @@ export default function LoginPage() {
           transform: translateY(-1px);
           box-shadow: 0 4px 12px rgba(49, 163, 250, 0.3);
         }
+        .modal-helper {
+          margin-bottom: 16px;
+          font-size: 14px;
+          color: #4b5563;
+          line-height: 1.5;
+        }
 
         /* Responsive */
         @media (max-width: 480px) {
@@ -1009,6 +1168,10 @@ export default function LoginPage() {
                     <Link href="/auth/reset-password" className="forgot-password">
                       비밀번호찾기
                     </Link>
+                    <span className="separator">|</span>
+                    <button type="button" className="forgot-password" onClick={openSignupStatus}>
+                      가입상태확인
+                    </button>
                   </div>
                 </div>
 
@@ -1139,72 +1302,157 @@ export default function LoginPage() {
             </button>
           </div>
           <div className="modal-body">
-            <form onSubmit={submitFindId}>
-              <div className="form-group">
-                <label htmlFor="findIdName">이름</label>
-                <input
-                  id="findIdName"
-                  className="form-input"
-                  value={findIdName}
-                  onChange={e => setFindIdName(e.target.value)}
-                  required
-                />
+            {findIdStep === 'form' && (
+              <form onSubmit={submitFindIdRequest}>
+                <div className="form-group">
+                  <label htmlFor="findIdName">이름</label>
+                  <input
+                    id="findIdName"
+                    className="form-input"
+                    value={findIdName}
+                    onChange={e => setFindIdName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="findIdPhone">휴대폰 번호</label>
+                  <input
+                    id="findIdPhone"
+                    className="form-input"
+                    placeholder="010-1234-5678"
+                    value={findIdPhone}
+                    onChange={e => setFindIdPhone(formatPhone(e.target.value))}
+                    required
+                  />
+                </div>
+                {findIdError && <div className="error-message">{findIdError}</div>}
+                <button type="submit" className="modal-button" disabled={isFindIdSubmitting}>
+                  {isFindIdSubmitting ? '확인 중...' : '인증 코드 받기'}
+                </button>
+              </form>
+            )}
+
+            {findIdStep === 'code' && (
+              <form onSubmit={submitFindIdVerify}>
+                <p className="modal-helper">
+                  {findIdHelper ||
+                    '입력하신 정보와 연결된 이메일 주소로 인증 코드를 전송했습니다. 받은 편지함과 스팸함을 확인한 뒤 아래에 입력해주세요.'}
+                </p>
+                <div className="form-group">
+                  <label htmlFor="findIdCode">인증코드</label>
+                  <input
+                    id="findIdCode"
+                    className="form-input"
+                    maxLength={6}
+                    inputMode="numeric"
+                    value={findIdCode}
+                    onChange={e => setFindIdCode(e.target.value)}
+                    required
+                  />
+                </div>
+                {findIdError && <div className="error-message">{findIdError}</div>}
+                <button type="submit" className="modal-button" disabled={isFindIdSubmitting}>
+                  {isFindIdSubmitting ? '확인 중...' : '아이디 확인'}
+                </button>
+              </form>
+            )}
+
+            {findIdStep === 'done' && (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p>등록된 아이디는 다음과 같습니다.</p>
+                <p style={{ fontWeight: 600, fontSize: 18, marginTop: 12 }}>{findIdResult}</p>
+                <button
+                  type="button"
+                  className="modal-button"
+                  style={{ marginTop: 20 }}
+                  onClick={closeFindId}
+                >
+                  로그인하러 가기
+                </button>
               </div>
-              <div className="form-group">
-                <label htmlFor="findIdPhone">휴대폰 번호</label>
-                <input
-                  id="findIdPhone"
-                  className="form-input"
-                  placeholder="010-1234-5678"
-                  value={findIdPhone}
-                  onChange={e => setFindIdPhone(formatPhone(e.target.value))}
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="findIdEmail">이메일</label>
-                <input
-                  id="findIdEmail"
-                  type="email"
-                  className="form-input"
-                  placeholder="example@email.com"
-                  value={findIdEmail}
-                  onChange={e => setFindIdEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <button type="submit" className="modal-button">
-                아이디 찾기
-              </button>
-            </form>
+            )}
           </div>
         </div>
       </div>
 
-      {/* 아이디찾기 결과 모달 */}
+      {/* 가입 상태 확인 모달 */}
       <div
-        className={`modal ${isFindIdResultOpen ? 'show' : ''}`}
+        className={`modal ${isSignupStatusOpen ? 'show' : ''}`}
         onClick={e => {
-          if (e.target === e.currentTarget) closeFindIdResult()
+          if (e.target === e.currentTarget) closeSignupStatus()
         }}
       >
         <div
           className="modal-content"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="findIdResultTitle"
+          aria-labelledby="signupStatusTitle"
         >
           <div className="modal-header">
-            <h2 id="findIdResultTitle">아이디 찾기 결과</h2>
-            <button className="close-btn" onClick={closeFindIdResult}>
+            <h2 id="signupStatusTitle">가입 상태 확인</h2>
+            <button className="close-btn" onClick={closeSignupStatus}>
               닫기
             </button>
           </div>
           <div className="modal-body">
-            <div style={{ textAlign: 'center', padding: '20px 0' }}>{findIdResultMessage}</div>
-            <button type="button" className="modal-button" onClick={closeFindIdResult}>
-              로그인하러 가기
-            </button>
+            {signupStatusStep === 'form' && (
+              <form onSubmit={submitSignupStatusRequest}>
+                <div className="form-group">
+                  <label htmlFor="signupStatusEmail">이메일</label>
+                  <input
+                    id="signupStatusEmail"
+                    type="email"
+                    className="form-input"
+                    placeholder="signup@email.com"
+                    value={signupStatusEmail}
+                    onChange={e => setSignupStatusEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                {signupStatusError && <div className="error-message">{signupStatusError}</div>}
+                <button type="submit" className="modal-button" disabled={isSignupStatusSubmitting}>
+                  {isSignupStatusSubmitting ? '전송 중...' : '인증 코드 받기'}
+                </button>
+              </form>
+            )}
+
+            {signupStatusStep === 'code' && (
+              <form onSubmit={submitSignupStatusVerify}>
+                <p className="modal-helper">
+                  입력하신 이메일로 인증 코드를 전송했습니다. 확인 후 아래에 입력해주세요.
+                </p>
+                <div className="form-group">
+                  <label htmlFor="signupStatusCode">인증코드</label>
+                  <input
+                    id="signupStatusCode"
+                    className="form-input"
+                    maxLength={6}
+                    inputMode="numeric"
+                    value={signupStatusCode}
+                    onChange={e => setSignupStatusCode(e.target.value)}
+                    required
+                  />
+                </div>
+                {signupStatusError && <div className="error-message">{signupStatusError}</div>}
+                <button type="submit" className="modal-button" disabled={isSignupStatusSubmitting}>
+                  {isSignupStatusSubmitting ? '확인 중...' : '상태 확인'}
+                </button>
+              </form>
+            )}
+
+            {signupStatusStep === 'done' && (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <p style={{ whiteSpace: 'pre-line' }}>{signupStatusResult}</p>
+                <button
+                  type="button"
+                  className="modal-button"
+                  style={{ marginTop: 20 }}
+                  onClick={closeSignupStatus}
+                >
+                  닫기
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

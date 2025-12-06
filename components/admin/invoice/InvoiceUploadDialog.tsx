@@ -273,7 +273,7 @@ export function InvoiceUploadForm({
           id={fileInputId}
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.txt"
+          accept="*/*"
           onChange={handleFileChange}
           className="w-full sm:w-64 cursor-pointer"
           disabled={submitting}
@@ -350,7 +350,7 @@ export function InvoiceUploadForm({
           id={fileInputId}
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.gif,.webp,.txt"
+          accept="*/*"
           onChange={handleFileChange}
           className="cursor-pointer"
           disabled={submitting}

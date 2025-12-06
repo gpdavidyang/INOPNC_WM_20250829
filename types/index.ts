@@ -822,14 +822,14 @@ export interface EmailNotification {
   subject: string
   content: string
   notification_type: EmailNotificationType
-  sender_id: string
+  sender_id?: string | null
   priority: EmailNotificationPriority
   status: EmailNotificationStatus
   scheduled_at: string
   sent_at?: string | null
   error_message?: string | null
   metadata?: any | null
-  created_by: string
+  created_by?: string | null
   created_at: string
   updated_at: string
 }

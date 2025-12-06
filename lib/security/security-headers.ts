@@ -1,6 +1,6 @@
 /**
  * Security Headers Middleware for Production
- * 
+ *
  * Implements comprehensive security headers following OWASP recommendations:
  * - Content Security Policy (CSP)
  * - HTTP Strict Transport Security (HSTS)
@@ -11,7 +11,6 @@
  * - Permissions Policy
  */
 
-
 // CSP directives for construction management application
 const CSP_DIRECTIVES = {
   'default-src': ["'self'"],
@@ -21,17 +20,21 @@ const CSP_DIRECTIVES = {
     "'unsafe-eval'", // Required for development tools
     'https://js.sentry-cdn.com', // Sentry error monitoring
     'https://cdn.jsdelivr.net', // CDN for libraries
-    'https://unpkg.com' // CDN for libraries
+    'https://unpkg.com', // CDN for libraries
+    'https://*.daumcdn.net', // Kakao postcode
+    'https://*.kakao.com', // Kakao postcode
+    'http://*.daumcdn.net',
+    'http://*.kakao.com',
   ],
   'style-src': [
     "'self'",
     "'unsafe-inline'", // Required for styled-components and CSS-in-JS
-    'https://fonts.googleapis.com'
+    'https://fonts.googleapis.com',
   ],
   'font-src': [
     "'self'",
     'https://fonts.gstatic.com',
-    'data:' // For base64 encoded fonts
+    'data:', // For base64 encoded fonts
   ],
   'img-src': [
     "'self'",
@@ -39,14 +42,9 @@ const CSP_DIRECTIVES = {
     'blob:', // For generated images
     'https:', // Allow HTTPS images
     'https://*.supabase.co', // Supabase storage
-    'https://*.supabase.com' // Supabase storage
+    'https://*.supabase.com', // Supabase storage
   ],
-  'media-src': [
-    "'self'",
-    'blob:',
-    'https://*.supabase.co',
-    'https://*.supabase.com'
-  ],
+  'media-src': ["'self'", 'blob:', 'https://*.supabase.co', 'https://*.supabase.com'],
   'connect-src': [
     "'self'",
     'https://*.supabase.co', // Supabase API
@@ -54,19 +52,28 @@ const CSP_DIRECTIVES = {
     'https://api.sentry.io', // Sentry error reporting
     'wss://*.supabase.co', // Supabase realtime
     'https://*.anthropic.com', // AI API
-    'https://*.perplexity.ai' // Research API
+    'https://*.perplexity.ai', // Research API
+    'data:', // Allow fetch to base64/data URIs (used by photo grid preview)
   ],
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'self'"],
   'frame-ancestors': ["'none'"], // Prevent embedding in frames
-  'frame-src': ["'none'"],
+  'frame-src': [
+    "'self'",
+    'https://*.daumcdn.net',
+    'https://*.kakao.com',
+    'https://postcode.map.kakao.com',
+    'https://postcode.map.daum.net',
+    'http://*.daum.net',
+    'http://*.kakao.com',
+  ],
   'worker-src': [
     "'self'",
-    'blob:' // For service workers
+    'blob:', // For service workers
   ],
   'manifest-src': ["'self'"],
-  'upgrade-insecure-requests': []
+  'upgrade-insecure-requests': [],
 }
 
 // Development CSP (more permissive)
@@ -76,14 +83,14 @@ const CSP_DIRECTIVES_DEV = {
     ...CSP_DIRECTIVES['script-src'],
     "'unsafe-eval'", // Required for development
     'http://localhost:*', // Development server
-    'ws://localhost:*' // Hot reload
+    'ws://localhost:*', // Hot reload
   ],
   'connect-src': [
     ...CSP_DIRECTIVES['connect-src'],
     'http://localhost:*', // Development API
     'ws://localhost:*', // Hot reload
-    'wss://localhost:*' // Development websockets
-  ]
+    'wss://localhost:*', // Development websockets
+  ],
 }
 
 /**
@@ -108,9 +115,7 @@ export function getSecurityHeaders(isDevelopment = false): Record<string, string
 
   const headers: Record<string, string> = {
     // Content Security Policy
-    'Content-Security-Policy': generateCSP(
-      isDevelopment ? CSP_DIRECTIVES_DEV : CSP_DIRECTIVES
-    ),
+    'Content-Security-Policy': generateCSP(isDevelopment ? CSP_DIRECTIVES_DEV : CSP_DIRECTIVES),
 
     // Prevent MIME type sniffing
     'X-Content-Type-Options': 'nosniff',
@@ -129,15 +134,14 @@ export function getSecurityHeaders(isDevelopment = false): Record<string, string
 
     // Disable client-side caching of sensitive pages
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0',
-    'Surrogate-Control': 'no-store'
+    Pragma: 'no-cache',
+    Expires: '0',
+    'Surrogate-Control': 'no-store',
   }
 
   // Production-only headers
   if (isProduction) {
-    headers['Strict-Transport-Security'] = 
-      'max-age=31536000; includeSubDomains; preload'
+    headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
   }
 
   // Permissions Policy (Feature Policy)
@@ -156,7 +160,7 @@ export function getSecurityHeaders(isDevelopment = false): Record<string, string
     'midi=()', // Disable MIDI
     'sync-xhr=()', // Disable synchronous XHR
     'usb=()', // Disable USB
-    'xr-spatial-tracking=()' // Disable AR/VR
+    'xr-spatial-tracking=()', // Disable AR/VR
   ].join(', ')
 
   return headers
@@ -165,12 +169,9 @@ export function getSecurityHeaders(isDevelopment = false): Record<string, string
 /**
  * Apply security headers to NextResponse
  */
-export function applySecurityHeaders(
-  response: NextResponse,
-  isDevelopment = false
-): NextResponse {
+export function applySecurityHeaders(response: NextResponse, isDevelopment = false): NextResponse {
   const headers = getSecurityHeaders(isDevelopment)
-  
+
   Object.entries(headers).forEach(([key, value]) => {
     response.headers.set(key, value)
   })
@@ -198,7 +199,7 @@ export function getAPISecurityHeaders(): Record<string, string> {
     'X-XSS-Protection': '1; mode=block',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Cache-Control': 'no-store, no-cache, must-revalidate',
-    'Pragma': 'no-cache'
+    Pragma: 'no-cache',
   }
 }
 
@@ -206,12 +207,10 @@ export function getAPISecurityHeaders(): Record<string, string> {
  * CORS configuration for production
  */
 export const CORS_CONFIG = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? [
-        'https://your-production-domain.com',
-        'https://www.your-production-domain.com'
-      ]
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin:
+    process.env.NODE_ENV === 'production'
+      ? ['https://your-production-domain.com', 'https://www.your-production-domain.com']
+      : ['http://localhost:3000', 'http://127.0.0.1:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -219,26 +218,30 @@ export const CORS_CONFIG = {
     'Authorization',
     'X-Requested-With',
     'X-API-Key',
-    'X-Request-ID'
+    'X-Request-ID',
   ],
   exposedHeaders: [
     'X-RateLimit-Limit',
-    'X-RateLimit-Remaining', 
+    'X-RateLimit-Remaining',
     'X-RateLimit-Reset',
-    'X-Request-ID'
+    'X-Request-ID',
   ],
-  maxAge: 86400 // 24 hours
+  maxAge: 86400, // 24 hours
 }
 
 /**
  * Apply CORS headers to response
  */
-export function applyCORSHeaders(
-  response: NextResponse,
-  origin?: string
-): NextResponse {
-  const { origin: allowedOrigins, credentials, methods, allowedHeaders, exposedHeaders, maxAge } = CORS_CONFIG
-  
+export function applyCORSHeaders(response: NextResponse, origin?: string): NextResponse {
+  const {
+    origin: allowedOrigins,
+    credentials,
+    methods,
+    allowedHeaders,
+    exposedHeaders,
+    maxAge,
+  } = CORS_CONFIG
+
   // Check if origin is allowed
   if (origin && Array.isArray(allowedOrigins)) {
     if (allowedOrigins.includes(origin)) {
@@ -267,10 +270,10 @@ export function handleCORSPreflight(request: NextRequest): Response | null {
   if (request.method === 'OPTIONS') {
     const response = new Response(null, { status: 200 })
     const origin = request.headers.get('origin')
-    
+
     return applyCORSHeaders(NextResponse.json(null), origin)
   }
-  
+
   return null
 }
 
@@ -289,16 +292,13 @@ export interface SecurityEvent {
 export function logSecurityEvent(event: SecurityEvent): void {
   // In production, this would send to a proper logging service
   console.warn('SECURITY EVENT:', event)
-  
+
   // Send to Sentry or other monitoring service
   if (typeof window !== 'undefined' && (window as unknown).Sentry) {
-    (window as unknown).Sentry.captureMessage(
-      `Security Event: ${event.type}`,
-      {
-        level: event.severity,
-        extra: event
-      }
-    )
+    ;(window as unknown).Sentry.captureMessage(`Security Event: ${event.type}`, {
+      level: event.severity,
+      extra: event,
+    })
   }
 }
 
@@ -308,16 +308,16 @@ export function logSecurityEvent(event: SecurityEvent): void {
 export function handleCSPViolation(request: NextRequest): Response {
   try {
     const violation = request.body
-    
+
     logSecurityEvent({
       type: 'csp_violation',
       severity: 'medium',
       ip: request.headers.get('x-forwarded-for') || 'unknown',
       userAgent: request.headers.get('user-agent') || 'unknown',
       timestamp: new Date().toISOString(),
-      details: { violation }
+      details: { violation },
     })
-    
+
     return new Response('OK', { status: 200 })
   } catch (error) {
     console.error('CSP violation report error:', error)

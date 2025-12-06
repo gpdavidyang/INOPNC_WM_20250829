@@ -91,11 +91,18 @@ const mergeBuckets = (buckets: PhotoBuckets): AdditionalPhotoData[] => [
   ...buckets.after,
 ]
 
-const mapWorkersToStats = (workers: UnifiedWorkerEntry[]): WorkerStatistics => {
+const mapWorkersToStats = (
+  workers: Array<UnifiedWorkerEntry | { work_hours?: number; hours?: number }>
+): WorkerStatistics => {
   return workers.reduce(
     (stats, worker) => {
       stats.total_workers += 1
-      stats.total_hours += Number(worker.hours || 0)
+      const hours = Number(
+        (worker as UnifiedWorkerEntry).hours ?? (worker as any).work_hours ?? (worker as any).hours
+      )
+      if (Number.isFinite(hours)) {
+        stats.total_hours += hours
+      }
       return stats
     },
     {
@@ -192,9 +199,32 @@ export default function DailyReportDetailClient({
         by_skill: integrated.worker_statistics.by_skill || {},
       }
     }
-    if (report?.workers) {
+
+    if (report?.workers && report.workers.length > 0) {
       return mapWorkersToStats(report.workers)
     }
+
+    if (report?.workers && report.workers.length > 0) {
+      return mapWorkersToStats(report.workers)
+    }
+
+    const metaTotals =
+      (report?.meta as { totalWorkers?: number; totalHours?: number } | undefined) || {}
+    if (typeof metaTotals.totalWorkers === 'number' || typeof metaTotals.totalHours === 'number') {
+      return {
+        ...initialWorkerStats,
+        total_workers: metaTotals.totalWorkers ?? 0,
+        total_hours: metaTotals.totalHours ?? 0,
+      }
+    }
+
+    if (typeof (report as any)?.total_workers === 'number') {
+      return {
+        ...initialWorkerStats,
+        total_workers: (report as any).total_workers ?? 0,
+      }
+    }
+
     return initialWorkerStats
   }, [integrated, report])
 

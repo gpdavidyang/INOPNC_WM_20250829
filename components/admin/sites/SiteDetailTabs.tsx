@@ -1578,16 +1578,32 @@ export default function SiteDetailTabs({
               <div>{site?.manager_name || '-'}</div>
             </div>
             <div>
+              <div className="text-xs">현장관리자 전화번호</div>
+              <div>{(site as any)?.manager_phone || '-'}</div>
+            </div>
+            <div>
               <div className="text-xs">안전관리자</div>
               <div>{site?.safety_manager_name || '-'}</div>
             </div>
             <div>
-              <div className="text-xs">안전관리자 이메일</div>
-              <div>{(site as any)?.safety_manager_email || '-'}</div>
+              <div className="text-xs">안전관리자 전화번호</div>
+              <div>{(site as any)?.safety_manager_phone || '-'}</div>
             </div>
             <div>
               <div className="text-xs">숙소 전화번호</div>
               <div>{(site as any)?.accommodation_phone || '-'}</div>
+            </div>
+            <div className="md:col-span-2">
+              <div className="text-xs">현장 주소</div>
+              <div className="text-foreground font-medium">
+                {site?.address || (site as any)?.address_detail || '-'}
+              </div>
+            </div>
+            <div className="md:col-span-2">
+              <div className="text-xs">숙소 주소</div>
+              <div className="text-foreground font-medium">
+                {(site as any)?.accommodation_address || '-'}
+              </div>
             </div>
             <div>
               <div className="text-xs">작업일지 수</div>

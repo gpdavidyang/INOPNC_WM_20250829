@@ -170,17 +170,18 @@ export default function PhotoSheetPrint({
 
   const fallbackTitle = useMemo(() => {
     const normalizedSite = (siteName || '').trim()
-    return normalizedSite || '사진대지'
+    return normalizedSite
   }, [siteName])
 
   const resolvedTitle = useMemo(() => {
     const trimmed = (title || '').trim()
     const normalizedMember = firstMemberName.trim()
     const normalize = (value: string) => value.replace(/\s+/g, '').toLowerCase()
+    const isPlaceholder = trimmed && normalize(trimmed) === normalize('사진대지')
     const looksLikeMemberTitle =
       trimmed && normalizedMember && normalize(trimmed) === normalize(normalizedMember)
-    const displayTitle = !trimmed || looksLikeMemberTitle ? fallbackTitle : trimmed
-    return displayTitle || '\u00A0'
+    const displayTitle = !trimmed || looksLikeMemberTitle || isPlaceholder ? fallbackTitle : trimmed
+    return displayTitle || ''
   }, [title, fallbackTitle, firstMemberName])
 
   return (
@@ -470,20 +471,20 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
 }
 .print-root .cell.percap .cap-row:first-child,
 .print-root .cell.cap3x2 .cap-row:first-child {
-  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: repeat(3, minmax(0, auto) minmax(0, 1fr));
+  align-items: center;
 }
 .print-root .cell.percap .cap-row:last-child,
 .print-root .cell.cap3x2 .cap-row:last-child {
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
 }
 .print-root .cell.percap .cap-label,
 .print-root .cell.cap3x2 .cap-label {
   font-size: 7pt;
   font-weight: 600;
   color: #333;
-  background: #f5f5f5;
-  padding: 0.25mm 0.45mm;
-  border-radius: 0.8mm;
+  padding: 0.25mm 0.2mm;
   white-space: nowrap;
 }
 .print-root .cell.percap .cap-value,

@@ -1,25 +1,29 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
+import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 
 export const dynamic = 'force-dynamic'
 
-const computeWorkerStats = (rows: any[]) =>
-  rows.reduce(
-    (stats, row) => {
-      stats.total_workers += 1
-      const hours = Number(row?.labor_hours ?? row?.hours ?? 0)
+const computeWorkerStats = (
+  rows: any[],
+  fallback?: { total_workers?: number | null; total_labor_hours?: number | null }
+) => {
+  const stats = rows.reduce(
+    (acc, row) => {
+      acc.total_workers += 1
+      const hours = Number(row?.labor_hours ?? row?.work_hours ?? row?.hours ?? 0)
       const overtime = Number(row?.overtime_hours ?? 0)
-      if (Number.isFinite(hours)) stats.total_hours += hours
-      if (Number.isFinite(overtime)) stats.total_overtime += overtime
-      if (row?.is_present === false) stats.absent_workers += 1
+      if (Number.isFinite(hours)) acc.total_hours += hours
+      if (Number.isFinite(overtime)) acc.total_overtime += overtime
+      if (row?.is_present === false) acc.absent_workers += 1
       const trade = row?.trade_type || row?.role_type || '기타'
       const skill = row?.skill_level || '일반'
-      if (trade) stats.by_trade[trade] = (stats.by_trade[trade] || 0) + 1
-      if (skill) stats.by_skill[skill] = (stats.by_skill[skill] || 0) + 1
-      return stats
+      if (trade) acc.by_trade[trade] = (acc.by_trade[trade] || 0) + 1
+      if (skill) acc.by_skill[skill] = (acc.by_skill[skill] || 0) + 1
+      return acc
     },
     {
       total_workers: 0,
@@ -31,6 +35,15 @@ const computeWorkerStats = (rows: any[]) =>
     }
   )
 
+  if (stats.total_workers === 0 && typeof fallback?.total_workers === 'number') {
+    stats.total_workers = Number(fallback.total_workers) || 0
+  }
+  if (stats.total_hours === 0 && typeof fallback?.total_labor_hours === 'number') {
+    stats.total_hours = Number(fallback.total_labor_hours) || 0
+  }
+  return stats
+}
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
@@ -41,7 +54,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Use service client in admin route to avoid RLS filtering out accessible rows
     const supabase = (() => {
       try {
-        return createServiceClient()
+        return createServiceRoleClient()
       } catch {
         return createClient()
       }
@@ -52,6 +65,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Attempt full integrated fetch first
     let reportData: any | null = null
     let reportError: any | null = null
+    let mergedWorkerRows: any[] = []
+    let authorProfile: any | null = null
     try {
       const r = await supabase
         .from('daily_reports')
@@ -79,39 +94,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 company_type
               )
             )
-          ),
-          worker_assignments(
-            id,
-            role_type,
-            trade_type,
-            skill_level,
-            labor_hours,
-            hourly_rate,
-            overtime_hours,
-            is_present,
-            absence_reason,
-            notes,
-            profiles(
-              id,
-              full_name,
-              email,
-              phone,
-              role,
-              avatar_url
-            )
-          ),
-          worker_entries(
-            id,
-            worker_id,
-            worker_name,
-            labor_hours,
-            notes,
-            is_present,
-            absence_reason,
-            role_type,
-            trade_type,
-            skill_level
-          ),
           unified_documents(
             id,
             document_type,
@@ -128,13 +110,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
               full_name,
               role
             )
-          ),
-          profiles!daily_reports_created_by_fkey(
-            id,
-            full_name,
-            email,
-            phone,
-            role
           )
         `
         )
@@ -159,6 +134,41 @@ export async function GET(request: Request, { params }: { params: { id: string }
         await fetchAdditionalPhotosForReport(reportId)
       reportData.additional_before_photos = additional_before_photos
       reportData.additional_after_photos = additional_after_photos
+
+      const [{ data: legacyWorkers }, { data: workRecordRows }, { data: author }] =
+        await Promise.all([
+          supabase.from('daily_report_workers').select('*').eq('daily_report_id', reportId),
+          supabase
+            .from('work_records')
+            .select(
+              `
+            id,
+            user_id,
+            labor_hours,
+            work_hours,
+            overtime_hours,
+            work_type,
+            notes,
+            metadata,
+            profiles:profiles!work_records_user_id_fkey(
+              id,
+              full_name,
+              email,
+              phone,
+              role,
+              avatar_url
+            )
+          `
+            )
+            .eq('daily_report_id', reportId),
+          supabase
+            .from('profiles')
+            .select('id, full_name, email, phone, role')
+            .eq('id', reportData.created_by)
+            .maybeSingle(),
+        ])
+      mergedWorkerRows = mergeWorkers(legacyWorkers || [], workRecordRows || [])
+      authorProfile = author || null
     }
 
     // Fallback: minimal fetch when integrated join fails or row not found
@@ -166,7 +176,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const { data: minimal, error: minimalErr } = await supabase
         .from('daily_reports')
         .select(
-          `id, site_id, work_date, member_name, process_type, component_name, work_process, work_section, before_photos, after_photos, additional_before_photos, additional_after_photos, created_by, worker_entries(id, worker_id, worker_name, labor_hours, notes)`
+          `id, site_id, work_date, member_name, process_type, component_name, work_process, work_section, before_photos, after_photos, additional_before_photos, additional_after_photos, created_by, total_workers, total_labor_hours`
         )
         .eq('id', reportId)
         .maybeSingle()
@@ -189,8 +199,32 @@ export async function GET(request: Request, { params }: { params: { id: string }
         .eq('id', minimal.created_by)
         .maybeSingle()
 
-      const fallbackWorkerRows = Array.isArray(minimal.worker_entries) ? minimal.worker_entries : []
-      const fallbackWorkerStats = computeWorkerStats(fallbackWorkerRows)
+      const { data: fallbackWorkers } = await supabase
+        .from('work_records')
+        .select(
+          `
+          id,
+          user_id,
+          labor_hours,
+          work_hours,
+          overtime_hours,
+          work_type,
+          notes,
+          metadata,
+          profiles:profiles!work_records_user_id_fkey(
+            id,
+            full_name,
+            role,
+            email
+          )
+        `
+        )
+        .eq('daily_report_id', reportId)
+      const fallbackWorkerRows = mergeWorkers([], fallbackWorkers || [])
+      const fallbackWorkerStats = computeWorkerStats(fallbackWorkerRows, {
+        total_workers: minimal.total_workers,
+        total_labor_hours: minimal.total_labor_hours,
+      })
 
       const fallbackResponse = {
         daily_report: {
@@ -199,7 +233,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
         },
         site,
         worker_assignments: fallbackWorkerRows,
-        worker_entries: fallbackWorkerRows,
         worker_statistics: fallbackWorkerStats,
         documents: {},
         document_counts: {},
@@ -230,14 +263,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .limit(10)
 
     // Calculate labor statistics
-    const workerRows =
-      (Array.isArray(reportData.worker_assignments) && reportData.worker_assignments.length > 0
-        ? reportData.worker_assignments
-        : Array.isArray(reportData.worker_entries)
-          ? reportData.worker_entries
-          : []) || []
+    const workerRows = mergedWorkerRows.length ? mergedWorkerRows : mergeWorkers([], [])
 
-    const workerStats = computeWorkerStats(workerRows)
+    const workerStats = computeWorkerStats(workerRows, {
+      total_workers: reportData.total_workers,
+      total_labor_hours: reportData.total_labor_hours,
+    })
 
     // Organize documents by type
     const documentsByType =
@@ -271,7 +302,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
         ...reportData,
         sites: undefined, // Remove to avoid duplication
         worker_assignments: undefined,
-        worker_entries: undefined,
         unified_documents: undefined,
       },
       site: reportData.sites,
@@ -283,7 +313,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
           is_primary_customer: cs.is_primary_customer,
         })) || [],
       worker_assignments: workerRows,
-      worker_entries: Array.isArray(reportData.worker_entries) ? reportData.worker_entries : [],
       worker_statistics: workerStats,
       documents: documentsByType,
       document_counts: Object.entries(documentsByType).reduce(
@@ -295,7 +324,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       ),
       material_usage: materialUsage,
       related_reports: relatedReports || [],
-      report_author: reportData.profiles,
+      report_author: authorProfile,
     }
 
     return NextResponse.json(response)

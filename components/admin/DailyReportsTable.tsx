@@ -414,15 +414,6 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             headerClassName: 'whitespace-nowrap',
           },
           {
-            key: 'docs',
-            header: '문서',
-            sortable: false,
-            accessor: (r: any) => r?.daily_documents_count ?? 0,
-            render: (r: any) => String(r?.daily_documents_count ?? 0),
-            width: 70,
-            headerClassName: 'whitespace-nowrap',
-          },
-          {
             key: 'total_manhours',
             header: '총공수',
             sortable: true,

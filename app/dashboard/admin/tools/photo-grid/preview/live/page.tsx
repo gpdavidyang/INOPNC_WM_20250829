@@ -242,7 +242,7 @@ export default function LivePreviewPage() {
       setSaving(true)
       setSaveMessage(null)
       const form = new FormData()
-      const normalizedTitle = data.title?.trim() ? data.title.trim() : '사진대지'
+      const normalizedTitle = data.title?.trim() || ''
       form.append('title', normalizedTitle)
       form.append('site_id', data.siteId)
       form.append('orientation', data.orientation)

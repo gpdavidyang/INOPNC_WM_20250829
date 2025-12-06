@@ -1,16 +1,47 @@
 import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { UnifiedDailyReport } from '@/types/daily-reports'
 import { integratedResponseToUnifiedReport, type AdminIntegratedResponse } from './unified-admin'
 import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
 import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
+import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 
 const getSupabaseForAdmin = () => {
   try {
-    return createServiceClient()
+    return createServiceRoleClient()
   } catch {
     return createClient()
   }
+}
+
+const computeWorkerStats = (
+  rows: any[],
+  fallback?: { total_workers?: number | null; total_labor_hours?: number | null }
+) => {
+  const stats = rows.reduce(
+    (acc, row) => {
+      acc.total_workers += 1
+      const hours = Number(row?.labor_hours ?? row?.work_hours ?? row?.hours ?? 0)
+      if (Number.isFinite(hours)) acc.total_hours += hours
+      return acc
+    },
+    {
+      total_workers: 0,
+      total_hours: 0,
+      total_overtime: 0,
+      absent_workers: 0,
+      by_trade: {} as Record<string, number>,
+      by_skill: {} as Record<string, number>,
+    }
+  )
+
+  if (stats.total_workers === 0 && typeof fallback?.total_workers === 'number') {
+    stats.total_workers = Number(fallback.total_workers) || 0
+  }
+  if (stats.total_hours === 0 && typeof fallback?.total_labor_hours === 'number') {
+    stats.total_hours = Number(fallback.total_labor_hours) || 0
+  }
+  return stats
 }
 
 export async function getUnifiedDailyReportForAdmin(
@@ -24,15 +55,6 @@ export async function getUnifiedDailyReportForAdmin(
       `
         *,
         sites(id, name, address, status),
-        profiles:profiles!daily_reports_created_by_fkey(id, full_name, role, email),
-        worker_assignments:daily_report_workers(
-          id,
-          worker_id,
-          worker_name,
-          labor_hours,
-          is_direct_input,
-          notes
-        ),
         document_attachments(
           id,
           document_type,
@@ -82,14 +104,53 @@ export async function getUnifiedDailyReportForAdmin(
               .maybeSingle()
           : Promise.resolve({ data: null, error: null }),
         supabase
-          .from('daily_report_workers')
-          .select('id, worker_id, worker_name, labor_hours, is_direct_input, notes')
+          .from('work_records')
+          .select(
+            `
+            id,
+            user_id,
+            labor_hours,
+            work_hours,
+            overtime_hours,
+            work_type,
+            notes,
+            metadata,
+            profiles:profiles!work_records_user_id_fkey(
+              id,
+              full_name,
+              role,
+              email
+            )
+          `
+          )
           .eq('daily_report_id', id),
         supabase
           .from('document_attachments')
           .select('id, document_type, file_name, file_url, file_size, uploaded_at, uploaded_by')
           .eq('daily_report_id', id),
       ])
+
+      const { data: workRecordRows } = await supabase
+        .from('work_records')
+        .select(
+          `
+          id,
+          user_id,
+          labor_hours,
+          work_hours,
+          overtime_hours,
+          notes,
+          metadata,
+          profiles:profiles!work_records_user_id_fkey(
+            id,
+            full_name,
+            role,
+            email
+          )
+        `
+        )
+        .eq('daily_report_id', id)
+      const fallbackWorkerRows = mergeWorkers([], workRecordRows || [])
 
       const attachments = (attachmentRes.data || []).reduce<Record<string, any[]>>(
         (acc, attachment) => {
@@ -136,14 +197,11 @@ export async function getUnifiedDailyReportForAdmin(
           document_attachments: undefined,
         },
         site: siteRes.data || undefined,
-        worker_assignments: workerRes.data || [],
-        worker_statistics: {
-          total_workers: (workerRes.data || []).length,
-          total_hours: (workerRes.data || []).reduce(
-            (sum: number, entry: any) => sum + Number(entry?.labor_hours || 0),
-            0
-          ),
-        },
+        worker_assignments: fallbackWorkerRows,
+        worker_statistics: computeWorkerStats(fallbackWorkerRows, {
+          total_workers: minimal.total_workers,
+          total_labor_hours: (minimal as any)?.total_labor_hours,
+        }),
         documents: attachments,
         document_counts: {},
         related_reports: [],
@@ -163,6 +221,40 @@ export async function getUnifiedDailyReportForAdmin(
 
   const linkedDrawings = await fetchLinkedDrawingsForWorklog(id, data.site_id)
 
+  const [{ data: legacyWorkers }, { data: workRecordRows }, { data: authorProfile }] =
+    await Promise.all([
+      supabase.from('daily_report_workers').select('*').eq('daily_report_id', id),
+      supabase
+        .from('work_records')
+        .select(
+          `
+        id,
+        user_id,
+        labor_hours,
+        work_hours,
+        overtime_hours,
+        work_type,
+        notes,
+        metadata,
+        profiles:profiles!work_records_user_id_fkey(
+          id,
+          full_name,
+          role,
+          email
+        )
+      `
+        )
+        .eq('daily_report_id', id),
+      supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .eq('id', data.created_by)
+        .maybeSingle(),
+    ])
+
+  const workerRows = mergeWorkers(legacyWorkers || [], workRecordRows || [])
+  data.worker_assignments = workerRows
+
   const integrated: AdminIntegratedResponse = {
     daily_report: {
       ...(() => {
@@ -178,14 +270,11 @@ export async function getUnifiedDailyReportForAdmin(
       document_attachments: undefined,
     },
     site: data.sites,
-    worker_assignments: data.worker_assignments ?? [],
-    worker_statistics: {
-      total_workers: (data.worker_assignments || []).length,
-      total_hours: (data.worker_assignments || []).reduce(
-        (sum: number, entry: any) => sum + Number(entry?.labor_hours || 0),
-        0
-      ),
-    },
+    worker_assignments: workerRows,
+    worker_statistics: computeWorkerStats(workerRows, {
+      total_workers: data.total_workers,
+      total_labor_hours: (data as any)?.total_labor_hours,
+    }),
     documents: {
       photo: (data.document_attachments || []).filter(
         (file: any) => (file?.document_type || '').toLowerCase() === 'photo'
@@ -222,7 +311,7 @@ export async function getUnifiedDailyReportForAdmin(
     },
     document_counts: {},
     related_reports: [],
-    report_author: data.profiles,
+    report_author: authorProfile || undefined,
   }
 
   return integratedResponseToUnifiedReport(integrated)

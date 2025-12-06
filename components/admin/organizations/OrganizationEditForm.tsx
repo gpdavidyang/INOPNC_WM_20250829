@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
-import StickyActionBar from '@/components/ui/sticky-action-bar'
 
 interface OrganizationEditFormProps {
   organization: {
@@ -146,14 +145,6 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
           </div>
         </CardContent>
       </Card>
-
-      <StickyActionBar>
-        <div className="mx-auto max-w-6xl flex items-center justify-end gap-2">
-          <Button type="submit" disabled={isPending} variant="primary">
-            {isPending ? '저장 중...' : '변경사항 저장'}
-          </Button>
-        </div>
-      </StickyActionBar>
     </form>
   )
 }

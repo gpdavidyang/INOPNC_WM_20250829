@@ -3,11 +3,21 @@
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import StickyActionBar from '@/components/ui/sticky-action-bar'
+import { AddressSearchInput } from '@/components/ui/address-search-input'
+
+const buildFullAddress = (base: string, detail: string) => {
+  const trimmedBase = base.trim()
+  const trimmedDetail = detail.trim()
+  if (trimmedBase && trimmedDetail) return `${trimmedBase} ${trimmedDetail}`
+  if (trimmedBase) return trimmedBase
+  if (trimmedDetail) return trimmedDetail
+  return ''
+}
 
 export default function OrganizationCreateForm() {
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
+  const [addressDetail, setAddressDetail] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
@@ -23,10 +33,11 @@ export default function OrganizationCreateForm() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           name,
-          address,
+          address: buildFullAddress(address, addressDetail),
           contact_email: email,
           contact_phone: phone,
         }),
+        credentials: 'include',
       })
       const json = await res.json()
       if (!res.ok || json?.success === false) {
@@ -35,6 +46,7 @@ export default function OrganizationCreateForm() {
       setMsg('조직이 생성되었습니다.')
       setName('')
       setAddress('')
+      setAddressDetail('')
       setEmail('')
       setPhone('')
     } catch (err: any) {
@@ -45,7 +57,7 @@ export default function OrganizationCreateForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 pb-20">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="block text-sm text-muted-foreground mb-1">조직명</label>
         <Input value={name} onChange={e => setName(e.target.value)} required />
@@ -62,22 +74,24 @@ export default function OrganizationCreateForm() {
       </div>
       <div>
         <label className="block text-sm text-muted-foreground mb-1">주소</label>
-        <Input value={address} onChange={e => setAddress(e.target.value)} />
+        <AddressSearchInput
+          id="organization-address"
+          value={address}
+          onValueChange={setAddress}
+          detailValue={addressDetail}
+          onDetailChange={setAddressDetail}
+          placeholder="도로명 주소 검색 후 선택하세요"
+          detailPlaceholder="상세 주소 (동/층/호 등)"
+          helperText="도로명 주소 선택 후 상세 주소(동/호, 층 등)를 입력해주세요."
+          disabled={busy}
+        />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 justify-end">
+        {msg && <span className="text-sm text-muted-foreground mr-auto">{msg}</span>}
         <Button type="submit" variant="primary" disabled={busy}>
           {busy ? '처리 중…' : '등록'}
         </Button>
-        {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
       </div>
-
-      <StickyActionBar>
-        <div className="mx-auto max-w-6xl flex items-center justify-end gap-2">
-          <Button type="submit" variant="primary" disabled={busy}>
-            {busy ? '처리 중…' : '등록'}
-          </Button>
-        </div>
-      </StickyActionBar>
     </form>
   )
 }

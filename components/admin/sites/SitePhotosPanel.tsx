@@ -466,6 +466,7 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
         })
       }
 
+      let uploadedCount = 0
       for (const set of uploadSets) {
         for (const file of set.files) {
           const formData = new FormData()
@@ -484,12 +485,19 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
           if (!res.ok || !json?.success) {
             throw new Error(json?.error || '업로드에 실패했습니다.')
           }
+          uploadedCount += 1
         }
       }
       resetUploadForm()
       setUploaderOpen(false)
       setHighlightBucket(null)
-      toast({ title: '업로드 완료', description: '사진을 업로드했습니다.' })
+      toast({
+        title: '업로드 완료',
+        description:
+          uploadedCount > 0
+            ? `사진 ${uploadedCount}장이 업로드되었습니다.`
+            : '사진을 업로드했습니다.',
+      })
       await fetchPhotos(pagination.page)
     } catch (error) {
       console.error('Upload failed:', error)
@@ -1519,7 +1527,39 @@ function UploadDropZone({
 
   const processFiles = (fileList: FileList | File[]) => {
     const list = Array.from(fileList as ArrayLike<File>)
-    const imageFiles = list.filter(file => file.type.startsWith('image/'))
+    const allowedMime = [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/heic',
+      'image/heif',
+      'image/avif',
+      'image/tiff',
+      'image/bmp',
+    ]
+    const allowedExt = [
+      '.jpg',
+      '.jpeg',
+      '.png',
+      '.webp',
+      '.gif',
+      '.heic',
+      '.heif',
+      '.avif',
+      '.tif',
+      '.tiff',
+      '.bmp',
+    ]
+    const imageFiles = list.filter(file => {
+      const mime = (file.type || '').toLowerCase()
+      const ext = file.name ? file.name.toLowerCase().slice(file.name.lastIndexOf('.')) : ''
+      return (
+        (mime && allowedMime.includes(mime)) ||
+        (ext && allowedExt.includes(ext)) ||
+        mime.startsWith('image/')
+      )
+    })
     if (imageFiles.length === 0) {
       onInvalidFiles?.()
       return

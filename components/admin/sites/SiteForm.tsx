@@ -18,6 +18,7 @@ import { matchesSharedDocCategory } from '@/lib/documents/shared-documents'
 import { cn } from '@/lib/utils'
 import type { Site } from '@/types'
 import { openFileRecordInNewTab } from '@/lib/files/preview'
+import { AddressSearchInput } from '@/components/ui/address-search-input'
 
 type Mode = 'create' | 'edit'
 
@@ -31,6 +32,7 @@ type Props = {
 type FormState = {
   name: string
   address: string
+  address_detail: string
   description: string
   status: 'planning' | 'active' | 'inactive' | 'completed'
   start_date: string
@@ -42,6 +44,7 @@ type FormState = {
   safety_manager_phone: string
   accommodation_name: string
   accommodation_address: string
+  accommodation_address_detail: string
   accommodation_phone: string
   organization_id: string
 }
@@ -90,6 +93,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
   const [form, setForm] = useState<FormState>(() => ({
     name: initial?.name || '',
     address: initial?.address || '',
+    address_detail: '',
     description: String(initial?.description || ''),
     status: (initial?.status as FormState['status']) || 'planning',
     start_date: initial?.start_date ? toDateInput(initial.start_date) : '',
@@ -105,9 +109,12 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     safety_manager_phone: String(initial?.safety_manager_phone || ''),
     accommodation_name: String(initial?.accommodation_name || ''),
     accommodation_address: String(initial?.accommodation_address || ''),
+    accommodation_address_detail: '',
     accommodation_phone: String((initial as any)?.accommodation_phone || ''),
     organization_id: initial?.organization_id ? String(initial.organization_id) : '',
   }))
+  const [startDateTbd, setStartDateTbd] = useState(() => !initial?.start_date)
+  const [endDateTbd, setEndDateTbd] = useState(() => !initial?.end_date)
 
   const canViewSharedDocs = mode === 'edit' && !!siteId
 
@@ -319,29 +326,40 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     setForm(prev => ({ ...prev, [field]: value }))
   }, [])
 
+  const buildAddress = useCallback((base?: string, detail?: string) => {
+    const trimmedBase = (base ?? '').trim()
+    const trimmedDetail = (detail ?? '').trim()
+    if (trimmedBase && trimmedDetail) return `${trimmedBase} ${trimmedDetail}`
+    if (trimmedBase) return trimmedBase
+    if (trimmedDetail) return trimmedDetail
+    return ''
+  }, [])
+
   const submit = useCallback(async () => {
     setError(null)
     if (!form.name.trim()) return setError('현장명은 필수입니다.')
-    if (!form.address.trim()) return setError('주소는 필수입니다.')
-    if (!form.start_date.trim()) return setError('시작일은 필수입니다.')
+    const normalizedAddress = buildAddress(form.address, form.address_detail)
+    if (!normalizedAddress) return setError('주소는 필수입니다.')
+    if (!startDateTbd && !form.start_date.trim()) return setError('시작일은 필수입니다.')
 
     setSaving(true)
     try {
       const payload: Record<string, unknown> = {
         name: form.name,
-        address: form.address,
+        address: normalizedAddress,
         status: form.status,
-        start_date: form.start_date,
+        start_date: startDateTbd ? null : form.start_date || null,
         organization_id: form.organization_id || null,
         description: form.description.trim() || null,
-        end_date: form.end_date.trim() || null,
+        end_date: endDateTbd ? null : form.end_date.trim() || null,
         manager_name: form.manager_name.trim() || null,
         manager_phone: form.manager_phone.trim() || null,
         manager_email: form.manager_email.trim() || null,
         safety_manager_name: form.safety_manager_name.trim() || null,
         safety_manager_phone: form.safety_manager_phone.trim() || null,
         accommodation_name: form.accommodation_name.trim() || null,
-        accommodation_address: form.accommodation_address.trim() || null,
+        accommodation_address:
+          buildAddress(form.accommodation_address, form.accommodation_address_detail) || null,
         accommodation_phone: form.accommodation_phone.trim() || null,
       }
 
@@ -363,7 +381,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     } finally {
       setSaving(false)
     }
-  }, [form, mode, onSuccess, siteId])
+  }, [buildAddress, endDateTbd, form, mode, onSuccess, siteId, startDateTbd])
 
   const handleSubmit = useCallback(
     (event: React.FormEvent<HTMLFormElement>) => {
@@ -445,12 +463,15 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
             ) : null}
           </Field>
           <Field htmlFor="site-address" label="주소" required className="md:col-span-12">
-            <Input
+            <AddressSearchInput
               id="site-address"
-              className="h-9"
               value={form.address}
-              onChange={e => handleChange('address', e.target.value)}
-              placeholder="도로명 주소를 입력하세요"
+              onValueChange={value => handleChange('address', value)}
+              detailValue={form.address_detail}
+              onDetailChange={value => handleChange('address_detail', value)}
+              placeholder="도로명 주소를 검색 후 선택하세요"
+              detailPlaceholder="상세 주소 (동/층/호 등)"
+              helperText="도로명 주소 선택 후 상세 주소(동/호, 층 등)를 입력하세요."
             />
           </Field>
           <Field
@@ -458,23 +479,65 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
             label="시작일"
             required
             className="md:col-span-6 xl:col-span-3"
+            hint="미정(TBD)을 선택하면 날짜 없이 저장됩니다."
           >
-            <Input
-              id="site-start"
-              type="date"
-              className="h-9"
-              value={form.start_date}
-              onChange={e => handleChange('start_date', e.target.value)}
-            />
+            <div className="flex flex-col gap-2">
+              <Input
+                id="site-start"
+                type="date"
+                className="h-9"
+                value={form.start_date}
+                onChange={e => handleChange('start_date', e.target.value)}
+                disabled={startDateTbd}
+              />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  checked={startDateTbd}
+                  onChange={e => {
+                    const checked = e.target.checked
+                    setStartDateTbd(checked)
+                    if (checked) {
+                      setForm(prev => ({ ...prev, start_date: '' }))
+                    }
+                  }}
+                />
+                <span>미정 (TBD)</span>
+              </label>
+            </div>
           </Field>
-          <Field htmlFor="site-end" label="종료일" className="md:col-span-6 xl:col-span-3">
-            <Input
-              id="site-end"
-              type="date"
-              className="h-9"
-              value={form.end_date}
-              onChange={e => handleChange('end_date', e.target.value)}
-            />
+          <Field
+            htmlFor="site-end"
+            label="종료일"
+            className="md:col-span-6 xl:col-span-3"
+            hint="미정(TBD)을 선택하면 종료일 없이 저장됩니다."
+          >
+            <div className="flex flex-col gap-2">
+              <Input
+                id="site-end"
+                type="date"
+                className="h-9"
+                value={form.end_date}
+                onChange={e => handleChange('end_date', e.target.value)}
+                disabled={endDateTbd}
+              />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                  checked={endDateTbd}
+                  onChange={e => {
+                    const checked = e.target.checked
+                    setEndDateTbd(checked)
+                    if (checked) {
+                      setForm(prev => ({ ...prev, end_date: '' }))
+                    }
+                  }}
+                />
+                <span>미정 (TBD)</span>
+              </label>
+            </div>
           </Field>
           <Field
             htmlFor="site-desc"
@@ -601,11 +664,14 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
                 />
               </Field>
               <Field htmlFor="site-acc-addr" label="주소" className="md:col-span-6">
-                <Input
+                <AddressSearchInput
                   id="site-acc-addr"
-                  className="h-9"
                   value={form.accommodation_address}
-                  onChange={e => handleChange('accommodation_address', e.target.value)}
+                  onValueChange={value => handleChange('accommodation_address', value)}
+                  detailValue={form.accommodation_address_detail}
+                  onDetailChange={value => handleChange('accommodation_address_detail', value)}
+                  placeholder="도로명 주소를 검색 후 선택하세요"
+                  detailPlaceholder="숙소 상세 주소 (동/층/호 등)"
                 />
               </Field>
             </div>

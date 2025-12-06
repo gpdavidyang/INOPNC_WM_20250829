@@ -218,11 +218,12 @@ export async function middleware(request: NextRequest) {
 
       const csp = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://*.daumcdn.net https://*.kakao.com http://*.daumcdn.net http://*.kakao.com",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
         `img-src ${imgSources.join(' ')}`,
         `connect-src ${connectSources.join(' ')}`,
+        "frame-src 'self' https://*.daumcdn.net https://*.kakao.com https://postcode.map.kakao.com https://postcode.map.daum.net http://*.daum.net http://*.kakao.com",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

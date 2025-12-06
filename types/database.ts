@@ -47,6 +47,56 @@ export type Database = {
           },
         ]
       }
+      auth_identity_verifications: {
+        Row: {
+          attempts: number
+          code_hash: string
+          created_at: string
+          email: string | null
+          expires_at: string
+          flow: 'find_id' | 'signup_status'
+          id: string
+          metadata: Json | null
+          profile_id: string | null
+          status: 'pending' | 'verified' | 'expired' | 'invalid' | 'locked'
+          verified_at: string | null
+        }
+        Insert: {
+          attempts?: number
+          code_hash: string
+          created_at?: string
+          email?: string | null
+          expires_at: string
+          flow: 'find_id' | 'signup_status'
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          status?: 'pending' | 'verified' | 'expired' | 'invalid' | 'locked'
+          verified_at?: string | null
+        }
+        Update: {
+          attempts?: number
+          code_hash?: string
+          created_at?: string
+          email?: string | null
+          expires_at?: string
+          flow?: 'find_id' | 'signup_status'
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          status?: 'pending' | 'verified' | 'expired' | 'invalid' | 'locked'
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'auth_identity_verifications_profile_id_fkey'
+            columns: ['profile_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       announcements: {
         Row: {
           content: string
@@ -471,6 +521,8 @@ export type Database = {
       organizations: {
         Row: {
           address: string | null
+          contact_email: string | null
+          contact_phone: string | null
           created_at: string
           description: string | null
           id: string
@@ -483,6 +535,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -495,6 +549,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           id?: string
@@ -526,6 +582,9 @@ export type Database = {
           login_count: number | null
           mfa_enabled: boolean | null
           mfa_enabled_at: string | null
+          mfa_failed_attempts: number | null
+          mfa_last_failed_at: string | null
+          mfa_lock_until: string | null
           mfa_secret: string | null
           mfa_session_expires_at: string | null
           mfa_session_token: string | null
@@ -544,6 +603,9 @@ export type Database = {
           login_count?: number | null
           mfa_enabled?: boolean | null
           mfa_enabled_at?: string | null
+          mfa_failed_attempts?: number | null
+          mfa_last_failed_at?: string | null
+          mfa_lock_until?: string | null
           mfa_secret?: string | null
           mfa_session_expires_at?: string | null
           mfa_session_token?: string | null
@@ -562,6 +624,9 @@ export type Database = {
           login_count?: number | null
           mfa_enabled?: boolean | null
           mfa_enabled_at?: string | null
+          mfa_failed_attempts?: number | null
+          mfa_last_failed_at?: string | null
+          mfa_lock_until?: string | null
           mfa_secret?: string | null
           mfa_session_expires_at?: string | null
           mfa_session_token?: string | null

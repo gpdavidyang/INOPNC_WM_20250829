@@ -201,7 +201,7 @@ export default function SiteSharedDocumentUploadForm({
         <label className="text-sm font-medium text-muted-foreground">파일</label>
         <Input
           type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*,.txt"
+          accept="*/*"
           onChange={handleFileChange}
           ref={fileInputRef}
           disabled={busy}

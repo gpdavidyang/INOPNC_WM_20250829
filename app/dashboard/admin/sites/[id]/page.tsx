@@ -56,7 +56,11 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
         title="현장 상세"
-        description={`ID: ${params.id}`}
+        description={
+          site?.name || organization?.name
+            ? `${site?.name || '현장명 미지정'} · ${organization?.name || '소속사 미지정'}`
+            : '현장 정보를 불러올 수 없습니다.'
+        }
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
           { label: '현장 관리', href: '/dashboard/admin/sites' },

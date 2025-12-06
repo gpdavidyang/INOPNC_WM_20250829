@@ -6,6 +6,8 @@ import { assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
 import { withAdminAuth } from './common'
+import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 interface DailyReportsFilter {
   site?: string
@@ -321,7 +323,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
     const workerCountMap = new Map<string, number>()
     if (reportIds.length > 0) {
       const { data: wd } = await supabase
-        .from('daily_report_workers')
+        .from('work_records')
         .select('id, daily_report_id')
         .in('daily_report_id', reportIds)
       for (const row of (wd as any[]) || []) {
@@ -466,27 +468,48 @@ export async function getDailyReportById(id: string) {
       }
     }
 
-    // Get worker details
-    let workers = []
+    let workRecords: any[] = []
     try {
-      const { data: workerData } = await supabase
-        .from('daily_report_workers')
-        .select('*')
+      const serviceSupabase = (() => {
+        try {
+          return createServiceRoleClient()
+        } catch {
+          return supabase
+        }
+      })()
+      const { data: recordData } = await serviceSupabase
+        .from('work_records')
+        .select(
+          `
+          id,
+          user_id,
+          labor_hours,
+          work_hours,
+          overtime_hours,
+          notes,
+          metadata,
+          profiles:profiles!work_records_user_id_fkey(id, full_name, role, email)
+        `
+        )
         .eq('daily_report_id', id)
-        .order('created_at', { ascending: true })
-      workers = workerData || []
+      workRecords = recordData || []
     } catch (err) {
       console.error('Error fetching workers:', err)
-      // Continue without workers
     }
+    const mergedWorkers = mergeWorkers([], workRecords)
+    const totalHours = mergedWorkers.reduce(
+      (sum, worker) => sum + Number(worker.labor_hours ?? worker.work_hours ?? 0),
+      0
+    )
 
     return {
       success: true,
       data: {
         ...data,
         profiles: creatorProfile,
-        workers: workers,
-        worker_details_count: workers.length,
+        workers: mergedWorkers,
+        worker_details_count: mergedWorkers.length,
+        total_hours: totalHours,
       },
     }
   })
