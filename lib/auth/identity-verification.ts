@@ -1,5 +1,3 @@
-'use server'
-
 import crypto from 'crypto'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { sendSystemEmail } from '@/lib/notifications/system-email'
