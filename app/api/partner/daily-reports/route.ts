@@ -99,7 +99,14 @@ export async function GET(request: NextRequest) {
 
     if (startDate) query = query.gte('work_date', startDate)
     if (endDate) query = query.lte('work_date', endDate)
-    if (status) query = query.eq('status', status)
+    const normalizedStatus = (status || '').trim().toLowerCase()
+    if (normalizedStatus && normalizedStatus !== 'approved') {
+      return NextResponse.json(
+        { error: 'Partners can only view approved reports.' },
+        { status: 403 }
+      )
+    }
+    query = query.eq('status', 'approved')
 
     const { count: totalCount } = await query.select('*', { count: 'exact', head: true })
     const { data, error } = await query

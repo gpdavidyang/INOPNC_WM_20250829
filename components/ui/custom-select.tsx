@@ -18,7 +18,7 @@ const CustomSelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'flex h-11 w-full items-center justify-between rounded-xl border',
+      'flex h-11 w-full items-center justify-between rounded-[8px] border',
       'bg-gray-50 dark:bg-gray-800',
       'border-gray-200 dark:border-gray-700',
       'px-4 py-2 text-sm font-semibold',
@@ -48,7 +48,7 @@ export const PhSelectTrigger = React.forwardRef<
   <CustomSelectTrigger
     ref={ref}
     className={cn(
-      'ph-select-trigger w-full h-10 text-[16px] font-semibold !rounded-lg border border-[#E5EAF3] bg-white dark:bg-white justify-between text-left',
+      'ph-select-trigger w-full h-10 text-[16px] font-semibold !rounded-[8px] border border-[#E5EAF3] bg-white dark:bg-white justify-between text-left',
       className
     )}
     {...props}
@@ -98,7 +98,7 @@ const CustomSelectContent = React.forwardRef<
       <SelectPrimitive.Content
         ref={ref}
         className={cn(
-          'relative z-[100000] max-h-96 min-w-[8rem] overflow-hidden rounded-md border',
+          'relative z-[100000] max-h-96 min-w-[8rem] overflow-hidden rounded-[8px] border',
           '!bg-white dark:!bg-[#0f172a]/95',
           'border-gray-200 dark:border-gray-700',
           'text-gray-900 dark:text-gray-100',
@@ -163,7 +163,7 @@ const CustomSelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex w-full cursor-default select-none items-center rounded-sm',
+      'relative flex w-full cursor-default select-none items-center rounded-[8px]',
       'py-2 pl-8 pr-2 text-sm font-medium outline-none',
       'text-gray-900 dark:text-gray-100',
       'hover:bg-gray-100 dark:hover:bg-gray-700',

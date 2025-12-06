@@ -184,7 +184,7 @@ export function AdminDashboardContent() {
           <Card
             className={`${
               touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'
-            }`}
+            } !rounded-[8px]`}
           >
             <h2
               className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-semibold mb-4`}
@@ -229,7 +229,7 @@ export function AdminDashboardContent() {
           <Card
             className={`${
               touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'
-            }`}
+            } !rounded-[8px]`}
           >
             <h2
               className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-semibold mb-4`}

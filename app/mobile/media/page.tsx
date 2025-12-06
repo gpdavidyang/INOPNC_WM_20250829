@@ -538,7 +538,7 @@ export default function MediaManagementPage() {
                     : worklogStatusFilter === 'draft'
                       ? '임시저장'
                       : worklogStatusFilter === 'submitted'
-                        ? '작성완료'
+                        ? '제출'
                         : '승인'}
                 </CustomSelectValue>
               </CustomSelectTrigger>
@@ -550,7 +550,7 @@ export default function MediaManagementPage() {
                   임시저장
                 </CustomSelectItem>
                 <CustomSelectItem value="submitted" className="text-sm">
-                  작성완료
+                  제출
                 </CustomSelectItem>
                 <CustomSelectItem value="approved" className="text-sm">
                   승인
@@ -1266,7 +1266,7 @@ function StatusBadge({ status }: { status?: string | null }) {
     key === 'draft'
       ? '임시저장'
       : key === 'submitted'
-        ? '작성완료'
+        ? '제출'
         : key === 'approved'
           ? '승인'
           : '임시저장'

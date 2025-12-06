@@ -226,7 +226,14 @@ export default async function MobileDailyReportDetailPage({
             })),
           ],
           profiles: json?.createdBy ? { id: json?.createdBy, full_name: json?.author } : undefined,
-          status: json?.status === 'approved' ? 'approved' : 'draft',
+          status:
+            json?.status === 'draft'
+              ? 'draft'
+              : json?.status === 'approved'
+                ? 'approved'
+                : json?.status === 'rejected'
+                  ? 'rejected'
+                  : 'submitted',
         })
         return (
           <Suspense>

@@ -152,8 +152,12 @@ export const getStatusColor = (status: WorkLogStatus): string => {
   switch (status) {
     case 'draft':
       return 'bg-[rgba(255,45,128,0.15)] text-[#FF2980]'
+    case 'submitted':
+      return 'bg-[rgba(37,99,235,0.16)] text-[#2563eb]'
     case 'approved':
       return 'bg-[rgba(20,184,166,0.15)] text-[#14B8A6]'
+    case 'rejected':
+      return 'bg-[rgba(239,68,68,0.15)] text-[#b91c1c]'
     default:
       return 'bg-[#F6F9FF] text-[#667085]'
   }
@@ -166,8 +170,12 @@ export const getStatusText = (status: WorkLogStatus): string => {
   switch (status) {
     case 'draft':
       return '임시저장'
+    case 'submitted':
+      return '제출'
     case 'approved':
-      return '작성완료'
+      return '승인'
+    case 'rejected':
+      return '반려'
     default:
       return '알 수 없음'
   }

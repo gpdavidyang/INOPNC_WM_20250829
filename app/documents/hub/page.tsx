@@ -2850,7 +2850,7 @@ function PhotosTab() {
   const statusSelectLabel = useMemo(() => {
     if (statusFilter === 'all') return '작업일지 전체'
     if (statusFilter === 'draft') return '임시저장'
-    if (statusFilter === 'submitted') return '작성완료'
+    if (statusFilter === 'submitted') return '제출'
     return '승인'
   }, [statusFilter])
 
@@ -2874,7 +2874,7 @@ function PhotosTab() {
       normalized === 'approved'
         ? { bg: '#ecfdf3', text: '#15803d', label: '승인' }
         : normalized === 'submitted'
-          ? { bg: '#eff6ff', text: '#2563eb', label: '작성완료' }
+          ? { bg: '#eff6ff', text: '#2563eb', label: '제출' }
           : { bg: '#f3f4f6', text: '#4b5563', label: '임시저장' }
     return (
       <span
@@ -3056,7 +3056,7 @@ function PhotosTab() {
               <CustomSelectContent>
                 <CustomSelectItem value="all">작업일지 전체</CustomSelectItem>
                 <CustomSelectItem value="draft">임시저장</CustomSelectItem>
-                <CustomSelectItem value="submitted">작성완료</CustomSelectItem>
+                <CustomSelectItem value="submitted">제출</CustomSelectItem>
                 <CustomSelectItem value="approved">승인</CustomSelectItem>
               </CustomSelectContent>
             </CustomSelect>

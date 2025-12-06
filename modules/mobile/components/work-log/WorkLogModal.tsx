@@ -259,13 +259,13 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     })
   }
 
-  const validateForm = (status: 'draft' | 'approved') => {
+  const validateForm = (status: 'draft' | 'submitted') => {
     const nextErrors: Record<string, string> = {}
 
     if (!formData.date) nextErrors.date = '작업일자를 선택해주세요.'
     if (!formData.siteId) nextErrors.site = '현장을 선택해주세요.'
 
-    if (status === 'approved') {
+    if (status === 'submitted') {
       if (!formData.memberTypes || formData.memberTypes.length === 0) {
         nextErrors.memberTypes = '부재명을 선택해주세요.'
       }
@@ -372,7 +372,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     }))
   }
 
-  const handleSave = async (targetStatus: 'draft' | 'approved') => {
+  const handleSave = async (targetStatus: 'draft' | 'submitted') => {
     if (isViewMode) {
       onClose()
       return
@@ -914,7 +914,11 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                                   <span className="flex flex-col">
                                     <span className="text-sm font-medium">{u.name}</span>
                                     <span className="text-xs text-gray-500">
-                                      {ROLE_LABELS[u.role === 'site_manager' ? 'site_manager' : 'worker']}
+                                      {
+                                        ROLE_LABELS[
+                                          u.role === 'site_manager' ? 'site_manager' : 'worker'
+                                        ]
+                                      }
                                     </span>
                                   </span>
                                 </CustomSelectItem>
@@ -1248,11 +1252,11 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => handleSave('approved')}
+                onClick={() => handleSave('submitted')}
                 className="rounded-lg bg-[#1A254F] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#101a3f] disabled:cursor-not-allowed disabled:bg-gray-300"
                 disabled={loading}
               >
-                {loading ? '제출 중...' : '작성완료'}
+                {loading ? '제출 중...' : '제출'}
               </button>
             </div>
           )}

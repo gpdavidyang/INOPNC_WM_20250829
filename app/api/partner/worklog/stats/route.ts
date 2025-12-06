@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
       .select('work_date', { count: 'exact' })
       .gte('work_date', startDate)
       .lte('work_date', endDate)
+      .eq('status', 'approved')
 
     if (siteId) query = query.eq('site_id', siteId)
     if (allowedSiteIds) query = query.in('site_id', allowedSiteIds)

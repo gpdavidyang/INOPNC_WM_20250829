@@ -1560,7 +1560,13 @@ const AttendanceContent: React.FC = () => {
                         <div>
                           <p className="worklog-title">{log.siteName}</p>
                           <p className="worklog-status">
-                            {log.status === 'approved' ? '승인완료' : '작성중'}
+                            {log.status === 'approved'
+                              ? '승인완료'
+                              : log.status === 'submitted'
+                                ? '제출 완료'
+                                : log.status === 'rejected'
+                                  ? '반려됨'
+                                  : '작성중'}
                           </p>
                         </div>
                         <button

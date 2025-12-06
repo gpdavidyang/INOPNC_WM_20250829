@@ -32,7 +32,7 @@ export default function StatsCard({
   return (
     <div
       className={cn(
-        'rounded-xl border',
+        'rounded-[8px] border',
         // Color guideline: background/border/text within #F3F7FA, #BAC6E1, #8DA0CD range
         'bg-[#F3F7FA] border-[#BAC6E1] text-gray-900',
         'min-h-[96px]',

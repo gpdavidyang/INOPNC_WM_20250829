@@ -29,14 +29,14 @@ export default async function AdminSitesPage() {
           <div className="flex items-center gap-3">
             <a
               href="/dashboard/admin/sites/new"
-              className={buttonVariants({ variant: 'primary', size: 'standard' })}
+              className={`${buttonVariants({ variant: 'primary', size: 'standard' })} rounded-[8px]`}
               role="button"
             >
               현장 등록
             </a>
             <a
               href="/dashboard/admin/sites"
-              className={buttonVariants({ variant: 'outline', size: 'standard' })}
+              className={`${buttonVariants({ variant: 'outline', size: 'standard' })} rounded-[8px]`}
               role="button"
             >
               새로고침

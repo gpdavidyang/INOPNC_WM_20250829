@@ -145,6 +145,7 @@ export async function GET(request: NextRequest) {
         .from('daily_reports')
         .select('work_date, site_id, worker_assignments(id, labor_hours)')
         .in('site_id', siteFilter)
+        .eq('status', 'approved')
         .gte('work_date', startDate)
         .lte('work_date', endDate)
 

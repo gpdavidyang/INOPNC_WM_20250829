@@ -508,6 +508,45 @@ export async function updateDailyReport(id: string, updates: any) {
   })
 }
 
+export async function setDailyReportApproval(id: string, nextStatus: 'approved' | 'submitted') {
+  return withAdminAuth(async (supabase, profile) => {
+    const auth = profile.auth
+
+    await fetchReportWithAccess(supabase, auth, id)
+
+    const now = new Date().toISOString()
+    const payload =
+      nextStatus === 'approved'
+        ? {
+            status: 'approved',
+            approved_at: now,
+            approved_by: auth.userId,
+            updated_at: now,
+          }
+        : {
+            status: 'submitted',
+            approved_at: null,
+            approved_by: null,
+            updated_at: now,
+          }
+
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .update(payload)
+      .eq('id', id)
+      .select('id, status, approved_at, approved_by')
+      .single()
+
+    if (error) throw error
+
+    return {
+      success: true,
+      data,
+      message: nextStatus === 'approved' ? '작업일지를 승인했습니다.' : '승인을 취소했습니다.',
+    }
+  })
+}
+
 export async function deleteDailyReport(id: string) {
   return withAdminAuth(async (supabase, profile) => {
     const auth = profile.auth

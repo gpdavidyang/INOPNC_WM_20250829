@@ -1,5 +1,11 @@
 import { createClient } from '@/lib/supabase/client'
-import { AttachedFile, WorkLog, WorkLogFilter, WorkLogSort } from '../types/work-log.types'
+import {
+  AttachedFile,
+  WorkLog,
+  WorkLogFilter,
+  WorkLogSort,
+  WorkLogStatus,
+} from '../types/work-log.types'
 
 const supabase = createClient()
 
@@ -40,11 +46,11 @@ export interface CreateWorkLogData {
     drawings: AttachedFile[]
     confirmations: AttachedFile[]
   }
-  status?: 'draft' | 'approved'
+  status?: WorkLogStatus
 }
 
 export interface UpdateWorkLogData extends Partial<CreateWorkLogData> {
-  status?: 'draft' | 'approved'
+  status?: WorkLogStatus
 }
 
 /**
@@ -70,9 +76,8 @@ export class WorkLogService {
     if (filter?.dateTo) {
       params.set('end_date', filter.dateTo)
     }
-    if (filter?.status) {
-      const statusValue = filter.status === 'approved' ? 'approved' : 'draft'
-      params.set('status', statusValue)
+    if (filter?.status && filter.status !== 'approved') {
+      params.set('status', filter.status)
     }
 
     // 1) Try mobile list (site_manager/worker scope)
@@ -240,9 +245,10 @@ export class WorkLogService {
         throw new Error('생성된 작업일지를 찾을 수 없습니다.')
       }
 
-      if ((data.status ?? 'draft') === 'approved') {
+      const requestedStatus = data.status ?? 'draft'
+      if (requestedStatus === 'approved' || requestedStatus === 'submitted') {
         await this.approveWorkLog(reportId)
-        return { ...createdWorkLog, status: 'approved' }
+        return { ...createdWorkLog, status: 'submitted' }
       }
 
       return createdWorkLog
@@ -355,15 +361,14 @@ export class WorkLogService {
   }
 
   /**
-   * 작업일지 승인
+   * 작업일지 제출(제출 상태로 전환)
    */
   static async approveWorkLog(id: string): Promise<void> {
     try {
       const { error } = await supabase
         .from('daily_reports')
         .update({
-          status: 'approved',
-          approved_at: new Date().toISOString(),
+          status: 'submitted',
         })
         .eq('id', id)
 
@@ -657,15 +662,23 @@ function mapMaterialUsages(materials: any[]): Array<{
     )
 }
 
-function resolveStatus(rawStatus: string | null | undefined): 'draft' | 'approved' {
+function resolveStatus(rawStatus: string | null | undefined): WorkLogStatus {
   if (!rawStatus) {
     return 'draft'
   }
 
   const normalized = rawStatus.toLowerCase()
 
-  if (['approved', 'completed', 'submitted'].includes(normalized)) {
+  if (normalized === 'approved') {
     return 'approved'
+  }
+
+  if (['submitted', 'completed'].includes(normalized)) {
+    return 'submitted'
+  }
+
+  if (normalized === 'rejected') {
+    return 'rejected'
   }
 
   return 'draft'

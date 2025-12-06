@@ -9,7 +9,7 @@ import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
 
 const TAB_CONFIG: Array<{ id: WorkLogTabStatus; label: string }> = [
   { id: 'draft', label: '임시저장' },
-  { id: 'approved', label: '작성완료' },
+  { id: 'approved', label: '제출/승인' },
 ]
 
 /**
@@ -386,7 +386,7 @@ export const WorkLogHomePageV2: React.FC = () => {
               <div className="rounded-xl border border-[#E6ECF4] dark:border-[#3a4048] bg-white dark:bg-[#11151b] px-4 py-6 text-center text-sm text-[#667085] dark:text-gray-400">
                 {activeTab === 'draft'
                   ? '임시저장된 작업일지가 없습니다.'
-                  : '작성완료된 작업일지가 없습니다.'}
+                  : '제출 또는 승인된 작업일지가 없습니다.'}
               </div>
             )}
 

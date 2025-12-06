@@ -114,7 +114,7 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
   )
 
   const approvedWorkLogs = useMemo(
-    () => filteredWorkLogs.filter(log => log.status === 'approved'),
+    () => filteredWorkLogs.filter(log => log.status !== 'draft'),
     [filteredWorkLogs]
   )
 
@@ -175,7 +175,7 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
       setWorkLogs(prev =>
         prev.map(log =>
           log.id === id
-            ? { ...log, status: 'approved' as const, updatedAt: new Date().toISOString() }
+            ? { ...log, status: 'submitted' as WorkLogStatus, updatedAt: new Date().toISOString() }
             : log
         )
       )

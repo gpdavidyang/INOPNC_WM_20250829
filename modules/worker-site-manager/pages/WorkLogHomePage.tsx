@@ -374,7 +374,7 @@ export const WorkLogHomePage: React.FC = () => {
       processes: workLog.workProcesses as any,
       workTypes: workLog.workTypes as any,
       manpower: isNaN(manpower) ? 0 : manpower,
-      status: workLog.status === 'approved' ? 'approved' : 'draft',
+      status: workLog.status,
       attachmentCounts: {
         photos: photos.length,
         drawings: drawings.length,
@@ -495,13 +495,13 @@ export const WorkLogHomePage: React.FC = () => {
         if (editingWorkLog) {
           await updateWorkLog(editingWorkLog.id, payload)
 
-          if (payload.status === 'approved') {
+          if (payload.status === 'submitted') {
             await approveWorkLog(editingWorkLog.id)
           }
         } else {
           const createdWorkLog = await createWorkLog(payload)
 
-          if (payload.status === 'approved' && createdWorkLog.status !== 'approved') {
+          if (payload.status === 'submitted' && createdWorkLog.status !== 'submitted') {
             await approveWorkLog(createdWorkLog.id)
           }
         }
@@ -681,7 +681,13 @@ export const WorkLogHomePage: React.FC = () => {
             </div>
             <div className="task-diary-right">
               <span className={`status-badge ${workLog.status}`}>
-                {workLog.status === 'draft' ? '임시저장' : '작성완료'}
+                {workLog.status === 'draft'
+                  ? '임시저장'
+                  : workLog.status === 'submitted'
+                    ? '제출'
+                    : workLog.status === 'approved'
+                      ? '승인'
+                      : '반려'}
               </span>
               {hasLinkedMarkup && <span className="markup-badge">도면 연결</span>}
               <span className="task-diary-date">{formattedDate}</span>
@@ -791,14 +797,14 @@ export const WorkLogHomePage: React.FC = () => {
               ? '표시할 작업일지가 없습니다.'
               : tab === 'draft'
                 ? '임시저장된 작업일지가 없습니다.'
-                : '작성완료된 작업일지가 없습니다.'}
+                : '제출 또는 승인된 작업일지가 없습니다.'}
           </p>
           <p className="mt-2 text-sm text-[#667085]">
             {readOnly
               ? '파트너 전용 조회 화면입니다.'
               : tab === 'draft'
                 ? '새로운 작업일지를 작성해보세요.'
-                : '임시저장을 작성완료로 전환해보세요.'}
+                : '임시저장을 제출로 전환해보세요.'}
           </p>
         </div>
       )
@@ -1239,15 +1245,27 @@ export const WorkLogHomePage: React.FC = () => {
             border-color: #31a3fa;
           }
 
+          .status-badge.submitted {
+            background: rgba(99, 102, 241, 0.12);
+            color: #4c1d95;
+            border-color: rgba(99, 102, 241, 0.4);
+          }
+
           .status-badge.approved {
-            background: rgba(153, 164, 190, 0.15);
-            color: #99a4be;
-            border-color: #99a4be;
+            background: rgba(16, 185, 129, 0.12);
+            color: #047857;
+            border-color: rgba(16, 185, 129, 0.4);
           }
           [data-theme='dark'] .status-badge.approved {
-            background: rgba(148, 163, 184, 0.22);
-            color: #cbd5e1;
-            border-color: #64748b;
+            background: rgba(16, 185, 129, 0.25);
+            color: #bbf7d0;
+            border-color: #34d399;
+          }
+
+          .status-badge.rejected {
+            background: rgba(248, 113, 113, 0.12);
+            color: #b91c1c;
+            border-color: rgba(248, 113, 113, 0.4);
           }
 
           .task-diary-date {
@@ -1380,7 +1398,7 @@ export const WorkLogHomePage: React.FC = () => {
                 className={`line-tab ${activeTab === 'approved' ? 'active' : ''}`}
                 onClick={() => setActiveTab('approved')}
               >
-                작성완료
+                제출/승인
               </button>
             </nav>
           )}

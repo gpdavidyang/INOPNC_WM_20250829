@@ -42,7 +42,7 @@ export function DropdownMenu({ trigger, children, className, align = 'start' }: 
         <div
           role="menu"
           className={cn(
-            'absolute z-50 mt-2 min-w-[160px] rounded-md border bg-white p-1 text-sm shadow focus:outline-none',
+            'absolute z-50 mt-2 min-w-[160px] rounded-[8px] border bg-white p-1 text-sm shadow focus:outline-none',
             align === 'end' ? 'right-0' : 'left-0'
           )}
         >
@@ -65,7 +65,7 @@ export function DropdownMenuItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className="w-full rounded px-3 py-2 text-left text-sm hover:bg-gray-100"
+      className="w-full rounded-[8px] px-3 py-2 text-left text-sm hover:bg-gray-100"
     >
       {children}
     </button>

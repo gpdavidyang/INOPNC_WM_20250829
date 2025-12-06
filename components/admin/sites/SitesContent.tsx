@@ -434,150 +434,181 @@ export function SitesContent({
   )
 
   return (
-    <div className="space-y-6">
-      {!hideHeader && (
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">{t('sites.title')}</h1>
-            <p className="text-sm text-muted-foreground">{t('sites.subtitle')}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <a
-              href="/dashboard/admin/sites/new"
-              className={buttonVariants({ variant: 'primary', size: 'standard' })}
-              role="button"
-            >
-              {t('sites.create')}
-            </a>
-            <Button
-              variant="outline"
-              size="standard"
-              onClick={() => fetchSites(page)}
-              disabled={loading}
-            >
-              <RefreshCw className={`mr-2 h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-              {t('common.refresh')}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <StatsCard label={t('sites.stats.total')} value={total} unit="site" />
-        <StatsCard label={t('sites.stats.activeOnPage')} value={activeCount} unit="site" />
-        <StatsCard label={t('users.filters.statusSelected')} value={STATUS_LABELS[statusFilter]} />
-      </section>
-
-      <section className="rounded-lg border bg-card p-4 shadow-sm">
-        {(statsError || managersError) && (
-          <div className="mb-3 text-xs text-red-600">
-            {statsError && <div>통계 로딩 오류: {statsError}</div>}
-            {managersError && <div>관리자 로딩 오류: {managersError}</div>}
+    <>
+      <div className="admin-sites-surface space-y-6">
+        {!hideHeader && (
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">{t('sites.title')}</h1>
+              <p className="text-sm text-muted-foreground">{t('sites.subtitle')}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href="/dashboard/admin/sites/new"
+                className={`${buttonVariants({ variant: 'primary', size: 'standard' })} rounded-[8px]`}
+                role="button"
+              >
+                {t('sites.create')}
+              </a>
+              <Button
+                variant="outline"
+                size="standard"
+                className="rounded-[8px]"
+                onClick={() => fetchSites(page)}
+                disabled={loading}
+              >
+                <RefreshCw className={`mr-2 h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+                {t('common.refresh')}
+              </Button>
+            </div>
           </div>
         )}
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-            <div className="relative flex-1 md:w-72">
-              <Input
-                placeholder={t('sites.searchPlaceholder')}
-                value={searchInput}
-                onChange={event => setSearchInput(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter') {
-                    handleSearch()
-                  }
+
+        <section className="grid gap-4 md:grid-cols-3">
+          <StatsCard label={t('sites.stats.total')} value={total} unit="site" />
+          <StatsCard label={t('sites.stats.activeOnPage')} value={activeCount} unit="site" />
+          <StatsCard
+            label={t('users.filters.statusSelected')}
+            value={STATUS_LABELS[statusFilter]}
+          />
+        </section>
+
+        <section className="rounded-lg border bg-card p-4 shadow-sm">
+          {(statsError || managersError) && (
+            <div className="mb-3 text-xs text-red-600">
+              {statsError && <div>통계 로딩 오류: {statsError}</div>}
+              {managersError && <div>관리자 로딩 오류: {managersError}</div>}
+            </div>
+          )}
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
+              <div className="relative flex-1 md:w-72">
+                <Input
+                  placeholder={t('sites.searchPlaceholder')}
+                  value={searchInput}
+                  onChange={event => setSearchInput(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      handleSearch()
+                    }
+                  }}
+                  className="pl-10"
+                />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              </div>
+              <Button variant="secondary" onClick={handleSearch} disabled={loading}>
+                {t('common.search')}
+              </Button>
+              <Select
+                value={statusFilter}
+                onValueChange={value => fetchSites(1, { status: value as StatusFilterOption })}
+              >
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder={t('sites.statusFilter')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {/* 삭제 포함/삭제됨만 보기 옵션 제거됨 */}
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
+              {t('common.reset')}
+            </Button>
+          </div>
+
+          {/* 선택/일괄작업 바 제거됨 */}
+
+          <div className="mt-6">
+            {loading && <LoadingSpinner />}
+
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTitle>{t('sites.errors.fetchList')}</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {!loading && sites.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+                <Search className="h-8 w-8" />
+                <p>{t('sites.empty')}</p>
+              </div>
+            ) : (
+              <DataTable
+                data={sites}
+                columns={columns}
+                rowKey="id"
+                initialSort={{ columnKey: sortKey, direction: sortDir }}
+                onSortChange={(key, dir) => {
+                  setSortKey(key)
+                  setSortDir(dir)
+                  setPage(1)
+                  fetchSites(1, { sort: key, direction: dir })
                 }}
-                className="pl-10"
               />
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+            <div>
+              총 <span className="font-medium text-foreground">{total.toLocaleString()}</span> 개
+              현장
             </div>
-            <Button variant="secondary" onClick={handleSearch} disabled={loading}>
-              {t('common.search')}
-            </Button>
-            <Select
-              value={statusFilter}
-              onValueChange={value => fetchSites(1, { status: value as StatusFilterOption })}
-            >
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder={t('sites.statusFilter')} />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {/* 삭제 포함/삭제됨만 보기 옵션 제거됨 */}
-          </div>
-          <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
-            {t('common.reset')}
-          </Button>
-        </div>
-
-        {/* 선택/일괄작업 바 제거됨 */}
-
-        <div className="mt-6">
-          {loading && <LoadingSpinner />}
-
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>{t('sites.errors.fetchList')}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {!loading && sites.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-              <Search className="h-8 w-8" />
-              <p>{t('sites.empty')}</p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchSites(Math.max(page - 1, 1))}
+                disabled={loading || page <= 1}
+              >
+                {t('common.prev')}
+              </Button>
+              <span>
+                {page} / {pages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchSites(Math.min(page + 1, pages))}
+                disabled={loading || page >= pages}
+              >
+                {t('common.next')}
+              </Button>
             </div>
-          ) : (
-            <DataTable
-              data={sites}
-              columns={columns}
-              rowKey="id"
-              initialSort={{ columnKey: sortKey, direction: sortDir }}
-              onSortChange={(key, dir) => {
-                setSortKey(key)
-                setSortDir(dir)
-                setPage(1)
-                fetchSites(1, { sort: key, direction: dir })
-              }}
-            />
-          )}
-        </div>
-
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <div>
-            총 <span className="font-medium text-foreground">{total.toLocaleString()}</span> 개 현장
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchSites(Math.max(page - 1, 1))}
-              disabled={loading || page <= 1}
-            >
-              {t('common.prev')}
-            </Button>
-            <span>
-              {page} / {pages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchSites(Math.min(page + 1, pages))}
-              disabled={loading || page >= pages}
-            >
-              {t('common.next')}
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {null}
-    </div>
+        </section>
+      </div>
+      <style jsx>{`
+        .admin-sites-surface :global(.rounded),
+        .admin-sites-surface :global(.rounded-sm),
+        .admin-sites-surface :global(.rounded-md),
+        .admin-sites-surface :global(.rounded-lg),
+        .admin-sites-surface :global(.rounded-xl),
+        .admin-sites-surface :global(.rounded-2xl),
+        .admin-sites-surface :global(.rounded-3xl),
+        .admin-sites-surface :global(.rounded-full),
+        .admin-sites-surface :global(.radius-default) {
+          border-radius: 8px !important;
+        }
+        .admin-sites-surface :global(button),
+        .admin-sites-surface :global(input),
+        .admin-sites-surface :global(select),
+        .admin-sites-surface :global(textarea),
+        .admin-sites-surface :global(.select-trigger),
+        .admin-sites-surface :global(.select-content),
+        .admin-sites-surface :global(.badge),
+        .admin-sites-surface :global(.filter-chip),
+        .admin-sites-surface :global(.table),
+        .admin-sites-surface :global(.card),
+        .admin-sites-surface :global(.doc-filter-trigger) {
+          border-radius: 8px !important;
+        }
+      `}</style>
+    </>
   )
 }

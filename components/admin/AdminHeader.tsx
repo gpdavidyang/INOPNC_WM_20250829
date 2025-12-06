@@ -125,7 +125,7 @@ export default function AdminHeader({
           <div className="flex flex-1 max-w-2xl mx-8">
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="w-full max-w-md mx-auto flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              className="w-full max-w-md mx-auto flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-[8px] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
             >
               <Search className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
               <span className="flex-1 text-left text-sm text-gray-500 dark:text-gray-400">
@@ -191,7 +191,7 @@ export default function AdminHeader({
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-[8px] flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
                 </div>
                 <span className="hidden lg:block text-sm font-medium text-gray-700 dark:text-gray-300">

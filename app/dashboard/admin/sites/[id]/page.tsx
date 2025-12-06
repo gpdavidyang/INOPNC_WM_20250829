@@ -65,7 +65,7 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
         actions={<SiteDetailActions siteId={params.id} />}
       />
 
-      <Card>
+      <Card className="!rounded-[8px]">
         <CardHeader>
           <CardTitle>{site?.name || '-'}</CardTitle>
           <CardDescription>{site?.address || '-'}</CardDescription>

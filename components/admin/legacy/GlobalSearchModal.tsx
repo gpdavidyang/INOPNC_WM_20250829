@@ -72,9 +72,9 @@ const quickActions: SearchResult[] = [
   {
     id: 'quick-4',
     type: 'action',
-    title: '승인 대기 문서',
-    subtitle: '검토가 필요한 문서 목록',
-    url: '/dashboard/admin/approvals',
+    title: '작업일지 승인 대기',
+    subtitle: '검토가 필요한 작업일지 목록',
+    url: '/dashboard/admin/daily-reports?status=submitted',
     icon: CheckCircle,
   },
 ]

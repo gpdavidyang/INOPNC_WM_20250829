@@ -50,7 +50,7 @@ export function DailyReportFilters({
       : '전체 현장'
 
   const statusDisplayLabel =
-    status === 'draft' ? '임시저장' : status === 'submitted' ? '작성완료' : '전체 상태'
+    status === 'draft' ? '임시저장' : status === 'submitted' ? '제출' : '전체 상태'
 
   const applyFilters = React.useCallback(() => {
     const params = new URLSearchParams(searchParams?.toString() || '')
@@ -144,7 +144,7 @@ export function DailyReportFilters({
           <CustomSelectContent>
             <CustomSelectItem value="__all__">전체 상태</CustomSelectItem>
             <CustomSelectItem value="draft">임시저장</CustomSelectItem>
-            <CustomSelectItem value="submitted">작성완료</CustomSelectItem>
+            <CustomSelectItem value="submitted">제출</CustomSelectItem>
           </CustomSelectContent>
         </CustomSelect>
       </div>

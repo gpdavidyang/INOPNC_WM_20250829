@@ -36,10 +36,20 @@ export const WorkLogListItem: React.FC<WorkLogListItemProps> = ({ workLog, onSel
           className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
             workLog.status === 'draft'
               ? 'bg-[#F4F8FF] text-[#31A3FA] dark:bg-[#1e3a8a]/30 dark:text-[#63b3ed]'
-              : 'bg-[#F0FDF4] text-[#16A34A] dark:bg-emerald-900/30 dark:text-emerald-400'
+              : workLog.status === 'submitted'
+                ? 'bg-[#EEF2FF] text-[#4338CA] dark:bg-indigo-900/40 dark:text-indigo-100'
+                : workLog.status === 'approved'
+                  ? 'bg-[#F0FDF4] text-[#16A34A] dark:bg-emerald-900/30 dark:text-emerald-400'
+                  : 'bg-[#FEF2F2] text-[#B91C1C] dark:bg-rose-900/40 dark:text-rose-200'
           }`}
         >
-          {workLog.status === 'draft' ? '임시저장' : '작성완료'}
+          {workLog.status === 'draft'
+            ? '임시저장'
+            : workLog.status === 'submitted'
+              ? '제출'
+              : workLog.status === 'approved'
+                ? '승인'
+                : '반려'}
         </span>
         <span className="text-xs text-[#667085] dark:text-gray-400">
           {formatDate(workLog.date)}

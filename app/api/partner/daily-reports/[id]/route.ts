@@ -57,7 +57,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     // Query the target report first to verify site access
     const { data: reportRow, error: headError } = await serviceClient
       .from('daily_reports')
-      .select('id, site_id')
+      .select('id, site_id, status')
       .eq('id', reportId)
       .maybeSingle()
 
@@ -67,6 +67,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 
     if (!allowedSiteIds.has(reportRow.site_id)) {
       return NextResponse.json({ error: 'Not authorized for this report' }, { status: 403 })
+    }
+    if (reportRow.status !== 'approved') {
+      return NextResponse.json({ error: 'Report not approved yet' }, { status: 403 })
     }
 
     // Fetch enriched details
@@ -91,6 +94,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       `
       )
       .eq('id', reportId)
+      .eq('status', 'approved')
       .maybeSingle()
 
     if (error || !data) {

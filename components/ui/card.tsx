@@ -30,13 +30,13 @@ const Card = React.forwardRef<
 
   const variantClasses = {
     default:
-      'bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm',
+      'bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-[8px] shadow-sm',
     elevated:
-      'bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl shadow-md ring-1 ring-gray-100 dark:ring-slate-700',
+      'bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-[8px] shadow-md ring-1 ring-gray-100 dark:ring-slate-700',
     prominent:
-      'bg-white dark:bg-slate-800 border-2 border-gray-400 dark:border-slate-500 rounded-xl shadow-lg',
+      'bg-white dark:bg-slate-800 border-2 border-gray-400 dark:border-slate-500 rounded-[8px] shadow-lg',
     'section-header':
-      'bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm',
+      'bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border border-gray-300 dark:border-slate-600 rounded-[8px] shadow-sm',
     'work-card':
       'work-card bg-[var(--work-card-bg)] dark:bg-[var(--work-card-bg)] border border-[var(--work-card-border)] dark:border-[var(--work-card-border)] transition-all duration-200 hover:shadow-lg hover:border-[var(--accent)] hover:scale-[1.02]',
   }

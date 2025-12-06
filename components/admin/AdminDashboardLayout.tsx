@@ -26,6 +26,8 @@ import {
   LogOut,
   Menu,
   X,
+  ClipboardList,
+  Receipt,
 } from 'lucide-react'
 import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useFontSize } from '@/contexts/FontSizeContext'
@@ -82,13 +84,13 @@ const menuCategories = [
       {
         id: 'daily-reports',
         label: '작업일지 관리',
-        icon: FileText,
+        icon: ClipboardList,
         href: '/dashboard/admin/daily-reports',
       },
       {
         id: 'invoice-documents',
         label: '기성청구 관리',
-        icon: FileText,
+        icon: Receipt,
         href: '/dashboard/admin/documents/invoice',
       },
       {

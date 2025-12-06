@@ -66,12 +66,17 @@ export default async function PartnerSiteDetailPage({ params }: SitePageProps) {
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const { data: reports } = await supabase
+  const restrictedPartner = !['admin', 'system_admin', 'site_manager'].includes(role || '')
+  let reportsQuery = supabase
     .from('daily_reports')
     .select('id, work_date, status, profiles:profiles!daily_reports_user_id_fkey(full_name)')
     .eq('site_id', siteId)
     .order('work_date', { ascending: false })
     .limit(10)
+  if (restrictedPartner) {
+    reportsQuery = reportsQuery.eq('status', 'approved')
+  }
+  const { data: reports } = await reportsQuery
 
   const { data: assignments } = await supabase
     .from('site_assignments')

@@ -8,6 +8,18 @@ import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Loader2 } from 'lucide-react'
 
+const STATUS_META: Record<
+  string,
+  {
+    label: string
+    className: string
+  }
+> = {
+  draft: { label: '임시저장', className: 'bg-gray-100 text-gray-700' },
+  submitted: { label: '제출', className: 'bg-sky-100 text-sky-700' },
+  approved: { label: '승인', className: 'bg-emerald-100 text-emerald-700' },
+}
+
 export default function DailyReportsTable({ reports }: { reports: any[] }) {
   const router = useRouter()
   const sp = useSearchParams()
@@ -18,6 +30,7 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
   const [isPending, startTransition] = useTransition()
   const [selectedIds, setSelectedIds] = React.useState<string[]>([])
   const [isDeleting, setIsDeleting] = React.useState(false)
+  const [approvalLoadingId, setApprovalLoadingId] = React.useState<string | null>(null)
   const selectAllRef = React.useRef<HTMLInputElement>(null)
   const reportIds = React.useMemo(() => reports.map(r => String(r.id)), [reports])
   const zeroManhourIds = React.useMemo(() => {
@@ -64,6 +77,28 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
 
   const toggleSelectAll = () => {
     setSelectedIds(allSelected ? [] : [...reportIds])
+  }
+
+  const handleStatusChange = async (reportId: string, action: 'approve' | 'revert') => {
+    setApprovalLoadingId(reportId)
+    try {
+      const res = await fetch(`/api/admin/daily-reports/${reportId}/approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || '상태 변경에 실패했습니다.')
+      }
+      startTransition(() => {
+        router.refresh()
+      })
+    } catch (error) {
+      alert((error as Error)?.message || '상태 변경 중 오류가 발생했습니다.')
+    } finally {
+      setApprovalLoadingId(null)
+    }
   }
 
   const handleBulkDelete = async () => {
@@ -254,8 +289,18 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             key: 'component_name',
             header: '부재명',
             sortable: true,
-            accessor: (r: any) => r?.component_name || r?.member_name || '',
-            render: (r: any) => r?.component_name || r?.member_name || '-',
+            accessor: (r: any) => {
+              const component = Array.isArray(r?.member_types)
+                ? r.member_types.join(', ')
+                : r?.component_name
+              return component || ''
+            },
+            render: (r: any) => {
+              if (Array.isArray(r?.member_types) && r.member_types.length > 0) {
+                return r.member_types.join(', ')
+              }
+              return r?.component_name || '-'
+            },
             width: 180,
             headerClassName: 'whitespace-nowrap',
           },
@@ -304,12 +349,11 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             sortable: true,
             accessor: (r: any) => r?.status || '',
             render: (r: any) => (
-              <Badge variant={r?.status === 'submitted' ? 'default' : 'outline'}>
-                {r?.status === 'submitted'
-                  ? '제출됨'
-                  : r?.status === 'draft'
-                    ? '임시저장'
-                    : r?.status || '미정'}
+              <Badge
+                variant="outline"
+                className={`font-semibold ${STATUS_META[r?.status as keyof typeof STATUS_META]?.className || 'bg-gray-100 text-gray-700'}`}
+              >
+                {STATUS_META[r?.status as keyof typeof STATUS_META]?.label || r?.status || '미정'}
               </Badge>
             ),
             width: 90,
@@ -387,6 +431,42 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
                 >
                   삭제
                 </Button>
+                {r?.status === 'submitted' && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="px-2 py-1 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
+                    disabled={approvalLoadingId === String(r.id)}
+                    onClick={() => handleStatusChange(String(r.id), 'approve')}
+                  >
+                    {approvalLoadingId === String(r.id) ? (
+                      <>
+                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
+                        승인 중...
+                      </>
+                    ) : (
+                      '승인'
+                    )}
+                  </Button>
+                )}
+                {r?.status === 'approved' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-2 py-1 text-xs"
+                    disabled={approvalLoadingId === String(r.id)}
+                    onClick={() => handleStatusChange(String(r.id), 'revert')}
+                  >
+                    {approvalLoadingId === String(r.id) ? (
+                      <>
+                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
+                        처리 중...
+                      </>
+                    ) : (
+                      '승인 취소'
+                    )}
+                  </Button>
+                )}
               </div>
             ),
           },

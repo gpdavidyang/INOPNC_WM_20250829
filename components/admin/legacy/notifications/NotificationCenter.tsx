@@ -208,7 +208,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           is_archived: false,
           created_at: new Date(Date.now() - 10800000).toISOString(),
           read_at: new Date(Date.now() - 3600000).toISOString(),
-          action_url: '/dashboard/admin/approvals',
+          action_url: '/dashboard/admin/documents/required?status=pending',
         },
         {
           id: '4',

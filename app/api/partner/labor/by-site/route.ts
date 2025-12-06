@@ -376,6 +376,7 @@ export async function GET(request: NextRequest) {
           .from('daily_reports')
           .select('work_date, worker_assignments(id, labor_hours)')
           .eq('site_id', site.id)
+          .eq('status', 'approved')
           .gte('work_date', startDate)
           .lte('work_date', endDate)
         for (const rep of reports || []) {

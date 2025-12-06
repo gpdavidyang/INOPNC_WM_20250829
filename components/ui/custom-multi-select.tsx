@@ -87,7 +87,7 @@ export function CustomMultiSelect({
                   e.stopPropagation()
                   clear()
                 }}
-                className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                className="ml-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-[8px]"
                 aria-label="선택 해제"
               >
                 <X className="h-3.5 w-3.5 text-gray-500" />
@@ -103,7 +103,7 @@ export function CustomMultiSelect({
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="검색..."
-                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-[8px] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
             <div className="sticky top-[38px] bg-white dark:bg-[#0f172a]/95 border-b border-gray-200 dark:border-gray-700">
@@ -113,7 +113,7 @@ export function CustomMultiSelect({
                 className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
               >
                 <div
-                  className={`w-4 h-4 border rounded flex items-center justify-center ${
+                  className={`w-4 h-4 border rounded-[8px] flex items-center justify-center ${
                     selected.length === options.length
                       ? 'bg-blue-600 border-blue-600'
                       : selected.length > 0
@@ -146,7 +146,7 @@ export function CustomMultiSelect({
                       className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
                     >
                       <div
-                        className={`w-4 h-4 border rounded flex items-center justify-center ${
+                        className={`w-4 h-4 border rounded-[8px] flex items-center justify-center ${
                           selected.includes(o.value)
                             ? 'bg-blue-600 border-blue-600'
                             : 'border-gray-300 dark:border-gray-600'

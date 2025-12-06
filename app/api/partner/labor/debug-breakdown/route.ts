@@ -144,6 +144,7 @@ export async function GET(req: NextRequest) {
       .from('daily_reports')
       .select('site_id, work_date, worker_assignments(id, labor_hours)')
       .in('site_id', siteFilter)
+      .eq('status', 'approved')
       .gte('work_date', startDate)
       .lte('work_date', endDate)
     const drCounts = new Map<DateKey, Map<string, number>>()

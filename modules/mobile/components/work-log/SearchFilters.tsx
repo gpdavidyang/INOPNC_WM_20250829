@@ -9,7 +9,7 @@ export interface SearchFilter {
     start: Date | null
     end: Date | null
   }
-  status?: 'all' | 'draft' | 'approved' | 'rejected'
+  status?: 'all' | 'draft' | 'submitted' | 'approved' | 'rejected'
   author?: string
 }
 
@@ -220,10 +220,11 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
       {/* Status Filter */}
       <div className="space-y-2">
         <label className="text-xs font-medium text-[var(--muted)]">상태</label>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {[
             { value: 'all', label: '전체' },
             { value: 'draft', label: '임시저장' },
+            { value: 'submitted', label: '제출' },
             { value: 'approved', label: '승인' },
             { value: 'rejected', label: '반려' },
           ].map(option => (
@@ -280,9 +281,11 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
                 상태:{' '}
                 {localFilters.status === 'draft'
                   ? '임시저장'
-                  : localFilters.status === 'approved'
-                    ? '승인'
-                    : '반려'}
+                  : localFilters.status === 'submitted'
+                    ? '제출'
+                    : localFilters.status === 'approved'
+                      ? '승인'
+                      : '반려'}
               </span>
             )}
             {localFilters.author && (

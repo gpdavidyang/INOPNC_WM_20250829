@@ -171,7 +171,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                 className="inline-flex items-center gap-1 rounded-full bg-[#0068FE] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-transform hover:bg-blue-600 active:scale-95"
               >
                 <Send className="h-3.5 w-3.5" />
-                작성완료
+                제출
               </button>
             )}
             {onDelete && (

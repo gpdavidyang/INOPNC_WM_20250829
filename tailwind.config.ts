@@ -253,12 +253,13 @@ const config: Config = {
         touch: '44px', // 최소 터치 타겟
       },
       borderRadius: {
-        sm: 'var(--r-sm)', // 8px
-        md: 'var(--r-md)', // 12px
-        lg: 'var(--r-lg)', // 14px
-        xl: 'var(--r-xl)', // 24px
-        '2xl': '1rem', // 16px
-        '3xl': '1.5rem', // 24px
+        DEFAULT: '8px',
+        sm: '8px',
+        md: '8px',
+        lg: '8px',
+        xl: '8px',
+        '2xl': '8px',
+        '3xl': '8px',
         full: 'var(--r-full)', // 9999px
       },
       boxShadow: {
