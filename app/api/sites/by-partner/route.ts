@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     ).trim()
     if (!partnerId) return NextResponse.json([])
 
-    const sites: Array<{ id: string; name: string; organization_id?: string | null }> = []
+    let sites: Array<{ id: string; name: string; organization_id?: string | null }> = []
     const pushSite = (site: any) => {
       if (!site?.id) return
       const id = String(site.id)
