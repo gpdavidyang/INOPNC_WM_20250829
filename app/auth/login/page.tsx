@@ -29,11 +29,26 @@ const TEST_EMAIL_SET = new Set(
     .filter(Boolean)
 )
 
+const PARTNER_TEST_EMAILS_CONFIG =
+  (typeof process !== 'undefined' &&
+    (process.env.NEXT_PUBLIC_PARTNER_TEST_EMAILS || process.env.AUTH_PARTNER_TEST_EMAILS)) ||
+  'partner@inopnc.com'
+const PARTNER_TEST_EMAIL_SET = new Set(
+  PARTNER_TEST_EMAILS_CONFIG.split(',')
+    .map(email => email.trim().toLowerCase())
+    .filter(Boolean)
+)
+
 const isTestBypassEmail = (value?: string | null) => {
   if (!value) return false
   const lower = value.toLowerCase()
   if (lower.endsWith(TEST_EMAIL_DOMAIN.toLowerCase())) return true
   return TEST_EMAIL_SET.has(lower)
+}
+
+const isPartnerTestAccountEmail = (value?: string | null) => {
+  if (!value) return false
+  return PARTNER_TEST_EMAIL_SET.has(value.trim().toLowerCase())
 }
 
 type LoginPhase = 'credentials' | 'mfa-setup' | 'mfa-verify'
@@ -221,6 +236,30 @@ export default function LoginPage() {
     }
   }
 
+  const requestPartnerAccountRepair = async (
+    targetEmail: string
+  ): Promise<{ defaultPassword?: string } | null> => {
+    try {
+      const res = await fetch('/api/auth/partner-account/repair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok || !payload?.success) {
+        return null
+      }
+      const defaultPassword =
+        typeof payload.defaultPassword === 'string' && payload.defaultPassword.length > 0
+          ? payload.defaultPassword
+          : undefined
+      return { defaultPassword }
+    } catch (error) {
+      console.error('Partner account repair request failed:', error)
+      return null
+    }
+  }
+
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const form = e.currentTarget
@@ -268,20 +307,29 @@ export default function LoginPage() {
 
         const message = (signInError?.message || '').toLowerCase()
 
-        if (
-          allowRepair &&
-          message.includes('invalid login credentials') &&
-          isDemoAccountEmail(normalizedEmail)
-        ) {
-          const repair = await requestDemoAccountRepair(normalizedEmail)
-          if (repair?.defaultPassword) {
-            const infoMessage = `데모 계정 비밀번호를 기본값(${repair.defaultPassword})으로 초기화했습니다. 다시 시도합니다.`
-            setInfo(infoMessage)
-            setError(null)
-            if (passwordInputRef.current) {
-              passwordInputRef.current.value = repair.defaultPassword
+        if (allowRepair && message.includes('invalid login credentials')) {
+          if (isDemoAccountEmail(normalizedEmail)) {
+            const repair = await requestDemoAccountRepair(normalizedEmail)
+            if (repair?.defaultPassword) {
+              const infoMessage = `데모 계정 비밀번호를 기본값(${repair.defaultPassword})으로 초기화했습니다. 다시 시도합니다.`
+              setInfo(infoMessage)
+              setError(null)
+              if (passwordInputRef.current) {
+                passwordInputRef.current.value = repair.defaultPassword
+              }
+              return attemptSignIn(repair.defaultPassword, false)
             }
-            return attemptSignIn(repair.defaultPassword, false)
+          } else if (isPartnerTestAccountEmail(normalizedEmail)) {
+            const repair = await requestPartnerAccountRepair(normalizedEmail)
+            if (repair?.defaultPassword) {
+              const infoMessage = `파트너 테스트 계정 비밀번호를 기본값(${repair.defaultPassword})으로 초기화했습니다. 다시 시도합니다.`
+              setInfo(infoMessage)
+              setError(null)
+              if (passwordInputRef.current) {
+                passwordInputRef.current.value = repair.defaultPassword
+              }
+              return attemptSignIn(repair.defaultPassword, false)
+            }
           }
         }
 
