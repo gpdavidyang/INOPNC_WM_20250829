@@ -105,6 +105,22 @@ export default async function RootLayout({
     }
   }
 
+  const shouldForceLightTheme = userRole === 'admin' || userRole === 'system_admin'
+  const forcedTheme = shouldForceLightTheme ? 'light' : undefined
+  const defaultTheme = shouldForceLightTheme ? 'light' : 'system'
+  const themeInitializer = `(() => { try {
+    var forcedLight = ${shouldForceLightTheme ? 'true' : 'false'};
+    var storageKey = 'inopnc_theme';
+    var stored = forcedLight ? 'light' : localStorage.getItem(storageKey);
+    var t = (stored === 'dark' || stored === 'light') ? stored : null;
+    if (!t) {
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      t = forcedLight ? 'light' : (prefersDark ? 'dark' : 'light');
+    }
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.toggle('dark', t === 'dark');
+  } catch (e) {} })();`
+
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
@@ -122,21 +138,18 @@ export default async function RootLayout({
         <script
           // This runs on the client before React hydration to avoid theme flicker
           dangerouslySetInnerHTML={{
-            __html: `(() => { try {
-              var k = 'inopnc_theme';
-              var t = localStorage.getItem(k);
-              if (!t) {
-                t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-              }
-              document.documentElement.setAttribute('data-theme', t);
-              if (t === 'dark') document.documentElement.classList.add('dark');
-              else document.documentElement.classList.remove('dark');
-            } catch (e) {} })();`,
+            __html: themeInitializer,
           }}
         />
       </head>
       <body className={bodyClasses}>
-        <Providers>{children}</Providers>
+        <Providers
+          forcedTheme={forcedTheme}
+          enableSystem={!shouldForceLightTheme}
+          defaultTheme={defaultTheme}
+        >
+          {children}
+        </Providers>
       </body>
     </html>
   )
