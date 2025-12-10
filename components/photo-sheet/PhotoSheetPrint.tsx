@@ -408,16 +408,100 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
 }
 @page { size: ${pageSize}; margin: 12mm; }
 @media print {
-  html, body { margin: 0 !important; padding: 0 !important; }
-  body * { visibility: hidden; }
-  .print-root, .print-root * { visibility: visible; }
+  html, body,
+  body.admin-role,
+  body.role-admin,
+  body.role-system-admin,
+  body.desktop-ui,
+  body.force-desktop-ui {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  #__next,
+  body.admin-role #__next,
+  body.role-admin #__next,
+  body.role-system-admin #__next,
+  body.desktop-ui #__next,
+  body.force-desktop-ui #__next,
+  body.admin-role main,
+  body.role-admin main,
+  body.role-system-admin main,
+  body.desktop-ui main,
+  body.force-desktop-ui main,
+  body.admin-role .container,
+  body.role-admin .container,
+  body.role-system-admin .container {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  .print-hide,
+  .admin-header,
+  .admin-sidebar {
+    display: none !important;
+  }
+  .admin-shell,
+  .admin-main,
+  .admin-main-content,
+  .admin-main-inner,
+  .photo-sheet-preview-page,
+  .photo-sheet-preview-stage,
+  .photo-sheet-preview-scroll,
+  .photo-sheet-preview-canvas {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    background: transparent !important;
+  }
+  .admin-main {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    min-width: 0 !important;
+    padding-top: 0 !important;
+  }
+  .admin-main-content {
+    padding-top: 0 !important;
+  }
+  .photo-sheet-preview-scroll {
+    overflow: visible !important;
+  }
   .print-root {
     position: static;
     display: block;
     padding: 0;
     overflow: visible;
+    margin: 0 auto;
   }
-  .print-root .page { box-shadow: none; }
+  .print-root .page {
+    box-shadow: none;
+    page-break-after: always;
+    -webkit-region-break-after: always;
+    break-after: page;
+  }
+  .print-root .page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
 }
 .print-root .page { width: 210mm; height: 297mm; background: #fff; color: #000; border: 1px solid #ddd; box-sizing: border-box; padding: 3.5mm 7mm 10mm; display: flex; flex-direction: column; gap: 2mm; break-after: page; overflow: visible; margin: 0 auto; box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08); }
 .print-root .page.landscape { width: 297mm; height: 210mm; }

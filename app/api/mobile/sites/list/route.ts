@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { withOrganizationMeta } from '@/lib/sites/site-response'
 
 export const dynamic = 'force-dynamic'
 
@@ -145,9 +146,16 @@ export async function GET() {
         }
       }
 
+      let sitesWithMeta = sites
+      try {
+        sitesWithMeta = await withOrganizationMeta(serviceClient, sites)
+      } catch (err) {
+        console.error('[mobile/sites/list] organization metadata error:', err)
+      }
+
       // Final: only return what we gathered (no additional fallbacks)
-      sites.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
-      return NextResponse.json({ success: true, data: sites })
+      sitesWithMeta.sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'))
+      return NextResponse.json({ success: true, data: sitesWithMeta })
     }
 
     // Other roles: basic visibility
@@ -177,12 +185,18 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Failed to fetch sites' }, { status: 500 })
     }
 
-    const sites = (data ?? []).map(site => ({
+    let sites = (data ?? []).map(site => ({
       id: site.id,
       name: site.name ?? '이름 없음',
       status: site.status,
       organization_id: site.organization_id,
     }))
+
+    try {
+      sites = await withOrganizationMeta(serviceClient, sites)
+    } catch (err) {
+      console.error('[mobile/sites/list] organization metadata error:', err)
+    }
 
     return NextResponse.json({ success: true, data: sites })
   } catch (error) {

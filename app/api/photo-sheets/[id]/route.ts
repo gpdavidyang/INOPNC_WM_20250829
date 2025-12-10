@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import path from 'path'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth, canAccessData } from '@/lib/auth/ultra-simple'
@@ -35,7 +36,6 @@ export async function GET(_request: NextRequest, ctx: { params: { id: string } }
       .select('*')
       .eq('photosheet_id', id)
       .order('item_index', { ascending: true })
-
     if (itemsError) {
       const msg = itemsError.message || String(itemsError)
       console.error('Fetch photo_sheet_items error:', msg)
@@ -45,7 +45,9 @@ export async function GET(_request: NextRequest, ctx: { params: { id: string } }
       )
     }
 
-    return NextResponse.json({ success: true, data: { ...sheet, items: items || [] } })
+    const hydratedItems = await ensureFreshPhotoSheetUrls(id, items || [], service)
+
+    return NextResponse.json({ success: true, data: { ...sheet, items: hydratedItems } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('GET /api/photo-sheets/[id] exception:', msg)
@@ -238,6 +240,145 @@ export async function PUT(request: NextRequest, ctx: { params: { id: string } })
     console.error('PUT /api/photo-sheets/[id] exception:', msg)
     return NextResponse.json({ error: msg || 'Internal server error' }, { status: 500 })
   }
+}
+
+type SupabaseServiceClient = ReturnType<typeof createServiceClient>
+const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 // 24 hours is enough for preview sessions
+const SUPABASE_OBJECT_PREFIX = '/storage/v1/object/'
+const CLONE_BUCKETS = new Set(['daily-reports', 'daily-report-photos'])
+
+type ParsedStorageTarget = {
+  bucket: string
+  path: string
+  access: 'sign' | 'public'
+}
+
+function parseSupabaseStorageUrl(raw?: string | null): ParsedStorageTarget | null {
+  if (!raw || typeof raw !== 'string') return null
+  try {
+    const url = new URL(raw)
+    const idx = url.pathname.indexOf(SUPABASE_OBJECT_PREFIX)
+    if (idx === -1) return null
+    const rest = url.pathname.slice(idx + SUPABASE_OBJECT_PREFIX.length)
+    const slashIdx = rest.indexOf('/')
+    if (slashIdx === -1) return null
+    const accessType = rest.slice(0, slashIdx)
+    const access: ParsedStorageTarget['access'] =
+      accessType === 'sign' ? 'sign' : accessType === 'public' ? 'public' : null
+    if (!access) return null
+    const pathPart = rest.slice(slashIdx + 1)
+    const questionIndex = pathPart.indexOf('?')
+    const withoutQuery = questionIndex === -1 ? pathPart : pathPart.slice(0, questionIndex)
+    const [bucket, ...segments] = withoutQuery.split('/')
+    if (!bucket || segments.length === 0) return null
+    const normalizedPath = decodeURIComponent(segments.join('/'))
+    return { bucket, path: normalizedPath, access }
+  } catch {
+    return null
+  }
+}
+
+async function cloneDailyReportPhotoToDocuments(options: {
+  sheetId: string
+  item: {
+    id?: string
+    item_index?: number | null
+    image_url?: string | null
+    mime?: string | null
+  }
+  target: ParsedStorageTarget
+  service: SupabaseServiceClient
+}) {
+  const { sheetId, item, target, service } = options
+  if (!CLONE_BUCKETS.has(target.bucket)) return null
+  try {
+    const download = await service.storage.from(target.bucket).download(target.path)
+    if (download.error || !download.data) {
+      console.warn('[photo-sheets] Failed to download original photo:', download.error)
+      return null
+    }
+    const arrayBuffer = await download.data.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    const ext = (path.extname(target.path).replace('.', '') || 'jpg').toLowerCase()
+    const normalizedExt = ext.length >= 3 && ext.length <= 4 ? ext : 'jpg'
+    const storagePath = `photosheets/${sheetId}/${String(item.item_index ?? 0)}.${normalizedExt}`
+    const inferredMime =
+      item.mime && item.mime.startsWith('image/')
+        ? item.mime
+        : normalizedExt === 'jpg'
+          ? 'image/jpeg'
+          : `image/${normalizedExt}`
+    const { error: uploadErr } = await service.storage
+      .from('documents')
+      .upload(storagePath, buffer, {
+        upsert: true,
+        contentType: inferredMime,
+      })
+    if (uploadErr) {
+      console.error('[photo-sheets] Failed to clone photo to documents bucket:', uploadErr)
+      return null
+    }
+    const { data: pub } = service.storage.from('documents').getPublicUrl(storagePath)
+    if (!pub?.publicUrl) return null
+    if (item.id) {
+      await service.from('photo_sheet_items').update({ image_url: pub.publicUrl }).eq('id', item.id)
+    }
+    return pub.publicUrl
+  } catch (error) {
+    console.error('[photo-sheets] cloneDailyReportPhotoToDocuments error:', error)
+    return null
+  }
+}
+
+async function ensureFreshPhotoSheetUrls(
+  sheetId: string,
+  items: Array<{
+    id?: string
+    item_index?: number | null
+    image_url?: string | null
+    mime?: string | null
+  }>,
+  service: SupabaseServiceClient
+) {
+  if (!items || items.length === 0) return items
+  const cache = new Map<string, string>()
+  for (const item of items) {
+    if (!item?.image_url) continue
+    const target = parseSupabaseStorageUrl(item.image_url)
+    if (!target) continue
+
+    if (CLONE_BUCKETS.has(target.bucket)) {
+      const cloned = await cloneDailyReportPhotoToDocuments({ sheetId, item, target, service })
+      if (cloned) {
+        item.image_url = cloned
+        continue
+      }
+    }
+
+    const needsSigned =
+      target.access === 'sign' || (target.access === 'public' && CLONE_BUCKETS.has(target.bucket))
+    if (!needsSigned) {
+      continue
+    }
+    const cacheKey = `${target.bucket}/${target.path}`
+    let refreshed = cache.get(cacheKey)
+    if (!refreshed) {
+      const { data, error } = await service.storage
+        .from(target.bucket)
+        .createSignedUrl(target.path, SIGNED_URL_TTL_SECONDS)
+      if (error || !data?.signedUrl) {
+        console.warn('[photo-sheets] Failed to refresh signed URL:', error?.message || error)
+        cache.set(cacheKey, item.image_url)
+        continue
+      }
+      refreshed = data.signedUrl
+      cache.set(cacheKey, refreshed)
+    }
+    if (refreshed) {
+      item.image_url = refreshed
+    }
+  }
+  return items
 }
 
 export async function DELETE(_request: NextRequest, ctx: { params: { id: string } }) {

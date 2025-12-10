@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createClient } from '@/lib/supabase/server'
+import { withOrganizationMeta } from '@/lib/sites/site-response'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,25 +47,26 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[mobile/sites/by-organization] query error:', error)
-      return NextResponse.json(
-        { success: false, error: 'Failed to fetch sites' },
-        { status: 500 }
-      )
+      return NextResponse.json({ success: false, error: 'Failed to fetch sites' }, { status: 500 })
     }
 
-    const sites =
+    const baseSites =
       data?.map(site => ({
         id: site.id,
         name: site.name ?? '이름 없음',
         organization_id: site.organization_id ?? null,
       })) ?? []
 
+    let sites = baseSites
+    try {
+      sites = await withOrganizationMeta(supabase, baseSites)
+    } catch (err) {
+      console.error('[mobile/sites/by-organization] organization metadata error:', err)
+    }
+
     return NextResponse.json({ success: true, data: sites })
   } catch (error) {
     console.error('[mobile/sites/by-organization] unexpected error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -126,6 +126,9 @@ interface MaterialOptionItem {
 const formatLaborHourLabel = (value: number) =>
   Number.isInteger(value) ? value.toFixed(0) : value.toFixed(1)
 
+const ORGANIZATION_UNASSIGNED_LABEL = '소속사 미지정'
+const ORGANIZATION_UNKNOWN_LABEL = '소속사 정보 없음'
+
 const createReportKey = (reportData?: DailyReportFormProps['reportData'] | null) => {
   if (!reportData) return null
   if (reportData.id) return String(reportData.id)
@@ -538,6 +541,36 @@ export default function DailyReportForm({
         : undefined
     return formData.site_id || reportSiteId || initialSiteId || ''
   }, [formData.site_id, reportData?.site_id, initialUnifiedReport?.siteId])
+  const selectedSiteRecord = useMemo(() => {
+    if (!selectedSiteId) return null
+    const normalizedId = String(selectedSiteId)
+    return (
+      filteredSites.find(site => String(site?.id) === normalizedId) ||
+      sites.find(site => String(site?.id) === normalizedId) ||
+      null
+    )
+  }, [selectedSiteId, filteredSites, sites])
+  const selectedOrganizationLabel = useMemo(() => {
+    if (!selectedSiteRecord) return ORGANIZATION_UNASSIGNED_LABEL
+    const record: any = selectedSiteRecord
+    const organizationName =
+      record.organization_name || record.organizations?.name || record.organization?.name || ''
+    if (organizationName) return organizationName
+    return record.organization_id ? ORGANIZATION_UNKNOWN_LABEL : ORGANIZATION_UNASSIGNED_LABEL
+  }, [selectedSiteRecord])
+
+  useEffect(() => {
+    setFormData(prev => {
+      const nextPartnerId = selectedSiteRecord?.organization_id
+        ? String(selectedSiteRecord.organization_id)
+        : ''
+      if ((prev.partner_company_id || '') === nextPartnerId) {
+        return prev
+      }
+      return { ...prev, partner_company_id: nextPartnerId }
+    })
+  }, [selectedSiteRecord])
+
   const [materialInventory, setMaterialInventory] = useState<
     Record<string, MaterialInventoryEntry>
   >({})
@@ -549,6 +582,7 @@ export default function DailyReportForm({
 
   // Partner companies and filtered sites
   const [partnerCompanies, setPartnerCompanies] = useState<any[]>([])
+  const [siteFilterPartnerId, setSiteFilterPartnerId] = useState('')
   const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
   const [loadingPartners, setLoadingPartners] = useState(false)
   const [reportHydrationKey, setReportHydrationKey] = useState<string | null>(() =>
@@ -578,7 +612,7 @@ export default function DailyReportForm({
     loadPartnerCompanies()
   }, [permissions.canViewAdvancedFeatures])
 
-  // Filter sites based on selected partner company
+  // Filter sites based on optional partner filter
   useEffect(() => {
     const withCurrentSite = (list: any[]): any[] => {
       const currentSiteId =
@@ -595,14 +629,14 @@ export default function DailyReportForm({
     }
 
     const filterSites = async () => {
-      if (!formData.partner_company_id) {
+      if (!siteFilterPartnerId) {
         setFilteredSites(withCurrentSite(sites))
         return
       }
 
       try {
         const response = await fetch(
-          `/api/sites/by-partner?partner_company_id=${formData.partner_company_id}`
+          `/api/sites/by-partner?partner_company_id=${siteFilterPartnerId}`
         )
         if (response.ok) {
           const partnerSites = await response.json()
@@ -618,13 +652,7 @@ export default function DailyReportForm({
     }
 
     filterSites()
-  }, [
-    formData.partner_company_id,
-    formData.site_id,
-    sites,
-    reportData?.site_id,
-    initialUnifiedReport,
-  ])
+  }, [siteFilterPartnerId, formData.site_id, sites, reportData?.site_id, initialUnifiedReport])
 
   // Work content entries
   const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() =>
@@ -1349,36 +1377,6 @@ export default function DailyReportForm({
             permissions={permissions}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Partner Company Selection - Available for all users */}
-              <div>
-                <Label htmlFor="partner_company_id">소속 시공업체</Label>
-                <CustomSelect
-                  value={formData.partner_company_id}
-                  onValueChange={value =>
-                    setFormData(prev => ({
-                      ...prev,
-                      partner_company_id: value === 'none' ? '' : value,
-                      site_id: '', // Reset site selection when partner changes
-                    }))
-                  }
-                >
-                  <CustomSelectTrigger>
-                    <CustomSelectValue placeholder="시공업체를 선택하세요" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    <CustomSelectItem value="none">선택 안함</CustomSelectItem>
-                    {partnerCompanies.map(company => (
-                      <CustomSelectItem key={company.id} value={company.id}>
-                        {company.company_name}
-                      </CustomSelectItem>
-                    ))}
-                  </CustomSelectContent>
-                </CustomSelect>
-                {loadingPartners && (
-                  <p className="text-xs text-gray-500 mt-1">시공업체 목록을 불러오는 중...</p>
-                )}
-              </div>
-
               <div>
                 <Label htmlFor="site_id">현장 선택 *</Label>
                 <CustomSelect
@@ -1397,7 +1395,13 @@ export default function DailyReportForm({
                   </CustomSelectContent>
                 </CustomSelect>
               </div>
-
+              <div>
+                <Label>소속 (자동)</Label>
+                <Input value={selectedOrganizationLabel} readOnly />
+                <p className="text-xs text-gray-500 mt-1">
+                  현장을 선택하면 연결된 소속이 자동으로 표시됩니다.
+                </p>
+              </div>
               <div>
                 <Label htmlFor="work_date">작업일자 *</Label>
                 <Input
@@ -1407,6 +1411,31 @@ export default function DailyReportForm({
                   onChange={e => setFormData(prev => ({ ...prev, work_date: e.target.value }))}
                   required
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+              <div>
+                <Label htmlFor="partner_filter">현장 필터 (소속)</Label>
+                <CustomSelect
+                  value={siteFilterPartnerId || 'all'}
+                  onValueChange={value => setSiteFilterPartnerId(value === 'all' ? '' : value)}
+                >
+                  <CustomSelectTrigger>
+                    <CustomSelectValue placeholder="소속으로 현장을 필터링하세요" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="all">전체 소속</CustomSelectItem>
+                    {partnerCompanies.map(company => (
+                      <CustomSelectItem key={company.id} value={company.id}>
+                        {company.company_name}
+                      </CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+                {loadingPartners && (
+                  <p className="text-xs text-gray-500 mt-1">소속 목록을 불러오는 중...</p>
+                )}
               </div>
             </div>
           </CollapsibleSection>

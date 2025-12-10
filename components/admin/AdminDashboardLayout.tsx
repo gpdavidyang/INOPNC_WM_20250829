@@ -607,7 +607,7 @@ export default function AdminDashboardLayout({
   // Mobile sidebar removed - desktop only layout
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="admin-shell min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Admin Header - Desktop only */}
       <AdminHeader
         profile={profile}
@@ -619,7 +619,7 @@ export default function AdminDashboardLayout({
 
       {/* Desktop sidebar - Always visible */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out ${
+        className={`admin-sidebar fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'w-16' : 'w-72 lg:w-72 md:w-64 sm:w-56'
         }`}
         style={{
@@ -632,14 +632,14 @@ export default function AdminDashboardLayout({
 
       {/* Main content area - Desktop layout */}
       <div
-        className={`transition-all duration-300 ease-in-out ${
+        className={`admin-main transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'pl-16' : 'pl-72 lg:pl-72 md:pl-64 sm:pl-56'
         }`}
         style={{ paddingTop: 'var(--admin-header-h, 64px)', minWidth: '1536px' }}
       >
         {/* Page content */}
-        <main className="py-6">
-          <div className="px-8" style={{ width: '100%' }}>
+        <main className="admin-main-content py-6">
+          <div className="admin-main-inner px-8" style={{ width: '100%' }}>
             {children}
           </div>
         </main>

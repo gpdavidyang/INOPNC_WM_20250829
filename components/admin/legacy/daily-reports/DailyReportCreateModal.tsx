@@ -1,5 +1,8 @@
 'use client'
 
+const ORGANIZATION_UNASSIGNED_LABEL = '소속사 미지정'
+const ORGANIZATION_UNKNOWN_LABEL = '소속사 정보 없음'
+
 interface Site {
   id: string
   name: string
@@ -9,6 +12,9 @@ interface Site {
   work_process?: string
   work_section?: string
   component_name?: string
+  organization_id?: string | null
+  organization_name?: string | null
+  organizations?: { name?: string | null }
 }
 
 interface Worker {
@@ -249,6 +255,16 @@ export default function DailyReportCreateModal({
                       )}
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-gray-500 mt-2">
+                    소속:{' '}
+                    {selectedSite
+                      ? selectedSite.organization_name ||
+                        selectedSite.organizations?.name ||
+                        (selectedSite.organization_id
+                          ? ORGANIZATION_UNKNOWN_LABEL
+                          : ORGANIZATION_UNASSIGNED_LABEL)
+                      : ORGANIZATION_UNASSIGNED_LABEL}
+                  </p>
                 </div>
 
                 <div>
