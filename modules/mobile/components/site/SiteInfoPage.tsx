@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import '@/modules/mobile/styles/attendance.css'
 import { TMap } from '@/lib/external-apps'
-import { Download, RefreshCcw, Search, X } from 'lucide-react'
+import { Download, Search, X } from 'lucide-react'
 import {
   recordInventoryTransaction,
   getMaterialsData as getNPCMaterialsData,
@@ -27,6 +27,9 @@ import {
   formatMaterialPriority,
 } from '@/lib/materials/priorities'
 import SiteInfoBottomSheet, {
+  SiteInfoDocumentSection,
+  SiteInfoUploadSummary,
+  SiteInfoWorkDetails,
   buildSiteContactItems,
 } from '@/modules/mobile/components/site/SiteInfoBottomSheet'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
@@ -698,7 +701,6 @@ export default function SiteInfoPage() {
 
   const { toast } = useToast()
 
-  const [showDetail, setShowDetail] = useState(false)
   const [showNpcRecordSheet, setShowNpcRecordSheet] = useState(false)
   const [showNpcRequestSheet, setShowNpcRequestSheet] = useState(false)
   const [showNpcLogSheet, setShowNpcLogSheet] = useState(false)
@@ -1400,7 +1402,6 @@ export default function SiteInfoPage() {
       setErrorMessage('현장 전환에 실패했습니다. 잠시 후 다시 시도해주세요.')
     } finally {
       setIsRefreshing(false)
-      setShowDetail(false)
     }
   }
 
@@ -1428,6 +1429,53 @@ export default function SiteInfoPage() {
       alert('파일을 열 수 없습니다.')
     }
   }
+
+  const sheetWorkDetails: SiteInfoWorkDetails | undefined = currentSite
+    ? {
+        memberName: currentSite.process?.member_name || null,
+        workProcess: currentSite.process?.work_process || null,
+        workType: currentSite.process?.work_section || null,
+        blockInfo: null,
+      }
+    : undefined
+
+  const sheetUploadSummary: SiteInfoUploadSummary = {
+    photoCount: attachments.photos.length,
+    drawingCount: attachments.construction.length + attachments.progress.length,
+    ptwCount: attachments.ptw.length,
+  }
+
+  const sheetDocuments: SiteInfoDocumentSection[] = [
+    {
+      key: 'construction',
+      title: '공도면',
+      files: attachments.construction,
+      emptyText: '공유자료에 공도면 문서가 없습니다.',
+      onClick: () => handleAttachmentOpen('construction'),
+      onPreview: file => openAttachmentPreview(file as AttachmentFile),
+    },
+    {
+      key: 'progress',
+      title: '진행도면',
+      files: attachments.progress,
+      emptyText: '공유자료에 진행도면 문서가 없습니다.',
+      onClick: handleOpenLatestProgressDrawing,
+      onPreview: file => openAttachmentPreview(file as AttachmentFile),
+    },
+    {
+      key: 'ptw',
+      title: 'PTW',
+      files: attachments.ptw,
+      emptyText: '공유자료에 PTW 문서가 없습니다.',
+      onClick: () => handleAttachmentOpen('ptw'),
+      onPreview: file => openAttachmentPreview(file as AttachmentFile),
+    },
+  ]
+
+  const sheetActionButtons = [
+    { label: '기타서류업로드', variant: 'ghost' as const, onClick: handleOpenOtherDocuments },
+    { label: '작업일지목록', variant: 'primary' as const, onClick: handleOpenWorklogList },
+  ]
 
   const handleOpenNpcRecord = () => {
     if (!currentSite) {
@@ -4976,12 +5024,10 @@ export default function SiteInfoPage() {
                 <div className="site-header-right">
                   <button
                     type="button"
-                    className={`site-status${showDetail ? ' active' : ''}`}
-                    onClick={() => setShowDetail(prev => !prev)}
-                    aria-expanded={showDetail}
-                    aria-controls="site-detail-panel"
+                    className="site-status"
+                    onClick={() => setShowSiteBottomSheet(true)}
                   >
-                    {showDetail ? '접기' : '상세'}
+                    상세
                   </button>
                 </div>
               </div>
@@ -5010,215 +5056,6 @@ export default function SiteInfoPage() {
               </div>
 
               {/* 통계 카드 제거 요청에 따라 미노출 */}
-
-              {showDetail && (
-                <div
-                  id="site-detail-panel"
-                  className="site-detail-content"
-                  role="region"
-                  aria-label="현장 상세 정보"
-                >
-                  <div className="site-detail-header">
-                    <h4 className="detail-title">상세정보</h4>
-                    <div className="detail-date-section">
-                      <span className="detail-date">{formatDateDisplay(todayISO())}</span>
-                      <button
-                        type="button"
-                        className="update-btn"
-                        aria-label="데이터 새로고침"
-                        onClick={() => loadAll()}
-                      >
-                        <RefreshCcw size={16} strokeWidth={2} />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="contact-section">
-                    {contactItems.map((item, index) => (
-                      <div
-                        className="contact-item"
-                        key={`${item.label}-${item.contact?.phone ?? index}`}
-                      >
-                        <div className="contact-label">{item.label}</div>
-                        <div className="contact-info">
-                          <span className="contact-name">{item.contact?.name || '-'}</span>
-                          <span className="contact-phone">{item.contact?.phone || '-'}</span>
-                        </div>
-                        <button
-                          type="button"
-                          className="call-btn"
-                          onClick={() =>
-                            item.contact?.phone &&
-                            (window.location.href = `tel:${item.contact.phone}`)
-                          }
-                          disabled={!item.contact?.phone}
-                        >
-                          전화
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="address-section" role="group" aria-label="주소 정보">
-                    <div className="address-item">
-                      <div className="address-label">주소</div>
-                      <div className="address-info">
-                        <span className="address-text">
-                          {currentSite.address.full_address || '-'}
-                        </span>
-                        <div className="address-buttons">
-                          <button
-                            type="button"
-                            className="copy-btn"
-                            onClick={() =>
-                              currentSite.address.full_address &&
-                              copyToClipboard(
-                                currentSite.address.full_address,
-                                '현장 주소를 복사했습니다.'
-                              )
-                            }
-                          >
-                            복사
-                          </button>
-                          <button
-                            type="button"
-                            className="tmap-btn"
-                            onClick={() => openMapForAddress(currentSite.address.full_address)}
-                          >
-                            T맵
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="address-item">
-                      <div className="address-label">숙소</div>
-                      <div className="address-info">
-                        <span className="address-text">{accommodationAddress || '미지정'}</span>
-                        <div className="address-buttons">
-                          <button
-                            type="button"
-                            className="copy-btn"
-                            onClick={() =>
-                              accommodationAddress &&
-                              copyToClipboard(accommodationAddress, '숙소 주소를 복사했습니다.')
-                            }
-                            disabled={!accommodationAddress}
-                          >
-                            복사
-                          </button>
-                          <button
-                            type="button"
-                            className="tmap-btn"
-                            onClick={() => openMapForAddress(accommodationAddress)}
-                            disabled={!accommodationAddress}
-                          >
-                            T맵
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="work-info-section">
-                    <div className="work-info-grid">
-                      <div className="work-info-item">
-                        <div className="work-label">부재명</div>
-                        <div className="work-value">{currentSite.process.member_name || '-'}</div>
-                      </div>
-                      <div className="work-info-item">
-                        <div className="work-label">작업공정</div>
-                        <div className="work-value">{currentSite.process.work_process || '-'}</div>
-                      </div>
-                      <div className="work-info-item">
-                        <div className="work-label">작업유형</div>
-                        <div className="work-value">{currentSite.process.work_section || '-'}</div>
-                      </div>
-                      <div className="work-info-item">
-                        <div className="work-label">블럭/동/층</div>
-                        <div className="work-value">-</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="upload-section">
-                    <div className="upload-grid">
-                      <div className="upload-item">
-                        <div className="upload-label">사진 업로드 현황</div>
-                        <div className="upload-status">{attachments.photos.length}건</div>
-                      </div>
-                      <div className="upload-item">
-                        <div className="upload-label">도면 업로드 현황</div>
-                        <div className="upload-status">
-                          {attachments.construction.length + attachments.progress.length}건
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="document-links">
-                    <div className="document-grid">
-                      {[
-                        {
-                          key: 'construction',
-                          title: '공도면',
-                          files: attachments.construction,
-                          emptyText: '공유자료에 공도면 문서가 없습니다.',
-                          onClick: () => handleAttachmentOpen('construction'),
-                        },
-                        {
-                          key: 'progress',
-                          title: '진행도면',
-                          files: attachments.progress,
-                          emptyText: '공유자료에 진행도면 문서가 없습니다.',
-                          onClick: handleOpenLatestProgressDrawing,
-                        },
-                        {
-                          key: 'ptw',
-                          title: 'PTW',
-                          files: attachments.ptw,
-                          emptyText: '공유자료에 PTW 문서가 없습니다.',
-                          onClick: () => handleAttachmentOpen('ptw'),
-                        },
-                      ].map(block => (
-                        <div key={block.key} className="document-card">
-                          <button
-                            type="button"
-                            className="document-card-button"
-                            onClick={block.onClick}
-                          >
-                            {block.title}
-                          </button>
-                          <div className="document-card-list">
-                            {block.files.length ? (
-                              block.files.map(file => (
-                                <div key={file.id} className="document-card-item">
-                                  <div className="document-card-info">
-                                    <div className="document-card-name">{file.name}</div>
-                                    <div className="document-card-meta">
-                                      {file.date ? formatDateDisplay(file.date) : '-'}
-                                      {file.uploader ? ` · ${file.uploader}` : ''}
-                                    </div>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    className="document-card-view"
-                                    onClick={() => openAttachmentPreview(file)}
-                                  >
-                                    보기
-                                  </button>
-                                </div>
-                              ))
-                            ) : (
-                              <div className="document-card-empty">{block.emptyText}</div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         ) : (
@@ -5565,6 +5402,10 @@ export default function SiteInfoPage() {
         workerCount={workerCount}
         contactItems={contactItems}
         accommodationAddress={accommodationAddress}
+        workDetails={sheetWorkDetails}
+        uploadSummary={sheetUploadSummary}
+        documents={sheetDocuments}
+        actionButtons={sheetActionButtons}
         onClose={closeSiteBottomSheet}
         onOpenOtherDocuments={handleOpenOtherDocuments}
         onOpenWorklogList={handleOpenWorklogList}

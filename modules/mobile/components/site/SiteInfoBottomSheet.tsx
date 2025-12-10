@@ -24,6 +24,42 @@ export interface SiteInfoLike {
   managers?: SiteManagerContact[]
 }
 
+export interface SiteInfoDocumentFile {
+  id?: string | number
+  name?: string | null
+  date?: string | null
+  uploader?: string | null
+  [key: string]: any
+}
+
+export interface SiteInfoDocumentSection {
+  key: string
+  title: string
+  files: SiteInfoDocumentFile[]
+  emptyText?: string
+  onClick?: () => void
+  onPreview?: (file: SiteInfoDocumentFile) => void
+}
+
+interface SiteInfoWorkDetails {
+  memberName?: string | null
+  workProcess?: string | null
+  workType?: string | null
+  blockInfo?: string | null
+}
+
+interface SiteInfoUploadSummary {
+  photoCount?: number
+  drawingCount?: number
+  ptwCount?: number
+}
+
+interface SiteInfoActionButton {
+  label: string
+  variant?: 'primary' | 'ghost' | 'outline'
+  onClick?: () => void
+}
+
 export const buildSiteContactItems = (
   managers?: SiteManagerContact[] | null
 ): SiteContactItem[] => {
@@ -56,6 +92,10 @@ interface SiteInfoBottomSheetProps {
   workerCount?: number | null
   contactItems?: SiteContactItem[]
   accommodationAddress?: string
+  workDetails?: SiteInfoWorkDetails
+  uploadSummary?: SiteInfoUploadSummary
+  documents?: SiteInfoDocumentSection[]
+  actionButtons?: SiteInfoActionButton[]
   onClose?: () => void
   onCopy?: (value: string, message: string) => void
   onOpenMap?: (value?: string | null) => void
@@ -71,6 +111,10 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
   workerCount,
   contactItems,
   accommodationAddress,
+  workDetails,
+  uploadSummary,
+  documents,
+  actionButtons,
   onClose,
   onCopy,
   onOpenMap,
@@ -174,6 +218,35 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
     workerCount != null && Number.isFinite(workerCount)
       ? `${Number(workerCount).toLocaleString()}명`
       : '-'
+
+  const hasWorkDetails = Boolean(
+    workDetails?.memberName ||
+      workDetails?.workProcess ||
+      workDetails?.workType ||
+      workDetails?.blockInfo
+  )
+
+  const hasUploadSummary =
+    uploadSummary &&
+    (uploadSummary.photoCount != null ||
+      uploadSummary.drawingCount != null ||
+      uploadSummary.ptwCount != null)
+
+  const resolvedDocuments = (documents || []).filter(section => !!section)
+
+  const resolvedActions: SiteInfoActionButton[] = useMemo(() => {
+    if (actionButtons && actionButtons.length > 0) {
+      return actionButtons
+    }
+    const defaults: SiteInfoActionButton[] = []
+    if (onOpenOtherDocuments) {
+      defaults.push({ label: '기타서류업로드', variant: 'ghost', onClick: openDocsHandler })
+    }
+    if (onOpenWorklogList) {
+      defaults.push({ label: '작업일지목록', variant: 'primary', onClick: openWorklogHandler })
+    }
+    return defaults
+  }, [actionButtons, openDocsHandler, openWorklogHandler])
 
   if (!open || !site) {
     return null
@@ -291,14 +364,116 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           </div>
         </div>
 
-        <div className="site-info-sheet-actions" role="group" aria-label="현장 관련 작업">
-          <button type="button" className="ghost" onClick={openDocsHandler}>
-            기타서류업로드
-          </button>
-          <button type="button" className="primary" onClick={openWorklogHandler}>
-            작업일지목록
-          </button>
-        </div>
+        {hasWorkDetails && (
+          <div className="site-info-sheet-section" role="group" aria-label="작업 정보">
+            <div className="site-info-sheet-grid">
+              <div className="site-info-sheet-kv">
+                <span className="site-info-sheet-kv-label">부재명</span>
+                <span className="site-info-sheet-kv-value">{workDetails?.memberName || '-'}</span>
+              </div>
+              <div className="site-info-sheet-kv">
+                <span className="site-info-sheet-kv-label">작업공정</span>
+                <span className="site-info-sheet-kv-value">{workDetails?.workProcess || '-'}</span>
+              </div>
+              <div className="site-info-sheet-kv">
+                <span className="site-info-sheet-kv-label">작업유형</span>
+                <span className="site-info-sheet-kv-value">{workDetails?.workType || '-'}</span>
+              </div>
+              <div className="site-info-sheet-kv">
+                <span className="site-info-sheet-kv-label">블럭/동/층</span>
+                <span className="site-info-sheet-kv-value">{workDetails?.blockInfo || '-'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {hasUploadSummary && (
+          <div className="site-info-sheet-section" role="group" aria-label="업로드 현황">
+            <div className="site-info-sheet-upload">
+              <div className="site-info-sheet-upload-item">
+                <span className="upload-label">사진 업로드</span>
+                <span className="upload-value">{uploadSummary?.photoCount ?? 0}건</span>
+              </div>
+              <div className="site-info-sheet-upload-item">
+                <span className="upload-label">도면 업로드</span>
+                <span className="upload-value">{uploadSummary?.drawingCount ?? 0}건</span>
+              </div>
+              <div className="site-info-sheet-upload-item">
+                <span className="upload-label">PTW</span>
+                <span className="upload-value">{uploadSummary?.ptwCount ?? 0}건</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!!resolvedDocuments.length && (
+          <div className="site-info-sheet-section" role="group" aria-label="문서">
+            <div className="site-info-sheet-documents">
+              {resolvedDocuments.map(section => (
+                <div key={section.key} className="document-card">
+                  <button
+                    type="button"
+                    className="document-card-button"
+                    onClick={section.onClick}
+                    disabled={!section.onClick}
+                  >
+                    {section.title}
+                  </button>
+                  <div className="document-card-list">
+                    {section.files.length ? (
+                      section.files.map(file => (
+                        <div
+                          key={file.id ?? `${section.key}-${file.name}`}
+                          className="document-card-item"
+                        >
+                          <div className="document-card-info">
+                            <div className="document-card-name">{file.name || '문서'}</div>
+                            <div className="document-card-meta">
+                              {file.date ? new Date(file.date).toLocaleDateString('ko-KR') : '-'}
+                              {file.uploader ? ` · ${file.uploader}` : ''}
+                            </div>
+                          </div>
+                          {section.onPreview ? (
+                            <button
+                              type="button"
+                              className="document-card-view"
+                              onClick={() => section.onPreview?.(file)}
+                            >
+                              보기
+                            </button>
+                          ) : null}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="document-card-empty">
+                        {section.emptyText || '등록된 문서가 없습니다.'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!resolvedActions.length && (
+          <div className="site-info-sheet-actions" role="group" aria-label="현장 관련 작업">
+            {resolvedActions.map(action => {
+              const variant = action.variant || 'ghost'
+              return (
+                <button
+                  type="button"
+                  key={action.label}
+                  className={variant}
+                  onClick={action.onClick}
+                  disabled={!action.onClick}
+                >
+                  {action.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -478,6 +653,121 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         .site-info-sheet-address-actions button:disabled {
           opacity: 0.4;
         }
+        .site-info-sheet-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+          background: #f8f9ff;
+          border: 1px solid #e4e8f4;
+          border-radius: 12px;
+          padding: 10px;
+        }
+        .site-info-sheet-kv {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .site-info-sheet-kv-label {
+          font-size: 12px;
+          color: #6b7280;
+        }
+        .site-info-sheet-kv-value {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .site-info-sheet-upload {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 8px;
+        }
+        .site-info-sheet-upload-item {
+          border: 1px solid #e4e8f4;
+          border-radius: 12px;
+          padding: 10px;
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .upload-label {
+          font-size: 12px;
+          color: #6b7280;
+        }
+        .upload-value {
+          font-size: 16px;
+          font-weight: 700;
+          color: #0f172a;
+        }
+        .site-info-sheet-documents {
+          display: grid;
+          gap: 12px;
+        }
+        @media (min-width: 480px) {
+          .site-info-sheet-documents {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+        .document-card {
+          border: 1px solid #e4e8f4;
+          border-radius: 12px;
+          padding: 10px;
+          background: #fff;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .document-card-button {
+          width: 100%;
+          border: 1px solid #d4dcf0;
+          background: #f6f9ff;
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-weight: 700;
+          color: #1a254f;
+        }
+        .document-card-button:disabled {
+          opacity: 0.5;
+        }
+        .document-card-list {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .document-card-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .document-card-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .document-card-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: #0f172a;
+        }
+        .document-card-meta {
+          font-size: 12px;
+          color: #6b7280;
+        }
+        .document-card-view {
+          border: 1px solid #d4dcf0;
+          background: #ffffff;
+          border-radius: 8px;
+          padding: 4px 10px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #1a254f;
+        }
+        .document-card-empty {
+          font-size: 12px;
+          color: #9ca3af;
+          padding: 6px 0;
+        }
 
         .site-info-sheet-actions {
           display: grid;
@@ -493,6 +783,11 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         .site-info-sheet-actions .ghost {
           border: 1px solid #d4dcf0;
           background: transparent;
+          color: #1a254f;
+        }
+        .site-info-sheet-actions .outline {
+          border: 1px solid #d4dcf0;
+          background: #fff;
           color: #1a254f;
         }
         .site-info-sheet-actions .primary {

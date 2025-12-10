@@ -22,7 +22,7 @@ export async function fetchLinkedDrawingsForWorklog(
 ): Promise<LinkedDrawingRecord[]> {
   if (!worklogId) return []
   const svc = createServiceRoleClient()
-  const [markupRes, linkRes, sharedRes] = await Promise.all([
+  const [markupRes, linkRes, sharedRes, worklogRes] = await Promise.all([
     svc
       .from('markup_documents')
       .select(
@@ -48,6 +48,11 @@ export async function fetchLinkedDrawingsForWorklog(
       .eq('category_type', 'shared')
       .eq('status', 'active')
       .eq('is_archived', false),
+    svc
+      .from('daily_reports')
+      .select('id, work_date, work_description')
+      .eq('id', worklogId)
+      .maybeSingle(),
   ])
 
   const linkedIds = new Set<string>(
@@ -128,6 +133,7 @@ export async function fetchLinkedDrawingsForWorklog(
           !combinedLinkedIds.includes(metadata.daily_report_id)
             ? [metadata.daily_report_id, ...combinedLinkedIds]
             : combinedLinkedIds
+        const worklogSummary = worklogRes.data || null
         return {
           id: row.id,
           title: row.title || row.file_name || '도면',
@@ -142,6 +148,8 @@ export async function fetchLinkedDrawingsForWorklog(
               : undefined,
           createdAt: row.created_at,
           linkedWorklogIds: extendedIds,
+          worklogDate: worklogSummary?.work_date || null,
+          worklogDescription: worklogSummary?.work_description || null,
         }
       })
       .filter(Boolean) || []

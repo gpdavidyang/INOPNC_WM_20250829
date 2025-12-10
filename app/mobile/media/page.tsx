@@ -11,6 +11,7 @@ import {
   CustomSelectValue,
 } from '@/components/ui/custom-select'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
+import { toast } from 'sonner'
 
 type MediaTab = 'photo' | 'drawing'
 
@@ -56,6 +57,25 @@ interface WorklogItem {
   authorName?: string | null
 }
 
+interface LinkedDrawingRecord {
+  id: string
+  title: string
+  url: string
+  previewUrl?: string | null
+  source: 'markup' | 'shared'
+  markupId?: string
+  createdAt?: string | null
+}
+
+interface PendingMarkupItem {
+  id: string
+  title: string
+  previewUrl?: string | null
+  sourceUrl?: string | null
+  createdAt?: string | null
+  markupCount?: number
+}
+
 const PERIOD_OPTIONS: Option[] = [
   { value: 'all', label: '전체 기간' },
   { value: '7d', label: '최근 7일' },
@@ -90,6 +110,10 @@ export default function MediaManagementPage() {
   const [worklogs, setWorklogs] = useState<WorklogItem[]>([])
   const [worklogLoading, setWorklogLoading] = useState(false)
   const [worklogError, setWorklogError] = useState<string | null>(null)
+  const [drawingCountsByWorklog, setDrawingCountsByWorklog] = useState<Map<string, number>>(
+    () => new Map()
+  )
+  const [drawingRefreshToken, setDrawingRefreshToken] = useState(0)
   const autoSiteSet = useRef(false)
 
   const filteredDrawings = useMemo(() => drawings, [drawings])
@@ -369,6 +393,7 @@ export default function MediaManagementPage() {
   useEffect(() => {
     if (selectedSiteId === 'all') {
       setDrawings([])
+      setDrawingCountsByWorklog(new Map())
       setDrawingError(null)
       setDrawingLoading(false)
       return
@@ -417,12 +442,23 @@ export default function MediaManagementPage() {
         })
 
         if (!isActive) return
+        const counts = new Map<string, number>()
+        mapped.forEach(item => {
+          if (Array.isArray(item.linkedWorklogs)) {
+            item.linkedWorklogs.forEach(worklogId => {
+              const key = String(worklogId)
+              counts.set(key, (counts.get(key) || 0) + 1)
+            })
+          }
+        })
+        setDrawingCountsByWorklog(counts)
         setDrawings(mapped)
       } catch (err) {
         if (!isActive) return
         if (err instanceof DOMException && err.name === 'AbortError') return
         console.error('[media] drawing fetch error', err)
         setDrawingError('도면 목록을 불러올 수 없습니다.')
+        setDrawingCountsByWorklog(new Map())
         setDrawings([])
       } finally {
         if (isActive) setDrawingLoading(false)
@@ -434,7 +470,7 @@ export default function MediaManagementPage() {
       isActive = false
       controller.abort()
     }
-  }, [selectedSiteId])
+  }, [selectedSiteId, drawingRefreshToken])
 
   const handleTabChange = (tab: MediaTab) => {
     setActiveTab(tab)
@@ -581,29 +617,25 @@ export default function MediaManagementPage() {
               />
             </>
           ) : (
-            <DrawingTab
-              drawingItems={filteredDrawings}
-              stats={{
-                photos: totalPhotos,
-                drawings: filteredDrawings.length,
-                linked: totalLinkedWorklogs,
-              }}
-              onUploadClick={() => handleOpenMarkup('upload')}
-              onResumeClick={() => {
-                const firstDoc = filteredDrawings[0]
-                handleOpenMarkup(firstDoc ? 'resume' : 'upload', firstDoc?.id)
-              }}
-              onRowAction={item =>
-                handleOpenMarkup(
-                  item.markupCount && item.markupCount > 0 ? 'resume' : 'start',
-                  item.id
-                )
-              }
-              siteLabel={siteFilterLabel}
-              siteRequired={selectedSiteId === 'all'}
-              loading={drawingLoading}
-              error={drawingError}
-            />
+            <>
+              <DrawingWorklogsPanel
+                worklogs={filteredWorklogs}
+                loading={worklogLoading}
+                error={worklogError}
+                drawingCountsByWorklog={drawingCountsByWorklog}
+                onRefresh={() => setDrawingRefreshToken(prev => prev + 1)}
+                siteId={selectedSiteId === 'all' ? undefined : selectedSiteId}
+                siteLabel={siteFilterLabel}
+                onOpenMarkup={handleOpenMarkup}
+                drawingLoading={drawingLoading}
+                drawingError={drawingError}
+              />
+              <section className="grid grid-cols-3 gap-2">
+                <StatCard label="사진 수" value={totalPhotos} />
+                <StatCard label="도면 수" value={filteredDrawings.length} />
+                <StatCard label="연결된 작업일지" value={totalLinkedWorklogs} />
+              </section>
+            </>
           )}
         </div>
       </div>
@@ -683,114 +715,6 @@ function TabButton({
         }`}
       />
     </button>
-  )
-}
-
-function DrawingTab({
-  drawingItems,
-  stats,
-  onUploadClick,
-  onResumeClick,
-  onRowAction,
-  siteLabel,
-  siteRequired,
-  loading,
-  error,
-}: {
-  drawingItems: DrawingItem[]
-  stats: { photos: number; drawings: number; linked: number }
-  onUploadClick: () => void
-  onResumeClick: () => void
-  onRowAction: (item: DrawingItem) => void
-  siteLabel: string
-  siteRequired: boolean
-  loading?: boolean
-  error?: string | null
-}) {
-  return (
-    <div className="space-y-3">
-      <section className="rounded-2xl border border-[#e0e6f3] bg-white p-4 shadow-[0_6px_20px_rgba(16,36,94,0.08)]">
-        <div className="mb-3">
-          <h2 className="text-[15px] font-bold text-[#1f2942]">도면 마킹 관리</h2>
-          <p className="mt-1 text-xs text-[#99a4c3]">
-            도면파일을 업로드하고, 보수위치를 마킹하여 작업일지와 연결합니다.
-          </p>
-          {!siteRequired && (
-            <p className="mt-1 text-[11px] text-[#7a86a5]">선택된 현장: {siteLabel}</p>
-          )}
-        </div>
-
-        <div className="mb-2 flex gap-2">
-          <button
-            type="button"
-            className="flex-1 rounded-xl border border-[#d2ddf4] bg-[#f5f7fe] px-4 py-2.5 text-sm font-semibold text-[#111f4d] hover:bg-[#e9edfd]"
-            onClick={onUploadClick}
-            disabled={siteRequired}
-          >
-            새 도면 업로드
-          </button>
-          <button
-            type="button"
-            className="flex-1 rounded-xl bg-[#111f4d] px-4 py-2.5 text-sm font-semibold text-white shadow-[0_6px_14px_rgba(8,29,96,0.35)] hover:bg-[#0c1740]"
-            onClick={onResumeClick}
-            disabled={siteRequired}
-          >
-            마킹 이어하기
-          </button>
-        </div>
-
-        {loading ? (
-          <p className="mt-3 text-sm text-[#7f8ba7]">도면을 불러오는 중...</p>
-        ) : error ? (
-          <p className="mt-3 text-sm text-red-500">{error}</p>
-        ) : drawingItems.length === 0 ? (
-          <p className="mt-3 text-sm text-[#7f8ba7]">
-            {siteRequired
-              ? '현장을 선택하면 도면 목록이 표시됩니다.'
-              : '도면이 없습니다. 업로드해 시작하세요.'}
-          </p>
-        ) : (
-          <div className="mt-2 divide-y divide-[#eef1f8]">
-            {drawingItems.map(item => (
-              <div key={item.id} className="flex items-center justify-between py-2.5">
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-[#222b45]">{item.title}</div>
-                  <div className="text-[11px] text-[#9aa4c5]">
-                    {item.status} · 작업일지 {item.worklogCount}건
-                  </div>
-                  {item.linkedWorklogs && item.linkedWorklogs.length > 0 && (
-                    <div className="text-[11px] text-[#b0bad5]">
-                      연결 ID: {item.linkedWorklogs.slice(0, 2).join(', ')}
-                      {item.linkedWorklogs.length > 2
-                        ? ` 외 ${item.linkedWorklogs.length - 2}건`
-                        : ''}
-                    </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className={`rounded-full border border-[#dde3f2] px-4 py-1.5 text-xs font-semibold ${
-                    item.accent
-                      ? 'bg-[#31a3fa] text-white shadow-[0_4px_10px_rgba(49,163,250,0.3)]'
-                      : 'bg-[#f7f9ff] text-[#4c5a80]'
-                  } disabled:cursor-not-allowed disabled:opacity-60`}
-                  onClick={() => onRowAction(item)}
-                  disabled={siteRequired}
-                >
-                  {item.ctaLabel}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="grid grid-cols-3 gap-2">
-        <StatCard label="사진 수" value={stats.photos} />
-        <StatCard label="도면 수" value={stats.drawings} />
-        <StatCard label="연결된 작업일지" value={stats.linked} />
-      </section>
-    </div>
   )
 }
 
@@ -1054,7 +978,7 @@ function PhotoUploadInline({
     <div className="space-y-3">
       <section className="space-y-2 rounded-xl border border-[#d5def3] bg-white p-3">
         <div className="text-xs font-semibold text-[#1f2942]">사진 업로드</div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <div className="space-y-1">
             <div className="text-[11px] font-semibold text-[#1f2942]">보수 전</div>
             <InlineDropzone
@@ -1082,7 +1006,7 @@ function PhotoUploadInline({
 
       <section className="space-y-2 rounded-xl border border-[#d5def3] bg-white p-3">
         <div className="text-xs font-semibold text-[#1f2942]">업로드 된 사진</div>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-[#e0e6f3] bg-[#f9fbff] p-2">
             <div className="mb-1 text-[11px] font-semibold text-[#1f2942]">보수 전</div>
             {renderPreview(beforeList, 'before')}
@@ -1224,7 +1148,7 @@ function InlineDropzone({
       onClick={handleClick}
       aria-label={label}
       title={label}
-      className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#d5def3] bg-white text-xs font-semibold text-[#4c5a80] shadow-sm transition-colors hover:bg-[#f4f7ff]"
+      className="flex h-24 w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[#d5def3] bg-white text-xs font-semibold text-[#4c5a80] shadow-sm transition-colors hover:bg-[#f4f7ff]"
     >
       <svg className="h-6 w-6 stroke-[#b4bfdc]" viewBox="0 0 24 24">
         <rect x="4" y="7" width="16" height="11" rx="2" ry="2" fill="none" strokeWidth="1.5" />
@@ -1270,5 +1194,466 @@ function StatusBadge({ status }: { status?: string | null }) {
     >
       {label}
     </span>
+  )
+}
+
+function DrawingWorklogsPanel({
+  worklogs,
+  loading,
+  error,
+  drawingCountsByWorklog,
+  onRefresh,
+  siteId,
+  siteLabel,
+  onOpenMarkup,
+  drawingLoading,
+  drawingError,
+}: {
+  worklogs: WorklogItem[]
+  loading?: boolean
+  error?: string | null
+  drawingCountsByWorklog: Map<string, number>
+  onRefresh: () => void
+  siteId?: string
+  siteLabel: string
+  onOpenMarkup: (mode: 'upload' | 'start' | 'resume', docId?: string) => void
+  drawingLoading?: boolean
+  drawingError?: string | null
+}) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const toggle = (id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <section className="rounded-2xl border border-[#e0e6f3] bg-white p-4 shadow-[0_6px_20px_rgba(16,36,94,0.08)]">
+        <div className="mb-4">
+          <h2 className="text-[15px] font-bold text-[#1f2942]">도면 업로드 & 연동</h2>
+          <p className="mt-1 text-xs text-[#99a4c3]">
+            작업일지를 선택해 도면을 업로드하고 도면마킹도구 결과를 연결하세요.
+          </p>
+          {siteId ? (
+            <p className="mt-1 text-[11px] text-[#7a86a5]">선택된 현장: {siteLabel}</p>
+          ) : (
+            <p className="mt-1 text-[11px] text-[#b91c1c]">현장을 먼저 선택해 주세요.</p>
+          )}
+          {drawingLoading && (
+            <p className="mt-1 text-[11px] text-[#7f8ba7]">도면 정보를 불러오는 중...</p>
+          )}
+          {drawingError && <p className="mt-1 text-[11px] text-red-500">{drawingError}</p>}
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-[#7f8ba7]">작업일지를 불러오는 중...</p>
+        ) : error ? (
+          <p className="text-sm text-red-500">{error}</p>
+        ) : worklogs.length === 0 ? (
+          <p className="text-sm text-[#7f8ba7]">표시할 작업일지가 없습니다.</p>
+        ) : (
+          worklogs.map(log => {
+            const drawingCount = log.id ? drawingCountsByWorklog.get(log.id) || 0 : 0
+            const isExpanded = log.id ? expandedIds.has(log.id) : false
+            return (
+              <div
+                key={log.id}
+                className="mb-3 rounded-2xl border border-[#e0e6f3] bg-[#fefeff] px-3 py-3 shadow-[0_2px_10px_rgba(16,36,94,0.08)]"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-[#7f8ba7]">
+                      {log.workDate || '-'} · {log.siteName || siteLabel || '미지정'}
+                    </div>
+                    <div className="truncate text-sm font-semibold text-[#1f2942]">
+                      {log.workDescription || '작업내역 미기재'}
+                    </div>
+                    {log.authorName && (
+                      <div className="text-[11px] text-[#9aa4c5]">작성자: {log.authorName}</div>
+                    )}
+                    {log.locationLabel && (
+                      <div className="text-[11px] text-[#9aa4c5]">
+                        작업공간: {log.locationLabel}
+                      </div>
+                    )}
+                    <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+                      <span className="rounded-lg bg-[#f3f0ff] px-2 py-1 text-[#5b4ac7]">
+                        도면 {drawingCount}건
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <StatusBadge status={log.status} />
+                    {log.id && (
+                      <button
+                        type="button"
+                        onClick={() => toggle(log.id!)}
+                        className="text-xs font-semibold text-[#31a3fa] hover:text-[#1f8edc]"
+                        disabled={!siteId}
+                      >
+                        {isExpanded ? '접기' : '도면 업로드 열기'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {log.id && isExpanded && (
+                  <div className="mt-3">
+                    <DrawingManagerInline
+                      worklogId={log.id}
+                      siteId={log.siteId || siteId}
+                      siteName={log.siteName || siteLabel}
+                      onRefresh={onRefresh}
+                      onOpenMarkup={onOpenMarkup}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })
+        )}
+      </section>
+    </div>
+  )
+}
+
+function DrawingManagerInline({
+  worklogId,
+  siteId,
+  siteName,
+  onRefresh,
+  onOpenMarkup,
+}: {
+  worklogId: string
+  siteId?: string
+  siteName?: string | null
+  onRefresh: () => void
+  onOpenMarkup: (mode: 'upload' | 'start' | 'resume', docId?: string) => void
+}) {
+  const [activeTab, setActiveTab] = useState<'upload' | 'tool'>('upload')
+  const [linked, setLinked] = useState<LinkedDrawingRecord[]>([])
+  const [worklogMeta, setWorklogMeta] = useState<{
+    work_date?: string | null
+    work_description?: string | null
+  } | null>(null)
+  const [pending, setPending] = useState<PendingMarkupItem[]>([])
+  const [linkedLoading, setLinkedLoading] = useState(true)
+  const [pendingLoading, setPendingLoading] = useState(false)
+  const [linkingId, setLinkingId] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [docType, setDocType] = useState<'progress_drawing' | 'blueprint'>('progress_drawing')
+  const [uploading, setUploading] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const triggerRefresh = () => {
+    setRefreshKey(prev => prev + 1)
+    onRefresh()
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    const fetchLinked = async () => {
+      setLinkedLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.set('worklog_id', worklogId)
+        if (siteId) params.set('site_id', siteId)
+        const res = await fetch(`/api/mobile/media/drawings?${params.toString()}`, {
+          cache: 'no-store',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || json?.error) throw new Error(json?.error || '도면을 불러올 수 없습니다.')
+        if (!cancelled) {
+          if (json?.data?.worklog) {
+            setWorklogMeta(json.data.worklog)
+          }
+          setLinked(json?.data?.drawings || [])
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[media] linked drawings error', err)
+          setLinked([])
+        }
+      } finally {
+        if (!cancelled) setLinkedLoading(false)
+      }
+    }
+    fetchLinked()
+    return () => {
+      cancelled = true
+    }
+  }, [worklogId, siteId, refreshKey])
+
+  useEffect(() => {
+    if (activeTab !== 'tool' || !siteId) return
+    let cancelled = false
+    const fetchPending = async () => {
+      setPendingLoading(true)
+      try {
+        const params = new URLSearchParams()
+        params.set('site_id', siteId)
+        const res = await fetch(`/api/mobile/media/drawings/pending?${params.toString()}`, {
+          cache: 'no-store',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || json?.error)
+          throw new Error(json?.error || '대기 중인 도면을 불러올 수 없습니다.')
+        if (!cancelled) setPending(json?.data || [])
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[media] pending drawings error', err)
+          setPending([])
+        }
+      } finally {
+        if (!cancelled) setPendingLoading(false)
+      }
+    }
+    fetchPending()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, siteId, refreshKey])
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setSelectedFile(file)
+  }
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast.error('업로드할 파일을 선택해주세요.')
+      return
+    }
+    if (!siteId) {
+      toast.error('현장을 먼저 선택해주세요.')
+      return
+    }
+    setUploading(true)
+    try {
+      const form = new FormData()
+      form.append('file', selectedFile)
+      form.append('siteId', siteId)
+      form.append('documentType', docType)
+      form.append('worklogId', worklogId)
+      const res = await fetch('/api/site-documents/upload', {
+        method: 'POST',
+        body: form,
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.error) throw new Error(json?.error || '업로드에 실패했습니다.')
+      toast.success('도면을 업로드했습니다.')
+      setSelectedFile(null)
+      triggerRefresh()
+    } catch (err) {
+      console.error('[media] drawing upload failed', err)
+      toast.error(err instanceof Error ? err.message : '업로드 오류가 발생했습니다.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleLinkPending = async (markupId: string) => {
+    setLinkingId(markupId)
+    try {
+      const res = await fetch('/api/mobile/media/drawings/link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markupId, worklogId }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || json?.error) throw new Error(json?.error || '도면 연결에 실패했습니다.')
+      toast.success('도면을 작업일지와 연결했습니다.')
+      triggerRefresh()
+    } catch (err) {
+      console.error('[media] link pending drawing failed', err)
+      toast.error(err instanceof Error ? err.message : '연결에 실패했습니다.')
+    } finally {
+      setLinkingId(null)
+    }
+  }
+
+  const handleOpenDrawing = (record: LinkedDrawingRecord) => {
+    if (record.source === 'markup' && record.markupId) {
+      onOpenMarkup('resume', record.markupId)
+      return
+    }
+    window.open(record.url, '_blank', 'noopener,noreferrer')
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-[#e0e6f3] bg-white p-3">
+      <div className="flex gap-2">
+        {[
+          { key: 'upload', label: '파일 업로드' },
+          { key: 'tool', label: '도면마킹도구 결과' },
+        ].map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key as 'upload' | 'tool')}
+            className={`flex-1 rounded-xl border px-3 py-2 text-xs font-semibold ${
+              activeTab === tab.key
+                ? 'border-[#3650c9] bg-[#eef1ff] text-[#1a2a6b]'
+                : 'border-[#dfe4f4] bg-[#f8f9ff] text-[#6c779c]'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'upload' ? (
+        <div className="space-y-2">
+          {!siteId && (
+            <p className="text-xs text-[#b91c1c]">현장을 먼저 선택해야 업로드할 수 있습니다.</p>
+          )}
+          <div className="space-y-2 rounded-xl border border-[#e5e9f5] bg-[#f9fbff] p-3">
+            <label className="text-[11px] font-semibold text-[#1f2942]">도면 종류</label>
+            <select
+              className="w-full rounded-lg border border-[#dfe4f4] px-3 py-2 text-sm"
+              value={docType}
+              onChange={e => setDocType(e.target.value as 'progress_drawing' | 'blueprint')}
+            >
+              <option value="progress_drawing">진행 도면</option>
+              <option value="blueprint">공 도면</option>
+            </select>
+            <input
+              type="file"
+              accept="application/pdf,image/*"
+              onChange={handleFileChange}
+              className="w-full rounded-lg border border-dashed border-[#c9d3f0] bg-white px-3 py-2 text-xs text-[#5a6182]"
+            />
+            {selectedFile && (
+              <div className="text-[11px] text-[#6b7280]">
+                선택된 파일: <span className="font-semibold">{selectedFile.name}</span>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={!selectedFile || uploading || !siteId}
+              className="w-full rounded-xl bg-[#111f4d] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {uploading ? '업로드 중...' : '파일 업로드'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[11px] text-[#7f8ba7]">
+            도면마킹도구에서 저장한 도면을 선택해 현재 작업일지와 연결하세요.
+          </p>
+          {!siteId ? (
+            <p className="text-xs text-[#b91c1c]">현장을 먼저 선택해 주세요.</p>
+          ) : pendingLoading ? (
+            <p className="text-sm text-[#7f8ba7]">대기 중인 도면을 불러오는 중...</p>
+          ) : pending.length === 0 ? (
+            <p className="text-sm text-[#7f8ba7]">연동 대기 중인 도면이 없습니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {pending.map(item => (
+                <div
+                  key={item.id}
+                  className="rounded-xl border border-[#e5e9f5] bg-[#fdfdff] px-3 py-2 text-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="font-semibold text-[#1f2942]">{item.title}</div>
+                      <div className="text-[11px] text-[#9aa4c5]">
+                        {item.createdAt ? new Date(item.createdAt).toLocaleString('ko-KR') : ''}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {item.sourceUrl && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(item.sourceUrl!, '_blank', 'noopener')}
+                          className="rounded-lg border border-[#dfe4f4] px-2 py-1 text-[11px] text-[#4c5a80]"
+                        >
+                          보기
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleLinkPending(item.id)}
+                        disabled={linkingId === item.id}
+                        className="rounded-lg bg-[#31a3fa] px-3 py-1 text-[11px] font-semibold text-white disabled:opacity-60"
+                      >
+                        {linkingId === item.id ? '연결 중...' : '작업일지 연결'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="rounded-xl border border-[#e5e9f5] bg-[#f9fbff] p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold text-[#1f2942]">연결된 도면</div>
+            <p className="text-[11px] text-[#7f8ba7]">
+              {worklogMeta?.work_date
+                ? `${worklogMeta.work_date} · `
+                : siteName
+                  ? `${siteName} · `
+                  : ''}
+              {worklogMeta?.work_description || `작업일지 #${worklogId}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onOpenMarkup('start')}
+            className="rounded-xl border border-[#dfe4f4] px-3 py-1 text-[11px] font-semibold text-[#1a2a6b]"
+          >
+            도면마킹 도구 열기
+          </button>
+        </div>
+        {linkedLoading ? (
+          <p className="text-sm text-[#7f8ba7]">연결된 도면을 불러오는 중...</p>
+        ) : linked.length === 0 ? (
+          <p className="text-sm text-[#7f8ba7]">연결된 도면이 없습니다.</p>
+        ) : (
+          <div className="space-y-2">
+            {linked.map(record => (
+              <div
+                key={record.id}
+                className="flex items-center justify-between rounded-lg border border-[#e0e6f3] bg-white px-3 py-2 text-sm"
+              >
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-[#1f2942]">{record.title}</div>
+                  <div className="text-[11px] text-[#9aa4c5]">
+                    {record.source === 'markup' ? '도면마킹' : '공유 도면'} ·{' '}
+                    {record.createdAt ? new Date(record.createdAt).toLocaleDateString('ko-KR') : ''}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDrawing(record)}
+                    className="rounded-lg border border-[#dfe4f4] px-2 py-1 text-[11px] text-[#4c5a80]"
+                  >
+                    {record.source === 'markup' ? '마킹 열기' : '보기'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.open(record.url, '_blank', 'noopener')}
+                    className="rounded-lg border border-[#dfe4f4] px-2 py-1 text-[11px] text-[#4c5a80]"
+                  >
+                    파일 열기
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

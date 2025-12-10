@@ -14,7 +14,7 @@ const ALLOWED_ROLES = new Set([
   'system_admin',
 ])
 
-export async function GET(_request: NextRequest, context: { params: { id: string } }) {
+export async function GET(_request: NextRequest, context: { params: { siteId: string } }) {
   const authResult = await requireApiAuth()
   if (authResult instanceof NextResponse) {
     return authResult
@@ -25,7 +25,7 @@ export async function GET(_request: NextRequest, context: { params: { id: string
     return NextResponse.json({ error: 'Access denied' }, { status: 403 })
   }
 
-  const siteId = (context.params?.id || '').trim()
+  const siteId = (context.params?.siteId || '').trim()
   if (!siteId) {
     return NextResponse.json({ success: false, error: 'Site ID is required' }, { status: 400 })
   }
@@ -59,7 +59,7 @@ export async function GET(_request: NextRequest, context: { params: { id: string
 
     return NextResponse.json({ success: true, data: siteWithMeta })
   } catch (err) {
-    console.error('[mobile/sites/:id] unexpected error:', err)
+    console.error('[mobile/sites/:siteId] unexpected error:', err)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch site information' },
       { status: 500 }

@@ -55,7 +55,11 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
 
     // 상태 필터
     if (filter.status) {
-      filtered = filtered.filter(log => log.status === filter.status)
+      if (filter.status === 'approved') {
+        filtered = filtered.filter(log => log.status === 'approved' || log.status === 'submitted')
+      } else {
+        filtered = filtered.filter(log => log.status === filter.status)
+      }
     }
 
     // 현장 필터
@@ -113,10 +117,9 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
     [filteredWorkLogs]
   )
 
-  const approvedWorkLogs = useMemo(
-    () => filteredWorkLogs.filter(log => log.status !== 'draft'),
-    [filteredWorkLogs]
-  )
+  const approvedWorkLogs = useMemo(() => {
+    return filteredWorkLogs.filter(log => log.status === 'approved' || log.status === 'submitted')
+  }, [filteredWorkLogs])
 
   // 월별 미작성 작업일지
   const uncompletedByMonth = useMemo(() => {

@@ -28,6 +28,11 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const siteId = formData.get('siteId') as string
     const documentType = formData.get('documentType') as string
+    const worklogIdRaw = formData.get('worklogId')
+    const worklogId =
+      typeof worklogIdRaw === 'string' && worklogIdRaw.trim().length > 0
+        ? worklogIdRaw.trim()
+        : null
 
     if (!file || !siteId || !documentType) {
       return NextResponse.json(
@@ -160,6 +165,18 @@ export async function POST(request: NextRequest) {
     if (serviceClient) {
       try {
         const subCategory = mapDocumentTypeToSharedSubcategory(documentType)
+        const metadataPayload: Record<string, any> = {
+          document_type: documentType,
+          storage_path: uploadData.path,
+          storage_bucket: 'documents',
+          source_table: 'site_documents',
+          source_site_document_id: documentRecord.id,
+        }
+        if (worklogId) {
+          metadataPayload.linked_worklog_id = worklogId
+          metadataPayload.linked_worklog_ids = [worklogId]
+        }
+
         await serviceClient.from('unified_document_system').insert({
           title: file.name,
           description: null,
@@ -173,13 +190,7 @@ export async function POST(request: NextRequest) {
           site_id: siteId,
           status: 'active',
           is_archived: false,
-          metadata: {
-            document_type: documentType,
-            storage_path: uploadData.path,
-            storage_bucket: 'documents',
-            source_table: 'site_documents',
-            source_site_document_id: documentRecord.id,
-          },
+          metadata: metadataPayload,
         })
       } catch (udsError) {
         console.warn(

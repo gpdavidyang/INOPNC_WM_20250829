@@ -406,7 +406,7 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
   padding: 32px 0 72px;
   overflow: visible;
 }
-@page { size: ${pageSize}; margin: 12mm; }
+  @page { size: ${pageSize}; margin: 0; }
 @media print {
   html, body,
   body.admin-role,

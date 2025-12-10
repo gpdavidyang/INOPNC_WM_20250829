@@ -1,5 +1,3 @@
-'use server'
-
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const ORGANIZATION_UNASSIGNED_LABEL = '소속사 미지정'

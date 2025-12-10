@@ -29,8 +29,6 @@ type PreviewData = {
 
 export default function LivePreviewPage() {
   const [data, setData] = useState<PreviewData | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const params = useSearchParams()
 
   useEffect(() => {
@@ -210,12 +208,155 @@ export default function LivePreviewPage() {
     }
   }, [params])
 
+  const runPrintJob = useCallback(() => {
+    try {
+      const root = document.querySelector<HTMLDivElement>('.print-root')
+      if (!root) return false
+
+      const clone = root.cloneNode(true) as HTMLDivElement
+      const inlineStyles = Array.from(clone.querySelectorAll('style'))
+      const extractedComponentCss = inlineStyles.map(tag => tag.innerHTML || '').join('\n')
+      inlineStyles.forEach(tag => tag.parentElement?.removeChild(tag))
+
+      const iframe = document.createElement('iframe')
+      iframe.style.position = 'fixed'
+      iframe.style.right = '0'
+      iframe.style.bottom = '0'
+      iframe.style.width = '0'
+      iframe.style.height = '0'
+      iframe.style.border = '0'
+      iframe.style.opacity = '0'
+      iframe.style.pointerEvents = 'none'
+      iframe.setAttribute('aria-hidden', 'true')
+      document.body.appendChild(iframe)
+
+      const doc = iframe.contentDocument || iframe.contentWindow?.document
+      if (!doc) {
+        document.body.removeChild(iframe)
+        return false
+      }
+
+      const title = (data?.title?.trim() ? data.title.trim() : data?.siteName?.trim()) || '사진대지'
+      const bootstrapCss = `
+        html, body {
+          margin: 0;
+          padding: 0;
+          background: #fff;
+          color: #000;
+          font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+        #__next, body > div {
+          margin: 0 !important;
+          padding: 0 !important;
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          overflow: visible !important;
+        }
+        img { max-width: 100%; }
+      `
+      const combinedCss = `${bootstrapCss}\n${extractedComponentCss}`
+
+      doc.open()
+      doc.write(`<!DOCTYPE html>
+        <html lang="ko">
+          <head>
+            <meta charSet="utf-8" />
+            <title>${title}</title>
+            <base href="${window.location.origin}/" />
+            <style>${combinedCss}</style>
+          </head>
+          <body>
+            ${clone.outerHTML}
+          </body>
+        </html>`)
+      doc.close()
+
+      const cleanup = () => {
+        try {
+          document.body.removeChild(iframe)
+        } catch {
+          /* noop */
+        }
+      }
+
+      const handlePrint = () => {
+        try {
+          iframe.contentWindow?.focus()
+          iframe.contentWindow?.print()
+        } catch {
+          cleanup()
+        } finally {
+          setTimeout(cleanup, 1000)
+        }
+      }
+
+      const images = Array.from(doc.images || [])
+      if (images.length > 0) {
+        let loaded = 0
+        const notify = () => {
+          loaded += 1
+          if (loaded >= images.length) {
+            setTimeout(handlePrint, 100)
+          }
+        }
+        images.forEach(img => {
+          if (img.complete) {
+            notify()
+          } else {
+            img.addEventListener('load', notify, { once: true })
+            img.addEventListener('error', notify, { once: true })
+          }
+        })
+        // Fallback timeout
+        setTimeout(handlePrint, 2000)
+      } else {
+        setTimeout(handlePrint, 50)
+      }
+      return true
+    } catch (error) {
+      console.error('Custom print job failed', error)
+      return false
+    }
+  }, [data])
+
   useEffect(() => {
     if (data && params.get('auto') === 'print') {
-      const t = setTimeout(() => window.print(), 300)
+      const t = setTimeout(() => {
+        if (!runPrintJob()) {
+          try {
+            window.print()
+          } catch (_e) {
+            /* ignore */
+          }
+        }
+      }, 400)
       return () => clearTimeout(t)
     }
-  }, [data, params])
+  }, [data, params, runPrintJob])
+
+  useEffect(() => {
+    const originalPrint = typeof window !== 'undefined' ? window.print?.bind(window) : null
+    if (typeof window === 'undefined' || !originalPrint) return undefined
+    window.print = () => {
+      if (!runPrintJob()) {
+        originalPrint()
+      }
+    }
+    return () => {
+      window.print = originalPrint
+    }
+  }, [runPrintJob])
 
   const content = useMemo(() => {
     if (!data) return null
@@ -232,84 +373,6 @@ export default function LivePreviewPage() {
     )
   }, [data])
 
-  const handleSave = useCallback(async () => {
-    if (!data) return
-    if (!data.siteId) {
-      setSaveMessage('현장 정보가 없어 저장할 수 없습니다.')
-      return
-    }
-    try {
-      setSaving(true)
-      setSaveMessage(null)
-      const form = new FormData()
-      const normalizedTitle = data.title?.trim() || ''
-      form.append('title', normalizedTitle)
-      form.append('site_id', data.siteId)
-      form.append('orientation', data.orientation)
-      form.append('rows', String(data.rows))
-      form.append('cols', String(data.cols))
-      form.append('status', 'final')
-
-      const itemsPayload: Array<{
-        index: number
-        member: string | null
-        process: string | null
-        content: string | null
-        stage: string | null
-        image_url: string | null
-      }> = []
-
-      await Promise.all(
-        data.items.map(async (item, index) => {
-          const payload = {
-            index,
-            member: item.member || null,
-            process: item.process || null,
-            content: item.content || null,
-            stage: item.stage || null,
-            image_url: null as string | null,
-          }
-          const url = item.previewUrl || ''
-          if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
-            payload.image_url = url
-          } else if (url) {
-            const response = await fetch(url)
-            const blob = await response.blob()
-            const contentType = response.headers.get('content-type') || 'image/png'
-            const extension = contentType.split('/')[1] || 'png'
-            const filename = `photo-${index + 1}.${extension}`
-            form.append(`file_${index}`, blob, filename)
-          }
-          itemsPayload.push(payload)
-        })
-      )
-
-      form.append('items', JSON.stringify(itemsPayload))
-
-      const res = await fetch('/api/photo-sheets', {
-        method: 'POST',
-        body: form,
-        credentials: 'include',
-      })
-      const json = await res.json().catch(() => null)
-      if (!res.ok || !json?.success) {
-        throw new Error(json?.error || '저장에 실패했습니다.')
-      }
-      setSaveMessage('사진대지가 저장되었습니다.')
-    } catch (error) {
-      setSaveMessage(error instanceof Error ? error.message : '저장 중 오류가 발생했습니다.')
-    } finally {
-      setSaving(false)
-    }
-  }, [data])
-
-  const canSave = useMemo(() => {
-    if (!data) return false
-    if (!data.siteId) return false
-    if (data.sheetId) return false
-    return data.items.length > 0
-  }, [data])
-
   if (!data) {
     return (
       <div className="p-6 text-sm text-muted-foreground">
@@ -317,14 +380,6 @@ export default function LivePreviewPage() {
       </div>
     )
   }
-
-  const helperMessage =
-    saveMessage ||
-    (!data.siteId
-      ? '현장 정보가 없어 저장 버튼이 비활성화되었습니다.'
-      : data.sheetId
-        ? '이미 저장된 사진대지입니다.'
-        : null)
 
   return (
     <div className="photo-sheet-preview-page px-0 pb-8">
@@ -340,10 +395,14 @@ export default function LivePreviewPage() {
           ]}
           actions={
             <div className="flex items-center gap-2">
-              <Button onClick={() => void handleSave()} disabled={!canSave || saving}>
-                {saving ? '저장 중…' : '저장'}
-              </Button>
-              <Button variant="outline" onClick={() => window.print()}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (!runPrintJob()) {
+                    window.print()
+                  }
+                }}
+              >
                 인쇄
               </Button>
               <Button
@@ -365,9 +424,6 @@ export default function LivePreviewPage() {
             </div>
           }
         />
-        {helperMessage && (
-          <div className="px-4 sm:px-6 lg:px-8 text-sm text-muted-foreground">{helperMessage}</div>
-        )}
       </div>
       <div className="photo-sheet-preview-stage px-4 sm:px-6 lg:px-8 py-4">
         <div className="photo-sheet-preview-scroll w-full overflow-x-auto">
