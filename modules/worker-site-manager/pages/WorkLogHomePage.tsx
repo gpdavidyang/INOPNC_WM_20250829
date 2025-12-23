@@ -683,15 +683,25 @@ export const WorkLogHomePage: React.FC = () => {
               ? workerNames[0]
               : `${workerNames[0]} 외 ${workerNames.length - 1}명`
 
-        const fallbackSubtitle = `작업내용 미입력${workerLabel ? ` · ${workerLabel}` : ''}`
-
-        const subtitle = summaryText
-          ? subtitleCandidates.find((text, index) =>
+        let baseSubtitle: string | undefined
+        if (summaryText) {
+          baseSubtitle =
+            subtitleCandidates.find((text, index) =>
               index === 0 ? true : text.replace(/\s+/g, '') !== siteKey
-            ) ||
-            summaryText ||
-            fallbackSubtitle
-          : fallbackSubtitle
+            ) || summaryText
+        }
+        if (!baseSubtitle) {
+          baseSubtitle = '작업내용 미입력'
+        }
+
+        let subtitle = baseSubtitle
+        if (workerLabel) {
+          const normalizedSubtitle = subtitle.replace(/\s+/g, '').toLowerCase()
+          const normalizedWorker = workerLabel.replace(/\s+/g, '').toLowerCase()
+          if (!normalizedSubtitle.includes(normalizedWorker)) {
+            subtitle = `${subtitle} · ${workerLabel}`
+          }
+        }
 
         const formattedDate = formatDateWithWeekday(workLog.date)
         const hasLinkedMarkup = (workLog.attachments?.drawings || []).some(file => {

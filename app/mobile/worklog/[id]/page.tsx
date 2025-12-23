@@ -8,6 +8,37 @@ import { headers } from 'next/headers'
 
 export const metadata: Metadata = { title: '작업일지 상세' }
 
+const splitLegacyList = (value: unknown): string[] => {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value.flatMap(entry => splitLegacyList(entry))
+  }
+  if (typeof value !== 'string') {
+    return []
+  }
+  return value
+    .split(/[,/·;\n]+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+}
+
+const mergeUniqueStrings = (...lists: Array<ReadonlyArray<string> | undefined>): string[] => {
+  const seen = new Set<string>()
+  const result: string[] = []
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue
+    for (const raw of list) {
+      const value = typeof raw === 'string' ? raw.trim() : ''
+      if (!value) continue
+      const key = value.replace(/\s+/g, '').toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      result.push(value)
+    }
+  }
+  return result
+}
+
 async function fetchMobileReportById(id: string) {
   const h = headers()
   const proto = h.get('x-forwarded-proto') || 'http'
@@ -136,6 +167,28 @@ function toDetail(report: any): WorklogDetail {
       workerNames.push(author)
     }
   }
+  const workerKeySet = new Set(workerNames.map(name => name.replace(/\s+/g, '').toLowerCase()))
+
+  const memberTypesMerged = mergeUniqueStrings(
+    Array.isArray(wc?.memberTypes) ? wc.memberTypes : [],
+    splitLegacyList(report?.member_types),
+    splitLegacyList(report?.component_name),
+    splitLegacyList(report?.member_name)
+  ).filter(name => !workerKeySet.has(name.replace(/\s+/g, '').toLowerCase()))
+
+  const workProcessesMerged = mergeUniqueStrings(
+    Array.isArray(wc?.workProcesses) ? wc.workProcesses : [],
+    splitLegacyList(report?.processes),
+    splitLegacyList(report?.process_type),
+    splitLegacyList(report?.work_process)
+  )
+
+  const workTypesMerged = mergeUniqueStrings(
+    Array.isArray(wc?.workTypes) ? wc.workTypes : [],
+    splitLegacyList(report?.work_types),
+    splitLegacyList(report?.work_section)
+  )
+
   const manpower = workers.reduce(
     (sum: number, w: any) => sum + (Number(w?.labor_hours ?? w?.manDays) || 0),
     0
@@ -151,13 +204,9 @@ function toDetail(report: any): WorklogDetail {
     siteId: report.site_id,
     siteName: report?.sites?.name || '현장 미지정',
     workDate: report.work_date,
-    memberTypes: Array.isArray(wc?.memberTypes) ? wc.memberTypes : [],
-    processes: Array.isArray(wc?.workProcesses)
-      ? wc.workProcesses
-      : Array.isArray(report?.processes)
-        ? report.processes
-        : [],
-    workTypes: Array.isArray(wc?.workTypes) ? wc.workTypes : [],
+    memberTypes: memberTypesMerged,
+    processes: workProcessesMerged,
+    workTypes: workTypesMerged,
     manpower,
     status,
     attachmentCounts: {

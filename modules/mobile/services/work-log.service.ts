@@ -513,6 +513,11 @@ function mapReportToWorkLog(item: any): WorkLog {
     fallbackMemberTypes: mergedMemberTypes,
   })
 
+  const normalizedSiteKey = siteName.replace(/\s+/g, '').toLowerCase()
+  const normalizedSummaryKey = (taskSummary || '').replace(/\s+/g, '').toLowerCase()
+  const effectiveSummary =
+    taskSummary && normalizedSummaryKey !== normalizedSiteKey ? taskSummary : undefined
+
   return {
     id: item?.id,
     date: item?.work_date,
@@ -540,8 +545,8 @@ function mapReportToWorkLog(item: any): WorkLog {
       workContent.description ??
       workDescription ??
       undefined,
-    description: workDescription || workContent.description || taskSummary,
-    summary: taskSummary,
+    description: workDescription || workContent.description || effectiveSummary,
+    summary: effectiveSummary,
     createdAt: item?.created_at,
     updatedAt: item?.updated_at,
     createdBy: item?.created_by,
