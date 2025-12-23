@@ -48,18 +48,24 @@ async function getAccessibleSiteContext(
   const restrictedOrgId = requireRestrictedOrgId(auth)
   const { data, error } = await supabase
     .from('sites')
-    .select('id, is_active')
+    .select('id, status, is_deleted')
     .eq('organization_id', restrictedOrgId)
 
   if (error) {
     throw new AppError('현장 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
   }
 
-  const records = (data || []) as Array<{ id: string; is_active?: boolean | null }>
+  const records = (data || []) as Array<{
+    id: string
+    status?: string | null
+    is_deleted?: boolean | null
+  }>
   return {
     restrictedOrgId,
     accessibleSiteIds: records.map(record => record.id),
-    activeSiteCount: records.filter(record => !!record.is_active).length,
+    activeSiteCount: records.filter(
+      record => record.status === 'active' && record.is_deleted !== true
+    ).length,
   }
 }
 
@@ -102,8 +108,10 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         : await (async () => {
             const { count, error } = await supabase
               .from('sites')
-              .select('*', { count: 'exact', head: true })
-              .eq('is_active', true)
+              .select('id', { count: 'exact' })
+              .eq('status', 'active')
+              .eq('is_deleted', false)
+              .limit(1)
 
             if (error) {
               throw new AppError('현장 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
@@ -113,17 +121,19 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
           })()
 
       // Today's daily reports
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+      const todayKST = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul',
+      }).format(new Date())
 
       let todayReports = 0
       if (restrictedOrgId) {
         if (accessibleSiteIds && accessibleSiteIds.length > 0) {
           const reportQuery = supabase
             .from('daily_reports')
-            .select('*', { count: 'exact', head: true })
-            .gte('report_date', today.toISOString())
+            .select('id', { count: 'exact' })
+            .eq('work_date', todayKST)
             .in('site_id', accessibleSiteIds)
+            .limit(1)
 
           const { count, error } = await reportQuery
           if (error) {
@@ -134,8 +144,9 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
       } else {
         const { count, error } = await supabase
           .from('daily_reports')
-          .select('*', { count: 'exact', head: true })
-          .gte('report_date', today.toISOString())
+          .select('id', { count: 'exact' })
+          .eq('work_date', todayKST)
+          .limit(1)
 
         if (error) {
           throw new AppError('작업일지 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)

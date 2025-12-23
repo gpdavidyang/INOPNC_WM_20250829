@@ -87,6 +87,10 @@ export default async function RootLayout({
   const cookieStore = cookies()
   const userRole = cookieStore.get('user-role')?.value
 
+  // Apply desktop-forcing class to <html> for admin roles
+  const shouldForceDesktopUI = userRole === 'admin' || userRole === 'system_admin'
+  const htmlClasses = shouldForceDesktopUI ? 'force-desktop-ui desktop-enforced' : undefined
+
   // Determine body classes based on role + font classes
   let bodyClasses = `antialiased ${poppins.variable} ${notoSansKR.variable}`
   if (userRole) {
@@ -105,7 +109,7 @@ export default async function RootLayout({
     }
   }
 
-  const shouldForceLightTheme = userRole === 'admin' || userRole === 'system_admin'
+  const shouldForceLightTheme = shouldForceDesktopUI
   const forcedTheme = shouldForceLightTheme ? 'light' : undefined
   const defaultTheme = shouldForceLightTheme ? 'light' : 'system'
   const themeInitializer = `(() => { try {
@@ -122,7 +126,7 @@ export default async function RootLayout({
   } catch (e) {} })();`
 
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang="ko" suppressHydrationWarning className={htmlClasses}>
       <head>
         {/* Preconnect for performance */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

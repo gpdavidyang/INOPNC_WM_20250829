@@ -75,16 +75,16 @@ export default function AdminHeader({
   return (
     <>
       <header className="admin-header sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 px-6">
           {/* Left Section */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-4 min-w-fit">
             {/* Sidebar Toggle - Enhanced for mobile */}
             <button
               onClick={onDesktopMenuClick}
-              className="p-2 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
+              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
               aria-label={isSidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
             >
-              <Menu className="h-6 w-6 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300" />
+              <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             </button>
 
             {/* Logo/Title */}
@@ -112,8 +112,8 @@ export default function AdminHeader({
                     />
                   </span>
                 </div>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="whitespace-nowrap">
+                  <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
                     {t('admin.dashboard')}
                   </h1>
                 </div>
@@ -122,32 +122,23 @@ export default function AdminHeader({
           </div>
 
           {/* Center Section - Search Bar */}
-          <div className="flex flex-1 max-w-2xl mx-8">
+          <div className="flex flex-1 max-w-2xl mx-8 min-w-[480px]">
             <button
               onClick={() => setIsSearchOpen(true)}
               className="w-full max-w-md mx-auto flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-[8px] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
             >
               <Search className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
-              <span className="flex-1 text-left text-sm text-gray-500 dark:text-gray-400">
+              <span className="flex-1 text-left text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap overflow-hidden truncate">
                 {t('admin.searchPlaceholder')}
               </span>
-              <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-xs text-gray-500 dark:text-gray-400">
+              <kbd className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 <span className="text-lg leading-none">⌘</span>K
               </kbd>
             </button>
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center gap-2">
-            {/* Mobile Search Button */}
-            <button
-              onClick={() => setIsSearchOpen(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label={t('common.search')}
-            >
-              <Search className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-            </button>
-
+          <div className="flex items-center gap-2 whitespace-nowrap">
             {/* Notifications */}
             <button
               className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
