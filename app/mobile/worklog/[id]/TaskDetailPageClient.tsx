@@ -260,6 +260,28 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
     [handleAttachMarkup, handleOpenMarkupTool]
   )
 
+  const normalizedWorkerNames =
+    Array.isArray(detail.workerNames) && detail.workerNames.length > 0
+      ? detail.workerNames
+          .map(name => (typeof name === 'string' ? name.trim() : ''))
+          .filter(name => name.length > 0)
+      : detail.createdBy?.name && detail.createdBy.name !== '작성자'
+        ? [detail.createdBy.name.trim()]
+        : []
+  const workerKeySet = new Set(
+    normalizedWorkerNames.map(name => name.replace(/\s+/g, '').toLowerCase())
+  )
+  const memberTypeList = Array.isArray(detail.memberTypes)
+    ? detail.memberTypes
+        .map(name => (typeof name === 'string' ? name.trim() : ''))
+        .filter(
+          name => name.length > 0 && !workerKeySet.has(name.replace(/\s+/g, '').toLowerCase())
+        )
+    : []
+  const memberTypeDisplay = memberTypeList.length > 0 ? memberTypeList.join(', ') : '미지정'
+  const workerDisplay =
+    normalizedWorkerNames.length > 0 ? normalizedWorkerNames.join(', ') : '미등록'
+
   return (
     <MobileLayoutShell>
       <div className="main-content" style={{ paddingTop: 20 }}>
@@ -290,9 +312,22 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
           {[
             { label: '현장명', value: detail.siteName || '미등록' },
             { label: '주소', value: detail.siteAddress || detail.siteName || '미등록' },
-            { label: '부재명', value: (detail.memberTypes && detail.memberTypes[0]) || '미지정' },
-            { label: '작업공정', value: (detail.processes && detail.processes[0]) || '미지정' },
-            { label: '작업유형', value: (detail.workTypes && detail.workTypes[0]) || '미지정' },
+            { label: '부재명', value: memberTypeDisplay },
+            { label: '작업자명', value: workerDisplay },
+            {
+              label: '작업공정',
+              value:
+                (Array.isArray(detail.processes) && detail.processes.length > 0
+                  ? detail.processes.join(', ')
+                  : '') || '미지정',
+            },
+            {
+              label: '작업유형',
+              value:
+                (Array.isArray(detail.workTypes) && detail.workTypes.length > 0
+                  ? detail.workTypes.join(', ')
+                  : '') || '미지정',
+            },
             {
               label: '블럭/동/층',
               value:

@@ -5,6 +5,7 @@ import {
   WorkLogFilter,
   WorkLogSort,
   WorkLogStatus,
+  WorkTaskGroup,
 } from '../types/work-log.types'
 
 const supabase = createClient()
@@ -460,6 +461,58 @@ function mapReportToWorkLog(item: any): WorkLog {
       ? item.work_description.trim()
       : undefined
 
+  const mergedMemberTypes = mergeUniqueStrings(
+    workContent.memberTypes,
+    splitLegacyList(item?.member_types)
+  )
+  const mergedWorkProcesses = mergeUniqueStrings(
+    workContent.workProcesses,
+    splitLegacyList(item?.process_type),
+    splitLegacyList(item?.work_process),
+    splitLegacyList(item?.processes)
+  )
+  const mergedWorkTypes = mergeUniqueStrings(
+    workContent.workTypes,
+    splitLegacyList(item?.work_section),
+    splitLegacyList(item?.work_types),
+    splitLegacyList(item?.workType)
+  )
+
+  const normalizedTasks = Array.isArray(workContent.tasks)
+    ? workContent.tasks
+        .map(task => ({
+          memberTypes: Array.isArray(task?.memberTypes) ? task.memberTypes : [],
+          workProcesses: Array.isArray(task?.workProcesses)
+            ? task.workProcesses
+            : Array.isArray((task as any)?.processes)
+              ? (task as any).processes
+              : [],
+          workTypes: Array.isArray(task?.workTypes) ? task.workTypes : [],
+          location: {
+            block: toSafeString(task?.location?.block || (task as any)?.block),
+            dong: toSafeString(task?.location?.dong || (task as any)?.dong),
+            unit: toSafeString(task?.location?.unit || (task as any)?.unit),
+          },
+        }))
+        .map(task => ({
+          ...task,
+          workProcesses: task.workProcesses.filter(Boolean),
+          workTypes: task.workTypes.filter(Boolean),
+          memberTypes: task.memberTypes.filter(Boolean),
+        }))
+    : undefined
+
+  const taskSummary = buildWorkSummary({
+    workDescription,
+    workContentDescription: workContent.description,
+    normalizedTasks,
+    location,
+    siteName,
+    fallbackWorkTypes: mergedWorkTypes,
+    fallbackWorkProcesses: mergedWorkProcesses,
+    fallbackMemberTypes: mergedMemberTypes,
+  })
+
   return {
     id: item?.id,
     date: item?.work_date,
@@ -467,13 +520,13 @@ function mapReportToWorkLog(item: any): WorkLog {
     siteName,
     organizationId,
     partnerCompanyName: item?.partner_company_name || item?.partnerCompanyName || undefined,
-    title: item?.title || siteName || item?.work_description,
+    title: item?.title || taskSummary || workDescription || siteName || item?.work_description,
     author: authorName,
     status,
-    memberTypes: workContent.memberTypes,
-    workProcesses: workContent.workProcesses,
-    workTypes: workContent.workTypes,
-    tasks: workContent.tasks || undefined,
+    memberTypes: mergedMemberTypes,
+    workProcesses: mergedWorkProcesses,
+    workTypes: mergedWorkTypes,
+    tasks: normalizedTasks && normalizedTasks.length > 0 ? normalizedTasks : undefined,
     location,
     workers,
     totalHours,
@@ -487,10 +540,71 @@ function mapReportToWorkLog(item: any): WorkLog {
       workContent.description ??
       workDescription ??
       undefined,
+    description: workDescription || workContent.description || taskSummary,
+    summary: taskSummary,
     createdAt: item?.created_at,
     updatedAt: item?.updated_at,
     createdBy: item?.created_by,
   }
+}
+
+function buildWorkSummary(params: {
+  workDescription?: string
+  workContentDescription?: string
+  normalizedTasks?: WorkTaskGroup[]
+  location: { block: string; dong: string; unit: string }
+  siteName: string
+  fallbackWorkTypes?: string[]
+  fallbackWorkProcesses?: string[]
+  fallbackMemberTypes?: string[]
+}): string {
+  const normalized = (value?: string) => (value || '').trim()
+  if (normalized(params.workDescription)) return normalized(params.workDescription)
+  if (normalized(params.workContentDescription)) return normalized(params.workContentDescription)
+
+  const firstTask = params.normalizedTasks?.[0]
+  if (firstTask) {
+    const parts = [
+      firstTask.workTypes.join(', '),
+      firstTask.workProcesses.join(', '),
+      firstTask.memberTypes.join(', '),
+    ]
+      .map(normalized)
+      .filter(Boolean)
+    const taskLocation = [
+      firstTask.location.block,
+      firstTask.location.dong,
+      firstTask.location.unit,
+    ]
+      .map(normalized)
+      .filter(Boolean)
+    if (taskLocation.length) {
+      parts.push(taskLocation.join(' '))
+    }
+    if (parts.length) {
+      return parts.join(' · ')
+    }
+  }
+
+  const locationParts = [params.location.block, params.location.dong, params.location.unit]
+    .map(normalized)
+    .filter(Boolean)
+  if (locationParts.length) {
+    return locationParts.join(' ')
+  }
+
+  const fallbackParts = [
+    Array.isArray(params.fallbackWorkTypes) ? params.fallbackWorkTypes.join(', ') : '',
+    Array.isArray(params.fallbackWorkProcesses) ? params.fallbackWorkProcesses.join(', ') : '',
+    Array.isArray(params.fallbackMemberTypes) ? params.fallbackMemberTypes.join(', ') : '',
+  ]
+    .map(normalized)
+    .filter(Boolean)
+  if (fallbackParts.length) {
+    return fallbackParts.join(' · ')
+  }
+
+  return normalized(params.siteName) || '작업일지'
 }
 
 function parseWorkContent(raw: unknown): {
@@ -498,12 +612,7 @@ function parseWorkContent(raw: unknown): {
   workProcesses: string[]
   workTypes: string[]
   description?: string
-  tasks?: Array<{
-    memberTypes: string[]
-    workProcesses: string[]
-    workTypes: string[]
-    location: { block: string; dong: string; unit: string }
-  }>
+  tasks?: WorkTaskGroup[]
 } {
   if (!raw) {
     return { memberTypes: [], workProcesses: [], workTypes: [], description: undefined }
@@ -517,7 +626,7 @@ function parseWorkContent(raw: unknown): {
         workProcesses: Array.isArray(parsed?.workProcesses) ? parsed.workProcesses : [],
         workTypes: Array.isArray(parsed?.workTypes) ? parsed.workTypes : [],
         description: typeof parsed?.description === 'string' ? parsed.description : undefined,
-        tasks: Array.isArray(parsed?.tasks) ? parsed.tasks : undefined,
+        tasks: Array.isArray(parsed?.tasks) ? (parsed.tasks as WorkTaskGroup[]) : undefined,
       }
     } catch (error) {
       console.warn('Failed to parse work_content JSON:', error)
@@ -531,7 +640,7 @@ function parseWorkContent(raw: unknown): {
     workTypes: Array.isArray((raw as any)?.workTypes) ? (raw as any).workTypes : [],
     description:
       typeof (raw as any)?.description === 'string' ? (raw as any).description : undefined,
-    tasks: Array.isArray((raw as any)?.tasks) ? (raw as any).tasks : undefined,
+    tasks: Array.isArray((raw as any)?.tasks) ? ((raw as any).tasks as WorkTaskGroup[]) : undefined,
   }
 }
 
@@ -720,6 +829,41 @@ function sortWorkLogs(workLogs: WorkLog[], sort: WorkLogSort): WorkLog[] {
   })
 
   return sorted
+}
+
+function splitLegacyList(value: unknown): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) {
+    return value.flatMap(entry => splitLegacyList(entry))
+  }
+  if (typeof value !== 'string') {
+    return []
+  }
+
+  return value
+    .split(/[,/·;\n]+/)
+    .map(part => part.trim())
+    .filter(Boolean)
+}
+
+function mergeUniqueStrings(...lists: Array<ReadonlyArray<string> | undefined>): string[] {
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue
+
+    for (const raw of list) {
+      const value = typeof raw === 'string' ? raw.trim() : ''
+      if (!value) continue
+      const key = value.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      result.push(value)
+    }
+  }
+
+  return result
 }
 
 function normalizeProfileRelation(item: any): { full_name?: string; name?: string } | undefined {

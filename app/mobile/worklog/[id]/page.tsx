@@ -119,6 +119,23 @@ function toDetail(report: any): WorklogDetail {
   })
 
   const workers = rawWorkers.length ? rawWorkers : normalizedWorkers
+  const workerNames = workers
+    .map((w: any) =>
+      typeof w?.worker_name === 'string'
+        ? w.worker_name.trim()
+        : typeof w?.name === 'string'
+          ? w.name.trim()
+          : typeof w?.workerName === 'string'
+            ? w.workerName.trim()
+            : ''
+    )
+    .filter(Boolean)
+  if (workerNames.length === 0 && typeof report?.profiles?.full_name === 'string') {
+    const author = report.profiles.full_name.trim()
+    if (author) {
+      workerNames.push(author)
+    }
+  }
   const manpower = workers.reduce(
     (sum: number, w: any) => sum + (Number(w?.labor_hours ?? w?.manDays) || 0),
     0
@@ -153,6 +170,7 @@ function toDetail(report: any): WorklogDetail {
       ? { id: report.createdBy.id || 'unknown', name: report.createdBy.name || '작성자' }
       : { id: report?.profiles?.id || 'unknown', name: report?.profiles?.full_name || '작성자' },
     updatedAt: report?.updated_at || report?.created_at || new Date().toISOString(),
+    workerNames,
     siteAddress: report?.sites?.address || undefined,
     location: {
       block: String(loc?.block || ''),

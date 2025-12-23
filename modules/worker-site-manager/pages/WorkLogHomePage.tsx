@@ -26,6 +26,23 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 const SECTION_PREVIEW_COUNT = 5
 
+const normalizeWorkerNames = (workLog: WorkLog): string[] => {
+  const names = new Set<string>()
+  const append = (value?: string | null) => {
+    if (!value) return
+    const trimmed = value.trim()
+    if (!trimmed) return
+    names.add(trimmed)
+  }
+
+  workLog.workers?.forEach(worker => append(worker?.name))
+  if (names.size === 0) {
+    append(workLog.author && workLog.author !== '알 수 없는 작성자' ? workLog.author : '')
+  }
+
+  return Array.from(names)
+}
+
 const formatDateWithWeekday = (date: string) => {
   const formatted = formatDate(date)
   const weekday = WEEKDAY_LABELS[new Date(date).getDay()]
@@ -365,6 +382,7 @@ export const WorkLogHomePage: React.FC = () => {
     )
 
     const manpower = Number(workLog.totalHours || 0) / 8
+    const workerNames = normalizeWorkerNames(workLog)
     const detail: WorklogDetail = {
       id: workLog.id,
       siteId: workLog.siteId,
@@ -397,6 +415,7 @@ export const WorkLogHomePage: React.FC = () => {
       tasks: (workLog as any).tasks || undefined,
       safetyNotes: undefined,
       additionalManpower: [],
+      workerNames,
       attachments: {
         photos,
         drawings,
@@ -614,22 +633,65 @@ export const WorkLogHomePage: React.FC = () => {
         const isSameAsSite = (value: string) =>
           normalize(value).replace(/\s+/g, '') === normalize(workLog.siteName).replace(/\s+/g, '')
 
-        const subtitle =
-          [
-            Array.isArray(workLog.workTypes) && workLog.workTypes.length > 0
-              ? workLog.workTypes.join(', ')
-              : '',
-            Array.isArray(workLog.workProcesses) && workLog.workProcesses.length > 0
-              ? workLog.workProcesses.join(', ')
-              : '',
-            Array.isArray(workLog.memberTypes) && workLog.memberTypes.length > 0
-              ? workLog.memberTypes.join(', ')
-              : '',
-            workLog.notes,
-            workLog.title,
-          ]
-            .map(normalize)
-            .find(text => text && !isSameAsSite(text)) || '작업내용 미입력'
+        const firstTask = Array.isArray(workLog.tasks) ? workLog.tasks[0] : undefined
+        const taskSummary = firstTask
+          ? [
+              Array.isArray(firstTask.workTypes) ? firstTask.workTypes.join(', ') : '',
+              Array.isArray(firstTask.workProcesses) ? firstTask.workProcesses.join(', ') : '',
+              Array.isArray(firstTask.memberTypes) ? firstTask.memberTypes.join(', ') : '',
+            ]
+              .map(normalize)
+              .filter(Boolean)
+              .join(' · ')
+          : ''
+
+        const locationSummary = workLog.location
+          ? [workLog.location.block, workLog.location.dong, workLog.location.unit]
+              .map(normalize)
+              .filter(Boolean)
+              .join(' ')
+          : ''
+
+        const siteKey = normalize(workLog.siteName).replace(/\s+/g, '')
+        const summaryText = normalize(workLog.summary)
+
+        const subtitleCandidates = [
+          summaryText,
+          Array.isArray(workLog.workTypes) && workLog.workTypes.length > 0
+            ? workLog.workTypes.join(', ')
+            : '',
+          Array.isArray(workLog.workProcesses) && workLog.workProcesses.length > 0
+            ? workLog.workProcesses.join(', ')
+            : '',
+          Array.isArray(workLog.memberTypes) && workLog.memberTypes.length > 0
+            ? workLog.memberTypes.join(', ')
+            : '',
+          taskSummary,
+          locationSummary,
+          workLog.description,
+          workLog.notes,
+          workLog.title,
+        ]
+          .map(normalize)
+          .filter(Boolean)
+
+        const workerNames = normalizeWorkerNames(workLog).map(normalize).filter(Boolean)
+        const workerLabel =
+          workerNames.length === 0
+            ? ''
+            : workerNames.length === 1
+              ? workerNames[0]
+              : `${workerNames[0]} 외 ${workerNames.length - 1}명`
+
+        const fallbackSubtitle = `작업내용 미입력${workerLabel ? ` · ${workerLabel}` : ''}`
+
+        const subtitle = summaryText
+          ? subtitleCandidates.find((text, index) =>
+              index === 0 ? true : text.replace(/\s+/g, '') !== siteKey
+            ) ||
+            summaryText ||
+            fallbackSubtitle
+          : fallbackSubtitle
 
         const formattedDate = formatDateWithWeekday(workLog.date)
         const hasLinkedMarkup = (workLog.attachments?.drawings || []).some(file => {
@@ -1514,28 +1576,30 @@ export const WorkLogHomePage: React.FC = () => {
         />
 
         {/* New Detail Viewer (시안 기반) */}
-        <DiaryDetailViewer
-          open={isDetailOpen && Boolean(detailData)}
-          worklog={detailData}
-          onClose={() => setDetailOpen(false)}
-          onDownload={() => {}}
-          onOpenDocument={() => {}}
-          onOpenMarkup={wl => {
-            const params = new URLSearchParams()
-            params.set('mode', 'browse')
-            params.set('siteId', wl.siteId)
-            params.set('worklogId', wl.id)
-            window.location.href = `/mobile/markup-tool?${params.toString()}`
-          }}
-          onOpenMarkupDoc={(docId, wl) => {
-            const params = new URLSearchParams()
-            params.set('mode', 'start')
-            params.set('siteId', wl.siteId)
-            params.set('worklogId', wl.id)
-            params.set('docId', docId)
-            window.location.href = `/mobile/markup-tool?${params.toString()}`
-          }}
-        />
+        {isDetailOpen && detailData ? (
+          <DiaryDetailViewer
+            open={isDetailOpen}
+            worklog={detailData}
+            onClose={() => setDetailOpen(false)}
+            onDownload={() => {}}
+            onOpenDocument={() => {}}
+            onOpenMarkup={wl => {
+              const params = new URLSearchParams()
+              params.set('mode', 'browse')
+              params.set('siteId', wl.siteId)
+              params.set('worklogId', wl.id)
+              window.location.href = `/mobile/markup-tool?${params.toString()}`
+            }}
+            onOpenMarkupDoc={(docId, wl) => {
+              const params = new URLSearchParams()
+              params.set('mode', 'start')
+              params.set('siteId', wl.siteId)
+              params.set('worklogId', wl.id)
+              params.set('docId', docId)
+              window.location.href = `/mobile/markup-tool?${params.toString()}`
+            }}
+          />
+        ) : null}
 
         {/* 풀스크린 상세(레퍼런스)는 범위 외로 비표시 */}
 

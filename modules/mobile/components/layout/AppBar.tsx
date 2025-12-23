@@ -1,13 +1,12 @@
 'use client'
 
 import { Button } from '@/modules/shared/ui'
-import { Bell, Menu, Moon, Search, Sun, Type } from 'lucide-react'
+import { Bell, Menu, Moon, Search, Sun } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { NotificationModal } from '../notifications/NotificationModal'
 // Drawer is now managed by MobileLayout, not AppBar
 import { SearchPage } from './SearchPage'
 // Switched to server API for unread count to align with notification_logs
-import { useFontSize } from '@/contexts/FontSizeContext'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { isNotificationHiddenToday } from '@/modules/mobile/lib/notification-preferences'
 
@@ -39,7 +38,7 @@ export const AppBar: React.FC<AppBarProps> = ({
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user, profile } = useUnifiedAuth()
-  const { isLargeFont, toggleFontSize } = useFontSize()
+  // Font size is managed elsewhere for accessibility; header no longer exposes toggle
 
   // Fetch notification count function
   const fetchNotificationCount = useCallback(async () => {
@@ -84,8 +83,6 @@ export const AppBar: React.FC<AppBarProps> = ({
       /* ignore */
     }
   }
-
-  // Font size toggle is handled by FontSizeContext (applies .large-font-mode)
 
   const displayCount =
     typeof notificationCountOverride === 'number' ? notificationCountOverride : notificationCount
@@ -177,23 +174,6 @@ export const AppBar: React.FC<AppBarProps> = ({
           >
             {theme === 'dark' ? <Sun className="appbar-icon" /> : <Moon className="appbar-icon" />}
             {showLabels && <span className="icon-text">다크모드</span>}
-          </Button>
-
-          {/* Font Size */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="header-icon-btn"
-            id="fontSizeBtn"
-            aria-label="글씨 크기"
-            onClick={toggleFontSize}
-          >
-            <Type className="appbar-icon" />
-            {showLabels && (
-              <span className="icon-text" id="fontSizeText">
-                {isLargeFont ? '큰글씨' : '작은글씨'}
-              </span>
-            )}
           </Button>
 
           {/* Notifications */}

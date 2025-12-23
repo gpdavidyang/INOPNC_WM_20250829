@@ -127,6 +127,8 @@ export interface WorkLog {
   // 기타 정보
   progress: number // 진행률 (0-100)
   notes?: string // 비고
+  description?: string // 작업 개요
+  summary?: string // 리스트 표시용 요약
 
   // 메타 정보
   createdAt: string

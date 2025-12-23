@@ -37,8 +37,6 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   onOpenMarkupDoc,
   className = '',
 }) => {
-  if (!open || !worklog) return null
-
   const [linkedMarkups, setLinkedMarkups] = useState<
     Array<{
       id: string
@@ -56,7 +54,7 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
 
   useEffect(() => {
     const load = async () => {
-      if (!worklog?.id) return
+      if (!open || !worklog?.id) return
       setLoadingMarkups(true)
       try {
         const res = await fetch(`/api/markup-documents?worklogId=${encodeURIComponent(worklog.id)}`)
@@ -91,8 +89,10 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
         setLoadingMarkups(false)
       }
     }
-    if (open) load()
+    load()
   }, [open, worklog?.id])
+
+  if (!open || !worklog) return null
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -148,10 +148,37 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     )
   }
 
+  const normalizedWorkerNames =
+    Array.isArray(worklog.workerNames) && worklog.workerNames.length > 0
+      ? worklog.workerNames
+          .map(name => (typeof name === 'string' ? name.trim() : ''))
+          .filter(name => name.length > 0)
+      : worklog.createdBy?.name && worklog.createdBy.name !== '작성자'
+        ? [worklog.createdBy.name.trim()]
+        : []
+
+  const workerKeySet = new Set(
+    normalizedWorkerNames.map(name => name.replace(/\s+/g, '').toLowerCase())
+  )
+
+  const memberTypeDisplayList = Array.isArray(worklog.memberTypes)
+    ? worklog.memberTypes
+        .map(name => (typeof name === 'string' ? name.trim() : ''))
+        .filter(
+          name => name.length > 0 && !workerKeySet.has(name.replace(/\s+/g, '').toLowerCase())
+        )
+    : []
+
+  const memberTypeDisplay =
+    memberTypeDisplayList.length > 0 ? memberTypeDisplayList.join(', ') : '미지정'
+  const workerDisplay =
+    normalizedWorkerNames.length > 0 ? normalizedWorkerNames.join(', ') : '미등록'
+
   const infoRows: Array<{ label: string; value: string }> = [
     { label: '현장명', value: worklog.siteName },
     { label: '주소', value: worklog.siteAddress || '미등록' },
-    { label: '부재명', value: worklog.memberTypes.join(', ') || '미지정' },
+    { label: '부재명', value: memberTypeDisplay },
+    { label: '작업자명', value: workerDisplay },
     { label: '작업공정', value: worklog.processes.join(', ') || '미지정' },
     { label: '작업유형', value: worklog.workTypes.join(', ') || '미지정' },
     {

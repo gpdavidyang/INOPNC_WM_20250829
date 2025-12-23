@@ -382,7 +382,9 @@ export async function POST(request: NextRequest) {
       safety_notes,
       materials = [],
     } = body
-
+    const primaryMemberType =
+      Array.isArray(member_types) && member_types.length > 0 ? member_types[0] : null
+    const primaryProcess = Array.isArray(processes) && processes.length > 0 ? processes[0] : null
     // Validate required fields
     if (!site_id || !work_date) {
       return NextResponse.json(
@@ -436,6 +438,12 @@ export async function POST(request: NextRequest) {
         special_notes: notes ?? null,
         status,
         updated_at: new Date().toISOString(),
+        component_name: primaryMemberType || null,
+        process_type: primaryProcess || null,
+        work_process:
+          Array.isArray(processes) && processes.length > 0 ? processes.join(', ') : null,
+        work_section:
+          Array.isArray(work_types) && work_types.length > 0 ? work_types.join(', ') : null,
       }
 
       let updatePayload: any = {
@@ -464,6 +472,10 @@ export async function POST(request: NextRequest) {
         'total_workers',
         'updated_at',
         'work_description',
+        'component_name',
+        'process_type',
+        'work_process',
+        'work_section',
       ])
 
       let updatedReport: any = null
@@ -623,6 +635,11 @@ export async function POST(request: NextRequest) {
       work_date,
       total_workers: totalWorkersInt,
       work_description,
+      process_type: primaryProcess || null,
+      component_name: primaryMemberType || null,
+      work_process: Array.isArray(processes) && processes.length > 0 ? processes.join(', ') : null,
+      work_section:
+        Array.isArray(work_types) && work_types.length > 0 ? work_types.join(', ') : null,
       safety_notes: safety_notes ?? null,
       special_notes: notes ?? null,
       status,
@@ -642,6 +659,10 @@ export async function POST(request: NextRequest) {
       'updated_at',
       'work_description',
       'created_by',
+      'component_name',
+      'process_type',
+      'work_process',
+      'work_section',
     ])
     const essentialColumns = new Set(['site_id', 'work_date'])
 

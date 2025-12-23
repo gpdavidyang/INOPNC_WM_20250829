@@ -131,6 +131,7 @@ export interface WorklogSummary {
 }
 
 export interface WorklogDetail extends WorklogSummary {
+  workerNames?: string[]
   siteAddress?: string
   location: {
     block: string
