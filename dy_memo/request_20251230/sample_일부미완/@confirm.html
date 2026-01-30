@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>작업완료확인서 - 최종 통합본 (수정판)</title> 
+
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =========================================
+       MODULE: CORE STYLES
+       ========================================= */
+    :root {
+        --font-main: "Pretendard Variable", Pretendard, sans-serif;
+        --bg-viewer: #1e1e1e; 
+        --bg-paper: #ffffff;
+        --border-color: #1e293b;
+        --primary-color: #2563eb;
+        
+        /* User Provided Colors */
+        --header-navy: #1a254f;
+        --primary: #31a3fa;
+        --primary-bg: #eaf6ff;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body { 
+        margin: 0; padding: 0; 
+        font-family: var(--font-main); 
+        background: var(--bg-viewer); 
+        color: #fff;
+        height: 100vh; width: 100vw; overflow: hidden;
+        display: flex; flex-direction: column;
+        overscroll-behavior: none; 
+    }
+    
+    /* iframe 모드일 때 헤더 숨기기 (모달 헤더만 표시) */
+    body.iframe-mode .header-bar {
+        display: none !important;
+    }
+    body.iframe-mode .viewport {
+        height: 100vh;
+        padding-top: 0;
+    }
+
+    /* =========================================
+       MODULE: HEADER
+       ========================================= */
+    .header-bar {
+        height: 60px; background: #000; 
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 16px; flex-shrink: 0; z-index: 100; border-bottom: 1px solid #333;
+    }
+    .header-title { font-size: 18px; font-weight: 700; color: #fff; }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    .icon-btn {
+        background: none; border: none; color: #fff; cursor: pointer;
+        padding: 8px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.15); }
+
+    /* =========================================
+       MODULE: VIEWER (Layout Fixed)
+       ========================================= */
+    .viewport {
+        flex: 1; position: relative; overflow: hidden;
+        background: var(--bg-viewer);
+        display: flex; 
+        justify-content: center; /* 가로 중앙 */
+        align-items: center;     /* 세로 중앙 (여백 해결) */
+        touch-action: none; 
+        cursor: default;
+    }
+    .viewport.panning { cursor: grab !important; }
+    .viewport.panning:active { cursor: grabbing !important; }
+    
+    .paper-wrapper {
+        transform-origin: center center; /* 중앙 기준 줌 */
+        transition: transform 0.05s linear; 
+        will-change: transform; 
+        /* 불필요한 하단 패딩 제거 */
+        padding: 0;
+        box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+    }
+
+    .a4-paper {
+        width: 210mm; min-height: 297mm;
+        background: var(--bg-paper); color: #000;
+        padding: 15mm; 
+        display: flex; flex-direction: column;
+        justify-content: center; /* 세로 가운데 정렬(표/양식 전체를 A4 중앙으로) */
+    }
+
+    /* 문서 내부 스타일 */
+    .doc-header { text-align: center; margin-bottom: 30px; border-bottom: 3px double #000; padding-bottom: 15px; }
+    .doc-title { font-size: 36px; font-weight: 900; letter-spacing: 5px; color: #111; margin: 0; }
+
+    .info-table { width: 100%; border-collapse: collapse; border: 2px solid var(--border-color); margin-bottom: 20px; }
+    .info-table th, .info-table td { border: 1px solid var(--border-color); padding: 10px 8px; vertical-align: middle; }
+    .info-table th { background: #f8fafc; font-weight: 800; text-align: center; width: 16%; font-size: 16px; color: #334155; white-space: nowrap; }
+
+    input, textarea { 
+        width: 100%; border: none; background: transparent; 
+        font-family: inherit; font-size: 16px; color: #000; outline: none; 
+        padding: 4px; font-weight: 600; resize: none;
+    }
+    input::placeholder, textarea::placeholder { color: #cbd5e1; font-weight: 400; }
+    input:focus, textarea:focus { background: rgba(37, 99, 235, 0.05); }
+
+    /* PDF 저장 모드 */
+    body.clean-mode input, body.clean-mode textarea { 
+        border: none !important; background: transparent !important; 
+        outline: none !important; box-shadow: none !important; 
+    }
+
+    .section-block { padding: 15px; display: flex; flex-direction: column; border: 2px solid var(--border-color); margin-bottom: 20px; }
+    .section-block.note { height: 150px; }
+    .sec-header { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 12px; padding-left: 12px; border-left: 5px solid #475569; }
+
+    .footer-area { margin-top: 10px; text-align: center; }
+    .confirm-msg { font-size: 20px; font-weight: 800; margin-bottom: 25px; }
+    .date-input { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 30px; }
+
+    .recipient-row {
+        margin-top: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        font-weight: 700;
+    }
+    .recipient-input {
+        text-align: center; font-size: 24px; font-weight: 800; width: 250px; border-bottom: 2px solid #000;
+    }
+
+    /* =========================================
+       MODULE: SIGNATURE SYSTEM (Paper Display)
+       ========================================= */
+    .sign-grid { 
+        display: grid; grid-template-columns: 33% 27% 40%; 
+        border: 2px solid var(--border-color); margin-bottom: 20px; 
+    }
+    .sign-cell-text { 
+        background: #f8fafc; border-right: 1px solid var(--border-color);
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: 10px; gap: 8px;
+    }
+    .sign-label-text { font-weight: 800; font-size: 18px; color: #334155; }
+    .sign-input-text { text-align: center; font-size: 18px; font-weight: 700; width: 100%; border-bottom: 1px dashed #cbd5e1; }
+
+    .sign-cell-canvas { 
+        position: relative; background: #fff; height: 180px; 
+        display: flex; flex-direction: column; overflow: hidden; 
+        cursor: pointer;
+    }
+    .sign-cell-canvas:hover { background: #f0f9ff; }
+    
+    .sign-label-canvas {
+        padding: 8px 12px; font-weight: 700; font-size: 14px; color: #64748b;
+        border-bottom: 1px dashed #e2e8f0; pointer-events: none; text-align: left;
+    }
+    
+    .display-canvas-wrapper {
+        flex: 1; width: 100%; height: 100%; position: relative;
+        display: flex; align-items: center; justify-content: center;
+    }
+    #paperSignCanvas { width: 100%; height: 100%; pointer-events: none; display: block; }
+    
+    .click-guide {
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        color: #94a3b8; font-weight: 700; font-size: 14px; pointer-events: none;
+        background: rgba(255,255,255,0.8); padding: 4px 8px; border-radius: 4px;
+    }
+
+    /* =========================================
+       MODULE: SIGNATURE MODAL (Full Screen)
+       ========================================= */
+    .sign-modal {
+        display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); z-index: 9999;
+        flex-direction: column; justify-content: center; align-items: center;
+        backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s;
+    }
+    .sign-modal.open { display: flex; opacity: 1; }
+
+    .modal-content {
+        width: 95%; max-width: 600px; height: 80vh; max-height: 800px;
+        background: #fff; border-radius: 12px; display: flex; flex-direction: column;
+        overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    }
+    
+    .modal-header {
+        padding: 12px 16px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-title { font-weight: 800; font-size: 16px; color: #1e293b; }
+    .close-btn { background: none; border: none; cursor: pointer; color: #64748b; }
+
+    .modal-body {
+        flex: 1; position: relative; background: #fff; overflow: hidden; touch-action: none;
+        background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+        background-size: 20px 20px;
+    }
+    
+    #modalCanvas { width: 100%; height: 100%; touch-action: none; display: block; }
+
+    .sign-tools-bar {
+        padding: 10px; background: #fff; border-top: 1px solid #e2e8f0;
+        display: flex; gap: 8px; overflow-x: auto; flex-shrink: 0;
+        align-items: center;
+    }
+    
+    .modal-footer {
+        padding: 12px 16px; background: #fff; border-top: 1px solid #e2e8f0;
+        display: flex; gap: 10px;
+    }
+    
+    /* =================================================================
+       [수정 적용: 초기화/저장 버튼과 동일한 스타일로 강제 통일]
+       ================================================================= */
+    
+    /* 기본 버튼 공통 */
+    .uu-btn {
+        flex: 1; height: 48px; 
+        border-radius: 10px; 
+        font-size: 15px; font-weight: 700; 
+        display: flex; align-items: center; justify-content: center; 
+        gap: 8px; cursor: pointer; transition: 0.1s;
+        /* small size for tool bar */
+        min-width: fit-content;
+        padding: 0 16px;
+    }
+
+    /* 1. 회색 버튼 (대량 업로드, 도면등록, 초기화 등) */
+    .uu-btn.dashed.type-gray-secondary, 
+    .uu-btn.solid.type-gray-secondary {
+        background-color: #f1f5f9;
+        border: 1px solid #cbd5e1;
+        color: #475569;
+        border-style: solid !important; /* 점선 제거 */
+    }
+    /* 회색 버튼 호버 효과 */
+    .uu-btn.dashed.type-gray-secondary:hover, 
+    .uu-btn.solid.type-gray-secondary:hover {
+        background-color: #e2e8f0;
+    }
+    /* 회색 버튼 다크모드 */
+    body.dark-mode .uu-btn.dashed.type-gray-secondary, 
+    body.dark-mode .uu-btn.solid.type-gray-secondary {
+        background-color: #1e293b;
+        border-color: #334155;
+        color: #94a3b8;
+    }
+    body.dark-mode .uu-btn.dashed.type-gray-secondary:hover, 
+    body.dark-mode .uu-btn.solid.type-gray-secondary:hover {
+        background-color: #334155;
+    }
+
+    /* 2. 파란색 버튼 (대지 생성, 공도면, 저장 등) -> '일지저장' 버튼과 동일 */
+    .uu-btn.dashed.type-blue,
+    .uu-btn.solid.type-blue {
+        background-color: var(--header-navy); /* 네이비 색상 */
+        border: none;
+        color: #ffffff;
+        border-style: solid !important; /* 점선 제거 */
+    }
+    /* 파란색 버튼 다크모드 (밝은 파랑) */
+    body.dark-mode .uu-btn.dashed.type-blue,
+    body.dark-mode .uu-btn.solid.type-blue {
+        background-color: var(--primary);
+    }
+
+    /* 미니 버튼 (펜/지우개 등 토글용) */
+    .mini-btn {
+        font-size: 12px; padding: 6px 12px; border: 1px solid #cbd5e1; 
+        background: #fff; border-radius: 6px; cursor: pointer; color: #475569; font-weight: 700;
+        display: flex; align-items: center; gap: 4px; white-space: nowrap;
+        height: 40px; justify-content: center;
+    }
+    .mini-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; }
+    
+    /* 이미지 편집 레이어 */
+    #modalEditLayer {
+        display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); z-index: 10;
+        flex-direction: column; justify-content: center; align-items: center;
+    }
+    #modalEditContainer {
+        position: relative; width: 100%; height: 100%; 
+        border: 2px dashed #31a3fa; overflow: hidden;
+    }
+    #modalEditingImage {
+        position: absolute; top: 50%; left: 50%; 
+        transform: translate(-50%, -50%); 
+        cursor: grab; touch-action: none; max-width: none;
+    }
+    .modal-edit-controls {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        background: #222; border-radius: 30px; padding: 10px 20px;
+        display: flex; gap: 15px; align-items: center; width: 90%; max-width: 400px;
+    }
+
+    /* =========================================
+       MODULE: CONTROLS
+       ========================================= */
+    .controls-pill {
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: #222; padding: 10px 25px; border-radius: 50px;
+        display: flex; gap: 25px; z-index: 200; backdrop-filter: blur(8px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333;
+    }
+    .ctrl-btn {
+        background: none; border: none; color: #fff;
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        font-size: 10px; cursor: pointer; min-width: 35px; opacity: 0.7; transition: 0.2s;
+    }
+    .ctrl-btn.active { color: #31a3fa; opacity: 1; font-weight: 700; }
+
+    .toast {
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        background: rgba(30, 41, 59, 0.95); color: #fff; padding: 12px 24px;
+        border-radius: 50px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 99999;
+        display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px;
+    }
+    .toast.show { opacity: 1; top: 90px; }
+    
+    #signImageInput { display: none; }
+  </style>
+</head>
+<body>
+
+  <header class="header-bar">
+    <button class="icon-btn" id="btnBack"><i data-lucide="chevron-left" width="28"></i></button>
+    <div class="header-title">작업완료확인서</div>
+    <div class="header-right">
+        <button class="icon-btn" id="btnReset"><i data-lucide="rotate-ccw"></i></button>
+        <button class="icon-btn" id="btnDownload"><i data-lucide="download"></i></button>
+    </div>
+  </header>
+
+  <div class="viewport" id="viewport">
+    <div class="paper-wrapper" id="paperWrapper">
+      <div class="a4-paper" id="documentArea">
+        <header class="doc-header"><h1 class="doc-title">작 업 완 료 확 인 서</h1></header>
+
+        <table class="info-table">
+            <tr>
+                <th>현 장 명</th>
+                <td><input type="text" value="자이 아파트 101동" placeholder="내용 입력"></td>
+                <th>공 사 명</th>
+                <td><input type="text" placeholder="공사명 입력"></td>
+            </tr>
+            <tr>
+                <th>작 업 자</th>
+                <td><input type="text" placeholder="성명 입력"></td>
+                <th>연락처</th>
+                <td><input type="text" placeholder="010-0000-0000"></td>
+            </tr>
+        </table>
+
+        <div class="section-block">
+            <div class="sec-header">작업내용</div>
+            <textarea style="flex:1; line-height:1.6;" placeholder="상세 내용">* 지하주차장 PC부재 균열보수 완료
+* </textarea>
+        </div>
+
+        <div class="section-block note">
+            <div class="sec-header">특기사항</div>
+            <textarea style="flex:1;" placeholder="특이사항"></textarea>
+        </div>
+
+        <div class="footer-area">
+            <div class="confirm-msg">상기 사항과 같이 작업을 완료하였음을 확인합니다.</div>
+            <input type="text" id="dateField" class="date-input" value="" style="cursor: pointer;" readonly onfocus="this.removeAttribute('readonly');" onblur="if(this.value.trim() === '') { const d = new Date(); this.value = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`; } this.setAttribute('readonly', 'readonly');">
+
+            <div class="sign-grid">
+                <div class="sign-cell-text">
+                    <span class="sign-label-text">소 속 :</span>
+                    <input type="text" class="sign-input-text" value="(주)이노피앤씨" placeholder="소속 입력">
+                </div>
+                <div class="sign-cell-text">
+                    <span class="sign-label-text">성 명 :</span>
+                    <input type="text" class="sign-input-text" placeholder="이름 입력">
+                </div>
+                
+                <div class="sign-cell-canvas" id="triggerSignModal">
+                    <div class="sign-label-canvas">확인자 (서명)</div>
+                    <div class="display-canvas-wrapper">
+                        <canvas id="paperSignCanvas"></canvas>
+                        <div class="click-guide" id="clickGuideText">서명하려면 터치</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="recipient-row">
+                <input type="text" class="recipient-input" placeholder="회사명"> 
+                <span style="font-size: 20px;">귀중</span>
+            </div>
+        </div>
+      </div> 
+    </div>
+  </div>
+
+  <div class="controls-pill">
+    <button class="ctrl-btn" id="btnZoomOut"><i data-lucide="minus"></i>축소</button>
+    <button class="ctrl-btn" id="btnPanToggle"><i data-lucide="hand"></i>이동</button>
+    <button class="ctrl-btn" id="btnZoomIn"><i data-lucide="plus"></i>확대</button>
+    <button class="ctrl-btn" id="btnShare"><i data-lucide="share-2"></i>공유</button>
+  </div>
+
+  <div class="toast" id="toast"><i data-lucide="check" size="18"></i> <span id="toastMsg">완료</span></div>
+
+  <div class="sign-modal" id="signModal">
+      <div class="modal-content">
+          <div class="modal-header">
+              <span class="modal-title">서명 또는 도장 입력</span>
+              <button class="close-btn" id="btnCloseModalX"><i data-lucide="x"></i></button>
+          </div>
+          
+          <div class="modal-body">
+              <canvas id="modalCanvas"></canvas>
+              
+              <div id="modalEditLayer">
+                  <div id="modalEditContainer">
+                      <img id="modalEditingImage" src="" alt="Stamp" draggable="false">
+                  </div>
+                  <div class="modal-edit-controls">
+                      <span style="color:#fff; font-size:12px; white-space:nowrap;">크기</span>
+                      <input type="range" id="modalScaleSlider" min="0.1" max="2.0" step="0.05" value="0.5" style="flex:1;">
+                      <button class="mini-btn" id="btnEditCancel">취소</button>
+                      <button class="mini-btn active" id="btnEditApply">적용</button>
+                  </div>
+              </div>
+          </div>
+
+          <div class="sign-tools-bar" id="signToolsBar">
+              <button class="mini-btn active" id="btnPen" style="margin-right:4px;"><i data-lucide="pen-tool" width="14"></i> 펜</button>
+              <button class="mini-btn" id="btnEraser" style="margin-right:10px;"><i data-lucide="eraser" width="14"></i> 지우개</button>
+              
+              <button class="uu-btn dashed type-gray-secondary" id="btnImport" style="height:40px; font-size:13px; padding:0 12px; margin-right:4px;">
+                  <i data-lucide="image-plus" width="16"></i> 도장/사진
+              </button>
+              
+              <button class="mini-btn" id="btnUndo"><i data-lucide="undo-2" width="14"></i></button>
+              <button class="mini-btn" id="btnClear"><i data-lucide="trash-2" width="14"></i></button>
+              <input type="file" id="signImageInput" accept="image/*">
+          </div>
+
+          <div class="modal-footer">
+              <button class="uu-btn dashed type-gray-secondary" id="btnCancelModal">취소</button>
+              <button class="uu-btn solid type-blue" id="btnConfirmModal">서명 완료</button>
+          </div>
+      </div>
+  </div>
+
+<script>
+    /* UI 유틸리티 */
+    class UiUtils {
+        constructor() {
+            this.toastEl = document.getElementById('toast');
+            this.toastMsgEl = document.getElementById('toastMsg');
+            this.timer = null;
+        }
+        showToast(msg) {
+            this.toastMsgEl.innerText = msg;
+            this.toastEl.classList.add('show');
+            clearTimeout(this.timer);
+            this.timer = setTimeout(() => this.toastEl.classList.remove('show'), 2000);
+        }
+    }
+
+    /* 뷰어 매니저 (줌/팬 - 중앙 정렬 수정) */
+    class ViewerManager {
+        constructor(uiUtils) {
+            this.ui = uiUtils;
+            this.viewport = document.getElementById('viewport');
+            this.paperWrapper = document.getElementById('paperWrapper');
+            this.btnPan = document.getElementById('btnPanToggle');
+            this.zoomLevel = 1.0;
+            this.isPanning = false; // 손바닥(이동) 모드 여부
+            this.startX = 0; this.startY = 0;
+            this.pointX = 0; this.pointY = 0;
+            this.bindEvents();
+        }
+        bindEvents() {
+            document.getElementById('btnZoomIn').addEventListener('click', () => this.adjustZoom(0.1));
+            document.getElementById('btnZoomOut').addEventListener('click', () => this.adjustZoom(-0.1));
+            this.btnPan.addEventListener('click', () => this.togglePan());
+            
+            const startPan = (e) => {
+                if(!this.isPanning) return;
+                if(['INPUT','TEXTAREA','BUTTON'].includes(e.target.tagName)) return;
+                // 서명 영역에서는 페이지 전체 이동 대신 서명만 이동하도록, 여기서는 팬을 막음
+                if (e.target.id === 'paperSignCanvas' || (e.target.closest && e.target.closest('.sign-cell-canvas'))) {
+                    return;
+                }
+                e.preventDefault();
+                const cx = e.touches ? e.touches[0].clientX : e.clientX;
+                const cy = e.touches ? e.touches[0].clientY : e.clientY;
+                this.startX = cx - this.pointX;
+                this.startY = cy - this.pointY;
+
+                const moveHandler = (ev) => {
+                    ev.preventDefault();
+                    const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                    const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+                    this.pointX = mx - this.startX;
+                    this.pointY = my - this.startY;
+                    this.updateTransform();
+                };
+                const upHandler = () => {
+                    document.removeEventListener('mousemove', moveHandler);
+                    document.removeEventListener('mouseup', upHandler);
+                    document.removeEventListener('touchmove', moveHandler);
+                    document.removeEventListener('touchend', upHandler);
+                };
+                document.addEventListener('mousemove', moveHandler);
+                document.addEventListener('mouseup', upHandler);
+                document.addEventListener('touchmove', moveHandler, {passive: false});
+                document.addEventListener('touchend', upHandler);
+            };
+
+            this.viewport.addEventListener('mousedown', startPan);
+            this.viewport.addEventListener('touchstart', startPan, {passive:false});
+
+            window.addEventListener('resize', () => {
+                clearTimeout(this.resizeTimer);
+                this.resizeTimer = setTimeout(() => this.fitToWidth(), 200);
+            });
+            setTimeout(() => this.fitToWidth(), 100);
+        }
+        fitToWidth() {
+            const viewportW = this.viewport.clientWidth;
+            const contentW = 854; // A4 px width
+            let scale = viewportW / contentW;
+            if(scale > 1.1) scale = 1.0; 
+            this.zoomLevel = scale;
+            // 리셋 시 중앙 정렬을 위해 위치 초기화
+            this.pointX = 0;
+            this.pointY = 0;
+            this.updateTransform();
+        }
+        adjustZoom(delta) {
+            this.zoomLevel = Math.max(0.3, this.zoomLevel + delta);
+            this.updateTransform();
+        }
+        togglePan() {
+            this.isPanning = !this.isPanning;
+            this.btnPan.classList.toggle('active', this.isPanning);
+            this.viewport.classList.toggle('panning', this.isPanning);
+            this.ui.showToast(this.isPanning ? "이동 모드" : "입력 모드");
+        }
+        updateTransform() {
+            this.paperWrapper.style.transform = `translate(${this.pointX}px, ${this.pointY}px) scale(${this.zoomLevel})`;
+        }
+    }
+
+    /* 서명 매니저 (사진 적용 오류 수정) */
+    class SignatureManager {
+        constructor(uiUtils, viewerManager) {
+            this.ui = uiUtils;
+            this.viewer = viewerManager; // 손바닥(이동) 모드 상태 참조
+            
+            this.triggerBtn = document.getElementById('triggerSignModal');
+            this.paperCanvas = document.getElementById('paperSignCanvas');
+            this.guideText = document.getElementById('clickGuideText');
+            
+            this.modal = document.getElementById('signModal');
+            this.modalCanvas = document.getElementById('modalCanvas');
+            this.fileInput = document.getElementById('signImageInput');
+            
+            this.editLayer = document.getElementById('modalEditLayer');
+            this.editImg = document.getElementById('modalEditingImage');
+            this.editContainer = document.getElementById('modalEditContainer');
+            this.scaleSlider = document.getElementById('modalScaleSlider');
+            
+            this.backgroundImages = []; 
+            this.pad = null;
+            this.isOpen = false;
+            
+            this.imgState = { x: 0, y: 0, scale: 0.5 };
+            this.isDraggingImg = false;
+            this.dragStart = { x: 0, y: 0 };
+
+            // 서명 적용 후 A4 서명칸에서 이동을 위한 상태
+            this.paperSignature = null; // { img, w, h, x, y }
+            this.paperDrag = {
+                isDragging: false,
+                startX: 0,
+                startY: 0,
+                baseX: 0,
+                baseY: 0
+            };
+
+            this.init();
+        }
+
+        init() {
+            this.pad = new SignaturePad(this.modalCanvas, {
+                minWidth: 1.0, maxWidth: 3.0, penColor: '#000', throttle: 8
+            });
+
+            this.triggerBtn.addEventListener('click', () => this.openModal());
+            document.getElementById('btnCloseModalX').addEventListener('click', () => this.closeModal());
+            document.getElementById('btnCancelModal').addEventListener('click', () => this.closeModal());
+            document.getElementById('btnConfirmModal').addEventListener('click', () => this.applySignature());
+
+            document.getElementById('btnPen').addEventListener('click', (e) => this.setTool('pen', e.target));
+            document.getElementById('btnEraser').addEventListener('click', (e) => this.setTool('eraser', e.target));
+            document.getElementById('btnUndo').addEventListener('click', () => this.undo());
+            document.getElementById('btnClear').addEventListener('click', () => this.clearAll());
+            
+            document.getElementById('btnImport').addEventListener('click', () => this.fileInput.click());
+            this.fileInput.addEventListener('change', (e) => this.handleFile(e));
+
+            document.getElementById('btnEditCancel').addEventListener('click', () => this.closeEditor());
+            
+            // [오류 수정]: 적용 버튼 클릭 시 이미지 좌표 변환 로직 개선
+            document.getElementById('btnEditApply').addEventListener('click', () => this.applyEditorImage());
+            
+            this.scaleSlider.addEventListener('input', (e) => {
+                this.imgState.scale = parseFloat(e.target.value);
+                this.updateImgTransform();
+            });
+            
+            this.editImg.addEventListener('mousedown', (e) => this.startDrag(e));
+            this.editImg.addEventListener('touchstart', (e) => this.startDrag(e), {passive:false});
+            
+            new ResizeObserver(() => this.resizePaperCanvas()).observe(this.paperCanvas.parentElement);
+
+            // 서명 적용 후 캔버스에서 위치 이동 가능하도록 드래그 이벤트 추가
+            this.paperCanvas.addEventListener('mousedown', (e) => this.startPaperDrag(e));
+            this.paperCanvas.addEventListener('touchstart', (e) => this.startPaperDrag(e), { passive: false });
+        }
+
+        openModal() {
+            this.isOpen = true;
+            this.modal.classList.add('open');
+            setTimeout(() => {
+                this.resizeModalCanvas();
+            }, 100);
+        }
+
+        closeModal() {
+            this.isOpen = false;
+            this.modal.classList.remove('open');
+            this.closeEditor();
+        }
+
+        resizeModalCanvas() {
+            const container = this.modalCanvas.parentElement;
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            
+            const w = container.clientWidth;
+            const h = container.clientHeight;
+            
+            if (this.modalCanvas.width !== w * ratio) {
+                const data = this.pad.toData(); 
+                
+                this.modalCanvas.width = w * ratio;
+                this.modalCanvas.height = h * ratio;
+                this.modalCanvas.getContext('2d').scale(ratio, ratio);
+                
+                this.pad.clear();
+                this.redrawBackgrounds(); 
+                this.pad.fromData(data); 
+            }
+        }
+        
+        setTool(type, btn) {
+            // 버튼 스타일 클래스가 달라서 선택자 수정
+            const allBtns = document.querySelectorAll('.sign-tools-bar button');
+            allBtns.forEach(b => b.classList.remove('active'));
+            (btn.closest('button') || btn).classList.add('active');
+            
+            if(type === 'eraser') {
+                this.pad.compositeOperation = 'destination-out';
+                this.pad.minWidth = 10; this.pad.maxWidth = 20;
+            } else {
+                this.pad.compositeOperation = 'source-over';
+                this.pad.minWidth = 1; this.pad.maxWidth = 3;
+            }
+        }
+
+        undo() {
+            const data = this.pad.toData();
+            if (data && data.length > 0) {
+                data.pop();
+                this.pad.fromData(data);
+            } else if (this.backgroundImages.length > 0) {
+                this.backgroundImages.pop();
+                this.resizeModalCanvas(); 
+                this.ui.showToast("이미지 삭제됨");
+            }
+        }
+
+        clearAll() {
+            if(confirm("모두 지우시겠습니까?")) {
+                this.pad.clear();
+                this.backgroundImages = [];
+                this.resizeModalCanvas();
+            }
+        }
+
+        handleFile(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                const img = new Image();
+                img.onload = () => {
+                    const processedUrl = this.processImage(img);
+                    this.openEditor(processedUrl);
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        }
+
+        processImage(img) {
+            const c = document.createElement('canvas');
+            const w = img.width, h = img.height;
+            const max = 800;
+            let scale = 1;
+            if(w > max || h > max) scale = max / Math.max(w,h);
+            
+            c.width = w * scale; c.height = h * scale;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            
+            const idata = ctx.getImageData(0,0,c.width,c.height);
+            const data = idata.data;
+            for(let i=0; i<data.length; i+=4) {
+                const avg = (data[i]+data[i+1]+data[i+2])/3;
+                if(avg > 200) data[i+3] = 0; 
+                else {
+                    data[i] = data[i+1] = data[i+2] = 0; 
+                }
+            }
+            ctx.putImageData(idata, 0,0);
+            return c.toDataURL();
+        }
+
+        openEditor(src) {
+            this.editImg.src = src;
+            this.editLayer.style.display = 'flex';
+            this.imgState = { x: 0, y: 0, scale: 0.5 };
+            this.scaleSlider.value = 0.5;
+            this.updateImgTransform();
+        }
+        
+        closeEditor() {
+            this.editLayer.style.display = 'none';
+        }
+
+        updateImgTransform() {
+            this.editImg.style.transform = `translate(-50%, -50%) translate(${this.imgState.x}px, ${this.imgState.y}px) scale(${this.imgState.scale})`;
+        }
+
+        startDrag(e) {
+            e.preventDefault();
+            this.isDraggingImg = true;
+            const cx = e.touches ? e.touches[0].clientX : e.clientX;
+            const cy = e.touches ? e.touches[0].clientY : e.clientY;
+            this.dragStart = { x: cx - this.imgState.x, y: cy - this.imgState.y };
+            
+            const move = (ev) => {
+                if(!this.isDraggingImg) return;
+                ev.preventDefault();
+                const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+                this.imgState.x = mx - this.dragStart.x;
+                this.imgState.y = my - this.dragStart.y;
+                this.updateImgTransform();
+            };
+            const end = () => {
+                this.isDraggingImg = false;
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', end);
+                document.removeEventListener('touchmove', move);
+                document.removeEventListener('touchend', end);
+            };
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', end);
+            document.addEventListener('touchmove', move, {passive:false});
+            document.addEventListener('touchend', end);
+        }
+
+        /* [핵심 수정] 이미지 적용 로직: 좌표 계산 버그 수정 및 Context 처리 */
+        applyEditorImage() {
+            const imgRect = this.editImg.getBoundingClientRect();
+            const containerRect = this.editContainer.getBoundingClientRect();
+            
+            // 편집 컨테이너 기준 이미지 중심 좌표를 구함
+            const imgCenterX = imgRect.left + imgRect.width / 2;
+            const imgCenterY = imgRect.top + imgRect.height / 2;
+            const contCenterX = containerRect.left + containerRect.width / 2;
+            const contCenterY = containerRect.top + containerRect.height / 2;
+
+            // 컨테이너 대비 상대 위치(-0.5 ~ 0.5 정도의 비율)
+            const relX = (imgCenterX - contCenterX) / containerRect.width;
+            const relY = (imgCenterY - contCenterY) / containerRect.height;
+
+            // 캔버스 내부 해상도와 컨테이너 CSS 크기 비율 계산 (Retina 대응)
+            const ratioX = this.modalCanvas.width / containerRect.width;
+            const ratioY = this.modalCanvas.height / containerRect.height;
+
+            // 이미지 실제 그려질 크기
+            const w = imgRect.width * ratioX;
+            const h = imgRect.height * ratioY;
+
+            // 모달 캔버스의 중심 좌표
+            const canvasCenterX = this.modalCanvas.width / 2;
+            const canvasCenterY = this.modalCanvas.height / 2;
+
+            // 상대 위치를 모달 캔버스 좌표계로 변환하여 중심을 이동
+            const drawCenterX = canvasCenterX + relX * this.modalCanvas.width;
+            const drawCenterY = canvasCenterY + relY * this.modalCanvas.height;
+
+            // 최종 그리기 좌측 상단 좌표
+            const x = drawCenterX - w / 2;
+            const y = drawCenterY - h / 2;
+            
+            const imgObj = new Image();
+            imgObj.onload = () => {
+                // 항상 새 도장으로 추가
+                this.backgroundImages.push({ img: imgObj, x, y, w, h });
+                // 캔버스 크기가 변하지 않는 경우에도 바로 다시 그려지도록 수정
+                this.redrawBackgrounds();
+                this.closeEditor();
+            };
+            // Base64 소스 할당
+            imgObj.src = this.editImg.src; 
+        }
+
+        redrawBackgrounds() {
+            const ctx = this.modalCanvas.getContext('2d');
+            const prevComp = ctx.globalCompositeOperation;
+            
+            // 기존 펜선 뒤에 그려지도록 설정
+            ctx.globalCompositeOperation = 'destination-over'; 
+            
+            this.backgroundImages.forEach(item => {
+                ctx.drawImage(item.img, item.x, item.y, item.w, item.h);
+            });
+            
+            ctx.globalCompositeOperation = prevComp;
+        }
+
+        resizePaperCanvas() {
+            const w = this.paperCanvas.parentElement.clientWidth;
+            const h = this.paperCanvas.parentElement.clientHeight;
+            if(!w || !h) return;
+            
+            const ratio = 2; 
+            this.paperCanvas.width = w * ratio;
+            this.paperCanvas.height = h * ratio;
+
+            // 캔버스 크기가 변할 때도 현재 서명 위치를 유지하도록 다시 그림
+            if (this.paperSignature) {
+                this.renderPaperSignature();
+            }
+        }
+
+        applySignature() {
+            if (this.pad.isEmpty() && this.backgroundImages.length === 0) {
+                this.ui.showToast("서명 내용이 없습니다.");
+                return;
+            }
+
+            const dataURL = this.modalCanvas.toDataURL("image/png");
+            
+            const img = new Image();
+            img.onload = () => {
+                const ctx = this.paperCanvas.getContext('2d');
+                const pw = this.paperCanvas.width;
+                const ph = this.paperCanvas.height;
+                const iw = img.width;
+                const ih = img.height;
+
+                const canvasRatio = pw / ph;
+                const imgRatio = iw / ih;
+
+                let drawW, drawH, offsetX, offsetY;
+                const marginScale = 0.9; // 살짝 여백을 두기 위한 스케일
+
+                if (imgRatio > canvasRatio) {
+                    // 이미지가 더 가로로 긴 경우: 폭을 기준으로 맞추고 세로는 비율대로
+                    drawW = pw * marginScale;
+                    drawH = drawW / imgRatio;
+                } else {
+                    // 이미지가 더 세로로 긴 경우: 높이를 기준으로 맞추고 가로는 비율대로
+                    drawH = ph * marginScale;
+                    drawW = drawH * imgRatio;
+                }
+
+                offsetX = (pw - drawW) / 2;
+                offsetY = (ph - drawH) / 2;
+
+                // 서명 상태를 저장해 두고, 다른 곳에서도 다시 그릴 수 있게 함
+                this.paperSignature = {
+                    img,
+                    w: drawW,
+                    h: drawH,
+                    x: offsetX,
+                    y: offsetY
+                };
+
+                this.renderPaperSignature();
+                
+                this.guideText.style.display = 'none';
+                this.closeModal();
+                this.ui.showToast("서명이 적용되었습니다");
+            };
+            img.src = dataURL;
+        }
+        
+        clearPaper() {
+            const ctx = this.paperCanvas.getContext('2d');
+            ctx.clearRect(0, 0, this.paperCanvas.width, this.paperCanvas.height);
+            this.guideText.style.display = 'block';
+            this.clearAll(); 
+            this.paperSignature = null;
+        }
+
+        // A4 서명 칸에 서명을 그리는 공통 함수
+        renderPaperSignature() {
+            const ctx = this.paperCanvas.getContext('2d');
+            ctx.clearRect(0, 0, this.paperCanvas.width, this.paperCanvas.height);
+            if (!this.paperSignature) return;
+            const s = this.paperSignature;
+            ctx.drawImage(s.img, s.x, s.y, s.w, s.h);
+        }
+
+        // 서명 캔버스에서 드래그 시작 (손바닥 버튼이 켜져 있을 때만)
+        startPaperDrag(e) {
+            if (!this.paperSignature) return; // 서명이 없으면 이동 불가
+            if (!this.viewer || !this.viewer.isPanning) return; // 이동(손바닥) 모드가 아닐 때는 이동 금지
+            e.preventDefault();
+
+            const rect = this.paperCanvas.getBoundingClientRect();
+            const isTouch = !!e.touches;
+            const cx = isTouch ? e.touches[0].clientX : e.clientX;
+            const cy = isTouch ? e.touches[0].clientY : e.clientY;
+
+            this.paperDrag.isDragging = true;
+            this.paperDrag.startX = cx;
+            this.paperDrag.startY = cy;
+            this.paperDrag.baseX = this.paperSignature.x;
+            this.paperDrag.baseY = this.paperSignature.y;
+
+            const move = (ev) => {
+                if (!this.paperDrag.isDragging) return;
+                ev.preventDefault();
+                const mx = ev.touches ? ev.touches[0].clientX : ev.clientX;
+                const my = ev.touches ? ev.touches[0].clientY : ev.clientY;
+
+                // 화면 좌표 -> 캔버스 좌표 변환 비율
+                const ratioX = this.paperCanvas.width / rect.width;
+                const ratioY = this.paperCanvas.height / rect.height;
+
+                const dx = (mx - this.paperDrag.startX) * ratioX;
+                const dy = (my - this.paperDrag.startY) * ratioY;
+
+                this.paperSignature.x = this.paperDrag.baseX + dx;
+                this.paperSignature.y = this.paperDrag.baseY + dy;
+                this.renderPaperSignature();
+            };
+
+            const end = () => {
+                this.paperDrag.isDragging = false;
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('mouseup', end);
+                document.removeEventListener('touchmove', move);
+                document.removeEventListener('touchend', end);
+            };
+
+            document.addEventListener('mousemove', move);
+            document.addEventListener('mouseup', end);
+            document.addEventListener('touchmove', move, { passive: false });
+            document.addEventListener('touchend', end);
+        }
+    }
+
+    /* 내보내기 (PDF/공유) */
+    class Exporter {
+        constructor(uiUtils) {
+            this.ui = uiUtils;
+            this.paperWrapper = document.getElementById('paperWrapper');
+            this.documentArea = document.getElementById('documentArea');
+            document.getElementById('btnDownload').addEventListener('click', () => this.savePDF());
+            document.getElementById('btnShare').addEventListener('click', () => this.shareContent());
+        }
+
+        async prepareCapture() {
+            const originalTransform = this.paperWrapper.style.transform;
+            const originalMargin = this.paperWrapper.style.margin;
+            
+            const inputs = document.querySelectorAll('input, textarea');
+            const placeholders = [];
+            inputs.forEach(el => {
+                placeholders.push({el, val: el.placeholder});
+                el.placeholder = "";
+            });
+            
+            // "서명하려면 터치" 텍스트 숨기기
+            const guideText = document.getElementById('clickGuideText');
+            const guideTextDisplay = guideText ? guideText.style.display : null;
+            if (guideText) {
+                guideText.style.display = 'none';
+            }
+
+            this.paperWrapper.style.transform = 'scale(1)';
+            this.paperWrapper.style.margin = '0';
+            document.body.classList.add('clean-mode');
+            
+            await new Promise(r => setTimeout(r, 100));
+
+            return () => {
+                this.paperWrapper.style.transform = originalTransform;
+                this.paperWrapper.style.margin = originalMargin;
+                document.body.classList.remove('clean-mode');
+                placeholders.forEach(item => item.el.placeholder = item.val);
+                // "서명하려면 터치" 텍스트 복원
+                if (guideText) {
+                    guideText.style.display = guideTextDisplay || '';
+                }
+            };
+        }
+
+        async savePDF() {
+            this.ui.showToast("PDF 생성 중...");
+            const restore = await this.prepareCapture();
+            try {
+                const canvas = await html2canvas(this.documentArea, {
+                    scale: 2, useCORS: true, backgroundColor: "#ffffff"
+                });
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pW = pdf.internal.pageSize.getWidth();
+                const pH = pdf.internal.pageSize.getHeight();
+                const imgH = canvas.height * pW / canvas.width;
+                
+                if (imgH <= pH) {
+                    // 세로 가운데 정렬: 상단과 하단 여백을 동일하게 설정
+                    const totalMargin = pH - imgH;
+                    const topMargin = totalMargin / 2; // 정확히 절반으로 나누어 세로 가운데 정렬
+                    pdf.addImage(imgData, 'JPEG', 0, topMargin, pW, imgH);
+                } else {
+                    const ratio = pH / imgH;
+                    pdf.addImage(imgData, 'JPEG', 0, 0, pW * ratio, imgH * ratio);
+                }
+                
+                pdf.save(`작업완료확인서_${this.getDateStr()}.pdf`);
+                this.ui.showToast("저장되었습니다!");
+            } catch(e) {
+                console.error(e);
+                this.ui.showToast("저장 실패");
+            } finally {
+                restore();
+            }
+        }
+
+        async shareContent() {
+            if(!navigator.share) { alert("공유 기능을 지원하지 않는 브라우저입니다."); return; }
+            this.ui.showToast("이미지 생성 중...");
+            const restore = await this.prepareCapture();
+            try {
+                const canvas = await html2canvas(this.documentArea, { scale: 2, useCORS: true });
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], "confirmation.jpg", { type: "image/jpeg" });
+                    await navigator.share({ title: '작업확인서', files: [file] });
+                }, 'image/jpeg', 0.9);
+            } catch(e) {
+                this.ui.showToast("공유 실패");
+            } finally {
+                restore();
+            }
+        }
+        
+        getDateStr() {
+            const d = new Date();
+            return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+        }
+    }
+
+    /* 메인 앱 초기화 */
+    class App {
+        constructor() {
+            // iframe 모드 감지 (헤더 숨김용)
+            const isIframe = window.self !== window.top;
+            if (isIframe) {
+                document.body.classList.add('iframe-mode');
+            }
+            
+            this.ui = new UiUtils();
+            this.viewer = new ViewerManager(this.ui);
+            // 서명 매니저가 손바닥(이동) 상태를 알 수 있도록 viewer를 함께 전달
+            this.signer = new SignatureManager(this.ui, this.viewer);
+            this.exporter = new Exporter(this.ui);
+            
+            document.getElementById('btnBack').addEventListener('click', () => { if(confirm("종료하시겠습니까?")) history.back(); });
+            document.getElementById('btnReset').addEventListener('click', () => {
+                if(confirm("모든 입력을 초기화하시겠습니까?")) {
+                    document.querySelectorAll('input, textarea').forEach(el => el.value = '');
+                    this.signer.clearPaper();
+                    this.ui.showToast("초기화 완료");
+                }
+            });
+            
+            const d = new Date();
+            document.getElementById('dateField').value = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+            
+            // Lucide 아이콘 초기화
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => { new App(); });
+</script>
+</body>
+</html>

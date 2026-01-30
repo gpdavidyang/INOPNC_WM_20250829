@@ -26,7 +26,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
           <h3 className="section-title">도면마킹</h3>
         </div>
         <div className="media-cta-banner" role="note">
-          <p className="media-cta-text">도면 업로드·마킹·작업일지 연결을 전용 탭에서 처리하세요.</p>
+          <p className="media-cta-text">사진 도면 관리 페이지로 이동</p>
           <Link
             href={drawingMediaHref}
             className="media-cta-button"

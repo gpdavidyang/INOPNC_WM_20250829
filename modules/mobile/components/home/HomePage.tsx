@@ -7,7 +7,13 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
+import { useLaborHourOptions } from '@/hooks/use-labor-hour-options'
 import { useWorkOptions } from '@/hooks/use-work-options'
+import {
+  FALLBACK_LABOR_HOUR_DEFAULT,
+  FALLBACK_LABOR_HOUR_OPTIONS,
+  normalizeLaborHourOptions,
+} from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/client'
 import { MaterialEntry, useCreateWorklog } from '@/modules/mobile/hooks/use-worklog-mutations'
 import { useAuth } from '@/modules/mobile/providers/AuthProvider'
@@ -30,12 +36,6 @@ import { NumberInput } from './NumberInput'
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { QuickMenu } from './QuickMenu'
 import { SummarySection } from './SummarySection'
-import { useLaborHourOptions } from '@/hooks/use-labor-hour-options'
-import {
-  FALLBACK_LABOR_HOUR_DEFAULT,
-  FALLBACK_LABOR_HOUR_OPTIONS,
-  normalizeLaborHourOptions,
-} from '@/lib/labor/labor-hour-options'
 
 const isUuid = (val: string) => /^[0-9a-fA-F-]{36}$/.test(String(val || ''))
 
@@ -119,6 +119,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     [laborHourOptionState]
   )
   const defaultLaborHour = useMemo(() => {
+    // 1.0이 옵션에 있다면 최우선으로 기본값 설정
+    if (laborHourValues.includes(1)) {
+      return 1
+    }
     const positive = laborHourValues.find(value => value > 0)
     return typeof positive === 'number'
       ? positive
@@ -924,7 +928,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                 readOnly
                 style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
               />
-              <p className="text-xs text-gray-500 mt-1">현장을 선택하면 자동으로 표시됩니다.</p>
+              <p className="text-xs text-gray-500 mt-1">현장 선택 시 자동 표시 됨</p>
             </div>
           </div>
 
@@ -1321,6 +1325,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         workTypes={normalizedWorkTypes}
         personnelCount={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}
         location={location}
+        materials={materials}
         beforePhotosCount={0}
         afterPhotosCount={0}
         manpower={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}

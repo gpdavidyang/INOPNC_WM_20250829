@@ -1,12 +1,12 @@
 'use client'
 
-import Image from 'next/image'
-import React from 'react'
-import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
-import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { useToast } from '@/components/ui/use-toast'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
 import '@/modules/mobile/styles/worklogs.css'
+import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
+import Image from 'next/image'
+import React from 'react'
 
 type TabKey = 'photos' | 'drawings' | 'completion' | 'others'
 
@@ -342,6 +342,45 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
             </div>
           ))}
         </section>
+
+        {/* Material Usage */}
+        {detail.materials && detail.materials.length > 0 && (
+          <section className="diary-detail-section" style={{ marginTop: 12 }}>
+            <div
+              className="detail-item"
+              style={{
+                borderBottom: '1px solid var(--line, #e6ecf4)',
+                borderRadius: '10px 10px 0 0',
+              }}
+            >
+              <span
+                className="detail-label"
+                style={{ background: 'var(--bg-alt, #f9fafb)', fontWeight: 700 }}
+              >
+                자재 사용 내역
+              </span>
+              <span className="detail-value" style={{ background: 'white' }}></span>
+            </div>
+            {detail.materials.map((m, i) => (
+              <div
+                key={i}
+                className="detail-item"
+                style={{ borderRadius: i === detail.materials!.length - 1 ? '0 0 10px 10px' : '0' }}
+              >
+                <span className="detail-label">{m.material_name}</span>
+                <span className="detail-value">
+                  {m.quantity}
+                  {m.unit || ''}
+                  {m.notes && (
+                    <div style={{ fontSize: '11px', color: '#667085', fontWeight: 400 }}>
+                      {m.notes}
+                    </div>
+                  )}
+                </span>
+              </div>
+            ))}
+          </section>
+        )}
 
         {/* 2x2 tab grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 12 }}>

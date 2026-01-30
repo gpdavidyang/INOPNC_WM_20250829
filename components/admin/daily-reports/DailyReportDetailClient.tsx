@@ -1,23 +1,23 @@
 'use client'
 
-import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { GripVertical, LayoutGrid, List, Loader2, Trash2 } from 'lucide-react'
-import type {
-  UnifiedAttachment,
-  UnifiedDailyReport,
-  UnifiedWorkerEntry,
-  AdditionalPhotoData,
-} from '@/types/daily-reports'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useToast } from '@/components/ui/use-toast'
 import {
   integratedResponseToUnifiedReport,
   type AdminIntegratedResponse,
 } from '@/lib/daily-reports/unified-admin'
-import { useToast } from '@/components/ui/use-toast'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
+import type {
+  AdditionalPhotoData,
+  UnifiedAttachment,
+  UnifiedDailyReport,
+  UnifiedWorkerEntry,
+} from '@/types/daily-reports'
+import { GripVertical, LayoutGrid, List, Loader2, Trash2 } from 'lucide-react'
+import Image from 'next/image'
+import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
 
 interface DailyReportDetailClientProps {
   reportId: string
@@ -554,7 +554,51 @@ export default function DailyReportDetailClient({
     return (report?.workProcesses || []).filter(value => !!value && value.trim().length > 0)
   }, [report?.workEntries, report?.workProcesses])
 
-  const renderWorkEntries = () => {
+  const renderTaskGroups = () => {
+    // 1. Try rendering taskGroups if available (New Schema)
+    if (report?.taskGroups && report.taskGroups.length > 0) {
+      return (
+        <div className="space-y-4">
+          {report.taskGroups.map((group, index) => (
+            <div key={index} className="rounded border p-3 text-sm bg-muted/20">
+              <div className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
+                  작업 {index + 1}
+                </span>
+              </div>
+              <div className="grid gap-2 text-muted-foreground">
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <span className="text-xs font-medium self-center">부재명</span>
+                  <div className="text-foreground">{renderArray(group.memberTypes)}</div>
+                </div>
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <span className="text-xs font-medium self-center">작업공정</span>
+                  <div className="text-foreground">{renderArray(group.workProcesses)}</div>
+                </div>
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <span className="text-xs font-medium self-center">작업유형</span>
+                  <div className="text-foreground">{renderArray(group.workTypes)}</div>
+                </div>
+                <div className="grid grid-cols-[80px_1fr] gap-2">
+                  <span className="text-xs font-medium self-center">작업위치</span>
+                  <div className="text-foreground">
+                    {[
+                      group.location?.block ? `${group.location.block}블록` : '',
+                      group.location?.dong ? `${group.location.dong}동` : '',
+                      group.location?.unit ? `${group.location.unit}층` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ') || '-'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    // 2. Legacy fallback
     if (!report?.workEntries || report.workEntries.length === 0) {
       return <div className="text-sm text-muted-foreground">등록된 작업 내역이 없습니다.</div>
     }
@@ -1231,7 +1275,7 @@ export default function DailyReportDetailClient({
                 </div>
               </div>
             </div>
-            {renderWorkEntries()}
+            {renderTaskGroups()}
           </CardContent>
         </Card>
 
@@ -1244,15 +1288,21 @@ export default function DailyReportDetailClient({
             <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-3">
               <div>
                 <div className="text-xs">블럭</div>
-                <div className="text-foreground font-medium">{report.location?.block || '-'}</div>
+                <div className="text-foreground font-medium">
+                  {report.location?.block ? `${report.location.block}블록` : '-'}
+                </div>
               </div>
               <div>
                 <div className="text-xs">동</div>
-                <div className="text-foreground font-medium">{report.location?.dong || '-'}</div>
+                <div className="text-foreground font-medium">
+                  {report.location?.dong ? `${report.location.dong}동` : '-'}
+                </div>
               </div>
               <div>
                 <div className="text-xs">호수 / 층</div>
-                <div className="text-foreground font-medium">{report.location?.unit || '-'}</div>
+                <div className="text-foreground font-medium">
+                  {report.location?.unit ? `${report.location.unit}층` : '-'}
+                </div>
               </div>
             </CardContent>
           </Card>

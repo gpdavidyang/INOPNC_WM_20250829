@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>현장 정보 (작업자) - INOPNC</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =================================================================
+       [1. 기존 디자인 시스템 (Master Design Tokens)]
+       ================================================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+      /* [메인 컬러] Sky Blue */
+      --primary: #31a3fa;           
+      --primary-bg: #eaf6ff;        
+      
+      /* [헤더/내비게이션 전용] 진한 Navy */
+      --header-navy: #1a254f;
+      --navy-dark: #1a254f;
+      --navy-btn: #1a254f;
+      
+      /* [로그아웃 버튼 배경 - 기본] */
+      --btn-logout-bg: #1a254f;
+      --btn-logout-text: #ffffff;
+      
+      /* [텍스트 컬러] */
+      --text-main: #111111; 
+      --text-sub: #475569;
+      --text-placeholder: #94a3b8;
+      
+      /* [배경 및 테두리] */
+      --border: #e2e8f0; 
+      --bg-body: #f2f4f6; 
+      --bg-surface: #ffffff;
+      --bg-input: #ffffff;
+      --bg-search-input: #ffffff; 
+      
+      --danger: #ef4444;
+      --del-btn-bg: #fef2f2; 
+
+      /* [배지 컬러] */
+      --badge-gray-bg: #f1f5f9; 
+      --badge-gray-text: #475569; 
+      --badge-gray-border: #e2e8f0;
+
+      --badge-sky-bg: var(--primary-bg); 
+      --badge-sky-text: var(--primary); 
+      --badge-sky-border: var(--primary);
+
+      /* [UI 컴포넌트 규격] */
+      --header-height: 60px;
+      --nav-height: 65px; 
+      --radius-card: 16px;
+      --btn-clear-bg: #cbd5e1; --btn-clear-text: #ffffff;
+      
+      /* [그림자] 카드 테두리 대신 사용 */
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+
+      /* --- [현장정보 전용 토큰] --- */
+      --st-ing-bg: #eff6ff; --st-ing-text: #3b82f6; --st-ing-border: #bfdbfe;
+      --st-wait-bg: #f3e8ff; --st-wait-text: #7c3aed; --st-wait-border: #d8b4fe;
+      --st-done-bg: #f3f4f6; --st-done-text: #4b5563; --st-done-border: #e5e7eb;
+
+      --tag-affil-bg: #e0f2fe; --tag-affil-text: #0284c7; --tag-affil-border: #bae6fd;
+      --tag-gray-bg: #f8fafc; --tag-gray-text: #64748b; --tag-gray-border: #e2e8f0;
+
+      /* Action Buttons */
+      --act-draw-bg: var(--primary-bg); --act-draw-text: var(--primary); --act-draw-border: #bae6fd;
+      --act-ptw-bg: #eff6ff; --act-ptw-text: #2563eb; --act-ptw-border: #dbeafe;
+      --act-log-bg: #f0fdf4; --act-log-text: #166534; --act-log-border: #bbf7d0;
+      --act-req-bg: #f8fafc; --act-req-text: #475569; --act-req-border: #e2e8f0;
+
+      --btn-icon-bg: #eff6ff; --btn-icon-border: #dbeafe; --btn-icon-color: #1e3a8a;
+    }
+
+    /* [다크 모드 시스템] */
+    body.dark-mode {
+      --primary: #31a3fa; --primary-bg: #1e293b;
+      
+      --header-navy: #f1f5f9; 
+      --navy-dark: #f1f5f9;
+      --navy-btn: #3b82f6;
+      
+      --btn-logout-bg: #3b82f6; 
+      --btn-logout-text: #f1f5f9;
+      
+      --text-main: #f1f5f9; --text-sub: #94a3b8; --text-placeholder: #64748b;
+      --border: #334155; --bg-body: #0f172a; --bg-surface: #1e293b; --bg-input: #0f172a;
+      --bg-search-input: #1e293b;
+      --danger: #ef4444;
+      --del-btn-bg: #450a0a;
+
+      --badge-gray-bg: #1e293b; --badge-gray-text: #94a3b8; --badge-gray-border: #334155;
+      --badge-sky-bg: rgba(49, 163, 250, 0.15); --badge-sky-text: #31a3fa; --badge-sky-border: #31a3fa;
+      
+      --shadow-soft: none;
+
+      --st-ing-bg: #172554; --st-ing-text: #60a5fa; --st-ing-border: #1e40af;
+      --st-wait-bg: #2e1065; --st-wait-text: #a78bfa; --st-wait-border: #5b21b6;
+      --st-done-bg: #374151; --st-done-text: #9ca3af; --st-done-border: #4b5563;
+
+      --tag-affil-bg: #0c4a6e; --tag-affil-text: #7dd3fc; --tag-affil-border: #075985;
+      --tag-gray-bg: #1e293b; --tag-gray-text: #94a3b8; --tag-gray-border: #334155;
+
+      --act-draw-bg: #0c4a6e; --act-draw-text: #7dd3fc; --act-draw-border: #075985;
+      --act-ptw-bg: #1e3a8a; --act-ptw-text: #93c5fd; --act-ptw-border: #1d4ed8;
+      --act-log-bg: #14532d; --act-log-text: #bbf7d0; --act-log-border: #166534;
+      --act-req-bg: #334155; --act-req-text: #e2e8f0; --act-req-border: #475569;
+
+      --btn-icon-bg: #1e293b; --btn-icon-border: #334155; --btn-icon-color: #94a3b8;
+    }
+
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+    
+    body {
+      font-family: var(--font-main); font-size: 17px; color: var(--text-main); background-color: var(--bg-body);
+      line-height: 1.5; 
+      padding-top: 20px; 
+      padding-bottom: 20px; 
+      transition: background-color 0.3s, color 0.3s;
+    }
+    button, select, input, textarea { font-family: var(--font-main); outline: none; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; }
+    a { text-decoration: none; color: inherit; }
+
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 12px 16px 20px 16px; }
+
+    /* --- [Search & Card Styles] --- */
+    .search-input-local, .search-input-global { 
+        width: 100%; height: 54px; border-radius: 16px; 
+        background: #ffffff; 
+        border: 1px solid transparent; 
+        padding: 0 48px 0 22px; font-size: 17px; color: var(--text-main); font-weight: 500; 
+        transition: all 0.2s; 
+        box-shadow: var(--shadow-soft);
+    }
+    
+    .search-input-local:hover, .search-input-global:hover { background-color: var(--bg-surface); border-color: var(--border); }
+    .search-input-local:focus, .search-input-global:focus { box-shadow: 0 0 0 2px var(--primary); background-color: var(--bg-surface); border-color: transparent; }
+
+    .local-search-wrapper { position: relative; margin-bottom: 12px; margin-top: 4px; display: flex; align-items: center; }
+    .local-search-icon { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); pointer-events: none; width: 20px; transition: opacity 0.2s; }
+    .btn-local-clear { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: var(--btn-clear-bg); color: var(--btn-clear-text); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2; }
+    .btn-local-clear.show { opacity: 1; pointer-events: auto; }
+
+    /* [현장 카드 스타일] */
+    .site-card {
+        background: var(--bg-surface); 
+        border: none; 
+        box-shadow: var(--shadow-soft); 
+        border-radius: var(--radius-card); 
+        padding: 0; overflow: hidden; 
+        transition: 0.2s; margin-bottom: 20px;
+    }
+    
+    body.dark-mode .site-card,
+    body.dark-mode .search-input-local, body.dark-mode .search-input-global {
+        background-color: var(--bg-surface);
+        box-shadow: none; 
+        border: 1px solid var(--border) !important;
+    }
+
+    /* --- [Select Box (Replaced with Custom Dropdown)] --- */
+    .form-select-group { display: flex; gap: 12px; margin-bottom: 20px; }
+    
+    /* 기존 select 스타일 (유지) */
+    .form-select {
+        appearance: none; -webkit-appearance: none; 
+        width: 100%; 
+        height: 54px; 
+        background-color: var(--bg-input); 
+        border: 1px solid var(--border); border-radius: 12px; 
+        padding: 0 40px 0 16px; 
+        font-family: var(--font-main); 
+        font-size: 17px; 
+        font-weight: 500; 
+        color: var(--text-main);
+        background-repeat: no-repeat; background-position: right 16px center; background-size: 20px;
+        cursor: pointer; transition: all 0.2s;
+    }
+    /* 검색 가능한 셀렉트 박스 전용 스타일 */
+    .custom-select-wrapper {
+        position: relative;
+        flex: 1; /* 남은 공간을 모두 차지하도록 설정 */
+    }
+    .custom-select-input {
+        width: 100%;
+        height: 54px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 0 40px 0 16px;
+        font-size: 17px;
+        font-weight: 500;
+        background-color: var(--bg-input);
+        color: var(--text-main);
+        cursor: text;
+        transition: all 0.2s;
+    }
+    .custom-select-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15); outline: none; }
+    .custom-select-icon {
+        position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+        pointer-events: none; color: #333; width: 20px; height: 20px;
+    }
+    body.dark-mode .custom-select-icon { color: #94a3b8; }
+    
+    .custom-options-list {
+        position: absolute; top: 62px; left: 0; right: 0;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 100;
+        display: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .custom-options-list.show { display: block; animation: fadeIn 0.1s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .option-item {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        font-size: 16px;
+        color: var(--text-main);
+        transition: background 0.1s;
+    }
+    .option-item:last-child { border-bottom: none; }
+    .option-item:hover { background-color: var(--bg-body); }
+    .option-item.selected { background-color: var(--primary-bg); color: var(--primary); font-weight: 700; }
+    
+    /* Sort Select (Standard) */
+    #sortFilter {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        /* [수정] 정렬 박스 너비 최적화 */
+        width: 128px; 
+        flex-shrink: 0;
+    }
+    body.dark-mode #sortFilter {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    /* --- [Site Card Internal Styles] --- */
+    .card-header-main { padding: 20px 22px; border-bottom: none; position: relative; }
+    
+    .site-date { font-size: 15px; color: var(--text-sub); font-weight: 500; margin-bottom: 4px; }
+    .site-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .site-name-text { font-size: 20px; font-weight: 800; color: var(--navy-dark); flex: 1; line-height: 1.3; margin-right: 10px; word-break: keep-all; }
+    
+    .site-badge { 
+        position: absolute;
+        top: 0; right: 0; z-index: 10;
+        font-size: 13px; font-weight: 700; padding: 6px 14px;
+        border-radius: 0 0 0 12px;
+        border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; line-height: 1; color: #ffffff; box-shadow: none;
+    }
+    .site-badge.bdg-ing { background: #3b82f6; border-color: #60a5fa; }
+    .site-badge.bdg-wait { background: #8b5cf6; border-color: #a78bfa; }
+    .site-badge.bdg-done { background: #64748b; border-color: #94a3b8; }
+
+    /* [수정] 배지와 아이콘을 한 행에 배치하기 위해 wrap: nowrap 및 overflow hidden 설정 */
+    .site-sub-info { display:flex; align-items:center; justify-content:space-between; width:100%; margin-bottom:12px; flex-wrap:nowrap; }
+    .site-sub-left { display:flex; gap:8px; align-items:center; flex-wrap:nowrap; overflow:hidden; min-width:0; flex:1; }
+    
+    .sub-badge { font-size: 14px; padding: 0 12px; height: 34px; border-radius: 8px; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; font-weight: 600; white-space:nowrap; flex-shrink:0; }
+    .sub-badge.affil { background: var(--tag-affil-bg); color: var(--tag-affil-text); border-color: var(--tag-affil-border); }
+    .sub-badge.direct { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .sub-badge.weather { background: var(--tag-gray-bg); color: var(--tag-gray-text); border-color: var(--tag-gray-border); overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+
+    .indicator-group { display: flex; gap: 6px; align-items: center; padding-left: 8px; border-left: 1px solid var(--border); margin-left: 4px; flex-shrink:0; }
+    .data-icon { color: #cbd5e1; width: 16px; height: 16px; transition: color 0.2s; }
+    .data-icon.active { color: #1a254f; }
+
+    .addr-row { display: flex; align-items: center; justify-content: space-between; padding-top: 4px; }
+    .addr-text { display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-decoration: none; font-size: 17px; color: var(--text-sub); font-weight: 700; }
+    
+    .btn-icon-sq { width: 36px; height: 36px; border-radius: 10px; background: var(--btn-icon-bg); border: 1px solid var(--btn-icon-border); display: flex; align-items: center; justify-content: center; color: var(--btn-icon-color); cursor: pointer; flex-shrink: 0; transition: 0.1s; }
+    .btn-icon-sq:active { transform: scale(0.95); opacity: 0.8; }
+    .btn-star { background: none; border: none; padding: 4px; color: var(--border); transition: 0.2s; cursor: pointer; display: flex; align-items: center; }
+    .btn-star.active { color: var(--primary); fill: var(--primary); }
+
+    .card-body-detail { display: none; padding: 22px; background-color: var(--bg-surface); animation: slideDown 0.3s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .site-card.expanded .card-body-detail { display: block; }
+    .site-card.expanded .toggle-btn-area { background-color: var(--bg-body); border-top: 1px solid var(--border); }
+    .site-card.expanded .chevron-icon { transform: rotate(180deg); }
+    .site-card.expanded .toggle-text { display: none; }
+
+    .stats-row { display: flex; margin-bottom: 0; border-bottom: 1px dashed var(--border); padding: 14px 0; }
+    .stat-item { flex: 1; text-align: center; position: relative; }
+    .stat-item:first-child::after { content: ''; position: absolute; right: 0; top: 10%; height: 80%; width: 1px; background: var(--border); }
+    .stat-label { display: block; font-size: 17px; color: var(--text-sub); margin-bottom: 8px; font-weight: 700; }
+    .stat-val { font-size: 20px; font-weight: 800; color: var(--navy-dark); }
+    .stat-val.danger { color: #ef4444; }
+
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px dashed var(--border); font-size: 15px; }
+    .info-label { display: block; font-size: 17px; color: var(--text-sub); margin-bottom: 8px; font-weight: 700; width: 80px; }
+    .info-val { flex: 1; font-weight: 600; color: var(--text-main); text-align: right; padding-right: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; }
+    
+    .action-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 0; }
+    .act-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 74px; border-radius: 12px; border: 1px solid transparent; cursor: pointer; filter: grayscale(1); opacity: 0.5; transition: 0.1s; }
+    .act-btn.has-data { filter: none; opacity: 1; }
+    .act-btn:active { transform: scale(0.98); opacity: 0.8; }
+    .act-icon { width: 24px; height: 24px; }
+    .act-label { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
+    
+    .act-btn.type-draw { background: var(--act-draw-bg); border-color: var(--act-draw-border); color: var(--act-draw-text); }
+    .act-btn.type-photo { background: #f3e8ff; border-color: #e9d5ff; color: #9333ea; }
+    .act-btn.type-ptw { background: var(--act-ptw-bg); border-color: var(--act-ptw-border); color: var(--act-ptw-text); }
+    .act-btn.type-log { background: var(--act-log-bg); border-color: var(--act-log-border); color: var(--act-log-text); }
+    .act-btn.type-action { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    /* [수정] 상단 구분선 추가 */
+    .toggle-btn-area { height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; gap: 6px; color: var(--text-sub); font-size: 14px; font-weight: 600; border-top: 1px solid var(--border); transition: background-color 0.2s; }
+    .chevron-icon { transition: transform 0.3s; width: 18px; height: 18px; }
+
+    /* --- [Filters & Controls] --- */
+    .filter-controls { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
+    .filter-section { margin-bottom: 16px; overflow: hidden; position: relative; }
+    /* [수정] 필터 칩 가로폭 맞춤 (한 줄) */
+    .filter-row-scroll { display: flex; width: 100%; gap: 6px; overflow-x: hidden; padding-bottom: 4px; align-items: center; justify-content: space-between; }
+    .filter-chip { flex: 1; height: 40px; padding: 0 4px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 100px; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; text-align: center; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); min-width: 0; }
+    .filter-chip.active { background-color: #ffffff; border-color: var(--primary); color: var(--primary); font-weight: 700; box-shadow: 0 2px 8px rgba(49, 163, 250, 0.15); }
+    
+    /* [수정] 추가 버튼 스타일 (요청된 칩 스타일로 복원 및 최적화) */
+    .btn-add-chip {
+        border: 1.5px solid var(--primary) !important;
+        background: var(--primary-bg);
+        color: var(--primary);
+        padding: 0 12px;
+        height: 40px;
+        border-radius: 100px; /* 칩 모양 */
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        transition: all 0.2s;
+        white-space: nowrap;
+        margin-left: 4px;
+        flex-shrink: 0;
+    }
+    .btn-add-chip:active { transform: scale(0.95); opacity: 0.8; }
+
+    .btn-load-more { width: 100%; height: 50px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 100px; color: var(--text-sub); font-weight: 600; font-size: 15px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+
+    /* --- [Overlays] --- */
+    .overlay-backdrop { position: fixed; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1500; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .overlay-backdrop.active { opacity: 1; pointer-events: auto; }
+    
+    /* [수정] 모달 패널 스타일 */
+    .modal-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 360px; background: var(--bg-surface); border-radius: 16px; z-index: 2100; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0; pointer-events: none; transition: 0.3s; }
+    .modal-panel.active { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; color: var(--header-navy); text-align: left; }
+    .modal-panel .form-input { width: 100%; height: 50px; padding: 0 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; color: var(--text-main); background: var(--bg-input); font-weight: 500; margin-bottom: 20px; }
+    
+    /* [수정] 모달 버튼 1:1 비율 및 컬러 (Gray/Navy) */
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-modal { flex: 1; height: 48px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; border: none; }
+    .btn-cancel { background: #f1f5f9; color: var(--text-sub); border: 1px solid var(--border); }
+    .btn-confirm { background: var(--header-navy); color: #ffffff; }
+
+    /* --- [Viewers & Sheets] --- */
+    .backdrop-sheet { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; opacity: 0; pointer-events: none; transition: 0.2s; }
+    .backdrop-sheet.active { opacity: 1; pointer-events: auto; }
+    .bottom-sheet { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-radius: 20px 20px 0 0; padding: 24px; z-index: 2100; transform: translateY(100%); transition: 0.3s; max-width: 600px; margin: 0 auto; }
+    .bottom-sheet.active { transform: translateY(0); }
+    .sheet-btn { width: 100%; height: 54px; border-radius: 12px; margin-bottom: 10px; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; border:none; cursor: pointer; }
+    .sheet-btn.primary { background: #eaf6ff; color: #31a3fa; border: 1px solid #bae6fd; }
+    .sheet-btn.default { background: #f8fafc; border: 1px solid #e2e8f0; color: #333; }
+    .sheet-btn.close { background: var(--navy-btn); color: #ffffff; margin-top: 10px; border: none; }
+
+    /* 파일 관리자 (File Manager) */
+    .fm-panel {
+        position: fixed; inset: 0;
+        background: #121212;
+        z-index: 2200;
+        display: flex; flex-direction: column;
+        transform: translateY(100%);
+        transition: 0.3s;
+        color: #e5e7eb;
+    }
+    .fm-header {
+        height: 56px;
+        padding: 0 16px;
+        border-bottom: 1px solid #333;
+        display: flex; justify-content: space-between; align-items: center;
+        font-weight: 800; font-size: 17px;
+        background: #000;
+        color: #ffffff;
+    }
+    .fm-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #121212;
+    }
+    .file-row {
+        display: flex; align-items: center;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        background: #111827;
+        border: 1px solid #4b5563;
+    }
+    .file-thumb {
+        width: 50px; height: 50px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #111827;
+        border: 1px solid #4b5563;
+        margin-right: 12px;
+    }
+    .file-icon-box {
+        width: 50px; height: 50px;
+        border-radius: 8px;
+        background: #111827;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #4b5563;
+        margin-right: 12px;
+        color: #e5e7eb;
+    }
+    .fm-footer {
+        padding: 16px 20px 20px;
+        border-top: 1px solid #333;
+        display: flex; gap: 10px;
+        background: #0b0f19;
+    }
+    .btn-action {
+        flex: 1; height: 50px;
+        border-radius: 12px;
+        font-weight: 700; font-size: 15px;
+        border: none;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+    }
+    .btn-blue { background: #31a3fa; color: #fff; }
+    .btn-red {
+        background: #451a1a;
+        color: #fecaca;
+        border: 1px solid #b91c1c;
+    }
+    .btn-gray {
+        background: #111827;
+        color: #e5e7eb;
+        border: 1px solid #4b5563;
+    }
+
+    .empty-drawing-box {
+        background: #f8fafc;
+        border: 1px dashed var(--border);
+        padding: 28px 22px;
+        border-radius: 16px;
+        color: #1f2937;
+        text-align: center;
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1.9;
+    }
+
+    .uv-modal { position: fixed; inset: 0; background: #1e1e1e; z-index: 9999; display: none; flex-direction: column; }
+    .uv-modal.active { display: flex; }
+    .uv-header { background: #000; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; flex-shrink: 0; z-index: 10; }
+    .uv-viewport { flex: 1; background: #333; overflow: hidden; position: relative; display: flex; justify-content: center; align-items: center; touch-action: none; }
+    .uv-viewport.panning { cursor: grabbing; }
+    .uv-content { width: 100%; max-width: 850px; min-height: 500px; background: #fff; padding: 0; box-sizing: border-box; transform-origin: center center; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+    .uv-controls { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(30, 30, 30, 0.9); backdrop-filter: blur(8px); padding: 10px 30px; border-radius: 50px; display: flex; gap: 30px; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+    .uv-btn { background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; opacity: 0.7; transition: 0.2s; min-width: 40px; cursor: pointer; }
+    .uv-btn:active { transform: scale(0.9); }
+    .uv-btn.active { color: #31a3fa; opacity: 1; font-weight: 700; }
+    .uv-toast { position: fixed; bottom: 100px; left: 50%; transform: translate(-50%, 20px); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 10001; }
+    .uv-toast.show { opacity: 1; transform: translate(-50%, 0); }
+    
+    #uvTitle { flex: 1; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0 10px; font-size: 18px; }
+
+    /* [A4 Page Style for Viewer] */
+    .a4-page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 20mm;
+        background-color: #ffffff;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 10px solid #eee; /* Visual separator */
+    }
+    .a4-page:last-child { border-bottom: none; }
+    
+  </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+  <div class="backdrop-sheet" id="sheetBackdrop" onclick="closeSheet()"></div>
+  <div class="bottom-sheet" id="drawSheet">
+      <div style="text-align:center; font-weight:700; font-size:18px; margin-bottom:20px; color:#111;">도면 선택</div>
+      <!-- [수정] 공사 도면 (관리) / 진행 도면 (조회) 로 변경 -->
+      <button class="sheet-btn primary" onclick="openDrawingManager('construction')"><i data-lucide="map"></i> 공사 도면 (관리)</button>
+      <button class="sheet-btn default" onclick="openDrawingViewer('progress')"><i data-lucide="upload-cloud"></i> 진행 도면 (조회)</button>
+      <button class="sheet-btn default" onclick="openDrawingViewer('completion')"><i data-lucide="check-circle-2"></i> 완료 도면 (확인)</button>
+      <button class="sheet-btn close" onclick="closeSheet()">닫기</button>
+  </div>
+
+  <input type="file" id="uploadInput" style="display:none;" multiple onchange="handleUpload(this)">
+  <div class="fm-panel" id="fmPanel">
+      <div class="fm-header">
+          <span id="fmTitle">목록</span>
+          <button onclick="closeFileManager()" style="background:none; border:none; cursor:pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="fm-body" id="fmList"></div>
+      <div class="fm-footer" id="fmFooter"></div>
+  </div>
+
+  <div class="uv-modal" id="uvModal">
+      <div class="uv-header">
+          <button onclick="closeViewer()" style="background:none; border:none; color:#fff; cursor:pointer;"><i data-lucide="arrow-left" width="24"></i></button>
+          <span style="color:#fff; font-weight:700;" id="uvTitle">미리보기</span>
+          <button onclick="downloadPDF()" style="background:none; border:none; color:#fff; cursor:pointer;"><i data-lucide="download" width="24"></i></button>
+      </div>
+      <div class="uv-viewport" id="uvViewport">
+          <div class="uv-content" id="uvContent"></div>
+      </div>
+      <div class="uv-controls">
+          <button class="uv-btn" onclick="adjustZoom(-0.1)"><i data-lucide="minus"></i>축소</button>
+          <button class="uv-btn" id="btnPan" onclick="togglePan()"><i data-lucide="hand"></i>이동</button>
+          <button class="uv-btn" onclick="adjustZoom(0.1)"><i data-lucide="plus"></i>확대</button>
+          <button class="uv-btn" onclick="shareContent()"><i data-lucide="share-2"></i>공유</button>
+      </div>
+  </div>
+  <div class="uv-toast" id="uvToast">완료되었습니다.</div>
+
+  <div class="overlay-backdrop" id="modalBackdrop"></div>
+  <div class="modal-panel" id="addSiteModal">
+      <div class="modal-title">새 현장 등록</div>
+      <input type="text" class="form-input" id="newSiteName" placeholder="현장명을 입력하세요">
+      <div class="modal-actions">
+          <button class="btn-modal btn-cancel" onclick="closeAddSiteModal()">취소</button>
+          <button class="btn-modal btn-confirm" onclick="confirmAddSite()">생성</button>
+      </div>
+  </div>
+
+  <div class="app-wrapper">
+    <div class="local-search-wrapper">
+        <input type="text" class="search-input-local" id="pageSearchInput" placeholder="현장명을 입력하세요." oninput="renderSites()">
+        <i data-lucide="search" class="local-search-icon"></i>
+        <button class="btn-local-clear" onclick="clearLocalSearchInput()"><i data-lucide="x" style="width:14px;"></i></button>
+    </div>
+    
+    <div class="filter-controls">
+        <!-- [Searchable Select Dropdown Replacement] -->
+        <div class="custom-select-wrapper" id="siteSelectWrapper">
+            <input type="text" class="custom-select-input" id="siteSelectInput" placeholder="전체 현장" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
+            <i data-lucide="chevron-down" class="custom-select-icon"></i>
+            <div class="custom-options-list" id="siteSelectOptions">
+                <!-- Dynamic Options -->
+            </div>
+        </div>
+
+        <select class="form-select" id="sortFilter" onchange="sortSites(this.value)">
+            <option value="latest">최신순</option>
+            <option value="name">이름순</option>
+            <option value="pinned">즐겨찾기순</option>
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-row-scroll">
+            <button class="filter-chip active" onclick="setFilter('all', this)">전체</button>
+            <button class="filter-chip" onclick="setFilter('ing', this)">진행중</button>
+            <button class="filter-chip" onclick="setFilter('wait', this)">예정</button>
+            <button class="filter-chip" onclick="setFilter('done', this)">완료</button>
+            <button class="btn-add-chip" onclick="openAddSiteModal()">
+                <i data-lucide="plus" style="width:16px;"></i> 추가
+            </button>
+        </div>
+    </div>
+
+    <div class="card-list" id="siteCardList"></div>
+    
+    <button id="loadMoreBtn" class="btn-load-more" style="display:none;" onclick="handleLoadMore()">
+        <span id="loadMoreText">더 보기</span>
+        <i data-lucide="chevron-down" id="loadMoreIcon" style="width:16px;"></i>
+    </button>
+    
+    <div id="emptyState" style="display:none; text-align:center; padding:60px 0; color:var(--text-placeholder);">
+        <i data-lucide="search-x" style="width:48px; height:48px; margin-bottom:12px; opacity:0.5;"></i>
+        <p>검색 결과가 없습니다.</p>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ================= 2. Service Definitions ================= */
+    const WeatherService = {
+        regionMap: { "서울": { text: "흐림 21°C", icon: "cloud" }, "경기": { text: "비 19°C", icon: "cloud-rain" }, "부산": { text: "맑음 24°C", icon: "sun" }, "대구": { text: "맑음 27°C", icon: "sun" } },
+        defaultWeather: { text: "맑음 20°C", icon: "sun" },
+        getWeather: function(address) { if (!address) return this.defaultWeather; const regionKeyword = address.split(' ')[0].substring(0, 2); const matchKey = Object.keys(this.regionMap).find(key => address.includes(key)); return matchKey ? this.regionMap[matchKey] : this.defaultWeather; }
+    };
+
+    /* ================= Mock Data ================= */
+    let allSites = [
+        { 
+            id:1, pinned:true, status:'ing', affil:'대구지사', name:'자이 아파트 101동 신축공사', addr:'대구광역시 동구 동부로 149', days:245, mp:3, manager:'이현수 소장', safety:'김안전 과장', phoneM:'010-1234-5678', phoneS:'010-9876-5432', lodge:'동구 비즈니스 호텔 304호', note:'', 
+            lastDate:'2025-12-09', lastTime:'10:30',
+            drawings: { 
+                construction: [{name:'101동 평면도.png', type:'img', url:'https://via.placeholder.com/800x600/e2e8f0/31a3fa?text=Plan_1F'}],
+                progress: [], 
+                completion: []
+            },
+            ptw: { 
+                title: "작업허가서(PTW)", status: "승인완료", date: "2025.07.07", company: "이노피앤씨", department: "H서비스 남부팀 광주지점", period: "2025. 07. 09 ~ 12", location: "지하주차장 일원", writer: "김재형", phone: "010-1234-5678", workType: "균열보수", workContent: "지하주차장 균열 누수 보수", teamLeader: "김재형", equipment: "고소작업대(시저형) 1대", workers: "3명", safety: "안전화, 안전모, 각반, 안전띠", requirements: "관리감독자 상주, TBM실시", weather: "지하주차장 실내 작업", safetyManagerName: "노동연",
+                risks: [
+                    { work: "고소작업대 작업", risk: "작업자 추락", level: "상", measure: "근로자 안전고리 착용" },
+                    { work: "고소작업대 작업", risk: "작업자 협착", level: "중", measure: "작업대 이동 시 탑승 금지 및 신호수 통제" },
+                    { work: "고소작업대 작업", risk: "고소작업대 전도", level: "중", measure: "작업구획 이동 시 바닥상태 확인 후 경사지 이동 지양" }
+                ]
+            },
+            workLog: { 
+                title: "작업 완료 보고서", status: "작성완료", docNumber: "WR-20250421-1", date: "2025-04-21", weather: "-", temp: "-", workers: { total: 3, manager: 0, engineer: 0, worker: 3 },
+                materials: [{ name: "에폭시 주제/경화제", unit: "set", quantity: 2, note: "본사" }, { name: "퍼티", unit: "kg", quantity: 5, note: "본사" }],
+                workContent: "지하주차장 PC부재 균열보수 완료\n주변 정리정돈 완료", issues: "특이사항 없음", nextPlan: "-", inspector: "이현수", safetyOfficer: "김안전"
+            },
+            images: [
+                { src: 'https://picsum.photos/600/400?random=1', member: '지하주차장 PC부재', process: '균열보수', content: '보수전' },
+                { src: 'https://picsum.photos/600/400?random=2', member: '지하주차장 PC부재', process: '균열보수', content: '보수후 (완료)' },
+                { src: 'https://picsum.photos/600/400?random=3', member: '지하주차장 PC부재', process: '균열보수', content: '보수전' },
+                { src: 'https://picsum.photos/600/400?random=4', member: '지하주차장 PC부재', process: '균열보수', content: '보수후 (완료)' }
+            ],
+            doc: { title: "안전 점검표", status: "제출완료", content: "점검 완료" },
+            punch: { 
+                title: "펀치리스트 점검 보고서", status: "미조치", 
+                list: [
+                    { no:"P-01", loc:"1층 로비", issue:"천장 페인트 오염", before:"", after:"", status:"미조치" },
+                    { no:"P-02", loc:"101호 입구", issue:"타일 파손 교체 요망", before:"", after:"", status:"완료" },
+                    { no:"P-03", loc:"101호 거실", issue:"걸레받이 들뜸 시공 불량", before:"", after:"", status:"미조치" },
+                    { no:"P-04", loc:"공용부 복도", issue:"비상구 유도등 미점등", before:"", after:"", status:"미조치" },
+                    { no:"P-05", loc:"주차장 B1", issue:"트렌치 커버 소음 발생", before:"", after:"", status:"완료" }
+                ],
+                content: "총 5건의 지적사항 중 2건 조치완료, 3건 미조치 상태입니다."
+            },
+            isLocal:false 
+        },
+        { 
+            id:8, pinned:true, status:'ing', affil:'본사', name:'테스트 현장 8구역', addr:'서울시 강남구 역삼동 88', days:20, mp:5, manager:'박소장', safety:'이안전', phoneM:'010-8888-8888', phoneS:'010-9999-9999', lodge:'역삼 호텔 202호', note:'', 
+            lastDate:'2025-12-08', lastTime:'14:00',
+            drawings: { construction: [], progress: [], completion: [] },
+            ptw: null, workLog: null, doc: null,
+            // Sample Punch Data based on user request for @site8
+            punch: { 
+                title: "펀치리스트 점검 보고서", status: "진행중", 
+                list: [
+                    { no:"P-01", loc:"1층 로비", issue:"천장 페인트 오염", before:"", after:"", status:"미조치" },
+                    { no:"P-02", loc:"101호 입구", issue:"타일 파손 교체 요망", before:"", after:"", status:"완료" },
+                    { no:"P-03", loc:"101호 거실", issue:"걸레받이 들뜸 시공 불량", before:"", after:"", status:"미조치" },
+                    { no:"P-04", loc:"공용부 복도", issue:"비상구 유도등 미점등", before:"", after:"", status:"미조치" },
+                    { no:"P-05", loc:"주차장 B1", issue:"트렌치 커버 소음 발생", before:"", after:"", status:"완료" }
+                ],
+                content: "주요 하자 사항 점검 완료."
+            },
+            images: [],
+            isLocal:false 
+        }
+    ];
+    // Extra mocks
+    for(let i=2; i<=7; i++) { 
+        if(i===8) continue; 
+        allSites.push({ 
+            id: i, pinned: false, status: i%2===0?'done':'wait', affil: '본사', name: `테스트 현장 ${i}구역`, addr: `서울시 강남구 ${i}번지`, days: 10+i, mp: 0, manager: `관리자${i}`, safety: `안전${i}`, phoneM: '010-0000-0000', phoneS: '010-0000-0000', lodge: '-', note: '-', 
+            lastDate:'2025-12-01', lastTime:'09:00',
+            drawings: { construction: [], progress: [], completion: [] },
+            ptw: null, workLog: null, doc: null, punch: null,
+            images: [],
+            isLocal: false 
+        }); 
+    }
+
+    let expandedCardIds = new Set();
+    let currentFilter = 'all', currentSiteFilter = 'all', currentSort = 'latest', visibleCount = 5, initialCount = 5, filteredList = [];
+    let zoom = 1, isPanning = false, pX = 0, pY = 0, startX = 0, startY = 0;
+    let currentSiteId = null; 
+    let currentDrawType = '';
+
+    /* ================= Searchable Dropdown Logic ================= */
+    const siteSelectInput = document.getElementById('siteSelectInput');
+    const siteSelectOptions = document.getElementById('siteSelectOptions');
+    
+    // Initialize Searchable Dropdown
+    function initSiteSearch() {
+        if(!siteSelectInput || !siteSelectOptions) return;
+        
+        // Show options on click/focus
+        const showOptions = () => {
+            renderSiteOptions(siteSelectInput.value.trim());
+            siteSelectOptions.classList.add('show');
+        };
+        
+        siteSelectInput.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showOptions();
+        });
+        
+        // Filter options on typing
+        siteSelectInput.addEventListener('input', (e) => {
+            renderSiteOptions(e.target.value.trim());
+            siteSelectOptions.classList.add('show');
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!siteSelectInput.contains(e.target) && !siteSelectOptions.contains(e.target)) {
+                siteSelectOptions.classList.remove('show');
+                // If user typed something but didn't select, revert to current filter name or clear if it was 'all'
+                validateInput();
+            }
+        });
+    }
+
+    function renderSiteOptions(filterText = '') {
+        let html = `<div class="option-item ${currentSiteFilter==='all'?'selected':''}" onclick="selectSite('all', '전체 현장')">전체 현장</div>`;
+        
+        const filtered = allSites.filter(s => {
+            if (filterText === '' || filterText === '전체 현장') return true;
+            return s.name.toLowerCase().includes(filterText.toLowerCase());
+        });
+
+        if (filtered.length === 0) {
+            html += `<div class="option-item" style="cursor:default; color:#94a3b8;">검색 결과 없음</div>`;
+        } else {
+            filtered.forEach(s => {
+                const isSelected = currentSiteFilter == s.id ? 'selected' : '';
+                html += `<div class="option-item ${isSelected}" onclick="selectSite(${s.id}, '${s.name.replace(/'/g, "\\'")}')">${s.name}</div>`;
+            });
+        }
+        siteSelectOptions.innerHTML = html;
+    }
+
+    function selectSite(id, name) {
+        currentSiteFilter = id;
+        siteSelectInput.value = name;
+        siteSelectOptions.classList.remove('show');
+        visibleCount = initialCount;
+        renderSites();
+    }
+
+    function validateInput() {
+        // If input value doesn't match selected site, reset it
+        if (currentSiteFilter === 'all') {
+            siteSelectInput.value = ''; // Placeholder shows "전체 현장"
+        } else {
+            const site = allSites.find(s => s.id == currentSiteFilter);
+            if (site) siteSelectInput.value = site.name;
+            else {
+                currentSiteFilter = 'all';
+                siteSelectInput.value = '';
+                renderSites();
+            }
+        }
+    }
+
+    // Call init
+    initSiteSearch();
+
+
+    /* ================= Rendering Logic ================= */
+    function renderSites() {
+        const query = document.getElementById('pageSearchInput').value.toLowerCase();
+        const mainList = document.getElementById('siteCardList');
+        const emptyState = document.getElementById('emptyState');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const searchIcon = document.querySelector('.local-search-wrapper .local-search-icon');
+        const clearBtn = document.querySelector('.local-search-wrapper .btn-local-clear');
+
+        if(query.length > 0) { searchIcon.style.opacity = '0'; clearBtn.classList.add('show'); } 
+        else { searchIcon.style.opacity = '1'; clearBtn.classList.remove('show'); }
+
+        filteredList = allSites.filter(site => {
+            // Global Search Input
+            const matchQuery = site.name.toLowerCase().includes(query) || site.addr.toLowerCase().includes(query);
+            // Tab Status Filter
+            const matchStatus = currentFilter === 'all' || site.status === currentFilter;
+            // Dropdown Site Filter
+            const matchSite = (currentSiteFilter === 'all') || (site.id == currentSiteFilter);
+            
+            return matchQuery && matchStatus && matchSite;
+        });
+
+        filteredList.sort((a, b) => {
+            if (currentSort === 'pinned') return (a.pinned === b.pinned) ? 0 : a.pinned ? -1 : 1;
+            if (currentSort === 'name') return a.name.localeCompare(b.name);
+            return b.id - a.id; 
+        });
+
+        mainList.innerHTML = '';
+        if (filteredList.length === 0) { emptyState.style.display = 'block'; loadMoreBtn.style.display = 'none'; return; } 
+        else { emptyState.style.display = 'none'; }
+
+        filteredList.slice(0, visibleCount).forEach(site => { mainList.innerHTML += createCard(site); });
+
+        if (filteredList.length <= initialCount) loadMoreBtn.style.display = 'none';
+        else { 
+            loadMoreBtn.style.display = 'flex'; 
+            document.getElementById('loadMoreText').innerText = visibleCount >= filteredList.length ? "접기" : "더 보기"; 
+        }
+        lucide.createIcons();
+    }
+
+    // [중요] 삭제 기능을 window 객체에 명시적으로 등록 (HTML 인라인 이벤트에서 접근 가능하도록)
+    window.deleteSite = function(id) {
+        if(confirm('이 현장을 삭제하시겠습니까?')) { 
+            allSites = allSites.filter(s => s.id !== id); 
+            // If the deleted site was currently selected in dropdown, reset filter
+            if(currentSiteFilter == id) {
+                currentSiteFilter = 'all';
+                document.getElementById('siteSelectInput').value = '';
+            }
+            renderSites(); 
+        } 
+    };
+
+    function createCard(site) {
+        let badgeClass = site.status === 'wait' ? 'bdg-wait' : (site.status === 'done' ? 'bdg-done' : 'bdg-ing');
+        let badgeText = site.status === 'wait' ? '예정' : (site.status === 'done' ? '완료' : '진행중');
+        const isExpanded = expandedCardIds.has(site.id) ? 'expanded' : '';
+        
+        const hasDraw = !!(site.drawings && (
+            (site.drawings.construction && site.drawings.construction.length) ||
+            (site.drawings.progress && site.drawings.progress.length) ||
+            (site.drawings.completion && site.drawings.completion.length)
+        ));
+        const hasPhoto = site.images && site.images.length > 0;
+        const hasPTW = !!site.ptw;
+        const hasLog = !!site.workLog;
+        const hasAction = !!site.punch;
+
+        const dateLabel = site.lastDate ? (site.lastTime ? `${site.lastDate} (최종 ${site.lastTime})` : site.lastDate) : '';
+        const weather = WeatherService.getWeather(site.addr);
+        
+        // [수정] 입력 로직 개선 (event.stopPropagation 추가)
+        // 주소: 값이 없으면 "입력(클릭)" 표시. 클릭 시 editInfo 호출.
+        const addrDisplay = (site.addr && site.addr.length > 1) ? site.addr : "주소 입력(클릭)";
+        let addrTextAction = site.isLocal 
+            ? `onclick="event.stopPropagation(); window.editInfo(${site.id}, 'addr')"` 
+            : `onclick="event.stopPropagation(); openTMap('${site.addr}')"`;
+            
+        // 아이콘: 주소가 있으면 지도 열기, 없으면 알림
+        let addrIconAction = (site.addr && site.addr.length > 1 && site.addr !== '주소 입력(클릭)') 
+            ? `onclick="event.stopPropagation(); openTMap('${site.addr}')"` 
+            : `onclick="event.stopPropagation(); alert('주소를 먼저 입력해주세요.')"`;
+        
+        // [수정] 숙소(lodge) 관련 변수 삭제 (User requested removing Lodge info)
+
+        // 전화번호 로직
+        const hasPhoneM = site.phoneM && site.phoneM.length > 5;
+        const hasPhoneS = site.phoneS && site.phoneS.length > 5;
+        
+        // 텍스트 클릭 시: 로컬이면 수정, 아니면 없음
+        let managerAction = site.isLocal ? `onclick="event.stopPropagation(); window.editInfo(${site.id}, 'manager')"` : '';
+        let safetyAction = site.isLocal ? `onclick="event.stopPropagation(); window.editInfo(${site.id}, 'safety')"` : '';
+
+        // 전화 아이콘 클릭 시: 로컬이면 handleLocalPhone(수정/전화), 아니면 바로 전화
+        let btnPhoneM = site.isLocal 
+            ? `<button class="btn-icon-sq" style="${hasPhoneM?'':'border:1px dashed var(--border);'}" onclick="event.stopPropagation(); window.handleLocalPhone(${site.id}, 'phoneM')"><i data-lucide="${hasPhoneM?'phone':'plus'}" style="width:18px;"></i></button>` 
+            : `<a href="tel:${site.phoneM}" class="btn-icon-sq" onclick="event.stopPropagation()"><i data-lucide="phone" style="width:18px;"></i></a>`;
+            
+        let btnPhoneS = site.isLocal 
+            ? `<button class="btn-icon-sq" style="${hasPhoneS?'':'border:1px dashed var(--border);'}" onclick="event.stopPropagation(); window.handleLocalPhone(${site.id}, 'phoneS')"><i data-lucide="${hasPhoneS?'phone':'plus'}" style="width:18px;"></i></button>` 
+            : `<a href="tel:${site.phoneS}" class="btn-icon-sq" onclick="event.stopPropagation()"><i data-lucide="phone" style="width:18px;"></i></a>`;
+
+        // [수정] 삭제 버튼 (window.deleteSite 호출 및 stopPropagation)
+        const deleteBtn = (site.isLocal || site.affil === '직접') 
+            ? `<button class="btn-star" style="color:#ef4444" onclick="event.stopPropagation(); window.deleteSite(${site.id})"><i data-lucide="trash-2" style="width:26px; height:26px;"></i></button>` 
+            : '';
+        
+        const affilClass = (site.affil === '직접등록' || site.affil === '직접') ? 'sub-badge direct' : 'sub-badge affil';
+
+        // [수정] Lodge(숙소) 행 삭제
+        return `
+        <div class="site-card ${site.pinned ? 'pinned-item' : ''} ${isExpanded}" id="card-${site.id}" onclick="toggleExpand(${site.id})">
+            <div class="card-header-main">
+                ${dateLabel ? `<div class="site-date">${dateLabel}</div>` : ''}
+                <div class="site-top-row">
+                    <div class="site-name-text">${site.name}</div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <span class="site-badge ${badgeClass}">${badgeText}</span>
+                        <button class="btn-star ${site.pinned?'active':''}" onclick="event.stopPropagation(); togglePin(${site.id})"><i data-lucide="star" style="width:26px; height:26px; ${site.pinned ? 'fill:var(--primary); color:var(--primary);' : ''}"></i></button>
+                        ${deleteBtn}
+                    </div>
+                </div>
+                <div class="site-sub-info">
+                    <div class="site-sub-left">
+                        <span class="${affilClass}">${site.affil}</span>
+                        <span class="sub-badge weather"><i data-lucide="${weather.icon}" style="width:14px;"></i>${weather.text}</span>
+                    </div>
+                    <div class="indicator-group">
+                        <i data-lucide="map" class="data-icon ${hasDraw ? 'active' : ''}"></i>
+                        <i data-lucide="camera" class="data-icon ${hasPhoto ? 'active' : ''}"></i>
+                        <i data-lucide="file-check-2" class="data-icon ${hasPTW ? 'active' : ''}"></i>
+                        <i data-lucide="clipboard-list" class="data-icon ${hasLog ? 'active' : ''}"></i>
+                        <i data-lucide="check-circle-2" class="data-icon ${hasAction ? 'active' : ''}"></i>
+                    </div>
+                </div>
+                <div class="addr-row">
+                    <div class="addr-text" ${addrTextAction}><span>${addrDisplay}</span></div>
+                    <button class="btn-icon-sq" ${addrIconAction}><i data-lucide="map-pin" style="width:18px;"></i></button>
+                </div>
+            </div>
+            <div class="card-body-detail" onclick="event.stopPropagation()">
+                <div class="info-row"><span class="info-label">현장소장</span><div style="display:flex; align-items:center; gap:8px;"><span class="info-val" ${managerAction}>${site.manager||'입력'}</span>${btnPhoneM}</div></div>
+                <div class="info-row" style="border-bottom:none;"><span class="info-label">안전담당</span><div style="display:flex; align-items:center; gap:8px;"><span class="info-val" ${safetyAction}>${site.safety||'입력'}</span>${btnPhoneS}</div></div>
+                
+                <div class="stats-row" style="border-bottom:none; margin-top:10px; border-top:1px dashed var(--border);">
+                    <div class="stat-item"><span class="stat-label">작업일 누계</span><span class="stat-val">${site.days}일</span></div>
+                    <div class="stat-item"><span class="stat-label">하자(미조치)</span><span class="stat-val danger">${site.mp}건</span></div>
+                </div>
+                <div class="action-grid">
+                    <button class="act-btn type-draw ${hasDraw ? 'has-data' : ''}" onclick="handleDrawClick(${site.id})"><i data-lucide="map" class="act-icon"></i><span class="act-label">도면</span></button>
+                    <button class="act-btn type-photo ${hasPhoto ? 'has-data' : ''}" onclick="openPhotoPreview(${site.id})"><i data-lucide="camera" class="act-icon"></i><span class="act-label">사진</span></button>
+                    <button class="act-btn type-ptw ${hasPTW ? 'has-data' : ''}" onclick="openPTWPreview(${site.id})"><i data-lucide="file-check-2" class="act-icon"></i><span class="act-label">PTW</span></button>
+                    <button class="act-btn type-log ${hasLog ? 'has-data' : ''}" onclick="openReportPreview(${site.id})"><i data-lucide="clipboard-list" class="act-icon"></i><span class="act-label">일지</span></button>
+                    <button class="act-btn type-action ${hasAction ? 'has-data' : ''}" onclick="openActionPreview(${site.id})"><i data-lucide="check-circle-2" class="act-icon"></i><span class="act-label">조치</span></button>
+                </div>
+            </div>
+            <div class="toggle-btn-area"><span class="toggle-text">상세 정보 보기</span><i data-lucide="chevron-down" class="chevron-icon"></i></div>
+        </div>`;
+    }
+
+    /* ================= Logic Functions ================= */
+    
+    // [중요] 편집 및 전화 함수들을 전역 window 객체에 할당
+    window.editInfo = function(id, field) { 
+        const site = allSites.find(s => s.id === id); 
+        if(!site) return; 
+        
+        let label = "정보";
+        if(field === 'addr') label = "주소";
+        else if(field === 'manager') label = "현장소장 이름";
+        else if(field === 'safety') label = "안전담당 이름";
+        // Lodge removal
+
+        const val = prompt(`새로운 ${label}를 입력하세요:`, site[field] || ''); 
+        if(val !== null) { 
+            site[field] = val; 
+            renderSites(); 
+        } 
+    };
+
+    window.handleLocalPhone = function(id, type) { 
+        const site = allSites.find(s => s.id === id); 
+        if(!site) return; 
+        const currentNum = site[type]; 
+        
+        if(currentNum && currentNum.length > 3) { 
+            // 번호가 있으면 통화 연결 여부 묻기
+            if(confirm(`[${currentNum}]\n통화하시겠습니까?\n(취소를 누르면 번호를 수정합니다)`)) { 
+                window.location.href = `tel:${currentNum}`; 
+            } else { 
+                // 취소 시 번호 수정
+                const newVal = prompt("수정할 전화번호를 입력하세요:", currentNum); 
+                if(newVal !== null) { site[type] = newVal; renderSites(); } 
+            } 
+        } else { 
+            // 번호가 없으면 바로 입력
+            const newVal = prompt("전화번호를 입력하세요 (예: 010-1234-5678):", ""); 
+            if(newVal !== null) { site[type] = newVal; renderSites(); } 
+        } 
+    };
+
+    function toggleExpand(id) { 
+        const card = document.getElementById(`card-${id}`);
+        // 만약 삭제 버튼 등을 눌렀을 때 stopPropagation이 안되면 여기서 걸러짐
+        if(!card) return;
+        
+        card.classList.toggle('expanded');
+        if (card.classList.contains('expanded')) expandedCardIds.add(id); else expandedCardIds.delete(id);
+    }
+    function togglePin(id) { const idx = allSites.findIndex(s => s.id === id); if(idx > -1) { allSites[idx].pinned = !allSites[idx].pinned; renderSites(); } }
+    function handleLoadMore() { if (visibleCount >= filteredList.length) visibleCount = initialCount; else visibleCount += 5; renderSites(); }
+    function clearLocalSearchInput() { document.getElementById('pageSearchInput').value = ''; renderSites(); }
+    function setFilter(f, btn) { currentFilter = f; document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active')); btn.classList.add('active'); visibleCount = initialCount; renderSites(); }
+    // filterBySite is replaced by selectSite logic
+    function filterBySite(v) { /* Legacy handler, not used for searchable */ }
+    function sortSites(v) { currentSort = v; visibleCount = initialCount; renderSites(); }
+    function openAddSiteModal() { document.getElementById('modalBackdrop').classList.add('active'); document.getElementById('addSiteModal').classList.add('active'); }
+    function closeAddSiteModal() { document.getElementById('modalBackdrop').classList.remove('active'); document.getElementById('addSiteModal').classList.remove('active'); document.getElementById('newSiteName').value = ''; }
+    
+    // [수정] 새 현장 생성 시 Punch, WorkLog, Doc 등 데이터 초기화 (Site 8 참고)
+    function confirmAddSite() { 
+        const name = document.getElementById('newSiteName').value; 
+        if (!name) { alert('현장명은 필수입니다.'); return; } 
+
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mi = String(now.getMinutes()).padStart(2, '0');
+
+        const newSite = { 
+            id: Date.now(), 
+            pinned: false, 
+            status: 'ing', 
+            affil: '직접',  // [수정] '직접등록' -> '직접'
+            name: name, 
+            addr: '', 
+            days: 1, 
+            mp: 0, 
+            manager: '', 
+            safety: '', 
+            phoneM: '', 
+            phoneS: '', 
+            lodge: '', 
+            note: '', 
+            lastDate: `${yyyy}-${mm}-${dd}`,
+            lastTime: `${hh}:${mi}`,
+            drawings: {construction:[], progress:[], completion:[]}, 
+            ptw: null, 
+            workLog: {
+                 title: "작업 완료 보고서", status: "작성대기", docNumber: "-", date: `${yyyy}-${mm}-${dd}`, weather: "-", temp: "-", workers: { total: 0, manager: 0, engineer: 0, worker: 0 },
+                 materials: [], workContent: "내용을 입력하세요.", issues: "특이사항 없음", nextPlan: "-", inspector: "", safetyOfficer: ""
+            },
+            doc: { title: "안전 점검표", status: "미작성", content: "-" },
+            punch: { 
+                title: "펀치리스트 점검 보고서", 
+                status: "점검중", 
+                list: [], 
+                content: "신규 현장 점검 예정" 
+            }, 
+            isLocal: true 
+        }; 
+        allSites.unshift(newSite); 
+        
+        currentFilter = 'all';
+        currentSiteFilter = 'all'; // Reset filter to show all (including new one)
+        if(siteSelectInput) siteSelectInput.value = '';
+        
+        currentSort = 'latest';
+        visibleCount = initialCount;
+        expandedCardIds = new Set(); 
+
+        const searchInput = document.getElementById('pageSearchInput');
+        if (searchInput) searchInput.value = '';
+
+        const filterChips = document.querySelectorAll('.filter-chip');
+        filterChips.forEach((c, idx) => {
+            if (idx === 0) c.classList.add('active');
+            else c.classList.remove('active');
+        });
+
+        const sortSelect = document.getElementById('sortFilter');
+        if (sortSelect) sortSelect.value = 'latest';
+        
+        expandedCardIds.add(newSite.id);
+        
+        closeAddSiteModal(); 
+        renderSites(); 
+    }
+    
+    function openTMap(addr) { if (!addr || addr.includes('입력') || addr === '-') { alert('주소가 없습니다.'); return; } window.open(`https://map.naver.com/v5/search/${encodeURIComponent(addr)}`); }
+    // deleteSite function is now defined on window object above.
+
+    /* ================= A4 Template Generators ================= */
+    
+    // [1] Photo Template
+    function generatePhotoTemplate(siteId) {
+        const site = allSites.find(s => s.id === siteId);
+        const images = site.images || [];
+        const siteName = site ? site.name : '현장';
+        
+        let grids = '';
+        const displayImages = [...images];
+        while(displayImages.length < 6) {
+            displayImages.push({src:'', member:'', process:'', content:''});
+        }
+        const page1Images = displayImages.slice(0, 6);
+
+        page1Images.forEach(img => {
+            grids += `
+                <div style="break-inside: avoid; page-break-inside: avoid; border:1px solid #000; margin-bottom: -1px; margin-right: -1px;">
+                    <div style="height:220px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#eee; border-bottom:1px solid #000;">
+                        ${img.src ? `<img src="${img.src}" style="width:100%; height:100%; object-fit:cover;">` : '<span style="color:#aaa;">사진 없음</span>'}
+                    </div>
+                    <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center; table-layout:fixed; height:100px;">
+                        <colgroup><col style="width:30%; background:#f3f4f6;"><col style="width:70%;"></colgroup>
+                        <tr><th style="border-bottom:1px solid #000; border-right:1px solid #000; padding:4px;">부재명</th><td style="border-bottom:1px solid #000; padding:4px;">${img.member||''}</td></tr>
+                        <tr><th style="border-bottom:1px solid #000; border-right:1px solid #000; padding:4px;">공정</th><td style="border-bottom:1px solid #000; padding:4px;">${img.process||''}</td></tr>
+                        <tr><th style="border-right:1px solid #000; padding:4px;">내용</th><td style="padding:4px;">${img.content||''}</td></tr>
+                    </table>
+                </div>
+            `;
+        });
+
+        return `
+            <div class="a4-page">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:10px;">
+                    <div style="font-size:14px; font-weight:700;">공사명: ${siteName}</div>
+                    <div style="font-size:24px; font-weight:900;">사진대지</div>
+                    <div style="font-size:12px;">Page: 1</div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, 1fr); border:1px solid #000; border-bottom:0; border-right:0;">
+                    ${grids}
+                </div>
+            </div>
+        `;
+    }
+
+    // [2] PTW Template
+    function generatePTWTemplate(siteId) {
+        const site = allSites.find(s => s.id === siteId);
+        if (!site || !site.ptw) return `<div class="a4-page"><div style="text-align:center; padding-top:100px;">데이터가 없습니다.</div></div>`;
+        const ptw = site.ptw;
+        
+        const risksRows = (ptw.risks || []).map(r => `
+            <tr>
+                <td style="border:1px solid #000; padding:6px;">${r.work}</td>
+                <td style="border:1px solid #000; padding:6px;">${r.risk}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${r.level}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:left;">${r.measure}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="a4-page" style="font-family:'Pretendard'; font-size:12px;">
+                <table style="width:100%; border-collapse:collapse; border:2px solid #000; margin-bottom:10px;">
+                    <tr>
+                        <td rowspan="2" style="width:50%; font-size:24px; font-weight:800; text-align:center; border-right:2px solid #000;">작업허가서(PTW)</td>
+                        <th style="border:1px solid #000; background:#f0f0f0; width:16%;">담 당</th>
+                        <th style="border:1px solid #000; background:#f0f0f0; width:16%;">안전관리자</th>
+                        <th style="border:1px solid #000; background:#f0f0f0; width:16%;">소 장</th>
+                    </tr>
+                    <tr>
+                        <td style="border:1px solid #000; height:50px; text-align:center;">${ptw.writer}<br>(인)</td>
+                        <td style="border:1px solid #000; height:50px; text-align:center;">${ptw.safetyManagerName}<br>(인)</td>
+                        <td style="border:1px solid #000; height:50px; text-align:center;">${site.manager.split(' ')[0]}<br>(인)</td>
+                    </tr>
+                </table>
+                <table style="width:100%; border-collapse:collapse; border:1px solid #000; margin-bottom:10px;">
+                    <tr>
+                        <th style="border:1px solid #000; background:#f0f0f0; padding:6px;">업체명</th>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.company}</td>
+                        <th style="border:1px solid #000; background:#f0f0f0; padding:6px;">작성일</th>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.date}</td>
+                    </tr>
+                    <tr>
+                        <th style="border:1px solid #000; background:#f0f0f0; padding:6px;">공구명</th>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.department}</td>
+                        <th style="border:1px solid #000; background:#f0f0f0; padding:6px;">허가기간</th>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.period}</td>
+                    </tr>
+                     <tr>
+                        <th style="border:1px solid #000; background:#f0f0f0; padding:6px;">작업장소</th>
+                        <td colspan="3" style="border:1px solid #000; padding:6px;">${ptw.location}</td>
+                    </tr>
+                </table>
+                <div style="font-weight:700; margin:10px 0 5px; font-size:14px; border-left:4px solid #000; padding-left:6px;">허가작업</div>
+                <table style="width:100%; border-collapse:collapse; border:1px solid #000;">
+                    <tr style="background:#f0f0f0; text-align:center;">
+                        <th style="border:1px solid #000; padding:6px;">허가작업</th>
+                        <th style="border:1px solid #000; padding:6px;">작업내용</th>
+                        <th style="border:1px solid #000; padding:6px;">작업팀장</th>
+                        <th style="border:1px solid #000; padding:6px;">장비현황</th>
+                    </tr>
+                    <tr style="text-align:center;">
+                        <td style="border:1px solid #000; padding:6px;">${ptw.workType}</td>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.workContent}</td>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.teamLeader}</td>
+                        <td style="border:1px solid #000; padding:6px;">${ptw.equipment}</td>
+                    </tr>
+                     <tr>
+                        <th style="border:1px solid #000; background:#f0f0f0; padding:6px;">보호구</th>
+                        <td colspan="3" style="border:1px solid #000; padding:6px;">${ptw.safety}</td>
+                    </tr>
+                </table>
+                <div style="font-weight:700; margin:10px 0 5px; font-size:14px; border-left:4px solid #000; padding-left:6px;">작업 위험성 평가</div>
+                <table style="width:100%; border-collapse:collapse; border:1px solid #000;">
+                    <tr style="background:#f0f0f0; text-align:center;">
+                        <th style="border:1px solid #000; padding:6px; width:20%;">작업내용</th>
+                        <th style="border:1px solid #000; padding:6px; width:25%;">위험요인</th>
+                        <th style="border:1px solid #000; padding:6px; width:10%;">등급</th>
+                        <th style="border:1px solid #000; padding:6px; width:45%;">위험 저감 대책</th>
+                    </tr>
+                    ${risksRows}
+                </table>
+                 <div style="margin-top:20px; border:2px solid #000; padding:20px; text-align:center;">
+                    <div style="font-size:14px; margin-bottom:20px;">위와 같이 안전 수칙을 준수하며 작업을 진행할 것을 허가합니다.</div>
+                    <div style="font-size:16px; font-weight:700;">${ptw.date}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    // [3] Report Template
+    function generateReportTemplate(siteId) {
+        const site = allSites.find(s => s.id === siteId);
+        if (!site || !site.workLog) return `<div class="a4-page">데이터 없음</div>`;
+        const log = site.workLog;
+        
+        const page1 = `
+            <div class="a4-page">
+                <div style="text-align:right; font-size:11px; margin-bottom:5px;">문서번호: ${log.docNumber}</div>
+                <div style="border:3px solid #000; padding:10px; text-align:center; font-size:28px; font-weight:900; margin-bottom:20px;">작업 완료 보고서</div>
+                
+                <div style="font-weight:700; margin-bottom:6px; border-left:4px solid var(--primary); padding-left:8px;">1. 기본 정보</div>
+                <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px;">
+                    <tr>
+                        <th style="border:1px solid #000; background:#f5f5f5; padding:8px; width:20%;">현장명</th>
+                        <td style="border:1px solid #000; padding:8px;">${site.name}</td>
+                        <th style="border:1px solid #000; background:#f5f5f5; padding:8px; width:20%;">작업일자</th>
+                        <td style="border:1px solid #000; padding:8px;">${log.date}</td>
+                    </tr>
+                    <tr>
+                        <th style="border:1px solid #000; background:#f5f5f5; padding:8px;">소속</th>
+                        <td style="border:1px solid #000; padding:8px;">${site.affil}</td>
+                        <th style="border:1px solid #000; background:#f5f5f5; padding:8px;">작업인원</th>
+                        <td style="border:1px solid #000; padding:8px;">총 ${log.workers.total}명</td>
+                    </tr>
+                </table>
+                <div style="font-weight:700; margin-bottom:6px; border-left:4px solid var(--primary); padding-left:8px;">2. 작업 내용</div>
+                <div style="border:1px solid #000; padding:12px; min-height:150px; font-size:13px; margin-bottom:20px;">
+                    ${log.workContent.replace(/\n/g, '<br>')}
+                </div>
+                <div style="font-weight:700; margin-bottom:6px; border-left:4px solid var(--primary); padding-left:8px;">3. 자재 투입 현황</div>
+                <table style="width:100%; border-collapse:collapse; font-size:13px; margin-bottom:20px; text-align:center;">
+                    <tr style="background:#f5f5f5;">
+                        <th style="border:1px solid #000; padding:6px;">No</th>
+                        <th style="border:1px solid #000; padding:6px;">품명</th>
+                        <th style="border:1px solid #000; padding:6px;">단위</th>
+                        <th style="border:1px solid #000; padding:6px;">수량</th>
+                        <th style="border:1px solid #000; padding:6px;">비고</th>
+                    </tr>
+                    ${(log.materials||[]).map((m,i)=>`
+                        <tr>
+                            <td style="border:1px solid #000; padding:6px;">${i+1}</td>
+                            <td style="border:1px solid #000; padding:6px;">${m.name}</td>
+                            <td style="border:1px solid #000; padding:6px;">${m.unit}</td>
+                            <td style="border:1px solid #000; padding:6px;">${m.quantity}</td>
+                            <td style="border:1px solid #000; padding:6px;">${m.note}</td>
+                        </tr>`).join('')}
+                </table>
+                <div style="font-weight:700; margin-bottom:6px; border-left:4px solid var(--primary); padding-left:8px;">4. 특이사항</div>
+                 <div style="border:1px solid #000; padding:12px; min-height:80px; font-size:13px; margin-bottom:20px;">
+                    ${log.issues}
+                </div>
+            </div>
+        `;
+        return page1;
+    }
+
+    // [4] Punch List Template - Fixed row height, handles empty state
+    function generatePunchTemplate(siteId) {
+        const site = allSites.find(s => s.id === siteId);
+        // Ensure list exists even if null
+        const list = (site && site.punch && site.punch.list) ? site.punch.list : [];
+        const siteName = site ? site.name : '현장';
+        
+        let rows = '';
+        // Page 1: Rows 1-15 (Fit on A4)
+        // 15 rows fixed height
+        for(let i=0; i<15; i++) {
+            const item = list[i] || { no: i+1, loc:'', issue:'', before:'', after:'', status:'' };
+            const statusColor = item.status === '완료' ? '#22c55e' : (item.status === '미조치' ? '#ef4444' : '#000');
+            rows += `
+                <tr style="height:60px;">
+                    <td style="border:1px solid #000; text-align:center; font-weight:700;">${item.no}</td>
+                    <td style="border:1px solid #000; text-align:center;">${item.loc}</td>
+                    <td style="border:1px solid #000; padding:0 8px;">${item.issue}</td>
+                    <td style="border:1px solid #000;">${item.before}</td>
+                    <td style="border:1px solid #000;">${item.after}</td>
+                    <td style="border:1px solid #000; text-align:center; font-weight:700; color:${statusColor};">${item.status}</td>
+                </tr>
+            `;
+        }
+
+        const page1 = `
+            <div class="a4-page" style="font-family:'Pretendard'; color:#000;">
+                <div style="text-align:center; font-size:24px; font-weight:900; margin-bottom:20px; padding-top:20px;">펀치리스트 점검 보고서</div>
+                <div style="text-align:right; font-size:12px; margin-bottom:5px;">현장명: ${siteName}</div>
+                <table style="width:100%; border-collapse:collapse; font-size:12px; border:2px solid #000;">
+                    <colgroup>
+                        <col style="width:8%"> <col style="width:15%"> <col style="width:35%"> 
+                        <col style="width:15%"> <col style="width:15%"> <col style="width:12%">
+                    </colgroup>
+                    <tr style="background:#f3f4f6; height:40px;">
+                        <th style="border:1px solid #000; border-bottom:2px solid #000;">NO</th>
+                        <th style="border:1px solid #000; border-bottom:2px solid #000;">위치</th>
+                        <th style="border:1px solid #000; border-bottom:2px solid #000;">지적 내용</th>
+                        <th style="border:1px solid #000; border-bottom:2px solid #000;">조치전</th>
+                        <th style="border:1px solid #000; border-bottom:2px solid #000;">조치후</th>
+                        <th style="border:1px solid #000; border-bottom:2px solid #000;">상태</th>
+                    </tr>
+                    ${rows}
+                </table>
+            </div>
+        `;
+
+        return page1;
+    }
+
+    /* ================= Button Handlers ================= */
+    function openPhotoPreview(id) {
+        const html = generatePhotoTemplate(id);
+        openViewerHTML("사진대지 미리보기", html);
+    }
+    function openPTWPreview(id) {
+        const html = generatePTWTemplate(id);
+        openViewerHTML("PTW 미리보기", html);
+    }
+    function openReportPreview(id) {
+        const html = generateReportTemplate(id);
+        openViewerHTML("작업일지/보고서 미리보기", html);
+    }
+    function openActionPreview(id) {
+        const html = generatePunchTemplate(id);
+        openViewerHTML("조치(펀치리스트) 미리보기", html);
+    }
+
+    // Common Viewer Function (Internal Inline)
+    function openViewerHTML(title, htmlContent) {
+        document.getElementById('uvTitle').innerText = title;
+        const container = document.getElementById('uvContent');
+        
+        // Reset styles for A4 container to look good on desktop
+        container.style.width = 'auto';
+        container.style.maxWidth = 'none'; // remove 850px limit
+        container.style.background = 'transparent';
+        container.style.boxShadow = 'none';
+        
+        // Wrap content in a flex container for better centering if needed
+        container.innerHTML = `<div style="display:flex; flex-direction:column; align-items:center; gap:20px;">${htmlContent}</div>`;
+        
+        document.getElementById('uvModal').classList.add('active');
+        
+        // Initial Zoom fit
+        resetViewerView();
+    }
+
+    function closeViewer() { document.getElementById('uvModal').classList.remove('active'); }
+    
+    // Zoom/Pan Logic - Optimized for Web/Desktop
+    function resetViewerView() {
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+        // On desktop (e.g. > 1000px), we want A4 (approx 800px width) to be fully visible vertically if possible, or at least zoom=1 is readable.
+        // A4 px at 96dpi is ~794px width.
+        // If screen is wide, zoom should make it fit nicely.
+        if (screenW > 1024) {
+            // Desktop: Try to fit height mostly, but don't go too small.
+            const fitH = (screenH - 100) / 1123; // 1123 is approx A4 height in px
+            zoom = Math.max(0.6, Math.min(1.0, fitH));
+        } else {
+            // Mobile: Fit width
+            zoom = (screenW - 20) / 820; 
+        }
+        pX = 0; pY = 0;
+        updateTransform();
+    }
+    function adjustZoom(delta) { zoom = Math.max(0.2, zoom + delta); updateTransform(); }
+    function togglePan() { 
+        isPanning = !isPanning; 
+        document.getElementById('btnPan').classList.toggle('active', isPanning); 
+        document.getElementById('uvViewport').classList.toggle('panning', isPanning);
+    }
+    function updateTransform() { document.getElementById('uvContent').style.transform = `translate(${pX}px, ${pY}px) scale(${zoom})`; }
+
+    // Drag Handling
+    const viewport = document.getElementById('uvViewport');
+    viewport.addEventListener('mousedown', startPan);
+    viewport.addEventListener('touchstart', startPan, {passive: false});
+    function startPan(e) {
+        if(!isPanning) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = cx - pX; startY = cy - pY;
+        document.addEventListener('mousemove', movePan);
+        document.addEventListener('touchmove', movePan, {passive: false});
+        document.addEventListener('mouseup', endPan);
+        document.addEventListener('touchend', endPan);
+    }
+    function movePan(e) {
+        if(!isPanning) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        pX = cx - startX; pY = cy - startY;
+        updateTransform();
+    }
+    function endPan() {
+        document.removeEventListener('mousemove', movePan);
+        document.removeEventListener('touchmove', movePan);
+        document.removeEventListener('mouseup', endPan);
+        document.removeEventListener('touchend', endPan);
+    }
+
+    function downloadPDF() { alert('PDF 다운로드 기능은 서버 연동이 필요합니다.'); }
+    function shareContent() { alert('공유하기 기능입니다.'); }
+
+    /* ================= Drawing & File Manager Logic (Preserved & Modified) ================= */
+    function openSheet(siteId) {
+        currentSiteId = siteId;
+        document.getElementById('sheetBackdrop').classList.add('active');
+        document.getElementById('drawSheet').classList.add('active');
+    }
+    function closeSheet() {
+        document.getElementById('sheetBackdrop').classList.remove('active');
+        document.getElementById('drawSheet').classList.remove('active');
+    }
+    function handleDrawClick(id){ openSheet(id); }
+    
+    // [PATCH] A3 가로형 예시 도면 Logic
+    const A3_SAMPLE_SRC = (function(){
+        const svg = `
+<svg xmlns="http://www.w3.org/2000/svg" width="850" height="600" viewBox="0 0 850 600">
+  <rect width="850" height="600" fill="#ffffff"/>
+  <rect x="12" y="12" width="826" height="576" fill="none" stroke="#1a254f" stroke-width="6"/>
+  <rect x="40" y="120" width="770" height="420" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <g stroke="#94a3b8" stroke-width="1">
+    <line x1="40" y1="180" x2="810" y2="180"/>
+    <line x1="40" y1="240" x2="810" y2="240"/>
+    <line x1="40" y1="300" x2="810" y2="300"/>
+    <line x1="40" y1="360" x2="810" y2="360"/>
+    <line x1="40" y1="420" x2="810" y2="420"/>
+    <line x1="40" y1="480" x2="810" y2="480"/>
+    <line x1="120" y1="120" x2="120" y2="540"/>
+    <line x1="200" y1="120" x2="200" y2="540"/>
+    <line x1="280" y1="120" x2="280" y2="540"/>
+    <line x1="360" y1="120" x2="360" y2="540"/>
+    <line x1="440" y1="120" x2="440" y2="540"/>
+    <line x1="520" y1="120" x2="520" y2="540"/>
+    <line x1="600" y1="120" x2="600" y2="540"/>
+    <line x1="680" y1="120" x2="680" y2="540"/>
+    <line x1="760" y1="120" x2="760" y2="540"/>
+  </g>
+  <text x="425" y="78" font-family="Pretendard, sans-serif" font-size="34" font-weight="800" fill="#1a254f" text-anchor="middle">A3 가로형 예시 도면</text>
+  <text x="425" y="102" font-family="Pretendard, sans-serif" font-size="14" font-weight="600" fill="#64748b" text-anchor="middle">모바일 화면에 맞춰 자동 배율 적용</text>
+  <text x="65" y="565" font-family="Pretendard, sans-serif" font-size="12" fill="#64748b">INOPNC • SAMPLE DRAWING</text>
+</svg>`;
+        return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    })();
+
+    function openA3SamplePreview(title) {
+        openViewerHTML(title, `<img src="${A3_SAMPLE_SRC}" alt="A3 Sample" style="width:850px; height:auto; display:block; box-shadow:0 0 30px rgba(0,0,0,0.3);">`);
+        // Force zoom for A3
+        const screenW = window.innerWidth;
+        zoom = screenW < 850 ? screenW / 900 : 0.8;
+        pX = 0; pY = 0;
+        updateTransform();
+    }
+
+    // [Refactored] Generic Function for View (Construction/Progress/Completion)
+    function openDrawingViewer(type) {
+        currentDrawType = type;
+        closeSheet();
+        const site = allSites.find(s => s.id === currentSiteId);
+        const siteName = (site && site.name) ? site.name : '현장';
+        
+        let tName = '';
+        if(type === 'progress') tName = '진행도면(조회)';
+        else if(type === 'completion') tName = '완료도면(확인)';
+        else if(type === 'construction') tName = '공사도면(조회)';
+        
+        openA3SamplePreview(`${siteName} · ${tName}`);
+    }
+
+    // [Refactored] Generic Function for Manage (Construction/Progress)
+    function openDrawingManager(type) {
+        currentDrawType = type;
+        closeSheet();
+        document.getElementById('fmPanel').style.transform = "translateY(0)";
+        
+        let tName = '';
+        if(type === 'construction') tName = '공사 도면 (관리)';
+        else if(type === 'progress') tName = '진행 도면 (관리)';
+        
+        document.getElementById('fmTitle').innerText = tName;
+        renderList();
+        renderFooter();
+    }
+    
+    function closeFileManager() { document.getElementById('fmPanel').style.transform = "translateY(100%)"; }
+    
+    function renderList() {
+        const list = document.getElementById('fmList');
+        const site = allSites.find(s => s.id === currentSiteId);
+        if(!site) return;
+        // Access dynamically
+        const files = site.drawings[currentDrawType] || [];
+        
+        list.innerHTML = '';
+        if(files.length === 0) { list.innerHTML = `<div style="text-align:center; padding:60px 0; color:#aaa;">파일이 없습니다.</div>`; return; }
+        files.forEach((f, idx) => {
+            const thumb = f.type === 'img' ? `<img src="${f.url}" class="file-thumb" alt="">` : `<div class="file-icon-box"><i data-lucide="file-text"></i></div>`;
+            const labelText = f.name || '파일';
+            const delBtn = `<button onclick="event.stopPropagation(); deleteOne(${idx})" style="background:none; border:none; color:#ef4444; padding:10px;"><i data-lucide="trash-2"></i></button>`;
+            list.innerHTML += `
+                <div class="file-row" data-idx="${idx}">
+                    ${thumb}
+                    <div style="flex:1; color:#f9fafb; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0;">${labelText}</div>
+                    ${delBtn}
+                </div>
+            `;
+        });
+        setTimeout(() => {
+            document.querySelectorAll('#fmList .file-row').forEach(row => {
+                row.addEventListener('click', () => {
+                    const s = allSites.find(x => x.id === currentSiteId);
+                    
+                    let tName = '';
+                    if(currentDrawType === 'construction') tName = '공사도면(관리)';
+                    else if(currentDrawType === 'progress') tName = '진행도면(관리)';
+                    
+                    const title = `${s.name || '현장'} · ${tName}`;
+                    openA3SamplePreview(title);
+                });
+            });
+            lucide.createIcons();
+        }, 0);
+    }
+    function renderFooter() {
+        const footer = document.getElementById('fmFooter');
+        let html = '';
+        const site = allSites.find(s => s.id === currentSiteId);
+        
+        // Check if there are files in current type
+        const files = site && site.drawings[currentDrawType] ? site.drawings[currentDrawType] : [];
+        
+        if(files.length > 0) html += `<button class="btn-action btn-red" onclick="deleteAll()">일괄 삭제</button>`;
+        html += `<button class="btn-action btn-blue" onclick="document.getElementById('uploadInput').click()">파일 추가</button>`;
+        html += `<button class="btn-action btn-gray" onclick="closeFileManager()">닫기</button>`;
+        footer.innerHTML = html;
+    }
+    function handleUpload(input) {
+        if(input.files) {
+            const site = allSites.find(s => s.id === currentSiteId);
+            if(site) {
+                if(!site.drawings[currentDrawType]) site.drawings[currentDrawType] = [];
+                
+                Array.from(input.files).forEach(f => {
+                    const isImg = f.type.startsWith('image/');
+                    site.drawings[currentDrawType].push({
+                        name: f.name, type: isImg ? 'img' : 'doc', url: isImg ? URL.createObjectURL(f) : '', createdAt: new Date().toISOString()
+                    });
+                });
+                renderList(); renderFooter(); input.value = '';
+            }
+        }
+    }
+    function deleteOne(idx) { 
+        if(confirm("삭제?")) { 
+            const site = allSites.find(s => s.id === currentSiteId);
+            if(site && site.drawings[currentDrawType]) {
+                site.drawings[currentDrawType].splice(idx, 1); 
+                renderList(); renderFooter(); 
+            }
+        } 
+    }
+    function deleteAll() { 
+        if(confirm("전체 삭제?")) { 
+            const site = allSites.find(s => s.id === currentSiteId);
+            if(site && site.drawings[currentDrawType]) {
+                site.drawings[currentDrawType] = []; 
+                renderList(); renderFooter(); 
+            }
+        } 
+    }
+
+    /* ================= Initial Load ================= */
+    window.onload = function() { 
+        renderSites(); 
+    }
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -60,5 +60,11 @@
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "0 7 * * *"
+    }
+  ]
 }

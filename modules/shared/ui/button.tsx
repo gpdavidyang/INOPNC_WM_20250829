@@ -6,18 +6,21 @@ import React from 'react'
 const buttonVariants = cva('btn', {
   variants: {
     variant: {
-      default: '',
-      primary: 'btn--primary',
-      gray: 'btn--gray',
-      sky: 'btn--sky',
-      outline: 'btn--outline',
-      ghost: 'btn--ghost',
-      danger: 'btn--danger',
+      default: 'active:scale-[0.98] transition-all duration-200 active:bg-gray-100',
+      primary:
+        'btn--primary active:scale-[0.98] transition-transform duration-200 shadow-lg shadow-blue-500/20 active:shadow-blue-500/10',
+      gray: 'btn--gray active:scale-[0.98] transition-transform duration-200',
+      sky: 'btn--sky active:scale-[0.98] transition-transform duration-200',
+      outline:
+        'btn--outline active:scale-[0.98] transition-transform duration-200 active:bg-gray-50',
+      ghost: 'btn--ghost active:scale-[0.95] transition-transform duration-200',
+      danger: 'btn--danger active:scale-[0.98] transition-transform duration-200',
     },
     size: {
-      default: '',
-      sm: 'h-9 px-3 text-xs',
-      lg: 'h-12 px-8',
+      default: 'h-[var(--btn-h)] px-4 rounded-[var(--radius-base)]', // 54px custom height
+      sm: 'h-9 px-3 text-xs rounded-md',
+      lg: 'h-14 px-8 text-lg rounded-[var(--radius-lg)]',
+      standard: 'h-[54px] px-5 rounded-[12px] text-[17px] font-bold', // Explicit standard
     },
   },
   defaultVariants: {

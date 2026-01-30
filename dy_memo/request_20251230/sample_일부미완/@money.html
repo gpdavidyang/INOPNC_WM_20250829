@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>출력/급여 현황 - INOPNC</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =========================================
+       1. Design Tokens (Master Variables)
+       ========================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+      /* [Main Color] */
+      --primary: #31a3fa;           
+      --primary-bg: #eaf6ff;        
+      
+      /* [Header/Nav] */
+      --header-navy: #1a254f;
+      
+      /* [Logout Button] */
+      --btn-logout-bg: #1a254f; 
+      --btn-logout-text: #ffffff;
+      
+      /* [Text] */
+      --text-main: #0f172a; 
+      --text-sub: #334155;  
+      --text-placeholder: #64748b;
+      
+      /* [Base] */
+      --border: #e2e8f0; 
+      --bg-body: #f2f4f6;
+      --bg-surface: #ffffff;
+      --bg-input: #ffffff;
+      --bg-search-input: #f1f5f9;
+      
+      --danger: #ef4444;
+      --del-btn-bg: #fef2f2; 
+
+      /* [Components] */
+      --header-height: 60px;
+      --nav-height: 65px; 
+      --radius-card: 16px;
+      --h-common: 48px;
+      --btn-clear-bg: #cbd5e1; --btn-clear-text: #ffffff;
+      --upload-photo-bg: #f8fafc; --upload-photo-text: #475569;
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+
+      /* [Tone & Manner] 민트 컬러 */
+      --btn-cert-bg: #ecfdf5; 
+      --btn-cert-text: #059669;
+      --btn-cert-border: #6ee7b7;
+
+      /* [Calendar Specific] */
+      --cal-today-bg: #1a254f;
+      
+      /* [Pay Stub Specific] */
+      --stub-navy: #1a254f;
+      --stub-gray-line: #d1d5db;
+      --stub-bg-light: #f8fafc;
+      --stub-highlight: #e0f2fe;
+    }
+
+    body.dark-mode {
+      --primary: #31a3fa; --primary-bg: #1e293b;
+      --header-navy: #f1f5f9; 
+      --btn-logout-bg: #3b82f6; --btn-logout-text: #f1f5f9;
+      --text-main: #f1f5f9; --text-sub: #cbd5e1; --text-placeholder: #64748b;
+      --border: #334155; --bg-body: #0f172a; --bg-surface: #1e293b; --bg-input: #0f172a;
+      
+      --bg-search-input: #0f172a; 
+      
+      --danger: #ef4444; --del-btn-bg: #450a0a;
+      --upload-photo-bg: #1e293b; --upload-photo-text: #94a3b8;
+      
+      --btn-cert-bg: rgba(5, 150, 105, 0.2);
+      --btn-cert-text: #34d399;
+      --btn-cert-border: rgba(52, 211, 153, 0.3);
+
+      --shadow-soft: none;
+      --cal-today-bg: #31a3fa;
+    }
+
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; touch-action: manipulation; }
+    
+    body {
+      font-family: var(--font-main); font-size: 18px; color: var(--text-main); background-color: var(--bg-body);
+      line-height: 1.6; 
+      /* 헤더가 사라지고 탭만 남았으므로 상단 패딩 수정 (기존 115px -> 55px) */
+      padding-top: 55px; 
+      /* 하단 네비가 사라졌으므로 하단 패딩 수정 */
+      padding-bottom: 20px; 
+      transition: background-color 0.3s, color 0.3s;
+    }
+    button, select, input, textarea { font-family: var(--font-main); outline: none; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    * { box-sizing: border-box; }
+    a { text-decoration: none; color: inherit; }
+
+    /* =========================================
+       2. Header & Tab (Modified)
+       ========================================= */
+    /* .app-header는 이제 탭 컨테이너만 감싸는 역할 */
+    .app-header { 
+        position: fixed; top: 0; left: 0; right: 0; 
+        background-color: var(--bg-surface); 
+        border-bottom: 1px solid var(--border); 
+        z-index: 1000; 
+        display: flex; flex-direction: column; 
+        transition: background-color 0.3s; 
+    }
+    
+    /* 기존 헤더 상단(로고, 아이콘 등) 스타일은 삭제하지 않고 남겨두되 HTML에서 제거함 */
+    
+    /* Tab Navigation */
+    .tab-container { width: 100%; max-width: 600px; margin: 0 auto; display: flex; background: var(--bg-surface); height: 55px; }
+    .tab-btn { flex: 1; height: 100%; border: none; background: none; font-size: 20px; font-weight: 700; color: var(--text-sub); border-bottom: 2px solid transparent; cursor: pointer; transition: 0.2s; font-family: var(--font-main); }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 800; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease-out; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* =========================================
+       3. Local UI Components (Output Tab)
+       ========================================= */
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 12px 16px 20px 16px; }
+
+    .form-select-group { display: flex; gap: 12px; margin-bottom: 20px; }
+    .form-select {
+        appearance: none; -webkit-appearance: none;
+        width: 100%; height: 54px; 
+        background-color: #ffffff; 
+        border: 1px solid #e2e8f0; border-radius: 12px; padding: 0 40px 0 18px;
+        font-family: var(--font-main); font-size: 17px; font-weight: 600; color: #111111;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 16px center; background-size: 20px;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .form-select:hover { border-color: #cbd5e1; }
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15);
+        outline: none;
+    }
+    body.dark-mode .form-select {
+        background-color: var(--bg-input); color: var(--text-main); border-color: var(--border);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    .local-search-wrapper { position: relative; margin-bottom: 12px; margin-top: 4px; display: flex; align-items: center; }
+    .search-input-local { 
+        width: 100%; 
+        height: 54px; 
+        border-radius: 16px; 
+        background: #ffffff; 
+        border: 1px solid transparent; 
+        padding: 0 48px 0 22px; 
+        font-size: 17px; 
+        color: #0f172a; 
+        font-weight: 500; 
+        transition: all 0.2s; 
+        box-shadow: var(--shadow-soft);
+        font-family: var(--font-main);
+    }
+    .search-input-local::placeholder { 
+        color: var(--text-placeholder); 
+        font-size: 16px; 
+        opacity: 1; /* 브라우저 기본 투명도 제거 */
+    }
+    .search-input-local:hover { background-color: var(--bg-surface); border-color: var(--border); }
+    .search-input-local:focus { 
+        box-shadow: 0 0 0 2px var(--primary); 
+        outline: none; 
+        background-color: #ffffff;
+        border-color: transparent;
+    }
+    body.dark-mode .search-input-local { background-color: var(--bg-input); box-shadow: none; border: 1px solid var(--border); }
+    .local-search-icon { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); pointer-events: none; width: 20px; transition: opacity 0.2s; }
+    .btn-local-clear { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: var(--btn-clear-bg); color: var(--btn-clear-text); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2; }
+    .btn-local-clear.show { opacity: 1; pointer-events: auto; }
+
+    /* Calendar */
+    .calendar-box { background-color: var(--bg-surface); border: none; box-shadow: var(--shadow-soft); border-radius: var(--radius-card); overflow: hidden; margin-bottom: 16px; }
+    body.dark-mode .calendar-box { background-color: var(--bg-surface); box-shadow: none; border: 1px solid var(--border); }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+    .cal-title { font-size: 22px; font-weight: 800; color: var(--text-main); }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
+    .cal-day-name { padding: 14px 0; font-size: 14px; font-weight: 700; color: var(--text-sub); border-bottom: 1px solid var(--border); }
+    .cal-day-name.sun { color: var(--danger); }
+    .cal-cell { min-height: 96px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 1px; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative; cursor: pointer; }
+    .cal-cell:active { background-color: var(--primary-bg); }
+    body.dark-mode .cal-cell:active { background-color: rgba(49, 163, 250, 0.1); }
+    .cal-cell:nth-child(7n) { border-right: none; }
+    .cal-date { font-size: 15px; font-weight: 600; color: var(--text-main); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-bottom: 4px; }
+    .cal-cell.today .cal-date { background-color: var(--cal-today-bg); color: #fff; font-weight: 800; }
+    .cal-data-badge { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: transparent; padding: 2px 0; }
+    .cal-gongsu { font-size: 11px; font-weight: 700; color: var(--text-sub); line-height: 1.2; margin-bottom: 1px; } 
+    .cal-amt { font-size: 12px; font-weight: 800; color: var(--primary); line-height: 1.2; }
+    .cal-site { 
+        font-size: 10px; 
+        font-weight: 600; 
+        color: var(--text-sub); 
+        line-height: 1.2; 
+        margin-top: 2px; 
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        max-width: 100%;
+        display: block;
+        text-align: center;
+    }
+
+    /* Summary */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .sum-card { padding: 16px 4px; border-radius: 16px; text-align: center; display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-soft); background: var(--bg-surface); border: 1px solid transparent; }
+    body.dark-mode .sum-card { box-shadow: none; }
+    .sum-card.sky { background-color: #eaf6ff; color: #0284c7; border-color: #0284c7; }
+    .sum-card.navy { background-color: #f0f3f9; color: #1e3a8a; border-color: #1e3a8a; }
+    .sum-card.periwinkle { background-color: #f1f5f9; color: #475569; border-color: #475569; }
+    body.dark-mode .sum-card.sky { background-color: #0c4a6e; color: #38bdf8; border-color: #38bdf8; }
+    body.dark-mode .sum-card.navy { background-color: #1e1b4b; color: #a5b4fc; border-color: #a5b4fc; }
+    body.dark-mode .sum-card.periwinkle { background-color: #1e2540; color: #94a3b8; border-color: #94a3b8; }
+    .sum-val { font-size: 24px; font-weight: 800; line-height: 1.1; letter-spacing: -0.5px; }
+    .sum-label { font-size: 14px; font-weight: 700; opacity: 0.9; }
+
+    /* Salary List */
+    .salary-card-base { background-color: var(--bg-surface); border: none; box-shadow: var(--shadow-soft); border-radius: var(--radius-card); padding: 24px 20px; margin-bottom: 24px; }
+    body.dark-mode .salary-card-base { background-color: var(--bg-surface); box-shadow: none; border: 1px solid var(--border); }
+    .section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .sal-section-title { font-size: 20px; font-weight: 700; color: var(--header-navy); font-family: var(--font-main); margin: 0; }
+    body.dark-mode .sal-section-title { color: var(--text-main); }
+    .btn-privacy-toggle { background: none; border: none; display: flex; align-items: center; gap: 4px; cursor: pointer; color: var(--text-sub); font-size: 15px; font-weight: 600; padding: 0; }
+    .sal-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .sal-month { font-size: 18px; font-weight: 800; color: var(--text-main); }
+    .status-badge { font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1px solid transparent; }
+    .status-badge.paid { background-color: var(--bg-body); color: var(--text-sub); border-color: var(--border); }
+    .status-badge.pending { background-color: var(--primary-bg); color: var(--primary); border-color: var(--primary); }
+    .sal-main-info { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 14px; 
+        padding-bottom: 14px; 
+        border-bottom: 1px dashed var(--border);
+        gap: 8px;
+        flex-wrap: nowrap;
+    }
+    .sal-main-info > span:first-child {
+        font-weight: 700;
+        color: var(--text-main);
+        flex-shrink: 0;
+    }
+    .sal-detail-item { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: center; 
+        margin-bottom: 8px; 
+        font-size: 15px; 
+        color: var(--text-sub);
+        flex-wrap: nowrap;
+        gap: 8px;
+    }
+    .sal-detail-item > span:first-child {
+        font-weight: 700;
+        color: var(--text-main);
+        flex-shrink: 0;
+    }
+    .sal-detail-item .val { 
+        font-weight: 600; 
+        color: var(--text-main);
+        font-size: clamp(15px, 4vw, 20px);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .sal-detail-item .val.deduct { color: var(--danger); }
+    .btn-view-detail { width: 100%; margin-top: 16px; padding: 12px; border-radius: 10px; background-color: #f8fafc; border: 1px solid #cbd5e1; color: #475569; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+    body.dark-mode .btn-view-detail { background-color: #1e293b; color: #f1f5f9; border: 1px solid #334155; }
+    .btn-view-detail.highlight { background-color: var(--header-navy); color: #fff; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    body.dark-mode .btn-view-detail.highlight { background-color: var(--primary); color: #fff; }
+    .load-more-btn { width: 100%; height: 48px; border-radius: 24px; background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-sub); font-weight: 600; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 15px; }
+    .money-wrapper { 
+        display: flex; 
+        align-items: baseline; 
+        justify-content: flex-end; 
+        gap: 2px; 
+        white-space: nowrap; 
+        flex-shrink: 1;
+        flex-wrap: nowrap;
+    }
+    .money-wrapper > span:last-child {
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .dash-val { 
+        font-size: clamp(18px, 5vw, 24px) !important; 
+        color: var(--text-main); 
+        font-weight: 800; 
+        letter-spacing: -0.5px; 
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .privacy-target {
+        display: inline-block;
+        min-width: 60px;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* =========================================
+       4. Search Overlay & Common Styles
+       ========================================= */
+    .search-overlay { position: fixed; inset: 0; background-color: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1); }
+    .search-overlay.active { transform: translateY(0); }
+    .search-header-global { display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 16px; background-color: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .input-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
+    .unified-search-input { width: 100%; height: 46px; border-radius: 50px; background: var(--bg-search-input); border: 1px solid transparent; padding: 0 76px 0 20px; font-size: 17px; color: var(--text-main); font-weight: 500; transition: all 0.2s; }
+    .unified-search-input:focus { border-color: var(--primary); background-color: var(--bg-surface); box-shadow: 0 0 0 2px rgba(49, 163, 250, 0.1); }
+    .btn-search-icon-group { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 4px; }
+    .btn-search-clear { background: var(--btn-clear-bg); color: var(--btn-clear-text); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; opacity: 0; pointer-events: none; transform: scale(0.5); transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .btn-search-clear.show { opacity: 1; pointer-events: auto; transform: scale(1); }
+    .btn-mic { background: none; border: none; color: var(--primary); display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 6px; border-radius: 50%; transition: 0.2s; }
+    .mic-listening { animation: pulse-mic 1.5s infinite; color: #ef4444; }
+    @keyframes pulse-mic { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+    .btn-search-submit { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 16px; width: auto; padding-left: 12px; cursor: pointer; white-space: nowrap; }
+    .search-content { flex: 1; padding: 16px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text-sub); margin-bottom: 12px; display: block; }
+    .site-result-card { background: var(--bg-surface); border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: var(--shadow-soft); border: 1px solid transparent; transition: 0.2s; cursor: pointer; }
+    body.dark-mode .site-result-card { border-color: var(--border); box-shadow: none; }
+    .site-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .site-name-lg { font-size: 20px; font-weight: 800; color: var(--text-main); line-height: 1.3; margin-bottom: 4px; }
+    .site-addr { font-size: 15px; color: var(--text-sub); font-weight: 500; }
+    .site-badge { background: var(--primary-bg); color: var(--primary); font-size: 13px; font-weight: 700; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+    .quick-action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .btn-quick-action { background: var(--bg-search-input); border: 1px solid var(--border); border-radius: 10px; height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 600; color: var(--text-sub); cursor: pointer; transition: 0.1s; }
+    .btn-quick-action.highlight { color: var(--primary); border-color: rgba(49, 163, 250, 0.3); background: #f0f9ff; }
+    body.dark-mode .btn-quick-action.highlight { background: rgba(49, 163, 250, 0.1); }
+    .btn-quick-action.action-cert { color: var(--btn-cert-text); background-color: var(--btn-cert-bg); border-color: var(--btn-cert-border); }
+    .tag-container { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+    .search-tag { background: var(--bg-surface); border: 1px solid var(--border); padding: 10px 16px; border-radius: 24px; font-size: 15px; color: var(--text-sub); font-weight: 500; cursor: pointer; transition: 0.2s; }
+    .empty-result { text-align: center; padding: 40px 0; color: var(--text-placeholder); font-size: 15px; }
+    .btn-more-sites { width: 100%; height: 48px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text-sub); font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer; margin-top: 4px; margin-bottom: 32px; transition: 0.2s; }
+    body.dark-mode .btn-more-sites { background: var(--bg-input); color: var(--text-main); }
+
+    /* =========================================
+       5. Overlays & Common
+       ========================================= */
+    .overlay-backdrop { position: fixed; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1500; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .overlay-backdrop.active { opacity: 1; pointer-events: auto; }
+    .drawer-panel, .menu-panel { position: fixed; top: 0; bottom: 0; width: 85%; max-width: 320px; background-color: var(--bg-surface); z-index: 2500; transition: transform 0.3s; display: flex; flex-direction: column; }
+    .menu-panel { left: 0; transform: translateX(-100%); }
+    .drawer-panel { right: 0; transform: translateX(100%); }
+    .menu-panel.active, .drawer-panel.active { transform: translateX(0); }
+    .account-overlay, .pay-stub-overlay { position: fixed; inset: 0; background-color: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s; }
+    .account-overlay.active, .pay-stub-overlay.active { transform: translateY(0); }
+    .overlay-header, .account-header { height: 60px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-surface); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .overlay-title, .account-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+    .btn-close-overlay { background: none; border: none; color: var(--text-main); cursor: pointer; }
+
+    /* Account Styles */
+    .profile-edit-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 32px; margin-top:20px; }
+    .profile-img-box { width: 100px; height: 100px; border-radius: 50%; background-color: #e2e8f0; position: relative; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; color: #94a3b8; border: 4px solid var(--bg-surface); box-shadow: 0 4px 12px rgba(0,0,0,0.1); background-size: cover; background-position: center; }
+    .btn-edit-photo { position: absolute; bottom: 0; right: 0; width: 34px; height: 34px; border-radius: 50%; background-color: var(--header-navy); color: #fff; border: 3px solid var(--bg-surface); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.15); }
+    body.dark-mode .btn-edit-photo { background-color: var(--primary); }
+    .acct-section { margin-bottom: 32px; }
+    .acct-sec-title { font-size: 15px; font-weight: 700; color: var(--text-sub); margin-bottom: 12px; display: block; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 16px; color: var(--text-sub); margin-bottom: 6px; font-weight: 600; }
+    .form-input { width: 100%; height: var(--h-common); padding: 0 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; color: var(--text-main); background: var(--bg-input); font-weight: 500; transition: all 0.2s; }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border); }
+    .switch { position: relative; display: inline-block; width: 48px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(22px); }
+    .btn-acct-save { font-size: 16px; font-weight: 600; color: var(--primary); background: none; border: none; cursor: pointer; }
+    .btn-text-danger { color: var(--danger); font-size: 15px; font-weight: 600; background: none; border: none; padding: 0; cursor: pointer; margin-top: 8px; text-decoration: underline; }
+
+    /* Notification */
+    .noti-header { height: var(--header-height); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-surface); border-bottom: 1px solid var(--border); }
+    .noti-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+    .noti-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+    .noti-item { padding: 20px; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start; }
+    .noti-item.unread { background-color: var(--primary-bg); }
+    .noti-icon-box { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .noti-icon-box.type-alert { background-color: var(--del-btn-bg); color: var(--danger); }
+    .noti-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .noti-item-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .noti-item-desc { font-size: 15px; color: var(--text-sub); line-height: 1.4; }
+    .noti-time { font-size: 13px; color: var(--text-placeholder); margin-top: 4px; }
+    .btn-read-all { border: 1px solid var(--border); background: none; font-size: 14px; color: var(--text-sub); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+    /* Other Overlays (Menu/Logout) */
+    .menu-nav-list { list-style: none; padding: 24px; margin: 0; flex: 1; overflow-y: auto; }
+    .menu-nav-list li { margin-bottom: 24px; }
+    .menu-link { font-size: 19px; font-weight: 700; color: var(--text-main); cursor: pointer; }
+    .btn-acct-mgmt { font-size: 14px; font-weight: 600; color: var(--primary); background-color: var(--bg-surface); border: 1px solid var(--primary); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    .btn-logout { width: 100%; height: 56px; background: var(--btn-logout-bg); color: var(--btn-logout-text); border: none; border-radius: 12px; font-size: 17px; font-weight: 700; cursor: pointer; }
+
+    /* Pay Stub & Share Cards */
+    #printArea { width: 100%; max-width: 500px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 40px 30px; color: #111; margin-bottom: 20px; font-family: var(--font-main); }
+    .stub-header-modern { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--stub-navy); padding-bottom: 20px; margin-bottom: 30px; }
+    .stub-title-main { font-size: 32px; font-weight: 800; color: var(--stub-navy); margin: 0; letter-spacing: -1px; line-height: 1.2; }
+    .stub-month-sub { font-size: 22px; font-weight: 700; color: var(--stub-navy); text-decoration: none; }
+    .stub-company-name { font-size: 16px; font-weight: 700; color: #111; }
+    .stub-issue-date { font-size: 14px; color: #64748b; font-weight: 500; }
+    .stub-info-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid var(--stub-gray-line); }
+    .stub-info-table th, .stub-info-table td { border: 1px solid var(--stub-gray-line); padding: 8px 12px; font-size: 14px; text-align: center; height: 36px; }
+    .stub-info-table th { background-color: var(--stub-bg-light); color: var(--stub-navy); font-weight: 700; width: 25%; }
+    .stub-info-table td { font-weight: 500; color: #111; }
+    .stub-detail-table { width: 100%; border-collapse: collapse; margin-bottom: 0px; border-top: 1px solid var(--stub-navy); }
+    .stub-detail-table th { background-color: var(--stub-navy); color: #fff; padding: 10px; font-size: 14px; font-weight: 700; text-align: center; border: 1px solid #556080; border-bottom: none; }
+    .stub-detail-table td { border: 1px solid var(--stub-gray-line); padding: 10px; font-size: 14px; color: #111; height: 40px; }
+    .stub-sub-head { background-color: var(--stub-highlight); color: var(--stub-navy); font-weight: 700; text-align: center; }
+    .stub-amount-cell { text-align: right; font-weight: 500; }
+    .stub-total-row td { background-color: var(--stub-bg-light); font-weight: 800; border-top: 1px solid var(--stub-gray-line); }
+    .stub-real-pay-box { margin-top: 20px; background-color: #eff6ff; border-radius: 16px; padding: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .stub-real-pay-label { font-size: 16px; font-weight: 700; color: var(--stub-navy); }
+    .stub-real-pay-val { font-size: 28px; font-weight: 800; color: #2563eb; }
+    .stub-calc-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .stub-calc-header-row td { background-color: var(--stub-navy); color: #ffffff !important; padding: 8px; text-align: center; font-weight: 700; font-size: 14px; }
+    .stub-calc-table th { background-color: var(--stub-navy); color: #ffffff !important; padding: 8px; font-size: 13px; border: 1px solid #556080; width: 20%; text-align: center; }
+    .stub-calc-table td { border: 1px solid var(--stub-gray-line); padding: 8px; font-size: 13px; text-align: center; color: #111; }
+    .stub-footer-msg { margin-top: 24px; text-align: center; font-size: 14px; color: #64748b; font-weight: 500; }
+    .btn-pdf-download { margin-top: 16px; width: 100%; max-width: 500px; background-color: #1a254f; color: #fff; font-size: 16px; font-weight: 700; border-radius: 12px; height: 56px !important; min-height: 56px !important; box-sizing: border-box; border: none; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(26, 37, 79, 0.2); }
+    .btn-pdf-download:active { transform: scale(0.98); }
+
+    /* Share Card */
+    #share-capture-area { position: fixed; top: -9999px; left: 0; width: 420px; background-color: #ffffff; padding: 30px; box-sizing: border-box; border-radius: 0; font-family: var(--font-main); z-index: 9999; display: flex; flex-direction: column; gap: 20px; }
+    .share-header { border-bottom: 2px solid #1a254f; padding-bottom: 15px; margin-bottom: 10px; }
+    .share-title { font-size: 24px; font-weight: 800; color: #1a254f; margin: 0; }
+    .share-month { font-size: 16px; font-weight: 600; color: #64748b; margin-top: 4px; }
+    .share-amount-box { text-align: right; margin-bottom: 10px; }
+    .share-label { font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 4px; display: block; }
+    .share-total-val { font-size: 32px; font-weight: 800; color: #31a3fa; letter-spacing: -1px; }
+    .share-grid-info { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 12px; }
+    .share-info-item { display: flex; flex-direction: column; gap: 2px; }
+    .share-info-lbl { font-size: 12px; font-weight: 600; color: #64748b; }
+    .share-info-val { font-size: 16px; font-weight: 700; color: #111; }
+    .share-info-val.deduct { color: #ef4444; }
+    .share-cal-wrapper { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+    .share-cal-wrapper .cal-date { width: 22px; height: 22px; font-size: 14px; }
+    .share-cal-wrapper .cal-cell { min-height: 75px; }
+    .share-cal-wrapper .cal-gongsu { font-size: 11px; font-weight: 700; }
+    .share-cal-wrapper .cal-amt { font-size: 11px; }
+    .share-footer { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; font-weight: 500; }
+
+    /* =========================================
+       [NEW] Edit Modal Style
+       ========================================= */
+    .modal-overlay { 
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; 
+        display: none; align-items: center; justify-content: center; padding: 20px;
+        opacity: 0; transition: opacity 0.3s;
+    }
+    .modal-overlay.active { display: flex; opacity: 1; }
+    .modal-content {
+        background: var(--bg-surface); width: 100%; max-width: 450px; 
+        border-radius: 20px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        max-height: 85vh; overflow-y: auto; display: flex; flex-direction: column;
+        border: 1px solid var(--border);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 20px; font-weight: 800; color: var(--text-main); }
+    .input-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-end; }
+    .input-group { flex: 1; }
+    .input-label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 4px; font-weight: 600; }
+    .input-field { width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-input); color: var(--text-main); font-size: 15px; }
+    .input-field.price-input { background-color: #f1f5f9; color: #64748b; font-weight: 600; } /* Readonly Style */
+    body.dark-mode .input-field.price-input { background-color: #1e293b; color: #94a3b8; }
+
+    .btn-remove-row { width: 42px; height: 42px; border: 1px solid var(--border); background: var(--del-btn-bg); color: var(--danger); border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+    .btn-add-row { 
+        width: 100%; 
+        height: 44px; 
+        border: 1.5px dashed var(--primary); 
+        background: var(--bg-surface); 
+        color: var(--primary); 
+        font-weight: 700; 
+        border-radius: 10px; 
+        margin-bottom: 24px; 
+        cursor: pointer; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 6px; 
+        font-size: 14px; 
+        transition: background-color 0.2s;
+    }
+    .btn-add-row:active {
+        background-color: var(--primary-bg);
+    }
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-modal { flex: 1; height: 50px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; border: none; }
+    .btn-cancel { background: var(--bg-input); border: 1px solid var(--border); color: var(--text-sub); }
+    /* 저장 버튼 남색 계열로 변경 (헤더 네이비 톤과 통일) */
+    .btn-save { background: var(--header-navy); color: #fff; }
+    body.dark-mode .btn-add-row { background: rgba(49, 163, 250, 0.05); }
+
+    /* Dark Mode Search Fix */
+    body.dark-mode .search-header-global { background-color: #0f172a; border-bottom: 1px solid #1e293b; }
+    body.dark-mode .unified-search-input { background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; }
+    body.dark-mode .unified-search-input::placeholder { color: #64748b; }
+    body.dark-mode .btn-search-submit { color: #60a5fa; }
+    body.dark-mode .search-header-global .btn-search-icon-group button { color: #60a5fa; }
+    body.dark-mode .search-header-global button i[data-lucide="arrow-left"] { color: #ffffff; }
+
+  </style>
+</head>
+<body>
+
+  <div class="search-overlay" id="unifiedSearchOverlay">
+    <div class="search-header-global">
+      <button style="background:none; border:none; padding:4px;" onclick="closeUnifiedSearch()"><i data-lucide="arrow-left" style="color:var(--text-main);"></i></button>
+      <div class="input-wrapper">
+        <input type="text" class="search-input-global unified-search-input" id="unifiedSearchInput" placeholder="검색어를 입력하세요." oninput="handleUnifiedTyping(this)">
+        <div class="btn-search-icon-group">
+            <button class="btn-search-clear" id="btnUnifiedClear" onclick="clearUnifiedSearchInput()"><i data-lucide="x" style="width:14px;"></i></button>
+            <button class="btn-mic" onclick="toggleVoiceSearch()" id="micBtn"><i data-lucide="mic"></i></button>
+        </div>
+      </div>
+      <button class="btn-search-submit" onclick="performUnifiedSearch()">검색</button>
+    </div>
+
+    <div class="search-content" id="searchContentArea">
+      <div id="defaultView">
+        <span class="section-title">즐겨찾기된 내 현장</span>
+        <div id="bookmarkedSiteContainer"></div>
+        <button id="btnToggleSites" class="btn-more-sites" onclick="toggleBookmarkedSites()">
+            <span>더 보기</span> <i data-lucide="chevron-down" style="width:16px;"></i>
+        </button>
+        <div>
+            <span class="section-title">빠른 검색 태그</span>
+            <div class="tag-container">
+                <button class="search-tag" onclick="setSearch('출력현황')">#출력현황</button>
+                <button class="search-tag" onclick="setSearch('급여현황')">#급여현황</button>
+                <button class="search-tag" onclick="setSearch('자이')">#자이아파트</button>
+                <button class="search-tag" onclick="setSearch('삼성')">#삼성반도체</button>
+            </div>
+        </div>
+      </div>
+      <div id="resultView" style="display: none;">
+          <span class="section-title" id="resultCount">검색 결과 0건</span>
+          <div id="dynamicResultList"></div>
+          <div id="noResultMsg" class="empty-result" style="display:none;">검색 결과가 없습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="share-capture-area">
+      <div class="share-header">
+          <h1 class="share-title">급여 지급 요청서</h1>
+          <div class="share-month" id="share-month-txt">2025년 12월</div>
+      </div>
+      <div class="share-amount-box">
+          <span class="share-label">실수령 예정액</span>
+          <span class="share-total-val" id="share-net-val">0원</span>
+      </div>
+      <div class="share-grid-info">
+          <div class="share-info-item">
+              <span class="share-info-lbl">총 공수</span>
+              <span class="share-info-val" id="share-gongsu-val">0.0</span>
+          </div>
+          <div class="share-info-item">
+              <span class="share-info-lbl">총 지급액</span>
+              <span class="share-info-val" id="share-price-val">0</span>
+          </div>
+          <div class="share-info-item" style="grid-column: span 2; border-top: 1px dashed #cbd5e1; padding-top: 10px; margin-top: 4px; flex-direction: row; justify-content: space-between; align-items: center;">
+              <span class="share-info-lbl">공제금액 (3.3%)</span>
+              <span class="share-info-val deduct" id="share-deduct-val">-0</span>
+          </div>
+      </div>
+      <div class="share-cal-wrapper" id="share-cal-container"></div>
+      <div class="share-footer">Generated by INOPNC App</div>
+  </div>
+
+  <div class="overlay-backdrop" id="notiBackdrop" onclick="closeNotification()"></div>
+  <div class="drawer-panel" id="notiPanel">
+    <div class="noti-header">
+        <span class="noti-title">알림 센터</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn-read-all" onclick="markAllRead()">모두 읽음</button>
+            <button onclick="closeNotification()" style="background:none; border:none; color:var(--text-main);"><i data-lucide="x"></i></button>
+        </div>
+    </div>
+    <ul class="noti-list" id="notiList"></ul>
+  </div>
+
+  <div class="overlay-backdrop" id="menuBackdrop" onclick="closeMenu()"></div>
+  <div class="menu-panel" id="menuPanel">
+      <div style="padding:34px 24px; border-bottom:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <div><span style="font-size:24px; font-weight:800;" id="menuCompanyName">(주)대박건설</span> <span style="font-size:13px; font-weight:700; color:var(--primary); background:var(--primary-bg); padding:4px 8px; border-radius:4px;">작업자</span></div>
+              <button onclick="closeMenu()" style="border:1px solid var(--border); background:none; border-radius:8px; padding:6px 14px; font-size:14px; color:var(--text-sub);">닫기</button>
+          </div>
+          <div style="font-size:15px; color:var(--text-sub);">partner@daebak.com</div>
+      </div>
+      <ul class="menu-nav-list">
+          <li><a class="menu-link" onclick="closeMenu()">홈</a></li>
+          <li><a class="menu-link" onclick="location.href='#'">현장정보</a></li>
+          <li><a class="menu-link" onclick="location.href='#'">작업일지</a></li>
+          <li><a class="menu-link" onclick="closeMenu()">출력현황</a></li>
+          <li><a class="menu-link" onclick="closeMenu()">문서함</a></li>
+          <li class="menu-link-row" style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="menu-link">내정보</span>
+              <button class="btn-acct-mgmt" onclick="openAccount()">계정관리</button>
+          </li>
+      </ul>
+      <div style="padding:24px; border-top:1px solid var(--border);">
+          <button class="btn-logout">로그아웃</button>
+      </div>
+  </div>
+
+  <input type="file" id="profile-upload-input" style="display:none;" accept="image/*" onchange="handleProfilePreview(this)">
+  <div class="account-overlay" id="accountOverlay">
+      <div class="account-header">
+          <button style="background:none; border:none; padding:4px;" onclick="closeAccount()"><i data-lucide="arrow-left" style="color:var(--text-main);"></i></button>
+          <span class="account-title">계정 관리</span>
+          <button class="btn-acct-save" onclick="saveAccount()">저장</button>
+      </div>
+      <div style="flex:1; padding:24px 20px; overflow-y:auto;">
+          <div class="profile-edit-wrap">
+              <div class="profile-img-box" id="profile-img-box">
+                  <span>박</span>
+                  <button class="btn-edit-photo" onclick="triggerProfileUpload()">
+                      <i data-lucide="camera" style="width:16px;"></i>
+                  </button>
+              </div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">기본 정보</span>
+              <div class="form-group"><label class="form-label">업체명</label><input type="text" class="form-input" id="input-company" value="(주)대박건설"></div>
+              <div class="form-group"><label class="form-label">이메일</label><input type="email" class="form-input" value="partner@daebak.com" disabled style="opacity:0.7;"></div>
+              <div class="form-group"><label class="form-label">전화번호</label><input type="tel" class="form-input" id="input-phone" value="010-9999-8888"></div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">보안 설정</span>
+              <div class="form-group"><label class="form-label">비밀번호 변경</label><input type="password" class="form-input" placeholder="새 비밀번호 입력"></div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">알림 설정</span>
+              <div class="setting-row"><span class="setting-label" style="font-size:16px;">푸시 알림</span><label class="switch"><input type="checkbox" checked><span class="slider"></span></label></div>
+              <div class="setting-row" style="border-bottom:none;"><span class="setting-label" style="font-size:16px;">이메일 수신</span><label class="switch"><input type="checkbox"><span class="slider"></span></label></div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">기타</span>
+              <div style="display:flex; justify-content:space-between; margin-bottom:20px;"><span style="font-size:15px; color:var(--text-sub);">앱 버전</span><span style="font-size:15px; color:var(--text-main); font-weight:600;">v1.2.0</span></div>
+              <button class="btn-text-danger">회원 탈퇴</button>
+          </div>
+      </div>
+  </div>
+
+  <div class="pay-stub-overlay" id="payStubOverlay">
+      <div class="overlay-header">
+          <button class="btn-close-overlay" onclick="closePayStub()"><i data-lucide="x"></i></button>
+          <span class="overlay-title">급여명세서 조회</span>
+          <div style="width:24px;"></div>
+      </div>
+      <div class="pay-stub-content" style="padding:20px; overflow-y:auto; flex:1;">
+          <div id="printArea">
+              <div class="stub-header-modern">
+                  <div class="stub-header-left"><div class="stub-title-main">급여 명세서</div><div class="stub-month-sub" id="stubMonthDisplay">2025. 11월</div></div>
+                  <div class="stub-header-right"><div class="stub-company-name">(주)이노피앤씨</div><div class="stub-issue-date">발급일: <span id="stubIssueDate">2025. 12. 10.</span></div></div>
+              </div>
+              <table class="stub-info-table">
+                  <tr><th>성명</th><td>김반장</td></tr>
+                  <tr><th>지급일</th><td id="stubPaymentDate">2025. 12. 10.</td></tr>
+              </table>
+              <table class="stub-detail-table">
+                  <thead>
+                      <tr><th colspan="2" style="width:50%;">임금지급내역</th><th colspan="2" style="width:50%;">공제내역</th></tr>
+                      <tr><td class="stub-sub-head">임금항목</td><td class="stub-sub-head">지급금액(원)</td><td class="stub-sub-head">공제항목</td><td class="stub-sub-head">지급금액(원)</td></tr>
+                  </thead>
+                  <tbody>
+                      <tr><td class="stub-center">기본급</td><td class="stub-amount-cell" id="stubBasicPay">0</td><td class="stub-center">소득세</td><td class="stub-amount-cell" id="stubIncomeTax">0</td></tr>
+                      <tr><td></td><td></td><td class="stub-center">지방소득세</td><td class="stub-amount-cell" id="stubLocalTax">0</td></tr>
+                      <tr><td style="border-bottom:none;"></td><td style="border-bottom:none;"></td><td style="border-bottom:none;"></td><td style="border-bottom:none;"></td></tr>
+                      <tr class="stub-total-row"><td class="stub-sub-head">지급액 계</td><td class="stub-sub-head stub-amount-cell" id="stubTotalPay">0</td><td class="stub-sub-head">공제액 계</td><td class="stub-sub-head stub-amount-cell" id="stubTotalDeduct">0</td></tr>
+                  </tbody>
+              </table>
+              <div class="stub-real-pay-box"><span class="stub-real-pay-label">실지급액</span><span class="stub-real-pay-val" id="stubNetPay">0</span></div>
+              <table class="stub-calc-table">
+                  <thead><tr class="stub-calc-header-row"><td colspan="3">계산 방법</td></tr><tr><th>구분</th><th>산출식 또는 산출방법</th><th>지급액(원)</th></tr></thead>
+                  <tbody><tr><td style="font-weight:600;">기본급</td><td id="stubCalcMethod">X</td><td style="text-align:right;" id="stubCalcResult">0</td></tr></tbody>
+              </table>
+              <div class="stub-footer-msg">본 명세서는 전자 발급되었습니다.</div>
+          </div>
+          <button class="btn-pdf-download" onclick="downloadPayStubPDF()"><i data-lucide="download" style="width:20px;"></i> PDF 다운로드 (A4)</button>
+      </div>
+  </div>
+
+  <header class="app-header">
+    <div class="tab-container">
+        <button class="tab-btn active" id="btn-tab-output" onclick="switchTab('output')">출력현황</button>
+        <button class="tab-btn" id="btn-tab-salary" onclick="switchTab('salary')">급여현황</button>
+    </div>
+  </header>
+
+  <div class="app-wrapper" id="main-content">
+    
+    <div id="tab-output" class="tab-content active search-target-section">
+        <div class="local-search-wrapper">
+            <input type="text" class="search-input-local" id="localSearchInput" placeholder="현장명을 입력하세요." oninput="handleLocalSearch(this)">
+            <i data-lucide="search" class="local-search-icon" id="localSearchIcon"></i>
+            <button class="btn-local-clear" id="btnLocalClear" onclick="clearLocalSearchInput()"><i data-lucide="x" style="width:14px;"></i></button>
+        </div>
+        <div class="form-select-group">
+            <select class="form-select" id="calSiteFilter" onchange="renderCalendar()"><option value="">전체 현장</option><option value="자이">자이 아파트</option><option value="삼성">삼성 반도체</option></select>
+            <select class="form-select" id="calMonthFilter" onchange="renderCalendar()"><option value="2025-12">2025년 12월</option><option value="2025-11">2025년 11월</option></select>
+        </div>
+        <div class="calendar-box" id="captureTargetCalendar">
+            <div class="cal-header">
+                <button style="background:none; border:none; cursor:pointer; color:var(--text-sub); padding:8px;" onclick="changeMonth(-1)"><i data-lucide="chevron-left" width="28" height="28"></i></button>
+                <span class="cal-title" id="calTitle">2025년 12월</span>
+                <button style="background:none; border:none; cursor:pointer; color:var(--text-sub); padding:8px;" onclick="changeMonth(1)"><i data-lucide="chevron-right" width="28" height="28"></i></button>
+            </div>
+            <div class="cal-grid" id="calendarGrid"></div>
+        </div>
+        <div class="summary-grid">
+            <div class="sum-card sky"><span class="sum-val" id="sum-count">0</span><span class="sum-label">현장수</span></div>
+            <div class="sum-card navy"><span class="sum-val" id="sum-man">0.0</span><span class="sum-label">공수</span></div>
+            <div class="sum-card periwinkle"><span class="sum-val" id="sum-days">0</span><span class="sum-label">근무일</span></div>
+        </div>
+    </div>
+
+    <div id="tab-salary" class="tab-content search-target-section">
+        <div class="section-header-row">
+             <span class="sal-section-title">이번 달 지급 대기</span>
+             <button class="btn-privacy-toggle" onclick="toggleSalaryPrivacy()"><span>금액 보기/숨기기</span><i data-lucide="eye-off" id="eyeIcon" style="width:16px;"></i></button>
+        </div>
+        <div class="salary-card-base">
+            <div class="sal-card-top"><span class="sal-month" id="currentSalMonth">2025년 12월</span><span class="status-badge pending">지급대기</span></div>
+            <div class="sal-main-info">
+                <span>실수령 예정액</span>
+                <div class="money-wrapper"><span class="dash-val privacy-target" id="disp-net-pay" data-original="0" style="font-size:20px; color:var(--primary);">0</span><span style="font-size:16px; font-weight:600;">원</span></div>
+            </div>
+            <div class="sal-detail-item"><span>공수</span><span class="val" id="disp-gongsu">0.0</span></div>
+            <div class="sal-detail-item"><span>평균단가</span><span class="val privacy-target" id="disp-price" data-original="0">0</span></div>
+            <button class="btn-view-detail highlight" onclick="handlePaymentRequest()"><i data-lucide="share" style="width:18px;"></i> 지급 요청하기 (공유)</button>
+        </div>
+        <div class="section-header-row" style="margin-top:30px;"><span class="sal-section-title">지난 급여 내역</span></div>
+        <div class="form-select-group">
+            <select class="form-select" id="salDateFilter" onchange="renderSalaryList()"><option value="all">2025년 전체</option><option value="2025-11">2025년 11월</option><option value="2025-10">2025년 10월</option></select>
+            <select class="form-select" id="salSortFilter" onchange="renderSalaryList()"><option value="latest">최신순</option><option value="amount">금액순</option></select>
+        </div>
+        <div id="salaryHistoryList"></div>
+        <button class="load-more-btn" onclick="toggleLoadMore()" id="loadMoreBtn"><span>더 보기</span> <i data-lucide="chevron-down" style="width:16px;"></i></button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editModalOverlay">
+      <div class="modal-content">
+          <div class="modal-header">
+              <span class="modal-title" id="editModalTitle">2025년 12월 1일</span>
+              <button onclick="closeEditModal()" style="background:none; border:none; color:var(--text-sub);"><i data-lucide="x"></i></button>
+          </div>
+          <div id="editModalInputs">
+              </div>
+          <button class="btn-add-row" onclick="addInputRow()">
+              <i data-lucide="plus" width="16"></i> 항목 추가
+          </button>
+          <div class="modal-actions">
+              <button class="btn-modal btn-cancel" onclick="closeEditModal()">취소</button>
+              <button class="btn-modal btn-save" onclick="saveWorkData()">저장</button>
+          </div>
+      </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ================= Logic 1. Global Data & Structure ================= */
+    let globalWorkData = {
+        '2025-12-01': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-02': [ { site: '삼성 반도체', man: 0.5, price: 125000 } ],
+        '2025-12-03': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-04': [ { site: '자이 아파트', man: 1.5, price: 337500 } ],
+        '2025-12-05': [ { site: '푸르지오', man: 1.0, price: 225000 } ],
+        '2025-12-06': [ { site: '힐스테이트 센트럴', man: 2.0, price: 450000 } ],
+        '2025-12-07': [ { site: '자이 아파트', man: 1.0, price: 225000 }, { site: '삼성 반도체', man: 0.5, price: 125000 } ],
+        '2025-12-08': [ { site: '푸르지오', man: 1.5, price: 337500 } ],
+        '2025-12-09': [ { site: '대전 테크노밸리', man: 2.5, price: 562500 } ],
+        '2025-12-10': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-11': [ { site: '광주 첨단단지', man: 1.5, price: 337500 } ],
+        '2025-12-12': [ { site: '부산 해운대', man: 2.0, price: 450000 } ],
+        '2025-12-13': [ { site: '자이 아파트', man: 1.0, price: 225000 }, { site: '푸르지오', man: 1.0, price: 225000 } ],
+        '2025-12-14': [ { site: '울산 산업단지', man: 3.0, price: 675000 } ],
+        '2025-12-15': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-16': [ { site: '강릉 관광단지', man: 1.5, price: 337500 } ],
+        '2025-12-17': [ { site: '자이 아파트', man: 1.0, price: 225000 }, { site: '삼성 반도체', man: 1.0, price: 250000 }, { site: '힐스테이트', man: 0.5, price: 112500 } ],
+        '2025-12-18': [ { site: '대구 첨단단지', man: 2.0, price: 450000 } ],
+        '2025-12-19': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-20': [ { site: '전주 혁신도시', man: 1.5, price: 337500 } ],
+        '2025-12-21': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-22': [ { site: '원주 산업단지', man: 2.5, price: 562500 } ],
+        '2025-12-23': [ { site: '자이 아파트', man: 1.0, price: 225000 }, { site: '푸르지오', man: 1.5, price: 337500 } ],
+        '2025-12-24': [ { site: '삼성 반도체', man: 2.0, price: 500000 } ],
+        '2025-12-25': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-26': [ { site: '힐스테이트 센트럴', man: 1.5, price: 337500 } ],
+        '2025-12-27': [ { site: '자이 아파트', man: 1.0, price: 225000 }, { site: '대전 테크노밸리', man: 1.0, price: 225000 } ],
+        '2025-12-28': [ { site: '부산 해운대', man: 2.0, price: 450000 } ],
+        '2025-12-29': [ { site: '자이 아파트', man: 1.0, price: 225000 } ],
+        '2025-12-30': [ { site: '광주 첨단단지', man: 1.5, price: 337500 } ],
+        '2025-12-31': [ { site: '자이 아파트', man: 1.0, price: 225000 }, { site: '삼성 반도체', man: 0.5, price: 125000 }, { site: '푸르지오', man: 1.0, price: 225000 } ],
+    };
+
+    const GONGSU_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
+    const DEFAULT_UNIT_PRICE = 225000;
+    const SPECIAL_UNIT_PRICE = 250000; // Example for special sites like Samsung
+
+    /* ================= Logic 2. Calendar Logic ================= */
+    let currentYear = 2025; 
+    let currentMonth = 12;
+    let editingDate = null; 
+
+    function changeMonth(delta) {
+        currentMonth += delta;
+        if(currentMonth > 12) { currentMonth = 1; currentYear++; } 
+        if(currentMonth < 1) { currentMonth = 12; currentYear--; }
+        
+        // calMonthFilter와 동기화
+        const monthFilterVal = `${currentYear}-${currentMonth.toString().padStart(2,'0')}`;
+        const monthFilter = document.getElementById('calMonthFilter');
+        if (monthFilter) {
+            monthFilter.value = monthFilterVal;
+        }
+        
+        renderCalendar();
+        updateSalaryData(); 
+    }
+
+    function renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        
+        // 1. 필터 값으로부터 현재 연/월 업데이트
+        const monthFilterVal = document.getElementById('calMonthFilter').value; // "2025-12"
+        if (monthFilterVal) {
+            const [filterY, filterM] = monthFilterVal.split('-').map(Number);
+            currentYear = filterY;
+            currentMonth = filterM;
+        }
+        document.getElementById('calTitle').innerText = `${currentYear}년 ${currentMonth}월`;
+
+        grid.innerHTML = '<div class="cal-day-name sun">일</div><div class="cal-day-name">월</div><div class="cal-day-name">화</div><div class="cal-day-name">수</div><div class="cal-day-name">목</div><div class="cal-day-name">금</div><div class="cal-day-name">토</div>';
+        
+        // 2. 해당 월의 첫 날 요일과 마지막 날짜 계산
+        const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+        const lastDate = new Date(currentYear, currentMonth, 0).getDate();
+
+        // 빈 칸 생성
+        for(let i=0; i<firstDay; i++) grid.innerHTML += `<div class="cal-cell empty"></div>`;
+
+        const filterSite = document.getElementById('calSiteFilter').value;
+        const searchQuery = document.getElementById('localSearchInput').value.toLowerCase();
+
+        let totalSites = 0; 
+        let totalMan = 0; 
+        let workedDays = 0;
+
+        // 3. 날짜별 셀 생성
+        for(let d=1; d<=lastDate; d++) {
+            const dateStr = `${currentYear}-${currentMonth.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+            const dayEntries = globalWorkData[dateStr] || [];
+            
+            let displayContent = '';
+            let dayTotalAmt = 0;
+            let dayTotalMan = 0;
+
+            let filteredEntries = dayEntries.filter(entry => {
+                const matchSite = (filterSite === "" || entry.site.includes(filterSite));
+                const matchSearch = (searchQuery === "" || entry.site.toLowerCase().includes(searchQuery));
+                return matchSite && matchSearch;
+            });
+
+            if(filteredEntries.length > 0) {
+                filteredEntries.forEach(e => {
+                    dayTotalAmt += e.price;
+                    dayTotalMan += e.man;
+                });
+                
+                // 현장명 4글자 요약 (띄어쓰기 제거)
+                const baseName = filteredEntries[0].site.replace(/\s+/g, '');
+                const shortName = baseName.slice(0, 4);
+                let siteDisplay = shortName;
+                
+                // 여러 현장이 있을 경우
+                if(filteredEntries.length > 1) {
+                    siteDisplay = `${shortName}외${filteredEntries.length-1}`;
+                }
+                
+                // 모바일 최적화된 배지 구조: 공수, 만원 단위, 현장명
+                displayContent = `
+                    <div class="cal-data-badge">
+                        <span class="cal-gongsu">${dayTotalMan.toFixed(1)}</span>
+                        <span class="cal-amt">${(dayTotalAmt/10000).toFixed(1)}만</span>
+                        <span class="cal-site">${siteDisplay}</span>
+                    </div>`;
+                
+                totalSites += filteredEntries.length;
+                totalMan += dayTotalMan;
+                workedDays++;
+            }
+
+            const today = new Date();
+            const isToday = (today.getDate() === d && today.getMonth()+1 === currentMonth && today.getFullYear() === currentYear) ? 'today' : ''; 
+            grid.innerHTML += `
+                <div class="cal-cell ${isToday}" onclick="openEditModal('${dateStr}')">
+                    <span class="cal-date">${d}</span>
+                    ${displayContent}
+                </div>`;
+        }
+
+        // 요약 카드 업데이트
+        document.getElementById('sum-count').innerText = totalSites;
+        document.getElementById('sum-man').innerText = totalMan.toFixed(1);
+        document.getElementById('sum-days').innerText = workedDays;
+    }
+
+    /* ================= Logic 3. Edit Modal Logic (Updated) ================= */
+    function openEditModal(dateStr) {
+        editingDate = dateStr;
+        const [y, m, d] = dateStr.split('-');
+        document.getElementById('editModalTitle').innerText = `${y}년 ${m}월 ${d}일 작업 수정`;
+        
+        const container = document.getElementById('editModalInputs');
+        container.innerHTML = '';
+
+        const entries = globalWorkData[dateStr] || [];
+        
+        if (entries.length === 0) {
+            addInputRow('', '1', '');
+        } else {
+            entries.forEach(entry => {
+                addInputRow(entry.site, entry.man, entry.price);
+            });
+        }
+        
+        document.getElementById('editModalOverlay').classList.add('active');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModalOverlay').classList.remove('active');
+        editingDate = null;
+    }
+
+    // Helper: get unique site names from history sorted by most recent date (desc)
+    function getSortedSitesFromHistory() {
+        const map = {}; // site -> latest date string
+        Object.keys(globalWorkData).forEach(dateStr => {
+            const entries = globalWorkData[dateStr] || [];
+            entries.forEach(e => {
+                const s = (e.site || '').trim();
+                if (!s) return;
+                if (!map[s] || map[s] < dateStr) map[s] = dateStr;
+            });
+        });
+        const arr = Object.keys(map).map(s => ({ name: s, latest: map[s] }));
+        arr.sort((a,b) => (a.latest < b.latest) ? 1 : (a.latest > b.latest) ? -1 : 0);
+        return arr.map(x => x.name);
+    }
+
+    function addInputRow(site='', man='1', price='') {
+        const container = document.getElementById('editModalInputs');
+        const div = document.createElement('div');
+        div.className = 'input-row';
+
+        // Generate Options for 공수
+        let optionsHtml = '';
+        GONGSU_OPTIONS.forEach(opt => {
+            const selected = parseFloat(man) === opt ? 'selected' : '';
+            optionsHtml += `<option value="${opt}" ${selected}>${opt}</option>`;
+        });
+
+        // Determine Initial Price Display if empty
+        let initialPrice = price;
+        if(initialPrice === '') {
+            const m = parseFloat(man) || 0;
+            const unit = (site && site.includes('삼성')) ? SPECIAL_UNIT_PRICE : DEFAULT_UNIT_PRICE;
+            initialPrice = unit * m;
+        }
+
+        // Build site select options from history, newest first
+        const sites = getSortedSitesFromHistory();
+        let siteOptionsHtml = '';
+        if (sites.length === 0) {
+            // no history: show placeholder and include provided site if any
+            siteOptionsHtml = `<option value="">현장 선택</option>`;
+            if (site) siteOptionsHtml += `<option value="${site}">${site}</option>`;
+        } else {
+            const provided = (site || '').trim();
+            // if provided site not in list, include it at top
+            if (provided && !sites.includes(provided)) {
+                siteOptionsHtml += `<option value="${provided}" selected>${provided}</option>`;
+            }
+            sites.forEach((s, idx) => {
+                let sel = '';
+                if (site && site === s) sel = 'selected';
+                else if (!site && idx === 0) sel = 'selected';
+                siteOptionsHtml += `<option value="${s}" ${sel}>${s}</option>`;
+            });
+            if (!site && !siteOptionsHtml.includes('selected')) siteOptionsHtml = `<option value="">현장 선택</option>` + siteOptionsHtml;
+        }
+
+        div.innerHTML = `
+            <div class="input-group" style="flex:2;">
+                <label class="input-label">현장명</label>
+                <select class="form-select site-input" onchange="updateRowPrice(this)">
+                    ${siteOptionsHtml}
+                </select>
+            </div>
+            <div class="input-group" style="flex:1;">
+                <label class="input-label">공수</label>
+                <select class="form-select man-input" onchange="updateRowPrice(this)">
+                    ${optionsHtml}
+                </select>
+            </div>
+            <div class="input-group" style="flex:1.5;">
+                <label class="input-label">금액 (자동)</label>
+                <input type="text" class="input-field price-input" value="${initialPrice}" readonly>
+            </div>
+            <button class="btn-remove-row" onclick="removeRow(this)"><i data-lucide="trash-2" width="18"></i></button>
+        `;
+        container.appendChild(div);
+        lucide.createIcons();
+    }
+
+    // [New] Auto Calculate Price Logic
+    function updateRowPrice(element) {
+        const row = element.closest('.input-row');
+        const siteVal = row.querySelector('.site-input').value.trim();
+        const manVal = parseFloat(row.querySelector('.man-input').value);
+        const priceInput = row.querySelector('.price-input');
+
+        // Logic: if site contains '삼성' -> 250,000, else -> 225,000
+        const unitPrice = (siteVal.includes('삼성')) ? SPECIAL_UNIT_PRICE : DEFAULT_UNIT_PRICE;
+        const total = unitPrice * manVal;
+
+        priceInput.value = total;
+    }
+
+    function removeRow(btn) {
+        btn.closest('.input-row').remove();
+    }
+
+    function saveWorkData() {
+        if (!editingDate) return;
+
+        const rows = document.querySelectorAll('#editModalInputs .input-row');
+        const newEntries = [];
+
+        rows.forEach(row => {
+            const site = row.querySelector('.site-input').value.trim();
+            const man = parseFloat(row.querySelector('.man-input').value);
+            const price = parseInt(row.querySelector('.price-input').value);
+
+            // Save only if site name exists and man power is valid
+            if (site && !isNaN(man)) {
+                newEntries.push({ site, man, price: isNaN(price) ? 0 : price });
+            }
+        });
+
+        if (newEntries.length > 0) {
+            globalWorkData[editingDate] = newEntries;
+        } else {
+            delete globalWorkData[editingDate];
+        }
+
+        renderCalendar();
+        updateSalaryData(); 
+        closeEditModal();
+        alert('저장되었습니다.');
+    }
+
+    /* ================= Logic 4. Salary Sync ================= */
+    const fmt = (n) => n.toLocaleString();
+
+    function updateSalaryData() {
+        let totalMan = 0;
+        let totalPay = 0;
+        const prefix = `${currentYear}-${currentMonth.toString().padStart(2,'0')}`;
+
+        Object.keys(globalWorkData).forEach(dateStr => {
+            if(dateStr.startsWith(prefix)) {
+                const entries = globalWorkData[dateStr];
+                entries.forEach(e => {
+                    totalMan += e.man;
+                    totalPay += e.price;
+                });
+            }
+        });
+
+        const tax = Math.floor(totalPay * 0.033);
+        const netPay = totalPay - tax;
+        const avgPrice = totalMan > 0 ? Math.round(totalPay / totalMan) : 0;
+
+        const elNet = document.getElementById('disp-net-pay');
+        const elGongsu = document.getElementById('disp-gongsu');
+        const elPrice = document.getElementById('disp-price');
+        const elMonth = document.getElementById('currentSalMonth');
+
+        elMonth.innerText = `${currentYear}년 ${currentMonth}월`;
+        elGongsu.innerText = totalMan.toFixed(1);
+        
+        elNet.dataset.original = fmt(netPay);
+        elPrice.dataset.original = fmt(avgPrice);
+
+        if (isPrivacyOn) {
+            elNet.innerText = '****';
+            elPrice.innerText = '****';
+        } else {
+            elNet.innerText = fmt(netPay);
+            elPrice.innerText = fmt(avgPrice);
+        }
+    }
+
+    /* ================= Logic 5. Existing Search & Salary List ================= */
+    function handleLocalSearch(input) {
+        const btn = document.getElementById('btnLocalClear'); const icon = document.getElementById('localSearchIcon');
+        if (input.value.trim().length > 0) { btn.classList.add('show'); icon.style.opacity = '0'; } else { btn.classList.remove('show'); icon.style.opacity = '1'; }
+        renderCalendar();
+    }
+    function clearLocalSearchInput() { const input = document.getElementById('localSearchInput'); input.value = ''; handleLocalSearch(input); input.focus(); }
+
+    const salaryHistory = [
+        { rawDate: '2025-11', month: '2025년 11월', baseTotal: 4700000, man: 22.0, price: 213636 },
+        { rawDate: '2025-10', month: '2025년 10월', baseTotal: 2300000, man: 10.0, price: 230000 }
+    ];
+    let isPrivacyOn = true; let isExpanded = false;
+
+    function renderSalaryList() {
+        const list = document.getElementById('salaryHistoryList'); list.innerHTML = '';
+        const dateVal = document.getElementById('salDateFilter').value;
+        let filtered = salaryHistory.filter(item => dateVal === 'all' || item.rawDate === dateVal);
+        let displayList = isExpanded ? filtered : filtered.slice(0, 2);
+        
+        if (displayList.length === 0) { list.innerHTML = `<div style="text-align:center; padding:30px 0; color:var(--text-placeholder);">내역이 없습니다.</div>`; return; }
+
+        displayList.forEach(item => {
+            const tax = Math.floor(item.baseTotal * 0.033); const net = item.baseTotal - tax;
+            const dispNet = isPrivacyOn ? '****' : fmt(net);
+            const dispPrice = isPrivacyOn ? '****' : fmt(Math.round(item.price));
+            const dispDeduct = isPrivacyOn ? '****' : '-' + fmt(tax);
+            list.innerHTML += `
+            <div class="salary-card-base">
+                <div class="sal-card-top"><span class="sal-month">${item.month}</span><span class="status-badge paid">지급완료</span></div>
+                <div class="sal-main-info"><span>실수령액</span><div class="money-wrapper"><span class="dash-val privacy-target" data-original="${fmt(net)}">${dispNet}</span><span style="font-size:16px; font-weight:600;">원</span></div></div>
+                <div class="sal-detail-item"><span>공수</span><span class="val">${item.man.toFixed(1)}</span></div>
+                <div class="sal-detail-item"><span>단가</span><span class="val privacy-target" data-original="${fmt(Math.round(item.price))}">${dispPrice}</span></div>
+                <div class="sal-detail-item"><span>공제 (3.3%)</span><span class="val deduct privacy-target" data-original="-${fmt(tax)}">${dispDeduct}</span></div>
+                <button class="btn-view-detail" onclick="openPayStub('${item.rawDate}')">급여명세서 조회</button>
+            </div>`;
+        });
+        document.getElementById('eyeIcon').setAttribute('data-lucide', isPrivacyOn ? 'eye-off' : 'eye');
+        lucide.createIcons();
+    }
+
+    function toggleLoadMore() { 
+        isExpanded = !isExpanded; renderSalaryList(); 
+        const btn = document.getElementById('loadMoreBtn');
+        if(isExpanded) btn.innerHTML = `<span>접기</span> <i data-lucide="chevron-up" style="width:16px;"></i>`;
+        else btn.innerHTML = `<span>더 보기</span> <i data-lucide="chevron-down" style="width:16px;"></i>`;
+        lucide.createIcons();
+    }
+    
+    function toggleSalaryPrivacy() {
+        isPrivacyOn = !isPrivacyOn; 
+        renderSalaryList(); 
+        updateSalaryData(); 
+        
+        document.getElementById('eyeIcon').setAttribute('data-lucide', isPrivacyOn ? 'eye-off' : 'eye');
+        lucide.createIcons();
+    }
+
+    /* ================= Logic 6. Share & PayStub ================= */
+    async function handlePaymentRequest() {
+        const gongsu = parseFloat(document.getElementById('disp-gongsu').innerText);
+        const priceStr = document.getElementById('disp-net-pay').dataset.original.replace(/,/g, '');
+        const netPay = parseInt(priceStr, 10);
+        const gross = Math.floor(netPay / 0.967);
+        const tax = gross - netPay;
+
+        const monthTxt = document.getElementById('calTitle').innerText;
+        document.getElementById('share-month-txt').innerText = monthTxt + " 지급 요청";
+        document.getElementById('share-net-val').innerText = netPay.toLocaleString() + "원";
+        document.getElementById('share-gongsu-val').innerText = gongsu.toFixed(1) + " 공수";
+        document.getElementById('share-price-val').innerText = gross.toLocaleString() + " 원";
+        document.getElementById('share-deduct-val').innerText = "-" + tax.toLocaleString() + " 원";
+        
+        const cloneCalendar = document.getElementById('calendarGrid').cloneNode(true);
+        const shareContainer = document.getElementById('share-cal-container'); shareContainer.innerHTML = ''; shareContainer.appendChild(cloneCalendar);
+        
+        const shareCard = document.getElementById('share-capture-area');
+        try {
+            const canvas = await html2canvas(shareCard, { scale: 2, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: 420 });
+            canvas.toBlob(async (blob) => {
+                if (navigator.share && navigator.canShare({ files: [new File([blob], "pay.png", { type: "image/png" })] })) {
+                    await navigator.share({ files: [new File([blob], "pay.png", { type: "image/png" })], title: '급여 지급 요청', text: `${monthTxt} 급여 내역입니다.` });
+                } else {
+                    const link = document.createElement('a'); link.href = canvas.toDataURL('image/png'); link.download = 'pay_request.png'; link.click();
+                }
+            }, 'image/png');
+        } catch (err) { alert("공유 이미지 생성 오류"); }
+    }
+
+    function openPayStub(rawDateStr) {
+        const item = salaryHistory.find(d => d.rawDate === rawDateStr); if(!item) return;
+        const tax = Math.floor(item.baseTotal * 0.033); const net = item.baseTotal - tax;
+        const [y, m] = rawDateStr.split('-');
+        document.getElementById('stubMonthDisplay').innerText = `${y}. ${m}월`;
+        document.getElementById('stubBasicPay').innerText = fmt(item.baseTotal);
+        document.getElementById('stubTotalPay').innerText = fmt(item.baseTotal);
+        document.getElementById('stubIncomeTax').innerText = fmt(Math.floor(item.baseTotal * 0.03));
+        document.getElementById('stubLocalTax').innerText = fmt(Math.floor(item.baseTotal * 0.003));
+        document.getElementById('stubTotalDeduct').innerText = fmt(tax);
+        document.getElementById('stubNetPay').innerText = fmt(net);
+        document.getElementById('stubCalcMethod').innerText = `${item.man.toFixed(1)}공수 X ${fmt(Math.round(item.price))}원`;
+        document.getElementById('stubCalcResult').innerText = fmt(item.baseTotal);
+        document.getElementById('payStubOverlay').classList.add('active');
+    }
+    function closePayStub() { document.getElementById('payStubOverlay').classList.remove('active'); }
+    async function downloadPayStubPDF() {
+        const { jsPDF } = window.jspdf; const element = document.getElementById('printArea');
+        try {
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 180; const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            pdf.addImage(imgData, 'PNG', 15, 15, imgWidth, imgHeight);
+            pdf.save('급여명세서.pdf');
+        } catch (error) { alert("PDF 생성 중 오류가 발생했습니다."); }
+    }
+
+    /* Common */
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        // 헤더 아이콘이 사라졌으므로 시각적 업데이트 코드는 실행되더라도 화면에 변화 없음
+    }
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById('btn-tab-' + tabId).classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if(tabId === 'salary') updateSalaryData();
+    }
+    
+    function openMenu() { document.getElementById('menuBackdrop').classList.add('active'); document.getElementById('menuPanel').classList.add('active'); }
+    function closeMenu() { document.getElementById('menuBackdrop').classList.remove('active'); document.getElementById('menuPanel').classList.remove('active'); }
+    function openNotification() { document.getElementById('notiBackdrop').classList.add('active'); document.getElementById('notiPanel').classList.add('active'); document.getElementById('notificationBadge').classList.add('hidden'); renderNotiList(); }
+    function closeNotification() { document.getElementById('notiBackdrop').classList.remove('active'); document.getElementById('notiPanel').classList.remove('active'); }
+    function renderNotiList() {
+        const list = document.getElementById('notiList'); list.innerHTML = '';
+        [{ title:'급여 입금 확인', desc:'11월 급여가 입금되었습니다.', time:'방금 전' }].forEach(n => {
+            list.innerHTML += `<li class="noti-item unread"><div class="noti-icon-box type-alert"><i data-lucide="bell" style="width:20px;"></i></div><div class="noti-content"><span class="noti-item-title">${n.title}</span><span class="noti-item-desc">${n.desc}</span><span class="noti-time">${n.time}</span></div></li>`;
+        });
+        lucide.createIcons();
+    }
+    function markAllRead() {}
+    function openAccount() { document.getElementById('accountOverlay').classList.add('active'); closeMenu(); }
+    function closeAccount() { document.getElementById('accountOverlay').classList.remove('active'); }
+    function saveAccount() { alert("저장되었습니다."); closeAccount(); }
+    function triggerProfileUpload() { document.getElementById('profile-upload-input').click(); }
+    function handleProfilePreview(input) { if(input.files[0]) { const r = new FileReader(); r.onload = e => { document.getElementById('profile-img-box').style.backgroundImage = `url(${e.target.result})`; document.querySelector('#profile-img-box span').style.display='none'; }; r.readAsDataURL(input.files[0]); } }
+    
+    const APP_DATA = [{ id: 'tab-output', type: 'site', title: '출력 현황(달력)', desc: '월별 공수 확인', status: 'Calendar' }, { id: 'tab-salary', type: 'site', title: '급여 현황', desc: '급여 명세서', status: 'Salary' }];
+    function openUnifiedSearch() { document.getElementById('unifiedSearchOverlay').classList.add('active'); setTimeout(() => document.getElementById('unifiedSearchInput').focus(), 300); }
+    function closeUnifiedSearch() { document.getElementById('unifiedSearchOverlay').classList.remove('active'); clearUnifiedSearchInput(); toggleView(false); }
+    function handleUnifiedTyping(input) { const q = input.value.trim().toLowerCase(); toggleView(q.length>0); if(q.length>0) filterAndRender(q); }
+    function clearUnifiedSearchInput() { const input = document.getElementById('unifiedSearchInput'); input.value = ''; handleUnifiedTyping(input); input.focus(); }
+    function toggleView(showResult) { document.getElementById('defaultView').style.display = showResult ? 'none' : 'block'; document.getElementById('resultView').style.display = showResult ? 'block' : 'none'; }
+    function filterAndRender(q) { const list=APP_DATA.filter(i=>i.title.includes(q)); const c=document.getElementById('dynamicResultList'); c.innerHTML=''; list.forEach(i=>c.innerHTML+=`<div>${i.title}</div>`); document.getElementById('resultCount').innerText=list.length+'건'; }
+    function performUnifiedSearch() {}
+    function toggleVoiceSearch() { alert("음성 인식 시뮬레이션"); }
+    function setSearch(k) { document.getElementById('unifiedSearchInput').value=k; handleUnifiedTyping(document.getElementById('unifiedSearchInput')); }
+    
+    const BOOKMARKED_SITES = [{title:'자이',addr:'대구'},{title:'삼성',addr:'평택'}];
+    function renderBookmarkedSites() { const c=document.getElementById('bookmarkedSiteContainer'); c.innerHTML=''; BOOKMARKED_SITES.forEach(s=>c.innerHTML+=`<div class="site-result-card"><div class="site-name-lg">${s.title}</div></div>`); }
+    function toggleBookmarkedSites() {}
+
+    window.onload = function() {
+        renderBookmarkedSites();
+        renderCalendar();
+        updateSalaryData(); 
+        renderSalaryList();
+        // 알림 뱃지 로직은 더 이상 표시할 헤더가 없으므로 화면상 보이지 않으나 오류 방지를 위해 남겨둠
+    }
+  </script>
+</body>
+</html>

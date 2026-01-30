@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>현장관리 (통합) - INOPNC</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =================================================================
+       [1. 디자인 시스템 & 변수 설정]
+       ================================================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
+      --primary: #31a3fa; --primary-bg: #eaf6ff;        
+      --header-navy: #1a254f; --navy-dark: #1a254f; --navy-btn: #1a254f;
+      --text-main: #111111; --text-sub: #475569; --text-placeholder: #94a3b8;
+      --border: #e2e8f0; --bg-body: #f2f4f6; --bg-surface: #ffffff; --bg-input: #ffffff;
+      --radius-card: 16px; --radius-btn: 12px;
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+      --fs-base: 17px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; -webkit-text-size-adjust: 100%; touch-action: manipulation; }
+    body { font-family: var(--font-main); font-size: var(--fs-base); color: var(--text-main); background-color: var(--bg-body); padding-top: 20px; padding-bottom: 40px; -webkit-font-smoothing: antialiased; line-height: 1.5; }
+    
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 16px; }
+
+    /* [검색창 & 필터 - 수정됨] */
+    .filter-search-row { display: flex; gap: 8px; margin: 10px 0 20px 0; }
+    
+    /* 콤보박스 스타일 */
+    .combo-wrapper { position: relative; flex: 1; }
+    .input-combo { width: 100%; height: 50px; border-radius: 12px; background: #ffffff; border: 1px solid transparent; padding: 0 16px 0 44px; font-size: 16px; color: var(--text-main); font-weight: 500; box-shadow: var(--shadow-soft); transition: 0.2s; }
+    .input-combo:focus { box-shadow: 0 0 0 2px var(--primary); outline: none; }
+    /* datalist 화살표는 브라우저 네이티브 동작을 따름 (일부 브라우저에서 자동 노출) */
+    .icon-combo { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; width: 20px; }
+
+    /* 날짜 필터 스타일 */
+    .date-filter-wrapper { width: 145px; }
+    .input-month { width: 100%; height: 50px; border-radius: 12px; background: #ffffff; border: 1px solid transparent; padding: 0 12px; font-size: 15px; font-weight: 500; color: var(--text-main); box-shadow: var(--shadow-soft); font-family: var(--font-main); }
+    .input-month:focus { box-shadow: 0 0 0 2px var(--primary); outline: none; }
+
+
+    /* [요약 카드 - 수정됨: 테두리 1px 적용 및 폰트 색상과 동일하게] */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .sum-card { padding: 18px 8px; border-radius: var(--radius-card); text-align: center; display: flex; flex-direction: column; gap: 8px; background: var(--bg-surface); box-shadow: var(--shadow-soft); border: 1px solid transparent; overflow: hidden; } 
+    .sum-card.sky { color: #0284c7; background-color: #f0f9ff; border-color: #0284c7; }
+    .sum-card.navy { color: #1e3a8a; background-color: #eff6ff; border-color: #1e3a8a; }
+    .sum-card.gray { color: #475569; background-color: #f8fafc; border-color: #475569; }
+    .sum-val { font-size: 24px; font-weight: 800; }
+    .sum-label { font-size: 13px; font-weight: 600; }
+
+    /* [리스트 카드] */
+    .log-list { display: flex; flex-direction: column; gap: 16px; }
+    .log-card { background: var(--bg-surface); border-radius: var(--radius-card); padding: 24px 20px; box-shadow: var(--shadow-soft); position: relative; cursor: pointer; border: 2px solid transparent; transition: 0.2s; }
+    .log-card.pinned { border-color: var(--primary); background: #fdfdfd; }
+    
+    .pin-btn { position: absolute; top: 45px; right: 18px; background: none; border: none; cursor: pointer; color: var(--text-placeholder); transition: 0.2s; z-index: 10; }
+    .pin-btn.active { color: var(--primary); transform: rotate(-45deg); }
+
+    .status-badge-card { 
+        position: absolute;
+        top: -2px; /* 테두리 두께만큼 보정하여 꽉 채움 */
+        right: -2px; /* 테두리 두께만큼 보정하여 꽉 채움 */
+        z-index: 10;
+
+        font-size: 13px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 0 var(--radius-card) 0 var(--radius-card);
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        line-height: 1;
+        color: #ffffff;
+        box-shadow: none;
+    }
+    /* @site와 동일한 상태 색상 */
+    .status-badge-card.bdg-ing { background: #3b82f6; border-color: #60a5fa; }
+    .status-badge-card.bdg-wait { background: #8b5cf6; border-color: #a78bfa; }
+    .status-badge-card.bdg-done { background: #64748b; border-color: #94a3b8; }
+
+    /* (기존 클래스 호환) */
+    .bdg-approved { background: #64748b; border-color: #94a3b8; }
+    .bdg-pending { background: #3b82f6; border-color: #60a5fa; }
+    .bdg-todo { background: #8b5cf6; border-color: #a78bfa; }
+
+    .card-date-top { font-size: 15px; font-weight: 600; color: var(--text-placeholder); margin-bottom: 8px; }
+    .card-site-name { display: flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 800; margin-bottom: 8px; color: var(--text-main); }
+    .site-tag { background: #eaf6ff; color: #31a3fa; font-size: 12px; font-weight: 800; padding: 2px 6px; border-radius: 4px; border: 1px solid #d0e9ff; }
+    .card-work-content { font-size: 17px; color: var(--text-sub); margin-bottom: 16px; font-weight: 500; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed var(--border); padding-top: 14px; }
+    .manpower-info { font-size: 15px; font-weight: 700; color: #31a3fa; display: flex; align-items: center; gap: 6px; }
+    .footer-icons { display: flex; gap: 8px; color: var(--text-placeholder); }
+
+    /* [상세화면 & 뷰어] */
+    .full-overlay { position: fixed; inset: 0; background-color: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s; }
+    .full-overlay.active { transform: translateY(0); }
+    .overlay-header { height: 60px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+    .overlay-title { font-size: 20px; font-weight: 800; color: var(--navy-dark); }
+    
+    .detail-content { flex: 1; overflow-y: auto; padding: 20px 16px; overscroll-behavior: contain; }
+    .detail-section { background: var(--bg-surface); border-radius: var(--radius-card); padding: 24px 20px; margin-bottom: 16px; box-shadow: var(--shadow-soft); }
+    .sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .sec-title { font-size: 18px; font-weight: 800; color: var(--navy-dark); display: flex; align-items: center; gap: 8px; }
+    
+    .info-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 16px; align-items: center; }
+    .info-label { color: var(--text-sub); font-weight: 600; }
+    .info-val { font-weight: 700; color: var(--text-main); }
+
+    /* 누적 투입 상세 내역 */
+    .cumul-toggle-wrap { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .cumul-detail { background: #f8fafc; border-radius: 12px; padding: 12px; margin-top: 8px; display: none; }
+    .cumul-detail.show { display: block; animation: fadeIn 0.3s; }
+    .cumul-row { display: flex; justify-content: space-between; margin-bottom: 8px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 6px; font-size: 14px; }
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+
+    /* 리스트 박스 아이템 */
+    .list-box-item { display: flex; align-items: center; justify-content: space-between; background: #ffffff; border: 1px solid var(--border); padding: 16px; border-radius: 12px; margin-bottom: 12px; cursor: pointer; }
+    .list-box-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .list-box-icon { color: #94a3b8; width: 24px; }
+    .list-box-title { font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 2px; }
+    .list-box-sub { font-size: 13px; color: var(--text-placeholder); }
+
+    .memo-area { width: 100%; min-height: 80px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; font-family: inherit; font-size: 15px; resize: none; margin-top: 10px; }
+    .btn-upload-dashed { width: 100%; height: 52px; border: 1.5px dashed var(--primary); background: rgba(49, 163, 250, 0.04); color: var(--primary); border-radius: var(--radius-btn); font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+    .btn-cert-create { width: 100%; height: 52px; background: var(--header-navy); color: #fff; border-radius: var(--radius-btn); border: none; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; cursor: pointer; }
+    .btn-cert-create[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+    /* 뷰어 & 서명 */
+    .viewer-modal { position: fixed; inset: 0; background: #1e1e1e; z-index: 3000; display: none; flex-direction: column; }
+    .viewer-modal.active { display: flex; }
+    .viewer-header { background: #000; color: #fff; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+    .viewer-viewport { flex: 1; overflow: auto; display: flex; justify-content: center; align-items: flex-start; padding: 20px; }
+    .a4-page { width: 794px; min-height: 1123px; background: #fff; padding: 40px; box-sizing: border-box; color: #000; transform-origin: top center; }
+    .cert-title { font-size: 32px; font-weight: 900; text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
+    .info-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .info-table th, .info-table td { border: 1px solid #000; padding: 8px; font-size: 14px; }
+    .info-table th { background: #f2f2f2; width: 15%; }
+    .sign-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #000; margin-top: 20px; height: 120px; }
+    .sign-box { border-left: 1px solid #000; position: relative; }
+    canvas { width: 100%; height: 100%; }
+
+    .toast { position: fixed; bottom: 100px; left: 50%; transform: translate(-50%, 20px); background: rgba(30, 41, 59, 0.95); color: #fff; padding: 14px 28px; border-radius: 50px; opacity: 0; transition: 0.3s; z-index: 9999; display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  
+
+/* ===== [공통 미리보기창(pmOverlay) - 미리보기창.html 동일] ===== */
+    /* ==========================================================================
+       [1] 공통 모달 CSS (PM: Preview Modal)
+       ========================================================================== */
+    :root {
+        --pm-bg-body: #121212;
+        --pm-primary: #31a3fa;
+        --pm-text-main: #ffffff;
+        --pm-font: "Pretendard Variable", Pretendard, sans-serif;
+    }
+
+    /* 모달 컨테이너 */
+    #pmOverlay {
+        position: fixed; inset: 0; 
+        background: var(--pm-bg-body);
+        z-index: 9999; display: none;
+        flex-direction: column;
+        font-family: var(--pm-font);
+        color: var(--pm-text-main);
+        overflow: hidden; user-select: none;
+    }
+    #pmOverlay.active { display: flex; }
+
+    /* 헤더 */
+    .pm-header {
+        height: 56px; background: #000;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 12px; flex-shrink: 0; border-bottom: 1px solid #333; z-index: 100;
+    }
+    .pm-title { 
+        font-size: 17px; font-weight: 700; color: #fff; 
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
+        max-width: 70%; text-align: center;
+    }
+    .pm-icon-btn {
+        background: none; border: none; color: #fff; cursor: pointer;
+        padding: 8px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; transition: 0.2s;
+    }
+    .pm-icon-btn:active { background: #333; }
+
+    /* 뷰포트 (콘텐츠 영역) */
+    .pm-viewport {
+        flex: 1; position: relative; overflow: hidden;
+        background: var(--pm-bg-body);
+        display: flex; justify-content: center; align-items: center;
+        cursor: grab; touch-action: none; /* 기본 커서: 잡기 */
+    }
+    .pm-viewport.panning { cursor: grabbing; } /* 이동 중 커서: 꽉 잡기 */
+
+    /* 콘텐츠 래퍼 (줌/이동 대상) */
+    .pm-content-wrapper {
+        transform-origin: center center;
+        transition: transform 0.1s ease-out;
+        display: flex; flex-direction: column; align-items: center; gap: 20px;
+        padding: 40px;
+    }
+
+    /* 하단 컨트롤러 */
+    .pm-controls {
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: #222; padding: 10px 20px; border-radius: 100px;
+        display: flex; gap: 24px; z-index: 200;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333;
+    }
+    .pm-ctrl-btn {
+        background: none; border: none; color: #fff;
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        font-size: 11px; cursor: pointer; min-width: 36px; opacity: 0.7; transition: 0.2s; font-weight: 500;
+    }
+    .pm-ctrl-btn:hover { opacity: 1; }
+    .pm-ctrl-btn.active { color: var(--pm-primary); opacity: 1; font-weight: 700; }
+    
+    /* 유틸리티 (로딩, 토스트) */
+    .pm-loading {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+        display: none; align-items: center; justify-content: center; flex-direction: column;
+        z-index: 300; color: #fff; font-size: 14px;
+    }
+    .pm-spinner {
+        width: 36px; height: 36px; border: 3px solid #555;
+        border-top-color: var(--pm-primary); border-radius: 50%;
+        animation: pm-spin 1s linear infinite; margin-bottom: 12px;
+    }
+    @keyframes pm-spin { to { transform: rotate(360deg); } }
+
+    .pm-toast {
+        position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+        background: #fff; color: #000; padding: 12px 24px;
+        border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 400;
+        display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .pm-toast.show { opacity: 1; top: 90px; }
+
+    /* [샘플] 문서 스타일 예시 */
+    .sample-doc {
+        width: 794px; min-height: 1123px;
+        background: #fff; color: #000;
+        padding: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column;
+    }
+    .sample-img-view {
+        max-width: 90vw; max-height: 80vh;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+  
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  
+  <input type="file" id="file-estimate" hidden onchange="handleDocUpload(this, 'estimate')">
+  <input type="file" id="file-bill" hidden onchange="handleDocUpload(this, 'bill')">
+  <input type="file" id="file-other" hidden onchange="handleDocUpload(this, 'other')">
+
+  <div class="app-wrapper">
+    <div class="filter-search-row">
+        <div class="combo-wrapper">
+            <i data-lucide="search" class="icon-combo"></i>
+            <input type="text" list="siteOptions" class="input-combo" id="siteSearchInput" placeholder="현장명 검색" oninput="renderLogs()">
+            <datalist id="siteOptions"></datalist>
+        </div>
+        <div class="date-filter-wrapper">
+            <input type="month" class="input-month" id="monthFilter" onchange="renderLogs()">
+        </div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="sum-card sky"><span class="sum-val" id="val-count">0</span><span class="sum-label">승인완료</span></div>
+      <div class="sum-card navy"><span class="sum-val" id="val-days">0</span><span class="sum-label">총 투입일</span></div>
+      <div class="sum-card gray"><span class="sum-val" id="val-man">0.0</span><span class="sum-label">총 투입인원</span></div>
+    </div>
+
+    <div class="log-list" id="logListContainer"></div>
+    <div style="height: 100px;"></div>
+  </div>
+
+  <div class="full-overlay" id="detailOverlay">
+      <div class="overlay-header">
+          <button style="background:none; border:none;" onclick="closeDetail()"><i data-lucide="arrow-left" style="width:26px;"></i></button>
+          <span class="overlay-title">현장 상세 정보</span>
+          <div style="width:26px;"></div>
+      </div>
+      <div class="detail-content">
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="info"></i> 현장 개요</span><span style="font-size:13px; color:var(--primary); font-weight:800; background:var(--primary-bg); padding:6px 10px; border-radius:6px;">승인완료</span></div>
+              <div class="info-row"><span class="info-label">현장명</span><span class="info-val" id="dt-site"></span></div>
+              <div class="info-row"><span class="info-label">작업내용</span><span class="info-val" id="dt-work"></span></div>
+              <div class="info-row"><span class="info-label">투입인원</span><span class="info-val" id="dt-manpower-count"></span></div>
+              <div class="info-row" style="margin-bottom:0;">
+                  <span class="info-label">누적 투입일</span>
+                  <div class="cumul-toggle-wrap" onclick="toggleCumulDetail()">
+                      <span class="info-val" id="dt-cum-days"></span>
+                      <i data-lucide="chevron-down" style="width:18px; color:var(--text-placeholder); transition:0.3s;" id="cumulIcon"></i>
+                  </div>
+              </div>
+              <div class="cumul-detail" id="cumulDetailArea"></div>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="image"></i> 사진대지 및 도면</span></div>
+              <div class="list-box-item" onclick="openViewer('photo_log','공사 사진대지.pdf')">
+                  <div class="list-box-left"><i data-lucide="file-image" class="list-box-icon"></i><div><div class="list-box-title">공사 사진대지.pdf</div><div class="list-box-sub">자동 생성 완료</div></div></div><i data-lucide="eye" style="width:20px; color:#94a3b8;"></i>
+              </div>
+              <div id="list-drawing"></div>
+              <div style="font-size:15px; font-weight:700; color:var(--text-sub); margin-top:15px;">도면 특이사항</div>
+              <textarea class="memo-area" placeholder="특이사항을 입력하세요..."></textarea>
+          </div>
+          
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="folder-open"></i> 문서 관리</span></div>
+              <div style="margin-bottom:24px;">
+                  <div style="font-size:15px; font-weight:700; color:var(--text-sub); margin-bottom:8px;">견적서</div>
+                  <div id="list-estimate"></div>
+                  <button class="btn-upload-dashed" onclick="document.getElementById('file-estimate').click()"><i data-lucide="upload" width="18"></i> 견적서 업로드</button>
+              </div>
+
+              <div style="margin-bottom:24px;">
+                  <div style="font-size:15px; font-weight:700; color:var(--text-sub); margin-bottom:8px;">기성청구서</div>
+                  <div id="list-bill"></div>
+                  <button class="btn-upload-dashed" onclick="document.getElementById('file-bill').click()"><i data-lucide="upload" width="18"></i> 기성청구서 업로드</button>
+              </div>
+
+              <div style="margin-bottom:24px;">
+                  <div style="font-size:15px; font-weight:700; color:var(--text-sub); margin-bottom:8px;">작업완료 확인서</div>
+                  <div id="list-cert"></div>
+                  <button class="btn-cert-create" id="btnCertCreate" onclick="openViewer('cert_create')"><i data-lucide="edit-3" width="18"></i> 작업완료 확인서 작성</button>
+              </div>
+
+              <div>
+                  <div style="font-size:15px; font-weight:700; color:var(--text-sub); margin-bottom:8px;">기타 서류</div>
+                  <div id="list-other"></div>
+                  <button class="btn-upload-dashed" onclick="document.getElementById('file-other').click()"><i data-lucide="upload" width="18"></i> 기타 서류 업로드</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <div class="viewer-modal" id="viewerModal">
+      <div class="viewer-header">
+          <button onclick="closeViewer()" style="background:none; border:none; color:#fff;"><i data-lucide="x"></i></button>
+          <span id="viewerTitle">미리보기</span>
+          <button onclick="downloadPDF()" style="background:none; border:none; color:#fff;"><i data-lucide="download"></i></button>
+      </div>
+      <div class="viewer-viewport">
+          <div class="a4-page" id="viewerContent"></div>
+      </div>
+  </div>
+
+    <div id="pmOverlay">
+      <header class="pm-header">
+          <button class="pm-icon-btn" onclick="PreviewModal.close()">
+              <i data-lucide="chevron-left" width="24"></i>
+          </button>
+          <div class="pm-title" id="pmTitle">미리보기</div>
+          <div style="display:flex; gap: 4px;">
+              <button class="pm-icon-btn" onclick="PreviewModal.savePDF()">
+                  <i data-lucide="download" width="20"></i>
+              </button>
+          </div>
+      </header>
+
+      <div class="pm-viewport" id="pmViewport">
+          <div class="pm-content-wrapper" id="pmContent"></div>
+      </div>
+
+      <div class="pm-controls">
+          <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(-0.1)">
+              <i data-lucide="minus" width="20"></i> 축소
+          </button>
+
+          <button class="pm-ctrl-btn" id="pmPanBtn" onclick="PreviewModal.togglePan()">
+              <i data-lucide="hand" width="20"></i> 이동
+          </button>
+
+          <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(0.1)">
+              <i data-lucide="plus" width="20"></i> 확대
+          </button>
+
+          <button class="pm-ctrl-btn" onclick="PreviewModal.share()">
+              <i data-lucide="share-2" width="20"></i> 공유
+          </button>
+      </div>
+
+      <div class="pm-loading" id="pmLoading"><div class="pm-spinner"></div><span>처리 중...</span></div>
+      <div class="pm-toast" id="pmToast"><i data-lucide="check" size="16"></i> <span id="pmToastMsg">완료</span></div>
+  </div>
+
+<div class="toast" id="toast"><i data-lucide="check-circle" width="22" color="#4ade80"></i> <span id="toastMsg">저장되었습니다.</span></div>
+
+<script>
+    let logs = [
+        { id: 101, site: "자이 아파트 101동", date: "2025-12-19", status: "approved", content: "지하1층 | 청소", workerCount: 4, days: 15, manpower: 45.5, isPinned: true,
+          detailDates: [{date: "12.19", man: 4.0}, {date: "12.18", man: 3.5}, {date: "12.17", man: 4.0}],
+          photos: [{name: "완료사진_01.jpg", date: "2025.12.19"}],
+          drawings: [{name: "B1 주차장 도면.jpg", date: "2025.12.01"}],
+          certDocs: [{name: "작업완료 확인서_자이101.pdf", date: "2025.12.19"}]
+        },
+        { id: 102, site: "삼성 반도체 P3", date: "2025-12-18", status: "pending", content: "3층 슬라브 면처리", workerCount: 3, days: 8, manpower: 24.0, isPinned: false,
+          detailDates: [{date: "12.18", man: 3.0}, {date: "12.17", man: 3.0}],
+          photos: [],
+          drawings: [],
+          certDocs: []
+        },
+        { id: 103, site: "자이 아파트 101동", date: "2025-12-15", status: "todo", content: "지하주차장 균열보수", workerCount: 2, days: 1, manpower: 2.0, isPinned: false,
+          detailDates: [{date: "12.15", man: 2.0}],
+          photos: [],
+          drawings: [],
+          certDocs: []
+        }
+    ];
+
+    let signaturePad = null;
+
+    window.onload = function() { 
+        lucide.createIcons();
+        populateSiteOptions();
+        renderLogs(); 
+        updateSummary();
+    };
+
+    function populateSiteOptions() {
+        const uniqueSites = [...new Set(logs.map(l => l.site))];
+        const datalist = document.getElementById('siteOptions');
+        datalist.innerHTML = uniqueSites.map(site => `<option value="${site}">`).join('');
+    }
+
+    function renderLogs() {
+        const filterText = document.getElementById('siteSearchInput').value.trim();
+        const monthVal = document.getElementById('monthFilter').value; // YYYY-MM
+        const list = document.getElementById('logListContainer');
+        list.innerHTML = '';
+        
+        // 고정 항목 우선 정렬
+        const sorted = [...logs].sort((a,b) => b.isPinned - a.isPinned || new Date(b.date) - new Date(a.date));
+
+        sorted.filter(l => {
+            const matchSite = !filterText || l.site.includes(filterText);
+            const matchMonth = !monthVal || l.date.startsWith(monthVal);
+            return matchSite && matchMonth;
+        }).forEach(log => {
+            let statusClass = (log.status === 'pending') ? 'bdg-ing' : (log.status === 'approved' ? 'bdg-done' : 'bdg-wait');
+            let statusText  = (log.status === 'pending') ? '진행' : (log.status === 'approved' ? '완료' : '예정');
+            const hasPhoto = Array.isArray(log.photos) && log.photos.length > 0;
+            const hasDraw  = Array.isArray(log.drawings) && log.drawings.length > 0;
+            const hasDoc   = Array.isArray(log.certDocs) && log.certDocs.length > 0;
+            const ICON_ON  = 'var(--navy-dark)';
+            const ICON_OFF = '#cbd5e1';
+
+            list.innerHTML += `
+            <div class="log-card ${log.isPinned ? 'pinned' : ''}" onclick="openDetail(${log.id})">
+                <button class="pin-btn ${log.isPinned ? 'active' : ''}" onclick="togglePin(event, ${log.id})">
+                    <i data-lucide="pin" style="width:20px;"></i>
+                </button>
+                <span class="status-badge-card ${statusClass}">${statusText}</span>
+                <div class="card-date-top">${log.date}</div>
+                <div class="card-site-name"><span class="site-tag">본사</span>${log.site}</div>
+                <div class="card-work-content">${log.content}</div>
+                <div class="card-footer">
+                    <div class="manpower-info"><i data-lucide="users" style="width:16px;"></i>${log.workerCount}명 투입 (${log.days}일)</div>
+                    <div class="footer-icons">
+                     <i data-lucide="camera" style="width:18px; color:${hasPhoto ? ICON_ON : ICON_OFF};"></i>
+                     <i data-lucide="map" style="width:18px; color:${hasDraw ? ICON_ON : ICON_OFF};"></i>
+                     <i data-lucide="file-text" style="width:18px; color:${hasDoc ? ICON_ON : ICON_OFF};"></i>
+                 </div>
+                </div>
+            </div>`;
+        });
+        lucide.createIcons();
+    }
+
+    function togglePin(e, id) {
+        e.stopPropagation();
+        const log = logs.find(l => l.id === id);
+        if(log) {
+            log.isPinned = !log.isPinned;
+            showToast(log.isPinned ? "상단에 고정되었습니다." : "고정이 해제되었습니다.");
+            renderLogs();
+        }
+    }
+
+    function updateSummary() { 
+        document.getElementById('val-count').innerText = logs.filter(l=>l.status==='approved').length; 
+        document.getElementById('val-days').innerText = logs.reduce((a,b)=>a+b.days,0); 
+        document.getElementById('val-man').innerText = logs.reduce((a,b)=>a+b.manpower,0).toFixed(1); 
+    }
+
+    function openDetail(id) {
+        const log = logs.find(l => l.id === id); if(!log) return;
+        document.getElementById('dt-site').innerText = log.site; 
+        document.getElementById('dt-work').innerText = log.content;
+        document.getElementById('dt-manpower-count').innerText = log.workerCount + "명"; 
+        document.getElementById('dt-cum-days').innerText = log.days + "일";
+
+        // 투입 상세 내역 (공수 -> 일 표기 변경)
+        const detailArea = document.getElementById('cumulDetailArea');
+        detailArea.innerHTML = log.detailDates.map(d => `
+            <div class="cumul-row"><span>${d.date}</span><span style="font-weight:700;">${d.man.toFixed(1)}일</span></div>
+        `).join('');
+        detailArea.classList.remove('show');
+        document.getElementById('cumulIcon').style.transform = 'rotate(0deg)';
+
+        // 도면 리스트
+        const drawList = document.getElementById('list-drawing');
+        drawList.innerHTML = log.drawings.map(d => `
+            <div class="list-box-item">
+                <div class="list-box-left"><i data-lucide="map" class="list-box-icon"></i><div><div class="list-box-title">${d.name}</div><div class="list-box-sub">${d.date}</div></div></div><i data-lucide="eye" style="width:20px; color:#94a3b8;"></i>
+            </div>
+        `).join('');
+
+        // 작업완료 확인서 (있으면 조회, 없으면 작성 버튼 활성화)
+        const certList = document.getElementById('list-cert');
+        const btnCert = document.getElementById('btnCertCreate');
+        if(log.certDocs.length > 0) {
+            certList.innerHTML = log.certDocs.map(d => `
+                <div class="list-box-item" onclick="openViewer('cert_view','${d.name}')">
+                    <div class="list-box-left"><i data-lucide="clipboard-check" class="list-box-icon"></i><div><div class="list-box-title">${d.name}</div><div class="list-box-sub">${d.date}</div></div></div><i data-lucide="eye" style="width:20px; color:#94a3b8;"></i>
+                </div>
+            `).join('');
+            btnCert.disabled = true;
+            btnCert.innerHTML = `<i data-lucide="check" width="18"></i> 작성 완료된 문서가 있습니다`;
+        } else {
+            certList.innerHTML = '<div style="padding:15px; text-align:center; color:#94a3b8; font-size:14px;">등록된 확인서가 없습니다.</div>';
+            btnCert.disabled = false;
+            btnCert.innerHTML = `<i data-lucide="edit-3" width="18"></i> 작업완료 확인서 작성`;
+        }
+
+        document.getElementById('detailOverlay').classList.add('active');
+        document.body.style.overflow = 'hidden'; // 이중 스크롤 방지
+        lucide.createIcons();
+    }
+    
+    function closeDetail() { 
+        document.getElementById('detailOverlay').classList.remove('active'); 
+        document.body.style.overflow = ''; // 스크롤 복원
+    }
+
+    function toggleCumulDetail() {
+        const area = document.getElementById('cumulDetailArea');
+        const icon = document.getElementById('cumulIcon');
+        area.classList.toggle('show');
+        icon.style.transform = area.classList.contains('show') ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    /* 뷰어 로직 */
+    function openViewer(type, titleText = '') {
+        // 공통 미리보기창(pmOverlay)로 통일 (미리보기창.html 방식)
+        let title = titleText || '미리보기';
+        let html = '';
+
+        if(type === 'cert_create') {
+            title = titleText || "작업완료 확인서";
+            html = `
+                <div class="a4-page">
+                    <div class="cert-title">작 업 완 료 확 인 서</div>
+                    <table class="info-table">
+                        <tr><th>현장명</th><td>${document.getElementById('dt-site')?.innerText || ''}</td><th>일자</th><td>2025.12.26</td></tr>
+                        <tr><th>작업내용</th><td colspan="3">${document.getElementById('dt-work')?.innerText || ''}</td></tr>
+                    </table>
+                    <div style="height:300px; border:1px solid #000; padding:15px; margin-top:10px;">상기 현장의 작업을 완료하였음을 확인합니다.</div>
+                    <div class="sign-grid">
+                        <div style="display:flex; align-items:center; justify-content:center; font-weight:700;">확인자(서명)</div>
+                        <div class="sign-box"><canvas id="signCanvas"></canvas></div>
+                    </div>
+                </div>
+            `;
+            PreviewModal.open(title, html);
+            setTimeout(initSignature, 200);
+            return;
+        }
+
+        if(type === 'cert_view') {
+            // 현재는 파일명 기반 표시 (PDF 연결은 추후)
+            title = titleText || "작업완료 확인서";
+            html = `
+                <div class="a4-page">
+                    <div class="cert-title">작 업 완 료 확 인 서</div>
+                    <table class="info-table">
+                        <tr><th>현장명</th><td>${document.getElementById('dt-site')?.innerText || ''}</td><th>파일명</th><td>${titleText || ''}</td></tr>
+                        <tr><th>작업내용</th><td colspan="3">${document.getElementById('dt-work')?.innerText || ''}</td></tr>
+                    </table>
+                    <div style="height:300px; border:1px solid #000; padding:15px; margin-top:10px; color:#111;">
+                        PDF 원본 미리보기 연결 전입니다.<br/>
+                        현재는 양식 제목과 파일명만 표시됩니다.
+                    </div>
+                </div>
+            `;
+            PreviewModal.open(title, html);
+            return;
+        }
+
+        if(type === 'photo_log') {
+            title = titleText || "사진대지";
+            html = `
+                <div class="a4-page" style="padding:40px;">
+                    <div style="font-size:22px; font-weight:900; text-align:center; margin-bottom:10px;">사진대지</div>
+                    <div style="text-align:center; color:#64748b; font-weight:700; margin-bottom:18px;">${document.getElementById('dt-site')?.innerText || ''}</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                        <div style="border:1px solid #e5e7eb; height:260px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-weight:700;">사진 1</div>
+                        <div style="border:1px solid #e5e7eb; height:260px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-weight:700;">사진 2</div>
+                        <div style="border:1px solid #e5e7eb; height:260px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-weight:700;">사진 3</div>
+                        <div style="border:1px solid #e5e7eb; height:260px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-weight:700;">사진 4</div>
+                    </div>
+                </div>
+            `;
+            PreviewModal.open(title, html);
+            return;
+        }
+
+        // fallback
+        PreviewModal.open(title, `<div class="a4-page" style="padding:40px; text-align:center; color:#64748b; font-weight:700;">미리보기 준비 중...</div>`);
+    }
+
+    function initSignature() {
+        const canvas = document.getElementById('signCanvas');
+        if(canvas) {
+            canvas.width = canvas.parentElement.offsetWidth;
+            canvas.height = canvas.parentElement.offsetHeight;
+            signaturePad = new SignaturePad(canvas);
+        }
+    }
+
+    function closeViewer() { document.getElementById('viewerModal').classList.remove('active'); }
+
+    function handleDocUpload(input, type) {
+        if(!input.files.length) return;
+        const file = input.files[0];
+        const url = URL.createObjectURL(file);
+        const uid = 'upl_' + Date.now() + '_' + Math.random().toString(16).slice(2);
+        const safeName = encodeURIComponent(file.name || '첨부파일');
+
+        const container = document.getElementById('list-' + type);
+        container.insertAdjacentHTML('afterbegin', `
+            <div class="list-box-item" data-upload-id="${uid}" data-upload-url="${url}" data-upload-name="${safeName}" onclick="previewUploadedFile(event, '${uid}')">
+                <div class="list-box-left">
+                    <i data-lucide="file-text" class="list-box-icon"></i>
+                    <div>
+                        <div class="list-box-title">${file.name}</div>
+                        <div class="list-box-sub">내 업로드</div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="eye" style="width:20px; color:#94a3b8;" onclick="previewUploadedFile(event, '${uid}')"></i>
+                    <i data-lucide="trash-2" style="width:20px; color:#94a3b8;" onclick="deleteUploadedFile(event, '${uid}')"></i>
+                </div>
+            </div>
+        `);
+
+        // 같은 파일을 다시 선택할 수 있도록 초기화
+        input.value = '';
+        lucide.createIcons();
+        showToast("문서가 업로드되었습니다.");
+    }
+
+
+    function previewUploadedFile(e, uid) {
+        if(e) e.stopPropagation();
+        const el = document.querySelector(`[data-upload-id="${uid}"]`);
+        if(!el) return;
+
+        const nameEnc = el.getAttribute('data-upload-name') || '';
+        const name = nameEnc ? decodeURIComponent(nameEnc) : '미리보기';
+        const url = el.getAttribute('data-upload-url');
+        if(!url) return;
+
+        const ext = (name.split('.').pop() || '').toLowerCase();
+        let body = '';
+
+        if(ext === 'pdf') {
+            body = `
+                <div class="a4-page" style="padding:0;">
+                    <iframe src="${url}" style="width:100%; height:1100px; border:0; background:#fff;"></iframe>
+                </div>
+            `;
+        } else if(['jpg','jpeg','png','webp','gif','bmp'].includes(ext)) {
+            body = `
+                <div class="a4-page" style="padding:0; display:flex; align-items:center; justify-content:center;">
+                    <img src="${url}" alt="${name}" style="max-width:100%; height:auto; display:block;">
+                </div>
+            `;
+        } else {
+            body = `
+                <div class="a4-page" style="display:flex; align-items:center; justify-content:center; color:#64748b; font-weight:700;">
+                    미리보기를 지원하지 않는 형식입니다.
+                </div>
+            `;
+        }
+
+        PreviewModal.open(name, body);
+    }
+
+    function deleteUploadedFile(e, uid) {
+        if(e) e.stopPropagation();
+        const el = document.querySelector(`[data-upload-id="${uid}"]`);
+        if(!el) return;
+
+        const url = el.getAttribute('data-upload-url');
+        if(url) { try { URL.revokeObjectURL(url); } catch(_) {} }
+
+        el.remove();
+        lucide.createIcons();
+        showToast("삭제되었습니다.");
+    }
+
+
+function showToast(msg) { 
+        const t = document.getElementById('toast'); document.getElementById('toastMsg').innerText = msg;
+        t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2500); 
+    }
+
+
+    // ===== PreviewModal (미리보기창.html 방식) =====
+    const PreviewModal = {
+            zoomLevel: 1,
+            isPanning: false,
+            pointX: 0, pointY: 0,
+            startX: 0, startY: 0,
+            overlay: null, wrapper: null, viewport: null, panBtn: null, titleEl: null,
+    
+            init() {
+                this.overlay = document.getElementById('pmOverlay');
+                this.wrapper = document.getElementById('pmContent');
+                this.viewport = document.getElementById('pmViewport');
+                this.panBtn = document.getElementById('pmPanBtn');
+                this.titleEl = document.getElementById('pmTitle');
+                this.setupEvents();
+            },
+    
+            // 모달 열기
+            open(title, contentHTML) {
+                if (!this.overlay) this.init();
+                
+                this.titleEl.innerText = title;
+                this.wrapper.innerHTML = contentHTML;
+                
+                this.resetView(); 
+                this.overlay.classList.add('active');
+                lucide.createIcons(); // 내부 아이콘 렌더링
+            },
+    
+            close() {
+                if(this.overlay) this.overlay.classList.remove('active');
+                this.isPanning = false;
+                if(this.panBtn) this.panBtn.classList.remove('active');
+                if(this.viewport) this.viewport.classList.remove('panning');
+            },
+    
+            // 줌 제어
+            zoom(delta) {
+                this.zoomLevel = Math.max(0.2, this.zoomLevel + delta);
+                this.updateTransform();
+            },
+    
+            // 화면 중앙 및 배율 초기화
+            resetView() {
+                const screenW = window.innerWidth;
+                // 모바일은 화면 너비에 맞게 축소, PC는 0.7배율
+                this.zoomLevel = screenW < 800 ? screenW / 850 : 0.7; 
+                this.pointX = 0; this.pointY = 0;
+                this.updateTransform();
+            },
+    
+            // 이동 모드 토글 (Hand)
+            togglePan() {
+                this.isPanning = !this.isPanning;
+                this.panBtn.classList.toggle('active', this.isPanning);
+                this.viewport.classList.toggle('panning', this.isPanning);
+            },
+    
+            updateTransform() {
+                if(this.wrapper) {
+                    this.wrapper.style.transform = `translate(${this.pointX}px, ${this.pointY}px) scale(${this.zoomLevel})`;
+                }
+            },
+    
+            // 드래그(Pan) 이벤트 설정
+            setupEvents() {
+                const start = (e) => {
+                    if (!this.isPanning) return;
+                    // 버튼이나 컨트롤러 클릭 시 드래그 방지
+                    if (e.target.closest('.pm-controls') || ['BUTTON'].includes(e.target.tagName)) return;
+                    
+                    e.preventDefault();
+                    const evt = e.touches ? e.touches[0] : e;
+                    this.startX = evt.clientX - this.pointX;
+                    this.startY = evt.clientY - this.pointY;
+    
+                    document.addEventListener('mousemove', move);
+                    document.addEventListener('touchmove', move, {passive:false});
+                    document.addEventListener('mouseup', end);
+                    document.addEventListener('touchend', end);
+                };
+    
+                const move = (e) => {
+                    const evt = e.touches ? e.touches[0] : e;
+                    this.pointX = evt.clientX - this.startX;
+                    this.pointY = evt.clientY - this.startY;
+                    this.updateTransform();
+                };
+    
+                const end = () => {
+                    document.removeEventListener('mousemove', move);
+                    document.removeEventListener('touchmove', move);
+                    document.removeEventListener('mouseup', end);
+                    document.removeEventListener('touchend', end);
+                };
+    
+                this.viewport.addEventListener('mousedown', start);
+                this.viewport.addEventListener('touchstart', start, {passive:false});
+            },
+    
+            // PDF 저장 (파일명 = 현재 제목)
+            async savePDF() {
+                this.showLoading(true);
+                const fileName = this.titleEl.innerText || 'download';
+                
+                // 캡처를 위해 잠시 스케일 초기화
+                const oldTransform = this.wrapper.style.transform;
+                this.wrapper.style.transform = 'scale(1)';
+                this.wrapper.style.margin = '0';
+    
+                try {
+                    // 전체 내용을 캡처
+                    const canvas = await html2canvas(this.wrapper, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                    
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('p', 'mm', 'a4');
+                    
+                    const imgProps = doc.getImageProperties(imgData);
+                    const pdfWidth = doc.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                    doc.save(`${fileName}.pdf`);
+                    this.showToast("PDF 저장이 완료되었습니다.");
+                } catch (e) {
+                    console.error(e);
+                    alert("저장 중 오류가 발생했습니다.");
+                } finally {
+                    this.wrapper.style.transform = oldTransform;
+                    this.showLoading(false);
+                }
+            },
+    
+            // 공유 기능
+            async share() {
+                if (!navigator.share) {
+                    alert("공유를 지원하지 않는 환경입니다.");
+                    return;
+                }
+                this.showLoading(true);
+                const oldTransform = this.wrapper.style.transform;
+                this.wrapper.style.transform = 'scale(1)';
+    
+                try {
+                    const canvas = await html2canvas(this.wrapper, { scale: 2, useCORS: true });
+                    canvas.toBlob(async (blob) => {
+                        const file = new File([blob], "share.jpg", { type: "image/jpeg" });
+                        try {
+                            await navigator.share({
+                                title: this.titleEl.innerText,
+                                files: [file]
+                            });
+                        } catch (err) {}
+                    }, 'image/jpeg', 0.9);
+                } catch (e) {
+                    alert("이미지 생성 실패");
+                } finally {
+                    this.wrapper.style.transform = oldTransform;
+                    this.showLoading(false);
+                }
+            },
+    
+            showLoading(visible) { document.getElementById('pmLoading').style.display = visible ? 'flex' : 'none'; },
+            
+            showToast(msg) {
+                const t = document.getElementById('pmToast');
+                document.getElementById('pmToastMsg').innerText = msg;
+                t.classList.add('show');
+                setTimeout(() => t.classList.remove('show'), 2000);
+            }
+        };
+    
+        
+</script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

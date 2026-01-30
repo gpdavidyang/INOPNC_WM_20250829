@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>INOPNC - 통합 시스템</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#31a3fa',
+            'primary-bg': '#eaf6ff',
+            'header-navy': '#1a254f',
+            'bg-body': '#f2f4f6',
+            'bg-surface': '#ffffff',
+            'bg-input': '#ffffff',
+            border: '#e2e8f0',
+            danger: '#ef4444',
+            'text-main': '#111111',
+            'text-sub': '#475569',
+          },
+          fontFamily: {
+            main: ['"Pretendard Variable"', 'Pretendard', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Scrollbar hide */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Custom Form Inputs */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      background: transparent; bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
+    }
+  </style>
+</head>
+<body class="bg-bg-body text-text-main">
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

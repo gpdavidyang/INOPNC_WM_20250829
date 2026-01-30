@@ -1,6 +1,3 @@
-import type { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { requireAuth } from '@/lib/auth/ultra-simple'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -10,6 +7,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { requireAuth } from '@/lib/auth/ultra-simple'
+import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = { title: '현장 상세' }
 
@@ -209,7 +210,12 @@ export default async function PartnerSiteDetailPage({ params }: SitePageProps) {
                   (reports as any[]).map(r => (
                     <TableRow key={r.id}>
                       <TableCell>
-                        {r.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
+                        <Link
+                          href={`/partner/sites/${siteId}/daily-reports/${r.id}`}
+                          className="hover:underline text-blue-600 font-medium"
+                        >
+                          {r.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
+                        </Link>
                       </TableCell>
                       <TableCell>{r.profiles?.full_name || '-'}</TableCell>
                       <TableCell>{r.status || '-'}</TableCell>

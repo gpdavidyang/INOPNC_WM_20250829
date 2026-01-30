@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>사진대지 편집기</title>
+
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =========================================
+       1. 디자인 시스템 (Dark & Mobile First)
+       ========================================= */
+    :root {
+        --font-main: "Pretendard Variable", Pretendard, sans-serif;
+        --bg-body: #121212;
+        --bg-panel: #1e1e1e;
+        --primary: #31a3fa;
+        --danger: #ef4444; /* 붉은색 포인트 */
+        --text-main: #ffffff;
+        --text-sub: #a0a0a0;
+        --border-color: #333;
+        --paper-w: 794px; /* A4 Width */
+        --paper-h: 1123px; /* A4 Height */
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body { 
+        margin: 0; padding: 0; 
+        font-family: var(--font-main); 
+        background: var(--bg-body); 
+        color: var(--text-main); 
+        overflow: hidden; 
+        height: 100vh; width: 100vw; 
+        display: flex; flex-direction: column;
+    }
+
+    /* =========================================
+       2. 헤더 (Simple & Icon based)
+       ========================================= */
+    .header-bar {
+        height: 56px; background: #000; 
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 12px; flex-shrink: 0; z-index: 100; border-bottom: 1px solid #222;
+    }
+    .header-title { font-size: 17px; font-weight: 700; color: #fff; }
+    
+    .icon-btn {
+        background: none; border: none; color: #fff; cursor: pointer;
+        padding: 8px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; transition: 0.2s;
+    }
+    .icon-btn:active { background: #333; }
+
+    /* =========================================
+       3. 설정 바 (입력창 - 모바일 최적화)
+       ========================================= */
+    .config-bar {
+        background: #1e1e1e; padding: 12px; 
+        border-bottom: 1px solid #2a2a2a; z-index: 90; flex-shrink: 0;
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    
+    .row { display: flex; gap: 8px; width: 100%; }
+    
+    /* 입력 필드 스타일 */
+    .dark-input {
+        flex: 1; background: #2c2c2c; border: 1px solid #3a3a3a; color: #fff;
+        padding: 10px 12px; border-radius: 8px; font-size: 14px; outline: none;
+        min-width: 0; /* Flex overflow 방지 */
+        transition: border-color 0.2s;
+    }
+    .dark-input:focus { border-color: var(--primary); background: #333; }
+    .dark-input::placeholder { color: #666; font-size: 13px; }
+
+    /* 버튼 스타일 (정렬, 삭제) */
+    .action-btn {
+        flex: 1; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+        border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+        white-space: nowrap;
+    }
+    .btn-sort { background: #333; color: #ccc; border: 1px solid #444; }
+    .btn-delete { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #7f1d1d; }
+    .btn-delete:active { background: rgba(239, 68, 68, 0.3); }
+
+    /* =========================================
+       4. 뷰포트 & 종이 (세로 스크롤)
+       ========================================= */
+    .viewport {
+        flex: 1; position: relative; overflow-y: auto; overflow-x: hidden;
+        background: #121212;
+        display: flex; justify-content: center;
+        padding-top: 30px; padding-bottom: 120px; /* 하단 여백 확보 */
+        cursor: grab; touch-action: none;
+    }
+    .viewport.panning { cursor: grabbing; overflow: hidden; }
+
+    .paper-wrapper {
+        transform-origin: center top; 
+        transition: transform 0.1s ease-out;
+        display: flex; flex-direction: column; gap: 30px; 
+        align-items: center;
+    }
+
+    /* A4 실제 문서 */
+    .page {
+        width: var(--paper-w); height: var(--paper-h); 
+        background: #fff; color: #000;
+        padding: 40px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column;
+        flex-shrink: 0;
+    }
+
+    /* 테이블 스타일 */
+    .doc-header { text-align: center; margin-bottom: 15px; }
+    .doc-title { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin-bottom: 5px; color: #000; }
+    
+    .tbl { width: 100%; border-collapse: collapse; border: 2px solid #333; table-layout: fixed; }
+    .tbl th, .tbl td { border: 1px solid #333; padding: 0; text-align: center; vertical-align: middle; color: #000; }
+
+    /* 사진 셀 */
+    .cell-photo { height: 215px; background: #f1f5f9; position: relative; cursor: pointer; overflow: hidden; }
+    .cell-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .cell-photo.empty::after {
+        content: "+"; font-size: 30px; font-weight:300; color: #cbd5e1;
+        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        border: 2px dashed #cbd5e1; width: 40px; height: 40px; border-radius: 50%;
+        display:flex; align-items:center; justify-content:center;
+    }
+
+    .cell-input { width: 100%; height: 100%; border: none; text-align: center; font-size: 14px; font-weight: 500; outline: none; background: transparent; color: #000; }
+    .toggle-text { cursor: pointer; color: #000; font-weight: 800; padding: 10px; display:block; user-select: none; }
+
+    /* =========================================
+       5. 하단 컨트롤러 (Pill Shape)
+       ========================================= */
+    .controls-pill {
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: #222; padding: 8px 24px; border-radius: 100px;
+        display: flex; gap: 24px; z-index: 200; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333;
+    }
+    .ctrl-btn {
+        background: none; border: none; color: #fff;
+        display: flex; flex-direction: column; align-items: center; gap: 2px;
+        font-size: 10px; cursor: pointer; min-width: 40px; opacity: 0.6; transition: 0.2s; font-weight: 500;
+    }
+    .ctrl-btn:hover { opacity: 1; }
+    .ctrl-btn.active { color: var(--primary); opacity: 1; font-weight: 700; }
+    .ctrl-btn i { margin-bottom: 2px; }
+
+    /* 모달 */
+    .overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 3000;
+        display: none; align-items: flex-end; justify-content: center;
+    }
+    .overlay.active { display: flex; }
+    .sheet {
+        width: 100%; max-width: 500px; background: #1e1e1e; border-radius: 20px 20px 0 0;
+        padding: 24px; display: flex; flex-direction: column; gap: 12px;
+        animation: slideUp 0.2s ease-out; border-top: 1px solid #333;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    
+    .sheet-btn {
+        width: 100%; padding: 16px; border: none; border-radius: 12px;
+        font-size: 15px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+        background: #333; color: #fff;
+    }
+    .sheet-btn.danger { background: #451a1a; color: #ff6b6b; }
+    .sheet-btn.primary { background: var(--primary); color: #fff; }
+
+    /* 로딩/토스트 */
+    .loading { 
+        position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; 
+        display: none; flex-direction: column; align-items: center; justify-content: center; color: #fff;
+    }
+    .spinner { width: 40px; height: 40px; border: 4px solid #555; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+        position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+        background: #fff; color: #000; padding: 10px 20px;
+        border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 300;
+        display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .toast.show { opacity: 1; top: 90px; }
+  </style>
+</head>
+<body>
+
+  <header class="header-bar">
+    <button class="icon-btn" onclick="goBack()">
+        <i data-lucide="chevron-left" width="24"></i>
+    </button>
+    <div class="header-title">사진대지 편집기</div>
+    <div style="display:flex; gap: 4px;">
+        <button class="icon-btn" onclick="resetAll()">
+            <i data-lucide="rotate-ccw" width="20"></i>
+        </button>
+        <button class="icon-btn" onclick="savePDF()">
+            <i data-lucide="download" width="20"></i>
+        </button>
+    </div>
+  </header>
+
+  <div class="config-bar">
+    <div class="row">
+        <input id="meta-site" class="dark-input" placeholder="현장명 (문서 제목)" oninput="render()">
+        <input id="meta-project" class="dark-input" placeholder="공사명 (테이블 내)" oninput="render()">
+    </div>
+    <div class="row">
+        <input id="meta-member" class="dark-input" placeholder="부재명 (일괄적용)" oninput="applyToAll('member', this.value)">
+        <input id="meta-process" class="dark-input" placeholder="공정명 (일괄적용)" oninput="applyToAll('process', this.value)">
+    </div>
+    <div class="row">
+        <input id="meta-desc" class="dark-input" style="flex:1.5;" placeholder="내용 기본값 (예: 보수후)">
+        <button class="action-btn btn-sort" onclick="sortAndClassify()">
+            <i data-lucide="arrow-down-up" width="14"></i> 정렬
+        </button>
+        <button class="action-btn btn-delete" onclick="removeEmptyPages()">
+            <i data-lucide="trash" width="14"></i> 빈 페이지 삭제
+        </button>
+    </div>
+  </div>
+
+  <div class="viewport" id="viewport">
+    <div class="paper-wrapper" id="paperWrapper">
+      </div>
+  </div>
+
+  <div class="controls-pill">
+    <button class="ctrl-btn" onclick="document.getElementById('fileInput').click()">
+        <i data-lucide="image-plus" width="20"></i> 추가
+    </button>
+    <div style="width:1px; background:#444; height:24px; align-self:center;"></div>
+    <button class="ctrl-btn" onclick="adjustZoom(-0.1)">
+        <i data-lucide="minus" width="20"></i> 축소
+    </button>
+    <button class="ctrl-btn" id="btnPan" onclick="togglePan()">
+        <i data-lucide="hand" width="20"></i> 이동
+    </button>
+    <button class="ctrl-btn" onclick="adjustZoom(0.1)">
+        <i data-lucide="plus" width="20"></i> 확대
+    </button>
+    <button class="ctrl-btn" onclick="shareContent()">
+        <i data-lucide="share-2" width="20"></i> 공유
+    </button>
+  </div>
+
+  <input type="file" id="fileInput" multiple accept="image/*" hidden onchange="handleUpload(this)">
+  <input type="file" id="replaceInput" accept="image/*" hidden onchange="handleReplace(this)">
+
+  <div class="overlay" id="actionModal" onclick="closeModal()">
+    <div class="sheet" id="sheetContent" onclick="event.stopPropagation()"></div>
+  </div>
+
+  <div class="loading" id="loadingMask">
+    <div class="spinner"></div>
+    <span id="loadingText">처리 중...</span>
+  </div>
+  <div class="toast" id="toast">
+      <i data-lucide="check" size="16"></i> <span id="toastMsg">완료</span>
+  </div>
+
+<script>
+    lucide.createIcons();
+
+    // --- 상태 변수 ---
+    let cellData = []; 
+    let selectedIndex = -1;
+
+    let zoomLevel = 0.5;
+    let isPanning = false;
+    let startX = 0, startY = 0, pointX = 0, pointY = 0;
+
+    const viewport = document.getElementById('viewport');
+    const paperWrapper = document.getElementById('paperWrapper');
+    const btnPan = document.getElementById('btnPan');
+
+    // --- 초기화 ---
+    window.onload = () => {
+        // 모바일은 좁게 시작, PC는 넓게 시작
+        if(window.innerWidth > 800) zoomLevel = 0.8;
+        else zoomLevel = window.innerWidth / 850;
+
+        ensureMinLength();
+        render();
+        updateTransform();
+        initPan();
+    };
+
+    function goBack() {
+        if(cellData.some(item => item !== null)) {
+            if(confirm("작성 중인 내용이 있습니다. 정말 나가시겠습니까?")) history.back();
+        } else {
+            history.back();
+        }
+    }
+
+    // --- 1. 데이터 관리 로직 ---
+    function ensureMinLength() {
+        const remainder = cellData.length % 6;
+        if (remainder !== 0) {
+            const needed = 6 - remainder;
+            for(let i=0; i<needed; i++) cellData.push(null);
+        } else if (cellData.length === 0) {
+            for(let i=0; i<6; i++) cellData.push(null);
+        }
+    }
+
+    // [일괄 적용] 입력 즉시 모든 셀 업데이트 + 공정(process) 접미사 처리
+    function applyToAll(key, value) {
+        let updated = false;
+        
+        // 공정일 경우, 입력된 값 뒤에 " 보수"를 자동으로 붙임 (빈값 제외)
+        let valueToApply = value;
+        if (key === 'process' && value.trim() !== '') {
+            valueToApply = value + " 보수";
+        }
+
+        cellData.forEach(item => {
+            if (item) {
+                item[key] = valueToApply;
+                updated = true;
+            }
+        });
+        if(updated) render();
+    }
+
+    // [빈 페이지만 삭제]
+    function removeEmptyPages() {
+        if(!confirm('데이터가 없는 빈 페이지를 정리하시겠습니까?')) return;
+        
+        let newCells = [];
+        for(let i=0; i < cellData.length; i+=6) {
+            const chunk = cellData.slice(i, i+6);
+            // 청크 내에 하나라도 데이터(null이 아닌 것)가 있으면 유지
+            const isChunkEmpty = chunk.every(item => item === null);
+            if(!isChunkEmpty) {
+                newCells.push(...chunk);
+            }
+        }
+        
+        cellData = newCells;
+        if(cellData.length === 0) ensureMinLength(); 
+        render();
+        showToast("정리 완료");
+    }
+
+    // 렌더링 함수
+    function render() {
+        const container = document.getElementById('paperWrapper');
+        
+        // 입력값 매핑
+        const siteTitle = document.getElementById('meta-site').value || '공사 사진대지'; 
+        const projectTitle = document.getElementById('meta-project').value || '';
+
+        container.innerHTML = '';
+
+        for (let i = 0; i < cellData.length; i += 6) {
+            const pageDiv = document.createElement('div');
+            pageDiv.className = 'page';
+            
+            let html = `
+                <div class="doc-header">
+                    <div class="doc-title">${siteTitle}</div>
+                    <div style="text-align:right; font-size:14px; font-weight:700; color:#000;">(주)이노피앤씨</div>
+                </div>
+                <table class="tbl" style="border-bottom:none;">
+                    <tr>
+                        <td style="background:#f1f5f9; font-weight:700; width:15%; height:35px;">공사명</td>
+                        <td style="text-align:left; padding-left:10px; font-weight:700;">${projectTitle}</td>
+                    </tr>
+                </table>
+                <table class="tbl">
+                    <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
+            `;
+
+            for (let r = 0; r < 3; r++) {
+                const idx1 = i + (r * 2);
+                const idx2 = i + (r * 2) + 1;
+                const D1 = cellData[idx1];
+                const D2 = cellData[idx2];
+                
+                const desc1 = (D1 && D1.desc) ? D1.desc : '보수후';
+                const desc2 = (D2 && D2.desc) ? D2.desc : '보수후';
+
+                html += `
+                    <tr>
+                        <td colspan="2" class="cell-photo ${!D1?'empty':''}" onclick="onCellClick(${idx1})">
+                            ${D1 ? `<img src="${D1.img}">` : ''}
+                        </td>
+                        <td colspan="2" class="cell-photo ${!D2?'empty':''}" onclick="onCellClick(${idx2})">
+                            ${D2 ? `<img src="${D2.img}">` : ''}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="background:#f1f5f9; font-weight:700; height:30px;">부재명</td>
+                        <td><input class="cell-input" value="${D1?.member||''}" oninput="updateData(${idx1}, 'member', this.value)"></td>
+                        <td style="background:#f1f5f9; font-weight:700;">부재명</td>
+                        <td><input class="cell-input" value="${D2?.member||''}" oninput="updateData(${idx2}, 'member', this.value)"></td>
+                    </tr>
+                    <tr>
+                        <td style="background:#f1f5f9; font-weight:700; height:30px;">공 정</td>
+                        <td><input class="cell-input" value="${D1?.process||''}" oninput="updateData(${idx1}, 'process', this.value)"></td>
+                        <td style="background:#f1f5f9; font-weight:700;">공 정</td>
+                        <td><input class="cell-input" value="${D2?.process||''}" oninput="updateData(${idx2}, 'process', this.value)"></td>
+                    </tr>
+                    <tr>
+                        <td style="background:#f1f5f9; font-weight:700; height:30px;">내 용</td>
+                        <td><span class="toggle-text" onclick="toggleDesc(${idx1}); event.stopPropagation();">${desc1}</span></td>
+                        <td style="background:#f1f5f9; font-weight:700;">내 용</td>
+                        <td><span class="toggle-text" onclick="toggleDesc(${idx2}); event.stopPropagation();">${desc2}</span></td>
+                    </tr>
+                `;
+            }
+            html += `</table>`;
+            pageDiv.innerHTML = html;
+            container.appendChild(pageDiv);
+        }
+        lucide.createIcons();
+    }
+
+    // --- 2. 뷰어 기능 (Zoom, Pan) ---
+    function adjustZoom(delta) {
+        zoomLevel = Math.max(0.2, zoomLevel + delta);
+        updateTransform();
+    }
+
+    function togglePan() {
+        isPanning = !isPanning;
+        btnPan.classList.toggle('active', isPanning);
+        viewport.classList.toggle('panning', isPanning);
+    }
+
+    function updateTransform() {
+        paperWrapper.style.transform = `translate(${pointX}px, ${pointY}px) scale(${zoomLevel})`;
+    }
+
+    function initPan() {
+        const vp = document.getElementById('viewport');
+        let sx=0, sy=0, cx=0, cy=0;
+        const start = (e) => {
+            if(!isPanning) return;
+            if(['INPUT', 'BUTTON', 'I'].includes(e.target.tagName)) return;
+            e.preventDefault();
+            const evt = e.touches ? e.touches[0] : e;
+            sx = evt.clientX - cx; sy = evt.clientY - cy;
+            const move = (me) => {
+                const mevt = me.touches ? me.touches[0] : me;
+                cx = mevt.clientX - sx; cy = mevt.clientY - sy;
+                pointX = cx; pointY = cy; updateTransform();
+            };
+            const end = () => {
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('touchmove', move);
+                document.removeEventListener('mouseup', end);
+                document.removeEventListener('touchend', end);
+            };
+            document.addEventListener('mousemove', move);
+            document.addEventListener('touchmove', move, {passive:false});
+            document.addEventListener('mouseup', end);
+            document.addEventListener('touchend', end);
+        };
+        vp.addEventListener('mousedown', start);
+        vp.addEventListener('touchstart', start, {passive:false});
+    }
+
+    // --- 3. 데이터 상호작용 ---
+    function onCellClick(idx) {
+        if (isPanning) return;
+        selectedIndex = idx;
+        const item = cellData[idx];
+        const sheet = document.getElementById('sheetContent');
+        const modal = document.getElementById('actionModal');
+
+        if (!item) {
+            sheet.innerHTML = `
+                <button class="sheet-btn primary" onclick="document.getElementById('fileInput').click(); closeModal();"><i data-lucide="plus"></i> 사진 추가</button>
+                <button class="sheet-btn danger" onclick="deleteAndPull()"><i data-lucide="delete"></i> 칸 삭제 (당기기)</button>
+                <button class="sheet-btn" onclick="closeModal()">취소</button>
+            `;
+        } else {
+            sheet.innerHTML = `
+                <button class="sheet-btn" onclick="document.getElementById('replaceInput').click()"><i data-lucide="image-plus"></i> 사진 교체</button>
+                <button class="sheet-btn danger" onclick="deleteAndPull()"><i data-lucide="trash-2"></i> 삭제하고 당기기</button>
+                <button class="sheet-btn" onclick="closeModal()">취소</button>
+            `;
+        }
+        lucide.createIcons();
+        modal.classList.add('active');
+    }
+
+    async function handleUpload(input) {
+        if (!input.files.length) return;
+        showLoading('사진 처리 중...');
+
+        let insertIdx = cellData.findIndex(item => item === null);
+        if (insertIdx === -1) insertIdx = cellData.length;
+
+        const files = Array.from(input.files);
+        const m = document.getElementById('meta-member').value;
+        
+        // 공정 값 처리 (Upload 시에도 " 보수" 붙이기 로직 적용)
+        let p = document.getElementById('meta-process').value;
+        if (p && p.trim() !== '') {
+            p = p + " 보수";
+        }
+
+        const d = document.getElementById('meta-desc').value;
+
+        for (const file of files) {
+            try {
+                const imgStr = await processFile(file);
+                const newItem = {
+                    img: imgStr,
+                    member: m || '',
+                    process: p || '', 
+                    desc: d || '보수후'
+                };
+                
+                if (insertIdx < cellData.length) cellData[insertIdx] = newItem;
+                else cellData.push(newItem);
+
+                insertIdx++;
+                while (insertIdx < cellData.length && cellData[insertIdx] !== null) {
+                    insertIdx++;
+                }
+            } catch (err) { console.error(err); }
+        }
+        input.value = '';
+        ensureMinLength();
+        render();
+        hideLoading();
+    }
+
+    function processFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    const max = 1280; 
+                    if (w > h) { if (w > max) { h *= max/w; w = max; } }
+                    else { if (h > max) { w *= max/h; h = max; } }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function updateData(idx, key, val) {
+        if(!cellData[idx]) return;
+        cellData[idx][key] = val; // 개별 수정 시에는 입력값 그대로 적용 (자동 접미사 없음)
+    }
+
+    function toggleDesc(idx) {
+        if(!cellData[idx]) return;
+        const current = cellData[idx].desc || '보수후';
+        cellData[idx].desc = (current === '보수후') ? '보수전' : '보수후';
+        render();
+    }
+
+    function deleteAndPull() {
+        if (selectedIndex === -1) return;
+        cellData.splice(selectedIndex, 1);
+        ensureMinLength();
+        render();
+        closeModal();
+        showToast("삭제되었습니다.");
+    }
+
+    // --- 4. 정렬, 초기화 ---
+    function sortAndClassify() {
+        if(!confirm('보수 전(앞) -> 보수 후(뒤) 순서로 정렬하시겠습니까?')) return;
+        showLoading('정렬 중...');
+        cellData.sort((a, b) => {
+            if (a === null && b === null) return 0;
+            if (a === null) return 1;
+            if (b === null) return -1;
+            const aD = a.desc || '';
+            const bD = b.desc || '';
+            const aIsBefore = aD.includes('보수전');
+            const bIsBefore = bD.includes('보수전');
+            if (aIsBefore && !bIsBefore) return -1; 
+            if (!aIsBefore && bIsBefore) return 1; 
+            return 0; 
+        });
+        render();
+        hideLoading();
+        showToast("정렬 완료");
+    }
+
+    function resetAll() {
+        if(!confirm("모든 사진과 내용을 초기화하시겠습니까?")) return;
+        cellData = [];
+        ensureMinLength();
+        render();
+        showToast("초기화되었습니다.");
+    }
+
+    // --- 5. 내보내기 및 공유 ---
+    async function savePDF() {
+        showToast("PDF 생성 중...");
+        const oldTrans = paperWrapper.style.transform;
+        paperWrapper.style.transform = 'scale(1)'; 
+        paperWrapper.style.margin = '0';
+
+        try {
+            const pages = document.querySelectorAll('.page');
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const siteTitle = document.getElementById('meta-site').value || '공사사진대지';
+
+            for (let i = 0; i < pages.length; i++) {
+                if (i > 0) doc.addPage();
+                const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+                doc.addImage(canvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, 210, 297);
+            }
+            doc.save(`${siteTitle}.pdf`);
+            showToast("다운로드 완료!");
+        } catch(err) {
+            console.error(err);
+            showToast("오류 발생");
+        } finally {
+            paperWrapper.style.transform = oldTrans;
+        }
+    }
+
+    async function shareContent() {
+        if (!navigator.share) {
+            alert("공유를 지원하지 않는 브라우저입니다.");
+            return;
+        }
+        showToast("이미지 생성 중...");
+        const oldTrans = paperWrapper.style.transform;
+        paperWrapper.style.transform = 'scale(1)';
+
+        try {
+            const firstPage = document.querySelector('.page');
+            const canvas = await html2canvas(firstPage, { scale: 2, useCORS: true });
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], "photo_log.jpg", { type: "image/jpeg" });
+                try {
+                    await navigator.share({
+                        title: '공사 사진대지',
+                        text: document.getElementById('meta-site').value,
+                        files: [file]
+                    });
+                    showToast("공유 실행됨");
+                } catch (e) {}
+            }, 'image/jpeg', 0.9);
+        } catch(e) {
+            showToast("공유 실패");
+        } finally {
+            paperWrapper.style.transform = oldTrans;
+        }
+    }
+
+    // --- Helper ---
+    async function handleReplace(input) {
+        if(input.files.length && selectedIndex !== -1) {
+            showLoading('교체 중...');
+            cellData[selectedIndex].img = await processFile(input.files[0]);
+            render();
+            hideLoading();
+        }
+        input.value = '';
+        closeModal();
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        document.getElementById('toastMsg').innerText = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+    }
+    function closeModal() { document.getElementById('actionModal').classList.remove('active'); }
+    function showLoading(msg) { 
+        document.getElementById('loadingMask').style.display = 'flex'; 
+        if(msg) document.getElementById('loadingText').innerText = msg;
+    }
+    function hideLoading() { document.getElementById('loadingMask').style.display = 'none'; }
+</script>
+</body>
+</html>

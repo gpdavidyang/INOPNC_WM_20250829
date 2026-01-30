@@ -158,6 +158,13 @@ export interface WorklogDetail extends WorklogSummary {
     completionDocs: WorklogAttachment[]
     others: WorklogAttachment[]
   }
+  materials?: Array<{
+    material_name: string
+    material_code?: string | null
+    quantity: number
+    unit?: string | null
+    notes?: string | null
+  }>
 }
 
 export interface WorklogCalendarCell {

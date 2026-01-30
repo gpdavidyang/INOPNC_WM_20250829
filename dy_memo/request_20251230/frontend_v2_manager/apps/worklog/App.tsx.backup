@@ -1,0 +1,645 @@
+
+import React, { useState, useEffect } from 'react';
+import { PlusCircle, Search, ChevronDown, ClipboardList, Package, Camera, Map as MapIcon, FileCheck as FileCheckIcon, AlertCircle, Trash2, Check, ArrowRight, Users, Pin, ChevronLeft, CheckSquare, Square, Copy, CheckCircle, CalendarDays, ChevronUp } from 'lucide-react';
+import { MOCK_LOGS } from './constants';
+import { WorkLog, LogStatus } from '@inopnc/shared';
+import WorkLogDetail from './components/WorkLogDetail';
+import SiteCombobox from './components/SiteCombobox';
+import SmartCreateSheet from './components/SmartCreateSheet';
+import { MainLayout } from '@inopnc/shared';
+
+type ViewMode = 'dashboard' | 'timeline';
+
+const App: React.FC = () => {
+  const [logs, setLogs] = useState<WorkLog[]>(MOCK_LOGS);
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('all');
+  const [currentFilter, setCurrentFilter] = useState<LogStatus | 'all'>('all');
+  const [sortOrder, setSortOrder] = useState<'latest' | 'name' | 'pinned'>('latest');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // List Management: Month Filter (YYYY-MM)
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7));
+
+  // View State
+  const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
+  const [timelineStatus, setTimelineStatus] = useState<LogStatus | null>(null);
+
+  // Batch Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Modal & Sheet State
+  const [selectedLog, setSelectedLog] = useState<WorkLog | null>(null);
+  const [isSmartCreateOpen, setIsSmartCreateOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(5);
+
+  // Toast State
+  const [toast, setToast] = useState<{ show: boolean, msg: string }>({ show: false, msg: '' });
+
+  // Load shared data on mount
+  useEffect(() => {
+    try {
+      const sharedLogs = localStorage.getItem('inopnc_work_log');
+      if (sharedLogs) {
+        const parsedLogs = JSON.parse(sharedLogs);
+        // Convert shared format to WorkLog format
+        const convertedLogs = parsedLogs.map((log: any) => ({
+          id: parseInt(log.id.replace('LOG-', '')),
+          site: log.siteName,
+          siteId: log.siteId,
+          date: log.workDate,
+          status: log.status === '작성중' ? 'draft' : log.status,
+          affiliation: log.dept,
+          member: log.workSets?.[0]?.member || '',
+          process: log.workSets?.[0]?.process || '',
+          type: log.workSets?.[0]?.type || '',
+          location: log.workSets?.[0]?.location?.floor || '',
+          manpower: log.manpower ? [{ role: '작업자', val: log.manpower, worker: '작업자' }] : [],
+          materials: [],
+          photos: [],
+          drawings: [],
+          confirmationFiles: [],
+          isDirect: true,
+          isPinned: false
+        }));
+        setLogs(convertedLogs);
+      }
+    } catch (e) {
+      console.error('Failed to load shared worklog data:', e);
+    }
+  }, []);
+
+  // Reset selection when changing views
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [viewMode, timelineStatus]);
+
+  // --- Helper: Toast ---
+  const showToast = (msg: string) => {
+    setToast({ show: true, msg });
+    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 2000);
+  };
+
+  // --- Sorting & Filtering Logic ---
+  const getSortedLogs = (sourceLogs: WorkLog[]) => {
+    return [...sourceLogs].sort((a, b) => {
+      if (sortOrder === 'pinned') {
+          if (a.isPinned && !b.isPinned) return -1;
+          if (!a.isPinned && b.isPinned) return 1;
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortOrder === 'name') {
+          return a.site.localeCompare(b.site) || new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+    });
+  };
+
+  const dashboardLogs = getSortedLogs(logs).filter(log => {
+    const matchSite = selectedSiteId === 'all' || log.siteId === selectedSiteId;
+    const matchStatus = currentFilter === 'all' || log.status === currentFilter;
+    const matchSearch = log.site.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchMonth = log.date.startsWith(selectedMonth); // Filter by Month
+    return matchSite && matchStatus && matchSearch && matchMonth;
+  });
+
+  const timelineLogs = getSortedLogs(logs).filter(log => {
+    const matchSite = selectedSiteId === 'all' || log.siteId === selectedSiteId;
+    const matchStatus = log.status === timelineStatus;
+    const matchMonth = log.date.startsWith(selectedMonth); // Filter by Month
+    return matchSite && matchStatus && matchMonth;
+  });
+
+  const displayLogs = dashboardLogs.slice(0, visibleCount);
+
+  // --- Handlers ---
+  const handleDashboardFilter = (status: LogStatus | 'all') => {
+    setCurrentFilter(status);
+    setVisibleCount(5);
+  };
+
+  const handleSummaryClick = (status: LogStatus) => {
+    setTimelineStatus(status);
+    setViewMode('timeline');
+    window.scrollTo(0, 0);
+  };
+
+  const handleBackToDashboard = () => {
+    setViewMode('dashboard');
+    setTimelineStatus(null);
+    window.scrollTo(0, 0);
+  };
+
+  // Replaced direct creation with Smart Create Sheet opening
+  const handleOpenSmartCreate = () => {
+    setIsSmartCreateOpen(true);
+  };
+
+  const handleSmartCreateSubmit = (newLog: WorkLog) => {
+    // Save to shared localStorage
+    try {
+      const existingLogs = localStorage.getItem('inopnc_work_log');
+      const logsList = existingLogs ? JSON.parse(existingLogs) : [];
+      
+      // Convert to shared format
+      const sharedLog = {
+        id: `LOG-${newLog.id}`,
+        siteName: newLog.site,
+        siteId: newLog.siteId,
+        dept: newLog.affiliation,
+        workDate: newLog.date,
+        manpower: newLog.manpower.reduce((sum, m) => sum + m.val, 0),
+        workContent: `${newLog.member} - ${newLog.process} (${newLog.location})`,
+        workSets: [{
+          member: newLog.member,
+          process: newLog.process,
+          type: newLog.type,
+          location: {
+            block: '',
+            dong: '',
+            floor: newLog.location
+          }
+        }],
+        materials: [],
+        status: '작성중',
+        createdAt: new Date().toISOString()
+      };
+      
+      logsList.push(sharedLog);
+      localStorage.setItem('inopnc_work_log', JSON.stringify(logsList));
+      
+      setLogs(prev => [newLog, ...prev]);
+      setIsSmartCreateOpen(false);
+      showToast("일지가 생성되었습니다. 상세내역을 입력하세요.");
+    } catch (e) {
+      console.error('Failed to save to shared storage:', e);
+      showToast("저장 중 오류가 발생했습니다.");
+    }
+  };
+
+  const handleSaveLog = (updatedLog: WorkLog) => {
+    setLogs(prev => {
+        const exists = prev.find(l => l.id === updatedLog.id);
+        if (exists) {
+            return prev.map(l => l.id === updatedLog.id ? updatedLog : l);
+        }
+        return [updatedLog, ...prev];
+    });
+    setSelectedLog(null);
+    showToast("저장되었습니다.");
+  };
+
+  const handleDeleteLog = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (confirm('일지를 삭제할까요?')) {
+        setLogs(prev => prev.filter(l => l.id !== id));
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+        });
+        showToast("삭제되었습니다.");
+    }
+  };
+
+  const handleTogglePin = (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    setLogs(prev => prev.map(log => 
+        log.id === id ? { ...log, isPinned: !log.isPinned } : log
+    ));
+  };
+
+  // --- Batch Selection Handlers ---
+  const toggleSelection = (id: number) => {
+    setSelectedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === timelineLogs.length) {
+        setSelectedIds(new Set());
+    } else {
+        setSelectedIds(new Set(timelineLogs.map(l => l.id)));
+    }
+  };
+
+  const handleBatchApprove = () => {
+    if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
+    if (!confirm(`선택한 ${selectedIds.size}건을 통합 승인요청 하시겠습니까?`)) return;
+
+    const now = new Date();
+    const timestamp = `${now.toISOString().split('T')[0]} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+    setLogs(prev => prev.map(log => 
+        selectedIds.has(log.id) ? { ...log, status: 'pending', updatedAt: timestamp } : log
+    ));
+    
+    showToast(`${selectedIds.size}건이 승인요청 되었습니다.`);
+    setSelectedIds(new Set());
+  };
+
+  // --- Duplication Logic (Efficient Creation) ---
+  const handleDuplicateLog = (logToCopy: WorkLog) => {
+    const today = new Date().toISOString().split('T')[0];
+    const newLog: WorkLog = {
+        ...logToCopy, // Copy Site, Affiliation, Manpower, Materials, Drawings
+        id: Date.now(), // New ID
+        date: today, // Today's Date
+        status: 'draft', // Reset to Draft
+        photos: [], // Clear Daily Photos
+        drawings: logToCopy.drawings, // Keep Drawings (often reused)
+        confirmationFiles: [], // Clear Confirmation
+        missing: [], // Clear Alerts
+        rejectReason: undefined, 
+        isDirect: true, // Treat as new entry
+        isPinned: false
+    };
+    
+    setLogs(prev => [newLog, ...prev]);
+    setSelectedLog(newLog); 
+    showToast("오늘 일자로 복사되었습니다. 내용을 수정하세요.");
+  };
+
+  const getTimelineTitle = (status: LogStatus | null) => {
+    switch(status) {
+        case 'draft': return '작성중인 일지';
+        case 'rejected': return '반려된 일지';
+        case 'pending': return '승인요청 일지';
+        case 'approved': return '승인완료된 일지';
+        default: return '일지 목록';
+    }
+  };
+
+  const isSelectionEnabled = timelineStatus === 'draft' || timelineStatus === 'rejected';
+
+  return (
+    <MainLayout title="INOPNC" currentApp="worklog">
+      <div className="w-full max-w-[600px] mx-auto min-h-screen bg-bg-body relative pb-10">
+      
+      {/* ================= DASHBOARD VIEW ================= */}
+      {viewMode === 'dashboard' && (
+        <div className="px-4 pt-5 animate-fade-in">
+            {/* Local Search Input */}
+            <div className="relative mb-4 flex items-center">
+                <input 
+                    type="text" 
+                    className="w-full h-[54px] rounded-2xl bg-white border border-transparent px-[22px] pr-[48px] text-[17px] font-medium text-text-main shadow-sm transition hover:bg-bg-surface hover:border-gray-200 focus:shadow-[0_0_0_2px_#31a3fa] focus:bg-bg-surface focus:outline-none placeholder:text-[#94a3b8] placeholder:font-medium placeholder:opacity-100"
+                    placeholder="현장명을 입력하세요."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery ? (
+                    <button 
+                        onClick={() => setSearchQuery('')}
+                        className="absolute right-[14px] top-1/2 -translate-y-1/2 bg-[#cbd5e1] text-white rounded-full w-[22px] h-[22px] flex items-center justify-center transition"
+                    >
+                        <span className="sr-only">Clear</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                ) : (
+                    <Search className="absolute right-[18px] top-1/2 -translate-y-1/2 text-[#94a3b8] w-5 h-5 pointer-events-none" />
+                )}
+            </div>
+
+            {/* Filters Flex Row: Site Combobox & Month Filter */}
+            <div className="flex gap-2.5 mb-4">
+                <div className="flex-[2]">
+                    <SiteCombobox selectedSiteId={selectedSiteId} onSelect={setSelectedSiteId} />
+                </div>
+                <div className="flex-1 relative">
+                    <input 
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        className="w-full h-[54px] rounded-xl border border-[#e2e8f0] bg-white px-3 text-[16px] font-bold text-text-main focus:border-primary focus:outline-none"
+                    />
+                </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-4 gap-2 mb-5">
+                <SummaryCard label="작성중" count={logs.filter(l => l.status === 'draft').length} type="draft" onClick={() => handleSummaryClick('draft')} />
+                <SummaryCard label="반려" count={logs.filter(l => l.status === 'rejected').length} type="rejected" onClick={() => handleSummaryClick('rejected')} />
+                <SummaryCard label="승인요청" count={logs.filter(l => l.status === 'pending').length} type="pending" onClick={() => handleSummaryClick('pending')} />
+                <SummaryCard label="승인완료" count={logs.filter(l => l.status === 'approved').length} type="approved" onClick={() => handleSummaryClick('approved')} />
+            </div>
+
+            {/* Filter Chips */}
+            <div className="flex gap-1 mb-5 overflow-x-auto no-scrollbar justify-between w-full">
+                <FilterChip label="전체" active={currentFilter === 'all'} onClick={() => handleDashboardFilter('all')} />
+                <FilterChip label="작성중" active={currentFilter === 'draft'} onClick={() => handleDashboardFilter('draft')} />
+                <FilterChip label="반려됨" active={currentFilter === 'rejected'} onClick={() => handleDashboardFilter('rejected')} />
+                <FilterChip label="승인요청" active={currentFilter === 'pending'} onClick={() => handleDashboardFilter('pending')} />
+                <FilterChip label="승인완료" active={currentFilter === 'approved'} onClick={() => handleDashboardFilter('approved')} />
+            </div>
+
+            {/* Add Button - Opens Smart Create Sheet */}
+            <button 
+                onClick={handleOpenSmartCreate}
+                className="w-full h-[54px] rounded-[14px] text-[17px] font-bold flex items-center justify-center gap-2 cursor-pointer border border-dashed border-primary text-primary bg-white mb-5 active:bg-primary-bg transition"
+            >
+                <PlusCircle className="w-[22px] h-[22px]" /> 새 작업일지 등록
+            </button>
+
+            {/* Log List */}
+            <div className="flex flex-col gap-3 pb-7">
+                {displayLogs.length === 0 ? (
+                    <div className="text-center py-10 text-text-sub flex flex-col items-center gap-2">
+                         <CalendarDays className="w-8 h-8 text-gray-300" />
+                         <span className="text-[15px] font-bold">해당 월에 데이터가 없습니다.</span>
+                    </div>
+                ) : (
+                    displayLogs.map(log => (
+                        <LogCard key={log.id} log={log} onClick={() => setSelectedLog(log)} onPinClick={handleTogglePin} />
+                    ))
+                )}
+            </div>
+
+            {/* Load More / Collapse Button */}
+            {dashboardLogs.length > 5 && (
+                <div className="pb-6">
+                    {visibleCount < dashboardLogs.length ? (
+                        <button 
+                            onClick={() => setVisibleCount(prev => prev + 5)}
+                            className="w-full h-[50px] flex items-center justify-center gap-1.5 bg-white border border-[#e2e8f0] rounded-full text-[15px] font-bold text-text-sub hover:bg-gray-50 active:scale-[0.98] transition shadow-sm"
+                        >
+                            더 보기 <ChevronDown className="w-4 h-4" />
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => setVisibleCount(5)}
+                            className="w-full h-[50px] flex items-center justify-center gap-1.5 bg-white border border-[#e2e8f0] rounded-full text-[15px] font-bold text-text-sub hover:bg-gray-50 active:scale-[0.98] transition shadow-sm"
+                        >
+                            접기 <ChevronUp className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
+            )}
+        </div>
+      )}
+
+      {/* ================= TIMELINE VIEW ================= */}
+      {viewMode === 'timeline' && (
+        <div className="min-h-screen bg-bg-body animate-slide-up pb-[calc(90px+env(safe-area-inset-bottom))]">
+            {/* Sticky Header */}
+            <div className="sticky top-0 z-[100] bg-white border-b border-[#e2e8f0] px-4 py-3.5 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={handleBackToDashboard}
+                        className="p-1 -ml-2 rounded-full hover:bg-gray-100 transition"
+                    >
+                        <ChevronLeft className="w-8 h-8 text-header-navy" />
+                    </button>
+                    <span className="text-[22px] font-bold text-header-navy">{getTimelineTitle(timelineStatus)}</span>
+                </div>
+                {isSelectionEnabled && timelineLogs.length > 0 && (
+                    <button 
+                        onClick={toggleSelectAll}
+                        className="text-[14px] font-bold text-primary flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded transition"
+                    >
+                        {selectedIds.size === timelineLogs.length ? '전체해제' : '전체선택'}
+                    </button>
+                )}
+            </div>
+
+            <div className="px-4 pt-5">
+                <div className="text-[15px] font-bold text-text-sub mb-3">* 날짜를 클릭하여 상세 내용을 확인/수정하세요.</div>
+                
+                <div className="flex flex-col gap-3">
+                    {timelineLogs.length === 0 ? (
+                        <div className="text-center py-10 text-text-sub">데이터가 없습니다.</div>
+                    ) : (
+                        timelineLogs.map(log => (
+                            <TimelineItem 
+                                key={log.id} 
+                                log={log} 
+                                selectable={isSelectionEnabled}
+                                selected={selectedIds.has(log.id)}
+                                onToggle={() => toggleSelection(log.id)}
+                                onClick={() => setSelectedLog(log)} 
+                                onDelete={(e) => handleDeleteLog(e, log.id)}
+                            />
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Sticky Footer for Bulk Action */}
+            {isSelectionEnabled && (
+                <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-[#e2e8f0] px-3 pt-3 pb-[calc(12px+env(safe-area-inset-bottom))] z-[90] flex justify-center shadow-[0_-4px_15px_rgba(0,0,0,0.05)]">
+                    <div className="w-full max-w-[600px] px-2">
+                        <button 
+                            onClick={handleBatchApprove}
+                            disabled={selectedIds.size === 0}
+                            className={`w-full h-[56px] rounded-2xl text-lg font-extrabold transition flex items-center justify-center gap-2
+                                ${selectedIds.size > 0 
+                                    ? 'bg-header-navy text-white hover:opacity-90' 
+                                    : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+                        >
+                            {selectedIds.size > 0 ? `${selectedIds.size}건 통합 승인요청` : '통합 승인요청'}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedLog && (
+        <WorkLogDetail 
+            key={selectedLog.id}
+            log={selectedLog} 
+            onClose={() => setSelectedLog(null)} 
+            onSave={handleSaveLog}
+            onDuplicate={handleDuplicateLog}
+        />
+      )}
+
+      {/* Smart Create Sheet (Replaces QuickCreateSheet) */}
+      {isSmartCreateOpen && (
+        <SmartCreateSheet 
+            isOpen={isSmartCreateOpen}
+            onClose={() => setIsSmartCreateOpen(false)}
+            onSubmit={handleSmartCreateSubmit}
+            initialSiteId={selectedSiteId}
+        />
+      )}
+
+      {/* Toast Message */}
+      <div className={`fixed bottom-[90px] left-1/2 transform -translate-x-1/2 bg-[rgba(15,23,42,0.95)] text-white px-6 py-3 rounded-full text-[15px] font-bold flex items-center gap-2 shadow-xl z-[3000] transition-all duration-300 pointer-events-none ${toast.show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <CheckCircle className="w-[18px] h-[18px] text-green-400" />
+        <span>{toast.msg}</span>
+      </div>
+
+    </div>
+    </MainLayout>
+  );
+};
+
+// --- Sub Components ---
+
+const SummaryCard: React.FC<{ label: string, count: number, type: string, onClick: () => void }> = ({ label, count, type, onClick }) => {
+    let styleClass = "bg-white text-text-main border-transparent";
+    if (type === 'draft') styleClass = "bg-primary-bg text-primary border-primary";
+    else if (type === 'rejected') styleClass = "bg-[#fff1f2] text-alert-reject-text border-alert-reject-border";
+    else if (type === 'pending') styleClass = "bg-[#f0f3f9] text-[#1e3a8a] border-[#1e3a8a]";
+    else if (type === 'approved') styleClass = "bg-[#f4f6fa] text-[#475569] border-[#475569]";
+
+    return (
+        <div 
+            onClick={onClick}
+            className={`h-[90px] rounded-2xl flex flex-col items-center justify-center cursor-pointer shadow-sm border transition active:scale-95 ${styleClass}`}
+        >
+            <span className="text-2xl font-extrabold leading-none mb-1">{count}</span>
+            <span className="text-[13px] font-bold">{label}</span>
+        </div>
+    );
+};
+
+const FilterChip: React.FC<{ label: string, active: boolean, onClick: () => void }> = ({ label, active, onClick }) => (
+    <button 
+        onClick={onClick}
+        className={`flex-1 min-w-fit h-[40px] px-1 rounded-full text-[13px] font-bold border transition flex items-center justify-center whitespace-nowrap
+            ${active ? 'border-primary text-primary bg-white shadow-[0_2px_6px_rgba(49,163,250,0.15)]' : 'bg-white border-[#e2e8f0] text-text-sub'}
+        `}
+    >
+        {label}
+    </button>
+);
+
+const LogCard: React.FC<{ log: WorkLog, onClick: () => void, onPinClick: (e: React.MouseEvent, id: number) => void }> = ({ log, onClick, onPinClick }) => {
+    let statusBadge = <div className="bg-blue-500 text-white rounded-tr-xl rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0">작성중</div>;
+    if (log.status === 'rejected') statusBadge = <div className="bg-red-500 text-white rounded-tr-xl rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0">반려됨</div>;
+    if (log.status === 'pending') statusBadge = <div className="bg-purple-500 text-white rounded-tr-xl rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0">승인요청</div>;
+    if (log.status === 'approved') statusBadge = <div className="bg-slate-500 text-white rounded-tr-xl rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0">승인완료</div>;
+
+    const hasMaterials = log.materials && log.materials.length > 0;
+    const hasPhotos = log.photos && log.photos.length > 0;
+    const hasDrawings = log.drawings && log.drawings.length > 0;
+    const hasConfirmation = log.confirmationFiles && log.confirmationFiles.length > 0;
+
+    const pinnedClass = log.isPinned ? 'border-primary ring-1 ring-primary/20 bg-[#fdfdfd]' : 'border-transparent bg-white';
+    const cardClassName = `rounded-[16px] p-[22px] relative cursor-pointer shadow-sm border transition active:scale-[0.98] overflow-hidden ${log.status === 'rejected' ? 'border-red-200 ring-2 ring-red-100 bg-white' : pinnedClass}`;
+
+    // Get formatted worker name string
+    const workerNames = log.manpower.map(m => m.worker || m.role).filter(Boolean);
+    const workerDisplay = workerNames.length > 0 
+        ? `${workerNames[0]}${workerNames.length > 1 ? ` 외 ${workerNames.length - 1}명` : ''}`
+        : `${log.manpower.length}명`;
+
+    return (
+        <div 
+            onClick={onClick}
+            className={cardClassName}
+        >
+            {statusBadge}
+            <div className="flex justify-between items-center mb-1.5 pr-8">
+                <span className="text-[15px] text-text-sub font-bold">{log.date}</span>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+                <span className="bg-aff-bg text-aff-text border border-[#bae6fd] text-xs font-extrabold px-1.5 py-0.5 rounded-md">{log.affiliation}</span>
+                <span className="text-[19px] font-extrabold text-text-main truncate">{log.site}</span>
+                <button 
+                    onClick={(e) => onPinClick(e, log.id)}
+                    className={`p-1 transition-all shrink-0 ml-auto ${log.isPinned ? 'text-primary rotate-[-45deg]' : 'text-gray-300 hover:text-gray-400'}`}
+                >
+                    <Pin className={`w-5 h-5 ${log.isPinned ? 'fill-current' : ''}`} />
+                </button>
+            </div>
+            <div className="text-[16px] text-text-sub font-bold mb-3">
+                {[log.member, log.process, log.type, log.location].filter(Boolean).join(' | ')}
+            </div>
+            <div className="border-t border-dashed border-[#e2e8f0] pt-2.5 flex justify-between items-center">
+                <div className="text-[15px] font-bold text-text-sub flex items-center gap-1">
+                    <Users className="w-4 h-4" />
+                    {workerDisplay}
+                    <span className="text-primary">({log.manpower.reduce((a, b) => a + b.val, 0)}공수)</span>
+                </div>
+                <div className="flex gap-1.5 items-center pl-2 border-l border-[#e2e8f0]">
+                    <ClipboardList className={`w-4 h-4 ${log.member ? 'text-header-navy' : 'text-gray-300'}`} />
+                    <Package className={`w-4 h-4 ${hasMaterials ? 'text-header-navy' : 'text-gray-300'}`} />
+                    <Camera className={`w-4 h-4 ${hasPhotos ? 'text-header-navy' : 'text-gray-300'}`} />
+                    <MapIcon className={`w-4 h-4 ${hasDrawings ? 'text-header-navy' : 'text-gray-300'}`} />
+                    <FileCheckIcon className={`w-4 h-4 ${hasConfirmation ? 'text-header-navy' : 'text-gray-300'}`} />
+                </div>
+            </div>
+            {log.status === 'rejected' && log.rejectReason && (
+                <div className="mt-3 bg-alert-reject-bg border-2 border-alert-reject-border text-alert-reject-text px-4 py-3.5 rounded-xl flex items-center gap-2.5 text-[15px] font-extrabold animate-pulse-reject">
+                    <AlertCircle className="w-[22px] h-[22px] shrink-0" />
+                    <span>반려: {log.rejectReason}</span>
+                </div>
+            )}
+            {log.missing && log.missing.length > 0 && (
+                <div className="mt-3 bg-alert-missing-bg border-2 border-alert-missing-border text-alert-missing-text px-4 py-3.5 rounded-xl flex items-center gap-2.5 text-[15px] font-extrabold">
+                     <AlertCircle className="w-[22px] h-[22px] shrink-0" />
+                    <span>누락: {log.missing.join(', ')}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const TimelineItem: React.FC<{ 
+    log: WorkLog, 
+    selectable: boolean, 
+    selected: boolean, 
+    onToggle: () => void, 
+    onClick: () => void, 
+    onDelete: (e: React.MouseEvent) => void 
+}> = ({ 
+    log, 
+    selectable, 
+    selected, 
+    onToggle, 
+    onClick, 
+    onDelete 
+}) => {
+    // Determine the save time part string (assuming updatedAt includes time "YYYY-MM-DD HH:MM")
+    const timeString = log.updatedAt ? log.updatedAt.split(' ')[1] : '00:00';
+
+    let statusBadge = <div className="bg-blue-500 text-white rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0 z-10">작성중</div>;
+    if (log.status === 'rejected') statusBadge = <div className="bg-red-500 text-white rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0 z-10">반려됨</div>;
+    if (log.status === 'pending') statusBadge = <div className="bg-purple-500 text-white rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0 z-10">승인요청</div>;
+    if (log.status === 'approved') statusBadge = <div className="bg-slate-500 text-white rounded-bl-xl px-3.5 py-1.5 text-[13px] font-extrabold absolute top-0 right-0 z-10">승인완료</div>;
+    
+    return (
+        <div 
+            className={`relative p-5 rounded-2xl flex items-center gap-3 transition active:scale-[0.98] overflow-hidden
+                ${selected 
+                    ? 'border-2 border-primary bg-white shadow-md z-10' 
+                    : 'border border-[#e2e8f0] bg-white shadow-sm' 
+                }
+            `}
+        >
+            {statusBadge}
+            {selectable && (
+                <div onClick={(e) => { e.stopPropagation(); onToggle(); }} className="p-2 -ml-2 cursor-pointer relative z-20">
+                    <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition
+                        ${selected ? 'bg-primary border-primary text-white' : 'bg-white border-gray-300'}
+                    `}>
+                        {selected && <Check className="w-3.5 h-3.5" />}
+                    </div>
+                </div>
+            )}
+
+            <div className="flex-1 min-w-0 cursor-pointer pt-1" onClick={onClick}>
+                <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[14px] font-bold text-text-sub flex items-center gap-2">
+                        {log.date}
+                        <span className="w-[1px] h-3 bg-gray-300"></span>
+                        <span className="text-gray-400">{timeString}</span>
+                    </span>
+                </div>
+                <div className="text-[18px] font-extrabold text-text-main truncate mb-1 pr-16">{log.site}</div>
+                <div className="text-[15px] text-text-sub truncate font-bold flex items-center gap-1.5">
+                    {log.process} <span className="text-gray-300">|</span> {log.member}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default App;

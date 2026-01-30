@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import Image from 'next/image'
-import clsx from 'clsx'
-import { X, DownloadCloud, ExternalLink } from 'lucide-react'
 import '@/modules/mobile/styles/worklogs.css'
-import { WorklogDetail, WorklogAttachment } from '@/types/worklog'
-import { AttachmentTabs, TabKey } from './AttachmentTabs'
+import { WorklogAttachment, WorklogDetail } from '@/types/worklog'
+import clsx from 'clsx'
+import { DownloadCloud, ExternalLink } from 'lucide-react'
+import Image from 'next/image'
+import React, { useEffect, useState } from 'react'
 import AttachmentGallery from './AttachmentGallery'
+import { AttachmentTabs, TabKey } from './AttachmentTabs'
 
 export interface DiaryDetailViewerProps {
   open: boolean
@@ -177,47 +177,22 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   const infoRows: Array<{ label: string; value: string }> = [
     { label: '현장명', value: worklog.siteName },
     { label: '주소', value: worklog.siteAddress || '미등록' },
-    { label: '부재명', value: memberTypeDisplay },
     { label: '작업자명', value: workerDisplay },
+    { label: '부재명', value: memberTypeDisplay },
     { label: '작업공정', value: worklog.processes.join(', ') || '미지정' },
-    { label: '작업유형', value: worklog.workTypes.join(', ') || '미지정' },
+    { label: '작업구간:작업유형', value: worklog.workTypes.join(', ') || '미지정' },
     {
-      label: '블럭/동/층',
+      label: '작업구간:블록/동/층',
       value:
-        worklog.location.block || worklog.location.dong || worklog.location.unit
-          ? `${worklog.location.block} ${worklog.location.dong} ${worklog.location.unit}`.trim()
-          : '미입력',
+        [
+          worklog.location.block ? `${worklog.location.block}블록` : '',
+          worklog.location.dong ? `${worklog.location.dong}동` : '',
+          worklog.location.unit ? `${worklog.location.unit}층` : '',
+        ]
+          .filter(Boolean)
+          .join(' ') || '미입력',
     },
   ]
-
-  // 작업 세트 묶음 표시 (있을 경우)
-  const renderTasks = () => {
-    const tasks = (worklog as any).tasks as
-      | Array<{
-          memberTypes: string[]
-          processes: string[]
-          workTypes: string[]
-          location: { block: string; dong: string; unit: string }
-        }>
-      | undefined
-    if (!Array.isArray(tasks) || tasks.length === 0) return null
-    return (
-      <section className="info-table" aria-label="작업 항목">
-        {tasks.map((t, i) => (
-          <div key={i} className="info-row">
-            <div className="info-label">작업 {i + 1}</div>
-            <div className="info-value">
-              부재명: {(t.memberTypes || []).join(', ') || '-'} / 공정:{' '}
-              {(t.processes || []).join(', ') || '-'} / 유형:{' '}
-              {(t.workTypes || []).join(', ') || '-'} / 위치:{' '}
-              {`${t.location?.block || ''} ${t.location?.dong || ''} ${t.location?.unit || ''}`.trim() ||
-                '-'}
-            </div>
-          </div>
-        ))}
-      </section>
-    )
-  }
 
   const renderLinkedMarkups = () => {
     if (!linkedMarkups.length) return null
@@ -273,39 +248,31 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     )
   }
 
-  const counts = worklog.attachmentCounts
-
-  const drawingsWithMarkups: WorklogAttachment[] = (() => {
-    const base = worklog.attachments.drawings
-    if (!linkedMarkups.length) return base
-    const mapped = linkedMarkups.map(doc => ({
-      id: `markup-${doc.id}`,
-      name: doc.title,
-      type: 'document' as const,
-      category: 'markup' as const,
-      previewUrl: doc.previewUrl || doc.blueprintUrl,
-      fileUrl: doc.blueprintUrl || '#',
-      metadata: {
-        source: 'markup',
-        markup_document_id: doc.id,
-        snapshot_pdf_url: doc.pdfUrl,
-        linked_worklog_ids: doc.linkedWorklogIds,
-      },
-    }))
-    return [...mapped, ...base]
-  })()
-
-  const currentItems: WorklogAttachment[] =
-    activeTab === 'photos'
-      ? worklog.attachments.photos
-      : activeTab === 'drawings'
-        ? drawingsWithMarkups
-        : activeTab === 'completionDocs'
-          ? worklog.attachments.completionDocs
-          : worklog.attachments.others
-
-  const decZoom = () => setZoom(z => Math.max(75, z - 25))
-  const incZoom = () => setZoom(z => Math.min(150, z + 25))
+  const renderMaterials = () => {
+    if (!worklog.materials || worklog.materials.length === 0) return null
+    return (
+      <section className="info-table" aria-label="자재 사용 내역">
+        <div className="info-row">
+          <div className="info-label">자재 사용</div>
+          <div className="info-value">
+            {worklog.materials
+              .filter(m => m.material_name)
+              .map((m, i) => (
+                <div key={i} style={{ marginBottom: i < worklog.materials!.length - 1 ? 4 : 0 }}>
+                  {m.material_name} ({m.quantity}
+                  {m.unit})
+                  {m.notes ? (
+                    <div style={{ fontSize: '11px', color: '#667085', marginTop: '1px' }}>
+                      {m.notes}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <div
@@ -331,9 +298,48 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
                 <div className="info-value">{row.value}</div>
               </div>
             ))}
+
+            {/* 작업 항목 (Tasks) - 기존 info-table 내부에 통합 */}
+            {(worklog as any).tasks?.map((t: any, i: number) => (
+              <div key={`task-${i}`} className="info-row">
+                <div className="info-label">작업 {i + 1}</div>
+                <div className="info-value">
+                  부재명: {(t.memberTypes || []).join(', ') || '-'} / 공정:{' '}
+                  {(t.processes || []).join(', ') || '-'} / 유형:{' '}
+                  {(t.workTypes || []).join(', ') || '-'} / 위치:{' '}
+                  {[
+                    t.location?.block ? `${t.location.block}블록` : '',
+                    t.location?.dong ? `${t.location.dong}동` : '',
+                    t.location?.unit ? `${t.location.unit}층` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ') || '-'}
+                </div>
+              </div>
+            ))}
+
+            {/* 자재 사용 내역 - info-table 내부에 통합 */}
+            {!worklog.materials || worklog.materials.length === 0 ? (
+              <div className="info-row">
+                <div className="info-label">자재 사용 내역</div>
+                <div className="info-value">미입력</div>
+              </div>
+            ) : (
+              worklog.materials.map((m, i) => (
+                <div key={`material-${i}`} className="info-row">
+                  <div className="info-label">{i === 0 ? '자재 사용 내역' : ''}</div>
+                  <div className="info-value">
+                    {m.material_name}
+                    {typeof m.quantity === 'number' ? ` ${m.quantity}` : ''}
+                    {m.unit ? `${m.unit}` : ''}
+                    {m.notes ? ` / ${m.notes}` : ''}
+                  </div>
+                </div>
+              ))
+            )}
           </section>
 
-          {renderTasks()}
+          {renderMaterials()}
           {renderLinkedMarkups()}
 
           {/* 첨부 탭 + 줌 컨트롤 */}

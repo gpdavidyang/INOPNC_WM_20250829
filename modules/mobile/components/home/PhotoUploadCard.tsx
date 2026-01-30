@@ -25,9 +25,7 @@ export const PhotoUploadCard: React.FC<
             <h3 className="section-title">사진업로드</h3>
           </div>
           <div className="media-cta-banner" role="note">
-            <p className="media-cta-text">
-              사진·도면 관리 페이지에서 현장별 업로드, 정리, 작업일지 연결을 이어서 진행하세요.
-            </p>
+            <p className="media-cta-text">사진 도면 관리 페이지로 이동</p>
             <Link
               href={photoMediaHref}
               className="media-cta-button"

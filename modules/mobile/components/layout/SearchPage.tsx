@@ -330,6 +330,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           display: flex;
           flex-direction: column;
           animation: slideIn 0.3s ease;
+          width: 100%;
+          max-width: 600px;
+          margin: 0 auto;
         }
 
         .search-header {
@@ -347,16 +350,17 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           padding: 8px;
           cursor: pointer;
           color: var(--text);
-          border-radius: 8px;
+          border-radius: 12px;
+          height: 44px;
+          width: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           transition: background 0.2s;
         }
 
-        .back-btn:hover {
-          background: rgba(0, 0, 0, 0.05);
-        }
-
-        [data-theme='dark'] .back-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
+        .back-btn:active {
+          transform: scale(0.92);
         }
 
         .search-input-wrapper {
@@ -365,71 +369,57 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: var(--surface-2);
-          border: 1px solid var(--line);
-          border-radius: 20px;
-          min-height: 40px;
-          padding: 0 44px 0 14px;
+          background: var(--bg-secondary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-base);
+          height: var(--search-h);
+          padding: 0 44px 0 16px;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .search-page-icon {
           width: 20px;
           height: 20px;
-          color: var(--muted-ink);
+          color: var(--text-muted);
           flex-shrink: 0;
-          pointer-events: none;
-          position: static;
-          display: inline-flex;
         }
 
         .search-input {
-          flex: 1 1 auto;
-          min-width: 0;
-          width: auto;
-          height: 40px;
-          padding: 0 4px;
+          flex: 1;
+          height: 100%;
           background: transparent;
           border: none;
-          border-radius: 0;
-          font-size: 16px;
+          font-size: 17px;
           color: var(--text);
           outline: none;
-          transition: all 0.2s;
+          padding: 0;
         }
 
         .search-input::placeholder {
-          color: var(--muted-ink);
-        }
-
-        .search-input:focus,
-        .search-input:focus-visible {
-          outline: none !important;
-          box-shadow: none !important; /* suppress global focus ring */
+          color: var(--text-muted);
         }
 
         .search-input-wrapper:focus-within {
-          border-color: var(--line);
-          background: var(--surface-2);
-          box-shadow: none;
+          border-color: var(--brand);
+          box-shadow: 0 0 0 2px rgba(26, 37, 79, 0.1);
         }
+
         .search-clear-btn {
           position: absolute;
-          right: 10px;
+          right: 12px;
           top: 50%;
           transform: translateY(-50%);
-          background: rgba(0, 0, 0, 0.05);
-          color: var(--text);
+          background: rgba(0, 0, 0, 0.1);
+          color: var(--text-muted);
           border: none;
-          width: 28px;
-          height: 28px;
+          width: 24px;
+          height: 24px;
           border-radius: 50%;
           cursor: pointer;
-          font-size: 18px;
-          line-height: 1;
-        }
-        [data-theme='dark'] .search-clear-btn {
-          background: rgba(255, 255, 255, 0.1);
-          color: #e6e9f1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
         }
 
         .search-body {
@@ -438,214 +428,25 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
           padding: 16px;
         }
 
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-        }
-
-        .section-header h3 {
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--text);
-        }
-
-        [data-theme='dark'] .section-header h3 {
-          color: #e6e9f1;
-        }
-
-        .section-header button {
-          background: transparent;
-          border: none;
-          color: var(--tag-blue);
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        .section-header span {
-          color: var(--muted-ink);
-          font-size: 14px;
-        }
-
-        [data-theme='dark'] .section-header span {
-          color: #a8b0bb;
-        }
-
-        .recent-list,
-        .results-list {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .recent-item-row {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
         .recent-item,
         .result-item {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px;
+          padding: 16px;
           background: var(--card);
-          border: 1px solid var(--line);
-          border-radius: 10px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-base);
           cursor: pointer;
           text-align: left;
-          transition: all 0.2s;
-          color: var(--text);
-          font-size: 15px;
+          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           width: 100%;
-        }
-
-        .recent-remove-btn {
-          flex-shrink: 0;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          border: none;
-          background: rgba(0, 0, 0, 0.05);
-          color: var(--text);
-          cursor: pointer;
-          font-size: 18px;
-          line-height: 1;
-        }
-
-        [data-theme='dark'] .recent-remove-btn {
-          background: rgba(255, 255, 255, 0.1);
-          color: #e6e9f1;
-        }
-
-        .recent-item:hover,
-        .result-item:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+          min-height: 64px;
         }
 
         .recent-item:active,
         .result-item:active {
-          transform: translateY(0);
-        }
-
-        .result-item {
-          align-items: flex-start;
-        }
-
-        .result-item-content {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          width: 100%;
-        }
-
-        .result-title-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-        }
-
-        .result-title {
-          font-weight: 600;
-          font-size: 15px;
-          color: var(--text);
-          flex: 1 1 auto;
-        }
-
-        .result-snippet {
-          color: var(--muted-ink);
-          font-size: 13px;
-        }
-
-        .result-date {
-          color: var(--muted-ink);
-          font-size: 12px;
-        }
-
-        .priority-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 4px 8px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .priority-blue {
-          background: #e5f0ff;
-          color: #1d4ed8;
-        }
-        .priority-green {
-          background: #e8f7ef;
-          color: #15803d;
-        }
-        .priority-yellow {
-          background: #fff7e6;
-          color: #b45309;
-        }
-        .priority-red {
-          background: #fde8e8;
-          color: #c53030;
-        }
-        .priority-gray {
-          background: #f3f4f6;
-          color: #374151;
-        }
-
-        .search-loading {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: var(--muted-ink);
-          font-size: 14px;
-        }
-
-        .no-results {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          color: var(--muted-ink);
-          padding: 16px;
-        }
-
-        .result-group {
-          margin-bottom: 16px;
-        }
-
-        .group-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-          color: var(--muted-ink);
-          font-weight: 600;
-        }
-
-        .group-icon {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .group-list {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        @keyframes slideIn {
-          from {
-            transform: translateY(8px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
+          transform: scale(0.98);
         }
       `}</style>
     </div>

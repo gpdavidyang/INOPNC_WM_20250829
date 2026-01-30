@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import '@/modules/mobile/styles/attendance.css'
-import { TMap } from '@/lib/external-apps'
+import { MAP_APP_LABELS, openSmartMap, SmartMapResult } from '@/lib/external-apps'
 import { Download, Search, X } from 'lucide-react'
 import {
   recordInventoryTransaction,
@@ -1312,9 +1312,48 @@ export default function SiteInfoPage() {
       })
   }
 
+  const showSmartMapToast = (result: SmartMapResult) => {
+    if (!result.success) {
+      toast({
+        title: '지도 앱을 열 수 없습니다.',
+        description: '주소를 복사해 직접 검색해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (result.usedApp === 'web') {
+      toast({
+        title: '웹으로 이동합니다.',
+        description: '설치된 지도 앱이 없어 브라우저에서 검색합니다.',
+        variant: 'info',
+      })
+      return
+    }
+
+    if (result.failedApps.length && result.usedApp !== 'web') {
+      const previous = result.failedApps[result.failedApps.length - 1]
+      toast({
+        title: `${MAP_APP_LABELS[result.usedApp]}으로 이동합니다.`,
+        description: `${MAP_APP_LABELS[previous]} 실행에 실패하여 자동으로 전환했습니다.`,
+        variant: 'info',
+      })
+    }
+  }
+
   const openMapForAddress = async (address?: string | null) => {
     if (!address) return
-    await TMap.search(address)
+    try {
+      const result = await openSmartMap(address)
+      showSmartMapToast(result)
+    } catch (error) {
+      console.error('[SiteInfoPage] open map failed', error)
+      toast({
+        title: '지도 앱을 열 수 없습니다.',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    }
   }
 
   const closeSiteBottomSheet = () => setShowSiteBottomSheet(false)
@@ -5407,6 +5446,7 @@ export default function SiteInfoPage() {
         documents={sheetDocuments}
         actionButtons={sheetActionButtons}
         onClose={closeSiteBottomSheet}
+        onOpenMap={openMapForAddress}
         onOpenOtherDocuments={handleOpenOtherDocuments}
         onOpenWorklogList={handleOpenWorklogList}
       />

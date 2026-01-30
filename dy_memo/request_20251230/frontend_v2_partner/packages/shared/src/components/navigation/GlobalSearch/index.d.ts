@@ -1,0 +1,3 @@
+export { GlobalSearch } from './GlobalSearch'
+export type { GlobalSearchProps } from './GlobalSearch'
+//# sourceMappingURL=index.d.ts.map

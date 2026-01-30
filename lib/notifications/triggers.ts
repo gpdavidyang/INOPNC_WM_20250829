@@ -1,6 +1,8 @@
-import type { DailyReport } from '@/types'
-import { createClient } from '@/lib/supabase/server'
 import { logError } from '@/lib/error-handling'
+import { createClient } from '@/lib/supabase/server'
+import type { DailyReport } from '@/types'
+
+import { sendPushToUsers } from '@/lib/notifications/server-push'
 
 // 일일보고서 제출 시 알림 생성
 export async function notifyDailyReportSubmitted(report: DailyReport, submitterId: string) {
@@ -15,7 +17,7 @@ export async function notifyDailyReportSubmitted(report: DailyReport, submitterI
       .contains('site_ids', [report.site_id])
 
     if (siteManagers && siteManagers.length > 0) {
-      const notifications = siteManagers.map((manager: unknown) => ({
+      const notifications = siteManagers.map((manager: any) => ({
         user_id: manager.id,
         type: 'info',
         title: '새로운 작업일지 제출됨',
@@ -28,11 +30,26 @@ export async function notifyDailyReportSubmitted(report: DailyReport, submitterI
         action_url: `/dashboard/daily-reports/${report.id}`,
       }))
 
+      // 1. DB Insert
       const { error } = await supabase.from('notifications').insert(notifications)
-
       if (error) {
         logError(error, 'notifyDailyReportSubmitted')
       }
+
+      // 2. Push Notification
+      const managerIds = siteManagers.map((m: any) => m.id)
+      await sendPushToUsers({
+        userIds: managerIds,
+        notificationType: 'daily_report_submission',
+        senderId: submitterId,
+        payload: {
+          title: '새로운 작업일지 제출',
+          body: `${report.member_name} 부재의 작업일지가 제출되었습니다.`,
+          data: { reportId: report.id, type: 'daily_report_submitted' },
+          url: `/dashboard/daily-reports/${report.id}`,
+          icon: '/icons/daily-report-icon.png',
+        } as any,
+      })
     }
   } catch (error) {
     logError(error, 'notifyDailyReportSubmitted')
@@ -59,10 +76,26 @@ export async function notifyDailyReportApproved(report: DailyReport, approverId:
       action_url: `/dashboard/daily-reports/${report.id}`,
     }
 
+    // 1. DB Insert
     const { error } = await supabase.from('notifications').insert(notification)
-
     if (error) {
       logError(error, 'notifyDailyReportApproved')
+    }
+
+    // 2. Push Notification
+    if (report.created_by) {
+      await sendPushToUsers({
+        userIds: [report.created_by],
+        notificationType: 'daily_report_approval',
+        senderId: approverId,
+        payload: {
+          title: '작업일지 승인 완료',
+          body: `${report.work_date} 작업일지가 승인되었습니다.`,
+          data: { reportId: report.id, type: 'daily_report_approved' },
+          url: `/dashboard/daily-reports/${report.id}`,
+          icon: '/icons/approve-icon.png',
+        } as any,
+      })
     }
   } catch (error) {
     logError(error, 'notifyDailyReportApproved')
@@ -96,10 +129,27 @@ export async function notifyDailyReportRejected(
       action_url: `/dashboard/daily-reports/${report.id}/edit`,
     }
 
+    // 1. DB Insert
     const { error } = await supabase.from('notifications').insert(notification)
-
     if (error) {
       logError(error, 'notifyDailyReportRejected')
+    }
+
+    // 2. Push Notification
+    if (report.created_by) {
+      await sendPushToUsers({
+        userIds: [report.created_by],
+        notificationType: 'daily_report_rejection',
+        senderId: rejectedBy,
+        payload: {
+          title: '작업일지 반려',
+          body: reason ? `반려 사유: ${reason}` : `${report.work_date} 작업일지가 반려되었습니다.`,
+          data: { reportId: report.id, type: 'daily_report_rejected' },
+          url: `/dashboard/daily-reports/${report.id}/edit`,
+          urgency: 'high',
+          icon: '/icons/reject-icon.png',
+        } as any,
+      })
     }
   } catch (error) {
     logError(error, 'notifyDailyReportRejected')

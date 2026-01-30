@@ -1,0 +1,5 @@
+{
+  "name": "INOPNC Integrated System",
+  "description": "A comprehensive construction field management system featuring manpower tracking, work logs, material usage, and advanced photo/drawing editing capabilities.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
+}

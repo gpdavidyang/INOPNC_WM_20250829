@@ -1,8 +1,5 @@
 'use client'
 
-import React from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   CustomSelect,
@@ -11,6 +8,9 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
+import { Input } from '@/components/ui/input'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import React from 'react'
 
 type SiteOption = {
   id: string
@@ -50,7 +50,15 @@ export function DailyReportFilters({
       : '전체 현장'
 
   const statusDisplayLabel =
-    status === 'draft' ? '임시' : status === 'submitted' ? '제출' : '전체 상태'
+    status === 'draft'
+      ? '임시'
+      : status === 'submitted'
+        ? '제출'
+        : status === 'approved'
+          ? '승인'
+          : status === 'rejected'
+            ? '반려'
+            : '전체 상태'
 
   const applyFilters = React.useCallback(() => {
     const params = new URLSearchParams(searchParams?.toString() || '')
@@ -150,6 +158,8 @@ export function DailyReportFilters({
             <CustomSelectItem value="__all__">전체 상태</CustomSelectItem>
             <CustomSelectItem value="draft">임시</CustomSelectItem>
             <CustomSelectItem value="submitted">제출</CustomSelectItem>
+            <CustomSelectItem value="approved">승인</CustomSelectItem>
+            <CustomSelectItem value="rejected">반려</CustomSelectItem>
           </CustomSelectContent>
         </CustomSelect>
       </div>

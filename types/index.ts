@@ -24,8 +24,10 @@ export interface Profile {
   login_count?: number | null
   notification_preferences?: {
     push_enabled?: boolean
+    email_enabled?: boolean
     material_approvals?: boolean
     daily_report_reminders?: boolean
+    daily_report_updates?: boolean
     safety_alerts?: boolean
     equipment_maintenance?: boolean
     site_announcements?: boolean

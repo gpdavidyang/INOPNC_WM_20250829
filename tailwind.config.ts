@@ -240,27 +240,27 @@ const config: Config = {
         '32': '128px',
       },
       height: {
-        btn: 'var(--btn-h)', // 44px
-        input: 'var(--input-h)', // 44px
-        search: 'var(--search-h)', // 52px
-        chip: 'var(--chip-h)', // 48px
+        btn: 'var(--btn-h)', // 54px
+        input: 'var(--input-h)', // 54px
+        search: 'var(--search-h)', // 54px
+        chip: 'var(--chip-h)', // Auto or specific
         header: 'var(--header-h)', // 80px
         nav: 'var(--nav-h)', // 72px
       },
       minHeight: {
-        btn: 'var(--btn-h)', // 44px
-        input: 'var(--input-h)', // 44px
-        touch: '44px', // 최소 터치 타겟
+        btn: 'var(--btn-h)', // 54px
+        input: 'var(--input-h)', // 54px
+        touch: '44px', // 최소 터치 타겟 (fallback)
       },
       borderRadius: {
-        DEFAULT: '8px',
+        DEFAULT: 'var(--radius-base)', // 12px
         sm: '8px',
-        md: '8px',
-        lg: '8px',
-        xl: '8px',
-        '2xl': '8px',
-        '3xl': '8px',
-        full: 'var(--r-full)', // 9999px
+        md: '10px',
+        lg: '12px',
+        xl: '16px',
+        '2xl': '20px',
+        '3xl': '24px',
+        full: '9999px',
       },
       boxShadow: {
         sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',

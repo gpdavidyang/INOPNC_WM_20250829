@@ -631,7 +631,7 @@
 
 .info-row {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 160px 1fr;
   align-items: center;
   background: var(--card);
   border: 1px solid var(--line, #e6ecf4);
@@ -759,7 +759,7 @@
 /* App-router 상세 페이지(TaskDetailPageClient) 기본정보 정렬 */
 .diary-detail-section .detail-item {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 160px 1fr;
   align-items: center;
   background: var(--card);
   border: 1px solid var(--line, #e6ecf4);

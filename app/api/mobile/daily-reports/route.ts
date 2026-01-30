@@ -81,8 +81,10 @@ export async function GET(request: NextRequest) {
         material_usage(
           id,
           material_type,
+          material_name,
           quantity,
-          unit
+          unit,
+          notes
         ),
         document_attachments(
           id,
@@ -446,6 +448,17 @@ export async function POST(request: NextRequest) {
           Array.isArray(work_types) && work_types.length > 0 ? work_types.join(', ') : null,
       }
 
+      // Build validation payload for additional_notes (Legacy Support)
+      const additionalNotesData = {
+        memberTypes: Array.isArray(member_types) ? member_types : [],
+        workContents: Array.isArray(processes) ? processes : [],
+        workTypes: Array.isArray(work_types) ? work_types : [],
+        location: locationPayload,
+        additionalManpower: normalizedAdditionalManpower,
+        notes: notes,
+        safetyNotes: safety_notes,
+      }
+
       let updatePayload: any = {
         ...updateBase,
         work_content: {
@@ -462,11 +475,13 @@ export async function POST(request: NextRequest) {
           dong: location?.dong ?? '',
           unit: location?.unit ?? '',
         },
+        additional_notes: JSON.stringify(additionalNotesData),
       }
 
       const removableForUpdate = new Set([
         'work_content',
         'location_info',
+        'additional_notes',
         'safety_notes',
         'special_notes',
         'total_workers',
@@ -535,7 +550,13 @@ export async function POST(request: NextRequest) {
 
         if (/schema cache/i.test(msg)) {
           let dropped = false
-          for (const col of ['work_content', 'location_info', 'safety_notes', 'special_notes']) {
+          for (const col of [
+            'work_content',
+            'location_info',
+            'additional_notes',
+            'safety_notes',
+            'special_notes',
+          ]) {
             if (updatePayload[col] !== undefined) {
               delete updatePayload[col]
               dropped = true
@@ -652,6 +673,7 @@ export async function POST(request: NextRequest) {
     const removableColumns = new Set([
       'work_content',
       'location_info',
+      'additional_notes',
       'safety_notes',
       'special_notes',
       'total_workers',
@@ -666,10 +688,22 @@ export async function POST(request: NextRequest) {
     ])
     const essentialColumns = new Set(['site_id', 'work_date'])
 
+    // Build legacy additional_notes data
+    const additionalNotesData = {
+      memberTypes: Array.isArray(member_types) ? member_types : [],
+      workContents: Array.isArray(processes) ? processes : [],
+      workTypes: Array.isArray(work_types) ? work_types : [],
+      location: locationPayload,
+      additionalManpower: normalizedAdditionalManpower,
+      notes: notes,
+      safetyNotes: safety_notes,
+    }
+
     let payload: any = {
       ...baseInsert,
       work_content: workContentPayload,
       location_info: locationPayload,
+      additional_notes: JSON.stringify(additionalNotesData),
     }
 
     let report: any = null
@@ -743,7 +777,14 @@ export async function POST(request: NextRequest) {
       // If error indicates schema cache for known optional cols, drop them
       if (/schema cache/i.test(msg)) {
         let dropped = false
-        for (const col of ['work_content', 'location_info', 'safety_notes', 'special_notes']) {
+        // Include additional_notes in the drop list
+        for (const col of [
+          'work_content',
+          'location_info',
+          'additional_notes',
+          'safety_notes',
+          'special_notes',
+        ]) {
           if (payload[col] !== undefined) {
             delete payload[col]
             dropped = true

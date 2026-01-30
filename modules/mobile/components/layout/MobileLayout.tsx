@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useEffect, useState, ReactNode } from 'react'
+import { FontSizeProvider } from '@/contexts/FontSizeContext'
+import { TouchModeProvider } from '@/contexts/TouchModeContext'
+import React, { ReactNode, useEffect, useState } from 'react'
 import { AppBar } from './AppBar'
 import { BottomNav } from './BottomNav'
 import { Drawer } from './Drawer'
 import { SearchPage } from './SearchPage'
-import { FontSizeProvider } from '@/contexts/FontSizeContext'
-import { TouchModeProvider } from '@/contexts/TouchModeContext'
 
 interface MobileLayoutProps {
   children: ReactNode
@@ -55,8 +55,13 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs })
           {/* Shared header search overlay (same module used by 현장/생산 관리자) */}
           <SearchPage isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
 
-          {/* Main Content Area */}
-          <main className={mainClassName}>{children}</main>
+          {/* Main Content Area - Enforce max-width 600px centrally */}
+          <main
+            className={`${mainClassName} mx-auto w-full max-w-[600px] overflow-x-hidden min-h-screen pb-24`}
+            style={{ maxWidth: '600px' }} // Inline style backup
+          >
+            {children}
+          </main>
 
           {/* Bottom Navigation */}
           <BottomNav />

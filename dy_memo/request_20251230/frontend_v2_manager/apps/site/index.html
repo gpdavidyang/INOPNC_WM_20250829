@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>현장 정보 (작업자) - INOPNC</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            primary: '#31a3fa',
+            'primary-bg': '#eaf6ff',
+            'header-navy': '#1a254f',
+            'bg-body': '#f2f4f6',
+            'bg-surface': '#ffffff',
+            'text-main': '#111111',
+            'text-sub': '#475569',
+            'text-placeholder': '#94a3b8',
+          },
+          boxShadow: {
+            soft: '0 4px 20px rgba(0,0,0,0.05)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Global Styles that are hard to map 1:1 with pure Tailwind utilities */
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      -webkit-tap-highlight-color: transparent;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    /* Scrollbar hide for filter chips */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Animations */
+    @keyframes slideDown { 
+      from { opacity: 0; transform: translateY(-10px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+    .animate-slideDown {
+      animation: slideDown 0.3s ease-out;
+    }
+
+    /* A4 Page Style */
+    .a4-page {
+        width: 210mm;
+        min-height: 297mm;
+        margin: 0 auto;
+        padding: 20mm;
+        background-color: #ffffff;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        box-sizing: border-box;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 10px solid #eee;
+    }
+    .a4-page:last-child { border-bottom: none; }
+    
+    @media (max-width: 480px) {
+      .a4-page {
+        width: 100%;
+        min-height: auto;
+        padding: 15px;
+        box-shadow: none;
+      }
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

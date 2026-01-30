@@ -1,0 +1,288 @@
+/* =================================================================
+   [헤더 및 네비게이션 전용 CSS - 다크모드 절대 보장]
+   ================================================================= */
+
+/* 헤더 스타일 - 다크모드 완벽 지원 */
+.inopnc-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--header-height);
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
+}
+
+.inopnc-header-container {
+  width: 100%;
+  max-width: 600px;
+  padding: 0 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+}
+
+.inopnc-header-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--header-navy);
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.inopnc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inopnc-header-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  color: var(--header-navy);
+  transition: opacity 0.2s;
+}
+
+.inopnc-header-btn:hover {
+  opacity: 0.8;
+}
+
+.inopnc-header-btn:active {
+  opacity: 0.6;
+}
+
+.inopnc-header-btn-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.inopnc-header-badge {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  background-color: var(--danger);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid var(--bg-surface);
+  animation: bounce-in 0.3s ease-out;
+}
+
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 다크모드 - 헤더 */
+#inopnc-i3-root.dark-mode .inopnc-header,
+body.dark-mode .inopnc-header {
+  background-color: var(--bg-surface);
+  border-bottom-color: var(--border);
+}
+
+#inopnc-i3-root.dark-mode .inopnc-header-title,
+body.dark-mode .inopnc-header-title {
+  color: var(--header-navy);
+}
+
+#inopnc-i3-root.dark-mode .inopnc-header-btn,
+body.dark-mode .inopnc-header-btn {
+  color: #ffffff;
+}
+
+#inopnc-i3-root.dark-mode .inopnc-header-badge,
+body.dark-mode .inopnc-header-badge {
+  border-color: var(--bg-surface);
+}
+
+/* 네비게이션 스타일 - 다크모드 완벽 지원 */
+.inopnc-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.inopnc-bottom-nav-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  height: 60px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 8px;
+}
+
+.inopnc-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  height: 100%;
+  margin: 0 4px;
+  border-radius: 16px;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: var(--text-placeholder);
+  font-weight: 500;
+}
+
+.inopnc-nav-item:hover {
+  transform: translateY(-1px);
+}
+
+.inopnc-nav-item.active {
+  color: var(--header-navy);
+  font-weight: 700;
+}
+
+.inopnc-nav-item-label {
+  font-size: 11px;
+  letter-spacing: -0.01em;
+  transition: color 0.2s;
+}
+
+.inopnc-nav-item-icon {
+  transition:
+    color 0.2s,
+    transform 0.2s;
+}
+
+.inopnc-nav-item.active .inopnc-nav-item-icon {
+  transform: scale(1.05);
+}
+
+.inopnc-nav-item:hover .inopnc-nav-item-icon,
+.inopnc-nav-item:hover .inopnc-nav-item-label {
+  color: var(--header-navy);
+}
+
+/* 다크모드 - 네비게이션 */
+#inopnc-i3-root.dark-mode .inopnc-bottom-nav,
+body.dark-mode .inopnc-bottom-nav {
+  background-color: var(--bg-surface);
+  border-top-color: var(--border);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+#inopnc-i3-root.dark-mode .inopnc-nav-item,
+body.dark-mode .inopnc-nav-item {
+  color: var(--text-placeholder);
+}
+
+#inopnc-i3-root.dark-mode .inopnc-nav-item.active,
+body.dark-mode .inopnc-nav-item.active {
+  color: #ffffff;
+}
+
+#inopnc-i3-root.dark-mode .inopnc-nav-item:hover .inopnc-nav-item-icon,
+#inopnc-i3-root.dark-mode .inopnc-nav-item:hover .inopnc-nav-item-label,
+body.dark-mode .inopnc-nav-item:hover .inopnc-nav-item-icon,
+body.dark-mode .inopnc-nav-item:hover .inopnc-nav-item-label {
+  color: #ffffff;
+}
+
+/* 서브 헤더 (탭 등) - money 앱용 */
+.inopnc-sub-header {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  right: 0;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  transition:
+    background-color 0.3s,
+    border-color 0.3s;
+}
+
+.inopnc-sub-header-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  height: 55px;
+}
+
+.inopnc-tab-button {
+  flex: 1;
+  height: 100%;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font-main);
+  color: var(--text-sub);
+}
+
+.inopnc-tab-button:hover {
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+.inopnc-tab-button.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 800;
+}
+
+/* 다크모드 - 서브 헤더 */
+#inopnc-i3-root.dark-mode .inopnc-sub-header,
+body.dark-mode .inopnc-sub-header {
+  background-color: var(--bg-surface);
+  border-bottom-color: var(--border);
+}
+
+#inopnc-i3-root.dark-mode .inopnc-tab-button,
+body.dark-mode .inopnc-tab-button {
+  color: var(--text-sub);
+}
+
+#inopnc-i3-root.dark-mode .inopnc-tab-button.active,
+body.dark-mode .inopnc-tab-button.active {
+  color: var(--primary);
+}

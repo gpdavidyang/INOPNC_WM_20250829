@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>INOPNC - Integrated Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: ['class', '[data-theme="dark"]'],
+        darkClass: 'dark-mode',
+        theme: {
+          extend: {
+            colors: {
+              navy: {
+                900: '#1a254f',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+      body {
+        font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+        /* Default light mode bg, dark mode handled by tailwind classes on root/divs */
+        -webkit-tap-highlight-color: transparent;
+      }
+      /* Hide scrollbar for chrome/safari/opera */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      /* Hide scrollbar for IE, Edge and Firefox */
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+      /* CSS.html 다크모드 스타일 통합 */
+      #inopnc-i3-root.dark-mode {
+        --primary: #31a3fa;
+        --primary-bg: #1e293b;
+        --header-navy: #f1f5f9;
+        --text-main: #f1f5f9;
+        --text-sub: #94a3b8;
+        --text-placeholder: #64748b;
+        --bg-body: #0f172a;
+        --bg-surface: #1e293b;
+        --bg-input: #0f172a;
+        --bg-search-input: #1e293b;
+        --border: #334155;
+        --btn-logout-bg: #3b82f6;
+        --danger: #ef4444;
+        --del-btn-bg: #450a0a;
+        --upload-photo-bg: #1e293b;
+        --upload-photo-text: #94a3b8;
+        --btn-cert-bg: rgba(5, 150, 105, 0.2);
+        --btn-cert-text: #34d399;
+        --btn-cert-border: rgba(52, 211, 153, 0.3);
+        --shadow-soft: none;
+        --shadow-input: none;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

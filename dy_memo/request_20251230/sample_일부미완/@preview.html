@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>공통 미리보기 뷰어 (Universal Viewer)</title>
+
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* ==========================================================================
+       [1] 공통 모달 CSS (PM: Preview Modal)
+       ========================================================================== */
+    :root {
+        --pm-bg-body: #121212;
+        --pm-primary: #31a3fa;
+        --pm-text-main: #ffffff;
+        --pm-font: "Pretendard Variable", Pretendard, sans-serif;
+    }
+
+    /* 모달 컨테이너 */
+    #pmOverlay {
+        position: fixed; inset: 0; 
+        background: var(--pm-bg-body);
+        z-index: 9999; display: none;
+        flex-direction: column;
+        font-family: var(--pm-font);
+        color: var(--pm-text-main);
+        overflow: hidden; user-select: none;
+    }
+    #pmOverlay.active { display: flex; }
+
+    /* 헤더 */
+    .pm-header {
+        height: 56px; background: #000;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 12px; flex-shrink: 0; border-bottom: 1px solid #333; z-index: 100;
+    }
+    .pm-title { 
+        font-size: 17px; font-weight: 700; color: #fff; 
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap; 
+        max-width: 70%; text-align: center;
+    }
+    .pm-icon-btn {
+        background: none; border: none; color: #fff; cursor: pointer;
+        padding: 8px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; transition: 0.2s;
+    }
+    .pm-icon-btn:active { background: #333; }
+
+    /* 뷰포트 (콘텐츠 영역) */
+    .pm-viewport {
+        flex: 1; position: relative; overflow: hidden;
+        background: var(--pm-bg-body);
+        display: flex; justify-content: center; align-items: center;
+        cursor: grab; touch-action: none; /* 기본 커서: 잡기 */
+    }
+    .pm-viewport.panning { cursor: grabbing; } /* 이동 중 커서: 꽉 잡기 */
+
+    /* 콘텐츠 래퍼 (줌/이동 대상) */
+    .pm-content-wrapper {
+        transform-origin: center center;
+        transition: transform 0.1s ease-out;
+        display: flex; flex-direction: column; align-items: center; gap: 20px;
+        padding: 40px;
+    }
+
+    /* 하단 컨트롤러 */
+    .pm-controls {
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: #222; padding: 10px 20px; border-radius: 100px;
+        display: flex; gap: 24px; z-index: 200;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid #333;
+    }
+    .pm-ctrl-btn {
+        background: none; border: none; color: #fff;
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        font-size: 11px; cursor: pointer; min-width: 36px; opacity: 0.7; transition: 0.2s; font-weight: 500;
+    }
+    .pm-ctrl-btn:hover { opacity: 1; }
+    .pm-ctrl-btn.active { color: var(--pm-primary); opacity: 1; font-weight: 700; }
+    
+    /* 유틸리티 (로딩, 토스트) */
+    .pm-loading {
+        position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+        display: none; align-items: center; justify-content: center; flex-direction: column;
+        z-index: 300; color: #fff; font-size: 14px;
+    }
+    .pm-spinner {
+        width: 36px; height: 36px; border: 3px solid #555;
+        border-top-color: var(--pm-primary); border-radius: 50%;
+        animation: pm-spin 1s linear infinite; margin-bottom: 12px;
+    }
+    @keyframes pm-spin { to { transform: rotate(360deg); } }
+
+    .pm-toast {
+        position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+        background: #fff; color: #000; padding: 12px 24px;
+        border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 400;
+        display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .pm-toast.show { opacity: 1; top: 90px; }
+
+    /* [샘플] 문서 스타일 예시 */
+    .sample-doc {
+        width: 794px; min-height: 1123px;
+        background: #fff; color: #000;
+        padding: 50px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        display: flex; flex-direction: column;
+    }
+    .sample-img-view {
+        max-width: 90vw; max-height: 80vh;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body style="margin:0; background:#1e1e1e; color:#fff; font-family:sans-serif;">
+
+<div style="padding: 20px; max-width: 600px; margin: 0 auto;">
+    <h2 style="margin-bottom: 20px;">내 문서함</h2>
+    
+    <div onclick="openSample('doc')" style="background:#2c2c2c; padding:16px; border-radius:12px; margin-bottom:10px; cursor:pointer; display:flex; align-items:center; gap:12px;">
+        <i data-lucide="file-text" color="#31a3fa"></i>
+        <div>
+            <div style="font-weight:bold; font-size:16px;">2024년_안전점검_보고서.pdf</div>
+            <div style="font-size:12px; color:#aaa;">2024.05.20 | 이현수</div>
+        </div>
+    </div>
+
+    <div onclick="openSample('img')" style="background:#2c2c2c; padding:16px; border-radius:12px; margin-bottom:10px; cursor:pointer; display:flex; align-items:center; gap:12px;">
+        <i data-lucide="image" color="#31a3fa"></i>
+        <div>
+            <div style="font-weight:bold; font-size:16px;">현장_시공_사진_01.jpg</div>
+            <div style="font-size:12px; color:#aaa;">2024.05.21 | 박공사</div>
+        </div>
+    </div>
+</div>
+
+
+<div id="pmOverlay">
+    <header class="pm-header">
+        <button class="pm-icon-btn" onclick="PreviewModal.close()">
+            <i data-lucide="chevron-left" width="24"></i>
+        </button>
+        <div class="pm-title" id="pmTitle">미리보기</div>
+        <div style="display:flex; gap: 4px;">
+            <button class="pm-icon-btn" onclick="PreviewModal.savePDF()">
+                <i data-lucide="download" width="20"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="pm-viewport" id="pmViewport">
+        <div class="pm-content-wrapper" id="pmContent"></div>
+    </div>
+
+    <div class="pm-controls">
+        <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(-0.1)">
+            <i data-lucide="minus" width="20"></i> 축소
+        </button>
+        
+        <button class="pm-ctrl-btn" id="pmPanBtn" onclick="PreviewModal.togglePan()">
+            <i data-lucide="hand" width="20"></i> 이동
+        </button>
+        
+        <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(0.1)">
+            <i data-lucide="plus" width="20"></i> 확대
+        </button>
+        
+        <button class="pm-ctrl-btn" onclick="PreviewModal.share()">
+            <i data-lucide="share-2" width="20"></i> 공유
+        </button>
+    </div>
+
+    <div class="pm-loading" id="pmLoading"><div class="pm-spinner"></div><span>처리 중...</span></div>
+    <div class="pm-toast" id="pmToast"><i data-lucide="check" size="16"></i> <span id="pmToastMsg">완료</span></div>
+</div>
+
+
+<script>
+    lucide.createIcons();
+
+    /**
+     * [테스트용] 파일 클릭 시 호출되는 함수
+     */
+    function openSample(type) {
+        let title = "";
+        let content = "";
+
+        if (type === 'doc') {
+            title = "2024년_안전점검_보고서";
+            content = `
+                <div class="sample-doc">
+                    <h1 style="text-align:center; margin-bottom:40px; color:#333;">안전점검 보고서</h1>
+                    <p style="color:#555; line-height:1.6;">
+                        <strong>1. 개요</strong><br>
+                        본 보고서는 2024년 5월 20일 실시된 현장 안전 점검 결과를 요약합니다.<br><br>
+                        <strong>2. 점검 사항</strong><br>
+                        - A구역 비계 설치 상태: 양호<br>
+                        - B구역 자재 적재 상태: 보통 (정리 필요)<br>
+                        - 작업자 안전 장비 착용: 전원 착용 확인<br><br>
+                        <strong>3. 조치 계획</strong><br>
+                        B구역의 자재는 금일 중으로 정리 예정입니다.
+                    </p>
+                    <div style="margin-top:auto; text-align:right; font-weight:bold;">
+                        작성자: 이현수 안전관리자
+                    </div>
+                </div>
+            `;
+        } else {
+            title = "현장_시공_사진_01";
+            content = `
+                <img src="https://via.placeholder.com/800x600/333/fff?text=Construction+Site+Image" class="sample-img-view" alt="샘플 이미지">
+            `;
+        }
+
+        // 모달 열기 (제목과 내용을 전달)
+        PreviewModal.open(title, content);
+    }
+
+
+    /**
+     * [PreviewModal 컨트롤러]
+     */
+    const PreviewModal = {
+        zoomLevel: 1,
+        isPanning: false,
+        pointX: 0, pointY: 0,
+        startX: 0, startY: 0,
+        overlay: null, wrapper: null, viewport: null, panBtn: null, titleEl: null,
+
+        init() {
+            this.overlay = document.getElementById('pmOverlay');
+            this.wrapper = document.getElementById('pmContent');
+            this.viewport = document.getElementById('pmViewport');
+            this.panBtn = document.getElementById('pmPanBtn');
+            this.titleEl = document.getElementById('pmTitle');
+            this.setupEvents();
+        },
+
+        // 모달 열기
+        open(title, contentHTML) {
+            if (!this.overlay) this.init();
+            
+            this.titleEl.innerText = title;
+            this.wrapper.innerHTML = contentHTML;
+            
+            this.resetView(); 
+            this.overlay.classList.add('active');
+            lucide.createIcons(); // 내부 아이콘 렌더링
+        },
+
+        close() {
+            // @site.html로 이동
+            if (window.opener) {
+                // 팝업으로 열린 경우 부모 창으로 이동
+                window.opener.location.href = '../@site.html';
+                window.close();
+            } else {
+                // 새 탭/창으로 열린 경우 직접 이동
+                window.location.href = '../@site.html';
+            }
+        },
+
+        // 줌 제어
+        zoom(delta) {
+            this.zoomLevel = Math.max(0.2, this.zoomLevel + delta);
+            this.updateTransform();
+        },
+
+        // 화면 중앙 및 배율 초기화
+        resetView() {
+            const screenW = window.innerWidth;
+            // 모바일은 화면 너비에 맞게 축소, PC는 0.7배율
+            this.zoomLevel = screenW < 800 ? screenW / 850 : 0.7; 
+            this.pointX = 0; this.pointY = 0;
+            this.updateTransform();
+        },
+
+        // 이동 모드 토글 (Hand)
+        togglePan() {
+            this.isPanning = !this.isPanning;
+            this.panBtn.classList.toggle('active', this.isPanning);
+            this.viewport.classList.toggle('panning', this.isPanning);
+        },
+
+        updateTransform() {
+            if(this.wrapper) {
+                this.wrapper.style.transform = `translate(${this.pointX}px, ${this.pointY}px) scale(${this.zoomLevel})`;
+            }
+        },
+
+        // 드래그(Pan) 이벤트 설정
+        setupEvents() {
+            const start = (e) => {
+                if (!this.isPanning) return;
+                // 버튼이나 컨트롤러 클릭 시 드래그 방지
+                if (e.target.closest('.pm-controls') || ['BUTTON'].includes(e.target.tagName)) return;
+                
+                e.preventDefault();
+                const evt = e.touches ? e.touches[0] : e;
+                this.startX = evt.clientX - this.pointX;
+                this.startY = evt.clientY - this.pointY;
+
+                document.addEventListener('mousemove', move);
+                document.addEventListener('touchmove', move, {passive:false});
+                document.addEventListener('mouseup', end);
+                document.addEventListener('touchend', end);
+            };
+
+            const move = (e) => {
+                const evt = e.touches ? e.touches[0] : e;
+                this.pointX = evt.clientX - this.startX;
+                this.pointY = evt.clientY - this.startY;
+                this.updateTransform();
+            };
+
+            const end = () => {
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('touchmove', move);
+                document.removeEventListener('mouseup', end);
+                document.removeEventListener('touchend', end);
+            };
+
+            this.viewport.addEventListener('mousedown', start);
+            this.viewport.addEventListener('touchstart', start, {passive:false});
+        },
+
+        // PDF 저장 (파일명 = 현재 제목)
+        async savePDF() {
+            this.showLoading(true);
+            const fileName = this.titleEl.innerText || 'download';
+            
+            // 캡처를 위해 잠시 스케일 초기화
+            const oldTransform = this.wrapper.style.transform;
+            this.wrapper.style.transform = 'scale(1)';
+            this.wrapper.style.margin = '0';
+
+            try {
+                // 전체 내용을 캡처
+                const canvas = await html2canvas(this.wrapper, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+                const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                const imgProps = doc.getImageProperties(imgData);
+                const pdfWidth = doc.internal.pageSize.getWidth();
+                const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                
+                doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                doc.save(`${fileName}.pdf`);
+                this.showToast("PDF 저장이 완료되었습니다.");
+            } catch (e) {
+                console.error(e);
+                alert("저장 중 오류가 발생했습니다.");
+            } finally {
+                this.wrapper.style.transform = oldTransform;
+                this.showLoading(false);
+            }
+        },
+
+        // 공유 기능
+        async share() {
+            if (!navigator.share) {
+                alert("공유를 지원하지 않는 환경입니다.");
+                return;
+            }
+            this.showLoading(true);
+            const oldTransform = this.wrapper.style.transform;
+            this.wrapper.style.transform = 'scale(1)';
+
+            try {
+                const canvas = await html2canvas(this.wrapper, { scale: 2, useCORS: true });
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], "share.jpg", { type: "image/jpeg" });
+                    try {
+                        await navigator.share({
+                            title: this.titleEl.innerText,
+                            files: [file]
+                        });
+                    } catch (err) {}
+                }, 'image/jpeg', 0.9);
+            } catch (e) {
+                alert("이미지 생성 실패");
+            } finally {
+                this.wrapper.style.transform = oldTransform;
+                this.showLoading(false);
+            }
+        },
+
+        showLoading(visible) { document.getElementById('pmLoading').style.display = visible ? 'flex' : 'none'; },
+        
+        showToast(msg) {
+            const t = document.getElementById('pmToast');
+            document.getElementById('pmToastMsg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+    };
+
+    // ============================================================
+    // [외부 페이지(@site.html)에서 전달받은 내용으로 자동 오픈]
+    // ============================================================
+    (function bootFromQuery() {
+        try {
+            const params = new URLSearchParams(location.search);
+            const key = params.get("key");
+            if (!key) return;
+            const raw = sessionStorage.getItem(key);
+            if (!raw) return;
+            sessionStorage.removeItem(key);
+            const payload = JSON.parse(raw);
+            const title = payload?.title || "미리보기";
+            const html = payload?.html || "";
+            PreviewModal.open(title, html);
+        } catch (e) {
+            // ignore
+        }
+    })();
+</script>
+</body>
+</html>

@@ -411,6 +411,13 @@ export const WorkLogHomePage: React.FC = () => {
         unit: workLog.location?.unit || '',
       },
       notes: workLog.notes,
+      materials: (workLog.materials || []).map(m => ({
+        material_name: m.material_name,
+        material_code: m.material_code,
+        quantity: m.quantity,
+        unit: m.unit,
+        notes: m.notes,
+      })),
       // 확장: 작업 세트 묶음을 전달(상세뷰에서 사용)
       tasks: (workLog as any).tasks || undefined,
       safetyNotes: undefined,
@@ -433,7 +440,9 @@ export const WorkLogHomePage: React.FC = () => {
     if (!workLog) return
     try {
       const additionalManpower =
-        (workLog.workers || []).map(worker => ({
+        (workLog.workers || []).map((worker, index) => ({
+          id: `prefill-${index}-${Date.now()}`,
+          workerId: worker.id || '',
           workerName: worker.name,
           manpower: Number(worker.hours || 0) / 8 || 0,
         })) || []
@@ -457,6 +466,7 @@ export const WorkLogHomePage: React.FC = () => {
         mainManpower,
         materials:
           (workLog.materials || []).map(material => ({
+            material_id: material.material_id || null,
             material_name: material.material_name || '',
             material_code: material.material_code || material.material_id || null,
             quantity: material.quantity || 0,
@@ -465,11 +475,11 @@ export const WorkLogHomePage: React.FC = () => {
           })) || [],
         additionalManpower,
         tasks:
-          ((workLog as any).tasks || []).map((task: any) => ({
-            memberTypes: task?.memberTypes || [],
-            processes: task?.workProcesses || task?.processes || [],
-            workTypes: task?.workTypes || [],
-            location: task?.location || { block: '', dong: '', unit: '' },
+          (workLog.tasks || []).map((task: any) => ({
+            memberTypes: task.memberTypes || [],
+            processes: task.workProcesses || task.processes || [],
+            workTypes: task.workTypes || [],
+            location: task.location || { block: '', dong: '', unit: '' },
           })) || [],
       }
       if (typeof window !== 'undefined') {
@@ -629,7 +639,8 @@ export const WorkLogHomePage: React.FC = () => {
   const renderWorkLogItems = (workLogs: WorkLog[]) => (
     <div className="task-diary-list">
       {workLogs.map(workLog => {
-        const normalize = (value?: string | null) => (value || '').trim()
+        const normalize = (value?: any) =>
+          typeof value === 'string' ? value.trim() : String(value || '').trim()
         const isSameAsSite = (value: string) =>
           normalize(value).replace(/\s+/g, '') === normalize(workLog.siteName).replace(/\s+/g, '')
 

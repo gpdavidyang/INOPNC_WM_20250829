@@ -1,0 +1,57 @@
+{
+  "name": "@inopnc/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./components/layout": {
+      "types": "./dist/components/layout/index.d.ts",
+      "import": "./dist/components/layout/index.js",
+      "require": "./dist/components/layout/index.cjs"
+    },
+    "./components/features": {
+      "types": "./dist/components/features/index.d.ts",
+      "import": "./dist/components/features/index.js",
+      "require": "./dist/components/features/index.cjs"
+    },
+    "./components/navigation": {
+      "types": "./dist/components/navigation/index.d.ts",
+      "import": "./dist/components/navigation/index.js",
+      "require": "./dist/components/navigation/index.cjs"
+    },
+    "./components/overlay": {
+      "types": "./dist/components/overlay/index.d.ts",
+      "import": "./dist/components/overlay/index.js",
+      "require": "./dist/components/overlay/index.cjs"
+    },
+    "./styles/common.css": "./src/styles/common.css"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router-dom": "^7.11.0",
+    "signature_pad": "^5.1.3"
+  },
+  "peerDependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "vite": "^6.4.1",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}

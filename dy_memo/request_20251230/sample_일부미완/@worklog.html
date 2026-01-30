@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>통합 작업 관리 - INOPNC</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
+  <style>
+    /* =================================================================
+       [1. 디자인 시스템]
+       ================================================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+      /* Colors */
+      --primary: #31a3fa;           
+      --primary-bg: #eaf6ff;        
+      --header-navy: #1a254f;
+      --navy-btn: #1a254f;
+      
+      --text-main: #111111;
+      --text-sub: #475569;
+      --text-placeholder: #94a3b8;
+      
+      --border: #e2e8f0; 
+      --bg-body: #f2f4f6; 
+      --bg-surface: #ffffff;
+      --bg-input: #ffffff;
+      
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+      
+      --danger: #ef4444;
+      
+      /* Status Colors & Badges */
+      --aff-bg: #e0f2fe; --aff-text: #0284c7; --aff-border: #bae6fd;
+      
+      /* 누락/반려 알림 박스 컬러 */
+      --alert-missing-bg: #e0f2fe; --alert-missing-text: #0369a1; --alert-missing-border: #bae6fd;
+      --alert-reject-bg: #fff1f2; --alert-reject-text: #b91c1c; --alert-reject-border: #fecaca;
+
+      /* 파일 배지 및 태그 */
+      --tag-mint-bg: #ccfbf1; --tag-mint-text: #0f766e;
+      --tag-gray-bg: #f1f5f9; --tag-gray-text: #64748b;
+
+      /* 자재 구분 배지 */
+      --badge-hq-bg: #f3e8ff; --badge-hq-text: #6b21a8; 
+      --badge-worker-bg: #e0f2fe; --badge-worker-text: #0369a1;
+
+      /* [전체삭제 버튼 - 첨부 이미지 스타일] */
+      --del-all-bg: #fff1f2; --del-all-text: #ef4444; 
+
+      --radius-card: 16px;
+      
+            /* =========================
+         Typography Design Tokens
+         (40~50대 작업자 가독성 최적화)
+      ========================= */
+      --fs-tiny: 13px;   /* 아주 작은 배지/부가정보 */
+      --fs-sm: 15px;     /* 보조 텍스트/날짜 */
+      --fs-base: 17px;   /* 본문 기본 텍스트 */
+      --fs-lg: 20px;     /* 카드 제목/강조 */
+      --fs-xl: 24px;     /* 통계/헤더 타이틀/큰 숫자 */
+
+      --fw-reg: 400;
+      --fw-med: 500;
+      --fw-bold: 700;
+      --fw-black: 800;
+
+      /* 모바일 가독성(줄 간격/자간) */
+      --lh-tight: 1.35;
+      --lh-base: 1.65;
+      --lh-loose: 1.8;
+      --ls-base: 0.005em;
+
+      /* Compatibility (legacy) */
+      --fw-extra: 800;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow-x: hidden; touch-action: manipulation; }
+    body {
+      font-family: var(--font-main);
+      font-size: var(--fs-base);
+      font-weight: var(--fw-reg);
+      line-height: var(--lh-base);
+      letter-spacing: var(--ls-base);
+      color: var(--text-main);
+      background-color: var(--bg-body);
+      padding-top: 20px;
+      padding-bottom: 20px;
+    }
+
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 16px; position: relative; min-height: 100vh; }
+    .app-wrapper { overflow: visible; }
+    
+    /* 화면 전환 애니메이션 */
+    .view-container { display: none; animation: fadeIn 0.3s ease; }
+    .view-container.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* =================================================================
+       [검색창 디자인 - @site.html 스타일 적용]
+       ================================================================= */
+    .local-search-wrapper { position: relative; margin-bottom: 16px; display: flex; align-items: center; }
+    
+    .search-input-local { 
+        width: 100%; height: 54px; border-radius: 16px; 
+        background: #ffffff; 
+        border: 1px solid transparent; 
+        padding: 0 48px 0 22px; font-size: 17px; color: var(--text-main); font-weight: 500; 
+        transition: all 0.2s; 
+        box-shadow: var(--shadow-soft);
+    }
+    .search-input-local:hover { background-color: var(--bg-surface); border-color: var(--border); }
+    .search-input-local:focus { box-shadow: 0 0 0 2px var(--primary); background-color: var(--bg-surface); border-color: transparent; outline: none; }
+    .search-input-local::placeholder { color: #94a3b8; font-weight: 500; opacity: 1; }
+
+    /* 돋보기 아이콘 (입력 시 사라짐) */
+    .local-search-icon { 
+        position: absolute; right: 18px; top: 50%; transform: translateY(-50%); 
+        color: #94a3b8; pointer-events: none; width: 20px; transition: opacity 0.2s; 
+    }
+
+    /* X(삭제) 버튼 (입력 시 나타남) */
+    .btn-local-clear { 
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%); 
+        background: #cbd5e1; color: #ffffff; 
+        border-radius: 50%; width: 22px; height: 22px; 
+        display: flex; align-items: center; justify-content: center; 
+        border: none; cursor: pointer; opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2; 
+    }
+    .btn-local-clear.show { opacity: 1; pointer-events: auto; }
+    /* ================================================================= */
+
+
+    .filter-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .form-select {
+        appearance: none; -webkit-appearance: none; width: 100%; height: 54px;
+        background-color: var(--bg-input);
+        border: 1px solid var(--border); border-radius: 12px;
+        padding: 0 16px; font-family: var(--font-main); font-size: 17px; font-weight: 500;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 14px center;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .form-select:hover { border-color: #cbd5e1; }
+    .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(49,163,250,0.12); outline: none; }
+
+    /* Modal / Panel styles */
+    .modal-panel,
+    .detail-content,
+    .bottom-sheet,
+    .i3-modal-panel {
+        background: var(--bg-surface);
+        border-radius: 16px;
+        box-shadow: var(--shadow-soft);
+        border: 1px solid transparent;
+    }
+
+    /* Form input unified style */
+    .form-input,
+    .sheet-input,
+    .info-input {
+        width: 100%;
+        height: 50px;
+        padding: 0 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        font-family: var(--font-main);
+        font-size: 17px;
+        color: var(--text-main);
+        font-weight: 500;
+        transition: all 0.18s;
+        box-shadow: none;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+    .form-input:hover, .sheet-input:hover, .info-input:hover { border-color: #cbd5e1; }
+    .form-input:focus, .sheet-input:focus, .info-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(49,163,250,0.12); outline: none; }
+
+    /* Button styles */
+    .btn-confirm, .btn-navy, .sheet-btn-block { background: var(--header-navy); color: #fff; font-weight: 700; border-radius: 12px; border: none; padding: 12px 16px; cursor: pointer; }
+    .btn-cancel, .btn-white { background: #f1f5f9; color: var(--text-sub); border-radius: 12px; border: 1px solid var(--border); padding: 12px 16px; cursor: pointer; }
+
+    .btn-disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
+
+    /* [요약 카드] */
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+    .sum-card { 
+        padding: 12px 2px; border-radius: 16px; text-align: center; 
+        display: flex; flex-direction: column; justify-content: center; height: 90px;
+        background: var(--bg-surface); box-shadow: var(--shadow-soft); 
+        border: 1px solid transparent; cursor: pointer; transition: 0.2s;
+    }
+    .sum-card:active { transform: scale(0.98); }
+    .sum-card.draft { background-color: var(--primary-bg); color: var(--primary); border-color: var(--primary); }
+    .sum-card.approved { background-color: #f4f6fa; color: #475569; border-color: #475569; }
+    .sum-card.returned { background-color: var(--alert-reject-bg); color: var(--alert-reject-text); border-color: var(--alert-reject-border); }
+    .sum-card.pending { background-color: #f0f3f9; color: #1e3a8a; border-color: #1e3a8a; }
+    .sum-val { font-size: 24px; font-weight: var(--fw-extra); line-height: 1; margin-bottom: 4px; }
+    .sum-label { font-size: 13px; font-weight: var(--fw-bold); }
+
+    /* [필터 칩] */
+    .chip-container { display: flex; gap: 4px; margin-bottom: 20px; width: 100%; justify-content: space-between; }
+    .filter-chip { 
+        flex: 1; height: 40px; padding: 0 4px; 
+        border-radius: 100px; font-size: 13px; font-weight: var(--fw-bold); 
+        cursor: pointer; background: #fff; border: 1px solid var(--border); color: var(--text-sub);
+        display: flex; align-items: center; justify-content: center;
+        white-space: nowrap; 
+    }
+    .filter-chip.active { border-color: var(--primary); color: var(--primary); background: #fff; box-shadow: 0 2px 6px rgba(49, 163, 250, 0.15); }
+
+    /* 데이터 유무 표시 인디케이터 (@site.html 동일 로직 / 컬러 고정: 네이비 vs 연회색) */
+    .indicator-group { display: flex; gap: 6px; align-items: center; padding-left: 8px; border-left: 1px solid var(--border); margin-left: 4px; }
+    .data-icon { color: #cbd5e1; width: 16px; height: 16px; transition: color 0.2s; }
+    .data-icon.active { color: #1a254f; } /* 데이터 있을 때: 네이비(#1a254f) */
+
+    /* [리스트 카드] */
+    .log-list { display: flex; flex-direction: column; gap: 12px; padding-bottom: 28px; }
+    .log-card { 
+        background: var(--bg-surface); border-radius: var(--radius-card); padding: 22px; 
+        cursor: pointer; box-shadow: var(--shadow-soft); position: relative;
+        border: 1px solid transparent; transition: 0.2s; overflow: hidden;
+    }
+    .log-card:active { transform: scale(0.98); }
+
+    .corner-badge { 
+        position: absolute; top: 0; right: 0; z-index: 10;
+        padding: 6px 14px; border-radius: 0 0 0 12px;
+        font-size: 13px; font-weight: var(--fw-extra); color: #fff; line-height: 1;
+    }
+    .bdg-draft { background: #3b82f6; } 
+    .bdg-reject { background: #ef4444; } 
+    .bdg-pending { background: #8b5cf6; }
+    .bdg-approved { background: #64748b; }
+
+    .lc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .lc-date { font-size: 15px; color: var(--text-sub); font-weight: var(--fw-bold); }
+    
+    .lc-site-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .aff-badge { background: var(--aff-bg); color: var(--aff-text); border: 1px solid var(--aff-border); font-size: 12px; font-weight: var(--fw-extra); padding: 2px 6px; border-radius: 6px; }
+    .lc-site { font-size: 19px; font-weight: var(--fw-extra); color: var(--text-main); }
+    .lc-content { font-size: 16px; color: var(--text-sub); font-weight: var(--fw-bold); margin-bottom: 12px; }
+
+    .alert-box {
+        margin-top: 12px; padding: 14px 16px; border-radius: 12px;
+        display: flex; align-items: center; gap: 10px;
+        font-size: 15px; font-weight: var(--fw-extra);
+    }
+    .alert-box.missing { background: var(--alert-missing-bg); border: 2px solid var(--alert-missing-border); color: var(--alert-missing-text); }
+    .alert-box.rejected { background: var(--alert-reject-bg); border: 2px solid var(--alert-reject-border); color: var(--alert-reject-text); }
+
+    
+
+    /* [PATCH] 반려(Rejected) 알림 이벤트 효과 */
+    @keyframes i3-reject-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35); }
+        70% { box-shadow: 0 0 0 14px rgba(239, 68, 68, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    @keyframes i3-reject-wiggle {
+        0%, 100% { transform: translateX(0); }
+20% { transform: translateX(-2px); }
+        40% { transform: translateX(2px); }
+        60% { transform: translateX(-1px); }
+        80% { transform: translateX(1px); }
+    }
+    
+    /* [PATCH] 반려 항목 포커스(상세 화면에서만) */
+    #detailOverlay .detail-section.i3-reject-target{
+        border: 2px solid rgba(239, 68, 68, 0.35);
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.10);
+    }
+    #detailOverlay .detail-section.i3-reject-target .sec-title::after{
+        content: "반려";
+        margin-left: 8px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: var(--fw-extra);
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.22);
+        color: #ef4444;
+        line-height: 1;
+    }
+    #detailOverlay .detail-section.i3-reject-target.i3-evt{
+        animation: i3-reject-wiggle 0.28s ease-in-out 0s 6, i3-reject-pulse 1.4s ease-out 0s 2;
+    }
+
+    /* [PATCH] 누락(Missing) 알림 이벤트 효과 - 상세 화면에서 누락된 '항목'만 하늘색 이벤트 */
+    @keyframes i3-missing-pulse {
+        0% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.30); }
+        70% { box-shadow: 0 0 0 14px rgba(14, 165, 233, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(14, 165, 233, 0); }
+    }
+    @keyframes i3-missing-wiggle {
+        0%, 100% { transform: translateX(0); }
+        20% { transform: translateX(-2px); }
+        40% { transform: translateX(2px); }
+        60% { transform: translateX(-2px); }
+        80% { transform: translateX(2px); }
+    }
+    #detailOverlay .detail-section.i3-missing-target{
+        border: 2px solid rgba(14, 165, 233, 0.35);
+        box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.10);
+        background: var(--bg-surface);
+    }
+    #detailOverlay .detail-section.i3-missing-target.i3-evt{
+        animation: i3-missing-wiggle 0.28s ease-in-out 0s 6, i3-missing-pulse 1.4s ease-out 0s 2;
+    }
+
+/* (PATCH) 요약/리스트에서는 반려 이벤트(애니메이션) 미적용 */
+    .log-card.is-rejected { border-color: var(--alert-reject-border); }
+    /* (PATCH) 상세에서만 이벤트 적용 */
+    /* (PATCH) 상세에서만 이벤트 적용 */
+/* [타임라인 리스트] */
+    .timeline-item { display:flex; justify-content:space-between; align-items:center; gap:12px; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:16px; margin-bottom:12px; cursor:pointer; box-shadow:none; }
+
+    .timeline-item.is-rejected { border: 2px solid var(--alert-reject-border); }
+    /* (PATCH) 상세에서만 이벤트 적용 */
+.tl-info { display:flex; flex-direction:column; gap:6px; min-width:0; }
+    .tl-date { font-size:18px; font-weight:700; color:#111111; line-height:1; }
+    .tl-desc { font-size:15px; color:#64748b; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+    .tl-badge { display:inline-flex; align-items:center; justify-content:center; padding:6px 10px; border-radius:10px; font-weight:700; font-size:13px; min-width:72px; text-align:center; }
+    .badge-missing { background:#fff; color:#0ea5e9; border:1px solid #0ea5e9; }
+    .badge-done { background:#f1f5f9; color:#64748b; border:1px solid #e2e8f0; }
+
+    /* [NEW] 작성중(초안) 타임라인 삭제 버튼 */
+    .btn-tl-del{
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid rgba(239,68,68,0.28);
+      background: #fff1f2;
+      color: #ef4444;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-left: 10px;
+      transition: 0.18s;
+    }
+    .btn-tl-del:active{ transform: scale(0.96); }
+
+    /* [상세 화면] */
+    .detail-overlay { position: fixed; inset: 0; background-color: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.33, 1, 0.68, 1); }
+    .detail-overlay.open { transform: translateY(0); }
+    .detail-header { 
+      height: 60px; 
+      padding: 0 16px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      background: #ffffff; 
+      border-bottom: 1px solid var(--border); 
+      flex-shrink: 0; 
+    }
+    
+    /* ===============================================================
+       [NEW] 작업일지 상세 폭/정렬 최적화 (데스크톱에서 너무 넓게 퍼지는 문제 해결)
+       - 상세 헤더/본문/하단버튼을 메인 컨테이너 폭(600px) 기준으로 중앙 정렬
+       =============================================================== */
+    #detailOverlay .detail-header{ 
+      width: 100%; 
+      max-width: 600px; 
+      margin: 0 auto; 
+      background: #ffffff; 
+      border-bottom: 1px solid var(--border);
+    }
+    #detailOverlay .detail-content { 
+      width: 100%; 
+      max-width: 600px; 
+      margin: 0 auto; 
+      background: transparent; 
+      border-radius: 0; 
+      box-shadow: none; 
+      border: 0; 
+    }
+
+    #detailOverlay .sticky-footer { left: 50%; right: auto; transform: translateX(-50%); width: 100%; max-width: 600px; }
+.detail-content { flex: 1; overflow-y: auto; padding: 16px 16px 120px 16px; }
+    #directBadge { display: none; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: #fff4f2; color: #d97706; font-weight: 700; margin-left: 8px; }
+    .detail-overlay.new-entry:not(.editing) .info-input { border: 1px solid transparent !important; box-shadow: none !important; }
+    
+    .confirmation-list { display:flex; flex-direction:column; gap:8px; }
+    .file-item-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+    .file-info-col { flex: 1; min-width: 0; margin-right: 12px; display: flex; flex-direction: column; gap: 2px; }
+    .file-name-text { font-weight: 700; font-size: 15px; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-date-text { font-size: 13px; color: #64748b; font-weight: 500; }
+    .btn-preview-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--bg-body); color: var(--text-sub); display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); cursor: pointer; flex-shrink: 0; }
+
+    .btn-solid-status { padding: 8px 16px; border-radius: 10px; color: #fff; font-size: 15px; font-weight: 700; border: none; display: flex; align-items: center; gap: 6px; background-color: #31a3fa; }
+
+    /* ===============================================================
+       [FIX 1] 상세 팝업 내부 섹션 "이중 카드" 제거 (Flat)
+       - background 투명
+       - box-shadow/border-radius/margin 제거
+       - 구분선은 border-bottom만
+       - 마지막 섹션 border 제거
+       - padding: 24px 0
+       =============================================================== */
+    .detail-section {
+        background: var(--bg-surface);
+        border: none;
+        border-left: none;
+        outline: none;
+        border-radius: 16px;
+        padding: 18px 16px;
+        margin: 0 0 14px 0;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+    }
+    .detail-section:last-child { margin-bottom: 0; }
+
+    .sec-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 0; border-bottom: none; }
+    .sec-title { font-size: 18px; font-weight: var(--fw-extra); color: var(--header-navy); display: flex; align-items: center; gap: 8px; }
+    
+    .info-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 16px; }
+    .info-label { color: var(--text-sub); font-weight: var(--fw-bold); }
+    .info-val { font-weight: var(--fw-extra); color: var(--text-main); text-align: right; }
+    .info-input {
+      width: 100%;
+      height: 50px;
+      padding: 0 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      font-family: var(--font-main);
+      font-size: 17px;
+      color: var(--text-main);
+      font-weight: 500;
+      text-align: right;
+      transition: all 0.18s;
+      box-shadow: none;
+      outline: none;
+    }
+
+    .mgmt-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+    .mgmt-name { font-size: 17px; font-weight: var(--fw-extra); display:flex; align-items:center; gap:6px; }
+    .mgmt-qty { font-size: 17px; font-weight: var(--fw-extra); color: var(--primary); }
+    .mgmt-actions { display: flex; gap: 8px; }
+    .btn-mgmt-act { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: none; cursor: pointer; }
+    .btn-del { background: #fee2e2; color: #b91c1c; }
+    
+    .badge-hq { background: var(--badge-hq-bg); color: var(--badge-hq-text); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+    .badge-worker { background: var(--badge-worker-bg); color: var(--badge-worker-text); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px; }
+
+    .media-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+    .media-scroll::-webkit-scrollbar { display: none; }
+    .media-card { position: relative; min-width: 140px; height: 140px; border-radius: 12px; background: #f1f5f9; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; cursor: pointer; }
+    .media-card img { width: 100%; height: 100%; object-fit: cover; }
+
+    .drawing-card { position: relative; min-width: 200px; width: 200px; aspect-ratio: 16 / 9; border-radius: 8px; background: #ffffff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; cursor: pointer; }
+    .drawing-card img { width: 100%; height: 100%; object-fit: contain; background: #fff; display: block; }
+    
+    .tag-label { position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.65); color: #fff; font-size: 11px; font-weight: var(--fw-extra); padding: 3px 7px; border-radius: 4px; z-index: 5; pointer-events: auto; }
+    .tag-label.mint { background: var(--tag-mint-bg); color: var(--tag-mint-text); border: 1px solid #99f6e4; }
+    .tag-label.before {
+      background: rgba(254,242,242,0.92);
+      color: #b91c1c;
+      border-color: rgba(239,68,68,0.22);
+    }
+    .tag-label.after {
+      background: rgba(236,253,245,0.92);
+      color: #047857;
+      border-color: rgba(16,185,129,0.22);
+    }
+    .tag-label.progress {
+      background: rgba(239,246,255,0.92);
+      color: #1d4ed8;
+      border-color: rgba(59,130,246,0.22);
+    }
+    .tag-label.done {
+      background: rgba(238,242,255,0.92);
+      color: #4338ca;
+      border-color: rgba(99,102,241,0.22);
+    }
+    .tag-label.base {
+      background: rgba(255,255,255,0.92);
+      color: #334155;
+      border-color: rgba(0,0,0,0.10);
+    }
+
+    
+    .btn-media-replace { position: absolute; bottom: 6px; right: 6px; background: rgba(255,255,255,0.95); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid #eee; cursor: pointer; z-index: 5; color: #333; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .btn-media-del {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid rgba(239,68,68,0.30);
+      background: rgba(239,68,68,0.96);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 6;
+      box-shadow: 0 6px 14px rgba(239,68,68,0.25);
+    }
+
+    /* ===============================================================
+       [FIX 4] 삭제 버튼 크기 최적화 (.btn-del-all)
+       - 폰트 13~14px 범위 -> 14px
+       - 터치 영역(min-height) 확보
+       =============================================================== */
+    .btn-del-all { background-color: var(--del-all-bg); color: var(--del-all-text); font-size: 14px; font-weight: 700; padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; min-height: 34px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+
+    .btn-add-log { width: 100%; height: 54px; border-radius: 14px; font-size: 17px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: 1px dashed var(--primary); color: var(--primary); background: var(--bg-surface); margin-bottom: 20px; transition: 0.2s; }
+    .btn-add-log:active { background: var(--primary-bg); }
+    .btn-dashed { width: 100%; padding: 14px; border: 1px dashed var(--primary); color: var(--primary); background: #fff; border-radius: 12px; font-weight: var(--fw-extra); font-size: 15px; margin-top: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+    .btn-load-more { 
+      width: 100%;
+      height: 46px;
+      padding: 0 16px;
+      background: var(--bg-surface); 
+      border: 1px solid var(--border); 
+      border-radius: 999px; 
+      color: var(--text-sub); 
+      font-weight: 700; 
+      font-size: 15px; 
+      cursor: pointer; 
+      margin: 8px 0 6px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 8px; 
+      transition: 0.2s; 
+    }
+    .btn-load-more:active { transform: scale(0.99); }
+    .btn-mint { background: #ecfdf5; color: #047857; border: 1px solid #6ee7b7; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: var(--fw-extra); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .btn-mint:active { background: #d1fae5; }
+
+    .report-card { 
+      background: transparent; 
+      border: none; 
+      border-radius: 0; 
+      padding: 0; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: stretch; 
+      gap: 10px; 
+    }
+    .file-list-wrap { display: flex; flex-direction: column; gap: 8px; width: 100%; max-height: 320px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
+    .report-info { display: flex; align-items: center; gap: 10px; font-weight: var(--fw-extra); font-size: 15px; }
+    .btn-icon-act { width: 36px; height: 36px; border-radius: 50%; background: #fff; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; color: var(--text-sub); cursor: pointer; }
+
+    .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 16px 20px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); display: flex; gap: 10px; z-index: 100; box-shadow: 0 -4px 15px rgba(0,0,0,0.05); }
+    .btn-main { flex: 1; height: 56px; border-radius: 14px; font-size: 18px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-navy { background: var(--header-navy); color: #fff; }
+    .btn-white { background: #fff; border: 1px solid var(--border); color: #111; }
+
+    .toast-message { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(15, 23, 42, 0.95); color: #fff; padding: 12px 24px; border-radius: 30px; font-size: 15px; font-weight: 700; opacity: 0; transition: 0.25s; display: flex; align-items: center; gap: 8px; white-space: nowrap; z-index: 3000; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .toast-message.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+    .bottom-sheet-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; display: none; align-items: flex-end; justify-content: center; }
+    .bottom-sheet-overlay.active { display: flex; }
+    .bottom-sheet { width: 100%; max-width: 600px; background: #fff; border-radius: 20px 20px 0 0; padding: 24px; animation: slideUp 0.3s; }
+    .sheet-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .sheet-title { font-size: 18px; font-weight: 700; color: var(--header-navy); }
+    .sheet-label { display: block; font-size: 15px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; }
+    .sheet-input, .sheet-select { width: 100%; height: 50px; border-radius: 12px; padding: 0 16px; border: 1px solid var(--border); background: var(--bg-input); font-size: 16px; margin-bottom: 16px; font-weight: 500; font-family: var(--font-main); }
+    .sheet-btn-block { width: 100%; height: 56px; background: var(--header-navy); color: #fff; border-radius: 14px; font-weight: 700; border: none; cursor: pointer; font-size: 17px; }
+
+    .sticky-timeline-header { display: none; position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 600px; margin: 0; z-index: 1000; background: #fff; padding: calc(14px + env(safe-area-inset-top)) 16px 14px 16px; border-bottom: 1px solid var(--border); align-items: center; justify-content: space-between; }
+    #viewTimeline.active .sticky-timeline-header { display: flex; }
+
+    #viewTimeline { margin-top: 0; padding-top: 70px; padding-bottom: 100px; min-height: 100vh; display: block; overflow: visible; }
+    
+    .timeline-body { overflow: visible; height: auto; padding-bottom: 80px; }
+    .timeline-body > div { margin-top: 20px; margin-bottom: 12px; font-size: 15px; color: var(--text-sub); font-weight: 700; display: none; }
+    #viewTimeline.active .timeline-body > div { display: block; }
+
+    .timeline-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 900; background: #fff; border-top: 1px solid var(--border); padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); display: none; justify-content: center; }
+    #viewTimeline.active .timeline-footer { display: flex; justify-content: center; pointer-events: auto; }
+
+    /* ===============================================================
+       [FIX 2] Layout Fix - Single Scroll (이중 스크롤 방지)
+       - html/body/app-wrapper overflow 정리
+       - 내부 div 불필요한 height/overflow 제거
+       - 오버레이 열릴 때 body 고정
+       =============================================================== */
+    html, body { width: 100% !important; height: 100% !important; min-height: 100% !important; margin: 0 !important; overflow-x: hidden !important; }
+    body { overflow-y: auto !important; padding-bottom: 0 !important; }
+    .app-wrapper { min-height: auto !important; height: auto !important; overflow: visible !important; }
+    .view-container { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+
+    /* 상세 오버레이는 내부 content만 스크롤 */
+    .detail-overlay { height: 100dvh; }
+    .detail-content { -webkit-overflow-scrolling: touch; }
+
+    /* 오버레이 열릴 때 바디 스크롤 잠금 */
+    body.no-scroll { position: fixed; left: 0; right: 0; width: 100%; overflow: hidden !important; }
+
+    /* View Switch Logic (안전 고정) */
+    #viewDashboard:not(.active) { display: none !important; }
+    #viewDashboard.active { display: block !important; }
+    #viewTimeline:not(.active) { display: none !important; }
+    #viewTimeline.active { display: block !important; }
+
+    .sticky-timeline-header { z-index: 2000 !important; }
+    .sticky-timeline-header button { position: relative; z-index: 2001 !important; pointer-events: auto !important; padding: 12px !important; margin: -12px !important; cursor: pointer; background: transparent; border: none; }
+    #timelineTitle { pointer-events: none !important; }
+  
+    /* ===============================================================
+       [UPDATE] 이미지 액션 버튼(삭제/교체) - 과하게 튀지 않는 앱 기본 스타일
+       - 동일 크기/동일 톤(반투명 다크 + 화이트 아이콘)
+       - 터치영역 확보 + 통일된 라운드
+       =============================================================== */
+    .btn-media-del,
+    .btn-media-replace{
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(15,23,42,0.55);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 6;
+      box-shadow: 0 4px 10px rgba(15,23,42,0.18);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+    .btn-media-del{
+      position: absolute;
+      top: 8px;
+      right: 8px;
+    }
+    .btn-media-replace{
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+    }
+    .btn-media-del:active,
+    .btn-media-replace:active{
+      transform: scale(0.96);
+    }
+
+  
+    /* ===============================================================
+       [NEW] 편집 모드 안내 + 수정 가능 항목 인지 강화
+       - 편집 모드에서는 파란 테두리(info-input)로 수정 가능 항목을 명확히 표시
+       - 새 문서(new-entry)도 편집 중(editing)에는 테두리가 보이도록 처리
+       =============================================================== */
+    .edit-hint {
+      display: none;
+      margin: 0 0 12px 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      color: var(--text-sub);
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .edit-hint .sub {
+      display: block;
+      margin-top: 4px;
+      color: #64748b;
+      font-weight: 700;
+      font-size: 13px;
+      opacity: 0.95;
+    }
+
+    /* [UPDATE] 편집 모드 입력란 표시(심플) */
+    .detail-overlay.editing .info-input { border-color: rgba(49,163,250,0.35); }
+    .detail-overlay.editing .info-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(49,163,250,0.12); }
+
+    /* ===============================================================
+       [NEW] 출력 인원 편집 UI
+       =============================================================== */
+    #dt-manpower-list { margin-top: 10px; }
+    .mp-row { display: flex; align-items: flex-start; gap: 8px; margin-top: 10px; }
+    #dt-manpower-list .manpower-select-wrapper { flex: 1; min-width: 0; }
+    #dt-manpower-list .manpower-select-wrapper .manpower-worker-select { width: 100%; }
+    #dt-manpower-list .manpower-select-wrapper .manpower-custom-input { width: 100%; margin-top: 8px; }
+    .mp-row .mp-val { width: 120px; }
+    .mp-row .mp-del { width: 44px; height: 44px; border-radius: 12px; }
+    .mp-hint { margin-top: 10px; font-size: 13px; color: var(--text-sub); font-weight: 700; }
+    .mp-add-btn { margin-top: 12px; }</style>
+</head>
+<body>
+
+  <input type="file" id="bulk-photo-input" hidden multiple accept="image/*" onchange="handleBulkPhotoUpload(this)">
+  <input type="file" id="bulk-drawing-input" hidden multiple accept="image/*,application/pdf" onchange="handleBulkDrawingUpload(this)">
+
+  <input type="file" id="replace-input" style="display:none;" accept="image/*" onchange="handleReplaceFile(this)">
+
+  <div class="app-wrapper view-container active" id="viewDashboard">
+    <div class="local-search-wrapper">
+        <input type="text" class="search-input-local" id="pageSearchInput" placeholder="현장명을 입력하세요." oninput="handleSearchInput()">
+        <i data-lucide="search" class="local-search-icon"></i>
+        <button class="btn-local-clear" onclick="clearLocalSearchInput()"><i data-lucide="x" style="width:14px;"></i></button>
+    </div>
+
+    <div class="filter-controls">
+        <select class="form-select" id="siteFilter" onchange="renderLogs()">
+            <option value="all">전체 현장</option>
+            <option value="site1">자이 아파트 101동</option>
+            <option value="site2">삼성 반도체 P3</option>
+            <option value="site3">힐스테이트 센트럴</option>
+        </select>
+        <select class="form-select" onchange="renderLogs()">
+            <option>최신순</option>
+            <option>이름순</option>
+        </select>
+    </div>
+
+    <div class="summary-grid">
+        <div class="sum-card draft" onclick="openTimeline('draft')">
+            <span class="sum-val" id="cnt-draft">0</span>
+            <span class="sum-label">작성중</span>
+        </div>
+        <div class="sum-card returned" onclick="openTimeline('rejected')">
+            <span class="sum-val" id="cnt-rejected">0</span>
+            <span class="sum-label">반려</span>
+        </div>
+        <div class="sum-card pending" onclick="openTimeline('pending')">
+            <span class="sum-val" id="cnt-pending">0</span>
+            <span class="sum-label">승인요청</span>
+        </div>
+        <div class="sum-card approved" onclick="openTimeline('approved')">
+            <span class="sum-val" id="cnt-approved">0</span>
+            <span class="sum-label">승인완료</span>
+        </div>
+    </div>
+
+    <div class="chip-container">
+        <button class="filter-chip active" onclick="setMainFilter('all', this)">전체</button>
+        <button class="filter-chip" onclick="setMainFilter('draft', this)">작성중</button>
+        <button class="filter-chip" onclick="setMainFilter('rejected', this)">반려됨</button>
+        <button class="filter-chip" onclick="setMainFilter('pending', this)">승인요청</button>
+        <button class="filter-chip" onclick="setMainFilter('approved', this)">승인완료</button>
+    </div>
+
+    <button class="btn-add-log" onclick="createLog()">
+        <i data-lucide="plus-circle" width="22" height="22"></i> 새 작업일지 등록
+    </button>
+
+    <div class="log-list" id="logList">
+        </div>
+    <button id="loadMoreBtn" class="btn-load-more" style="display:none;">
+      <span id="loadMoreText">더 보기</span>
+      <i data-lucide="chevron-down" id="loadMoreIcon"></i>
+    </button>
+  </div>
+
+  <div class="app-wrapper view-container" id="viewTimeline">
+      <div class="sticky-timeline-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+              <button onclick="switchView('viewDashboard')" style="background:none; border:none; padding:0; cursor:pointer;"><i data-lucide="chevron-left" width="32"></i></button>
+              <div style="font-size: 22px; font-weight: 700; color: var(--header-navy);" id="timelineTitle">목록</div>
+          </div>
+      </div>
+      <div class="timeline-body">
+          <div style="font-size:15px; color:var(--text-sub); font-weight:700; margin-bottom:12px; margin-top:20px;">* 날짜를 클릭하여 상세 내용을 확인/수정하세요.</div>
+          
+          <div class="log-list" id="timelineList"></div>
+      </div>
+      <div class="timeline-footer" id="timelineFooter">
+          <div style="width:100%; max-width:600px; padding:12px 16px;">
+              <button class="btn-main btn-navy" onclick="bulkApprove()" style="width:100%;">통합 승인요청</button>
+          </div>
+      </div>
+  </div>
+
+  <div class="detail-overlay" id="detailOverlay">
+      <div class="detail-header">
+          <button onclick="closeDetail()" style="background:none; border:none; padding:8px;"><i data-lucide="x" width="28"></i></button>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="detailTitle" style="font-size:20px; font-weight:900;">작업일지 상세</span>
+            <span id="directBadge">직접등록</span>
+          </div>
+          <button id="dt-status-badge" class="btn-solid-status">작성중</button>
+      </div>
+
+      <div class="detail-content">
+          <div id="editHint" class="edit-hint">편집 모드<span class="sub">파란 테두리 항목을 눌러 수정하세요. (작업일자/소속/출력인원 포함)</span></div>
+
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="info"></i> 기본 정보</span></div>
+              <div class="info-row"><span class="info-label">현장명</span><span class="info-val" id="dt-site"></span></div>
+              <div class="info-row"><span class="info-label">작업일자</span><span class="info-val" id="dt-date"></span></div>
+              <div class="info-row"><span class="info-label">소속</span><span class="info-val" id="dt-aff"></span></div>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="hard-hat"></i> 작업 내용</span></div>
+              <div class="info-row"><span class="info-label">부재명</span><span class="info-val" id="dt-member"></span></div>
+              <div class="info-row"><span class="info-label">공정명</span><span class="info-val" id="dt-process"></span></div>
+              
+              <div id="dt-extra-info"></div>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="users"></i> 출력 인원</span></div>
+              <div class="info-row">
+                  <span class="info-label">총 투입 인원</span>
+                  <span class="info-val" style="color:var(--primary); font-size:18px;"><span id="dt-workers-cnt">0</span>명</span>
+              </div>
+              <div class="info-row" style="border:none;">
+                  <span class="info-label">총 투입일</span>
+                  <span class="info-val" id="dt-total-mp">0일</span>
+              </div>
+              <div id="dt-manpower-list"></div>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head"><span class="sec-title"><i data-lucide="package"></i> 자재/장비 현황</span></div>
+              <div id="dt-materials-list"></div>
+              <button class="btn-dashed" onclick="openMgmtSheet()">+ 자재/장비 추가하기</button>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head">
+                  <span class="sec-title"><i data-lucide="camera"></i> 사진 관리</span>
+                  <button class="btn-del-all" onclick="confirmDeleteAll('photos')">삭제</button>
+              </div>
+              <div class="media-scroll" id="dt-photos"></div>
+              <button class="btn-dashed" onclick="document.getElementById('bulk-photo-input').click()">+ 사진 대량 업로드</button>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head">
+                  <span class="sec-title"><i data-lucide="map"></i> 도면 관리</span>
+                  <button class="btn-del-all" onclick="confirmDeleteAll('drawings')">삭제</button>
+              </div>
+              <div class="media-scroll" id="dt-drawings"></div>
+
+              <button class="btn-dashed" onclick="document.getElementById('bulk-drawing-input').click()">+ 도면 불러오기</button>
+          </div>
+
+          <div class="detail-section">
+              <div class="sec-head">
+                  <span class="sec-title"><i data-lucide="file-check"></i> 작업완료확인서</span>
+                  <button class="btn-mint" onclick="showToast('확인서 작성 모달 실행')"><i data-lucide="check-circle-2" width="16"></i> 확인서 실행</button>
+              </div>
+              <div class="report-card" id="dt-confirmation"></div>
+          </div>
+      </div>
+
+      <div class="sticky-footer" id="detailFooter">
+          <button class="btn-main btn-white" id="btn-edit" onclick="enableEditMode()">수정</button>
+          <button class="btn-main btn-navy" id="btn-save" onclick="saveAndClose()">저장하기</button>
+      </div>
+  </div>
+
+  <div class="bottom-sheet-overlay" id="mgmtSheetOverlay" onclick="if(event.target===this) closeMgmtSheet()">
+      <div class="bottom-sheet">
+          <div class="sheet-header-row">
+              <span class="sheet-title">자재/장비 추가</span>
+              <button onclick="closeMgmtSheet()" style="background:none; border:none;"><i data-lucide="x" width="28"></i></button>
+          </div>
+          
+          <label class="sheet-label">구분</label>
+          <select id="mgmtTypeSelect" class="sheet-select">
+              <option value="HQ">본사 지급</option>
+              <option value="Worker" selected>작업자(팀) 준비</option>
+          </select>
+
+          <label class="sheet-label">품명</label>
+          <input type="text" id="mgmtNameInput" class="sheet-input" placeholder="예: 에폭시, 고소작업대">
+
+          <label class="sheet-label">수량</label>
+          <input type="text" id="mgmtQtyInput" class="sheet-input" placeholder="예: 2말, 1대">
+
+          <button class="sheet-btn-block" onclick="addMgmtItem()">추가하기</button>
+      </div>
+  </div>
+
+  <div class="toast-message" id="toast">
+      <i data-lucide="check-circle" width="18"></i> <span id="toast-text">처리되었습니다.</span>
+  </div>
+
+  <script>
+    /* =================================================================
+       [Mock Data & State]
+       ================================================================= */
+    let logData = [
+        { 
+            id: 1, site: "자이 아파트 101동", siteId: "site1", date: "2025-12-22", status: "draft", affiliation: "본사",
+            member: "슬라브", process: "균열 보수", type: "지하주차장", location: "101동 B1",
+            manpower: [{role:"반장", val:1.0}, {role:"기공", val:1.0}],
+            materials: [
+                {name: "에폭시", qty: "2말", type: "HQ"},
+                {name: "퍼티", qty: "5kg", type: "Worker"}
+            ],
+            missing: ["사진 2건", "도면 1건"],
+            photos: [
+                {id:101, url:"https://images.unsplash.com/photo-1621252179027-94459d27d3ee?q=80&w=200", tag:"보수후"},
+                {id:102, url:"https://images.unsplash.com/photo-1590069261209-f8e9b8642343?q=80&w=200", tag:"보수후"}
+            ], 
+            drawings: [],
+            confirmationFiles: []
+        },
+        { 
+            id: 2, site: "삼성 반도체 P3", siteId: "site2", date: "2025-12-21", status: "rejected", affiliation: "배관팀",
+            member: "벽체", process: "면처리",
+            manpower: [{role:"용접사", val:1.0}],
+            materials: [{name: "연삭기", qty: "1대", type: "Worker"}],
+            rejectReason: "작업 사진 식별 불가 (재촬영 요망)",
+            photos: [{id:201, url:"https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?q=80&w=200", tag:"보수전"}], 
+            drawings: [{id:202, url:"https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=200", tag:"진행도면"}]
+            , confirmationFiles: []
+        },
+        { 
+            id: 3, site: "힐스테이트 센트럴", siteId: "site3", date: "2025-12-20", status: "pending", affiliation: "전기팀",
+            member: "천장", process: "배선 점검",
+            manpower: [{role:"전공", val:1.0}],
+            materials: [],
+            photos: [], drawings: []
+            , confirmationFiles: []
+        },
+        { 
+            id: 4, site: "자이 아파트 101동", siteId: "site1", date: "2025-12-19", status: "approved", affiliation: "본사",
+            member: "지하1층", process: "청소",
+            manpower: [{role:"인부", val:2.0}],
+            materials: [],
+            photos: [{id:401, url:"https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=200", tag:"보수후"}], 
+            drawings: [{id:402, url:"https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=200", tag:"완료도면"}],
+            confirmationFiles: []
+        },
+        { id:5, site:"자이 아파트 102동", siteId:"site1", date:"2025-12-18", status:"draft", affiliation:"본사", member:"외벽", process:"도장", manpower:[{role:"인부",val:2}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] },
+        { id:6, site:"자이 아파트 103동", siteId:"site1", date:"2025-12-17", status:"draft", affiliation:"전기팀", member:"천장", process:"배선", manpower:[{role:"전공",val:1}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] },
+        { id:7, site:"삼성 반도체 P3", siteId:"site2", date:"2025-12-16", status:"pending", affiliation:"설비팀", member:"배관", process:"용접", manpower:[{role:"용접사",val:1}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] },
+        { id:8, site:"삼성 반도체 P3", siteId:"site2", date:"2025-12-15", status:"rejected", affiliation:"배관팀", member:"배관", process:"검사", manpower:[{role:"검사",val:1}], materials:[], missing:["사진 1건"], photos:[], drawings:[], confirmationFiles: [] },
+        { id:9, site:"힐스테이트 센트럴", siteId:"site3", date:"2025-12-14", status:"approved", affiliation:"본사", member:"지하", process:"청소", manpower:[{role:"인부",val:3}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] },
+        { id:10, site:"힐스테이트 센트럴", siteId:"site3", date:"2025-12-13", status:"draft", affiliation:"인테리어", member:"바닥", process:"시공", manpower:[{role:"시공자",val:2}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] },
+        { id:11, site:"자이 아파트 104동", siteId:"site1", date:"2025-12-12", status:"pending", affiliation:"본사", member:"옥상", process:"방수", manpower:[{role:"인부",val:2}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] },
+        { id:12, site:"기타현장", siteId:"site4", date:"2025-12-11", status:"draft", affiliation:"외주", member:"창호", process:"교체", manpower:[{role:"외주",val:1}], materials:[], missing:[], photos:[], drawings:[], confirmationFiles: [] }
+    ];
+
+    /* =================================================================
+       [Worker Options] 작업자 선택(필터) + 직접입력 ( @main 방식 참고 )
+       ================================================================= */
+    const DEFAULT_WORKERS = ['이현수', '김철수', '박영희', '정민수', '최지영'];
+    let predefinedWorkers = DEFAULT_WORKERS.slice();
+
+    function refreshPredefinedWorkers() {
+        try {
+            const set = new Set(DEFAULT_WORKERS);
+            (logData || []).forEach(l => {
+                (l.manpower || []).forEach(m => {
+                    const r = (m && (m.worker ?? m.role) ? String(m.worker ?? m.role) : '').trim();
+                    if (r) set.add(r);
+                });
+            });
+            predefinedWorkers = Array.from(set).sort((a, b) => a.localeCompare(b, 'ko'));
+        } catch (e) {
+            predefinedWorkers = [];
+        }
+    }
+
+    function addWorkerOption(name) {
+        const v = (name || '').trim();
+        if (!v) return;
+        if (!predefinedWorkers.includes(v)) {
+            predefinedWorkers.push(v);
+            predefinedWorkers.sort((a, b) => a.localeCompare(b, 'ko'));
+        }
+    }
+
+    refreshPredefinedWorkers();
+
+
+    let currentFilter = 'all';
+    let currentLogId = null;
+    let isEditMode = false;
+    let replaceTargetId = null; 
+    let replaceType = null;
+    // load-more variables
+    let initialCount = 5;
+    let visibleCount = 5;
+    // cached filtered results
+    let currentFilteredLogs = [];
+    let tempNewLog = null;
+    let currentTimelineStatus = null;
+
+    /* =================================================================
+       [Core Functions]
+       ================================================================= */
+    window.onload = () => {
+        try {
+            renderLogs();
+            updateCounts();
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        } catch (e) {
+            console.error('init error', e);
+        }
+    };
+
+    function triggerI3Evt(el){
+        if(!el) return;
+        el.classList.remove('i3-evt');
+        // reflow to restart animation
+        void el.offsetWidth;
+        el.classList.add('i3-evt');
+    }
+
+    /* [PATCH] 반려 알림 이벤트: 상세 화면에서 반려된 '항목'만 포커스 */
+    function clearRejectedFocus(){
+        document.querySelectorAll('#detailOverlay .detail-section.i3-reject-target').forEach(sec => {
+            sec.classList.remove('i3-reject-target');
+            sec.classList.remove('i3-evt');
+        });
+    }
+    function getRejectTargetSelectors(log){
+        const r = (log && log.rejectReason) ? String(log.rejectReason) : '';
+        const targets = [];
+        const push = (sel) => { if (sel && !targets.includes(sel)) targets.push(sel); };
+
+        if (r.includes('사진')) push('#dt-photos');
+        if (r.includes('도면') || r.includes('마킹') || r.includes('공도면') || r.includes('진행도면') || r.includes('완료도면')) push('#dt-drawings');
+        if (r.includes('확인서')) push('#dt-confirmation');
+        if (r.includes('자재') || r.includes('장비')) push('#dt-materials-list');
+        if (r.includes('투입') || r.includes('인원') || r.includes('공수')) push('#dt-manpower-list');
+        if (r.includes('현장')) push('#dt-site');
+        if (r.includes('소속')) push('#dt-aff');
+        if (r.includes('작업일자') || r.includes('날짜')) push('#dt-date');
+        if (r.includes('부재')) push('#dt-member');
+        if (r.includes('공정')) push('#dt-process');
+
+        if (!targets.length) push('#dt-extra-info');
+        return targets;
+    }
+    function focusRejectedSections(log){
+        clearRejectedFocus();
+        const sels = getRejectTargetSelectors(log);
+        let firstSec = null;
+
+        sels.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const sec = el.closest('.detail-section') || el;
+            sec.classList.add('i3-reject-target');
+            triggerI3Evt(sec);
+            if (!firstSec) firstSec = sec;
+        });
+
+        if (firstSec) {
+            try { firstSec.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){}
+        }
+    }
+
+    /* [PATCH] 누락 알림 이벤트: 상세 화면에서 누락된 '항목'만 하늘색 포커스 */
+    function clearMissingFocus(){
+        document.querySelectorAll('#detailOverlay .detail-section.i3-missing-target').forEach(sec => {
+            sec.classList.remove('i3-missing-target');
+            sec.classList.remove('i3-evt');
+        });
+    }
+
+    function getMissingTargetSelectors(log){
+        const targets = [];
+        const list = (log && Array.isArray(log.missing)) ? log.missing : [];
+
+        const push = (sel) => { if (sel && !targets.includes(sel)) targets.push(sel); };
+
+        list.forEach(labelRaw => {
+            const label = String(labelRaw || '').trim();
+            if (!label) return;
+
+            // 기본 정보
+            if (label.includes('현장')) push('#dt-site');
+            if (label.includes('소속')) push('#dt-aff');
+            if (label.includes('작업일') || label.includes('날짜')) push('#dt-date');
+
+            // 핵심 입력(부재/공정/인원)
+            if (label.includes('부재')) push('#dt-member');
+            if (label.includes('공정') || label.includes('작업공정')) push('#dt-process');
+            if (label.includes('작업자') || label.includes('인원') || label.includes('투입')) push('#dt-manpower-list');
+
+            // 첨부/현황
+            if (label.includes('사진')) push('#dt-photos');
+            if (label.includes('도면')) push('#dt-drawings');
+            if (label.includes('자재') || label.includes('장비')) push('#dt-materials-list');
+
+            // 기타/확인서
+            if (label.includes('기타')) push('#dt-extra-info');
+            if (label.includes('확인') || label.includes('확인서')) push('#dt-confirmation');
+        });
+
+        return targets;
+    }
+
+    function focusMissingSections(log){
+        clearMissingFocus();
+        const sels = getMissingTargetSelectors(log);
+        let firstSec = null;
+
+        sels.forEach(sel => {
+            const el = document.querySelector(sel);
+            if (!el) return;
+            const sec = el.closest('.detail-section') || el;
+            sec.classList.add('i3-missing-target');
+            triggerI3Evt(sec);
+            if (!firstSec) firstSec = sec;
+        });
+
+        // 반려 포커스가 있을 때는 스크롤 주도권을 반려에 둠
+        if (firstSec && !(log && log.status === 'rejected')) {
+            try { firstSec.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){}
+        }
+    }
+
+
+    function updateCounts() {
+        document.getElementById('cnt-draft').innerText = logData.filter(l => l.status === 'draft').length;
+        const rejectedCount = logData.filter(l => l.status === 'rejected').length;
+        document.getElementById('cnt-rejected').innerText = rejectedCount;
+        const rejectedCard = document.querySelector('.sum-card.returned');
+        if (rejectedCard) rejectedCard.classList.remove('i3-evt');
+document.getElementById('cnt-pending').innerText = logData.filter(l => l.status === 'pending').length;
+        document.getElementById('cnt-approved').innerText = logData.filter(l => l.status === 'approved').length;
+    }
+
+    function switchView(viewId) {
+        document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+        document.getElementById(viewId).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function renderLogs() {
+        const list = document.getElementById('logList');
+        const query = document.getElementById('pageSearchInput').value.toLowerCase();
+        const siteFilter = document.getElementById('siteFilter').value;
+        
+        list.innerHTML = '';
+
+        const filtered = logData.filter(l => {
+            const matchStatus = currentFilter === 'all' || l.status === currentFilter;
+            const matchSite = siteFilter === 'all' || l.siteId === siteFilter;
+            const matchQuery = l.site.toLowerCase().includes(query);
+            return matchStatus && matchSite && matchQuery;
+        });
+        currentFilteredLogs = filtered;
+
+        if (filtered.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:40px 0; color:#94a3b8;">데이터가 없습니다.</div>`;
+            return;
+        }
+        const toShow = currentFilteredLogs.slice(0, visibleCount);
+        toShow.forEach(log => {
+            let stText = '작성중', stClass = 'bdg-draft';
+            if(log.status === 'rejected') { stText = '반려됨'; stClass = 'bdg-reject'; }
+            if(log.status === 'pending') { stText = '승인요청'; stClass = 'bdg-pending'; }
+            if(log.status === 'approved') { stText = '승인완료'; stClass = 'bdg-approved'; }
+
+            let alertHtml = '';
+            if (log.status === 'rejected' && log.rejectReason) {
+                alertHtml = `
+                <div class="alert-box rejected">
+                    <i data-lucide="alert-circle" width="22" style="color:#ef4444; flex-shrink:0;"></i>
+                    <span>반려: ${log.rejectReason}</span>
+                </div>`;
+            } else if (log.missing && log.missing.length > 0) {
+                alertHtml = `
+                <div class="alert-box missing">
+                    <i data-lucide="info" width="22" style="color:#0369a1; flex-shrink:0;"></i>
+                    <span>누락: ${log.missing.join(', ')}</span>
+                </div>`;
+            }
+
+            // 데이터 유무 판별
+            const hasLog = !!(log.member || log.process);
+            const hasMaterials = !!(log.materials && log.materials.length > 0);
+            const hasPhotos = !!(log.photos && log.photos.length > 0);
+            const hasDrawings = !!(log.drawings && log.drawings.length > 0);
+            const hasConfirmation = !!(log.confirmationFiles && log.confirmationFiles.length > 0);
+
+            const card = document.createElement('div');
+            card.className = 'log-card' + (log.status === 'rejected' ? ' is-rejected' : '');
+            card.onclick = () => openTimeline(log.status === 'draft' ? 'draft' : log.status); 
+            card.innerHTML = `
+                <div class="corner-badge ${stClass}">${stText}</div>
+                <div class="lc-header">
+                    <span class="lc-date">${log.date}</span>
+                </div>
+                <div class="lc-site-row">
+                    <span class="aff-badge">${escapeHtml(log.affiliation)}</span>
+                    <span class="lc-site">${escapeHtml(log.site)}</span>
+                </div>
+                <div class="lc-content">${escapeHtml(makeSummaryLine(log))}</div>
+                <div style="border-top:1px dashed #e2e8f0; padding-top:10px; font-size:15px; font-weight:700; color:#475569; display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <i data-lucide="users" width="16" style="vertical-align:text-bottom"></i> 
+                        ${log.manpower.length}명 투입 
+                        <span style="color:var(--primary)">(${(((log.manpower||[]).reduce((a,b)=>a+(parseFloat(b&&b.val)||0),0) > 0) ? 1 : 0)}일)</span>
+                    </div>
+                    <div class="indicator-group">
+                        <i data-lucide="clipboard-list" class="data-icon ${hasLog ? 'active' : ''}"></i>
+                        <i data-lucide="package" class="data-icon ${hasMaterials ? 'active' : ''}"></i>
+                        <i data-lucide="camera" class="data-icon ${hasPhotos ? 'active' : ''}"></i>
+                        <i data-lucide="map" class="data-icon ${hasDrawings ? 'active' : ''}"></i>
+                        <i data-lucide="file-check-2" class="data-icon ${hasConfirmation ? 'active' : ''}"></i>
+                    </div>
+                </div>
+                ${alertHtml}
+            `;
+            list.appendChild(card);
+        });
+        lucide.createIcons();
+
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const loadMoreText = document.getElementById('loadMoreText');
+        const loadMoreIcon = document.getElementById('loadMoreIcon');
+        if (!loadMoreBtn) return;
+        if (currentFilteredLogs.length <= initialCount) {
+          loadMoreBtn.style.display = 'none';
+        } else {
+          loadMoreBtn.style.display = 'flex';
+          if (visibleCount >= currentFilteredLogs.length) {
+            loadMoreText.innerText = '접기';
+            loadMoreIcon.setAttribute('data-lucide','chevron-up');
+          } else {
+            loadMoreText.innerText = '더 보기';
+            loadMoreIcon.setAttribute('data-lucide','chevron-down');
+          }
+          loadMoreBtn.onclick = handleLoadMore;
+          if(window.lucide && lucide.createIcons) lucide.createIcons();
+        }
+    }
+
+    function setMainFilter(filter, btn) {
+        currentFilter = filter;
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        visibleCount = initialCount;
+        renderLogs();
+    }
+
+    function handleSearchInput() {
+        const input = document.getElementById('pageSearchInput');
+        const clearBtn = document.querySelector('.local-search-wrapper .btn-local-clear');
+        const searchIcon = document.querySelector('.local-search-wrapper .local-search-icon');
+        
+        if (input.value.length > 0) {
+            searchIcon.style.opacity = '0';
+            clearBtn.classList.add('show');
+        } else {
+            searchIcon.style.opacity = '1';
+            clearBtn.classList.remove('show');
+        }
+
+        visibleCount = initialCount;
+        renderLogs();
+    }
+
+    function clearLocalSearchInput() {
+        const input = document.getElementById('pageSearchInput');
+        input.value = '';
+        handleSearchInput();
+    }
+
+    function openTimeline(status) {
+        currentTimelineStatus = status;
+        const titleMap = { draft: "작성중인 일지", rejected: "반려된 일지", pending: "승인요청 일지", approved: "승인완료된 일지" };
+        document.getElementById('timelineTitle').innerText = titleMap[status] || "일지 목록";
+        
+        const list = document.getElementById('timelineList');
+        list.innerHTML = '';
+        
+        const filtered = logData.filter(l => l.status === status);
+        if(filtered.length === 0) {
+            list.innerHTML = `<div style="text-align:center; padding:40px 0; color:#94a3b8;">데이터가 없습니다.</div>`;
+        } else {
+            filtered.forEach(log => {
+                let badgeHtml = '';
+                if (log.missing && log.missing.length > 0) {
+                    badgeHtml = `<span class="tl-badge badge-missing">사진누락</span>`;
+                } else {
+                    badgeHtml = `<span class="tl-badge badge-done">완료</span>`;
+                }
+
+                const div = document.createElement('div');
+                div.className = 'timeline-item' + (status === 'rejected' ? ' is-rejected' : '');
+                div.onclick = () => openDetail(log.id);
+                const delBtnHtml = (status === 'draft')
+                    ? `<button class="btn-tl-del" onclick="event.stopPropagation(); deleteDraftLog(${log.id});"><i data-lucide="trash-2" width="18"></i></button>`
+                    : ``;
+
+                div.innerHTML = `
+                    <div class="tl-info">
+                        <span class="tl-date">${log.date}</span>
+                        <span class="tl-desc">${escapeHtml(makeSummaryLine(log))}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:center;">
+                        ${badgeHtml}
+                        ${delBtnHtml}
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+        switchView('viewTimeline');
+        lucide.createIcons();
+    }
+
+    function deleteDraftLog(logId) {
+        const log = logData.find(l => l.id === logId);
+        if (!log) return;
+        if (log.status !== 'draft') { showToast('작성중 일지만 삭제할 수 있습니다.'); return; }
+
+        const ok = window.confirm('작성중인 일지를 삭제할까요?');
+        if (!ok) return;
+
+        logData = logData.filter(l => l.id !== logId);
+
+        // 상세 화면이 열려 있던 경우 정리
+        if (currentLogId === logId) {
+            currentLogId = null;
+            isEditMode = false;
+            closeDetail();
+        }
+
+        renderLogs();
+        updateCounts();
+
+        if (document.getElementById('viewTimeline').classList.contains('active') && currentTimelineStatus) {
+            openTimeline(currentTimelineStatus);
+        }
+
+        showToast('삭제되었습니다.');
+        if(window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+
+    function formatDateTime(iso) {
+        if(!iso) return '';
+        const d = new Date(iso);
+        const pad = n => String(n).padStart(2,'0');
+        return `${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function formatFileSize(bytes) {
+        if (!bytes && bytes !== 0) return '';
+        const k = 1024;
+        if (bytes < k) return bytes + ' B';
+        const sizes = ['B','KB','MB','GB','TB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const value = bytes / Math.pow(k, i);
+        return value.toFixed(1).replace(/\.0$/, '') + ' ' + sizes[i];
+    }
+
+    function photoTagClass(tag){
+      const t = (tag||'').trim();
+      if(t === '보수전') return 'before';
+      if(t === '보수후') return 'after';
+      return 'base';
+    }
+    function drawingTagClass(tag){
+      const t = (tag||'').trim();
+      if(t === '진행도면') return 'progress';
+      if(t === '완료도면') return 'done';
+      return 'base'; // 공도면 등
+    }
+
+    function escapeHtml(input) {
+        if (input === null || input === undefined) return '';
+        return String(input)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function escapeAttr(input) {
+        if (input === null || input === undefined) return '';
+        return String(input)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function makeSummaryLine(log) {
+        if (!log) return '';
+        const parts = [log.member, log.process, log.type, log.location].filter(v => String(v || '').trim());
+        return parts.join(' | ');
+    }
+
+    let __bodyScrollY = 0;
+    function lockBodyScroll() {
+        try {
+            __bodyScrollY = window.scrollY || window.pageYOffset || 0;
+            document.body.classList.add('no-scroll');
+            document.body.style.top = `-${__bodyScrollY}px`;
+        } catch(e) {}
+    }
+    function unlockBodyScroll() {
+        try {
+            document.body.classList.remove('no-scroll');
+            const top = document.body.style.top || '0px';
+            const y = Math.abs(parseInt(top, 10)) || __bodyScrollY || 0;
+            document.body.style.top = '';
+            window.scrollTo(0, y);
+        } catch(e) {}
+    }
+
+    function renderDetailFooter(log) {
+        const editBtn = document.getElementById('btn-edit');
+        const saveBtn = document.getElementById('btn-save');
+        if (!editBtn || !saveBtn) return;
+
+        if (log && log.status === 'approved') {
+            isEditMode = false;
+            editBtn.style.display = 'none';
+
+            saveBtn.disabled = true;
+            saveBtn.classList.add('btn-disabled');
+            saveBtn.classList.remove('btn-navy');
+            saveBtn.innerText = '승인 완료된 문서입니다';
+        } else {
+            editBtn.style.display = '';
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('btn-disabled');
+            saveBtn.classList.add('btn-navy');
+            saveBtn.innerText = '저장하기';
+        }
+    }
+
+    function renderDetailFields(log, edit) {
+        if (!log) return;
+
+        const elSite = document.getElementById('dt-site');
+        const elDate = document.getElementById('dt-date');
+        const elAff = document.getElementById('dt-aff');
+        const elMember = document.getElementById('dt-member');
+        const elProcess = document.getElementById('dt-process');
+        const extraInfoDiv = document.getElementById('dt-extra-info');
+
+        if (edit) {
+            // 작업일자 / 소속도 편집 가능하도록 입력 필드 제공
+            if (elDate) elDate.innerHTML = `<input class="info-input" id="in-date" type="date" value="${escapeAttr(log.date || '')}" style="height:44px;">`;
+            if (elAff) elAff.innerHTML = `<input class="info-input" id="in-aff" value="${escapeAttr(log.affiliation || '')}" placeholder="예: 본사 / 전기팀" style="height:44px;">`;
+
+            if (elSite) elSite.innerHTML = `<input class="info-input" id="in-site" value="${escapeAttr(log.site || '')}" style="height:44px;">`;
+            if (elMember) elMember.innerHTML = `<input class="info-input" id="in-member" value="${escapeAttr(log.member || '')}" style="height:44px;">`;
+            if (elProcess) elProcess.innerHTML = `<input class="info-input" id="in-process" value="${escapeAttr(log.process || '')}" style="height:44px;">`;
+
+            if (extraInfoDiv) {
+                extraInfoDiv.innerHTML = `
+                    <div class="info-row"><span class="info-label">작업유형</span><span class="info-val"><input class="info-input" id="in-type" value="${escapeAttr(log.type || '')}" style="height:44px;"></span></div>
+                    <div class="info-row"><span class="info-label">블럭/동/층</span><span class="info-val"><input class="info-input" id="in-location" value="${escapeAttr(log.location || '')}" style="height:44px;"></span></div>
+                `;
+            }
+        } else {
+            if (elDate) elDate.innerHTML = escapeHtml(log.date || '');
+            if (elAff) elAff.innerHTML = escapeHtml(log.affiliation || '');
+
+            if (elSite) elSite.innerHTML = escapeHtml(log.site || '');
+            if (elMember) elMember.innerHTML = escapeHtml(log.member || '');
+            if (elProcess) elProcess.innerHTML = escapeHtml(log.process || '');
+
+            if (extraInfoDiv) {
+                extraInfoDiv.innerHTML = '';
+                if (String(log.type || '').trim()) {
+                    extraInfoDiv.innerHTML += `<div class="info-row"><span class="info-label">작업유형</span><span class="info-val">${escapeHtml(log.type)}</span></div>`;
+                }
+                if (String(log.location || '').trim()) {
+                    extraInfoDiv.innerHTML += `<div class="info-row"><span class="info-label">블럭/동/층</span><span class="info-val">${escapeHtml(log.location)}</span></div>`;
+                }
+            }
+        }
+    }
+
+    /* ===============================================================
+       [NEW] 출력 인원(Manpower) 렌더/편집
+       =============================================================== */
+    function manpowerOptionsHtml(selectedVal) {
+        const opts = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5];
+        const s = parseFloat(selectedVal);
+        return opts.map(v => {
+            const sel = (Number.isFinite(s) && Math.abs(v - s) < 1e-9) ? 'selected' : '';
+            return `<option value="${v}" ${sel}>${v}</option>`;
+        }).join('');
+    }
+
+    
+    function workerSelectHtml(workerValue) {
+        refreshPredefinedWorkers();
+        const worker = (workerValue || '').trim();
+        const isCustom = !!worker && !predefinedWorkers.includes(worker);
+
+        const options = (predefinedWorkers || []).map(w => {
+            const sel = (!isCustom && w === worker) ? 'selected' : '';
+            return `<option value="${escapeAttr(w)}" ${sel}>${escapeHtml(w)}</option>`;
+        }).join('');
+
+        // @main 방식: 커스텀 값은 select option으로 추가해 선택 상태로 유지(입력창은 기본 숨김)
+        const customOpt = isCustom
+          ? `<option value="${escapeAttr(worker)}" data-custom="true" selected>${escapeHtml(worker)}</option>`
+          : '';
+
+        return `
+          <div class="manpower-select-wrapper">
+            <select class="form-select manpower-worker-select" onchange="dtUpdateWorkerSelect(this)">
+              <option value="">작업자 선택</option>
+              ${options}
+              ${customOpt}
+              <option value="__custom__">직접입력</option>
+            </select>
+            <input type="text" class="form-input manpower-custom-input" placeholder="이름 직접 입력" style="display:none;" onblur="dtHandleCustomWorkerInput(this, this.value)">
+          </div>
+        `;
+    }
+
+    // @main과 동일한 UX: '직접입력' 선택 시 입력창 노출(셀렉트 숨김)
+    function dtUpdateWorkerSelect(selectEl) {
+        try {
+            const row = selectEl && selectEl.closest ? selectEl.closest('.mp-row') : null;
+            if (!row) return;
+
+            const inputEl = row.querySelector('.manpower-custom-input');
+            if (!inputEl) return;
+
+            if (selectEl.value === '__custom__') {
+                selectEl.style.display = 'none';
+                inputEl.style.display = 'block';
+                inputEl.value = '';
+                setTimeout(() => { try { inputEl.focus(); } catch(e) {} }, 0);
+            } else {
+                inputEl.value = '';
+                inputEl.style.display = 'none';
+                selectEl.style.display = 'block';
+                updateManpowerTotalsFromDom();
+            }
+        } catch(e) {}
+    }
+
+    // @main과 동일한 UX: 입력값을 select option으로 추가하고 선택 상태 유지
+    function dtHandleCustomWorkerInput(inputEl, value) {
+        try {
+            const row = inputEl && inputEl.closest ? inputEl.closest('.mp-row') : null;
+            if (!row) return;
+
+            const selectEl = row.querySelector('.manpower-worker-select');
+            const customValue = (value || '').trim();
+            if (!selectEl) return;
+
+            if (customValue) {
+                const existingCustom = selectEl.querySelectorAll('option[data-custom="true"]');
+                existingCustom.forEach(opt => opt.remove());
+
+                const newOpt = document.createElement('option');
+                newOpt.value = customValue;
+                newOpt.textContent = customValue;
+                newOpt.setAttribute('data-custom', 'true');
+
+                const customMarker = selectEl.querySelector('option[value="__custom__"]');
+                if (customMarker) selectEl.insertBefore(newOpt, customMarker);
+                else selectEl.appendChild(newOpt);
+
+                addWorkerOption(customValue);
+                selectEl.value = customValue;
+            } else {
+                // 빈 값이면 작업자 선택 기본 상태로
+                selectEl.value = '';
+            }
+
+            inputEl.value = '';
+            inputEl.style.display = 'none';
+            selectEl.style.display = 'block';
+
+            updateManpowerTotalsFromDom();
+        } catch(e) {}
+    }
+
+    // 기존 함수명 유지(호환): 내부에서 @main 방식 함수 호출
+    function handleMpRoleSelect(selectEl) { dtUpdateWorkerSelect(selectEl); }
+    function handleMpCustomRoleBlur(inputEl) { dtHandleCustomWorkerInput(inputEl, inputEl && inputEl.value); }
+
+    function renderManpowerSection(log, edit) {
+        if (!log) return;
+        if (!Array.isArray(log.manpower)) log.manpower = [];
+
+        // 상단 요약(인원/공수) 항상 갱신
+        const cntEl = document.getElementById('dt-workers-cnt');
+        const totalEl = document.getElementById('dt-total-mp');
+        const listEl = document.getElementById('dt-manpower-list');
+        if (!listEl) return;
+
+        const workersCnt = (log.manpower || []).filter(m => (m && (m.worker ?? m.role) && String(m.worker ?? m.role).trim())).length;
+        const totalMp = (log.manpower || []).reduce((sum, m) => sum + (parseFloat(m && m.val) || 0), 0);
+
+        if (cntEl) cntEl.innerText = String(workersCnt || 0);
+        const inputDays = (Number.isFinite(totalMp) && totalMp > 0) ? 1 : 0;
+        if (totalEl) totalEl.innerText = `${inputDays}일`;
+
+        if (!edit) { listEl.innerHTML = ''; return; }
+
+        const rows = (log.manpower && log.manpower.length) ? log.manpower : [{ worker: '', val: 1.0 }];
+
+        listEl.innerHTML = `
+            <div class="mp-hint">* 작업자/공수 수정 (추가/삭제 가능)</div>
+            ${rows.map(m => `
+              <div class="mp-row">
+                  ${workerSelectHtml(m && (m.worker ?? m.role))}
+                  <select class="info-input mp-val" onchange="updateManpowerTotalsFromDom()">
+                      ${manpowerOptionsHtml(m && m.val)}
+                  </select>
+                  <button class="btn-mgmt-act btn-del mp-del" type="button" onclick="removeManpowerRow(this)"><i data-lucide="trash-2" width="16"></i></button>
+              </div>
+            `).join('')}
+            <button class="btn-dashed mp-add-btn" type="button" onclick="addManpowerRow()">+ 인원 추가</button>
+        `;
+
+        updateManpowerTotalsFromDom();
+        if (window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+function addManpowerRow() {
+        const listEl = document.getElementById('dt-manpower-list');
+        if (!listEl) return;
+        const addBtn = listEl.querySelector('.mp-add-btn');
+        const row = document.createElement('div');
+        row.className = 'mp-row';
+        row.innerHTML = `
+            ${workerSelectHtml('')}
+            <select class="info-input mp-val" onchange="updateManpowerTotalsFromDom()">
+                ${manpowerOptionsHtml(1.0)}
+            </select>
+            <button class="btn-mgmt-act btn-del mp-del" type="button" onclick="removeManpowerRow(this)"><i data-lucide="trash-2" width="16"></i></button>
+        `;
+        if (addBtn && addBtn.parentNode) {
+            addBtn.parentNode.insertBefore(row, addBtn);
+        } else {
+            listEl.appendChild(row);
+        }
+        updateManpowerTotalsFromDom();
+        if (window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+
+    function removeManpowerRow(btnEl) {
+        try {
+            const row = btnEl && btnEl.closest ? btnEl.closest('.mp-row') : null;
+            if (row && row.parentNode) row.parentNode.removeChild(row);
+            updateManpowerTotalsFromDom();
+        } catch(e) {}
+    }
+
+    
+    function updateManpowerTotalsFromDom() {
+        const listEl = document.getElementById('dt-manpower-list');
+        if (!listEl) return;
+
+        const rows = Array.from(listEl.querySelectorAll('.mp-row'));
+        const normalized = rows.map(r => {
+            // @main 이식: 작업자 선택 + 직접입력
+            const sel = r.querySelector('.manpower-worker-select');
+            const inp = r.querySelector('.manpower-custom-input');
+
+            // 레거시 호환(이전 클래스가 남아있어도 동작)
+            const legacySel = r.querySelector('.mp-role-select');
+            const legacyInp = r.querySelector('.mp-role-custom');
+
+            let worker = '';
+            if (sel) {
+                if (sel.value === '__custom__' || sel.style.display === 'none') worker = (inp && inp.value || '').trim();
+                else worker = (sel.value || '').trim();
+            } else if (legacySel) {
+                if (legacySel.value === '__custom__') worker = (legacyInp && legacyInp.value || '').trim();
+                else worker = (legacySel.value || '').trim();
+            } else {
+                worker = (r.querySelector('.mp-role') && r.querySelector('.mp-role').value || '').trim();
+            }
+
+            const val = parseFloat(r.querySelector('.mp-val') && r.querySelector('.mp-val').value);
+            const v = (Number.isFinite(val) ? val : 0);
+
+            if (worker) addWorkerOption(worker);
+            return { worker, val: v };
+        }).filter(x => x.worker.length > 0);
+
+        const cntEl = document.getElementById('dt-workers-cnt');
+        const totalEl = document.getElementById('dt-total-mp');
+        const total = normalized.reduce((s, x) => s + (x.val || 0), 0);
+
+        if (cntEl) cntEl.innerText = normalized.length;
+        const inputDays = (Number.isFinite(total) && total > 0) ? 1 : 0;
+        if (totalEl) totalEl.innerText = inputDays + "일";
+
+        // 현재 편집 중인 logData에도 반영(저장 버튼을 누르지 않아도 합계/상태 반영)
+        try {
+            const overlay = document.getElementById('detailOverlay');
+            const rawId = overlay ? parseInt(overlay.dataset.editId || overlay.dataset.id || (currentLogId || 0)) : (currentLogId || 0);
+            const id = Number.isFinite(rawId) ? rawId : (currentLogId || 0);
+            const log = (logData || []).find(l => l.id === id);
+            if (log) {
+                log.manpower = normalized.map(x => ({ worker: x.worker, val: x.val }));
+            }
+        } catch (e) {}
+    }
+
+    function collectManpowerFromDom() {
+        const listEl = document.getElementById('dt-manpower-list');
+        if (!listEl) return null;
+
+        const rows = Array.from(listEl.querySelectorAll('.mp-row'));
+        const normalized = rows.map(r => {
+            const sel = r.querySelector('.manpower-worker-select');
+            const inp = r.querySelector('.manpower-custom-input');
+
+            const legacySel = r.querySelector('.mp-role-select');
+            const legacyInp = r.querySelector('.mp-role-custom');
+
+            let worker = '';
+            if (sel) {
+                if (sel.value === '__custom__' || sel.style.display === 'none') worker = (inp && inp.value || '').trim();
+                else worker = (sel.value || '').trim();
+            } else if (legacySel) {
+                if (legacySel.value === '__custom__') worker = (legacyInp && legacyInp.value || '').trim();
+                else worker = (legacySel.value || '').trim();
+            } else {
+                worker = (r.querySelector('.mp-role') && r.querySelector('.mp-role').value || '').trim();
+            }
+
+            const val = parseFloat(r.querySelector('.mp-val') && r.querySelector('.mp-val').value);
+            const v = (Number.isFinite(val) ? val : 0);
+
+            if (worker) addWorkerOption(worker);
+            return { worker, val: v };
+        }).filter(x => x.worker.length > 0);
+
+        return normalized;
+    }
+
+
+function openDetail(id) {
+        const log = logData.find(l => l.id === id);
+        if(!log) return;
+        currentLogId = id;
+
+        isEditMode = false;
+        document.getElementById('btn-edit').innerText = '수정';
+        document.getElementById('detailTitle').innerText = '작업일지 상세';
+        const overlay = document.getElementById('detailOverlay');
+        if(overlay) overlay.dataset.editId = '';
+
+        const directEl = document.getElementById('directBadge');
+        if (directEl) {
+            if (log && log.isDirect) {
+                directEl.innerText = '직접등록';
+                directEl.style.display = '';
+                if (overlay) overlay.classList.add('new-entry');
+            } else {
+                directEl.style.display = 'none';
+                if (overlay) overlay.classList.remove('new-entry');
+            }
+        }
+        document.getElementById('btn-edit').onclick = enableEditMode;
+
+        renderDetailFields(log, false);
+
+        const badge = document.getElementById('dt-status-badge');
+        let bg = 'var(--primary)';
+        let text = '작성중';
+        let textColor = '#ffffff';
+        if (log.status === 'draft') {
+            bg = 'var(--primary-bg)';
+            textColor = 'var(--primary)';
+            text = '작성중';
+        } else if (log.status === 'rejected') {
+            bg = '#ef4444';
+            text = '반려됨';
+            textColor = '#ffffff';
+        } else if (log.status === 'pending') {
+            bg = '#8b5cf6';
+            text = '승인요청';
+            textColor = '#ffffff';
+        } else if (log.status === 'approved') {
+            bg = '#64748b';
+            text = '승인완료';
+            textColor = '#ffffff';
+        }
+        badge.style.backgroundColor = bg;
+        badge.style.color = textColor;
+        badge.innerText = text;
+
+        renderManpowerSection(log, false);
+
+        renderMgmtList();
+        renderPhotos();
+        renderDrawings();
+
+        const confDiv = document.getElementById('dt-confirmation');
+        if (confDiv) {
+            if (!Array.isArray(log.confirmationFiles)) log.confirmationFiles = log.confirmation ? [log.confirmation] : [];
+            renderConfirmationList(id);
+        }
+
+        renderDetailFooter(log);
+        lockBodyScroll();
+        document.getElementById('detailOverlay').classList.add('open');
+        lucide.createIcons();
+
+        // [PATCH] 반려된 일지: 상세에서 반려된 항목만 알림 이벤트
+        if (log.status === 'rejected') {
+            requestAnimationFrame(() => focusRejectedSections(log));
+        } else {
+            clearRejectedFocus();
+        }
+
+        // [PATCH] 누락된 항목: 상세에서 누락된 항목만 하늘색 알림 이벤트
+        if (log.missing && log.missing.length > 0) {
+            requestAnimationFrame(() => focusMissingSections(log));
+        } else {
+            clearMissingFocus();
+        }
+    }
+
+    function closeDetail() {
+        clearRejectedFocus();
+        clearMissingFocus();
+        isEditMode = false;
+        const overlay = document.getElementById('detailOverlay');
+        if (overlay) {
+            overlay.classList.remove('open');
+            unlockBodyScroll();
+            overlay.dataset.editId = '';
+            overlay.classList.remove('new-entry');
+            overlay.classList.remove('editing');
+        }
+        const hint = document.getElementById('editHint');
+        if (hint) hint.style.display = 'none';
+        const direct = document.getElementById('directBadge');
+        if (direct) direct.style.display = 'none';
+        const title = document.getElementById('detailTitle');
+        if (title) title.innerText = '작업일지 상세';
+        const editBtn = document.getElementById('btn-edit');
+        if (editBtn) {
+            editBtn.innerText = '수정';
+            editBtn.onclick = enableEditMode;
+        }
+    }
+
+    function handleLoadMore() {
+        const total = currentFilteredLogs.length;
+        if (visibleCount >= total) {
+            visibleCount = initialCount;
+            const listEl = document.getElementById('logList');
+            if (listEl) {
+                listEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                try { listEl.focus(); } catch(e){}
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            visibleCount += initialCount;
+        }
+        renderLogs();
+    }
+
+    function renderConfirmationList(id) {
+        if (id) currentLogId = id;
+        const confDiv = document.getElementById('dt-confirmation');
+        if (!confDiv) return;
+
+        let target = null;
+        if (currentLogId === 'new' || id === 'new') {
+            if (!tempNewLog) tempNewLog = { confirmationFiles: [] };
+            target = tempNewLog;
+        } else {
+            target = logData.find(l => l.id === currentLogId) || { confirmationFiles: [] };
+        }
+
+        const fileList = (target && target.confirmationFiles) || [];
+        let html = '';
+
+        if (fileList.length > 0) {
+            html += `<div class="file-list-wrap">`;
+            html += fileList.map(f => `
+                <div class="file-item-row">
+                    <div class="file-info-col">
+                        <div class="file-name-text">${escapeHtml(f.name)}</div>
+                        <div class="file-date-text">${escapeHtml(formatDateTime(f.uploadedAt))} · ${escapeHtml(formatFileSize(f.size || 0))}</div>
+                    </div>
+                    <button class="btn-preview-icon" onclick="window.open('${f.url}','_blank')"><i data-lucide="eye" width="16"></i></button>
+                </div>
+            `).join('');
+            html += `</div>`;
+
+            html += `
+                <div style="margin-top:10px;">
+                    <label class="btn-dashed" style="display:flex;align-items:center;gap:8px;cursor:pointer;justify-content:center;">
+                        <i data-lucide="paperclip"></i> 추가 첨부
+                        <input type="file" multiple accept="image/*,application/pdf" onchange="handleConfirmUpload(this)" style="display:none">
+                    </label>
+                </div>
+            `;
+        } else {
+            html += `
+                <div style="margin-top:6px;">
+                    <label class="btn-dashed" style="display:flex;align-items:center;gap:8px;cursor:pointer;justify-content:center;padding:18px;">
+                        <i data-lucide="paperclip"></i> 작업완료확인서 첨부
+                        <input type="file" multiple accept="image/*,application/pdf" onchange="handleConfirmUpload(this)" style="display:none">
+                    </label>
+                </div>
+            `;
+        }
+
+        confDiv.innerHTML = html;
+        if(window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+
+    function handleConfirmUpload(input) {
+        if (!input || !input.files || input.files.length === 0) return;
+        showToast('확인서가 업로드되었습니다.');
+        let targetLog = null;
+        if (currentLogId === 'new') {
+            if (!tempNewLog) tempNewLog = { confirmationFiles: [] };
+            targetLog = tempNewLog;
+        } else {
+            targetLog = logData.find(l => l.id === currentLogId);
+        }
+        if (!targetLog) return;
+        if (!Array.isArray(targetLog.confirmationFiles)) targetLog.confirmationFiles = [];
+        Array.from(input.files).forEach(f => {
+            const url = URL.createObjectURL(f);
+            targetLog.confirmationFiles.push({ name: f.name, size: f.size, url, type: f.type, uploadedAt: new Date().toISOString() });
+        });
+        renderLogs();
+        renderConfirmationList();
+    }
+
+    function renderMgmtList() {
+        const log = logData.find(l => l.id === currentLogId);
+        const list = document.getElementById('dt-materials-list');
+        
+        if (!log.materials || log.materials.length === 0) {
+            list.innerHTML = ``;
+            return;
+        }
+
+        list.innerHTML = log.materials.map((m, idx) => {
+            const badgeClass = m.type === 'HQ' ? 'badge-hq' : 'badge-worker';
+            const badgeText = m.type === 'HQ' ? '본사' : '작업자';
+            return `
+            <div class="mgmt-row">
+                <div class="mgmt-name">
+                    ${m.name} <span class="${badgeClass}">${badgeText}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div class="mgmt-qty">${m.qty}</div>
+                    <div class="mgmt-actions">
+                        <button class="btn-mgmt-act btn-del" onclick="deleteMgmtItem(${idx})"><i data-lucide="trash-2" width="16"></i></button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function openMgmtSheet() {
+        document.getElementById('mgmtSheetOverlay').classList.add('active');
+        if(window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+    function closeMgmtSheet() {
+        document.getElementById('mgmtSheetOverlay').classList.remove('active');
+    }
+    function addMgmtItem() {
+        const log = logData.find(l => l.id === currentLogId);
+        const type = document.getElementById('mgmtTypeSelect').value;
+        const name = document.getElementById('mgmtNameInput').value.trim();
+        const qty = document.getElementById('mgmtQtyInput').value.trim();
+        if(!name || !qty) return showToast('품명/수량을 입력하세요.');
+        if(!Array.isArray(log.materials)) log.materials = [];
+        log.materials.push({ type, name, qty });
+        document.getElementById('mgmtNameInput').value = '';
+        document.getElementById('mgmtQtyInput').value = '';
+        renderMgmtList();
+        renderLogs();
+        showToast('추가되었습니다.');
+        closeMgmtSheet();
+        lucide.createIcons();
+    }
+    function deleteMgmtItem(idx) {
+        const log = logData.find(l => l.id === currentLogId);
+        if(!log || !log.materials) return;
+        log.materials.splice(idx, 1);
+        renderMgmtList();
+        renderLogs();
+        showToast('삭제되었습니다.');
+        lucide.createIcons();
+    }
+
+    function renderPhotos() {
+        const log = logData.find(l => l.id === currentLogId);
+        const wrap = document.getElementById('dt-photos');
+        if(!wrap) return;
+        wrap.innerHTML = '';
+        if(!log.photos || log.photos.length === 0) {
+            wrap.innerHTML = ``;
+            return;
+        }
+        log.photos.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'media-card';
+            div.innerHTML = `
+                <span class="tag-label ${photoTagClass(p.tag)}" onclick="event.stopPropagation(); togglePhotoTag(${p.id})" style="cursor:pointer;">${escapeHtml(p.tag||'')}</span>
+                <img src="${p.url}" alt="photo">
+                <button class="btn-media-del" onclick="deleteMedia('photos', ${p.id})"><i data-lucide="trash-2" width="16"></i></button>
+                <button class="btn-media-replace" onclick="openReplace('photos', ${p.id})"><i data-lucide="refresh-cw" width="16"></i></button>
+            `;
+            wrap.appendChild(div);
+        });
+        lucide.createIcons();
+    }
+
+    function renderDrawings() {
+        const log = logData.find(l => l.id === currentLogId);
+        const wrap = document.getElementById('dt-drawings');
+        if(!wrap) return;
+        wrap.innerHTML = '';
+        if(!log.drawings || log.drawings.length === 0) {
+            wrap.innerHTML = ``;
+            return;
+        }
+        log.drawings.forEach(d => {
+            const div = document.createElement('div');
+            div.className = 'drawing-card';
+            div.innerHTML = `
+                <span class="tag-label ${drawingTagClass(d.tag)}" onclick="event.stopPropagation(); toggleDrawingTag(${d.id})" style="cursor:pointer;">${escapeHtml(d.tag||'')}</span>
+                <img src="${d.url}" alt="drawing">
+                <button class="btn-media-del" onclick="deleteMedia('drawings', ${d.id})"><i data-lucide="trash-2" width="16"></i></button>
+                <button class="btn-media-replace" onclick="openReplace('drawings', ${d.id})"><i data-lucide="refresh-cw" width="16"></i></button>
+            `;
+            wrap.appendChild(div);
+        });
+        lucide.createIcons();
+    }
+
+    function togglePhotoTag(photoId) {
+        const log = logData.find(l => l.id === currentLogId);
+        if (!log || !Array.isArray(log.photos)) return;
+        const p = log.photos.find(x => x.id === photoId);
+        if (!p) return;
+        const cur = (p.tag || '').trim();
+        p.tag = (cur === '보수후') ? '보수전' : '보수후';
+        renderPhotos();
+        renderLogs();
+        showToast('태그가 변경되었습니다.');
+    }
+
+    function toggleDrawingTag(drawingId) {
+        const log = logData.find(l => l.id === currentLogId);
+        if (!log || !Array.isArray(log.drawings)) return;
+        const d = log.drawings.find(x => x.id === drawingId);
+        if (!d) return;
+        const cur = (d.tag || '').trim();
+        if (cur === '진행도면') d.tag = '완료도면';
+        else if (cur === '완료도면') d.tag = '진행도면';
+        else d.tag = '진행도면';
+        renderDrawings();
+        renderLogs();
+        showToast('태그가 변경되었습니다.');
+    }
+
+    function confirmDeleteAll(type) {
+        if(!currentLogId) return;
+        if(!confirm('정말 삭제하시겠습니까?')) return;
+        const log = logData.find(l => l.id === currentLogId);
+        if(!log) return;
+        log[type] = [];
+        if(type === 'photos') renderPhotos();
+        if(type === 'drawings') renderDrawings();
+        renderLogs();
+        showToast('삭제되었습니다.');
+    }
+
+    function deleteMedia(type, id) {
+        const log = logData.find(l => l.id === currentLogId);
+        if(!log || !Array.isArray(log[type])) return;
+        log[type] = log[type].filter(x => x.id !== id);
+        if(type === 'photos') renderPhotos();
+        if(type === 'drawings') renderDrawings();
+        renderLogs();
+        showToast('삭제되었습니다.');
+    }
+
+    function openReplace(type, id) {
+        replaceType = type;
+        replaceTargetId = id;
+        document.getElementById('replace-input').click();
+    }
+
+    function handleReplaceFile(input) {
+        if(!input || !input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const url = URL.createObjectURL(file);
+        const log = logData.find(l => l.id === currentLogId);
+        if(!log || !Array.isArray(log[replaceType])) return;
+        const target = log[replaceType].find(x => x.id === replaceTargetId);
+        if(target) target.url = url;
+        if(replaceType === 'photos') renderPhotos();
+        if(replaceType === 'drawings') renderDrawings();
+        showToast('교체되었습니다.');
+        input.value = '';
+    }
+
+    function handleBulkPhotoUpload(input) {
+        if(!input || !input.files || input.files.length === 0) return;
+        const log = logData.find(l => l.id === currentLogId);
+        if(!log) return;
+        if(!Array.isArray(log.photos)) log.photos = [];
+        Array.from(input.files).forEach((f, idx) => {
+            const url = URL.createObjectURL(f);
+            log.photos.push({ id: Date.now() + idx, url, tag: '보수후' });
+        });
+        renderPhotos();
+        renderLogs();
+        showToast('사진이 업로드되었습니다.');
+        input.value = '';
+    }
+
+    function handleBulkDrawingUpload(input) {
+        if(!input || !input.files || input.files.length === 0) return;
+        const log = logData.find(l => l.id === currentLogId);
+        if(!log) return;
+        if(!Array.isArray(log.drawings)) log.drawings = [];
+        Array.from(input.files).forEach((f, idx) => {
+            const url = URL.createObjectURL(f);
+            log.drawings.push({ id: Date.now() + idx, url, tag: '공도면' });
+        });
+        renderDrawings();
+        renderLogs();
+        showToast('도면이 업로드되었습니다.');
+        input.value = '';
+    }
+
+    function enableEditMode() {
+        const log = logData.find(l => l.id === currentLogId);
+        if (!log) return;
+        if (log.status === 'approved') return;
+
+        isEditMode = !isEditMode;
+
+        const overlay = document.getElementById('detailOverlay');
+        if (overlay) {
+            if (isEditMode) overlay.classList.add('editing');
+            else overlay.classList.remove('editing');
+        }
+
+        const hint = document.getElementById('editHint');
+        if (hint) hint.style.display = isEditMode ? 'block' : 'none';
+
+        const btn = document.getElementById('btn-edit');
+        if (btn) btn.innerText = isEditMode ? '취소' : '수정';
+
+        renderDetailFields(log, isEditMode);
+        renderManpowerSection(log, isEditMode);
+
+        showToast(isEditMode ? '수정 모드' : '보기 모드');
+        if(window.lucide && lucide.createIcons) lucide.createIcons();
+    }
+
+    function saveAndClose() {
+        const log = logData.find(l => l.id === currentLogId);
+        if (!log) { closeDetail(); return; }
+
+        if (log.status === 'approved') {
+            showToast('승인 완료 문서입니다.');
+            closeDetail();
+            return;
+        }
+
+        if (isEditMode) {
+            const inSite = document.getElementById('in-site');
+            const inMember = document.getElementById('in-member');
+            const inProcess = document.getElementById('in-process');
+            const inType = document.getElementById('in-type');
+            const inLocation = document.getElementById('in-location');
+            const inDate = document.getElementById('in-date');
+            const inAff = document.getElementById('in-aff');
+            const mpFromDom = collectManpowerFromDom();
+
+            log.site = (inSite ? inSite.value.trim() : log.site) || '';
+            log.member = (inMember ? inMember.value.trim() : log.member) || '';
+            log.process = (inProcess ? inProcess.value.trim() : log.process) || '';
+            log.type = (inType ? inType.value.trim() : log.type) || '';
+            log.location = (inLocation ? inLocation.value.trim() : log.location) || '';
+            // 작업일자/소속 저장
+            if (inDate && inDate.value) log.date = inDate.value;
+            log.affiliation = (inAff ? inAff.value.trim() : log.affiliation) || '';
+            // 출력 인원(역할/공수) 저장
+            if (Array.isArray(mpFromDom)) log.manpower = mpFromDom;
+
+            isEditMode = false;
+            const overlay = document.getElementById('detailOverlay');
+            if (overlay) overlay.classList.remove('editing');
+            const hint = document.getElementById('editHint');
+            if (hint) hint.style.display = 'none';
+            const btn = document.getElementById('btn-edit');
+            if (btn) btn.innerText = '수정';
+
+            renderLogs();
+            updateCounts();
+            if (document.getElementById('viewTimeline').classList.contains('active') && currentTimelineStatus) {
+                openTimeline(currentTimelineStatus);
+            }
+
+            showToast('수정되었습니다.');
+        } else {
+            showToast('저장되었습니다.');
+        }
+
+        closeDetail();
+    }
+
+    function createLog() {
+        // 새 작업일지(직접등록) 생성 → 상세 화면 동일 양식으로 바로 작성
+        const now = new Date();
+        const todayISO = now.toISOString().slice(0, 10);
+
+        const siteFilterEl = document.getElementById('siteFilter');
+        let baseLog = (logData && logData.length) ? logData[0] : {};
+
+        // 현재 선택된 현장(필터)이 있으면 그 현장의 기본값(현장명/소속)을 우선 사용
+        if (siteFilterEl && siteFilterEl.value && siteFilterEl.value !== 'all') {
+            const found = logData.find(l => l.siteId === siteFilterEl.value);
+            if (found) baseLog = found;
+        }
+
+        const newId = Date.now();
+        const newLog = {
+            id: newId,
+            site: (baseLog && baseLog.site) ? baseLog.site : '',
+            siteId: (baseLog && baseLog.siteId) ? baseLog.siteId : ((siteFilterEl && siteFilterEl.value !== 'all') ? siteFilterEl.value : ''),
+            date: todayISO,
+            status: 'draft',
+            affiliation: (baseLog && baseLog.affiliation) ? baseLog.affiliation : '',
+            member: '',
+            process: '',
+            type: '',
+            location: '',
+            manpower: [],
+            materials: [],
+            missing: [],
+            photos: [],
+            drawings: [],
+            confirmationFiles: [],
+            isDirect: true
+        };
+
+        // 최신순 상단 추가
+        logData.unshift(newLog);
+
+        // 리스트/요약 갱신
+        renderLogs();
+        updateCounts();
+
+        // 동일 양식 상세 화면 열기
+        openDetail(newId);
+
+        // 새 문서는 바로 작성(편집) 모드로 시작
+        isEditMode = true;
+        const btn = document.getElementById('btn-edit');
+        if (btn) btn.innerText = '취소';
+
+        const overlay = document.getElementById('detailOverlay');
+        if (overlay) overlay.classList.add('editing');
+        const hint = document.getElementById('editHint');
+        if (hint) hint.style.display = 'block';
+
+        renderDetailFields(newLog, true);
+        renderManpowerSection(newLog, true);
+        renderDetailFooter(newLog);
+
+        if (window.lucide && lucide.createIcons) lucide.createIcons();
+
+        showToast('직접등록 작업일지를 작성하세요.');
+    }
+
+    function bulkApprove() {
+        showToast('통합 승인요청 (샘플)');
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        const tt = document.getElementById('toast-text');
+        tt.innerText = msg || '처리되었습니다.';
+        t.classList.add('show');
+        clearTimeout(window.__toastTimer);
+        window.__toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+    }
+  </script>
+</body>
+</html>

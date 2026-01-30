@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -9,6 +8,7 @@ import {
   CustomSelectValue,
 } from '@/components/ui/custom-select'
 import { MaterialEntry } from '@/modules/mobile/hooks/use-worklog-mutations'
+import React from 'react'
 
 interface MaterialsInputProps {
   materials: MaterialEntry[]
@@ -90,10 +90,45 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
     return new Map(options.map(option => [option.id, option]))
   }, [options])
 
+  // Ensure always at least one row exists
+  // Ensure always at least one row exists / Set Default NPC-1000
+  React.useEffect(() => {
+    if (materials.length === 0) {
+      // Try to find default option
+      const defaultOption = options.find(o => o.name === 'NPC-1000')
+      const initialMaterial = defaultOption
+        ? {
+            ...defaultMaterial,
+            material_id: defaultOption.id,
+            material_name: defaultOption.name,
+            material_code: defaultOption.code ?? null,
+            unit: defaultOption.unit ?? '',
+          }
+        : { ...defaultMaterial }
+
+      onChange([initialMaterial])
+    } else if (materials.length === 1 && !materials[0].material_id && options.length > 0) {
+      // If there is 1 empty row and options are loaded, try to set default if it matches nothing
+      const defaultOption = options.find(o => o.name === 'NPC-1000')
+      if (defaultOption) {
+        onChange([
+          {
+            ...materials[0],
+            material_id: defaultOption.id,
+            material_name: defaultOption.name,
+            material_code: defaultOption.code ?? null,
+            unit: defaultOption.unit ?? '',
+          },
+        ])
+      }
+    }
+  }, [materials.length, onChange, options])
+
   React.useEffect(() => {
     if (optionsMap.size === 0 || materials.length === 0) return
     let changed = false
     const next = materials.map(material => {
+      // ... existing mapping logic ...
       if (!material.material_id) return material
       const option = optionsMap.get(material.material_id)
       if (!option) return material
@@ -127,7 +162,18 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
   }
 
   const handleAdd = () => {
-    onChange([...materials, { ...defaultMaterial }])
+    // Add new row with default NPC-1000 if available
+    const defaultOption = options.find(o => o.name === 'NPC-1000')
+    const newMaterial = defaultOption
+      ? {
+          ...defaultMaterial,
+          material_id: defaultOption.id,
+          material_name: defaultOption.name,
+          material_code: defaultOption.code ?? null,
+          unit: defaultOption.unit ?? '',
+        }
+      : { ...defaultMaterial }
+    onChange([...materials, newMaterial])
   }
 
   const handleRemove = (index: number) => {
@@ -143,17 +189,15 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
         </button>
       </div>
 
-      {materials.length === 0 ? (
-        <p className="materials-hint mt-2">사용한 자재가 있다면 추가 버튼으로 입력</p>
-      ) : null}
+      {/* materials.length === 0 일 때 힌트 대신 자동으로 빈 행이 추가되도록 useEffect에서 처리함 */}
 
       {materials.map((material, index) => {
-        const matchedOption = material.material_id
-          ? optionsMap.get(material.material_id)
-          : options.find(
-              option =>
-                option.name === material.material_name || option.code === material.material_code
-            )
+        const matchedOption =
+          (material.material_id ? optionsMap.get(material.material_id) : null) ||
+          options.find(
+            option =>
+              option.name === material.material_name || option.code === material.material_code
+          )
         const selectValue: string | undefined = matchedOption ? matchedOption.id : undefined
 
         return (
@@ -176,9 +220,11 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
                   })
                 }}
               >
-                <CustomSelectTrigger className="form-select">
+                <CustomSelectTrigger className="form-select w-full justify-between">
                   <CustomSelectValue asChild>
-                    <span>{matchedOption ? matchedOption.name : '자재 선택'}</span>
+                    <span className="flex-1 text-left">
+                      {matchedOption ? matchedOption.name : '자재 선택'}
+                    </span>
                   </CustomSelectValue>
                 </CustomSelectTrigger>
                 <CustomSelectContent>
@@ -197,12 +243,7 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
                   ) : (
                     options.map(option => (
                       <CustomSelectItem key={option.id} value={option.id}>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-medium">{option.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {[option.code, option.unit].filter(Boolean).join(' · ') || '정보 없음'}
-                          </span>
-                        </div>
+                        {option.name}
                       </CustomSelectItem>
                     ))
                   )}
@@ -210,16 +251,17 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
               </CustomSelect>
             </div>
             <div className="form-group">
-              <label className="form-label">수량</label>
+              <label className="form-label">수량(말)</label>
               <input
                 type="number"
-                className="form-input"
-                value={material.quantity === 0 ? '' : material.quantity}
+                className="form-input no-spinner"
+                value={String(material.quantity ?? '')}
                 onChange={event =>
                   handleUpdate(index, { quantity: Number(event.target.value) || 0 })
                 }
                 min={0}
-                step={0.5}
+                step="any"
+                inputMode="decimal"
                 onFocus={e => {
                   // UX: clear default 0 when user focuses the field
                   if (material.quantity === 0) {

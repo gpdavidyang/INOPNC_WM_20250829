@@ -1,0 +1,29 @@
+{
+  "name": "inopnc-frontend-v2",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter './apps/*' dev",
+    "dev:main": "pnpm --filter main dev",
+    "dev:money": "pnpm --filter money dev",
+    "dev:site": "pnpm --filter site dev",
+    "dev:worklog": "pnpm --filter worklog dev",
+    "dev:doc": "pnpm --filter doc dev",
+    "build": "pnpm --filter './apps/*' build",
+    "build:shared": "pnpm --filter shared build",
+    "type-check": "pnpm --filter './apps/*' type-check"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "~5.8.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "react-router-dom": "^7.11.0"
+  }
+}

@@ -1,11 +1,16 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
+import { useEffect, useState } from 'react'
+
 import type { Profile } from '@/types'
 
 interface NotificationPreferences {
   push_enabled?: boolean
+  email_enabled?: boolean
   material_approvals?: boolean
   daily_report_reminders?: boolean
+  daily_report_updates?: boolean
   safety_alerts?: boolean
   equipment_maintenance?: boolean
   site_announcements?: boolean
@@ -66,11 +71,14 @@ export function useProfile() {
 
       // Parse notification_preferences if it exists as JSON string
       let parsedProfile = profileData
-      if (profileData?.notification_preferences && typeof profileData.notification_preferences === 'string') {
+      if (
+        profileData?.notification_preferences &&
+        typeof profileData.notification_preferences === 'string'
+      ) {
         try {
           parsedProfile = {
             ...profileData,
-            notification_preferences: JSON.parse(profileData.notification_preferences)
+            notification_preferences: JSON.parse(profileData.notification_preferences),
           }
         } catch (parseError) {
           console.error('Error parsing notification preferences:', parseError)
@@ -117,7 +125,7 @@ export function useProfile() {
         try {
           parsedData = {
             ...data,
-            notification_preferences: JSON.parse(data.notification_preferences)
+            notification_preferences: JSON.parse(data.notification_preferences),
           }
         } catch (parseError) {
           console.error('Error parsing updated notification preferences:', parseError)
@@ -143,6 +151,6 @@ export function useProfile() {
     error,
     updateProfile,
     updateNotificationPreferences,
-    reload: loadProfile
+    reload: loadProfile,
   }
 }

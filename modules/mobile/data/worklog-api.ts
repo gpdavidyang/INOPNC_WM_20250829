@@ -1,6 +1,5 @@
 'use client'
 
-import { addDays, addMonths, endOfMonth, format, parseISO, startOfMonth, subMonths } from 'date-fns'
 import type {
   WorklogAttachment,
   WorklogCalendarCell,
@@ -8,6 +7,7 @@ import type {
   WorklogStatus,
   WorklogSummary,
 } from '@/types/worklog'
+import { addDays, endOfMonth, format, parseISO, startOfMonth, subMonths } from 'date-fns'
 
 export type WorklogPeriod = 'recent' | 'month' | 'quarter' | 'all'
 
@@ -53,6 +53,14 @@ interface ApiDailyReport {
     document_type?: string | null
     uploaded_at?: string | null
   }>
+  material_usage?: Array<{
+    id: string
+    material_type?: string | null
+    material_name?: string | null
+    quantity?: number | null
+    unit?: string | null
+    notes?: string | null
+  }>
 }
 
 interface WorklogListApiPayload {
@@ -92,8 +100,9 @@ function normalizeCategory(documentType: string | null | undefined): WorklogAtta
   return ATTACHMENT_CATEGORY_MAP[documentType] ?? 'other'
 }
 
-function parseAdditionalNotes(notes: string | null | undefined) {
+function parseAdditionalNotes(notes: string | object | null | undefined) {
   if (!notes) return {}
+  if (typeof notes === 'object') return notes
   try {
     return JSON.parse(notes)
   } catch {
@@ -103,16 +112,64 @@ function parseAdditionalNotes(notes: string | null | undefined) {
 
 function mapReportToDetail(report: ApiDailyReport): WorklogDetail {
   const noteData = parseAdditionalNotes(report.additional_notes)
-  const memberTypes: string[] = Array.isArray(noteData.memberTypes) ? noteData.memberTypes : []
-  const processes: string[] = Array.isArray(noteData.workContents) ? noteData.workContents : []
-  const workTypes: string[] = Array.isArray(noteData.workTypes) ? noteData.workTypes : []
-  const additionalManpower = Array.isArray(noteData.additionalManpower)
-    ? noteData.additionalManpower.map((item: any, index: number) => ({
-        id: item?.id || `mp-${index}`,
-        name: item?.name || item?.workerName || '추가 인력',
-        manpower: Number(item?.manpower) || 0,
-      }))
-    : []
+
+  // Try to parse work_content (JSONB or stringified JSON)
+  let workContent: any = {}
+  if (report.work_content) {
+    if (typeof report.work_content === 'string') {
+      try {
+        workContent = JSON.parse(report.work_content)
+      } catch (e) {
+        // use as empty object
+      }
+    } else {
+      workContent = report.work_content
+    }
+  }
+
+  // Prioritize work_content > additional_notes (legacy)
+  let memberTypes: string[] = Array.isArray(workContent.memberTypes)
+    ? workContent.memberTypes
+    : Array.isArray(noteData.memberTypes)
+      ? noteData.memberTypes
+      : []
+
+  // Legacy fallback: component_name column
+  if (memberTypes.length === 0 && (report as any).component_name) {
+    memberTypes = [(report as any).component_name]
+  }
+
+  let processes: string[] = Array.isArray(workContent.workProcesses)
+    ? workContent.workProcesses
+    : Array.isArray(noteData.workContents)
+      ? noteData.workContents
+      : []
+
+  // Legacy fallback: work_process column
+  if (processes.length === 0 && (report as any).work_process) {
+    processes = [(report as any).work_process]
+  }
+
+  let workTypes: string[] = Array.isArray(workContent.workTypes)
+    ? workContent.workTypes
+    : Array.isArray(noteData.workTypes)
+      ? noteData.workTypes
+      : []
+
+  // Legacy fallback: work_section column
+  if (workTypes.length === 0 && (report as any).work_section) {
+    workTypes = [(report as any).work_section]
+  }
+
+  const additionalManpower = Array.isArray(workContent.additionalManpower)
+    ? workContent.additionalManpower
+    : Array.isArray(noteData.additionalManpower)
+      ? noteData.additionalManpower.map((item: any, index: number) => ({
+          id: item?.id || `mp-${index}`,
+          name: item?.name || item?.workerName || '추가 인력',
+          manpower: Number(item?.manpower) || 0,
+        }))
+      : []
 
   const attachmentsRaw = report.document_attachments ?? []
   const attachments: WorklogAttachment[] = attachmentsRaw.map(item => ({
@@ -134,9 +191,19 @@ function mapReportToDetail(report: ApiDailyReport): WorklogDetail {
   const totalManpower =
     typeof report.total_manpower === 'number'
       ? report.total_manpower
-      : additionalManpower.reduce((sum, item) => sum + item.manpower, 0)
+      : additionalManpower.reduce((sum: any, item: any) => sum + (item.manpower || 0), 0)
 
-  const locationInfo = report.location_info ?? noteData.location ?? {}
+  // Location: report.location_info > noteData.location > empty
+  // Handle potential stringified location_info
+  let locationInfo: any = report.location_info
+  if (typeof locationInfo === 'string') {
+    try {
+      locationInfo = JSON.parse(locationInfo)
+    } catch {
+      locationInfo = {}
+    }
+  }
+  locationInfo = locationInfo ?? noteData.location ?? {}
 
   return {
     id: report.id,
@@ -165,10 +232,20 @@ function mapReportToDetail(report: ApiDailyReport): WorklogDetail {
       dong: locationInfo.dong ?? '',
       unit: locationInfo.unit ?? '',
     },
-    notes: noteData.notes ?? '',
+    notes: report.additional_notes || noteData.notes || '', // Fallback to raw if logic fails
     safetyNotes: noteData.safetyNotes ?? '',
     additionalManpower,
     attachments: attachmentGroups,
+    // Add tasks if available in workContent
+    tasks: Array.isArray(workContent.tasks) ? workContent.tasks : [],
+    materials: (report.material_usage || []).map(m => ({
+      material_id: m.id,
+      material_name: m.material_name || '',
+      material_code: m.material_type || null,
+      quantity: m.quantity || 0,
+      unit: m.unit || '',
+      notes: m.notes || '',
+    })),
   }
 }
 

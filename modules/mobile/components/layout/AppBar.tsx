@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/modules/shared/ui'
-import { Bell, Menu, Moon, Search, Sun } from 'lucide-react'
+import { Bell, Menu, Search } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { NotificationModal } from '../notifications/NotificationModal'
 // Drawer is now managed by MobileLayout, not AppBar
@@ -29,8 +29,6 @@ export const AppBar: React.FC<AppBarProps> = ({
   showLabels = true,
   notificationCountOverride,
 }) => {
-  // Centralized theme control (syncs data-theme + .dark class)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   const [notificationHiddenToday, setNotificationHiddenToday] = useState(false)
@@ -43,7 +41,7 @@ export const AppBar: React.FC<AppBarProps> = ({
   // Fetch notification count function
   const fetchNotificationCount = useCallback(async () => {
     try {
-      // Skip if no user session (API infers from cookies, but avoid unnecessary calls)
+      // Skip if no user session
       if (!user?.id) return setNotificationCount(0)
 
       const res = await fetch('/api/notifications/unread-count', { cache: 'no-store' })
@@ -51,17 +49,20 @@ export const AppBar: React.FC<AppBarProps> = ({
       const json = await res.json().catch(() => ({ count: 0 }))
       setNotificationCount(Number(json?.count || 0))
     } catch (error) {
-      // Fail silently
       setNotificationCount(0)
     }
   }, [user?.id])
 
-  // Initialize theme from localStorage
+  // Initialize: Enforce Light Mode Always
   useEffect(() => {
-    const savedTheme = (localStorage.getItem('inopnc_theme') as 'light' | 'dark') || 'light'
-    setTheme(savedTheme)
-    document.documentElement.setAttribute('data-theme', savedTheme)
-    document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+    // Force light mode attributes
+    document.documentElement.setAttribute('data-theme', 'light')
+    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('light')
+
+    // Clear legacy preferences if any
+    localStorage.removeItem('inopnc_theme')
+
     setNotificationHiddenToday(isNotificationHiddenToday())
   }, [])
 
@@ -161,19 +162,6 @@ export const AppBar: React.FC<AppBarProps> = ({
           >
             <Search className="appbar-icon" />
             {showLabels && <span className="icon-text">검색</span>}
-          </Button>
-
-          {/* Dark Mode */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="header-icon-btn"
-            id="darkModeBtn"
-            aria-label="다크모드"
-            onClick={toggleTheme}
-          >
-            {theme === 'dark' ? <Sun className="appbar-icon" /> : <Moon className="appbar-icon" />}
-            {showLabels && <span className="icon-text">다크모드</span>}
           </Button>
 
           {/* Notifications */}

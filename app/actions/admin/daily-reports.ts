@@ -1,13 +1,15 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
-import { AppError, ErrorType } from '@/lib/error-handling'
-import type { Database } from '@/types/database'
-import { withAdminAuth } from './common'
 import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
+import { AppError, ErrorType } from '@/lib/error-handling'
+import { notifyDailyReportApproved } from '@/lib/notifications/triggers'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { DailyReport } from '@/types'
+import type { Database } from '@/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { revalidatePath } from 'next/cache'
+import { withAdminAuth } from './common'
 
 interface DailyReportsFilter {
   site?: string
@@ -619,10 +621,15 @@ export async function setDailyReportApproval(id: string, nextStatus: 'approved' 
       .from('daily_reports')
       .update(payload)
       .eq('id', id)
-      .select('id, status, approved_at, approved_by')
+      .select()
       .single()
 
     if (error) throw error
+
+    // Send notification if approved
+    if (nextStatus === 'approved' && data) {
+      await notifyDailyReportApproved(data as unknown as DailyReport, auth.userId)
+    }
 
     return {
       success: true,

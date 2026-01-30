@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo } from 'react'
 import { useToast } from '@/components/ui/use-toast'
-import { TMap } from '@/lib/external-apps'
+import { MAP_APP_LABELS, openSmartMap, SmartMapResult } from '@/lib/external-apps'
 
 export interface SiteManagerContact {
   role?: string | null
@@ -164,13 +164,63 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
       })
   }
 
-  const mapHandler = (address?: string | null) => {
+  const showMapResultToast = (result: SmartMapResult) => {
+    if (!result.success) {
+      toast({
+        title: '지도 앱을 열 수 없습니다.',
+        description: '주소를 복사해 직접 검색해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (result.usedApp === 'web') {
+      toast({
+        title: '웹으로 이동합니다.',
+        description: '설치된 지도 앱이 없어 브라우저에서 검색합니다.',
+        variant: 'info',
+      })
+      return
+    }
+
+    if (result.failedApps.length && result.usedApp !== 'web') {
+      const previous = result.failedApps[result.failedApps.length - 1]
+      toast({
+        title: `${MAP_APP_LABELS[result.usedApp]}으로 이동합니다.`,
+        description: `${MAP_APP_LABELS[previous]} 실행에 실패하여 자동으로 전환했습니다.`,
+        variant: 'info',
+      })
+    }
+  }
+
+  const mapHandler = async (address?: string | null) => {
     if (!address) return
     if (onOpenMap) {
       onOpenMap(address)
       return
     }
-    void TMap.search(address)
+    try {
+      const result = await openSmartMap(address)
+      showMapResultToast(result)
+    } catch (error) {
+      console.error('[SiteInfoBottomSheet] open map failed', error)
+      toast({
+        title: '지도 앱을 열 수 없습니다.',
+        description: '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleAddressKeyDown = (
+    event: React.KeyboardEvent<HTMLSpanElement>,
+    value?: string | null
+  ) => {
+    if (!value) return
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      void mapHandler(value)
+    }
   }
 
   const callHandler = (phone?: string | null) => {
@@ -324,7 +374,17 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           <div className="site-info-sheet-address-row">
             <div className="site-info-sheet-address-meta">
               <span className="site-info-sheet-address-label">주소</span>
-              <span className="site-info-sheet-address-value">{address || '-'}</span>
+              <span
+                className="site-info-sheet-address-value"
+                role={address ? 'button' : undefined}
+                tabIndex={address ? 0 : -1}
+                aria-disabled={!address}
+                aria-label={address ? '주소를 지도 앱으로 열기' : undefined}
+                onClick={address ? () => void mapHandler(address) : undefined}
+                onKeyDown={event => handleAddressKeyDown(event, address)}
+              >
+                {address || '-'}
+              </span>
             </div>
             <div className="site-info-sheet-address-actions row">
               <button
@@ -334,7 +394,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
               >
                 복사
               </button>
-              <button type="button" onClick={() => mapHandler(address)} disabled={!address}>
+              <button type="button" onClick={() => void mapHandler(address)} disabled={!address}>
                 T맵
               </button>
             </div>
@@ -343,7 +403,17 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           <div className="site-info-sheet-address-row">
             <div className="site-info-sheet-address-meta">
               <span className="site-info-sheet-address-label">숙소</span>
-              <span className="site-info-sheet-address-value">{accommodation || '미지정'}</span>
+              <span
+                className="site-info-sheet-address-value"
+                role={accommodation ? 'button' : undefined}
+                tabIndex={accommodation ? 0 : -1}
+                aria-disabled={!accommodation}
+                aria-label={accommodation ? '숙소를 지도 앱으로 열기' : undefined}
+                onClick={accommodation ? () => void mapHandler(accommodation) : undefined}
+                onKeyDown={event => handleAddressKeyDown(event, accommodation)}
+              >
+                {accommodation || '미지정'}
+              </span>
             </div>
             <div className="site-info-sheet-address-actions row">
               <button
@@ -355,7 +425,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => mapHandler(accommodation)}
+                onClick={() => void mapHandler(accommodation)}
                 disabled={!accommodation}
               >
                 T맵

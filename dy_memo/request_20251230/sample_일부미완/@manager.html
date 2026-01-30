@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>매니저 통합 관리 - INOPNC</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    /* [1. Design Tokens] @css & @money 기반 통합 */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+      /* Typography (4050 가독성 최적화) */
+      --fs-base: 18px;   --fs-lg: 21px;     --fs-xl: 26px;
+      --fw-bold: 700;    --fw-black: 800;
+      --lh-base: 1.65;
+
+      /* Colors */
+      --primary: #31a3fa;           
+      --primary-bg: #eaf6ff;        
+      --header-navy: #1a254f;
+      --text-main: #0f172a; 
+      --text-sub: #334155;  
+      --border: #e2e8f0; 
+      --bg-body: #f2f4f6; 
+      --bg-surface: #ffffff;
+
+      /* 파스텔 액션 컬러 & 테두리 */
+      --pastel-red-bg: #fff1f2;    --pastel-red-border: #fecaca;   --pastel-red-text: #e11d48;
+      --pastel-mint-bg: #ecfdf5;   --pastel-mint-border: #a7f3d0;  --pastel-mint-text: #059669;
+      --pastel-blue-bg: #eff6ff;   --pastel-blue-border: #dbeafe;  --pastel-blue-text: #2563eb;
+      --pastel-navy-bg: #f0f3f9;   --pastel-navy-border: #cbd5e1;  --pastel-navy-text: #1e3a8a;
+
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.08);
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      margin: 0; padding: 20px 0;
+      line-height: var(--lh-base);
+      font-size: var(--fs-base);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 16px; box-sizing: border-box; }
+
+    /* [2. 요약 카드 섹션] @money 스타일 100% 일치 */
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .sum-card { 
+        padding: 16px 4px; border-radius: 16px; text-align: center; 
+        display: flex; flex-direction: column; gap: 6px; 
+        box-shadow: var(--shadow-soft); background: var(--bg-surface); 
+        border: 1px solid transparent; 
+    }
+    .sum-card.navy { background-color: #f0f3f9; color: #1e3a8a; border-color: #1e3a8a; }
+    .sum-card.sky { background-color: #eaf6ff; color: #0284c7; border-color: #0284c7; }
+    .sum-card.red { background-color: var(--pastel-red-bg); color: var(--pastel-red-text); border-color: var(--pastel-red-border); }
+    
+    .sum-val { font-size: 24px; font-weight: 800; line-height: 1.1; letter-spacing: -0.5px; }
+    .sum-label { font-size: 14px; font-weight: 700; opacity: 0.9; }
+
+    /* [3. 검색창 인터랙션] @site 스타일 이식 */
+    .local-search-wrapper { position: relative; margin-bottom: 12px; margin-top: 4px; display: flex; align-items: center; }
+    .search-input-local { 
+        width: 100%; height: 56px; border-radius: 16px; 
+        background: #ffffff; border: 1px solid transparent; 
+        padding: 0 48px 0 22px; font-size: 17px; color: #0f172a; font-weight: 600; 
+        transition: all 0.2s; box-shadow: var(--shadow-soft);
+        font-family: var(--font-main);
+    }
+    /* 클릭 시(Focus) @site의 파란 테두리 효과 */
+    .search-input-local:focus { 
+        box-shadow: 0 0 0 2px var(--primary); 
+        outline: none; 
+        background-color: #ffffff;
+        border-color: transparent;
+    }
+    .local-search-icon { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); pointer-events: none; width: 20px; transition: opacity 0.2s; }
+    .btn-local-clear { 
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%); 
+        background: #cbd5e1; color: #ffffff; border-radius: 50%; width: 22px; height: 22px; 
+        display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; 
+        opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2; 
+    }
+    .btn-local-clear.show { opacity: 1; pointer-events: auto; }
+
+    /* [4. 필터 셀렉트] */
+    .form-select-group { display: flex; gap: 12px; margin-bottom: 24px; }
+    .form-select {
+        appearance: none; -webkit-appearance: none;
+        width: 100%; height: 54px; 
+        background-color: #ffffff; border: 1px solid var(--border); border-radius: 12px; padding: 0 40px 0 18px;
+        font-family: var(--font-main); font-size: 17px; font-weight: 700; color: #111111;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 16px center; background-size: 20px;
+        cursor: pointer; transition: all 0.2s;
+        box-shadow: var(--shadow-soft);
+    }
+    .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15); outline: none; }
+
+    /* [5. 작업자 카드 섹션] */
+    .worker-card {
+      background: var(--bg-surface); border-radius: 20px; 
+      box-shadow: var(--shadow-soft); margin-bottom: 16px;
+      position: relative; overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    .card-header-main { padding: 22px 24px; border-bottom: 1px solid var(--border); cursor: pointer; position: relative; }
+    .worker-top-row { display: flex; align-items: center; gap: 16px; }
+    .worker-img { 
+      width: 58px; height: 58px; border-radius: 50%; 
+      background: var(--primary-bg); color: var(--primary);
+      display: flex; align-items: center; justify-content: center; 
+      font-weight: var(--fw-black); font-size: var(--fs-lg);
+    }
+    .worker-name-text { font-size: var(--fs-lg); font-weight: var(--fw-black); color: var(--header-navy); }
+    .worker-site-text { font-size: 16px; color: var(--primary); font-weight: var(--fw-bold); margin-top: 2px; }
+
+    /* 상태 배지 */
+    .status-badge { 
+      position: absolute; top: 0; right: 0; z-index: 10;
+      font-size: 14px; font-weight: 800; padding: 6px 16px;
+      border-radius: 0 0 0 12px; color: #ffffff;
+    }
+    .bdg-pending { background: #f59e0b; } /* 승인 대기 */
+    .bdg-working { background: var(--primary); } /* 작업 중 */
+
+    .card-body-detail { display: none; padding: 24px; background-color: var(--bg-surface); }
+    .worker-card.expanded .card-body-detail { display: block; animation: slideDown 0.3s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .info-row { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px dashed var(--border); }
+    .info-label { font-size: var(--fs-base); color: var(--text-sub); font-weight: 700; }
+    .info-val { font-size: var(--fs-base); font-weight: 800; color: var(--text-main); }
+
+    /* [6. 액션 버튼 디자인] */
+    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 24px; }
+    .btn-act { 
+      height: 56px; border-radius: 14px; border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; cursor: pointer; transition: 0.2s;
+      background: #fff; gap: 8px;
+    }
+    /* 일지 버튼 (블루 파스텔) */
+    .btn-act.log { background-color: var(--pastel-blue-bg); color: var(--pastel-blue-text); border-color: var(--pastel-blue-border); }
+    /* 통화 버튼 (민트 파스텔) */
+    .btn-act.call { background-color: var(--pastel-mint-bg); color: var(--pastel-mint-text); border-color: var(--pastel-mint-border); }
+    /* 승인/하자 버튼 (네이비 파스텔) */
+    .btn-act.navy { background-color: var(--pastel-navy-bg); color: var(--pastel-navy-text); border-color: var(--pastel-navy-border); }
+    .btn-act:active { transform: scale(0.96); opacity: 0.9; }
+
+    .toggle-area { 
+      height: 48px; display: flex; align-items: center; justify-content: center; 
+      cursor: pointer; gap: 6px; color: var(--text-sub); font-size: 15px; font-weight: 700; 
+      background: #fafafa; border-top: 1px solid var(--border);
+    }
+    .worker-card.expanded .chev { transform: rotate(180deg); }
+    .chev { transition: transform 0.3s; width: 22px; }
+
+    /* 토스트 알림 */
+    .toast { 
+      position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); 
+      background: rgba(0,0,0,0.85); color: #fff; padding: 14px 28px; 
+      border-radius: 30px; font-size: 16px; font-weight: 600;
+      opacity: 0; transition: 0.3s; z-index: 10000; pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
+  </style>
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <div class="summary-grid">
+      <div class="sum-card navy">
+          <span class="sum-val">5개</span>
+          <span class="sum-label">투입현장</span>
+      </div>
+      <div class="sum-card sky">
+          <span class="sum-val">12명</span>
+          <span class="sum-label">오늘투입</span>
+      </div>
+      <div class="sum-card red">
+          <span class="sum-val">4건</span>
+          <span class="sum-label">미승인일지</span>
+      </div>
+    </div>
+
+    <div class="local-search-wrapper">
+        <input type="text" class="search-input-local" id="searchInput" placeholder="작업자 또는 현장명 검색" oninput="handleSearch(this)">
+        <i data-lucide="search" class="local-search-icon" id="searchIcon"></i>
+        <button class="btn-local-clear" id="btnClear" onclick="clearSearch()"><i data-lucide="x" style="width:14px;"></i></button>
+    </div>
+
+    <div class="form-select-group">
+      <select class="form-select" id="siteFilter" onchange="filterCards()">
+        <option value="all">전체 현장</option>
+        <option value="자이">자이 아파트</option>
+        <option value="삼성">삼성 반도체</option>
+      </select>
+      <select class="form-select">
+        <option>최신순</option>
+        <option>이름순</option>
+      </select>
+    </div>
+
+    <div id="workerList">
+      <div class="worker-card" data-name="김철수" data-site="자이 아파트 101동">
+        <span class="status-badge bdg-pending">일지검토요청</span>
+        <div class="card-header-main" onclick="toggleCard(this)">
+          <div class="worker-top-row">
+            <div class="worker-img">김</div>
+            <div>
+              <span class="worker-name-text">김철수 반장</span>
+              <span class="worker-site-text">자이 아파트 101동</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body-detail">
+          <div class="info-row"><span class="info-label">오늘 작업</span><span class="info-val">슬라브 균열 보수</span></div>
+          <div class="info-row"><span class="info-label">투입 공수</span><span class="info-val">1.0 (08:00~17:00)</span></div>
+          <div class="info-row"><span class="info-label">증빙 자료</span><span class="info-val" style="color:var(--primary)">사진 6장 / 도면 1건</span></div>
+          
+          <div class="action-grid">
+            <button class="btn-act log" onclick="alert('일지 상세 보기')"><i data-lucide="clipboard-list"></i>일지</button>
+            <button class="btn-act navy" onclick="showToast('일지가 승인되었습니다.')"><i data-lucide="check-circle"></i>승인</button>
+            <button class="btn-act call" onclick="location.href='tel:01012345678'"><i data-lucide="phone"></i>통화</button>
+          </div>
+        </div>
+        <div class="toggle-area" onclick="toggleCard(this)">
+          <span>상세 정보 보기</span><i data-lucide="chevron-down" class="chev"></i>
+        </div>
+      </div>
+
+      <div class="worker-card" data-name="박영희" data-site="삼성 반도체 P3">
+        <span class="status-badge bdg-working">현장작업중</span>
+        <div class="card-header-main" onclick="toggleCard(this)">
+          <div class="worker-top-row">
+            <div class="worker-img" style="background:#ffe4e6; color:#e11d48;">박</div>
+            <div>
+              <span class="worker-name-text">박영희 팀장</span>
+              <span class="worker-site-text">삼성 반도체 P3</span>
+            </div>
+          </div>
+        </div>
+        <div class="card-body-detail">
+          <div class="info-row"><span class="info-label">오늘 작업</span><span class="info-val">배관 용접 및 비파괴 검사</span></div>
+          <div class="info-row"><span class="info-label">미조치 하자</span><span class="info-val" style="color:var(--danger)">3건 (긴급 1건)</span></div>
+          
+          <div class="action-grid">
+            <button class="btn-act navy" onclick="alert('하자 관리 이동')"><i data-lucide="alert-triangle"></i>하자</button>
+            <button class="btn-act log" onclick="alert('도면 조회 이동')"><i data-lucide="map"></i>도면</button>
+            <button class="btn-act call" onclick="location.href='tel:01098765432'"><i data-lucide="phone"></i>통화</button>
+          </div>
+        </div>
+        <div class="toggle-area" onclick="toggleCard(this)">
+          <span>상세 정보 보기</span><i data-lucide="chevron-down" class="chev"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast">처리되었습니다.</div>
+
+  <script>
+    // 아이콘 초기화
+    lucide.createIcons();
+
+    // @site 인터랙션: 검색어 입력 시 x버튼 활성화 및 돋보기 숨김
+    function handleSearch(input) {
+      const btn = document.getElementById('btnClear');
+      const icon = document.getElementById('searchIcon');
+      if (input.value.trim().length > 0) {
+        btn.classList.add('show');
+        icon.style.opacity = '0';
+      } else {
+        btn.classList.remove('show');
+        icon.style.opacity = '1';
+      }
+      filterCards();
+    }
+
+    function clearSearch() {
+      const input = document.getElementById('searchInput');
+      input.value = '';
+      handleSearch(input);
+      input.focus();
+    }
+
+    // 카드 토글 함수
+    function toggleCard(el) {
+      const card = el.closest('.worker-card');
+      const isExp = card.classList.toggle('expanded');
+      card.querySelector('.toggle-area span').innerText = isExp ? '정보 접기' : '상세 정보 보기';
+    }
+
+    // 토스트 알림 함수
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // 필터링 기능
+    function filterCards() {
+      const q = document.getElementById('searchInput').value.toLowerCase();
+      const site = document.getElementById('siteFilter').value;
+      const cards = document.querySelectorAll('.worker-card');
+
+      cards.forEach(card => {
+        const name = card.dataset.name.toLowerCase();
+        const siteName = card.dataset.site.toLowerCase();
+        const mSearch = name.includes(q) || siteName.includes(q);
+        const mSite = site === 'all' || siteName.includes(site);
+        card.style.display = (mSearch && mSite) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

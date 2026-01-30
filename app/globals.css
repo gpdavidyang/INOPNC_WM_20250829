@@ -49,16 +49,25 @@
   --nav-text: #6b7280;
   --nav-text-active: #2563eb;
 
-  /* Mobile Viewport */
+  /* Mobile Viewport & Sizing */
   --vh: 1vh;
   --dvh: 100dvh;
   --svh: 100svh;
+
+  /* UPDATED: Typography & Sizing Standards (Jan 2026) */
+  --fs-base: 17px;
+  --lh: 1.6;
+  --btn-h: 54px;
+  --input-h: 54px;
+  --search-h: 54px; /* Unify with input */
+  --radius-base: 12px;
+  --radius-lg: 16px;
 
   /* Work Card Styles */
   --work-card-bg: #ffffff;
   --work-card-border: #e6ecf4;
   --work-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --work-card-radius: 8px;
+  --work-card-radius: var(--radius-base);
   /* Admin header height (for AppShell layout) */
   --admin-header-h: 64px;
 }
@@ -761,6 +770,8 @@ body.role-customer-manager {
     @apply text-toss-gray-900;
     background-color: var(--bg, #f6f9ff);
     font-family:
+      'Pretendard Variable',
+      'Pretendard',
       var(--font-noto-sans-kr),
       system-ui,
       -apple-system,
@@ -769,22 +780,22 @@ body.role-customer-manager {
       'Apple SD Gothic Neo',
       'Malgun Gothic',
       sans-serif;
-    font-size: 1.125rem; /* 18px - 기본 크기보다 더 크게 */
-    line-height: 1.6; /* 더 나은 가독성을 위한 줄 간격 */
+    font-size: var(--fs-base); /* 17px */
+    line-height: var(--lh); /* 1.6 */
     /* Font optimization for production */
     font-synthesis: none;
     text-size-adjust: 100%;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
-    /* Prevent font boosting on mobile */
+    /* Prevent font boosting on mobile and ensure smooth scrolling */
     max-height: 999999px;
   }
 }
 
 .dark body {
   @apply bg-toss-gray-900 text-toss-gray-100;
-  font-size: 1.125rem; /* 18px - 기본 크기보다 더 크게 */
-  line-height: 1.6; /* 더 나은 가독성을 위한 줄 간격 */
+  font-size: var(--fs-base);
+  line-height: var(--lh);
   /* Ensure font smoothing in dark mode */
   -webkit-font-smoothing: antialiased;
 }
@@ -2503,4 +2514,14 @@ html.dark .doc-hub .grid-thumbs .thumb {
 .status-tag.approved {
   background: rgba(34, 197, 94, 0.15);
   color: #22c55e;
+}
+
+/* Remove spin buttons from number inputs with .no-spinner class */
+.no-spinner {
+  -moz-appearance: textfield !important;
+}
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
 }

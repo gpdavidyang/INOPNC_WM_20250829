@@ -1,0 +1,92 @@
+// Money App Constants
+export const SPECIAL_UNIT_PRICE = 250000
+export const DEFAULT_UNIT_PRICE = 225000
+export const GONGSU_OPTIONS = [0, 0.5, 1, 1.5, 2, 2.5, 3]
+export const INITIAL_WORK_DATA = {
+  '2025-12-01': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-02': [{ site: '삼성 반도체', man: 0.5, price: 125000 }],
+  '2025-12-03': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-04': [{ site: '자이 아파트', man: 1.5, price: 337500 }],
+  '2025-12-05': [{ site: '푸르지오', man: 1.0, price: 225000 }],
+  '2025-12-06': [{ site: '힐스테이트 센트럴', man: 2.0, price: 450000 }],
+  '2025-12-07': [
+    { site: '자이 아파트', man: 1.0, price: 225000 },
+    { site: '삼성 반도체', man: 0.5, price: 125000 },
+  ],
+  '2025-12-08': [{ site: '푸르지오', man: 1.5, price: 337500 }],
+  '2025-12-09': [{ site: '대전 테크노밸리', man: 2.5, price: 562500 }],
+  '2025-12-10': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-11': [{ site: '광주 첨단단지', man: 1.5, price: 337500 }],
+  '2025-12-12': [{ site: '부산 해운대', man: 2.0, price: 450000 }],
+  '2025-12-13': [
+    { site: '자이 아파트', man: 1.0, price: 225000 },
+    { site: '푸르지오', man: 1.0, price: 225000 },
+  ],
+  '2025-12-14': [{ site: '울산 산업단지', man: 3.0, price: 675000 }],
+  '2025-12-15': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-16': [{ site: '강릉 관광단지', man: 1.5, price: 337500 }],
+  '2025-12-17': [
+    { site: '자이 아파트', man: 1.0, price: 225000 },
+    { site: '삼성 반도체', man: 1.0, price: 250000 },
+    { site: '힐스테이트', man: 0.5, price: 112500 },
+  ],
+  '2025-12-18': [{ site: '대구 첨단단지', man: 2.0, price: 450000 }],
+  '2025-12-19': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-20': [{ site: '전주 혁신도시', man: 1.5, price: 337500 }],
+  '2025-12-21': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-22': [{ site: '원주 산업단지', man: 2.5, price: 562500 }],
+  '2025-12-23': [
+    { site: '자이 아파트', man: 1.0, price: 225000 },
+    { site: '푸르지오', man: 1.5, price: 337500 },
+  ],
+  '2025-12-24': [{ site: '삼성 반도체', man: 2.0, price: 500000 }],
+  '2025-12-25': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-26': [{ site: '힐스테이트 센트럴', man: 1.5, price: 337500 }],
+  '2025-12-27': [
+    { site: '자이 아파트', man: 1.0, price: 225000 },
+    { site: '대전 테크노밸리', man: 1.0, price: 225000 },
+  ],
+  '2025-12-28': [{ site: '부산 해운대', man: 2.0, price: 450000 }],
+  '2025-12-29': [{ site: '자이 아파트', man: 1.0, price: 225000 }],
+  '2025-12-30': [{ site: '광주 첨단단지', man: 1.5, price: 337500 }],
+  '2025-12-31': [
+    { site: '자이 아파트', man: 1.0, price: 225000 },
+    { site: '삼성 반도체', man: 0.5, price: 125000 },
+    { site: '푸르지오', man: 1.0, price: 225000 },
+  ],
+}
+export const SALARY_HISTORY = [
+  {
+    rawDate: '2025-12',
+    month: '2025년 12월',
+    baseTotal: 5500000,
+    man: 25.0,
+    price: 220000,
+    year: 2025,
+    netPay: 4537500,
+    grossPay: 5500000,
+    deductions: 962500,
+  },
+  {
+    rawDate: '2025-11',
+    month: '2025년 11월',
+    baseTotal: 4700000,
+    man: 22.0,
+    price: 213636,
+    year: 2025,
+    netPay: 3871000,
+    grossPay: 4700000,
+    deductions: 829000,
+  },
+  {
+    rawDate: '2025-10',
+    month: '2025년 10월',
+    baseTotal: 2300000,
+    man: 10.0,
+    price: 230000,
+    year: 2025,
+    netPay: 1894100,
+    grossPay: 2300000,
+    deductions: 405900,
+  },
+]

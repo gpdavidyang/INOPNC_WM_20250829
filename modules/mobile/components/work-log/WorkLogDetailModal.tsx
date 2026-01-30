@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useMemo, useCallback } from 'react'
 import { openFileRecordInNewTab } from '@/lib/files/preview'
+import React, { useCallback, useMemo } from 'react'
 import { WorkLog } from '../../types/work-log.types'
 import {
   formatDate,
@@ -9,6 +9,7 @@ import {
   getStatusColor,
   getStatusText,
 } from '../../utils/work-log-utils'
+import { ReportSelectionData, ReportSelectionModal } from './ReportSelectionModal'
 
 interface WorkLogDetailModalProps {
   isOpen: boolean
@@ -72,6 +73,56 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
         workLog.attachments.confirmations.length > 0
       )
     }, [workLog])
+
+    // 보고서 생성 모달 상태
+    const [isReportModalOpen, setIsReportModalOpen] = React.useState(false)
+    const [isGeneratingReport, setIsGeneratingReport] = React.useState(false)
+
+    const handleReportGenerate = async (data: ReportSelectionData) => {
+      try {
+        setIsGeneratingReport(true)
+        console.log('Generating report with:', data)
+        toast.info('보고서 생성 중...')
+
+        // 1. Fetch Selected Photos
+        // TODO: Need an API or helper to fetch full photo objects by photo_grid_report ID or similar logic
+        // For now, we will simulate fetching or pass dummy data if not available
+        const photos = await fetchSelectedPhotos(data.selectedPhotoSheets)
+
+        // 2. Fetch Selected Drawings
+        const drawings = await fetchSelectedDrawings(data.selectedDrawings)
+
+        // 3. Generate PDF
+        const { generateIntegratedReport } = await import('@/lib/report/integrated-pdf-generator')
+        const pdfDoc = await generateIntegratedReport({
+          workLog,
+          selection: data,
+          photos,
+          drawings,
+        })
+
+        // 4. Download
+        pdfDoc.save(`작업보고서_${workLog.siteName}_${workLog.date}.pdf`)
+        toast.success('보고서가 생성되었습니다.')
+      } catch (error) {
+        console.error('Report generation failed:', error)
+        toast.error('보고서 생성에 실패했습니다.')
+      } finally {
+        setIsGeneratingReport(false)
+        setIsReportModalOpen(false)
+      }
+    }
+
+    // Mock fetchers (Implementation needed in separate service)
+    const fetchSelectedPhotos = async (ids: string[]) => {
+      // In real app: supabase.from('photo_grid_reports').select('...').in('id', ids)
+      return []
+    }
+
+    const fetchSelectedDrawings = async (ids: string[]) => {
+      // In real app: supabase.from('markup_documents').select('...').in('id', ids)
+      return []
+    }
 
     if (!isOpen || !workLog) return null
 
@@ -394,20 +445,28 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                 </>
               )}
               <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="flex-1 h-12 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+              >
+                보고서
+              </button>
+              <button
                 onClick={handleShare}
                 className="flex-1 h-12 bg-[var(--num)] bg-opacity-20 text-[var(--num)] rounded-lg font-medium hover:bg-opacity-30"
               >
                 공유
               </button>
-              <button
-                onClick={handlePrint}
-                className="flex-1 h-12 bg-[var(--num)] text-white rounded-lg font-medium hover:opacity-90"
-              >
-                인쇄
-              </button>
             </div>
           </div>
         </div>
+
+        {/* 보고서 생성 모달 */}
+        <ReportSelectionModal
+          isOpen={isReportModalOpen}
+          onClose={() => setIsReportModalOpen(false)}
+          workLog={workLog}
+          onGenerate={handleReportGenerate}
+        />
       </>
     )
   }

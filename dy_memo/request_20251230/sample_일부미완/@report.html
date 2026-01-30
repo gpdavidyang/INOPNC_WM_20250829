@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>통합 작업 관리 - INOPNC Report System</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <style>
+    /* =================================================================
+       [1. 앱 기본 스타일]
+       ================================================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, sans-serif;
+      --primary: #31a3fa; --header-navy: #1a254f;
+      --text-main: #111; --bg-body: #f2f4f6;
+      
+      /* [보고서용 테마] */
+      --rpt-paper: #ffffff;
+      --rpt-text: #000000;
+      --rpt-border: #444444;
+      --rpt-header-bg: #e5e7eb;
+      --rpt-accent: #374151;
+
+      /* [뷰어 UI 테마 - 다크모드] */
+      --pm-bg: #121212; 
+      --pm-ctrl-bg: #222;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: var(--font-main); background: var(--bg-body); color: var(--text-main); }
+    
+    .app-wrapper { max-width: 600px; margin: 0 auto; padding: 20px 16px; min-height: 100vh; }
+    .log-card { background: #fff; border-radius: 16px; padding: 22px; margin-bottom: 12px; cursor: pointer; box-shadow: 0 4px 20px rgba(0,0,0,0.05); position: relative; }
+    .corner-badge { position: absolute; top: 0; right: 0; padding: 6px 14px; border-radius: 0 0 0 12px; color: #fff; font-size: 13px; font-weight: 800; }
+    .bdg-draft { background: #3b82f6; } .bdg-approved { background: #64748b; }
+    
+    .btn-add-log { width: 100%; height: 54px; border-radius: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: 1px dashed var(--primary); color: var(--primary); background: #fff; margin-bottom: 20px; font-size: 17px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px; }
+    .sum-card { background: #fff; padding: 12px 2px; border-radius: 16px; text-align: center; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .sum-val { display: block; font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+    .sum-label { font-size: 13px; font-weight: 700; }
+
+    /* 상세 모달 */
+    .detail-overlay { position: fixed; inset: 0; background: #f2f4f6; z-index: 1000; transform: translateY(100%); transition: transform 0.3s; display: flex; flex-direction: column; }
+    .detail-overlay.open { transform: translateY(0); }
+    .detail-header { background: #fff; height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #e2e8f0; }
+    .detail-content { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 100px; }
+    .detail-section { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; padding: 16px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; justify-content: center; z-index: 1100; }
+    .btn-main { flex: 1; height: 56px; border-radius: 14px; font-size: 17px; font-weight: 800; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-navy { background: var(--header-navy); color: #fff; }
+
+    /* =================================================================
+       [2. 뷰어 UI 스타일 (Viewer)]
+       ================================================================= */
+    #pmOverlay {
+        position: fixed; inset: 0; background: var(--pm-bg); z-index: 9999; display: none;
+        flex-direction: column; color: #fff; overflow: hidden; user-select: none;
+    }
+    #pmOverlay.active { display: flex; }
+
+    .pm-header { height: 56px; background: #000; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #333; z-index: 100; flex-shrink: 0; }
+    .pm-title { font-size: 17px; font-weight: 700; color: #fff; max-width: 70%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+    .pm-icon-btn { background: none; border: none; color: #fff; cursor: pointer; padding: 8px; border-radius: 50%; display:flex; align-items:center; justify-content:center;}
+    .pm-icon-btn:active { background: #333; }
+
+    /* 뷰포트: 문서가 표시되는 영역 */
+    .pm-viewport {
+        flex: 1; position: relative; overflow: hidden; background: var(--pm-bg);
+        display: flex; justify-content: center; 
+        /* 모바일에서 상단부터 보이도록 align-items: flex-start */
+        align-items: flex-start; 
+        cursor: grab; touch-action: none;
+        padding-top: 20px; 
+    }
+    .pm-viewport.panning { cursor: grabbing; }
+
+    /* 문서 래퍼: 실제 페이지들을 감싸는 컨테이너 */
+    .pm-content-wrapper {
+        transform-origin: center top; /* 확대 축소 기준: 상단 중앙 */
+        transition: transform 0.15s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        display: flex; flex-direction: column; align-items: center; 
+        gap: 40px; /* 페이지 사이 간격 (모바일 분리감 확보) */
+        padding-bottom: 120px; /* 하단 여백 */
+    }
+
+    /* 하단 컨트롤러 */
+    .pm-controls {
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: var(--pm-ctrl-bg); padding: 10px 24px; border-radius: 100px;
+        display: flex; gap: 28px; z-index: 200; border: 1px solid #333;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .pm-ctrl-btn {
+        background: none; border: none; color: #fff; display: flex; flex-direction: column;
+        align-items: center; gap: 4px; font-size: 11px; cursor: pointer; min-width: 40px;
+        opacity: 0.8; transition: 0.2s; font-weight: 500;
+    }
+    .pm-ctrl-btn:hover { opacity: 1; }
+    .pm-ctrl-btn.active { color: var(--primary); opacity: 1; font-weight: 700; }
+
+    /* =================================================================
+       [3. 보고서 스타일 (A4 Optimized)]
+       ================================================================= */
+    /* A4 페이지: 모바일에서도 종이 질감이 느껴지도록 그림자 강화 */
+    .page-a4 {
+        width: 210mm; min-height: 297mm;
+        background: var(--rpt-paper); padding: 15mm 15mm;
+        /* 진하고 부드러운 그림자로 입체감 부여 */
+        box-shadow: 0 20px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05); 
+        position: relative; box-sizing: border-box;
+        color: var(--rpt-text); font-family: "Pretendard", sans-serif;
+    }
+
+    /* 편집 가능 영역 */
+    [contenteditable="true"]:hover { outline: 1px dashed #999; background: rgba(0,0,0,0.02); cursor: text; }
+    [contenteditable="true"]:focus { outline: 2px solid var(--header-navy); background: #fff; }
+
+    /* 헤더 및 타이틀 */
+    .rpt-header { border-bottom: 2px solid #000; margin-bottom: 15px; padding-bottom: 10px; position: relative; }
+    .rpt-title { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin: 0; color: #000; text-align: center; }
+    .rpt-meta-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px; font-size: 12px; color: #444; font-weight: 600; }
+
+    /* 테이블 스타일 (행 높이 넉넉하게) */
+    .rpt-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; table-layout: fixed; }
+    .rpt-table th, .rpt-table td { 
+        border: 1px solid var(--rpt-border); 
+        padding: 12px 8px; /* 모바일 가독성을 위해 패딩 확보 */
+        vertical-align: middle; word-break: break-all; line-height: 1.4; 
+    }
+    .rpt-table th { background: var(--rpt-header-bg); font-weight: 700; text-align: center; color: #000; }
+    .rpt-table td { font-weight: 400; color: #000; }
+    .rpt-center { text-align: center; }
+    
+    .rpt-section-title { font-size: 15px; font-weight: 800; margin: 15px 0 8px 0; border-left: 4px solid var(--rpt-accent); padding-left: 8px; color: #111; }
+
+    /* 결재란 */
+    .sign-table { width: 35%; margin-left: auto; margin-bottom: 20px; border-collapse: collapse; font-size: 11px; }
+    .sign-table th, .sign-table td { border: 1px solid var(--rpt-border); text-align: center; vertical-align: middle; }
+    .sign-table th { background: var(--rpt-header-bg); padding: 5px 0; font-weight: 700; }
+    .sign-table td { height: 60px; position: relative; }
+
+    /* 사진대지 (2x2 Grid) */
+    .photo-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; height: 90%; align-content: start; }
+    .photo-item { border: 1px solid var(--rpt-border); display: flex; flex-direction: column; height: 100%; }
+    .pi-img-box { flex: 1; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #fff; border-bottom: 1px solid var(--rpt-border); padding: 4px; min-height: 180px; }
+    .pi-img-box img { width: 100%; height: 100%; object-fit: contain; max-height: 240px; }
+    .pi-info-table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 0; border: none; }
+    .pi-info-table th { background: #f0f0f0; text-align: center; border: 1px solid #999; padding: 4px; width: 20%; font-weight: 700; }
+    .pi-info-table td { border: 1px solid #999; padding: 4px; width: 30%; text-align: center; }
+
+    /* 작업완료확인서 양식 */
+    .cert-box { border: 2px solid #000; padding: 30px; height: 100%; display: flex; flex-direction: column; }
+    .cert-title { text-align: center; font-size: 32px; font-weight: 900; text-decoration: underline; margin-bottom: 40px; }
+    .cert-row { display: flex; margin-bottom: 15px; font-size: 16px; align-items: flex-end; }
+    .cert-label { font-weight: 800; width: 100px; flex-shrink: 0; }
+    .cert-val { flex: 1; border-bottom: 1px solid #999; padding-bottom: 4px; }
+    .cert-content-box { border: 1px solid #000; padding: 15px; min-height: 200px; margin: 20px 0; font-size: 15px; line-height: 1.6; }
+
+    .stamp-overlay { position: absolute; width: 60px; height: 60px; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.8; mix-blend-mode: multiply; pointer-events: none; }
+
+    /* 유틸리티 */
+    .pm-loading { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 300; color: #fff; }
+    .pm-spinner { width: 36px; height: 36px; border: 3px solid #555; border-top-color: var(--primary); border-radius: 50%; animation: pm-spin 1s linear infinite; margin-bottom: 12px; }
+    @keyframes pm-spin { to { transform: rotate(360deg); } }
+    
+    .pm-toast { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 12px 24px; border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 400; font-weight: 700; font-size: 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
+    .pm-toast.show { opacity: 1; top: 90px; }
+  </style>
+</head>
+<body>
+
+  <div class="app-wrapper" id="viewDashboard">
+    <div style="margin-bottom:20px; display:flex; justify-content:space-between; align-items:center;">
+        <h2 style="margin:0;">작업일지 관리</h2>
+        <span style="font-size:13px; color:#666;">INOPNC v2.4</span>
+    </div>
+
+    <div class="summary-grid">
+        <div class="sum-card" onclick="renderLogs('draft')"><span class="sum-val" style="color:#3b82f6" id="cnt-draft">0</span><span class="sum-label">작성중</span></div>
+        <div class="sum-card" onclick="renderLogs('approved')"><span class="sum-val" style="color:#64748b" id="cnt-approved">0</span><span class="sum-label">승인완료</span></div>
+    </div>
+
+    <button class="btn-add-log" onclick="alert('데모: 리스트의 [승인완료] 항목을 클릭하세요.')"><i data-lucide="plus-circle"></i> 새 작업일지 등록</button>
+    <div id="logList"></div>
+  </div>
+
+  <div class="detail-overlay" id="detailOverlay">
+    <div class="detail-header">
+      <button onclick="closeDetail()" style="background:none; border:none;"><i data-lucide="x" width="28"></i></button>
+      <span style="font-weight:800; font-size:18px;">작업일지 상세</span>
+      <div style="width:28px;"></div>
+    </div>
+    
+    <div class="detail-content">
+      <div class="detail-section">
+        <div class="sec-title" style="font-weight:800; margin-bottom:10px;"><i data-lucide="info" width="16" style="vertical-align:text-bottom"></i> 기본 정보</div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>현장명</span><strong id="dt-site"></strong></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span>작업일자</span><strong id="dt-date"></strong></div>
+        <div style="display:flex; justify-content:space-between;"><span>소속</span><strong id="dt-aff"></strong></div>
+      </div>
+      <div class="detail-section">
+        <div class="sec-title" style="font-weight:800; margin-bottom:10px;"><i data-lucide="hammer" width="16" style="vertical-align:text-bottom"></i> 작업 내용</div>
+        <div id="dt-work-summary" style="line-height:1.6; font-size:15px;"></div>
+      </div>
+      <div class="detail-section">
+        <div class="sec-title" style="font-weight:800; margin-bottom:10px;"><i data-lucide="camera" width="16" style="vertical-align:text-bottom"></i> 사진 / 첨부</div>
+        <div id="dt-photos" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:5px;"></div>
+      </div>
+    </div>
+
+    <div class="sticky-footer">
+      <button class="btn-main btn-navy" id="btn-action">저장하기</button>
+    </div>
+  </div>
+
+  <div id="pmOverlay">
+      <header class="pm-header">
+          <button class="pm-icon-btn" onclick="PreviewModal.close()">
+              <i data-lucide="chevron-left" width="24"></i>
+          </button>
+          <div class="pm-title" id="pmTitle">미리보기</div>
+          <button class="pm-icon-btn" onclick="PreviewModal.savePDF()">
+              <i data-lucide="download" width="20"></i>
+          </button>
+      </header>
+
+      <div class="pm-viewport" id="pmViewport">
+          <div class="pm-content-wrapper" id="pmContent"></div>
+      </div>
+      
+      <div class="pm-controls">
+          <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(-0.1)"><i data-lucide="minus" width="20"></i> 축소</button>
+          <button class="pm-ctrl-btn" id="pmPanBtn" onclick="PreviewModal.togglePan()"><i data-lucide="hand" width="20"></i> 이동</button>
+          <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(0.1)"><i data-lucide="plus" width="20"></i> 확대</button>
+          <button class="pm-ctrl-btn" onclick="PreviewModal.share()"><i data-lucide="share-2" width="20"></i> 공유</button>
+      </div>
+
+      <div class="pm-loading" id="pmLoading"><div class="pm-spinner"></div><span>처리 중...</span></div>
+      <div class="pm-toast" id="pmToast"><i data-lucide="check" size="16"></i> <span id="pmToastMsg">완료</span></div>
+  </div>
+
+  <script>
+    // =================================================================
+    // [Data] Mock Data
+    // =================================================================
+    const STAMP_SRC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgc3Ryb2tlPSJyZWQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0icmVkIiBmb250LXdlaWdodD0iYm9sZCI+KOiBlCk8L3RleHQ+PC9zdmc+";
+
+    const logData = [
+        { 
+            id: 1, site: "자이 아파트 101동", date: "2025-04-21", status: "approved", affiliation: "본사 직영",
+            member: "지하주차장 PC부재", process: "균열보수", location: "B1 전체", type: "보수",
+            // 3명 / 2.5공수 (투입일 1일)
+            manpower: [{worker:"김반장", val:1.0}, {worker:"이작업", val:0.5}, {worker:"박보조", val:1.0}],
+            materials: [
+                {name:"에폭시 주제/경화제", qty:"2 set", type:"HQ"},
+                {name:"퍼티", qty:"5 kg", type:"HQ"}
+            ],
+            photos: [
+                {url:"https://images.unsplash.com/photo-1621252179027-94459d27d3ee?w=400", tag:"보수전"},
+                {url:"https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=400", tag:"보수후"},
+                {url:"https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=400", tag:"보수전"},
+                {url:"https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=400", tag:"보수후"},
+                {url:"https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=400", tag:"완료확인"}
+            ],
+            drawings: [
+                {url:"https://via.placeholder.com/800x600?text=Completion+Drawing", name:"완료도면_01"}
+            ],
+            hasCert: true
+        },
+        { 
+            id: 2, site: "삼성 반도체 P3", date: "2025-04-22", status: "approved", affiliation: "배관팀", 
+            member:"배관", process:"용접", location:"2F", 
+            manpower:[{worker:"최용접", val:1.0}], 
+            materials:[], photos:[], drawings: [], hasCert: false
+        }
+    ];
+
+    // =================================================================
+    // [App Logic]
+    // =================================================================
+    window.onload = () => {
+        lucide.createIcons();
+        renderLogs('all');
+        document.getElementById('cnt-draft').innerText = logData.filter(l=>l.status!=='approved').length;
+        document.getElementById('cnt-approved').innerText = logData.filter(l=>l.status==='approved').length;
+    };
+
+    function renderLogs(filter) {
+        const list = document.getElementById('logList');
+        list.innerHTML = '';
+        const filtered = filter === 'all' ? logData : (filter === 'draft' ? logData.filter(l => l.status !== 'approved') : logData.filter(l => l.status === 'approved'));
+        
+        filtered.forEach(log => {
+            const stClass = log.status === 'approved' ? 'bdg-approved' : 'bdg-draft';
+            const stText = log.status === 'approved' ? '승인완료' : '작성중';
+            
+            const div = document.createElement('div');
+            div.className = 'log-card';
+            div.onclick = () => openDetail(log.id);
+            div.innerHTML = `
+                <div class="corner-badge ${stClass}">${stText}</div>
+                <div style="font-weight:700; color:#666; font-size:14px; margin-bottom:4px;">${log.date}</div>
+                <div style="font-size:18px; font-weight:800; margin-bottom:6px;">${log.site}</div>
+                <div style="color:#475569; font-size:15px;">${log.process} | ${log.member}</div>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function openDetail(id) {
+        const log = logData.find(l => l.id === id);
+        if(!log) return;
+
+        document.getElementById('dt-site').innerText = log.site;
+        document.getElementById('dt-date').innerText = log.date;
+        document.getElementById('dt-aff').innerText = log.affiliation;
+        
+        const summary = `
+            <div>- 공정: ${log.process}</div>
+            <div>- 부위: ${log.member}</div>
+            <div>- 위치: ${log.location || '-'}</div>
+            <div>- 인원: ${log.manpower.length}명 (${log.manpower.reduce((a,b)=>a+b.val,0)}공수)</div>
+        `;
+        document.getElementById('dt-work-summary').innerHTML = summary;
+
+        const photoWrap = document.getElementById('dt-photos');
+        photoWrap.innerHTML = '';
+        if(log.photos.length === 0) photoWrap.innerHTML = '<span style="color:#999; font-size:13px;">사진 없음</span>';
+        else {
+            (log.photos || []).forEach(p => {
+                const img = document.createElement('img');
+                img.src = p.url;
+                img.style.cssText = "width:60px; height:60px; object-fit:cover; border-radius:8px; border:1px solid #ddd;";
+                photoWrap.appendChild(img);
+            });
+        }
+
+        const btn = document.getElementById('btn-action');
+        if(log.status === 'approved') {
+            btn.innerHTML = `<i data-lucide="printer" width="20"></i> 보고서 / PDF 변환`;
+            btn.onclick = () => openReportPreview(log.id);
+        } else {
+            btn.innerHTML = `저장하기`;
+            btn.onclick = () => { alert('저장되었습니다.'); };
+        }
+        
+        document.getElementById('detailOverlay').classList.add('open');
+        lucide.createIcons();
+    }
+
+    function closeDetail() { document.getElementById('detailOverlay').classList.remove('open'); }
+
+    // =================================================================
+    // [Report Logic]
+    // =================================================================
+    function openReportPreview(logId) {
+        const log = logData.find(l => l.id === logId);
+        if (!log) return;
+
+        // [Logic] 총 투입일: 하루 작업이므로 무조건 1일로 표기
+        const totalHeadcount = log.manpower.length; 
+        
+        const hasMaterials = log.materials && log.materials.length > 0;
+        const hasPhotos = log.photos && log.photos.length > 0;
+        const hasDrawings = log.drawings && log.drawings.length > 0;
+        const hasCert = log.hasCert;
+
+        let html = `
+        <div style="display:flex; flex-direction:column; align-items:center;">
+            <div class="page-a4">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:15px;">
+                    <div style="flex:1;">
+                        <h1 class="rpt-title" style="text-align:left;">작업 완료 보고서</h1>
+                        <div class="rpt-meta-row" style="justify-content:flex-start; gap:15px; margin-top:10px;">
+                            <span>문서번호: WR-${log.date.replace(/-/g,'')}-${log.id}</span>
+                            <span>출력일: ${new Date().toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <table class="sign-table" style="width:180px; margin:0;">
+                        <tr><th style="width:50%">작 성</th><th style="width:50%">승 인</th></tr>
+                        <tr>
+                            <td>
+                                <div style="position:relative; z-index:1;">${log.affiliation}<br>(인)</div>
+                                <img src="${STAMP_SRC}" class="stamp-overlay">
+                            </td>
+                            <td><br>(인)</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div style="border-bottom:2px solid #000; margin-bottom:20px;"></div>
+
+                <div class="rpt-section-title">1. 기본 정보</div>
+                <table class="rpt-table">
+                    <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
+                    <tr><th>현장명</th><td contenteditable="true">${log.site}</td><th>작업일자</th><td contenteditable="true">${log.date}</td></tr>
+                    <tr><th>소 속</th><td contenteditable="true">${log.affiliation}</td><th>작업인원</th><td contenteditable="true">총 투입 ${totalHeadcount}명 / 총 투입 1일</td></tr>
+                </table>
+
+                <div class="rpt-section-title">2. 작업 내용</div>
+                <table class="rpt-table">
+                    <colgroup><col width="20%"><col width="25%"><col width="25%"><col width="30%"></colgroup>
+                    <tr><th>부재명</th><th>공정명</th><th>위 치</th><th>상 태</th></tr>
+                    <tr>
+                        <td class="rpt-center" contenteditable="true">${log.member}</td>
+                        <td class="rpt-center" contenteditable="true">${log.process}</td>
+                        <td class="rpt-center" contenteditable="true">${log.location || '-'}</td>
+                        <td class="rpt-center" contenteditable="true">완료</td>
+                    </tr>
+                </table>
+
+                <div class="rpt-section-title">3. 자재 투입 현황</div>
+                <table class="rpt-table">
+                    <thead><tr><th width="10%">No</th><th width="20%">구분</th><th width="40%">품명</th><th width="30%">수량</th></tr></thead>
+                    <tbody>
+                        ${hasMaterials ? log.materials.map((m, i) => `
+                        <tr>
+                            <td class="rpt-center">${i + 1}</td>
+                            <td class="rpt-center" contenteditable="true">${m.type==='HQ'?'본사':'작업자'}</td>
+                            <td class="rpt-center" contenteditable="true">${m.name}</td>
+                            <td class="rpt-center" contenteditable="true">${m.qty}</td>
+                        </tr>`).join('') : `<tr><td colspan="4" class="rpt-center" style="padding:15px; color:#555;">해당 없음</td></tr>`}
+                    </tbody>
+                </table>
+
+                <div class="rpt-section-title">4. 첨부 문서 현황</div>
+                <table class="rpt-table">
+                    <colgroup><col width="20%"><col width="30%"><col width="20%"><col width="30%"></colgroup>
+                    <tr><th>사진관리</th><td class="rpt-center">${hasPhotos ? '유' : '무'}</td><th>도면관리</th><td class="rpt-center">${hasDrawings ? '유' : '무'}</td></tr>
+                    <tr><th>작업완료확인서</th><td class="rpt-center">${hasCert ? '유' : '무'}</td><th>기 타</th><td class="rpt-center" contenteditable="true">-</td></tr>
+                </table>
+                
+                <div style="margin-top:30px; border:1px dashed #ccc; padding:15px; font-size:12px; color:#666; min-height:100px;" contenteditable="true">
+                    <strong>[비고 / 특이사항]</strong><br>
+                    - 금일 작업 안전하게 마무리 하였습니다.
+                </div>
+            </div>
+        `;
+
+        if (hasPhotos) {
+            const chunkSize = 4;
+            for (let i = 0; i < log.photos.length; i += chunkSize) {
+                const chunk = log.photos.slice(i, i + chunkSize);
+                const pageNum = Math.floor(i/chunkSize) + 1;
+                html += `
+                <div class="page-a4">
+                    <div class="rpt-header">
+                        <h2 class="rpt-title" style="font-size:22px;">사 진 대 지</h2>
+                        <div class="rpt-meta-row"><span>공사명: ${log.site}</span><span>Page: ${pageNum}</span></div>
+                    </div>
+                    <div class="photo-grid">
+                        ${chunk.map(p => `
+                        <div class="photo-item">
+                            <div class="pi-img-box"><img src="${p.url}"></div>
+                            <table class="pi-info-table">
+                                <tr><th>부재명</th><td contenteditable="true">${log.member}</td><th>공 정</th><td contenteditable="true">${log.process}</td></tr>
+                                <tr><th>내 용</th><td contenteditable="true">${p.tag || '시공'}</td><th>보수후</th><td contenteditable="true">${p.tag==='보수후'?'완료':'-'}</td></tr>
+                            </table>
+                        </div>
+                        `).join('')}
+                        ${chunk.length < 4 ? Array(4 - chunk.length).fill(`
+                            <div class="photo-item" style="border:1px dashed #ccc; opacity:0.5;">
+                                <div class="pi-img-box" style="background:#fafafa;"></div>
+                                <table class="pi-info-table"><tr><th>부재명</th><td></td><th>공 정</th><td></td></tr><tr><th>내 용</th><td></td><th>보수후</th><td></td></tr></table>
+                            </div>`).join('') : ''}
+                    </div>
+                </div>`;
+            }
+        }
+
+        if (hasDrawings) {
+            log.drawings.forEach(d => {
+                html += `
+                <div class="page-a4">
+                    <div class="rpt-header">
+                        <h2 class="rpt-title">완 료 도 면</h2>
+                        <div class="rpt-meta-row"><span>${d.name || '도면 첨부'}</span></div>
+                    </div>
+                    <div style="width:100%; height:90%; display:flex; align-items:center; justify-content:center; border:1px solid #eee;">
+                        <img src="${d.url}" style="max-width:100%; max-height:100%; object-fit:contain;">
+                    </div>
+                </div>`;
+            });
+        }
+
+        if (hasCert) {
+            html += `
+            <div class="page-a4">
+                <div class="cert-box">
+                    <div>
+                        <div class="cert-title">작업완료확인서</div>
+                        <div class="cert-row"><span class="cert-label">■ 현장명 :</span><span class="cert-val" contenteditable="true">${log.site}</span></div>
+                        <div class="cert-row"><span class="cert-label">■ 공사명 :</span><span class="cert-val" contenteditable="true">${log.process} 공사</span></div>
+                        <div class="cert-row"><span class="cert-label">■ 기간 :</span><span class="cert-val" contenteditable="true">${log.date} ~ ${log.date}</span></div>
+                        <div class="cert-row"><span class="cert-label">■ 작업자 :</span><span class="cert-val" contenteditable="true">${log.affiliation} 외 ${totalHeadcount - 1}명</span></div>
+                        
+                        <div class="cert-row" style="margin-top:20px;"><span class="cert-label">■ 특기사항</span></div>
+                        <div class="cert-content-box" contenteditable="true">- 특이사항 없음</div>
+                        
+                        <div class="cert-row"><span class="cert-label">■ 작업내용</span></div>
+                        <div class="cert-content-box" contenteditable="true">* ${log.member} ${log.process} 완료<br>* 주변 정리정돈 완료</div>
+                        
+                        <div style="text-align:center; margin:30px 0; font-size:18px;">상기 사항과 같이 작업 하였음을 확인합니다.</div>
+                    </div>
+                    <div style="text-align:center; margin-bottom:20px;">
+                        <div style="font-size:18px; margin-bottom:20px;">${new Date().getFullYear()}년 ${new Date().getMonth()+1}월 ${new Date().getDate()}일</div>
+                        <div style="display:inline-block; text-align:left; width:60%;">
+                            <div class="cert-row"><span class="cert-label">소 속 :</span><span class="cert-val" contenteditable="true" style="border:none;">${log.affiliation}</span></div>
+                            <div class="cert-row"><span class="cert-label">확인자 :</span><span class="cert-val" contenteditable="true" style="border:none;">(인)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+        
+        html += `</div>`; 
+
+        PreviewModal.open(`${log.date}_${log.site}_보고서`, html);
+    }
+
+    // =================================================================
+    // [Viewer Logic]
+    // =================================================================
+    const PreviewModal = {
+        zoomLevel: 1, isPanning: false, pointX: 0, pointY: 0, startX: 0, startY: 0,
+        overlay: null, wrapper: null, viewport: null, panBtn: null, titleEl: null,
+
+        init() {
+            this.overlay = document.getElementById('pmOverlay');
+            this.wrapper = document.getElementById('pmContent');
+            this.viewport = document.getElementById('pmViewport');
+            this.panBtn = document.getElementById('pmPanBtn');
+            this.titleEl = document.getElementById('pmTitle');
+            this.setupEvents();
+        },
+
+        open(title, contentHTML) {
+            if (!this.overlay) this.init();
+            this.titleEl.innerText = title;
+            this.wrapper.innerHTML = contentHTML;
+            requestAnimationFrame(() => this.resetView()); 
+            this.overlay.classList.add('active');
+            lucide.createIcons();
+        },
+
+        close() {
+            if(this.overlay) this.overlay.classList.remove('active');
+            this.isPanning = false;
+            if(this.panBtn) this.panBtn.classList.remove('active');
+            if(this.viewport) this.viewport.classList.remove('panning');
+        },
+
+        zoom(delta) {
+            this.zoomLevel = Math.max(0.3, this.zoomLevel + delta);
+            this.updateTransform();
+        },
+
+        // [최적화] 화면 맞춤 로직 (Smart Fit)
+        resetView() {
+            if (!this.viewport) return;
+            const w = this.viewport.clientWidth;
+            const h = this.viewport.clientHeight;
+            const pageW = 800; // A4 픽셀 근사값
+            const pageH = 1130; 
+
+            const isMobile = w < 768; // 모바일 기준
+
+            if (isMobile) {
+                // 모바일: 가로 폭에 맞춰서 글씨가 보이게 함 (읽기 편함)
+                this.zoomLevel = (w / pageW) * 0.95;
+                this.pointX = 0;
+                this.pointY = 20; // 상단 여백
+            } else {
+                // PC: 전체 페이지가 한눈에 들어오게 함
+                const scaleW = w / pageW;
+                const scaleH = h / pageH;
+                this.zoomLevel = Math.min(scaleW, scaleH) * 0.95;
+                this.pointX = 0;
+                this.pointY = 0;
+            }
+            this.updateTransform();
+        },
+
+        togglePan() {
+            this.isPanning = !this.isPanning;
+            this.panBtn.classList.toggle('active', this.isPanning);
+            this.viewport.classList.toggle('panning', this.isPanning);
+        },
+
+        updateTransform() {
+            if(this.wrapper) this.wrapper.style.transform = `translate(${this.pointX}px, ${this.pointY}px) scale(${this.zoomLevel})`;
+        },
+
+        setupEvents() {
+            const start = (e) => {
+                if (!this.isPanning) return;
+                if (e.target.closest('.pm-controls') || e.target.tagName === 'BUTTON') return;
+                e.preventDefault();
+                const evt = e.touches ? e.touches[0] : e;
+                this.startX = evt.clientX - this.pointX;
+                this.startY = evt.clientY - this.pointY;
+                document.addEventListener('mousemove', move); document.addEventListener('touchmove', move, {passive:false});
+                document.addEventListener('mouseup', end); document.addEventListener('touchend', end);
+            };
+            const move = (e) => {
+                const evt = e.touches ? e.touches[0] : e;
+                this.pointX = evt.clientX - this.startX;
+                this.pointY = evt.clientY - this.startY;
+                this.updateTransform();
+            };
+            const end = () => {
+                document.removeEventListener('mousemove', move); document.removeEventListener('touchmove', move);
+                document.removeEventListener('mouseup', end); document.removeEventListener('touchend', end);
+            };
+            this.viewport.addEventListener('mousedown', start);
+            this.viewport.addEventListener('touchstart', start, {passive:false});
+        },
+
+        async savePDF() {
+            this.showLoading(true);
+            const fileName = this.titleEl.innerText;
+            const oldTransform = this.wrapper.style.transform;
+            this.wrapper.style.transform = 'scale(1)'; // 캡처 위해 리셋
+
+            await new Promise(r => setTimeout(r, 500));
+
+            try {
+                const pages = this.wrapper.querySelectorAll('.page-a4');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                const pdfW = doc.internal.pageSize.getWidth();
+                const pdfH = doc.internal.pageSize.getHeight();
+
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) doc.addPage();
+                    const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+                    const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                    doc.addImage(imgData, 'JPEG', 0, 0, pdfW, pdfH);
+                }
+                doc.save(`${fileName}.pdf`);
+                this.showToast("PDF 저장이 완료되었습니다.");
+            } catch (e) {
+                console.error(e);
+                alert("저장 중 오류가 발생했습니다.");
+            } finally {
+                this.wrapper.style.transform = oldTransform;
+                this.showLoading(false);
+            }
+        },
+
+        async share() {
+            if (!navigator.share) return alert("공유를 지원하지 않습니다.");
+            this.showLoading(true);
+            const oldTransform = this.wrapper.style.transform;
+            this.wrapper.style.transform = 'scale(1)';
+            try {
+                const page1 = this.wrapper.querySelector('.page-a4');
+                const canvas = await html2canvas(page1, { scale: 1.5, useCORS: true });
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], "report.jpg", { type: "image/jpeg" });
+                    await navigator.share({ title: this.titleEl.innerText, files: [file] });
+                }, 'image/jpeg', 0.9);
+            } catch(e) {} finally {
+                this.wrapper.style.transform = oldTransform;
+                this.showLoading(false);
+            }
+        },
+
+        showLoading(v) { document.getElementById('pmLoading').style.display = v ? 'flex' : 'none'; },
+        showToast(msg) {
+            const t = document.getElementById('pmToast');
+            document.getElementById('pmToastMsg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+    };
+  </script>
+</body>
+</html>

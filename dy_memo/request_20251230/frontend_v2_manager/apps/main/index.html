@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>INOPNC - 통합 시스템</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#31a3fa',
+            'primary-bg': '#eaf6ff',
+            'header-navy': '#1a254f',
+            'bg-body': '#f2f4f6',
+            'bg-surface': '#ffffff',
+            'bg-input': '#ffffff',
+            border: '#e2e8f0',
+            danger: '#ef4444',
+            'text-main': '#111111',
+            'text-sub': '#475569',
+          },
+          fontFamily: {
+            main: ['"Pretendard Variable"', 'Pretendard', '-apple-system', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      padding-top: 20px;
+      padding-bottom: 20px;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    
+    /* Quick Menu Styles */
+    .quick-menu-section { padding: 10px 0 20px 0; }
+    .qm-header { display: flex; align-items: center; gap: 6px; margin-bottom: 16px; padding-left: 4px; }
+    .qm-title-icon-img { width: 20px; height: 20px; object-fit: contain; }
+    .qm-title { font-size: 20px; font-weight: 700; color: #1a254f; letter-spacing: -0.5px; }
+    .dark .qm-title { color: #f1f5f9; }
+    
+    .qm-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; width: 100%; }
+    .qm-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px 0; width: 100%; transition: transform 0.12s ease-out; }
+    .qm-item:hover { transform: translateY(-2px); }
+    .qm-item:active { transform: translateY(0) scale(0.95); }
+    .qm-item--event { border-radius: 14px; padding: 6px 0 10px; overflow: visible; }
+    
+    .qm-icon-wrapper { position: relative; display: inline-block; }
+    .qm-main-icon { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06)); }
+    
+    .qm-label { font-size: 13px; font-weight: 700; color: #111111; text-align: center; line-height: 1.3; white-space: nowrap; letter-spacing: -0.5px; }
+    .dark .qm-label { color: #f1f5f9; }
+
+    .qm-badge { position: absolute; top: 0; right: 0; transform: translate(50%, -50%); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; color: #fff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 2px solid #f2f4f6; z-index: 10; line-height: 1; }
+    .dark .qm-badge { border-color: #0f172a; }
+
+    .qm-badge.req { background: #8b5cf6; }
+    .qm-badge.req.worklog { background: #16a34a; }
+    .qm-badge.issue { background: #ef4444; }
+
+    /* Animations */
+    .qm-badge.req { animation: active-badge-pulse-req 1.6s infinite ease-out; transform-origin: 50% 50%; }
+    .qm-badge.req.worklog { animation: active-badge-pulse-worklog 1.6s infinite ease-out; transform-origin: 50% 50%; }
+    .qm-badge.issue { animation: active-badge-pulse-issue 1.6s infinite ease-out; transform-origin: 50% 50%; }
+
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes shake { 10%, 90% { transform: translate3d(-1px, 0, 0); } 20%, 80% { transform: translate3d(2px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-4px, 0, 0); } 40%, 60% { transform: translate3d(4px, 0, 0); } }
+    @keyframes pulse-error { 0%, 100% { background-color: rgba(239, 68, 68, 0.1); border-color: #ef4444; } 50% { background-color: rgba(239, 68, 68, 0.2); border-color: #dc2626; } }
+    @keyframes nextStepPulse {
+      0%, 100% { border-color: #87CEEB; box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.15); background-color: rgba(135, 206, 235, 0.05); }
+      50% { border-color: #87CEEB; box-shadow: 0 0 0 6px rgba(135, 206, 235, 0.25); background-color: rgba(135, 206, 235, 0.1); }
+    }
+    @keyframes active-badge-pulse-req {
+      0% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.45); }
+      30% { transform: translate(50%, -50%) scale(1.06); box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+      60% { transform: translate(50%, -50%) scale(1.02); box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.12); }
+      100% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+    }
+    @keyframes active-badge-pulse-worklog {
+      0% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+      30% { transform: translate(50%, -50%) scale(1.06); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+      60% { transform: translate(50%, -50%) scale(1.02); box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12); }
+      100% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+    @keyframes active-badge-pulse-issue {
+      0% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45); }
+      30% { transform: translate(50%, -50%) scale(1.06); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      60% { transform: translate(50%, -50%) scale(1.02); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12); }
+      100% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    .error-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; border-color: #ef4444 !important; }
+    .section-error-highlight { animation: pulse-error 1.5s ease-in-out 3; border: 2px solid #ef4444 !important; border-radius: 16px !important; }
+    .next-step-guide { animation: nextStepPulse 2s ease-in-out 2; border: 2px solid #87CEEB !important; border-radius: 16px; padding: 20px; background-color: rgba(135, 206, 235, 0.05) !important; position: relative; z-index: 1; }
+    .next-step-guide::before { content: '다음 단계'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: #87CEEB; color: #fff; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 12px; pointer-events: none; }
+    
+    /* Scrollbar hide */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* Custom Form Inputs */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      background: transparent; bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
+    }
+  </style>
+</head>
+<body class="bg-bg-body text-text-main">
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "name": "INOPNC Integrated Docs",
+  "description": "A comprehensive document and punch list management application for construction sites.",
+  "requestFramePermissions": ["camera"]
+}

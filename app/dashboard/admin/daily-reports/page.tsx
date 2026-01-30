@@ -1,11 +1,11 @@
-import type { Metadata } from 'next'
-import Link from 'next/link'
-import { t } from '@/lib/ui/strings'
+import { getDailyReports } from '@/app/actions/admin/daily-reports'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { DailyReportFilters } from '@/components/admin/DailyReportFilters'
 import { PageHeader } from '@/components/ui/page-header'
 import { createClient } from '@/lib/supabase/server'
-import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { getDailyReports } from '@/app/actions/admin/daily-reports'
-import { DailyReportFilters } from '@/components/admin/DailyReportFilters'
+import { t } from '@/lib/ui/strings'
+import type { Metadata } from 'next'
+import Link from 'next/link'
 // Badge used inside client table
 import DailyReportsTable from '@/components/admin/DailyReportsTable'
 
@@ -29,7 +29,13 @@ export default async function AdminDailyReportsPage({
   let siteId = ((searchParams?.site_id as string) || (searchParams?.site as string) || '').trim()
   const createdBy = ((searchParams?.created_by as string) || '').trim()
   const statusParam = ((searchParams?.status as string) || '').trim()
-  const status = statusParam === 'draft' || statusParam === 'submitted' ? statusParam : ''
+  const status =
+    statusParam === 'draft' ||
+    statusParam === 'submitted' ||
+    statusParam === 'approved' ||
+    statusParam === 'rejected'
+      ? statusParam
+      : ''
   const dateFrom = ((searchParams?.date_from as string) || '').trim()
   const dateTo = ((searchParams?.date_to as string) || '').trim()
   const search = ((searchParams?.search as string) || '').trim()

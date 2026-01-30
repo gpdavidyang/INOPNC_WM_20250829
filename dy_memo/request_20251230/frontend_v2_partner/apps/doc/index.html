@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>INOPNC Integrated Docs</title>
+    
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'sans-serif'],
+            },
+            colors: {
+              primary: '#31a3fa',
+              'primary-bg': '#eaf6ff',
+              'header-navy': '#1a254f',
+              'bg-body': '#f2f4f6',
+              'bg-surface': '#ffffff',
+              'text-main': '#111111',
+              'text-sub': '#334155',
+              border: '#cbd5e1',
+              danger: '#ef4444',
+              success: '#10b981',
+            },
+            boxShadow: {
+              soft: '0 4px 20px rgba(0,0,0,0.08)',
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+      }
+    }
+    </script>
+    <style>
+      /* Global Styles for 4050 Target & Web Optimization */
+      body {
+        font-family: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        font-size: 17px;
+        line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
+      }
+      
+      /* Search Input Style (Optimized with Clear Button) */
+      .search-input-local {
+        width: 100%; height: 54px; border-radius: 16px;
+        border: 1px solid transparent;
+        background: #ffffff;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        padding: 0 48px 0 20px; /* Padding for text vs icon area */
+        font-size: 17px; font-weight: 500; color: #111;
+        transition: all 0.2s;
+        outline: none;
+      }
+      .search-input-local::placeholder { color: #94a3b8; font-weight: 500; }
+      .search-input-local:focus { 
+        box-shadow: 0 0 0 2px #31a3fa, 0 4px 20px rgba(0,0,0,0.08); 
+        border-color: transparent; 
+      }
+
+      /* Local Clear Button (X) */
+      .btn-local-clear {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        background: #cbd5e1; color: #ffffff;
+        border-radius: 50%; width: 24px; height: 24px;
+        display: flex; align-items: center; justify-content: center;
+        border: none; cursor: pointer;
+        opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2;
+      }
+      .btn-local-clear.show { opacity: 1; pointer-events: auto; }
+
+      /* Form Select Style (Matching @CSS) */
+      .form-select {
+        appearance: none; -webkit-appearance: none;
+        width: 100%; height: 54px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        padding: 0 40px 0 16px; /* Arrow space */
+        font-size: 17px; font-weight: 700; color: #111;
+        cursor: pointer; transition: all 0.2s;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center; /* Optimized position */
+        background-size: 20px;
+        outline: none;
+      }
+      .form-select:focus { border-color: #31a3fa; box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15); }
+
+      /* Doc List Item Style (Fixed Alignment) */
+      .doc-list-item {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 14px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        display: flex;
+        align-items: stretch; /* Changed from center to stretch to fix background clipping */
+        border: 2px solid transparent;
+        transition: 0.2s;
+        cursor: pointer;
+        position: relative;
+        list-style: none; /* Ensure no bullets */
+        height: auto; /* Allow growth */
+        min-height: 80px;
+      }
+      .doc-list-item:active { transform: scale(0.99); }
+      .doc-list-item.selected { border-color: #31a3fa; background-color: #eaf6ff; }
+
+      /* Batch Action Bar (Vivid Colors - Matching @DOC) */
+      .batch-bar {
+        position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(150%);
+        width: calc(100% - 32px); max-width: 500px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 12px;
+        display: flex; gap: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        z-index: 2000;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .batch-bar.active { transform: translateX(-50%) translateY(0); }
+      
+      .batch-btn {
+        flex: 1; height: 52px; border-radius: 12px;
+        font-size: 16px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center; gap: 6px;
+        transition: 0.2s; border: none;
+        cursor: pointer;
+      }
+      .batch-btn:active { transform: scale(0.96); }
+      
+      /* Updated Colors as requested */
+      .batch-btn.save { background: #31a3fa; color: #ffffff; } /* Sky Blue */
+      .batch-btn.share { background: #1a254f; color: #ffffff; } /* Navy */
+      .batch-btn.del { background: #ef4444; color: #ffffff; }   /* Red */
+
+      /* Punch Photo Box (Compact) */
+      .punch-photo-compact {
+        aspect-ratio: 1/1;
+        border-radius: 12px;
+        border: 2px dashed #cbd5e1;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background: #f8fafc; color: #94a3b8;
+        cursor: pointer; position: relative; overflow: hidden;
+      }
+      .punch-photo-compact.filled { border: 2px solid #e2e8f0; border-style: solid; }
+      .punch-photo-compact img { width: 100%; height: 100%; object-fit: cover; }
+      .punch-photo-label {
+        position: absolute; bottom: 0; width: 100%;
+        background: rgba(0,0,0,0.6); color: white;
+        font-size: 13px; font-weight: 700; padding: 4px 0; text-align: center;
+      }
+
+      /* Scrollbar Hide */
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+      .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+  <link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-bg-body text-text-main antialiased select-none">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

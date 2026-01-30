@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>통합 작업 관리 - INOPNC</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Pretendard Variable', 'Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            primary: '#31a3fa',
+            'primary-bg': '#eaf6ff',
+            'header-navy': '#1a254f',
+            'navy-btn': '#1a254f',
+            'text-main': '#111111',
+            'text-sub': '#475569',
+            'bg-body': '#f2f4f6',
+            'bg-surface': '#ffffff',
+            'bg-input': '#ffffff',
+            'aff-bg': '#e0f2fe',
+            'aff-text': '#0284c7',
+            'alert-reject-bg': '#fff1f2',
+            'alert-reject-text': '#b91c1c',
+            'alert-reject-border': '#fecaca',
+            'alert-missing-bg': '#e0f2fe',
+            'alert-missing-text': '#0369a1',
+            'alert-missing-border': '#bae6fd',
+          },
+          animation: {
+            'slide-up': 'slideUp 0.3s ease-out forwards',
+            'fade-in': 'fadeIn 0.3s ease-out forwards',
+            'pulse-reject': 'rejectPulse 1.4s ease-out 2',
+            'wiggle': 'wiggle 0.28s ease-in-out 6',
+          },
+          keyframes: {
+            slideUp: {
+              '0%': { transform: 'translateY(100%)' },
+              '100%': { transform: 'translateY(0)' },
+            },
+            fadeIn: {
+              '0%': { opacity: '0', transform: 'translateY(10px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            rejectPulse: {
+              '0%': { boxShadow: '0 0 0 0 rgba(239, 68, 68, 0.35)' },
+              '70%': { boxShadow: '0 0 0 14px rgba(239, 68, 68, 0)' },
+              '100%': { boxShadow: '0 0 0 0 rgba(239, 68, 68, 0)' },
+            },
+            wiggle: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%': { transform: 'translateX(-2px)' },
+              '40%': { transform: 'translateX(2px)' },
+              '60%': { transform: 'translateX(-1px)' },
+              '80%': { transform: 'translateX(1px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Hide scrollbar for clean UI */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    body {
+        -webkit-tap-highlight-color: transparent;
+        background-color: #f2f4f6;
+    }
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

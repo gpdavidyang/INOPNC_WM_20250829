@@ -27,6 +27,9 @@ interface SendNotificationOptions {
   notificationType:
     | 'material_approval'
     | 'daily_report_reminder'
+    | 'daily_report_submission'
+    | 'daily_report_approval'
+    | 'daily_report_rejection'
     | 'safety_alert'
     | 'equipment_maintenance'
     | 'site_announcement'
@@ -470,6 +473,27 @@ export const notificationHelpers = {
           priority,
           type: 'site_announcement',
           url: `/dashboard/announcements/${announcementId}`,
+        },
+      },
+    })
+  },
+
+  /**
+   * Send daily report reminder to specific users (Batch)
+   */
+  async sendDailyReportReminderBatch(userIds: string[]) {
+    return pushNotificationService.sendNotification({
+      userIds,
+      notificationType: 'daily_report_reminder',
+      payload: {
+        title: '작업일지 작성 리마인더',
+        body: '오늘의 작업일지를 작성해주세요',
+        icon: '/icons/daily-report-icon.png',
+        badge: '/icons/badge-report.png',
+        urgency: 'medium',
+        data: {
+          type: 'daily_report_reminder',
+          url: '/dashboard/daily-reports/new',
         },
       },
     })

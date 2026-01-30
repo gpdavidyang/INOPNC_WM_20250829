@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
+import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
-import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
+import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -135,13 +135,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
       reportData.additional_before_photos = additional_before_photos
       reportData.additional_after_photos = additional_after_photos
 
-      const [{ data: legacyWorkers }, { data: workRecordRows }, { data: author }] =
-        await Promise.all([
-          supabase.from('daily_report_workers').select('*').eq('daily_report_id', reportId),
-          supabase
-            .from('work_records')
-            .select(
-              `
+      const [
+        { data: legacyWorkers },
+        { data: workRecordRows },
+        { data: author },
+        { data: materials },
+      ] = await Promise.all([
+        supabase.from('daily_report_workers').select('*').eq('daily_report_id', reportId),
+        supabase
+          .from('work_records')
+          .select(
+            `
             id,
             user_id,
             labor_hours,
@@ -159,16 +163,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
               avatar_url
             )
           `
-            )
-            .eq('daily_report_id', reportId),
-          supabase
-            .from('profiles')
-            .select('id, full_name, email, phone, role')
-            .eq('id', reportData.created_by)
-            .maybeSingle(),
-        ])
+          )
+          .eq('daily_report_id', reportId),
+        supabase
+          .from('profiles')
+          .select('id, full_name, email, phone, role')
+          .eq('id', reportData.created_by)
+          .maybeSingle(),
+        supabase.from('material_usage').select('*').eq('daily_report_id', reportId),
+      ])
       mergedWorkerRows = mergeWorkers(legacyWorkers || [], workRecordRows || [])
       authorProfile = author || null
+      reportData.material_usage = materials || []
     }
 
     // Fallback: minimal fetch when integrated join fails or row not found
@@ -226,10 +232,16 @@ export async function GET(request: Request, { params }: { params: { id: string }
         total_labor_hours: minimal.total_labor_hours,
       })
 
+      const { data: fallbackMaterials } = await supabase
+        .from('material_usage')
+        .select('*')
+        .eq('daily_report_id', reportId)
+
       const fallbackResponse = {
         daily_report: {
           ...minimal,
           ...(await fetchAdditionalPhotosForReport(reportId)),
+          material_usage: fallbackMaterials || [],
         },
         site,
         worker_assignments: fallbackWorkerRows,

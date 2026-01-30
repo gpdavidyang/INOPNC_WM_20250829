@@ -1,7 +1,6 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 import webpush from 'web-push'
 
@@ -44,6 +43,9 @@ interface NotificationRequest {
   notificationType:
     | 'material_approval'
     | 'daily_report_reminder'
+    | 'daily_report_submission'
+    | 'daily_report_approval'
+    | 'daily_report_rejection'
     | 'safety_alert'
     | 'equipment_maintenance'
     | 'site_announcement'
@@ -398,6 +400,11 @@ function getNotificationUrl(type: string, data?: unknown): string {
       }`
     case 'daily_report_reminder':
       return `${baseUrl}/dashboard/daily-reports/new`
+    case 'daily_report_submission':
+    case 'daily_report_approval':
+      return `${baseUrl}/dashboard/daily-reports/${data?.reportId || ''}`
+    case 'daily_report_rejection':
+      return `${baseUrl}/dashboard/daily-reports/${data?.reportId || ''}/edit`
     case 'safety_alert':
       return `${baseUrl}/dashboard/safety${data?.incidentId ? `/incidents/${data.incidentId}` : ''}`
     case 'equipment_maintenance':

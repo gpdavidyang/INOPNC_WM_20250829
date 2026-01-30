@@ -1,0 +1,66 @@
+import React from 'react'
+import { Link } from 'react-router-dom'
+import { Search, FileCheck, Bell, Menu } from 'lucide-react'
+
+interface HeaderProps {
+  onSearchClick: () => void
+  title?: string
+  onCertClick: () => void
+  unreadCount?: number
+  onNotificationClick: () => void
+  onMenuClick: () => void
+}
+
+export const Header: React.FC<HeaderProps> = ({
+  onSearchClick,
+  title = 'INOPNC',
+  onCertClick,
+  unreadCount = 0,
+  onNotificationClick,
+  onMenuClick,
+}) => {
+  const btnClass =
+    'bg-transparent border-none p-1 flex flex-col items-center gap-[3px] cursor-pointer text-header-navy active:opacity-60 hover:opacity-80 transition-all'
+
+  return (
+    <header className="fixed top-0 left-0 right-0 h-[60px] bg-[var(--bg-surface)] border-b border-[var(--border)] z-40 flex items-center justify-center transition-colors duration-300">
+      <div className="w-full max-w-[600px] px-5 flex justify-between items-center h-full">
+        <Link
+          to="/main"
+          className="text-[24px] font-[800] text-header-navy tracking-tighter cursor-pointer"
+        >
+          {title}
+        </Link>
+
+        <div className="flex items-center gap-3">
+          <button onClick={onSearchClick} className={btnClass}>
+            <Search size={20} />
+            <span className="text-[13px] font-bold tracking-tight">통합검색</span>
+          </button>
+
+          <button className={btnClass} onClick={onCertClick}>
+            <FileCheck size={20} />
+            <span className="text-[13px] font-bold tracking-tight">확인서</span>
+          </button>
+
+          <button className={`${btnClass} relative`} onClick={onNotificationClick}>
+            <div className="relative">
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-black w-[16px] h-[16px] flex items-center justify-center rounded-full border border-[var(--bg-surface)] animate-bounce-in">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[13px] font-bold tracking-tight">알림</span>
+          </button>
+
+          <button className={btnClass} onClick={onMenuClick}>
+            <Menu size={20} />
+            <span className="text-[13px] font-bold tracking-tight">메뉴</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  )
+}

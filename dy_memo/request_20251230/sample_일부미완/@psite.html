@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>현장 정보 (작업자) - INOPNC</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =================================================================
+       [1. 기존 디자인 시스템 (Master Design Tokens)]
+       ================================================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+      /* [메인 컬러] Sky Blue */
+      --primary: #31a3fa;           
+      --primary-bg: #eaf6ff;        
+      
+      /* [헤더/내비게이션 전용] 진한 Navy */
+      --header-navy: #1a254f;
+      --navy-dark: #1a254f;
+      --navy-btn: #1a254f;
+      
+      /* [로그아웃 버튼 배경 - 기본] */
+      --btn-logout-bg: #1a254f;
+      --btn-logout-text: #ffffff;
+      
+      /* [텍스트 컬러] */
+      --text-main: #111111; 
+      --text-sub: #475569;
+      --text-placeholder: #94a3b8;
+      
+      /* [배경 및 테두리] */
+      --border: #e2e8f0; 
+      --bg-body: #f2f4f6; 
+      --bg-surface: #ffffff;
+      --bg-input: #ffffff;
+      --bg-search-input: #ffffff; 
+      
+      --danger: #ef4444;
+      --del-btn-bg: #fef2f2; 
+
+      /* [배지 컬러] */
+      --badge-gray-bg: #f1f5f9; 
+      --badge-gray-text: #475569; 
+      --badge-gray-border: #e2e8f0;
+
+      --badge-sky-bg: var(--primary-bg); 
+      --badge-sky-text: var(--primary); 
+      --badge-sky-border: var(--primary);
+
+      /* [UI 컴포넌트 규격] */
+      --header-height: 60px;
+      --nav-height: 65px; 
+      --radius-card: 16px;
+      --btn-clear-bg: #cbd5e1; --btn-clear-text: #ffffff;
+      
+      /* [그림자] 카드 테두리 대신 사용 */
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+
+      /* --- [현장정보 전용 토큰] --- */
+      --st-ing-bg: #eff6ff; --st-ing-text: #3b82f6; --st-ing-border: #bfdbfe;
+      --st-wait-bg: #f3e8ff; --st-wait-text: #7c3aed; --st-wait-border: #d8b4fe;
+      --st-done-bg: #f3f4f6; --st-done-text: #4b5563; --st-done-border: #e5e7eb;
+
+      --tag-affil-bg: #e0f2fe; --tag-affil-text: #0284c7; --tag-affil-border: #bae6fd;
+      --tag-gray-bg: #f8fafc; --tag-gray-text: #64748b; --tag-gray-border: #e2e8f0;
+
+      /* Action Buttons */
+      --act-draw-bg: var(--primary-bg); --act-draw-text: var(--primary); --act-draw-border: #bae6fd;
+      --act-ptw-bg: #eff6ff; --act-ptw-text: #2563eb; --act-ptw-border: #dbeafe;
+      --act-log-bg: #f0fdf4; --act-log-text: #166534; --act-log-border: #bbf7d0;
+      --act-req-bg: #f8fafc; --act-req-text: #475569; --act-req-border: #e2e8f0;
+
+      --btn-icon-bg: #eff6ff; --btn-icon-border: #dbeafe; --btn-icon-color: #1e3a8a;
+    }
+
+    /* [다크 모드 시스템] */
+    body.dark-mode {
+      --primary: #31a3fa; --primary-bg: #1e293b;
+      
+      --header-navy: #f1f5f9; 
+      --navy-dark: #f1f5f9;
+      --navy-btn: #3b82f6;
+      
+      --btn-logout-bg: #3b82f6; 
+      --btn-logout-text: #f1f5f9;
+      
+      --text-main: #f1f5f9; --text-sub: #94a3b8; --text-placeholder: #64748b;
+      --border: #334155; --bg-body: #0f172a; --bg-surface: #1e293b; --bg-input: #0f172a;
+      --bg-search-input: #1e293b;
+      --danger: #ef4444;
+      --del-btn-bg: #450a0a;
+
+      --badge-gray-bg: #1e293b; --badge-gray-text: #94a3b8; --badge-gray-border: #334155;
+      --badge-sky-bg: rgba(49, 163, 250, 0.15); --badge-sky-text: #31a3fa; --badge-sky-border: #31a3fa;
+      
+      --shadow-soft: none;
+
+      --st-ing-bg: #172554; --st-ing-text: #60a5fa; --st-ing-border: #1e40af;
+      --st-wait-bg: #2e1065; --st-wait-text: #a78bfa; --st-wait-border: #5b21b6;
+      --st-done-bg: #374151; --st-done-text: #9ca3af; --st-done-border: #4b5563;
+
+      --tag-affil-bg: #0c4a6e; --tag-affil-text: #7dd3fc; --tag-affil-border: #075985;
+      --tag-gray-bg: #1e293b; --tag-gray-text: #94a3b8; --tag-gray-border: #334155;
+
+      --act-draw-bg: #0c4a6e; --act-draw-text: #7dd3fc; --act-draw-border: #075985;
+      --act-ptw-bg: #1e3a8a; --act-ptw-text: #93c5fd; --act-ptw-border: #1d4ed8;
+      --act-log-bg: #14532d; --act-log-text: #bbf7d0; --act-log-border: #166534;
+      --act-req-bg: #334155; --act-req-text: #e2e8f0; --act-req-border: #475569;
+
+      --btn-icon-bg: #1e293b; --btn-icon-border: #334155; --btn-icon-color: #94a3b8;
+    }
+
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+    
+    body {
+      font-family: var(--font-main); font-size: 17px; color: var(--text-main); background-color: var(--bg-body);
+      line-height: 1.5; 
+      /* [수정] 헤더/네비 제거에 따른 패딩 값 조정 */
+      padding-top: 20px; 
+      padding-bottom: 20px; 
+      transition: background-color 0.3s, color 0.3s;
+    }
+    button, select, input, textarea { font-family: var(--font-main); outline: none; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; }
+    a { text-decoration: none; color: inherit; }
+
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 12px 16px 20px 16px; }
+
+    /* Header CSS Removed or unused */
+    
+    /* --- [Search & Card Styles] --- */
+    .search-input-local, .search-input-global { 
+        width: 100%; height: 54px; border-radius: 16px; 
+        background: #ffffff; 
+        border: 1px solid transparent; 
+        padding: 0 48px 0 22px; font-size: 17px; color: var(--text-main); font-weight: 500; 
+        transition: all 0.2s; 
+        box-shadow: var(--shadow-soft);
+    }
+    
+    .search-input-local:hover, .search-input-global:hover { background-color: var(--bg-surface); border-color: var(--border); }
+    .search-input-local:focus, .search-input-global:focus { box-shadow: 0 0 0 2px var(--primary); background-color: var(--bg-surface); border-color: transparent; }
+
+    .local-search-wrapper { position: relative; margin-bottom: 12px; margin-top: 4px; display: flex; align-items: center; }
+    .local-search-icon { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); color: var(--text-placeholder); pointer-events: none; width: 20px; transition: opacity 0.2s; }
+    .btn-local-clear { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: var(--btn-clear-bg); color: var(--btn-clear-text); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; opacity: 0; pointer-events: none; transition: 0.2s; z-index: 2; }
+    .btn-local-clear.show { opacity: 1; pointer-events: auto; }
+
+    /* [현장 카드 스타일] */
+    .site-card {
+        background: var(--bg-surface); 
+        border: none; 
+        box-shadow: var(--shadow-soft); 
+        border-radius: var(--radius-card); 
+        padding: 0; overflow: hidden; 
+        transition: 0.2s; margin-bottom: 20px;
+    }
+    
+    body.dark-mode .site-card,
+    body.dark-mode .search-input-local, body.dark-mode .search-input-global {
+        background-color: var(--bg-surface);
+        box-shadow: none; 
+        border: 1px solid var(--border) !important;
+    }
+
+    /* --- [Select Box] --- */
+    .form-select-group { display: flex; gap: 12px; margin-bottom: 20px; }
+    .form-select {
+        appearance: none; -webkit-appearance: none; 
+        width: 100%; 
+        height: 54px; /* 공통 높이 54px */
+        background-color: var(--bg-input); 
+        border: 1px solid var(--border); border-radius: 12px; 
+        padding: 0 40px 0 16px; 
+        font-family: var(--font-main); 
+        font-size: 17px; /* 선택 필터와 동일한 폰트 크기 */
+        font-weight: 500; 
+        color: var(--text-main);
+        
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 16px center; background-size: 20px;
+        cursor: pointer; transition: all 0.2s;
+    }
+    .form-select:hover { border-color: #cbd5e1; }
+    .form-select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15); outline: none; }
+
+    body.dark-mode .form-select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-color: var(--bg-input);
+    }
+
+    /* --- [Site Card Internal Styles] --- */
+    .card-header-main { padding: 20px 22px; border-bottom: 1px solid var(--border); position: relative; }
+    /* 작업일지 카드(.lc-date)와 유사한 스타일의 날짜 표기 */
+    .site-date { font-size: 15px; color: var(--text-sub); font-weight: 500; margin-bottom: 4px; }
+    .site-top-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .site-name-text { font-size: 20px; font-weight: 800; color: var(--navy-dark); flex: 1; line-height: 1.3; margin-right: 10px; word-break: keep-all; }
+    
+    /* 상태 배지 (카드 우측 상단) - 첨부 이미지처럼 "카드 모서리에 걸쳐진" 배지 */
+    .site-badge { 
+        position: absolute;
+        top: 0;              /* 카드 우측 상단 끝에서 시작 */
+        right: 0;            /* 카드 우측 상단 끝에서 시작 */
+        z-index: 10;
+
+        font-size: 13px;
+        font-weight: 700;
+        padding: 6px 14px;
+        /* 첨부처럼 "모서리에 걸친" 라운드 사각형: 오른쪽은 각지고, 왼쪽만 라운드 */
+        border-radius: 0 0 0 12px;
+        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        white-space: nowrap;
+        line-height: 1;
+        color: #ffffff;      /* 첨부처럼 흰 글씨 */
+        box-shadow: none;    /* 그림자 제거 */
+    }
+
+    /* 상태별 배경색(내용은 그대로, 스타일만) */
+    .site-badge.bdg-ing { background: #3b82f6; border-color: #60a5fa; }
+    .site-badge.bdg-wait { background: #8b5cf6; border-color: #a78bfa; }
+    .site-badge.bdg-done { background: #64748b; border-color: #94a3b8; }
+
+    /* 기존 배지 스타일은 .badge 에만 적용되도록 범위 제한 (site-badge 글씨색 덮어쓰기 방지) */
+    .badge.bdg-ing { background: var(--st-ing-bg); color: var(--st-ing-text); border-color: var(--st-ing-border); }
+    .badge.bdg-wait { background: var(--st-wait-bg); color: var(--st-wait-text); border-color: var(--st-wait-border); }
+    .badge.bdg-done { background: var(--st-done-bg); color: var(--st-done-text); border-color: var(--st-done-border); }
+
+    .site-sub-info { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+    .sub-badge { font-size: 14px; padding: 0 12px; height: 34px; border-radius: 8px; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; font-weight: 600; }
+    .sub-badge.affil { background: var(--tag-affil-bg); color: var(--tag-affil-text); border-color: var(--tag-affil-border); }
+    /* 직접등록 배지 - 붉은 계열 강조 */
+    .sub-badge.direct { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
+    .sub-badge.weather { background: var(--tag-gray-bg); color: var(--tag-gray-text); border-color: var(--tag-gray-border); }
+    
+    .addr-row { display: flex; align-items: center; justify-content: space-between; padding-top: 4px; }
+    .addr-text { 
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 17px;
+        color: var(--text-sub);
+        font-weight: 700;
+    }
+    
+    .btn-icon-sq { width: 36px; height: 36px; border-radius: 10px; background: var(--btn-icon-bg); border: 1px solid var(--btn-icon-border); display: flex; align-items: center; justify-content: center; color: var(--btn-icon-color); cursor: pointer; flex-shrink: 0; transition: 0.1s; }
+    .btn-icon-sq:active { transform: scale(0.95); opacity: 0.8; }
+    .btn-star { background: none; border: none; padding: 4px; color: var(--border); transition: 0.2s; cursor: pointer; display: flex; align-items: center; }
+    .btn-star.active { color: var(--primary); fill: var(--primary); }
+
+    .card-body-detail { display: none; padding: 22px; background-color: var(--bg-surface); animation: slideDown 0.3s ease-out; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* [수정] 상태 유지 로직에 따라 .expanded 클래스가 있으면 display: block */
+    .site-card.expanded .card-body-detail { display: block; }
+    .site-card.expanded .toggle-btn-area { background-color: var(--bg-body); border-top: 1px solid var(--border); }
+    .site-card.expanded .chevron-icon { transform: rotate(180deg); }
+    .site-card.expanded .toggle-text { display: none; }
+
+    .stats-row { display: flex; margin-bottom: 0; border-bottom: 1px dashed var(--border); padding: 14px 0; }
+    .stat-item { flex: 1; text-align: center; position: relative; }
+    .stat-item:first-child::after { content: ''; position: absolute; right: 0; top: 10%; height: 80%; width: 1px; background: var(--border); }
+    .stat-label { 
+        display: block;
+        font-size: 17px;
+        color: var(--text-sub);
+        margin-bottom: 8px;
+        font-weight: 700;
+    }
+    .stat-val { font-size: 20px; font-weight: 800; color: var(--navy-dark); }
+    .stat-val.danger { color: #ef4444; }
+
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px dashed var(--border); font-size: 15px; }
+    .info-label { 
+        display: block;
+        font-size: 17px;
+        color: var(--text-sub);
+        margin-bottom: 8px;
+        font-weight: 700;
+        width: 80px;
+    }
+    .info-val { 
+        flex: 1; 
+        font-weight: 600; 
+        color: var(--text-main); 
+        text-align: right; 
+        padding-right: 12px; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        white-space: nowrap; 
+        font-size: 17px;
+    }
+    
+    .input-group { display: flex; gap: 8px; margin-top: 10px; margin-bottom: 24px; flex-wrap: nowrap; }
+    .site-input { flex: 1; height: 48px; border: 1px solid var(--border); border-radius: 12px; padding: 0 14px; font-size: 15px; background: var(--bg-surface); color: var(--text-main); transition: all 0.2s; min-width: 0; }
+    .site-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15); outline: none; }
+    .btn-send { width: 68px; height: 48px; background: var(--navy-btn); color: #fff; border-radius: 12px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+    .btn-send:active { opacity: 0.9; transform: scale(0.98); }
+
+    /* 버튼 영역이 너무 아래로 벌어져 보이지 않도록 간격 최적화 */
+    .action-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 0; }
+    .act-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 74px; border-radius: 12px; border: 1px solid transparent; cursor: pointer; transition: 0.1s; }
+    .act-btn:active { transform: scale(0.98); opacity: 0.8; }
+    .act-icon { width: 24px; height: 24px; }
+    .act-label { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
+    
+    .act-btn.type-draw { background: var(--act-draw-bg); border-color: var(--act-draw-border); color: var(--act-draw-text); }
+    .act-btn.type-photo { background: #f3e8ff; border-color: #e9d5ff; color: #9333ea; }
+    .act-btn.type-ptw { background: var(--act-ptw-bg); border-color: var(--act-ptw-border); color: var(--act-ptw-text); }
+    .act-btn.type-log { background: var(--act-log-bg); border-color: var(--act-log-border); color: var(--act-log-text); }
+    .act-btn.type-action { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+    .act-btn.type-punch { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    .toggle-btn-area { height: 48px; display: flex; align-items: center; justify-content: center; cursor: pointer; gap: 6px; color: var(--text-sub); font-size: 14px; font-weight: 600; border-top: 1px solid transparent; transition: background-color 0.2s; }
+    .chevron-icon { transition: transform 0.3s; width: 18px; height: 18px; }
+
+    /* --- [Filters & Controls] --- */
+    .filter-controls { display: flex; gap: 8px; margin-bottom: 12px; width: 100%; }
+    
+    .filter-section { margin-bottom: 16px; overflow: hidden; position: relative; }
+    .filter-row-scroll { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; padding-bottom: 4px; align-items: center; scrollbar-width: none; padding-right: 10px; }
+    .filter-chip { height: 40px; padding: 0 14px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 100px; color: #64748b; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    .filter-chip.active { background-color: #ffffff; border-color: var(--primary); color: var(--primary); font-weight: 700; box-shadow: 0 2px 8px rgba(49, 163, 250, 0.15); }
+    body.dark-mode .filter-chip { background-color: var(--bg-surface); border-color: var(--border); color: var(--text-sub); }
+    body.dark-mode .filter-chip.active { background-color: rgba(49, 163, 250, 0.1); border-color: var(--primary); color: var(--primary); }
+    
+    .btn-add-site-chip {
+        border: 1.5px solid var(--primary) !important;
+        background: var(--primary-bg);
+        color: var(--primary);
+        padding: 0 14px;
+        height: 40px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-left: auto;
+    }
+    .btn-add-site-chip:hover {
+        background: #d1e9ff;
+    }
+    .btn-add-site-chip:active {
+        transform: scale(0.98);
+        background: #b8dfff;
+    }
+
+    .btn-load-more { width: 100%; height: 50px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 100px; color: var(--text-sub); font-weight: 600; font-size: 15px; cursor: pointer; margin-top: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; }
+
+    /* --- [Overlays Common] --- */
+    .overlay-backdrop { position: fixed; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1500; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .overlay-backdrop.active { opacity: 1; pointer-events: auto; }
+    
+    .drawer-panel, .menu-panel { position: fixed; top: 0; bottom: 0; width: 85%; max-width: 320px; background-color: var(--bg-surface); z-index: 2200; transition: transform 0.3s; display: flex; flex-direction: column; }
+    .menu-panel { left: 0; transform: translateX(-100%); }
+    .drawer-panel { right: 0; transform: translateX(100%); z-index: 1600; }
+    .menu-panel.active, .drawer-panel.active { transform: translateX(0); }
+
+    .search-overlay, .account-overlay { position: fixed; inset: 0; background-color: var(--bg-body); z-index: 2000; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.3s; }
+    .search-overlay.active, .account-overlay.active { transform: translateY(0); }
+
+    /* 로그아웃 버튼 */
+    .btn-logout { width: 100%; height: 56px; background: var(--btn-logout-bg); color: var(--btn-logout-text); border: none; border-radius: 12px; font-size: 17px; font-weight: 700; cursor: pointer; }
+    .btn-logout:active { opacity: 0.9; transform: scale(0.98); }
+
+    /* Search Overlay Elements */
+    .search-header-global { display: flex; align-items: center; gap: 8px; height: var(--header-height); padding: 0 12px; background-color: var(--bg-surface); border-bottom: 1px solid var(--border); }
+    .search-input-global { width: 100%; height: 42px; border-radius: 100px; background: var(--bg-search-input); border: 1px solid transparent; padding: 0 40px 0 20px; font-size: 16px; color: var(--text-main); font-weight: 500; transition: all 0.2s; }
+    .search-input-global:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15); background-color: var(--bg-surface); }
+    .btn-search-clear { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: var(--btn-clear-bg); color: var(--btn-clear-text); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; opacity: 0; pointer-events: none; transition: 0.2s; }
+    .btn-search-clear.show { opacity: 1; pointer-events: auto; }
+    .btn-search-submit { background: none; border: none; color: var(--primary); font-weight: 700; font-size: 16px; width: auto; padding-left: 10px; cursor: pointer; }
+    
+    .search-content { flex: 1; padding: 24px 20px; overflow-y: auto; }
+    .search-section { margin-bottom: 32px; }
+    .search-sec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .search-sec-title { font-size: 16px; font-weight: 700; color: var(--text-sub); }
+    .btn-delete-all { background: none; border: none; font-size: 13px; color: var(--text-placeholder); border: 1px solid var(--border); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+    .recommend-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .search-tag { background: var(--bg-surface); border: 1px solid var(--primary-bg); color: var(--primary); padding: 8px 14px; border-radius: 20px; font-size: 15px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .recent-list { list-style: none; padding: 0; margin: 0; }
+    .recent-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+    .btn-del-recent { background: none; border: none; padding: 8px; color: var(--text-placeholder); display: flex; align-items: center; }
+
+    /* Account Elements */
+    .menu-nav-list { list-style: none; padding: 24px; margin: 0; flex: 1; overflow-y: auto; }
+    .menu-nav-list li { margin-bottom: 24px; }
+    .menu-link { font-size: 19px; font-weight: 700; color: var(--text-main); cursor: pointer; }
+    .btn-acct-mgmt { font-size: 14px; font-weight: 600; color: var(--primary); background-color: var(--bg-surface); border: 1px solid var(--primary); padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    
+    .account-header { height: var(--header-height); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-surface); border-bottom: 1px solid var(--border); }
+    .account-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+    .btn-acct-save { font-size: 16px; font-weight: 600; color: var(--primary); background: none; border: none; cursor: pointer; }
+    .profile-img-box { width: 90px; height: 90px; border-radius: 50%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; position: relative; background-size: cover; border: 4px solid var(--bg-surface); box-shadow: 0 4px 10px rgba(0,0,0,0.1); color: #64748b; font-size: 26px; font-weight: 700; }
+    .btn-edit-photo { position: absolute; bottom: 0; right: 0; background: var(--header-navy); width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--bg-surface); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 15px; color: var(--text-sub); margin-bottom: 8px; font-weight: 700; }
+
+    /* 공통 SPAN 라벨 스타일 */
+    .span-label {
+        display: block;
+        font-size: 17px;
+        color: var(--text-sub);
+        margin-bottom: 8px;
+        font-weight: 700;
+        font-family: var(--font-main);
+    }
+    .form-input { width: 100%; height: 50px; padding: 0 16px; border: 1px solid var(--border); border-radius: 12px; font-size: 16px; color: var(--text-main); background: var(--bg-input); font-weight: 500; }
+    .setting-row { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--border); }
+    .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+    .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+    input:checked + .slider { background-color: var(--primary); }
+    input:checked + .slider:before { transform: translateX(22px); }
+    .btn-text-danger { color: var(--danger); font-size: 15px; font-weight: 600; background: none; border: none; padding: 0; cursor: pointer; margin-top: 8px; text-decoration: underline; }
+
+    /* Notification Elements */
+    .noti-header { height: var(--header-height); padding: 0 16px; display: flex; align-items: center; justify-content: space-between; background-color: var(--bg-surface); border-bottom: 1px solid var(--border); }
+    .noti-title { font-size: 18px; font-weight: 700; color: var(--text-main); }
+    .noti-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+    .noti-item { padding: 20px; border-bottom: 1px solid var(--border); display: flex; gap: 14px; align-items: flex-start; }
+    .noti-item.unread { background-color: var(--primary-bg); }
+    .noti-icon-box { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .noti-icon-box.type-alert { background-color: var(--del-btn-bg); color: var(--danger); }
+    .noti-content { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .noti-item-title { font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .noti-item-desc { font-size: 15px; color: var(--text-sub); line-height: 1.4; }
+    .noti-time { font-size: 13px; color: var(--text-placeholder); margin-top: 4px; }
+    .btn-read-all { border: 1px solid var(--border); background: none; font-size: 13px; color: var(--text-sub); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+
+    /* [현장정보 전용 오버레이 - 새 현장 등록용] */
+    .modal-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 400px; background: var(--bg-surface); border-radius: 16px; z-index: 2100; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0; pointer-events: none; transition: 0.3s; }
+    .modal-panel.active { transform: translate(-50%, -50%) scale(1); opacity: 1; pointer-events: auto; }
+    .modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: var(--header-navy); }
+    .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-modal { flex: 1; height: 48px; border-radius: 12px; font-size: 17px; font-weight: 700; cursor: pointer; border: none; }
+    .btn-cancel { background: #f1f5f9; color: var(--text-sub); border: 1px solid var(--border); }
+    .btn-confirm { background: var(--header-navy); color: #fff; }
+
+
+    /* =================================================================
+       [이식된 스타일] 현장 통합 모듈 (Viewers, Sheet, FM Panel 등)
+       ================================================================= */
+    
+    /* [2. 모달 공통 - Sheet & Backdrop] */
+    /* 기존 action-sheet 대신 이식된 bottom-sheet 사용 (스타일 충돌 방지 위해 별도 선언) */
+    .backdrop-sheet { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; opacity: 0; pointer-events: none; transition: 0.2s; }
+    .backdrop-sheet.active { opacity: 1; pointer-events: auto; }
+
+    /* 도면 선택 시트 */
+    .bottom-sheet {
+        position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+        border-radius: 20px 20px 0 0; padding: 24px; z-index: 2100;
+        transform: translateY(100%); transition: 0.3s; max-width: 600px; margin: 0 auto;
+    }
+    .bottom-sheet.active { transform: translateY(0); }
+    .sheet-btn { width: 100%; height: 54px; border-radius: 12px; margin-bottom: 10px; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; border:none; cursor: pointer; }
+    .sheet-btn.primary { background: #eaf6ff; color: #31a3fa; border: 1px solid #bae6fd; }
+    .sheet-btn.default { background: #f8fafc; border: 1px solid #e2e8f0; color: #333; }
+    .sheet-btn.close { background: var(--navy-btn); color: #ffffff; margin-top: 10px; border: none; }
+
+    /* 파일 관리자 (File Manager) - 진행 도면(관리) 전용 다크 스타일 (미리보기창 톤과 맞춤) */
+    .fm-panel {
+        position: fixed; inset: 0;
+        background: #121212;
+        z-index: 2200;
+        display: flex; flex-direction: column;
+        transform: translateY(100%);
+        transition: 0.3s;
+        color: #e5e7eb;
+    }
+    .fm-header {
+        height: 56px;
+        padding: 0 16px;
+        border-bottom: 1px solid #333;
+        display: flex; justify-content: space-between; align-items: center;
+        font-weight: 800; font-size: 17px;
+        background: #000;
+        color: #ffffff;
+    }
+    .fm-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: #121212;
+    }
+    .file-row {
+        display: flex; align-items: center;
+        padding: 12px;
+        border-radius: 12px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        background: #111827;
+        border: 1px solid #4b5563;
+    }
+    .file-thumb {
+        width: 50px; height: 50px;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #111827;
+        border: 1px solid #4b5563;
+        margin-right: 12px;
+    }
+    .file-icon-box {
+        width: 50px; height: 50px;
+        border-radius: 8px;
+        background: #111827;
+        display: flex; align-items: center; justify-content: center;
+        border: 1px solid #4b5563;
+        margin-right: 12px;
+        color: #e5e7eb;
+    }
+    .fm-footer {
+        padding: 16px 20px 20px;
+        border-top: 1px solid #333;
+        display: flex; gap: 10px;
+        background: #0b0f19;
+    }
+    .btn-action {
+        flex: 1; height: 50px;
+        border-radius: 12px;
+        font-weight: 700; font-size: 15px;
+        border: none;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+    }
+    .btn-blue { background: #31a3fa; color: #fff; }
+    .btn-red {
+        background: #451a1a;
+        color: #fecaca;
+        border: 1px solid #b91c1c;
+    }
+    .btn-gray {
+        background: #111827;
+        color: #e5e7eb;
+        border: 1px solid #4b5563;
+    }
+
+    /* 도면 없음 안내 박스 - 40~50대 시안성 고려 공통 스타일 */
+    .empty-drawing-box {
+        background: #f8fafc;
+        border: 1px dashed var(--border);
+        padding: 28px 22px;
+        border-radius: 16px;
+        color: #1f2937;           /* 더 진한 글자 색 */
+        text-align: center;
+        font-size: 20px;          /* 모바일에서도 충분히 크게 */
+        font-weight: 800;         /* 굵게 */
+        line-height: 1.9;
+    }
+
+
+    /* --- [3. 통합 뷰어 (Zoom/Pan/Save 포함)] --- */
+    .uv-modal { position: fixed; inset: 0; background: #1e1e1e; z-index: 9999; display: none; flex-direction: column; }
+    .uv-modal.active { display: flex; }
+    
+    .uv-header { background: #000; height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; flex-shrink: 0; z-index: 10; }
+    
+    /* 뷰포트 영역 */
+    .uv-viewport { 
+        flex: 1; background: #333; overflow: hidden; position: relative; 
+        display: flex; justify-content: center; align-items: center;
+        touch-action: none; /* 드래그 간섭 방지 */
+    }
+    .uv-viewport.panning { cursor: grabbing; }
+    
+    /* 실제 문서 내용 */
+    .uv-content { 
+        width: 100%; max-width: 800px; min-height: 500px; 
+        background: #fff; padding: 20px; box-sizing: border-box;
+        transform-origin: center center;
+        box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+    .uv-content img { width: 100%; height: auto; display: block; }
+
+    /* 하단 플로팅 컨트롤 */
+    .uv-controls {
+        position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+        background: rgba(30, 30, 30, 0.9);
+        backdrop-filter: blur(8px);
+        padding: 10px 30px; border-radius: 50px;
+        display: flex; gap: 30px; z-index: 10000;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .uv-btn {
+        background: none; border: none; color: #fff;
+        display: flex; flex-direction: column; align-items: center;
+        gap: 4px; font-size: 11px; font-weight: 500;
+        opacity: 0.7; transition: 0.2s; min-width: 40px; cursor: pointer;
+    }
+    .uv-btn:active { transform: scale(0.9); }
+    .uv-btn.active { color: #31a3fa; opacity: 1; font-weight: 700; }
+    .uv-btn:hover { opacity: 1; }
+
+    .uv-toast { position: fixed; bottom: 100px; left: 50%; transform: translate(-50%, 20px); background: #333; color: #fff; padding: 10px 20px; border-radius: 20px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 10001; }
+    .uv-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  </style>
+</head>
+<body>
+
+  <input type="file" id="profile-upload-input" style="display:none;" accept="image/*" onchange="handleProfilePreview(this)">
+
+  <div class="backdrop-sheet" id="sheetBackdrop" onclick="closeSheet()"></div>
+  <div class="bottom-sheet" id="drawSheet">
+      <div style="text-align:center; font-weight:700; font-size:18px; margin-bottom:20px; color:#111;">도면 선택</div>
+      <button class="sheet-btn primary" onclick="openProgressManager()"><i data-lucide="map"></i> 공사 도면 (관리)</button>
+      <button class="sheet-btn default" onclick="openFileManager('progress')"><i data-lucide="upload-cloud"></i> 진행 도면 (조회)</button>
+      <button class="sheet-btn default" onclick="openFileManager('completion')"><i data-lucide="check-circle-2"></i> 완료 도면 (확인)</button>
+      <button class="sheet-btn close" onclick="closeSheet()">닫기</button>
+  </div>
+
+  <input type="file" id="uploadInput" style="display:none;" multiple onchange="handleUpload(this)">
+  <div class="fm-panel" id="fmPanel">
+      <div class="fm-header">
+          <span id="fmTitle">목록</span>
+          <button onclick="closeFileManager()" style="background:none; border:none; cursor:pointer;"><i data-lucide="x"></i></button>
+      </div>
+      <div class="fm-body" id="fmList"></div>
+      <div class="fm-footer" id="fmFooter"></div>
+  </div>
+
+  <div class="uv-modal" id="uvModal">
+      <div class="uv-header">
+          <button onclick="closeViewer()" style="background:none; border:none; color:#fff; cursor:pointer;"><i data-lucide="arrow-left" width="24"></i></button>
+          <span style="color:#fff; font-weight:700;" id="uvTitle">미리보기</span>
+          <button onclick="downloadPDF()" style="background:none; border:none; color:#fff; cursor:pointer;"><i data-lucide="download" width="24"></i></button>
+      </div>
+      
+      <div class="uv-viewport" id="uvViewport">
+          <div class="uv-content" id="uvContent"></div>
+      </div>
+
+      <div class="uv-controls">
+          <button class="uv-btn" onclick="adjustZoom(-0.1)">
+              <i data-lucide="minus"></i>축소
+          </button>
+          <button class="uv-btn" id="btnPan" onclick="togglePan()">
+              <i data-lucide="hand"></i>이동
+          </button>
+          <button class="uv-btn" onclick="adjustZoom(0.1)">
+              <i data-lucide="plus"></i>확대
+          </button>
+          <button class="uv-btn" onclick="shareContent()">
+              <i data-lucide="share-2"></i>공유
+          </button>
+      </div>
+  </div>
+  
+  <div class="uv-toast" id="uvToast">완료되었습니다.</div>
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-header-global">
+      <button style="background:none; border:none; padding:4px; color:var(--text-main);" onclick="closeGlobalSearch()"><i data-lucide="arrow-left"></i></button>
+      <div style="flex:1; position:relative; display:flex; align-items:center;">
+        <input type="text" class="search-input-global" id="globalSearchInput" placeholder="전체 검색 (현장명, 작업내용)" oninput="toggleGlobalClearBtn(this)" style="width:100%;">
+        <button class="btn-search-clear" onclick="clearGlobalSearchInput()"><i data-lucide="x" style="width:14px;"></i></button>
+      </div>
+      <button class="btn-search-submit" onclick="performSearch()">검색</button>
+    </div>
+    <div class="search-content">
+      <div class="search-section">
+        <div class="search-sec-header"><span class="search-sec-title">추천 검색어</span></div>
+        <div class="recommend-tags">
+            <button class="search-tag" onclick="clickSearchTag('안전점검')">#안전점검</button>
+            <button class="search-tag" onclick="clickSearchTag('콘크리트')">#콘크리트</button>
+            <button class="search-tag" onclick="clickSearchTag('배관설비')">#배관설비</button>
+        </div>
+      </div>
+      <div class="search-section">
+        <div class="search-sec-header">
+          <span class="search-sec-title">최근 검색어</span>
+          <button class="btn-delete-all" onclick="clearAllHistory()">전체삭제</button>
+        </div>
+        <ul class="recent-list" id="recentList"></ul>
+        <div id="emptyRecent" style="display:none; text-align:center; padding:20px; color:var(--text-placeholder); font-size:14px;">최근 검색 기록이 없습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay-backdrop" id="notiBackdrop" onclick="closeNotification()"></div>
+  <div class="drawer-panel" id="notiPanel">
+    <div class="noti-header">
+        <span class="noti-title">알림 센터</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button class="btn-read-all" onclick="markAllRead()">모두 읽음</button>
+            <button onclick="closeNotification()" style="background:none; border:none; color:var(--text-main);"><i data-lucide="x"></i></button>
+        </div>
+    </div>
+    <ul class="noti-list" id="notiList"></ul>
+  </div>
+
+  <div class="overlay-backdrop" id="menuBackdrop" onclick="closeMenu()"></div>
+  <div class="menu-panel" id="menuPanel">
+      <div style="padding:34px 24px; border-bottom:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <div><span style="font-size:24px; font-weight:800;" id="menuCompanyName">김철수 반장</span> <span style="font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-bg); padding:4px 8px; border-radius:4px;">작업자</span></div>
+              <button onclick="closeMenu()" style="border:1px solid var(--border); background:none; border-radius:8px; padding:6px 14px; font-size:14px; color:var(--text-sub);">닫기</button>
+          </div>
+          <div style="font-size:15px; color:var(--text-sub);">worker@daebak.com</div>
+      </div>
+      <ul class="menu-nav-list">
+          <li><a class="menu-link" onclick="closeMenu()">홈</a></li>
+          <li><a class="menu-link" onclick="closeMenu()" style="color:var(--primary);">현장정보</a></li>
+          <li><a class="menu-link" onclick="closeMenu()">작업일지</a></li>
+          <li><a class="menu-link" onclick="closeMenu()">출력현황</a></li>
+          <li><a class="menu-link" onclick="closeMenu()">문서함</a></li>
+          <li class="menu-link-row" style="display:flex; justify-content:space-between; align-items:center;">
+              <span class="menu-link">내정보</span>
+              <button class="btn-acct-mgmt" onclick="openAccount()">계정관리</button>
+          </li>
+      </ul>
+      <div style="padding:24px; border-top:1px solid var(--border);">
+          <button class="btn-logout">로그아웃</button>
+      </div>
+  </div>
+
+  <div class="account-overlay" id="accountOverlay">
+      <div class="account-header">
+          <button style="background:none; border:none; padding:4px;" onclick="closeAccount()"><i data-lucide="arrow-left" style="color:var(--text-main);"></i></button>
+          <span class="account-title">계정 관리</span>
+          <button class="btn-acct-save" onclick="saveAccount()">저장</button>
+      </div>
+      <div style="flex:1; padding:24px 20px; overflow-y:auto;">
+          <div class="profile-edit-wrap" style="display:flex; flex-direction:column; align-items:center; margin-bottom:30px; margin-top:20px;">
+              <div class="profile-img-box" id="profile-img-box">
+                  <span>김</span>
+                  <button class="btn-edit-photo" onclick="triggerProfileUpload()"><i data-lucide="camera" style="width:16px;"></i></button>
+              </div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">기본 정보</span>
+              <div class="form-group">
+                  <label class="form-label">이름</label>
+                  <input type="text" class="form-input" id="input-company" value="김철수 반장">
+              </div>
+              <div class="form-group">
+                  <label class="form-label">이메일</label>
+                  <input type="email" class="form-input" value="worker@daebak.com" disabled style="opacity:0.7;">
+              </div>
+              <div class="form-group">
+                  <label class="form-label">전화번호</label>
+                  <input type="tel" class="form-input" id="input-phone" value="010-9999-8888">
+              </div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">보안 설정</span>
+              <div class="form-group">
+                  <label class="form-label">비밀번호 변경</label>
+                  <input type="password" class="form-input" placeholder="새 비밀번호 입력">
+              </div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">알림 설정</span>
+              <div class="setting-row">
+                  <span class="setting-label">푸시 알림</span>
+                  <label class="switch">
+                      <input type="checkbox" checked>
+                      <span class="slider"></span>
+                  </label>
+              </div>
+          </div>
+          <div class="acct-section">
+              <span class="acct-sec-title">기타</span>
+              <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                  <span style="font-size:16px; color:var(--text-main);">앱 버전</span>
+                  <span style="font-size:16px; font-weight:600; color:var(--text-main);">v1.2.0</span>
+              </div>
+              <button class="btn-text-danger">회원 탈퇴</button>
+          </div>
+      </div>
+  </div>
+
+  <div class="overlay-backdrop" id="modalBackdrop"></div>
+  <div class="modal-panel" id="addSiteModal">
+      <div class="modal-title">새 현장 등록</div>
+      <div style="margin-bottom:16px; color:var(--text-sub); font-size:14px; line-height:1.4;">현장명만 입력하면 카드가 생성됩니다.<br>상세 정보는 생성 후 카드를 눌러 입력하세요.</div>
+      <div class="form-group">
+          <label class="form-label">현장명 <span style="color:var(--danger)">*</span></label>
+          <input type="text" class="form-input" id="newSiteName" placeholder="예: 자이 아파트 103동">
+      </div>
+      <div class="modal-actions">
+          <button class="btn-modal btn-cancel" onclick="closeAddSiteModal()">취소</button>
+          <button class="btn-modal btn-confirm" onclick="confirmAddSite()">생성</button>
+      </div>
+  </div>
+
+
+  <div class="app-wrapper">
+    <div class="local-search-wrapper">
+        <input type="text" class="search-input-local" id="pageSearchInput" placeholder="현장명을 입력하세요." oninput="renderSites()">
+        <i data-lucide="search" class="local-search-icon"></i>
+        <button class="btn-local-clear" onclick="clearLocalSearchInput()"><i data-lucide="x" style="width:14px;"></i></button>
+    </div>
+    
+    <div class="filter-controls">
+        <select class="form-select" id="siteFilter" onchange="filterBySite(this.value)">
+            <option value="all">전체 현장</option>
+            <option value="siteA">송파 B현장</option>
+            <option value="siteB">강남 A현장</option>
+        </select>
+        <select class="form-select" id="sortFilter" onchange="sortSites(this.value)">
+            <option value="latest">최신순</option>
+            <option value="name">이름순</option>
+            <option value="pinned">즐겨찾기순</option>
+        </select>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-row-scroll">
+            <button class="filter-chip active" onclick="setFilter('all', this)">전체</button>
+            <button class="filter-chip" onclick="setFilter('ing', this)">진행중</button>
+            <button class="filter-chip" onclick="setFilter('wait', this)">예정</button>
+            <button class="filter-chip" onclick="setFilter('done', this)">완료</button>
+            <button class="btn-add-site-chip" onclick="openAddSiteModal()">
+                <span style="font-size:18px; font-weight:800; line-height:1;">+</span>&nbsp;추가
+            </button>
+        </div>
+    </div>
+
+    <div class="card-list" id="siteCardList"></div>
+    
+    <button id="loadMoreBtn" class="btn-load-more" style="display:none;" onclick="handleLoadMore()">
+        <span id="loadMoreText">더 보기</span>
+        <i data-lucide="chevron-down" id="loadMoreIcon" style="width:16px;"></i>
+    </button>
+    
+    <div id="emptyState" style="display:none; text-align:center; padding:60px 0; color:var(--text-placeholder);">
+        <i data-lucide="search-x" style="width:48px; height:48px; margin-bottom:12px; opacity:0.5;"></i>
+        <p>검색 결과가 없습니다.</p>
+    </div>
+
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    /* ================= 1. Common Features ================= */
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        // 헤더가 제거되었으므로, 해당 아이콘이 존재할 경우에만 처리
+        const icon = document.getElementById('darkModeIcon');
+        if(icon) icon.setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+        const label = document.getElementById('darkModeLabel');
+        if(label) label.innerText = isDark ? '라이트모드' : '다크모드';
+        lucide.createIcons();
+    }
+
+    // Global Search
+    function openGlobalSearch() { document.getElementById('searchOverlay').classList.add('active'); renderRecentSearches(); setTimeout(()=>document.getElementById('globalSearchInput').focus(),300); }
+    function closeGlobalSearch() { document.getElementById('searchOverlay').classList.remove('active'); }
+    function toggleGlobalClearBtn(i) { i.nextElementSibling.style.opacity = i.value ? 1 : 0; i.nextElementSibling.style.pointerEvents = i.value ? 'auto' : 'none'; }
+    function clearGlobalSearchInput() { document.getElementById('globalSearchInput').value=''; toggleGlobalClearBtn(document.getElementById('globalSearchInput')); }
+    function performSearch() { const q = document.getElementById('globalSearchInput').value.trim(); if(q) { addSearchHistory(q); alert(`'${q}' 검색 결과로 이동합니다.`); } }
+    let recentSearches = ['안전점검', '콘크리트'];
+    function addSearchHistory(k) { recentSearches = recentSearches.filter(s=>s!==k); recentSearches.unshift(k); renderRecentSearches(); }
+    function clearAllHistory() { recentSearches = []; renderRecentSearches(); }
+    function clickSearchTag(tag) { document.getElementById('globalSearchInput').value = tag; performSearch(); }
+    function renderRecentSearches() { const list = document.getElementById('recentList'); const empty = document.getElementById('emptyRecent'); list.innerHTML = ''; if(recentSearches.length === 0) empty.style.display = 'block'; else { empty.style.display = 'none'; recentSearches.forEach((item, idx) => { list.innerHTML += `<li class="recent-item"><span style="font-size:15px; font-weight:500;" onclick="clickSearchTag('${item}')">${item}</span><button class="btn-del-recent" onclick="recentSearches.splice(${idx}, 1); renderRecentSearches();"><i data-lucide="x" style="width:16px;"></i></button></li>`; }); lucide.createIcons(); } }
+
+    // Notifications
+    let notifications = [{ title:'안전 점검 요망', desc:'A구역 비계 설치 상태 확인 부탁드립니다.', type:'alert', time:'방금 전', read: false }];
+    function openNotification() { document.getElementById('notiBackdrop').classList.add('active'); document.getElementById('notiPanel').classList.add('active'); 
+        const badge = document.getElementById('notificationBadge');
+        if(badge) badge.classList.add('hidden'); 
+        renderNotiList(); 
+    }
+    function closeNotification() { document.getElementById('notiBackdrop').classList.remove('active'); document.getElementById('notiPanel').classList.remove('active'); }
+    function renderNotiList() { const list = document.getElementById('notiList'); list.innerHTML = ''; notifications.forEach(n => { list.innerHTML += `<li class="noti-item ${n.read?'':'unread'}"><div class="noti-icon-box type-alert"><i data-lucide="bell" style="width:20px;"></i></div><div class="noti-content"><span class="noti-item-title">${n.title}</span><span class="noti-item-desc">${n.desc}</span><span class="noti-time">${n.time}</span></div></li>`; }); lucide.createIcons(); }
+    function markAllRead() { notifications.forEach(n=>n.read=true); renderNotiList(); }
+
+    // Menu & Account
+    function openMenu() { document.getElementById('menuBackdrop').classList.add('active'); document.getElementById('menuPanel').classList.add('active'); }
+    function closeMenu() { document.getElementById('menuBackdrop').classList.remove('active'); document.getElementById('menuPanel').classList.remove('active'); }
+    function openAccount() { document.getElementById('accountOverlay').classList.add('active'); closeMenu(); }
+    function closeAccount() { document.getElementById('accountOverlay').classList.remove('active'); }
+    function saveAccount() { alert("계정 정보가 저장되었습니다."); closeAccount(); }
+    function triggerProfileUpload() { document.getElementById('profile-upload-input').click(); }
+    function handleProfilePreview(input) { if(input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { const box = document.getElementById('profile-img-box'); box.style.backgroundImage = `url(${e.target.result})`; box.querySelector('span').style.display = 'none'; }; reader.readAsDataURL(input.files[0]); } }
+
+    /* ================= 2. Site Data & Logic ================= */
+    const WeatherService = {
+        regionMap: { "서울": { text: "흐림 21°C", icon: "cloud" }, "경기": { text: "비 19°C", icon: "cloud-rain" }, "부산": { text: "맑음 24°C", icon: "sun" }, "대구": { text: "맑음 27°C", icon: "sun" } },
+        defaultWeather: { text: "맑음 20°C", icon: "sun" },
+        getWeather: function(address) { if (!address) return this.defaultWeather; const regionKeyword = address.split(' ')[0].substring(0, 2); const matchKey = Object.keys(this.regionMap).find(key => address.includes(key)); return matchKey ? this.regionMap[matchKey] : this.defaultWeather; }
+    };
+
+    // Global variables for site management
+    let currentFilter = 'all', currentSiteFilter = 'all', currentSort = 'latest', visibleCount = 5, initialCount = 5, filteredList = []; 
+    
+    // [수정 포인트 1] 열려있는 카드의 ID를 기억하는 Set 추가
+    let expandedCardIds = new Set();
+
+    // [이식된 기능] 글로벌 상태 변수
+    let currentSiteId = null; 
+    let currentDrawType = '';
+
+    // Init Mock Data
+    let allSites = [
+        { 
+            id:1, pinned:true, status:'ing', affil:'대구지사', name:'자이 아파트 101동 신축공사', addr:'대구광역시 동구 동부로 149', days:245, mp:3, manager:'이현수 소장', safety:'김안전 과장', phoneM:'010-1234-5678', phoneS:'010-9876-5432', lodge:'동구 비즈니스 호텔 304호', note:'', 
+            lastDate:'2025-12-09', lastTime:'10:30',
+            /* [데이터 보강] 이식된 뷰어 작동을 위한 데이터 구조 */
+            drawings: {
+                construction: [{name:'101동 평면도.png', type:'img', url:'https://via.placeholder.com/800x600/e2e8f0/31a3fa?text=Plan_1F'}],
+                progress: [], 
+                completion: []
+            },
+            ptw: { title: "고소작업 허가서", status: "승인완료", content: "작업 허가 내용 확인됨." },
+            workLog: null,
+            doc: { title: "안전 점검표", status: "제출완료", content: "점검 완료" },
+            punch: { title: "하자 목록", status: "미조치 3건", content: "지하주차장 천장 균열, 배관 누수, 마감 불량 등 하자 3건 미조치." },
+            isLocal:false 
+        },
+        { 
+            id:2, pinned:false, status:'done', affil:'평택지사', name:'삼성 반도체 P3 배관설치', addr:'경기도 평택시 고덕면 1', days:120, mp:1, manager:'최관리 프로', safety:'박감시 대리', phoneM:'010-1111-2222', phoneS:'010-3333-4444', lodge:'고덕 원룸 A동 201호', note:'', 
+            lastDate:'2025-12-05', lastTime:'18:20',
+            drawings: { 
+                construction: [{name:'P3_공사도면_1층.pdf', type:'doc', url:''}], 
+                progress: [{name:'P3_진행도면_배관구간.png', type:'img', url:'https://via.placeholder.com/800x600/fef3c7/78350f?text=P3+Progress', createdAt:'2025-12-05T18:20:00'}], 
+                completion: [{name:'P3_완료도면_최종본.pdf', type:'doc', url:''}] 
+            },
+            ptw: { title: "P3 고소작업 허가서", status: "완료", content: "모든 허가 절차가 완료되었습니다." }, 
+            workLog: { title: "P3 일일 작업일지", status: "제출완료", content: "배관 설치 및 압력 테스트 완료." }, 
+            doc: { title: "P3 준공 서류", status: "승인완료", content: "준공 관련 서류 일괄 승인." }, 
+            punch: { title: "P3 하자 내역", status: "조치완료", content: "경미한 하자 2건 조치 완료." },
+            isLocal:false 
+        },
+    ];
+    // Generate more mock data
+    for(let i=3; i<=8; i++) { 
+        allSites.push({ 
+            id: i, pinned: false, status: i % 3 === 0 ? 'wait' : 'ing', affil: '본사', name: `테스트 현장 ${i}구역`, addr: `서울시 강남구 역삼동 ${i}번지`, days: 10 + i, mp: 0, manager: `관리자${i}`, safety: `안전${i}`, phoneM: '010-0000-0000', phoneS: '010-0000-0000', lodge: '-', note: '-', 
+            lastDate:'2025-12-01', lastTime:'09:00',
+            drawings: { construction: [], progress: [], completion: [] },
+            ptw: null, workLog: null, doc: null, punch: null,
+            isLocal: false 
+        }); 
+    }
+
+    // Render Logic
+    function renderSites() {
+        const query = document.getElementById('pageSearchInput').value.toLowerCase();
+        const mainList = document.getElementById('siteCardList');
+        const emptyState = document.getElementById('emptyState');
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        const searchIcon = document.querySelector('.local-search-wrapper .local-search-icon');
+        const clearBtn = document.querySelector('.local-search-wrapper .btn-local-clear');
+
+        if(query.length > 0) { searchIcon.style.opacity = '0'; clearBtn.classList.add('show'); } else { searchIcon.style.opacity = '1'; clearBtn.classList.remove('show'); }
+
+        filteredList = allSites.filter(site => {
+            const matchQuery = site.name.toLowerCase().includes(query) || site.addr.toLowerCase().includes(query);
+            const matchStatus = currentFilter === 'all' || site.status === currentFilter;
+            let matchSite = true;
+            if (currentSiteFilter === 'siteA') matchSite = (site.affil === '대구지사'); else if (currentSiteFilter === 'siteB') matchSite = (site.affil === '평택지사');
+            return matchQuery && matchStatus && matchSite;
+        });
+
+        filteredList.sort((a, b) => {
+            if (currentSort === 'pinned') return (a.pinned === b.pinned) ? 0 : a.pinned ? -1 : 1;
+            if (currentSort === 'name') return a.name.localeCompare(b.name);
+            return b.id - a.id; 
+        });
+
+        mainList.innerHTML = '';
+        if (filteredList.length === 0) { emptyState.style.display = 'block'; loadMoreBtn.style.display = 'none'; return; } 
+        else { emptyState.style.display = 'none'; }
+
+        filteredList.slice(0, visibleCount).forEach(site => { mainList.innerHTML += createCard(site); });
+
+        if (filteredList.length <= initialCount) { loadMoreBtn.style.display = 'none'; } 
+        else { loadMoreBtn.style.display = 'flex'; document.getElementById('loadMoreText').innerText = visibleCount >= filteredList.length ? "접기" : "더 보기"; document.getElementById('loadMoreIcon').setAttribute('data-lucide', visibleCount >= filteredList.length ? 'chevron-up' : 'chevron-down'); }
+        lucide.createIcons();
+    }
+
+    function createCard(site) {
+        const weather = WeatherService.getWeather(site.addr);
+        let badgeClass = 'bdg-ing', badgeText = '진행중';
+        if(site.status === 'wait') { badgeClass = 'bdg-wait'; badgeText = '예정'; }
+        if(site.status === 'done') { badgeClass = 'bdg-done'; badgeText = '완료'; }
+        const pinClass = site.pinned ? 'active' : '';
+        const deleteBtn = site.isLocal ? `<button class="btn-star" style="color:#ef4444" onclick="deleteSite(${site.id})"><i data-lucide="trash-2" style="width:20px;"></i></button>` : '';
+
+        const addrDisplay = site.addr && site.addr !== '-' ? site.addr : (site.isLocal ? '주소 입력(클릭)' : '주소 미입력');
+
+        // 소속 배지 클래스: 직접등록인 경우 붉은 계열 배지 사용
+        const affilClass = site.affil === '직접등록' ? 'sub-badge direct' : 'sub-badge affil';
+
+        let addrTextAction = site.isLocal ? `onclick="editInfo(${site.id}, 'addr')"` : `onclick="openTMap('${site.addr}')"`;
+        let addrIconAction = `onclick="openTMap('${site.addr}')"`;
+
+        const hasPhoneM = site.phoneM && site.phoneM.length > 5;
+        const hasPhoneS = site.phoneS && site.phoneS.length > 5;
+        let btnPhoneM = site.isLocal ? `<button class="btn-icon-sq" style="${hasPhoneM?'':'border:1px dashed var(--border);'}" onclick="handleLocalPhone(${site.id}, 'phoneM')"><i data-lucide="${hasPhoneM?'phone':'plus'}" style="width:18px;"></i></button>` : `<a href="tel:${site.phoneM}" class="btn-icon-sq"><i data-lucide="phone" style="width:18px;"></i></a>`;
+        let btnPhoneS = site.isLocal ? `<button class="btn-icon-sq" style="${hasPhoneS?'':'border:1px dashed var(--border);'}" onclick="handleLocalPhone(${site.id}, 'phoneS')"><i data-lucide="${hasPhoneS?'phone':'plus'}" style="width:18px;"></i></button>` : `<a href="tel:${site.phoneS}" class="btn-icon-sq"><i data-lucide="phone" style="width:18px;"></i></a>`;
+
+        // 열려있는 카드 상태 유지
+        const isExpanded = expandedCardIds.has(site.id) ? 'expanded' : '';
+
+        const dateLabel = site.lastDate ? (site.lastTime ? `${site.lastDate} (최종 ${site.lastTime})` : site.lastDate) : '';
+
+        return `
+        <div class="site-card ${site.pinned ? 'pinned-item' : ''} ${isExpanded}" id="card-${site.id}">
+            <div class="card-header-main">
+                ${dateLabel ? `<div class="site-date">${dateLabel}</div>` : ''}
+                <div class="site-top-row">
+                    <div class="site-name-text">${site.name}</div>
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <span class="site-badge ${badgeClass}">${badgeText}</span>
+                        <button class="btn-star ${pinClass}" onclick="togglePin(${site.id}, this)"><i data-lucide="star" style="width:26px; height:26px; ${site.pinned ? 'fill:var(--primary); color:var(--primary);' : ''}"></i></button>
+                        ${deleteBtn}
+                    </div>
+                </div>
+                <div class="site-sub-info"><span class="${affilClass}">${site.affil}</span><span class="sub-badge weather"><i data-lucide="${weather.icon}" style="width:14px;"></i>${weather.text}</span></div>
+                <div class="addr-row">
+                    <div class="addr-text" ${addrTextAction} style="cursor:pointer;"><span>${addrDisplay}</span></div>
+                    <button class="btn-icon-sq" ${addrIconAction}><i data-lucide="map-pin" style="width:18px;"></i></button>
+                </div>
+            </div>
+            <div class="card-body-detail">
+                <div class="info-row"><span class="info-label">현장소장</span><div style="display:flex; align-items:center; gap:8px;"><span class="info-val" ${site.isLocal ? `onclick="editInfo(${site.id}, 'manager')"` : ''}>${site.manager || '입력'}</span>${btnPhoneM}</div></div>
+                <div class="info-row"><span class="info-label">안전담당</span><div style="display:flex; align-items:center; gap:8px;"><span class="info-val" ${site.isLocal ? `onclick="editInfo(${site.id}, 'safety')"` : ''}>${site.safety || '입력'}</span>${btnPhoneS}</div></div>
+                <div class="stats-row" style="border-bottom:none;">
+                    <div class="stat-item">
+                        <span class="stat-label">작업일 누계</span>
+                        <span class="stat-val">${site.days}일</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">하자(미조치)</span>
+                        <span class="stat-val danger">${site.mp}건</span>
+                    </div>
+                </div>
+                <div class="action-grid">
+                    <button class="act-btn type-draw" onclick="handleDrawClick(${site.id})"><i data-lucide="map" class="act-icon"></i><span class="act-label">도면</span></button>
+                    <button class="act-btn type-photo" onclick="openPhotoPreview(${site.id})"><i data-lucide="camera" class="act-icon"></i><span class="act-label">사진</span></button>
+                    <button class="act-btn type-ptw" onclick="openPTWPreview(${site.id})"><i data-lucide="file-check-2" class="act-icon"></i><span class="act-label">PTW</span></button>
+                    <button class="act-btn type-log" onclick="checkData(${site.id}, 'workLog', '일지')"><i data-lucide="clipboard-list" class="act-icon"></i><span class="act-label">일지</span></button>
+                    <button class="act-btn type-action" onclick="checkData(${site.id}, 'punch', '조치')"><i data-lucide="check-circle-2" class="act-icon"></i><span class="act-label">조치</span></button>
+                </div>
+            </div>
+            <div class="toggle-btn-area" onclick="toggleExpand(${site.id})"><span class="toggle-text">상세 정보 보기</span><i data-lucide="chevron-down" class="chevron-icon"></i></div>
+        </div>`;
+    }
+
+    // Card Interaction
+    // [수정 포인트 3] 토글 시 expandedCardIds 세트를 업데이트하여 상태 기억
+    function toggleExpand(id) { 
+        const card = document.getElementById(`card-${id}`);
+        card.classList.toggle('expanded');
+        
+        if (card.classList.contains('expanded')) {
+            expandedCardIds.add(id);
+        } else {
+            expandedCardIds.delete(id);
+        }
+    }
+    
+    function togglePin(id) { const idx = allSites.findIndex(s => s.id === id); if(idx > -1) { allSites[idx].pinned = !allSites[idx].pinned; renderSites(); } }
+    function handleLoadMore() { if (visibleCount >= filteredList.length) { visibleCount = initialCount; window.scrollTo({ top: 0, behavior: 'smooth' }); } else { visibleCount += 5; } renderSites(); }
+    function clearLocalSearchInput() { document.getElementById('pageSearchInput').value = ''; renderSites(); }
+    function setFilter(f, btn) { currentFilter = f; document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active')); btn.classList.add('active'); visibleCount = initialCount; renderSites(); }
+    function filterBySite(v) { currentSiteFilter = v; visibleCount = initialCount; renderSites(); }
+    function sortSites(v) { currentSort = v; visibleCount = initialCount; renderSites(); }
+    function editInfo(id, field) { const site = allSites.find(s => s.id === id); if(!site) return; const val = prompt(`새 내용을 입력하세요:`, site[field] || ''); if(val !== null) { site[field] = val; renderSites(); } }
+    function handleLocalPhone(id, type) { const site = allSites.find(s => s.id === id); if(!site) return; const currentNum = site[type]; if(currentNum && currentNum.length > 3) { if(confirm(`[${currentNum}]\n통화하시겠습니까?\n(취소 시 번호 수정)`)) { window.location.href = `tel:${currentNum}`; } else { const newVal = prompt("수정할 전화번호:", currentNum); if(newVal) { site[type] = newVal; renderSites(); } } } else { const newVal = prompt("전화번호 입력:", ""); if(newVal) { site[type] = newVal; renderSites(); } } }
+    function openTMap(addr) { if (!addr || addr.includes('입력') || addr === '-') { alert('주소가 없습니다.'); return; } window.open(`https://map.naver.com/v5/search/${encodeURIComponent(addr)}`); }
+    function openAddSiteModal() { document.getElementById('modalBackdrop').classList.add('active'); document.getElementById('addSiteModal').classList.add('active'); }
+    function closeAddSiteModal() { document.getElementById('modalBackdrop').classList.remove('active'); document.getElementById('addSiteModal').classList.remove('active'); document.getElementById('newSiteName').value = ''; }
+    
+    // [수정 포인트 4] 새 현장 생성 시, 해당 카드를 즉시 펼침 상태로 추가하여 입력 편의성 증대
+    function confirmAddSite() { 
+        const name = document.getElementById('newSiteName').value; 
+        if (!name) { alert('현장명은 필수입니다.'); return; } 
+
+        // 현재 날짜/시간 설정 (YYYY-MM-DD, HH:MM)
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mi = String(now.getMinutes()).padStart(2, '0');
+
+        const newSite = { 
+            id: Date.now(), 
+            pinned: false, 
+            status: 'ing', 
+            affil: '직접등록', 
+            name: name, 
+            addr: '', 
+            days: 1, 
+            mp: 0, 
+            manager: '', 
+            safety: '', 
+            phoneM: '', 
+            phoneS: '', 
+            note: '', 
+            lastDate: `${yyyy}-${mm}-${dd}`,
+            lastTime: `${hh}:${mi}`,
+            drawings: {construction:[], progress:[], completion:[]}, 
+            ptw: null, 
+            workLog: null, 
+            doc: null, 
+            isLocal: true 
+        }; 
+        allSites.unshift(newSite); 
+        
+        // 필터 및 정렬 초기화
+        currentFilter = 'all';
+        currentSiteFilter = 'all';
+        currentSort = 'latest';
+        visibleCount = initialCount;
+        expandedCardIds = new Set(); // 상태 초기화
+
+        // 검색어 및 UI 컨트롤 초기화
+        const searchInput = document.getElementById('pageSearchInput');
+        if (searchInput) searchInput.value = '';
+
+        const filterChips = document.querySelectorAll('.filter-chip');
+        filterChips.forEach((c, idx) => {
+            if (idx === 0) c.classList.add('active');
+            else c.classList.remove('active');
+        });
+
+        const siteSelect = document.getElementById('siteFilter');
+        if (siteSelect) siteSelect.value = 'all';
+        const sortSelect = document.getElementById('sortFilter');
+        if (sortSelect) sortSelect.value = 'latest';
+        
+        // 새로 만든 카드는 바로 펼쳐서 보여줌
+        expandedCardIds.add(newSite.id);
+        
+        closeAddSiteModal(); 
+        renderSites(); 
+    }
+    
+    function deleteSite(id) { if(confirm('삭제하시겠습니까?')) { allSites = allSites.filter(s => s.id !== id); renderSites(); } }
+
+
+    /* =================================================================
+       [이식된 로직 100%] 현장 정보 모듈 (File Manager, Viewer, CheckData)
+       ================================================================= */
+    
+    /* [1. 도면 관리 로직] */
+    function openSheet(siteId) {
+        currentSiteId = siteId; // 어떤 현장의 도면을 여는지 설정
+        document.getElementById('sheetBackdrop').classList.add('active');
+        document.getElementById('drawSheet').classList.add('active');
+    }
+    function closeSheet() {
+        document.getElementById('sheetBackdrop').classList.remove('active');
+        document.getElementById('drawSheet').classList.remove('active');
+    }
+    // 도면 핸들러 (psite - 관리 모드)
+    function handleDrawClick(id){
+        currentSiteId = id;
+        if(typeof openProgressManager === 'function'){ openProgressManager(); return; }
+        alert('openProgressManager()를 구현하거나 연결하세요.');
+    }
+    
+    // [추가] '도면' 버튼 클릭 시, 하단시트 대신 미리보기창(통합 뷰어)로 바로 진입
+    function openDrawPreview(siteId) {
+        currentSiteId = siteId;
+        const site = allSites.find(s => s.id === siteId);
+        if (!site) return;
+
+        const groups = [
+            { key: 'construction', label: '공사 도면' },
+            { key: 'progress', label: '진행 도면' },
+            { key: 'completion', label: '완료 도면' }
+        ];
+
+        const hasAny = groups.some(g => (site.drawings && site.drawings[g.key] && site.drawings[g.key].length > 0));
+       
+        let html = `
+            <div style="font-family:sans-serif; padding:18px; max-width:900px; margin:0 auto;">
+                <div style="font-weight:800; font-size:18px; margin-bottom:12px; color:#111;">
+                    ${(site.name || '현장')} · 도면
+                </div>
+        `;
+
+        if (!hasAny) {
+            html += `
+                <div class="empty-drawing-box">
+                    등록된 도면이 없습니다.
+                </div>
+            `;
+        } else {
+            groups.forEach(g => {
+                const files = (site.drawings && site.drawings[g.key]) ? site.drawings[g.key] : [];
+                html += `
+                    <div style="margin-top:14px;">
+                        <div style="font-weight:900; font-size:15px; margin:0 0 8px 0; color:#111;">
+                            ${g.label} <span style="font-weight:800; color:#64748b;">(${files.length})</span>
+                        </div>
+                `;
+
+                if (files.length === 0) {
+                    html += `<div style="padding:10px 0; color:#94a3b8; font-weight:800;">파일이 없습니다.</div>`;
+                } else {
+                    html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+                    files.forEach((f, i) => {
+                        const safeName = String(f.name || '파일')
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+
+                        const left = (f.type === 'img')
+                            ? `<img src="${f.url}" style="width:46px; height:46px; object-fit:cover; border-radius:10px; border:1px solid #e2e8f0;">`
+                            : `<div style="width:46px; height:46px; border-radius:10px; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; background:#fff;">
+                                   <i data-lucide="file-text" width="20"></i>
+                               </div>`;
+
+                        html += `
+                            <button type="button" class="uv-draw-item" data-g="${g.key}" data-i="${i}"
+                                style="width:100%; border:1px solid #e2e8f0; border-radius:12px; background:#ffffff; padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left;">
+                                ${left}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-weight:900; font-size:14px; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${safeName}</div>
+                                    <div style="font-size:12px; color:#64748b; font-weight:800;">${f.type === 'img' ? '이미지' : '문서'} · 탭하여 보기</div>
+                                </div>
+                                <i data-lucide="chevron-right" width="18"></i>
+                            </button>
+                        `;
+                    });
+                    html += `</div>`;
+                }
+
+                html += `</div>`;
+            });
+        }
+
+        html += `</div>`;
+
+        openViewerHTML('도면', html);
+
+        // 동적으로 생성된 리스트 클릭 바인딩
+        setTimeout(() => {
+            document.querySelectorAll('.uv-draw-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const g = btn.getAttribute('data-g');
+                    const i = Number(btn.getAttribute('data-i'));
+                    const s = allSites.find(x => x.id === siteId);
+                    if (!s || !s.drawings || !s.drawings[g] || !s.drawings[g][i]) return;
+                    const f = s.drawings[g][i];
+                    openViewer(f.name, f.type, f.url);
+                });
+            });
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }, 0);
+    }
+
+    // 공사/완료 도면: 조회 전용 (목록 -> 미리보기창)
+    function openFileManager(type) {
+        currentDrawType = type;
+        closeSheet();
+        
+        const site = allSites.find(s => s.id === currentSiteId);
+        if (!site) return;
+
+        const typeLabels = {
+            'construction': '공사 도면',
+            'progress': '진행 도면',
+            'completion': '완료 도면'
+        };
+        const label = typeLabels[type] || '도면';
+        const files = (site.drawings && site.drawings[type]) ? site.drawings[type] : [];
+       
+        let html = `
+            <div style="font-family:sans-serif; padding:18px; max-width:900px; margin:0 auto;">
+                <div style="font-weight:800; font-size:18px; margin-bottom:12px; color:#111;">
+                    ${(site.name || '현장')} · ${label}
+                </div>
+        `;
+
+        if (files.length === 0) {
+            html += `
+                <div class="empty-drawing-box">
+                    등록된 도면이 없습니다.
+                </div>
+            `;
+        } else {
+            html += `<div style="display:flex; flex-direction:column; gap:8px;">`;
+            files.forEach((f, i) => {
+                const safeName = String(f.name || '파일')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                const left = (f.type === 'img')
+                    ? `<img src="${f.url}" style="width:46px; height:46px; object-fit:cover; border-radius:10px; border:1px solid #e2e8f0;">`
+                    : `<div style="width:46px; height:46px; border-radius:10px; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; background:#fff;">
+                           <i data-lucide="file-text" width="20"></i>
+                       </div>`;
+
+                html += `
+                    <button type="button" class="uv-draw-item" data-type="${type}" data-i="${i}"
+                        style="width:100%; border:1px solid #e2e8f0; border-radius:12px; background:#ffffff; padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left;">
+                        ${left}
+                        <div style="flex:1; min-width:0;">
+                            <div style="font-weight:900; font-size:14px; color:#111; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${safeName}</div>
+                            <div style="font-size:12px; color:#64748b; font-weight:800;">${f.type === 'img' ? '이미지' : '문서'} · 탭하여 보기</div>
+                        </div>
+                        <i data-lucide="chevron-right" width="18"></i>
+                    </button>
+                `;
+            });
+            html += `</div>`;
+        }
+
+        html += `</div>`;
+
+        openViewerHTML(label, html);
+
+        // 동적으로 생성된 리스트 클릭 바인딩 (조회 전용)
+        setTimeout(() => {
+            document.querySelectorAll('.uv-draw-item').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const t = btn.getAttribute('data-type');
+                    const i = Number(btn.getAttribute('data-i'));
+                    const s = allSites.find(x => x.id === currentSiteId);
+                    if (!s || !s.drawings || !s.drawings[t] || !s.drawings[t][i]) return;
+                    const f = s.drawings[t][i];
+                    openViewer(f.name, f.type, f.url);
+                });
+            });
+            if (window.lucide && lucide.createIcons) lucide.createIcons();
+        }, 0);
+    }
+
+    // 공사 도면(관리): 기기 업로드 + 삭제/추가가 가능한 파일 관리자 사용 (@psite 전용)
+    function openProgressManager() {
+        currentDrawType = 'construction';
+        closeSheet();
+        document.getElementById('fmPanel').style.transform = "translateY(0)";
+        document.getElementById('fmTitle').innerText = '공사 도면 (관리)';
+        renderList();
+        renderFooter();
+    }
+    function closeFileManager() { document.getElementById('fmPanel').style.transform = "translateY(100%)"; }
+    
+    function renderList() {
+        const list = document.getElementById('fmList');
+        const site = allSites.find(s => s.id === currentSiteId);
+        if(!site) return;
+
+        const files = site.drawings[currentDrawType];
+        list.innerHTML = '';
+        if(files.length === 0) { list.innerHTML = `<div style="text-align:center; padding:60px 0; color:#aaa;">파일이 없습니다.</div>`; return; }
+        
+        files.forEach((f, idx) => {
+            const thumb = f.type === 'img' ? `<img src="${f.url}" class="file-thumb">` : `<div class="file-icon-box"><i data-lucide="file-text"></i></div>`;
+            const delBtn = currentDrawType === 'construction' ? `<button onclick="deleteFile(${idx})" style="border:none; background:none; color:#fca5a5; padding:10px;"><i data-lucide="trash-2"></i></button>` : '';
+
+            // 관리 대상(공사 도면)에서는 파일명 대신 날짜/시간 표시
+            let labelText = f.name || '';
+            if (currentDrawType === 'construction') {
+                const createdAt = f.createdAt ? new Date(f.createdAt) : null;
+                if (createdAt && !isNaN(createdAt.getTime())) {
+                    const y = createdAt.getFullYear();
+                    const m = String(createdAt.getMonth() + 1).padStart(2, '0');
+                    const d = String(createdAt.getDate()).padStart(2, '0');
+                    const hh = String(createdAt.getHours()).padStart(2, '0');
+                    const mm = String(createdAt.getMinutes()).padStart(2, '0');
+                    labelText = `${y}-${m}-${d} ${hh}:${mm}`;
+                } else {
+                    labelText = '등록 시간 정보 없음';
+                }
+            }
+
+            list.innerHTML += `<div class="file-row"><div style="display:flex; align-items:center; flex:1;" onclick="openViewer('${f.name}', '${f.type}', '${f.url}')">${thumb}<div style="font-weight:700; font-size:16px; flex:1; color:#f9fafb;">${labelText}</div></div>${delBtn}</div>`;
+        });
+        lucide.createIcons();
+    }
+    function renderFooter() {
+        const footer = document.getElementById('fmFooter');
+        let html = '';
+        const site = allSites.find(s => s.id === currentSiteId);
+        if(currentDrawType === 'construction') {
+            if(site && site.drawings.construction.length > 0) html += `<button class="btn-action btn-red" onclick="deleteAll()">일괄 삭제</button>`;
+            html += `<button class="btn-action btn-blue" onclick="document.getElementById('uploadInput').click()">파일 추가</button>`;
+        }
+        html += `<button class="btn-action btn-gray" onclick="closeFileManager()">닫기</button>`;
+        footer.innerHTML = html;
+    }
+    function handleUpload(input) {
+        if(input.files) {
+            const site = allSites.find(s => s.id === currentSiteId);
+            if(site) {
+                Array.from(input.files).forEach(f => {
+                    const isImg = f.type.startsWith('image/');
+                    site.drawings.construction.push({
+                        name: f.name,
+                        type: isImg ? 'img' : 'doc',
+                        url: isImg ? URL.createObjectURL(f) : '',
+                        createdAt: new Date().toISOString()
+                    });
+                });
+                renderList(); renderFooter(); input.value = '';
+            }
+        }
+    }
+    function deleteFile(idx) { 
+        if(confirm("삭제?")) { 
+            const site = allSites.find(s => s.id === currentSiteId);
+            site.drawings.construction.splice(idx, 1); 
+            renderList(); renderFooter(); 
+        } 
+    }
+    function deleteAll() { 
+        if(confirm("전체 삭제?")) { 
+            const site = allSites.find(s => s.id === currentSiteId);
+            site.drawings.construction = []; 
+            renderList(); renderFooter(); 
+        } 
+    }
+
+    /* [2. 데이터 체크 (PTW/일지/서류)] */
+    function checkData(siteId, key, label) {
+        currentSiteId = siteId;
+        const site = allSites.find(s => s.id === siteId);
+        if(!site) return;
+
+        const data = site[key];
+        if(data) {
+            const html = `
+                <div style="font-family:sans-serif;">
+                    <h2 style="border-bottom:2px solid #222; padding-bottom:10px;">${label} 상세정보</h2>
+                    <div style="background:#f9f9f9; padding:15px; border-radius:8px; margin-bottom:20px;">
+                        <div style="font-size:12px; color:#666;">문서 상태</div>
+                        <div style="font-size:16px; font-weight:bold; color:#2563eb;">${data.status}</div>
+                    </div>
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+                        <tr><td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold; width:80px;">제목</td><td style="padding:10px; border-bottom:1px solid #eee;">${data.title}</td></tr>
+                        <tr><td style="padding:10px; border-bottom:1px solid #eee; font-weight:bold;">내용</td><td style="padding:10px; border-bottom:1px solid #eee;">${data.content}</td></tr>
+                    </table>
+                </div>`;
+            openViewerHTML(label, html);
+        } else {
+            if(confirm(`[${label}] 데이터가 없습니다.\n본사에 요청하시겠습니까?`)) showToast("요청 전송 완료");
+        }
+    }
+
+    /* [3. 통합 뷰어 (Zoom/Pan Logic)] */
+    let zoom = 1, isPanning = false;
+    let startX = 0, startY = 0, pX = 0, pY = 0;
+    const viewport = document.getElementById('uvViewport');
+    const content = document.getElementById('uvContent');
+
+    // [수정됨] 사진대지 미리보기 (escapeHtml 제거 및 샘플 데이터 즉시 로드)
+    function openPhotoPreview(siteId) {
+        const site = allSites.find(s => s.id === siteId || s.id === parseInt(siteId));
+        // 현장 정보가 없으면 기본값 사용 (테스트용)
+        const siteName = site ? site.name : '테스트 현장';
+
+        // 1. 샘플 데이터 (화면 확인용)
+        const sampleData = [
+            { src: 'https://via.placeholder.com/600x400/dddddd/333333?text=Photo+1', member: '101동 지하주차장', process: '균열 보수 작업', content: '에폭시 주입 완료' },
+            { src: 'https://via.placeholder.com/600x400/dddddd/333333?text=Photo+2', member: '101동 1층 로비', process: '마감 검사', content: '타일 부착 상태 양호' },
+            { src: 'https://via.placeholder.com/600x400/dddddd/333333?text=Photo+3', member: '외부 진입로', process: '도로 포장', content: '아스콘 타설 중' },
+            { src: 'https://via.placeholder.com/600x400/dddddd/333333?text=Photo+4', member: '201호 내부', process: '전기 배선', content: '콘센트 위치 수정' },
+            { src: 'https://via.placeholder.com/600x400/dddddd/333333?text=Photo+5', member: '옥상 층', process: '방수 공사', content: '우레탄 하도 도포' },
+            { src: 'https://via.placeholder.com/600x400/dddddd/333333?text=Photo+6', member: '자재 창고', process: '자재 정리', content: '입고 자재 검수' }
+        ];
+
+        // 2. HTML 생성 (CSS Grid 레이아웃) - gap removed, single-line table borders via container/child borders
+        const cells = sampleData.map((item) => {
+            return `
+                <div style="break-inside: avoid; page-break-inside: avoid; background:#fff; border-right:1px solid #000; border-bottom:1px solid #000;">
+                    <div style="height:200px; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#eee;">
+                        <img src="${item.src}" style="width:100%; height:100%; object-fit:cover; display:block;">
+                    </div>
+                    <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:center; table-layout:fixed; border-spacing:0;">
+                        <colgroup>
+                            <col style="width:30%; background:#f3f4f6;">
+                            <col style="width:70%;">
+                        </colgroup>
+                        <tr>
+                            <th style="padding:6px 8px; font-weight:700; text-align:left;">부재명</th>
+                            <td style="padding:6px 8px; text-align:left;">${item.member}</td>
+                        </tr>
+                        <tr>
+                            <th style="padding:6px 8px; font-weight:700; text-align:left;">공정</th>
+                            <td style="padding:6px 8px; text-align:left;">${item.process}</td>
+                        </tr>
+                        <tr>
+                            <th style="padding:6px 8px; font-weight:700; text-align:left;">내용</th>
+                            <td style="padding:6px 8px; text-align:left;">${item.content}</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+        }).join('');
+
+        const html = `
+            <div style="width:100%; max-width:210mm; margin:0 auto; font-family:'Pretendard', sans-serif; color:#000; box-sizing:border-box; background:#fff; padding:0; border-top:2px solid #000; border-left:2px solid #000;">
+                <div style="padding:8px 10px; display:flex; justify-content:space-between; align-items:flex-end; border-bottom:0;">
+                    <div style="font-size:15px; font-weight:700;">공사명: ${siteName}</div>
+                    <div style="font-size:28px; font-weight:900; line-height:1;">사진대지</div>
+                </div>
+                
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0; width:100%;">
+                    ${cells}
+                </div>
+                
+                <div style="text-align:center; margin-top:6px; font-size:12px;">- 1 -</div>
+            </div>
+        `;
+
+        // 3. 메타 데이터 설정 (저장 시 파일명 생성용)
+        window.currentPreviewMeta = { siteName: siteName, formName: '사진대지' };
+        
+        // 4. 뷰어 열기
+        openViewerInline("공사 사진대지", html);
+    }
+
+    // [사용자코드] 작업허가서(PTW) 미리보기 (이미지 분석 기반 레이아웃 수정)
+    function openPTWPreview(siteId) {
+        const site = allSites.find(s => s.id === siteId);
+        const siteName = site ? site.name : '자이 아파트 101동 신축공사';
+
+        const html = `
+            <style>
+                /* PTW 전용 스타일 */
+                .ptw-container { width: 100%; max-width: 210mm; margin: 0 auto; font-family: "Pretendard", sans-serif; color: #000; border: 2px solid #000; padding: 10px; box-sizing: border-box; background:#fff; }
+                .ptw-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 12px; }
+                .ptw-table th, .ptw-table td { border: 1px solid #666; padding: 5px; vertical-align: middle; }
+                /* 헤더 셀 스타일 */
+                .ptw-table th { background-color: #f5f5f5; text-align: center; font-weight: 700; word-break: keep-all; }
+                .ptw-table td { text-align: center; word-break: break-all; }
+                .text-left { text-align: left !important; padding-left: 8px !important; }
+                .section-header { font-size: 14px; font-weight: 800; margin: 12px 0 6px 0; border-left:4px solid #000; padding-left:6px; }
+                
+                /* 강조 스타일 (이미지 참조) */
+                .highlight-yellow { background-color: #fff9c4 !important; color: #d32f2f; font-weight: 700; }
+                .text-red { color: #d32f2f !important; font-weight: 800; }
+                .text-orange { color: #f57c00 !important; font-weight: 800; }
+            </style>
+
+            <div class="ptw-container">
+                <table class="ptw-table" style="border:2px solid #000;">
+                    <tr>
+                        <td rowspan="2" style="width:55%; font-size:28px; font-weight:900; background:#fff; border-right:2px solid #000;">
+                            작업허가서(PTW)
+                        </td>
+                        <th style="width:15%; border-bottom:1px solid #000;">담 당</th>
+                        <th style="width:15%; border-bottom:1px solid #000;">안전관리자</th>
+                        <th style="width:15%; border-bottom:1px solid #000;">소 장</th>
+                    </tr>
+                    <tr>
+                        <td style="height:60px;">김재형<br>(서명)</td>
+                        <td>노동연<br>(서명)</td>
+                        <td>이현수<br>(서명)</td>
+                    </tr>
+                </table>
+
+                <table class="ptw-table">
+                    <tr>
+                        <th style="width:15%;">업 체 명</th>
+                        <td class="text-left" style="width:35%;">이노피앤씨</td>
+                        <th style="width:15%;">작 성 일</th>
+                        <td class="text-left" style="width:35%;">2025년 12월 21일</td>
+                    </tr>
+                    <tr>
+                        <th>공 구 명</th>
+                        <td class="text-left">H서비스 남부팀 광주지점</td>
+                        <th>허가기간</th>
+                        <td class="text-left">2025. 12. 22 ~ 12. 24</td>
+                    </tr>
+                    <tr>
+                        <th>작업장소</th>
+                        <td class="text-left" colspan="3">${siteName} 지하주차장 일원</td>
+                    </tr>
+                    <tr>
+                        <th>작 성 자</th>
+                        <td class="text-left">김재형</td>
+                        <th>연 락 처</th>
+                        <td class="text-left">010-1234-5678</td>
+                    </tr>
+                </table>
+
+                <div class="section-header">1. 허가 작업 및 장비 현황</div>
+                <table class="ptw-table">
+                    <tr style="background:#eee;">
+                        <th style="width:15%;">허가작업</th>
+                        <th style="width:30%;">작업내용</th>
+                        <th style="width:15%;">작업팀장</th>
+                        <th style="width:40%;">장비 및 기구 현황</th>
+                    </tr>
+                    <tr>
+                        <td>균열보수</td>
+                        <td class="text-left">지하주차장 균열 누수 보수<br>및 에폭시 주입 작업</td>
+                        <td>김재형</td>
+                        <td class="text-left">
+                            1. 장비: 고소작업대(시저형) 1대<br>
+                            2. 공구: 전동드릴 2대, 그라인더 1대
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>작업인원</th>
+                        <td colspan="3" class="text-left">총 3명 (작업자: 홍길동, 김철수 / 신호수: 박영희)</td>
+                    </tr>
+                    <tr>
+                        <th>보호구</th>
+                        <td colspan="3" class="text-left">안전모, 안전화, 안전대(V식), 각반, 보안경, 방진마스크</td>
+                    </tr>
+                    <tr>
+                        <th>작업시<br>요구사항</th>
+                        <td colspan="3" class="text-left highlight-yellow">
+                            ※ 관리감독자 상주 원칙, 작업 전 TBM 실시, 신호수 배치 필수
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>기상상황</th>
+                        <td colspan="3" class="text-left">실내 작업으로 우천시 작업 가능 (환기 시설 가동 필수)</td>
+                    </tr>
+                </table>
+
+                <div class="section-header">2. 위험성 평가 및 대책</div>
+                <table class="ptw-table">
+                    <tr style="background:#eee;">
+                        <th style="width:20%;">작업내용</th>
+                        <th style="width:25%;">위험요인</th>
+                        <th style="width:10%;">등급</th>
+                        <th style="width:45%;">위험 저감 대책</th>
+                    </tr>
+                    <tr>
+                        <td rowspan="3">고소작업대<br>사용 작업</td>
+                        <td class="text-left">작업자 추락</td>
+                        <td class="text-red">상</td>
+                        <td class="text-left">- 안전대 체결 철저 (2중 걸이)<br>- 작업대 난간 임의 해체 금지</td>
+                    </tr>
+                    <tr>
+                        <td class="text-left">작업대 전도</td>
+                        <td class="text-orange">중</td>
+                        <td class="text-left">- 아우트리거 설치 및 지반 상태 확인<br>- 유도자 배치 및 이동 시 하강 후 이동</td>
+                    </tr>
+                    <tr>
+                        <td class="text-left">작업자 협착</td>
+                        <td class="text-orange">중</td>
+                        <td class="text-left">- 상부 구조물 확인 철저<br>- 과상승 방지봉 작동 상태 확인</td>
+                    </tr>
+                </table>
+
+                <div style="margin-top:20px; border:2px solid #000; padding:15px; text-align:center;">
+                    <div style="font-size:15px; margin-bottom:15px;">
+                        위와 같이 안전 수칙을 준수하며 작업을 진행할 것을 허가합니다.
+                    </div>
+                    <div style="font-size:16px; font-weight:700;">
+                        2025년 12월 21일
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // 바로 인라인으로 보여주기 (팝업 차단/파일 미존재 대비)
+        window.currentPreviewMeta = { siteName: siteName || 'site', formName: '작업허가서' };
+        openViewerInline("작업허가서(PTW) - " + siteName, html);
+    }
+
+    // 공통 미리보기창(etc/미리보기창.html)으로 여는 헬퍼
+    function openViewerHTML(title, html) {
+        const payload = { title, html };
+        try {
+            const key = "preview_" + Date.now();
+            sessionStorage.setItem(key, JSON.stringify(payload));
+            const win = window.open(`etc/미리보기창.html?key=${encodeURIComponent(key)}`, "_blank");
+            // 팝업 차단 시 내부 뷰어로 폴백
+            if (!win) {
+                openViewerInline(title, html);
+            }
+        } catch (e) {
+            openViewerInline(title, html);
+        }
+    }
+
+    // 메시지 받아서 사진대지 데이터 저장 (프리뷰 창에서 전송)
+    window.addEventListener('message', function(event){
+        try {
+            const d = event.data;
+            if(!d || d.type !== 'photo-save') return;
+            const siteId = Number(d.siteId);
+            const site = allSites.find(s => s.id === siteId);
+            if(!site) return;
+            site.images = d.images || [];
+            site.photoMeta = d.meta || [];
+            localStorage.setItem('site_' + siteId + '_photos', JSON.stringify({ images: site.images, meta: site.photoMeta }));
+            showToast('사진대지 저장됨');
+            renderSites();
+        } catch(e){ console.error('message handler error', e); }
+    });
+
+    // Load saved photo-preview data from localStorage into allSites
+    function loadSavedData() {
+        try {
+            allSites.forEach(site => {
+                const key = 'site_' + site.id + '_photos';
+                const raw = localStorage.getItem(key);
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (parsed) {
+                    if (Array.isArray(parsed.images)) site.images = parsed.images;
+                    if (Array.isArray(parsed.meta)) site.photoMeta = parsed.meta;
+                }
+            });
+        } catch (e) {
+            console.error('loadSavedData error', e);
+        }
+    }
+
+    // 파일 타입별 HTML 생성 후 외부 미리보기창 호출
+    function openViewer(name, type, url) {
+        if (type === 'img') {
+            openViewerHTML(name, `<img src="${url}" style="width:100%;">`);
+        } else {
+            openViewerHTML(
+                name,
+                `<div style="text-align:center; padding:50px; color:#333;"><h3>${name}</h3><p>문서 미리보기 모드</p></div>`
+            );
+        }
+    }
+
+    // 팝업 차단 등 예외 상황에서 사용할 내부(inline) 뷰어 폴백
+    // 팝업 차단 등 예외 상황에서 사용할 내부(inline) 뷰어 폴백
+    function openViewerInline(title, html) {
+        // 1. 제목 및 내용 설정
+        document.getElementById('uvTitle').innerText = title;
+        const content = document.getElementById('uvContent');
+        content.innerHTML = html;
+        
+        // 2. 모달 활성화
+        document.getElementById('uvModal').classList.add('active');
+        
+        /* [수정됨] 
+           기존에 있던 'ensureActionBar' (PDF저장/인쇄 텍스트 버튼 생성 코드)를 삭제했습니다.
+           이제 HTML에 미리 작성된 기본 헤더(아이콘 형태)가 나타납니다.
+        */
+
+        // 3. 뷰어 초기화 (줌, 팬 상태 리셋)
+        resetViewerView();
+        isPanning = false;
+        document.getElementById('btnPan').classList.remove('active');
+        document.getElementById('uvViewport').classList.remove('panning');
+    }
+
+    function closeViewer() { document.getElementById('uvModal').classList.remove('active'); }
+
+    // 화면 중앙 및 배율 초기화 (미리보기창과 동일한 로직)
+    function resetViewerView() {
+        const screenW = window.innerWidth;
+        // 모바일은 화면 너비에 맞게 축소, PC는 0.7배율
+        zoom = screenW < 800 ? screenW / 850 : 0.7;
+        pX = 0;
+        pY = 0;
+        updateTransform();
+    }
+
+    // 줌 조절
+    function adjustZoom(delta) {
+        zoom = Math.max(0.2, zoom + delta);
+        updateTransform();
+    }
+
+    // 이동(Pan) 모드 토글
+    function togglePan() {
+        isPanning = !isPanning;
+        document.getElementById('btnPan').classList.toggle('active', isPanning);
+        viewport.classList.toggle('panning', isPanning);
+    }
+
+    function updateTransform() {
+        content.style.transform = `translate(${pX}px, ${pY}px) scale(${zoom})`;
+    }
+
+    // Print current inline content (capture and print)
+    function printViewer() {
+        showToast("인쇄 준비 중...");
+        const originStyle = content.style.transform;
+        content.style.transform = 'scale(1)';
+        html2canvas(content, { scale: 1.5 }).then(canvas => {
+            const dataUrl = canvas.toDataURL('image/png');
+            const w = window.open('', '_blank');
+            if (!w) {
+                showToast("팝업 차단으로 인쇄할 수 없습니다.");
+                content.style.transform = originStyle;
+                return;
+            }
+            w.document.write('<html><head><title>Print</title></head><body style="margin:0"><img src="' + dataUrl + '" style="width:100%"></body></html>');
+            w.document.close();
+            w.focus();
+            setTimeout(() => {
+                w.print();
+                setTimeout(() => { try { w.close(); } catch(e){} }, 3000);
+                content.style.transform = originStyle;
+                showToast("인쇄 명령이 전송되었습니다.");
+            }, 500);
+        }).catch(err => {
+            console.error(err);
+            showToast("인쇄 중 오류가 발생했습니다.");
+            content.style.transform = originStyle;
+        });
+    }
+
+    // 드래그 이벤트 (Pan)
+    viewport.addEventListener('mousedown', startPan);
+    viewport.addEventListener('touchstart', startPan, {passive: false});
+
+    function startPan(e) {
+        if(!isPanning) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        startX = cx - pX; startY = cy - pY;
+        document.addEventListener('mousemove', movePan);
+        document.addEventListener('touchmove', movePan, {passive: false});
+        document.addEventListener('mouseup', endPan);
+        document.addEventListener('touchend', endPan);
+    }
+    function movePan(e) {
+        if(!isPanning) return;
+        e.preventDefault();
+        const cx = e.touches ? e.touches[0].clientX : e.clientX;
+        const cy = e.touches ? e.touches[0].clientY : e.clientY;
+        pX = cx - startX; pY = cy - startY;
+        updateTransform();
+    }
+    function endPan() {
+        document.removeEventListener('mousemove', movePan);
+        document.removeEventListener('touchmove', movePan);
+        document.removeEventListener('mouseup', endPan);
+        document.removeEventListener('touchend', endPan);
+    }
+
+    // PDF 다운로드
+    function downloadPDF() {
+        showToast("PDF 변환 중...");
+        // 캡처를 위해 잠시 스케일 초기화
+        const originStyle = content.style.transform;
+        content.style.transform = 'scale(1)';
+        
+        html2canvas(content, { scale: 1.5 }).then(canvas => {
+            const imgData = canvas.toDataURL('image/jpeg');
+            const pdf = new window.jspdf.jsPDF();
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+            try {
+                const meta = window.currentPreviewMeta || {};
+                const siteName = (meta.siteName || document.getElementById('uvTitle').innerText || 'site').toString();
+                const formName = (meta.formName || 'document').toString();
+                const now = new Date();
+                const pad = (n)=>String(n).padStart(2,'0');
+                const datePart = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
+                const timePart = `${pad(now.getHours())}${pad(now.getMinutes())}`;
+                const slug = (s)=>s.replace(/[^\w\u3131-\u318E\uAC00-\uD7A3]+/g,'_').replace(/^_+|_+$/g,'');
+                const filename = `${slug(siteName)}_${slug(formName)}_${datePart}_${timePart}.pdf`;
+                pdf.save(filename);
+            } catch(e){
+                pdf.save('document.pdf');
+            }
+            showToast("다운로드 완료");
+            content.style.transform = originStyle;
+        }).catch(() => {
+            showToast("오류 발생");
+            content.style.transform = originStyle;
+        });
+    }
+
+    // 공유 기능
+    function shareContent() {
+        if(!navigator.share) {
+            alert("이 브라우저는 공유 기능을 지원하지 않습니다.");
+            return;
+        }
+        showToast("공유 준비 중...");
+        
+        const originStyle = content.style.transform;
+        content.style.transform = 'scale(1)';
+        
+        html2canvas(content, { scale: 1.5 }).then(canvas => {
+            canvas.toBlob(blob => {
+                const file = new File([blob], "share.jpg", { type: "image/jpeg" });
+                navigator.share({
+                    title: document.getElementById('uvTitle').innerText,
+                    text: '문서 공유',
+                    files: [file]
+                }).catch(() => {}); // 취소 시 무시
+                content.style.transform = originStyle;
+            });
+        });
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('uvToast');
+        t.innerText = msg; t.classList.add('show');
+        setTimeout(()=>t.classList.remove('show'), 2000);
+    }
+
+
+    // Init
+    window.onload = function() { 
+        loadSavedData();
+        renderSites(); 
+        // 헤더 제거로 인해 notificationBadge가 없을 수 있으므로 체크 후 실행
+        setTimeout(()=> {
+            const badge = document.getElementById('notificationBadge');
+            if(badge) badge.classList.remove('hidden');
+        }, 800); 
+    }
+  </script>
+</body>
+</html>

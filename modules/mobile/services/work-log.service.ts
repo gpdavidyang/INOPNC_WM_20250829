@@ -200,10 +200,9 @@ export class WorkLogService {
         }
       }
 
-      // 3. 자재 사용량 기록
       if (Array.isArray(data.materials) && data.materials.length > 0) {
         const materialRows = data.materials
-          .filter(material => material.material_name && Number(material.quantity) > 0)
+          .filter(material => material.material_name)
           .map(material => ({
             daily_report_id: reportId,
             material_name: material.material_name,
@@ -304,12 +303,11 @@ export class WorkLogService {
         }
       }
 
-      // 자재 사용량 업데이트
       if (data.materials) {
         await supabase.from('material_usage').delete().eq('daily_report_id', id)
 
         const materialRows = data.materials
-          .filter(material => material.material_name && Number(material.quantity) > 0)
+          .filter(material => material.material_name)
           .map(material => ({
             daily_report_id: id,
             material_name: material.material_name,
@@ -732,6 +730,7 @@ function mapAttachments(attachments: any[]): {
 }
 
 function mapMaterialUsages(materials: any[]): Array<{
+  material_id?: string | null
   material_name: string
   material_code?: string | null
   quantity: number
@@ -749,13 +748,16 @@ function mapMaterialUsages(materials: any[]): Array<{
         return null
       }
 
-      const quantity = Number(material?.quantity ?? 0)
+      const quantityStr = material?.quantity ?? material?.quantity_val ?? material?.amount ?? '0'
+      const quantity =
+        typeof quantityStr === 'number' ? quantityStr : parseFloat(String(quantityStr))
       const unit = toSafeString(material?.unit || '')
       const notes = toSafeString(material?.notes || '')
       const codeRaw =
         material?.material_code || material?.material_type || material?.materialName || null
 
       return {
+        material_id: material?.id ? String(material.id) : null,
         material_name: name,
         material_code: codeRaw ? String(codeRaw) : null,
         quantity: Number.isFinite(quantity) ? quantity : 0,

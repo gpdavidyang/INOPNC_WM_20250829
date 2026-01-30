@@ -15,6 +15,7 @@ interface SummarySectionProps {
     dong: string
     unit: string
   }
+  materials?: Array<{ material_name: string; quantity: number | string; unit?: string }>
   beforePhotosCount?: number
   afterPhotosCount?: number
   manpower?: number
@@ -30,6 +31,7 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   workTypes,
   personnelCount,
   location,
+  materials = [],
   beforePhotosCount = 0,
   afterPhotosCount = 0,
   manpower = 1,
@@ -59,6 +61,13 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
 
     const uniqueValues = Array.from(new Set(formatted))
     return uniqueValues.length > 0 ? uniqueValues.join(', ') : '없음'
+  }
+
+  const formatMaterials = () => {
+    if (!materials || materials.length === 0) return '없음'
+    const filtered = materials.filter(m => m.material_name)
+    if (filtered.length === 0) return '없음'
+    return filtered.map(m => `${m.material_name} (${m.quantity}${m.unit || ''})`).join(', ')
   }
 
   return (
@@ -115,6 +124,12 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
             <div className="summary-item summary-full-width">
               <span className="summary-label">블럭 / 동 / 층:</span>
               <span className="summary-value">{formatLocation()}</span>
+            </div>
+
+            {/* 자재 사용 (전체 너비) */}
+            <div className="summary-item summary-full-width">
+              <span className="summary-label">자재 사용:</span>
+              <span className="summary-value">{formatMaterials()}</span>
             </div>
 
             {/* 사진 (전체 너비) */}

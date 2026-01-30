@@ -167,6 +167,31 @@ const mapWorkEntries = (dailyReport: any): UnifiedWorkEntry[] => {
 }
 
 const mapTaskGroups = (dailyReport: any): UnifiedTaskGroup[] | undefined => {
+  // 1. Try work_content.tasks (New Schema)
+  if (dailyReport.work_content) {
+    let content = dailyReport.work_content
+    if (typeof content === 'string') {
+      try {
+        content = JSON.parse(content)
+      } catch (e) {
+        content = {}
+      }
+    }
+    if (Array.isArray(content?.tasks)) {
+      return content.tasks.map((task: any) => ({
+        memberTypes: ensureArray(task?.memberTypes),
+        workProcesses: ensureArray(task?.workProcesses || task?.processes),
+        workTypes: ensureArray(task?.workTypes),
+        location: {
+          block: task?.location?.block || '',
+          dong: task?.location?.dong || '',
+          unit: task?.location?.unit || '',
+        },
+      }))
+    }
+  }
+
+  // 2. Legacy work_logs
   if (!Array.isArray(dailyReport?.work_logs) || dailyReport.work_logs.length === 0) {
     return undefined
   }
@@ -198,15 +223,57 @@ export const integratedResponseToUnifiedReport = (
   const workerAssignments = mapWorkers(workerSource)
   const materials = mapMaterials(dailyReport.material_usage)
 
+  // Parse work_content if needed
+  let workContentData: any = dailyReport.work_content || {}
+  if (typeof workContentData === 'string') {
+    try {
+      workContentData = JSON.parse(workContentData)
+    } catch {
+      workContentData = {}
+    }
+  }
+
+  // Parse additional_notes if needed
+  let additionalNotesData: any = dailyReport.additional_notes || {}
+  if (typeof additionalNotesData === 'string') {
+    try {
+      additionalNotesData = JSON.parse(additionalNotesData)
+    } catch {
+      additionalNotesData = {}
+    }
+  }
+
   const memberTypes = ensureArray(
-    dailyReport.additional_notes?.memberTypes ?? dailyReport.member_name
+    workContentData?.memberTypes ?? additionalNotesData?.memberTypes ?? dailyReport.member_name
   )
   const workProcesses = ensureArray(
-    dailyReport.additional_notes?.workProcesses ?? dailyReport.process_type
+    workContentData?.workProcesses ??
+      additionalNotesData?.workProcesses ??
+      additionalNotesData?.workContents ??
+      dailyReport.process_type
   )
-  const workTypes = ensureArray(dailyReport.additional_notes?.workTypes)
+  const workTypes = ensureArray(workContentData?.workTypes ?? additionalNotesData?.workTypes)
+
   const workEntries = mapWorkEntries(dailyReport)
   const primaryEntry = workEntries[0]
+
+  // Location logic: work_content > location_info > additional_notes > legacy
+  let locationInfo = dailyReport.location_info
+  if (typeof locationInfo === 'string') {
+    try {
+      locationInfo = JSON.parse(locationInfo)
+    } catch {
+      locationInfo = {}
+    }
+  }
+  // Fallback to work_content.location (if exists) or additional_notes.location
+  if (!locationInfo) {
+    locationInfo =
+      workContentData?.location_info ??
+      workContentData?.location ??
+      additionalNotesData?.location ??
+      {}
+  }
 
   return {
     id: dailyReport.id ? String(dailyReport.id) : undefined,
@@ -218,7 +285,7 @@ export const integratedResponseToUnifiedReport = (
     status: (dailyReport.status || 'draft') as UnifiedDailyReport['status'],
     authorId: dailyReport.created_by || undefined,
     authorName: response.report_author?.full_name || undefined,
-    location: ensureLocation(dailyReport.location_info || {}),
+    location: ensureLocation(locationInfo),
     memberTypes,
     workProcesses,
     workTypes,
@@ -242,9 +309,9 @@ export const integratedResponseToUnifiedReport = (
       componentName: dailyReport.component_name || primaryEntry?.memberName || '',
       workProcess: dailyReport.work_process || primaryEntry?.processType || '',
       workSection: dailyReport.work_section || primaryEntry?.workSection || '',
-      totalWorkers: fallbackTotalWorkers,
-      totalHours: fallbackTotalHours,
-      workContents: dailyReport.additional_notes?.workContents || [],
+      totalWorkers: response.worker_statistics?.total_workers,
+      totalHours: response.worker_statistics?.total_hours,
+      workContents: workContentData?.workContents ?? additionalNotesData?.workContents ?? [],
     },
     createdAt: dailyReport.created_at,
     updatedAt: dailyReport.updated_at,
