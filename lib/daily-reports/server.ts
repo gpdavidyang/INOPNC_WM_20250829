@@ -1,10 +1,10 @@
+import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
+import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
+import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { UnifiedDailyReport } from '@/types/daily-reports'
 import { integratedResponseToUnifiedReport, type AdminIntegratedResponse } from './unified-admin'
-import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
-import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
-import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 
 const getSupabaseForAdmin = () => {
   try {
@@ -90,67 +90,55 @@ export async function getUnifiedDailyReportForAdmin(
         delete (minimal.additional_notes as any).safety_notes
       }
 
-      const [siteRes, authorRes, workerRes, attachmentRes] = await Promise.all([
-        supabase
-          .from('sites')
-          .select('id, name, address, status')
-          .eq('id', minimal.site_id)
-          .maybeSingle(),
-        minimal.created_by
-          ? supabase
-              .from('profiles')
-              .select('id, full_name, role, email')
-              .eq('id', minimal.created_by)
-              .maybeSingle()
-          : Promise.resolve({ data: null, error: null }),
-        supabase
-          .from('work_records')
-          .select(
-            `
-            id,
-            user_id,
-            labor_hours,
-            work_hours,
-            overtime_hours,
-            work_type,
-            notes,
-            metadata,
-            profiles:profiles!work_records_user_id_fkey(
+      const [siteRes, authorRes, workerRes, attachmentRes, assignmentRes, materialRes] =
+        await Promise.all([
+          supabase
+            .from('sites')
+            .select('id, name, address, status')
+            .eq('id', minimal.site_id)
+            .maybeSingle(),
+          minimal.created_by
+            ? supabase
+                .from('profiles')
+                .select('id, full_name, role, email')
+                .eq('id', minimal.created_by)
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null }),
+          supabase
+            .from('work_records')
+            .select(
+              `
               id,
-              full_name,
-              role,
-              email
+              user_id,
+              labor_hours,
+              work_hours,
+              overtime_hours,
+              work_type,
+              notes,
+              metadata,
+              profiles:profiles!work_records_user_id_fkey(
+                id,
+                full_name,
+                role,
+                email
+              )
+            `
             )
-          `
-          )
-          .eq('daily_report_id', id),
-        supabase
-          .from('document_attachments')
-          .select('id, document_type, file_name, file_url, file_size, uploaded_at, uploaded_by')
-          .eq('daily_report_id', id),
-      ])
+            .eq('daily_report_id', id),
+          supabase
+            .from('document_attachments')
+            .select('id, document_type, file_name, file_url, file_size, uploaded_at, uploaded_by')
+            .eq('daily_report_id', id),
+          supabase
+            .from('worker_assignments')
+            .select('*, profiles(id, full_name, role)')
+            .eq('daily_report_id', id),
+          supabase.from('material_usage').select('*').eq('daily_report_id', id),
+        ])
 
-      const { data: workRecordRows } = await supabase
-        .from('work_records')
-        .select(
-          `
-          id,
-          user_id,
-          labor_hours,
-          work_hours,
-          overtime_hours,
-          notes,
-          metadata,
-          profiles:profiles!work_records_user_id_fkey(
-            id,
-            full_name,
-            role,
-            email
-          )
-        `
-        )
-        .eq('daily_report_id', id)
-      const fallbackWorkerRows = mergeWorkers([], workRecordRows || [])
+      const fallbackWorkerRows = assignmentRes.data?.length
+        ? assignmentRes.data
+        : mergeWorkers([], workerRes.data || [])
 
       const attachments = (attachmentRes.data || []).reduce<Record<string, any[]>>(
         (acc, attachment) => {
@@ -194,6 +182,7 @@ export async function getUnifiedDailyReportForAdmin(
         daily_report: {
           ...minimal,
           ...photoGroups,
+          material_usage: materialRes.data || [],
           document_attachments: undefined,
         },
         site: siteRes.data || undefined,
@@ -221,13 +210,18 @@ export async function getUnifiedDailyReportForAdmin(
 
   const linkedDrawings = await fetchLinkedDrawingsForWorklog(id, data.site_id)
 
-  const [{ data: legacyWorkers }, { data: workRecordRows }, { data: authorProfile }] =
-    await Promise.all([
-      supabase.from('daily_report_workers').select('*').eq('daily_report_id', id),
-      supabase
-        .from('work_records')
-        .select(
-          `
+  const [
+    { data: legacyWorkers },
+    { data: workRecordRows },
+    { data: authorProfile },
+    { data: workerAssignments },
+    { data: materials },
+  ] = await Promise.all([
+    supabase.from('daily_report_workers').select('*').eq('daily_report_id', id),
+    supabase
+      .from('work_records')
+      .select(
+        `
         id,
         user_id,
         labor_hours,
@@ -243,17 +237,26 @@ export async function getUnifiedDailyReportForAdmin(
           email
         )
       `
-        )
-        .eq('daily_report_id', id),
-      supabase
-        .from('profiles')
-        .select('id, full_name, email, role')
-        .eq('id', data.created_by)
-        .maybeSingle(),
-    ])
+      )
+      .eq('daily_report_id', id),
+    supabase
+      .from('profiles')
+      .select('id, full_name, email, role')
+      .eq('id', data.created_by)
+      .maybeSingle(),
+    supabase
+      .from('worker_assignments')
+      .select('*, profiles(id, full_name, role)')
+      .eq('daily_report_id', id),
+    supabase.from('material_usage').select('*').eq('daily_report_id', id),
+  ])
 
-  const workerRows = mergeWorkers(legacyWorkers || [], workRecordRows || [])
+  const workerRows = workerAssignments?.length
+    ? workerAssignments
+    : mergeWorkers(legacyWorkers || [], workRecordRows || [])
+
   data.worker_assignments = workerRows
+  data.material_usage = materials || []
 
   const integrated: AdminIntegratedResponse = {
     daily_report: {
@@ -312,6 +315,12 @@ export async function getUnifiedDailyReportForAdmin(
     document_counts: {},
     related_reports: [],
     report_author: authorProfile || undefined,
+    material_usage: materials || [],
+    material_summary: {
+      npc1000_incoming: data.npc1000_incoming || 0,
+      npc1000_used: data.npc1000_used || 0,
+      npc1000_remaining: data.npc1000_remaining || 0,
+    },
   }
 
   return integratedResponseToUnifiedReport(integrated)

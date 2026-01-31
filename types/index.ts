@@ -288,6 +288,7 @@ export interface DailyReport {
   member_name: string // 부재명 (슬라브, 거더, 기둥, 기타)
   process_type: string // 공정 (균열, 면, 마감, 기타)
   total_workers?: number | null
+  total_labor_hours?: number | null
   npc1000_incoming?: number | null
   npc1000_used?: number | null
   npc1000_remaining?: number | null

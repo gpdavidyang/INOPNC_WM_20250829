@@ -1,16 +1,16 @@
 'use server'
 
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
-  withAdminAuth,
-  type AdminActionResult,
   AdminErrors,
   requireRestrictedOrgId,
   resolveAdminError,
+  withAdminAuth,
+  type AdminActionResult,
 } from './common'
-import { type SimpleAuth } from '@/lib/auth/ultra-simple'
 
 export interface DashboardStats {
   totalUsers: number
@@ -167,7 +167,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
             created_at,
             status,
             site_id,
-            profiles:profiles!daily_reports_user_id_fkey(full_name),
+            profiles:profiles!daily_reports_created_by_fkey(full_name),
             site:sites(name, organization_id)
           `
           )

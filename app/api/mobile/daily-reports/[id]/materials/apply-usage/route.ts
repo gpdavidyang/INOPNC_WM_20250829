@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { notifyLowMaterialStock } from '@/lib/notifications/triggers'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { logInventoryChange } from '@/lib/utils/logging'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,7 +33,7 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
     // 2) Load material usage rows for this report
     const { data: usages, error: usageErr } = await svc
       .from('material_usage')
-      .select('material_type, quantity, unit')
+      .select('material_type, quantity, quantity_val, amount, unit')
       .eq('daily_report_id', reportId)
     if (usageErr) throw usageErr
 
@@ -46,7 +46,8 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
 
     for (const u of usages) {
       const matType = String(u?.material_type || '').trim()
-      const qty = Math.max(0, Number(u?.quantity) || 0)
+      const rawQty = u?.quantity_val ?? u?.amount ?? u?.quantity
+      const qty = Math.max(0, Number(rawQty) || 0)
       if (!matType || qty <= 0) continue
 
       // 3) Resolve materials master by code or name (NPC-1000 etc.)

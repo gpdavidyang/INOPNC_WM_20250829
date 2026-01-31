@@ -253,19 +253,24 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
             <div className="form-group">
               <label className="form-label">수량(말)</label>
               <input
-                type="number"
+                type="text"
                 className="form-input no-spinner"
-                value={String(material.quantity ?? '')}
-                onChange={event =>
-                  handleUpdate(index, { quantity: Number(event.target.value) || 0 })
-                }
-                min={0}
-                step="any"
+                value={material.quantity === 0 ? '' : String(material.quantity)}
+                onChange={event => {
+                  const val = event.target.value
+                  // Allow empty, numbers and one decimal point
+                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                    handleUpdate(index, { quantity: val as any })
+                  }
+                }}
+                onBlur={event => {
+                  const val = parseFloat(event.target.value) || 0
+                  handleUpdate(index, { quantity: val })
+                }}
                 inputMode="decimal"
+                placeholder="0"
                 onFocus={e => {
-                  // UX: clear default 0 when user focuses the field
                   if (material.quantity === 0) {
-                    // let controlled value render as empty; no state write needed here
                     e.currentTarget.select()
                   }
                 }}
@@ -296,9 +301,16 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
                 justifyContent: 'flex-end',
                 // let CSS grid handle width so the item can align to the right edge
                 width: 'auto',
+                // Hide if there's only 1 item
+                visibility: materials.length > 1 ? 'visible' : 'hidden',
               }}
             >
-              <button className="delete-tag-btn" type="button" onClick={() => handleRemove(index)}>
+              <button
+                className="delete-tag-btn"
+                type="button"
+                onClick={() => handleRemove(index)}
+                disabled={materials.length <= 1}
+              >
                 삭제
               </button>
             </div>

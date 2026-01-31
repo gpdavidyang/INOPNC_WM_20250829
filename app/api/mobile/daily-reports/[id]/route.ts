@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,7 +67,10 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
          material_usage(
            id,
            material_type,
+           material_name,
            quantity,
+           quantity_val,
+           amount,
            unit
          ),
          document_attachments(

@@ -79,6 +79,8 @@ export interface MaterialUsageEntry {
   material_name: string
   material_code?: string | null
   quantity: number
+  quantity_val?: number
+  amount?: number
   unit?: string | null
   notes?: string | null
 }
@@ -100,6 +102,7 @@ export interface WorkLog {
   date: string
   siteId: string
   siteName: string
+  siteAddress?: string
   organizationId?: string
   partnerCompanyName?: string
   title?: string

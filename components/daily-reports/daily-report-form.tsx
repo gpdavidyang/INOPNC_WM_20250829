@@ -1,12 +1,8 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
+import AdditionalPhotoUploadSection from '@/components/daily-reports/additional-photo-upload-section'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -14,39 +10,42 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-import {
-  ArrowLeft,
-  AlertCircle,
-  MapPin,
-  Users,
-  Settings,
-  Shield,
-  Plus,
-  Camera,
-  MessageSquare,
-  ChevronDown,
-  ChevronUp,
-  FileText,
-  Package,
-  Image as ImageIcon,
-  Trash2,
-} from 'lucide-react'
-import type { Profile, Site, Material, DailyReport } from '@/types'
-import type {
-  AdditionalPhotoData,
-  UnifiedDailyReport,
-  UnifiedMaterialEntry,
-} from '@/types/daily-reports'
-import { useWorkOptions } from '@/hooks/use-work-options'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { useLaborHourOptions } from '@/hooks/use-labor-hour-options'
+import { useWorkOptions } from '@/hooks/use-work-options'
 import {
   FALLBACK_LABOR_HOUR_DEFAULT,
   FALLBACK_LABOR_HOUR_OPTIONS,
   normalizeLaborHourOptions,
 } from '@/lib/labor/labor-hour-options'
-import AdditionalPhotoUploadSection from '@/components/daily-reports/additional-photo-upload-section'
+import { cn } from '@/lib/utils'
+import type { DailyReport, Material, Profile, Site } from '@/types'
+import type {
+  AdditionalPhotoData,
+  UnifiedDailyReport,
+  UnifiedMaterialEntry,
+} from '@/types/daily-reports'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  MapPin,
+  MessageSquare,
+  Package,
+  Plus,
+  Settings,
+  Shield,
+  Trash2,
+  Users,
+} from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 // Use REST endpoints to avoid importing server actions in client
 
 // 통합된 Props 인터페이스
@@ -153,6 +152,10 @@ const buildFormDataFromReport = (
       member_name: reportData.member_name || '',
       process_type: reportData.process_type || '',
       total_workers: reportData.total_workers || 0,
+      total_labor_hours:
+        (reportData as any).total_labor_hours !== undefined
+          ? Number((reportData as any).total_labor_hours) || 0
+          : 0,
       npc1000_incoming: reportData.npc1000_incoming || 0,
       npc1000_used: reportData.npc1000_used || 0,
       npc1000_remaining: reportData.npc1000_remaining || 0,
@@ -171,6 +174,7 @@ const buildFormDataFromReport = (
     member_name: '',
     process_type: '',
     total_workers: 0,
+    total_labor_hours: 0,
     npc1000_incoming: 0,
     npc1000_used: 0,
     npc1000_remaining: 0,
@@ -533,6 +537,16 @@ export default function DailyReportForm({
   const [formData, setFormData] = useState(() =>
     buildFormDataFromReport(mode, reportData, currentUser)
   )
+
+  // Partner companies and filtered sites
+  const [partnerCompanies, setPartnerCompanies] = useState<any[]>([])
+  const [siteFilterPartnerId, setSiteFilterPartnerId] = useState('')
+  const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
+  const [loadingPartners, setLoadingPartners] = useState(false)
+  const [reportHydrationKey, setReportHydrationKey] = useState<string | null>(() =>
+    mode === 'edit' ? createReportKey(reportData) : null
+  )
+
   const selectedSiteId = useMemo(() => {
     const reportSiteId = (reportData as any)?.site_id
     const initialSiteId =
@@ -541,6 +555,7 @@ export default function DailyReportForm({
         : undefined
     return formData.site_id || reportSiteId || initialSiteId || ''
   }, [formData.site_id, reportData?.site_id, initialUnifiedReport?.siteId])
+
   const selectedSiteRecord = useMemo(() => {
     if (!selectedSiteId) return null
     const normalizedId = String(selectedSiteId)
@@ -550,6 +565,7 @@ export default function DailyReportForm({
       null
     )
   }, [selectedSiteId, filteredSites, sites])
+
   const selectedOrganizationLabel = useMemo(() => {
     if (!selectedSiteRecord) return ORGANIZATION_UNASSIGNED_LABEL
     const record: any = selectedSiteRecord
@@ -579,15 +595,6 @@ export default function DailyReportForm({
 
   // Work options
   const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
-
-  // Partner companies and filtered sites
-  const [partnerCompanies, setPartnerCompanies] = useState<any[]>([])
-  const [siteFilterPartnerId, setSiteFilterPartnerId] = useState('')
-  const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
-  const [loadingPartners, setLoadingPartners] = useState(false)
-  const [reportHydrationKey, setReportHydrationKey] = useState<string | null>(() =>
-    mode === 'edit' ? createReportKey(reportData) : null
-  )
 
   // Load partner companies based on user role
   useEffect(() => {
@@ -678,6 +685,15 @@ export default function DailyReportForm({
       )
     )
   }, [isAllowedLaborHourValue, defaultLaborHour])
+
+  const totalLaborHoursFromEntries = useMemo(
+    () =>
+      workerEntries.reduce((sum, entry) => {
+        const value = Number(entry.labor_hours || 0)
+        return Number.isFinite(value) ? sum + value : sum
+      }, 0),
+    [workerEntries]
+  )
 
   // Material usage entries
   const [materialUsageEntries, setMaterialUsageEntries] = useState<MaterialUsageFormEntry[]>(() =>
@@ -1227,6 +1243,7 @@ export default function DailyReportForm({
         work_process: nextProcessType || null,
         work_section: resolvedWorkSection || null,
         total_workers: Number(formData.total_workers ?? 0) || 0,
+        total_labor_hours: Number(formData.total_labor_hours ?? 0) || 0,
         npc1000_incoming: Number(formData.npc1000_incoming ?? 0) || 0,
         npc1000_used: Number(formData.npc1000_used ?? 0) || 0,
         npc1000_remaining: Number(formData.npc1000_remaining ?? 0) || 0,
@@ -1614,6 +1631,19 @@ export default function DailyReportForm({
               badge={<Badge variant="outline">{workerEntries.length}명</Badge>}
             >
               <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600">
+                    등록된 작업자:{' '}
+                    <span className="font-semibold text-gray-900">{workerEntries.length}</span>명
+                  </div>
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600">
+                    공수 합계:{' '}
+                    <span className="font-semibold text-gray-900">
+                      {totalLaborHoursFromEntries.toFixed(1)}
+                    </span>{' '}
+                    공수
+                  </div>
+                </div>
                 {workerEntries.map((entry, index) => (
                   <div key={entry.id} className="p-4 bg-gray-50 rounded-lg border">
                     <div className="flex items-center justify-between mb-3">
@@ -2061,6 +2091,44 @@ export default function DailyReportForm({
                       className="border-[#8DA0CD] focus:border-[#5F7AB9]"
                     />
                     <p className="text-xs text-gray-500 mt-1">현장 전체 인원 수 (급여 계산 기준)</p>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>총 공수</Label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={formData.total_labor_hours ?? 0}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            total_labor_hours: Number(e.target.value),
+                          }))
+                        }
+                        placeholder="총 공수"
+                        className="border-[#8DA0CD] focus:border-[#5F7AB9]"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          setFormData(prev => ({
+                            ...prev,
+                            total_labor_hours: Number(totalLaborHoursFromEntries.toFixed(2)),
+                          }))
+                        }
+                        className="border-[#8DA0CD] text-[#1B419C]"
+                      >
+                        공수 합계 반영
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      현재 작업자 공수 합계:{' '}
+                      <span className="font-semibold text-gray-700">
+                        {totalLaborHoursFromEntries.toFixed(2)}
+                      </span>{' '}
+                      공수
+                    </p>
                   </div>
                 </div>
               </div>

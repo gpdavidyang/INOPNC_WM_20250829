@@ -250,9 +250,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
         query = query.order('total_workers', { ascending })
         break
       case 'total_manhours':
-        // Since total_manhours is calculated after query, we'll sort manually in the client
-        // For now, sort by total_workers as a fallback
-        query = query.order('total_workers', { ascending })
+        query = query.order('total_labor_hours', { ascending })
         break
       case 'status':
         query = query.order('status', { ascending })
@@ -321,33 +319,6 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
     }
     const pMap = new Map(profiles.map(p => [String(p.id), p]))
 
-    // 2) Worker details count per report
-    const workerCountMap = new Map<string, number>()
-    if (reportIds.length > 0) {
-      const { data: wd } = await supabase
-        .from('work_records')
-        .select('id, daily_report_id')
-        .in('daily_report_id', reportIds)
-      for (const row of (wd as any[]) || []) {
-        const rid = String((row as any).daily_report_id)
-        workerCountMap.set(rid, (workerCountMap.get(rid) || 0) + 1)
-      }
-    }
-
-    // 3) Total manhours per report (work_records)
-    const manhoursMap = new Map<string, number>()
-    if (reportIds.length > 0) {
-      const { data: wr } = await supabase
-        .from('work_records')
-        .select('daily_report_id, labor_hours')
-        .in('daily_report_id', reportIds)
-      for (const row of (wr as any[]) || []) {
-        const rid = String((row as any).daily_report_id)
-        const add = Number((row as any).labor_hours) || 0
-        manhoursMap.set(rid, Number(((manhoursMap.get(rid) || 0) + add).toFixed(1)))
-      }
-    }
-
     // 4) Documents count per site+date
     const docsCountMap = new Map<string, number>() // key: `${site_id}|${YYYY-MM-DD}`
     if (siteIds.length > 0 && reports.length > 0) {
@@ -404,30 +375,54 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       const orgId = (r as any)?.sites?.organization_id
         ? String((r as any).sites.organization_id)
         : null
+
+      // Resolve workers from DB summary columns (Database-based approach)
+      let workerCount = Number(r.total_workers) || 0
+      let totalManhours =
+        Number((r as any).total_labor_hours) || Number((r as any).total_hours) || 0
+
+      // Fallback: If relational tables are empty, check work_content JSON (Mobile V2 format)
+      if (workerCount === 0 || totalManhours === 0) {
+        let content: any = r.work_content
+        if (typeof content === 'string' && content.trim()) {
+          try {
+            content = JSON.parse(content)
+          } catch {
+            content = null
+          }
+        }
+        if (content && typeof content === 'object') {
+          const jsonWorkers = content.workers || content.worker_entries || []
+          if (Array.isArray(jsonWorkers) && jsonWorkers.length > 0) {
+            let jCount = 0
+            let jHours = 0
+            for (const w of jsonWorkers) {
+              jCount++
+              const h = Number(w.hours ?? w.labor_hours ?? w.work_hours ?? 0)
+              // If hours are missing but worker exists, default to 8 (standard day) as per detail view behavior
+              jHours += h || 8
+            }
+            if (workerCount === 0) workerCount = jCount
+            if (totalManhours === 0) totalManhours = Number(jHours.toFixed(1))
+          }
+        }
+      }
+
       return {
         ...r,
         profiles: pMap.get(String(r.created_by)) || null,
-        worker_details_count: workerCountMap.get(rid) || 0,
+        worker_details_count: workerCount || Number(r.total_workers) || 0,
         daily_documents_count: docsCountMap.get(docsKey) || 0,
-        total_manhours: manhoursMap.get(rid) || 0,
+        total_manhours:
+          totalManhours || Number(r.total_labor_hours) || Number((r as any).total_hours) || 0,
         organization: orgId ? organizationMap.get(orgId) || null : null,
       }
     })
 
-    // Sort by total_manhours if needed (since it's calculated after the query)
-    const finalReports =
-      sortField === 'total_manhours'
-        ? enrichedReports.sort((a, b) => {
-            const aValue = a.total_manhours || 0
-            const bValue = b.total_manhours || 0
-            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-          })
-        : enrichedReports
-
     return {
       success: true,
       data: {
-        reports: finalReports,
+        reports: enrichedReports,
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / itemsPerPage),
         currentPage: page,
@@ -479,40 +474,60 @@ export async function getDailyReportById(id: string) {
           return supabase
         }
       })()
-      const { data: recordData } = await serviceSupabase
-        .from('work_records')
-        .select(
+
+      const [recordRes, assignmentRes, materialRes] = await Promise.all([
+        serviceSupabase
+          .from('work_records')
+          .select(
+            `
+            id,
+            user_id,
+            labor_hours,
+            work_hours,
+            overtime_hours,
+            notes,
+            metadata,
+            profiles:profiles!work_records_user_id_fkey(id, full_name, role, email)
           `
-          id,
-          user_id,
-          labor_hours,
-          work_hours,
-          overtime_hours,
-          notes,
-          metadata,
-          profiles:profiles!work_records_user_id_fkey(id, full_name, role, email)
-        `
-        )
-        .eq('daily_report_id', id)
-      workRecords = recordData || []
+          )
+          .eq('daily_report_id', id),
+        serviceSupabase
+          .from('worker_assignments')
+          .select('*, profiles(id, full_name, role)')
+          .eq('daily_report_id', id),
+        serviceSupabase.from('material_usage').select('*').eq('daily_report_id', id),
+      ])
+
+      workRecords = recordRes.data || []
+      const workerAssignments = assignmentRes.data || []
+      const materialUsage = materialRes.data || []
+
+      const mergedWorkers = workerAssignments.length
+        ? workerAssignments
+        : mergeWorkers([], workRecords)
+      const totalHours = mergedWorkers.reduce(
+        (sum, worker) =>
+          sum +
+          Number(
+            (worker as any).hours ?? (worker as any).labor_hours ?? (worker as any).work_hours ?? 0
+          ),
+        0
+      )
+
+      return {
+        success: true,
+        data: {
+          ...data,
+          profiles: creatorProfile,
+          workers: mergedWorkers,
+          worker_assignments: workerAssignments,
+          material_usage: materialUsage,
+          worker_details_count: mergedWorkers.length,
+          total_hours: totalHours,
+        },
+      }
     } catch (err) {
       console.error('Error fetching workers:', err)
-    }
-    const mergedWorkers = mergeWorkers([], workRecords)
-    const totalHours = mergedWorkers.reduce(
-      (sum, worker) => sum + Number(worker.labor_hours ?? worker.work_hours ?? 0),
-      0
-    )
-
-    return {
-      success: true,
-      data: {
-        ...data,
-        profiles: creatorProfile,
-        workers: mergedWorkers,
-        worker_details_count: mergedWorkers.length,
-        total_hours: totalHours,
-      },
     }
   })
 }

@@ -404,7 +404,7 @@ export const WorkLogHomePage: React.FC = () => {
         name: workLog.author || '작성자',
       },
       updatedAt: workLog.updatedAt || workLog.createdAt || new Date().toISOString(),
-      siteAddress: undefined,
+      siteAddress: workLog.siteAddress,
       location: {
         block: workLog.location?.block || '',
         dong: workLog.location?.dong || '',
@@ -414,7 +414,9 @@ export const WorkLogHomePage: React.FC = () => {
       materials: (workLog.materials || []).map(m => ({
         material_name: m.material_name,
         material_code: m.material_code,
-        quantity: m.quantity,
+        quantity: m.quantity || 0,
+        quantity_val: (m as any).quantity_val,
+        amount: (m as any).amount,
         unit: m.unit,
         notes: m.notes,
       })),
@@ -429,6 +431,15 @@ export const WorkLogHomePage: React.FC = () => {
         completionDocs,
         others: [],
       },
+      createdBy: workLog.createdBy
+        ? {
+            id: typeof workLog.createdBy === 'object' ? workLog.createdBy.id : workLog.createdBy,
+            name:
+              typeof workLog.createdBy === 'object'
+                ? workLog.createdBy.full_name || workLog.createdBy.name || '작성자'
+                : workLog.author || '작성자',
+          }
+        : { id: 'unknown', name: workLog.author || '작성자' },
     }
 
     setDetailData(detail)
@@ -465,14 +476,23 @@ export const WorkLogHomePage: React.FC = () => {
         workTypes: workLog.workTypes || [],
         mainManpower,
         materials:
-          (workLog.materials || []).map(material => ({
-            material_id: material.material_id || null,
-            material_name: material.material_name || '',
-            material_code: material.material_code || material.material_id || null,
-            quantity: material.quantity || 0,
-            unit: material.unit || '',
-            notes: material.notes || '',
-          })) || [],
+          (workLog.materials || []).map(material => {
+            const quantityVal =
+              (material as any).quantity_val ??
+              (material as any).amount ??
+              (material as any).quantity ??
+              0
+            return {
+              material_id: material.material_id || null,
+              material_name: material.material_name || '',
+              material_code: material.material_code || material.material_id || null,
+              quantity: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
+              quantity_val: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
+              amount: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
+              unit: material.unit || '',
+              notes: material.notes || '',
+            }
+          }) || [],
         additionalManpower,
         tasks:
           (workLog.tasks || []).map((task: any) => ({
@@ -644,47 +664,39 @@ export const WorkLogHomePage: React.FC = () => {
         const isSameAsSite = (value: string) =>
           normalize(value).replace(/\s+/g, '') === normalize(workLog.siteName).replace(/\s+/g, '')
 
-        const firstTask = Array.isArray(workLog.tasks) ? workLog.tasks[0] : undefined
-        const taskSummary = firstTask
-          ? [
-              Array.isArray(firstTask.workTypes) ? firstTask.workTypes.join(', ') : '',
-              Array.isArray(firstTask.workProcesses) ? firstTask.workProcesses.join(', ') : '',
-              Array.isArray(firstTask.memberTypes) ? firstTask.memberTypes.join(', ') : '',
-            ]
-              .map(normalize)
-              .filter(Boolean)
-              .join(' · ')
-          : ''
+        const locations = [
+          workLog.location?.block ? `${workLog.location.block}블록` : '',
+          workLog.location?.dong ? `${workLog.location.dong}동` : '',
+          workLog.location?.unit ? `${workLog.location.unit}층` : '',
+        ]
+          .filter(Boolean)
+          .join(' ')
 
-        const locationSummary = workLog.location
-          ? [workLog.location.block, workLog.location.dong, workLog.location.unit]
-              .map(normalize)
-              .filter(Boolean)
-              .join(' ')
-          : ''
-
-        const siteKey = normalize(workLog.siteName).replace(/\s+/g, '')
-        const summaryText = normalize(workLog.summary)
-
-        const subtitleCandidates = [
-          summaryText,
-          Array.isArray(workLog.workTypes) && workLog.workTypes.length > 0
-            ? workLog.workTypes.join(', ')
+        const contentParts = [
+          // 1. 작업 내용 (부재명, 공정, 유형 등)
+          (() => {
+            const parts: string[] = []
+            if (Array.isArray(workLog.memberTypes) && workLog.memberTypes.length > 0)
+              parts.push(...workLog.memberTypes)
+            if (Array.isArray(workLog.workProcesses) && workLog.workProcesses.length > 0)
+              parts.push(...workLog.workProcesses)
+            if (Array.isArray(workLog.workTypes) && workLog.workTypes.length > 0)
+              parts.push(...workLog.workTypes)
+            return parts.join(', ')
+          })(),
+          // 2. 위치 정보
+          locations,
+          // 3. (없으면) 작업 개요/비고 등
+          !workLog.memberTypes?.length &&
+          !workLog.workProcesses?.length &&
+          !workLog.workTypes?.length
+            ? normalize(workLog.description || workLog.notes || workLog.summary || workLog.title)
             : '',
-          Array.isArray(workLog.workProcesses) && workLog.workProcesses.length > 0
-            ? workLog.workProcesses.join(', ')
-            : '',
-          Array.isArray(workLog.memberTypes) && workLog.memberTypes.length > 0
-            ? workLog.memberTypes.join(', ')
-            : '',
-          taskSummary,
-          locationSummary,
-          workLog.description,
-          workLog.notes,
-          workLog.title,
         ]
           .map(normalize)
           .filter(Boolean)
+
+        let subtitle = contentParts.length > 0 ? contentParts.join(' · ') : '작업내용 미입력'
 
         const workerNames = normalizeWorkerNames(workLog).map(normalize).filter(Boolean)
         const workerLabel =
@@ -694,24 +706,8 @@ export const WorkLogHomePage: React.FC = () => {
               ? workerNames[0]
               : `${workerNames[0]} 외 ${workerNames.length - 1}명`
 
-        let baseSubtitle: string | undefined
-        if (summaryText) {
-          baseSubtitle =
-            subtitleCandidates.find((text, index) =>
-              index === 0 ? true : text.replace(/\s+/g, '') !== siteKey
-            ) || summaryText
-        }
-        if (!baseSubtitle) {
-          baseSubtitle = '작업내용 미입력'
-        }
-
-        let subtitle = baseSubtitle
         if (workerLabel) {
-          const normalizedSubtitle = subtitle.replace(/\s+/g, '').toLowerCase()
-          const normalizedWorker = workerLabel.replace(/\s+/g, '').toLowerCase()
-          if (!normalizedSubtitle.includes(normalizedWorker)) {
-            subtitle = `${subtitle} · ${workerLabel}`
-          }
+          subtitle = `${subtitle} / ${workerLabel}`
         }
 
         const formattedDate = formatDateWithWeekday(workLog.date)
@@ -1637,28 +1633,31 @@ export const WorkLogHomePage: React.FC = () => {
         {isDraftSheetOpen && (
           <>
             <div
-              className="fixed inset-0 bg-black bg-opacity-40 z-[2000]"
+              className="fixed inset-0 bg-black bg-opacity-40 z-[9998]"
               onClick={() => setDraftSheetOpen(false)}
             />
-            <div className="fixed bottom-0 left-0 right-0 z-[2001]">
-              <div className="bg-white rounded-t-3xl shadow-xl p-5 pb-7">
-                <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">임시 상태 안내</h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  선택한 임시 상태 항목의 내용을 작업일지 작성 페이지로 불러옵니다. 사진/도면은 자동
-                  업로드되지 않으며, 작성 페이지에서 추가하실 수 있습니다.
+            <div className="fixed bottom-0 left-0 right-0 z-[9999]">
+              <div className="bg-white rounded-t-3xl shadow-xl p-6 pb-[calc(28px+env(safe-area-inset-bottom))]">
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">임시 상태 안내</h3>
+                <p className="text-[15px] text-gray-600 mb-8 leading-relaxed">
+                  선택한 임시 상태 항목의 내용을 불러옵니다.
+                  <br />
+                  <span className="text-sm text-gray-500">
+                    *사진 및 도면은 자동 복구되지 않으므로 다시 추가해주세요.
+                  </span>
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     type="button"
-                    className="flex-1 h-11 border border-gray-300 rounded-[10px] text-gray-800 font-medium"
+                    className="flex-1 h-14 border border-gray-200 rounded-2xl text-gray-700 font-semibold text-[16px] active:bg-gray-50 transition-colors"
                     onClick={() => setDraftSheetOpen(false)}
                   >
                     취소
                   </button>
                   <button
                     type="button"
-                    className="flex-1 h-11 rounded-[10px] text-white font-semibold"
+                    className="flex-1 h-14 rounded-2xl text-white font-bold text-[16px] shadow-sm active:opacity-90 transition-opacity"
                     style={{ background: '#1a254f' }}
                     onClick={proceedOpenDraft}
                   >

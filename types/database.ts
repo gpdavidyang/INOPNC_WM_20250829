@@ -306,6 +306,7 @@ export type Database = {
           site_id: string | null
           status: string | null
           total_workers: number | null
+          total_labor_hours: number | null
           updated_at: string
           work_date: string
         }
@@ -324,6 +325,7 @@ export type Database = {
           site_id?: string | null
           status?: string | null
           total_workers?: number | null
+          total_labor_hours?: number | null
           updated_at?: string
           work_date: string
         }
@@ -342,6 +344,7 @@ export type Database = {
           site_id?: string | null
           status?: string | null
           total_workers?: number | null
+          total_labor_hours?: number | null
           updated_at?: string
           work_date?: string
         }

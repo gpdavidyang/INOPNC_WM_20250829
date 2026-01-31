@@ -1,17 +1,13 @@
-import type { Metadata } from 'next'
-import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReportById } from '@/app/actions/admin/daily-reports'
-import { PageHeader } from '@/components/ui/page-header'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import DailyReportDetailClient from '@/components/admin/daily-reports/DailyReportDetailClient'
 import { buttonVariants } from '@/components/ui/button'
 import EmptyState from '@/components/ui/empty-state'
-import DailyReportDetailClient from '@/components/admin/daily-reports/DailyReportDetailClient'
+import { PageHeader } from '@/components/ui/page-header'
 import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
-import {
-  integratedResponseToUnifiedReport,
-  type AdminIntegratedResponse,
-} from '@/lib/daily-reports/unified-admin'
+import type { Metadata } from 'next'
 
-const buildFallbackUnifiedReport = (report: any) => {
+const buildFallbackUnifiedReport = (report: any): any => {
   if (!report) return null
   const workers = Array.isArray(report.workers) ? report.workers : []
   const unifiedWorkers = workers.map((worker: any, index: number) => ({
@@ -30,6 +26,26 @@ const buildFallbackUnifiedReport = (report: any) => {
       ? Number(report.total_labor_hours) || 0
       : unifiedWorkers.reduce((sum, worker) => sum + worker.hours, 0)
 
+  // Parse location_info if it's a string
+  let location = report.location_info || {}
+  if (typeof location === 'string') {
+    try {
+      location = JSON.parse(location)
+    } catch {
+      location = {}
+    }
+  }
+
+  // Parse work_content for fallback tasks if columns are empty
+  let content = report.work_content || {}
+  if (typeof content === 'string') {
+    try {
+      content = JSON.parse(content)
+    } catch {
+      content = {}
+    }
+  }
+
   return {
     id: report.id ? String(report.id) : undefined,
     siteId: report.site_id || '',
@@ -40,13 +56,29 @@ const buildFallbackUnifiedReport = (report: any) => {
     status: (report.status || 'draft') as any,
     authorId: report.created_by || undefined,
     authorName: report?.profiles?.full_name || '',
-    location: { block: '', dong: '', unit: '' },
-    memberTypes: [],
-    workProcesses: [],
-    workTypes: [],
+    location: {
+      block: location.block || '',
+      dong: location.dong || '',
+      unit: location.unit || '',
+    },
+    memberTypes: [report.component_name || report.member_name || content.memberTypes?.[0]].filter(
+      Boolean
+    ),
+    workProcesses: [
+      report.work_process || report.process_type || content.workProcesses?.[0],
+    ].filter(Boolean),
+    workTypes: [report.work_section || content.workTypes?.[0]].filter(Boolean),
     workEntries: [],
     workers: unifiedWorkers,
-    materials: [],
+    materials: Array.isArray(report.material_usage)
+      ? report.material_usage.map((m: any, i: number) => ({
+          id: m.id || `m-${i}`,
+          materialName: m.material_name || m.name || '자재',
+          quantity: Number(m.quantity_val ?? m.quantity ?? 0) || 0,
+          unit: m.unit || '',
+          notes: m.notes || '',
+        }))
+      : [],
     npcUsage: {
       incoming: report?.npc1000_incoming ?? null,
       used: report?.npc1000_used ?? null,
@@ -59,8 +91,8 @@ const buildFallbackUnifiedReport = (report: any) => {
     issues: report?.issues || '',
     progress: report?.progress_rate || undefined,
     meta: {
-      componentName: report?.component_name || '',
-      workProcess: report?.work_process || '',
+      componentName: report?.component_name || report?.member_name || '',
+      workProcess: report?.work_process || report?.process_type || '',
       workSection: report?.work_section || '',
       totalWorkers,
       totalHours,

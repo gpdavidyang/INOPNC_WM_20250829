@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
           profile_id,
           worker_name,
           labor_hours,
+          hours,
           profiles(
             id,
             full_name
@@ -83,6 +84,8 @@ export async function GET(request: NextRequest) {
           material_type,
           material_name,
           quantity,
+          quantity_val,
+          amount,
           unit,
           notes
         ),
@@ -378,6 +381,7 @@ export async function POST(request: NextRequest) {
       work_types = [],
       location = {},
       tasks = [],
+      workers = [],
       main_manpower = 0,
       additional_manpower = [],
       notes,
@@ -418,6 +422,18 @@ export async function POST(request: NextRequest) {
     const totalManpowerExact = !isNaN(totalManpowerFromPayload)
       ? totalManpowerFromPayload
       : calculatedManpower
+
+    // Calculate total labor hours for DB summary column
+    let calculatedLaborHours = 0
+    if (Array.isArray(workers) && workers.length > 0) {
+      calculatedLaborHours = workers.reduce((sum: number, w: any) => {
+        const h = Number(w.hours) || 0
+        return sum + (h || 8) // Default to 8 if worker present but hours missing
+      }, 0)
+    } else if (totalManpowerExact > 0) {
+      calculatedLaborHours = totalManpowerExact * 8
+    }
+
     // Some environments define daily_reports.total_workers as integer; keep exact value separately
     const totalWorkersInt = Number.isFinite(totalManpowerExact) ? Math.round(totalManpowerExact) : 0
 
@@ -435,6 +451,7 @@ export async function POST(request: NextRequest) {
       // Update the existing report instead of erroring out
       const updateBase: any = {
         total_workers: totalWorkersInt,
+        total_labor_hours: calculatedLaborHours,
         work_description,
         safety_notes: safety_notes ?? null,
         special_notes: notes ?? null,
@@ -466,6 +483,8 @@ export async function POST(request: NextRequest) {
           workProcesses: Array.isArray(processes) ? processes : [],
           workTypes: Array.isArray(work_types) ? work_types : [],
           tasks: Array.isArray(tasks) ? tasks : [],
+          workers: Array.isArray(workers) ? workers : [],
+          materials: Array.isArray(materials) ? materials : [],
           totalManpower: totalManpowerExact,
           mainManpower: Number(main_manpower) || 0,
           additionalManpower: normalizedAdditionalManpower,
@@ -485,6 +504,7 @@ export async function POST(request: NextRequest) {
         'safety_notes',
         'special_notes',
         'total_workers',
+        'total_labor_hours',
         'updated_at',
         'work_description',
         'component_name',
@@ -580,30 +600,66 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Optionally add materials as additional usage entries
-      if (materials && materials.length > 0) {
-        const materialRecords = materials
-          .filter(
-            (material: any) =>
-              typeof material?.material_name === 'string' && material.material_name.trim()
-          )
-          .map((material: any) => ({
-            daily_report_id: updatedReport.id,
-            material_name: material.material_name,
-            material_type: (material.material_code || material.material_name || '')
-              .toString()
-              .toUpperCase(),
-            quantity: Number(material.quantity) || 0,
-            unit: material.unit || null,
-            unit_price: material.unit_price || null,
-            notes: material.notes || null,
-          }))
-        if (materialRecords.length > 0) {
-          try {
-            await serviceClient.from('material_usage').insert(materialRecords)
-          } catch (e) {
-            console.warn('material_usage insert warning (update path):', e)
+      // Update materials: Delete and Re-insert to ensure consistency
+      if (materials !== undefined) {
+        try {
+          // 1. Delete existing material usage for this report
+          await serviceClient
+            .from('material_usage')
+            .delete()
+            .eq('daily_report_id', updatedReport.id)
+
+          // 2. Insert new material usage if any
+          if (Array.isArray(materials) && materials.length > 0) {
+            const materialRecords = materials
+              .filter(
+                (material: any) =>
+                  typeof material?.material_name === 'string' && material.material_name.trim()
+              )
+              .map((material: any) => ({
+                daily_report_id: updatedReport.id,
+                material_name: material.material_name,
+                material_type: (material.material_code || material.material_name || '')
+                  .toString()
+                  .toUpperCase(),
+                quantity: Number(material.quantity) || 0,
+                quantity_val:
+                  material.quantity_val !== undefined
+                    ? Number(material.quantity_val)
+                    : Number(material.quantity) || 0,
+                amount:
+                  material.amount !== undefined
+                    ? Number(material.amount)
+                    : Number(material.quantity) || 0,
+                unit: material.unit || null,
+                notes: material.notes || null,
+              }))
+
+            if (materialRecords.length > 0) {
+              await serviceClient.from('material_usage').insert(materialRecords)
+            }
           }
+
+          // Update workers: Delete and Re-insert
+          if (workers !== undefined) {
+            const { error: delErr } = await serviceClient
+              .from('worker_assignments')
+              .delete()
+              .eq('daily_report_id', updatedReport.id)
+
+            if (!delErr && Array.isArray(workers) && workers.length > 0) {
+              const workerRecords = workers.map((w: any) => ({
+                daily_report_id: updatedReport.id,
+                profile_id: w.id && w.id.length > 30 ? w.id : null, // Simple UUID check
+                worker_name: w.name || '미정',
+                labor_hours: (Number(w.hours) || 0) / 8, // Legacy support
+                hours: Number(w.hours) || 0, // New column
+              }))
+              await serviceClient.from('worker_assignments').insert(workerRecords)
+            }
+          }
+        } catch (e) {
+          console.warn('material_usage update warning:', e)
         }
       }
 
@@ -646,6 +702,8 @@ export async function POST(request: NextRequest) {
       workProcesses: Array.isArray(processes) ? processes : [],
       workTypes: Array.isArray(work_types) ? work_types : [],
       tasks: Array.isArray(tasks) ? tasks : [],
+      workers: Array.isArray(workers) ? workers : [],
+      materials: Array.isArray(materials) ? materials : [],
       totalManpower: totalManpowerExact,
       mainManpower: Number(main_manpower) || 0,
       additionalManpower: normalizedAdditionalManpower,
@@ -655,6 +713,7 @@ export async function POST(request: NextRequest) {
       site_id,
       work_date,
       total_workers: totalWorkersInt,
+      total_labor_hours: calculatedLaborHours,
       work_description,
       process_type: primaryProcess || null,
       component_name: primaryMemberType || null,
@@ -677,6 +736,7 @@ export async function POST(request: NextRequest) {
       'safety_notes',
       'special_notes',
       'total_workers',
+      'total_labor_hours',
       'created_at',
       'updated_at',
       'work_description',
@@ -820,6 +880,9 @@ export async function POST(request: NextRequest) {
             .toString()
             .toUpperCase(),
           quantity: Number(material.quantity) || 0,
+          quantity: Number(material.quantity) || 0,
+          quantity_val: Number(material.quantity_val) || Number(material.quantity) || 0,
+          amount: Number(material.amount) || Number(material.quantity) || 0,
           unit: material.unit || null,
           unit_price: material.unit_price || null,
           notes: material.notes || null,
@@ -829,9 +892,25 @@ export async function POST(request: NextRequest) {
         try {
           await serviceClient.from('material_usage').insert(materialRecords)
         } catch (e) {
-          // Ignore if table or columns are not present in this environment
           console.warn('material_usage insert warning:', e)
         }
+      }
+    }
+
+    // Insert worker assignments if provided
+    if (workers && workers.length > 0) {
+      const workerRecords = workers.map((w: any) => ({
+        daily_report_id: report.id,
+        profile_id: w.id && w.id.length > 30 ? w.id : null,
+        worker_name: w.name || '미정',
+        labor_hours: (Number(w.hours) || 0) / 8,
+        hours: Number(w.hours) || 0,
+      }))
+
+      try {
+        await serviceClient.from('worker_assignments').insert(workerRecords)
+      } catch (e) {
+        console.warn('worker_assignments insert warning:', e)
       }
     }
 

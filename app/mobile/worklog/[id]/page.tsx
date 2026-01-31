@@ -1,10 +1,10 @@
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
+import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import type { Metadata } from 'next'
-import type { WorklogDetail, WorklogAttachment } from '@/types/worklog'
+import { headers } from 'next/headers'
+import Link from 'next/link'
 import { Suspense } from 'react'
 import TaskDetailPageClient from './TaskDetailPageClient'
-import Link from 'next/link'
-import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
-import { headers } from 'next/headers'
 
 export const metadata: Metadata = { title: '작업일지 상세' }
 
@@ -244,6 +244,17 @@ function toDetail(report: any): WorklogDetail {
       completionDocs: completionList,
       others: otherList,
     },
+    materials: (report?.material_usage || []).map((m: any) => {
+      const q = m.quantity ?? m.quantity_val ?? m.amount ?? 0
+      return {
+        material_id: m.id,
+        material_name: m.material_name || '',
+        material_code: m.material_type || null,
+        quantity: Number.isFinite(Number(q)) ? Number(q) : 0,
+        unit: m.unit || '',
+        notes: m.notes || '',
+      }
+    }),
   }
 }
 

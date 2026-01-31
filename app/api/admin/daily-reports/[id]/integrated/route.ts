@@ -94,6 +94,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 company_type
               )
             )
+          ),
           unified_documents(
             id,
             document_type,
@@ -140,6 +141,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         { data: workRecordRows },
         { data: author },
         { data: materials },
+        { data: workerAssignments },
       ] = await Promise.all([
         supabase.from('daily_report_workers').select('*').eq('daily_report_id', reportId),
         supabase
@@ -171,8 +173,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
           .eq('id', reportData.created_by)
           .maybeSingle(),
         supabase.from('material_usage').select('*').eq('daily_report_id', reportId),
+        supabase
+          .from('worker_assignments')
+          .select('*, profiles(id, full_name, role)')
+          .eq('daily_report_id', reportId),
       ])
-      mergedWorkerRows = mergeWorkers(legacyWorkers || [], workRecordRows || [])
+
+      if (workerAssignments && workerAssignments.length > 0) {
+        mergedWorkerRows = workerAssignments
+      } else {
+        mergedWorkerRows = mergeWorkers(legacyWorkers || [], workRecordRows || [])
+      }
+
       authorProfile = author || null
       reportData.material_usage = materials || []
     }
@@ -182,7 +194,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       const { data: minimal, error: minimalErr } = await supabase
         .from('daily_reports')
         .select(
-          `id, site_id, work_date, member_name, process_type, component_name, work_process, work_section, before_photos, after_photos, additional_before_photos, additional_after_photos, created_by, total_workers, total_labor_hours`
+          `id, site_id, work_date, member_name, process_type, component_name, work_process, work_section, before_photos, after_photos, additional_before_photos, additional_after_photos, created_by, total_workers, total_labor_hours, work_content, location_info, additional_notes`
         )
         .eq('id', reportId)
         .maybeSingle()

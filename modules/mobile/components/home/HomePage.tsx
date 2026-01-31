@@ -348,7 +348,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       }
       if (Array.isArray(prefillData?.materials)) {
         console.log('[Prefill Apply] Setting materials:', prefillData.materials)
-        setMaterials(prefillData.materials)
+        const sanitized = prefillData.materials.map((m: any) => {
+          const qty = m.quantity_val ?? m.amount ?? m.quantity ?? 0
+          return {
+            ...m,
+            quantity: Number(qty),
+          }
+        })
+        setMaterials(sanitized)
       }
       if (Array.isArray(prefillData?.additionalManpower)) {
         console.log('[Prefill Apply] Setting additionalManpower:', prefillData.additionalManpower)

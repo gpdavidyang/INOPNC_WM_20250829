@@ -238,14 +238,17 @@ function mapReportToDetail(report: ApiDailyReport): WorklogDetail {
     attachments: attachmentGroups,
     // Add tasks if available in workContent
     tasks: Array.isArray(workContent.tasks) ? workContent.tasks : [],
-    materials: (report.material_usage || []).map(m => ({
-      material_id: m.id,
-      material_name: m.material_name || '',
-      material_code: m.material_type || null,
-      quantity: m.quantity || 0,
-      unit: m.unit || '',
-      notes: m.notes || '',
-    })),
+    materials: (report.material_usage || []).map(m => {
+      const q = (m as any).quantity_val ?? (m as any).amount ?? m.quantity ?? 0
+      return {
+        material_id: m.id,
+        material_name: m.material_name || '',
+        material_code: m.material_type || null,
+        quantity: Number.isFinite(Number(q)) ? Number(q) : 0,
+        unit: m.unit || '',
+        notes: m.notes || '',
+      }
+    }),
   }
 }
 

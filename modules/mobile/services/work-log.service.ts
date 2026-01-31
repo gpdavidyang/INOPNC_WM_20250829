@@ -30,6 +30,8 @@ export interface CreateWorkLogData {
     material_name: string
     material_code?: string | null
     quantity: number
+    quantity_val?: number
+    amount?: number
     unit?: string | null
     notes?: string | null
   }>
@@ -187,8 +189,10 @@ export class WorkLogService {
       if (data.workers.length > 0) {
         const workerAssignments = data.workers.map(worker => ({
           daily_report_id: reportId,
-          worker_name: worker.name,
-          labor_hours: worker.hours / 8, // 시간을 공수로 변환
+          profile_id: worker.id && worker.id.length > 30 ? worker.id : null,
+          worker_name: worker.name || worker.workerName || '미정',
+          labor_hours: (Number(worker.hours) || 0) / 8,
+          hours: Number(worker.hours) || 0,
         }))
 
         const { error: workerError } = await supabase
@@ -210,6 +214,8 @@ export class WorkLogService {
               .toString()
               .toUpperCase(),
             quantity: Number(material.quantity) || 0,
+            quantity_val: Number(material.quantity_val) || Number(material.quantity) || 0,
+            amount: Number(material.amount) || Number(material.quantity) || 0,
             unit: material.unit || null,
             notes: material.notes || null,
           }))
@@ -295,8 +301,10 @@ export class WorkLogService {
         if (data.workers.length > 0) {
           const workerAssignments = data.workers.map(worker => ({
             daily_report_id: id,
-            worker_name: worker.name,
-            labor_hours: worker.hours / 8,
+            profile_id: worker.id && worker.id.length > 30 ? worker.id : null,
+            worker_name: worker.name || worker.workerName || '미정',
+            labor_hours: (Number(worker.hours) || 0) / 8,
+            hours: Number(worker.hours) || 0,
           }))
 
           await supabase.from('worker_assignments').insert(workerAssignments)
@@ -315,6 +323,8 @@ export class WorkLogService {
               .toString()
               .toUpperCase(),
             quantity: Number(material.quantity) || 0,
+            quantity_val: Number(material.quantity_val) || Number(material.quantity) || 0,
+            amount: Number(material.amount) || Number(material.quantity) || 0,
             unit: material.unit || null,
             notes: material.notes || null,
           }))
@@ -431,9 +441,32 @@ function transformToWorkLogs(data: any[]): WorkLog[] {
 function mapReportToWorkLog(item: any): WorkLog {
   const workContent = parseWorkContent(item?.work_content)
   const location = parseLocationInfo(item?.location_info)
-  const workers = mapWorkerAssignments(item?.worker_assignments)
+  let workers = mapWorkerAssignments(item?.worker_assignments)
+  if (
+    workers.length === 0 &&
+    Array.isArray(workContent.workers) &&
+    workContent.workers.length > 0
+  ) {
+    workers = workContent.workers.map((w: any) => ({
+      id: w.id || '',
+      name: w.name || w.workerName || '미정',
+      hours: (Number(w.hours) || 0) * 8,
+    }))
+  }
+
   const attachments = mapAttachments(item?.document_attachments)
-  const materials = mapMaterialUsages(item?.material_usage)
+
+  let materials = mapMaterialUsages(item?.material_usage)
+  // Check if materials from DB have valid quantities (not just 0s from legacy logic)
+  const hasValidMaterials = materials.length > 0 && materials.some(m => m.quantity > 0)
+
+  if (
+    !hasValidMaterials &&
+    Array.isArray(workContent.materials) &&
+    workContent.materials.length > 0
+  ) {
+    materials = mapMaterialUsages(workContent.materials)
+  }
   const totalHours = workers.reduce((sum, worker) => sum + worker.hours, 0)
 
   const status = resolveStatus(item?.status)
@@ -521,6 +554,7 @@ function mapReportToWorkLog(item: any): WorkLog {
     date: item?.work_date,
     siteId: item?.site_id,
     siteName,
+    siteAddress: item?.sites?.address,
     organizationId,
     partnerCompanyName: item?.partner_company_name || item?.partnerCompanyName || undefined,
     title: item?.title || taskSummary || workDescription || siteName || item?.work_description,
@@ -616,6 +650,8 @@ function parseWorkContent(raw: unknown): {
   workTypes: string[]
   description?: string
   tasks?: WorkTaskGroup[]
+  workers?: any[]
+  materials?: any[]
 } {
   if (!raw) {
     return { memberTypes: [], workProcesses: [], workTypes: [], description: undefined }
@@ -630,6 +666,8 @@ function parseWorkContent(raw: unknown): {
         workTypes: Array.isArray(parsed?.workTypes) ? parsed.workTypes : [],
         description: typeof parsed?.description === 'string' ? parsed.description : undefined,
         tasks: Array.isArray(parsed?.tasks) ? (parsed.tasks as WorkTaskGroup[]) : undefined,
+        workers: Array.isArray(parsed?.workers) ? parsed.workers : undefined,
+        materials: Array.isArray(parsed?.materials) ? parsed.materials : undefined,
       }
     } catch (error) {
       console.warn('Failed to parse work_content JSON:', error)
@@ -644,6 +682,8 @@ function parseWorkContent(raw: unknown): {
     description:
       typeof (raw as any)?.description === 'string' ? (raw as any).description : undefined,
     tasks: Array.isArray((raw as any)?.tasks) ? ((raw as any).tasks as WorkTaskGroup[]) : undefined,
+    workers: Array.isArray((raw as any)?.workers) ? (raw as any).workers : undefined,
+    materials: Array.isArray((raw as any)?.materials) ? (raw as any).materials : undefined,
   }
 }
 
@@ -674,7 +714,10 @@ function mapWorkerAssignments(assignments: any[]): {
   }
 
   return assignments.map(assignment => {
-    const hours = Number(assignment?.labor_hours ?? 0) * 8
+    const hours =
+      assignment?.hours !== undefined
+        ? Number(assignment.hours)
+        : Number(assignment?.labor_hours ?? 0) * 8
     const profileData = assignment?.profiles
     const profileName = Array.isArray(profileData)
       ? profileData[0]?.full_name
@@ -736,6 +779,8 @@ function mapMaterialUsages(materials: any[]): Array<{
   quantity: number
   unit?: string | null
   notes?: string | null
+  quantity_val?: number
+  amount?: number
 }> {
   if (!Array.isArray(materials)) {
     return []
@@ -748,7 +793,7 @@ function mapMaterialUsages(materials: any[]): Array<{
         return null
       }
 
-      const quantityStr = material?.quantity ?? material?.quantity_val ?? material?.amount ?? '0'
+      const quantityStr = material?.quantity_val ?? material?.amount ?? material?.quantity ?? '0'
       const quantity =
         typeof quantityStr === 'number' ? quantityStr : parseFloat(String(quantityStr))
       const unit = toSafeString(material?.unit || '')
@@ -761,6 +806,9 @@ function mapMaterialUsages(materials: any[]): Array<{
         material_name: name,
         material_code: codeRaw ? String(codeRaw) : null,
         quantity: Number.isFinite(quantity) ? quantity : 0,
+        quantity_val:
+          typeof material?.quantity_val === 'number' ? material.quantity_val : undefined,
+        amount: typeof material?.amount === 'number' ? material.amount : undefined,
         unit: unit || null,
         notes: notes || null,
       }
@@ -772,6 +820,8 @@ function mapMaterialUsages(materials: any[]): Array<{
         material_name: string
         material_code?: string | null
         quantity: number
+        quantity_val?: number
+        amount?: number
         unit?: string | null
         notes?: string | null
       } => Boolean(entry)

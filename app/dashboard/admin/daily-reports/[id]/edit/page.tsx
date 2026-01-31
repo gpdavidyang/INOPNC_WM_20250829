@@ -189,6 +189,22 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
         }))
       : []
 
+  const fallbackTotalLaborHours =
+    typeof (legacyPayload as any)?.total_labor_hours === 'number'
+      ? Number((legacyPayload as any).total_labor_hours)
+      : Array.isArray(unifiedReport.workers)
+        ? unifiedReport.workers.reduce((sum, worker) => {
+            const value = Number(
+              worker?.hours ??
+                worker?.laborHours ??
+                (worker as any)?.labor_hours ??
+                (worker as any)?.work_hours ??
+                0
+            )
+            return Number.isFinite(value) ? sum + value : sum
+          }, 0)
+        : null
+
   const normalizedReportData = {
     ...legacyPayload,
     site_id: legacyPayload.site_id || unifiedReport.siteId || '',
@@ -200,6 +216,7 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
     additional_photos: Array.isArray(unifiedReport.additionalPhotos)
       ? unifiedReport.additionalPhotos
       : [],
+    total_labor_hours: fallbackTotalLaborHours ?? 0,
   }
 
   return (

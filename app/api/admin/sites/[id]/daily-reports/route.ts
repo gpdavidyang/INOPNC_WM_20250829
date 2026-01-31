@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
+import { withSignedPhotoUrls } from '@/lib/admin/site-photos'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { withSignedPhotoUrls } from '@/lib/admin/site-photos'
+import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -48,10 +48,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
         component_name,
         work_process,
         work_section,
-        before_photos,
-        after_photos,
-        additional_before_photos,
-        additional_after_photos,
         total_workers,
         npc1000_incoming,
         npc1000_used,
@@ -361,27 +357,39 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const enriched = await Promise.all(
       list.map(async (r: any) => {
-        let worker_count = Number(r.total_workers)
-        if (!Number.isFinite(worker_count)) {
-          const { count } = await supabase
-            .from('daily_report_workers')
-            .select('id', { count: 'exact', head: true })
-            .eq('daily_report_id', r.id)
-          worker_count = count || 0
-        }
+        // 1. Worker count: direct column first, then assignments count
+        let worker_count = Number(r.total_workers) || 0
 
+        // 2. Total manhours: Sum from assignments (new) or work_records (old)
         let total_manhours = 0
         try {
-          const { data: wr } = await supabase
-            .from('work_records')
-            .select('labor_hours')
-            .eq('daily_report_id', r.id)
-          total_manhours = (wr || []).reduce(
-            (s: number, w: any) => s + (Number(w.labor_hours) || 0),
-            0
-          )
-        } catch {
-          total_manhours = 0
+          const [{ count: assignmentCount }, { data: assignments }, { data: legacyRecords }] =
+            await Promise.all([
+              svc
+                .from('worker_assignments')
+                .select('id', { count: 'exact', head: true })
+                .eq('daily_report_id', r.id),
+              svc.from('worker_assignments').select('hours').eq('daily_report_id', r.id),
+              svc.from('work_records').select('labor_hours').eq('daily_report_id', r.id),
+            ])
+
+          if (worker_count === 0) {
+            worker_count = assignmentCount || 0
+          }
+
+          if (assignments && assignments.length > 0) {
+            total_manhours = assignments.reduce(
+              (s: number, a: any) => s + (Number(a.hours) || 0),
+              0
+            )
+          } else if (legacyRecords && legacyRecords.length > 0) {
+            total_manhours = legacyRecords.reduce(
+              (s: number, w: any) => s + (Number(w.labor_hours) || 0),
+              0
+            )
+          }
+        } catch (e) {
+          console.error('Error calculating stats for report', r.id, e)
         }
 
         let document_count = 0

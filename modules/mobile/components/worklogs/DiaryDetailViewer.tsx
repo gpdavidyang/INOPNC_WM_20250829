@@ -50,7 +50,6 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   >([])
   const [loadingMarkups, setLoadingMarkups] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('photos')
-  const [zoom, setZoom] = useState<number>(100)
 
   useEffect(() => {
     const load = async () => {
@@ -248,32 +247,6 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     )
   }
 
-  const renderMaterials = () => {
-    if (!worklog.materials || worklog.materials.length === 0) return null
-    return (
-      <section className="info-table" aria-label="자재 사용 내역">
-        <div className="info-row">
-          <div className="info-label">자재 사용</div>
-          <div className="info-value">
-            {worklog.materials
-              .filter(m => m.material_name)
-              .map((m, i) => (
-                <div key={i} style={{ marginBottom: i < worklog.materials!.length - 1 ? 4 : 0 }}>
-                  {m.material_name} ({m.quantity}
-                  {m.unit})
-                  {m.notes ? (
-                    <div style={{ fontSize: '11px', color: '#667085', marginTop: '1px' }}>
-                      {m.notes}
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-          </div>
-        </div>
-      </section>
-    )
-  }
-
   return (
     <div
       className={clsx('diary-viewer-overlay', className)}
@@ -325,66 +298,91 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
                 <div className="info-value">미입력</div>
               </div>
             ) : (
-              worklog.materials.map((m, i) => (
-                <div key={`material-${i}`} className="info-row">
-                  <div className="info-label">{i === 0 ? '자재 사용 내역' : ''}</div>
-                  <div className="info-value">
-                    {m.material_name}
-                    {typeof m.quantity === 'number' ? ` ${m.quantity}` : ''}
-                    {m.unit ? `${m.unit}` : ''}
-                    {m.notes ? ` / ${m.notes}` : ''}
+              worklog.materials.map((m, i) => {
+                const qty = (m as any).quantity_val || (m as any).amount || m.quantity || 0
+                return (
+                  <div key={`material-${i}`} className="info-row">
+                    <div className="info-label">{i === 0 ? '자재 사용 내역' : ''}</div>
+                    <div className="info-value">
+                      {m.material_name}
+                      {qty ? ` ${qty}` : ''}
+                      {m.unit ? `${m.unit}` : ''}
+                      {m.notes ? ` / ${m.notes}` : ''}
+                    </div>
                   </div>
-                </div>
-              ))
+                )
+              })
             )}
           </section>
 
-          {renderMaterials()}
           {renderLinkedMarkups()}
 
           {/* 첨부 탭 + 줌 컨트롤 */}
-          <section aria-label="첨부">
-            <AttachmentTabs
-              active={activeTab}
-              counts={counts}
-              onChange={setActiveTab}
-              idBase="attachments"
-            />
-            <div className="zoom-toolbar">
-              <button type="button" className="zoom-btn" onClick={decZoom} aria-label="작게">
-                –
-              </button>
-              <span className="zoom-level">{zoom}%</span>
-              <button type="button" className="zoom-btn" onClick={incZoom} aria-label="크게">
-                +
-              </button>
-            </div>
-            {/* 갤러리 */}
-            <div
-              role="tabpanel"
-              id={`attachments-panel-${activeTab}`}
-              aria-labelledby={`attachments-tab-${activeTab}`}
-            >
-              {activeTab === 'drawings' && loadingMarkups ? (
-                <div className="list-footer" aria-live="polite">
-                  불러오는 중...
-                </div>
-              ) : (
-                <AttachmentGallery
-                  items={currentItems}
-                  zoom={zoom}
-                  onOpen={item => {
-                    if (activeTab === 'drawings' && item.id.startsWith('markup-')) {
-                      const realId = item.id.replace('markup-', '')
-                      onOpenMarkupDoc?.(realId, worklog)
-                      return
-                    }
-                    onOpenDocument?.(item)
-                  }}
+          {(() => {
+            const counts = {
+              photos: worklog.attachments.photos.length,
+              drawings:
+                worklog.attachments.drawings.length + (loadingMarkups ? 0 : linkedMarkups.length),
+              completionDocs: worklog.attachments.completionDocs.length,
+              others: worklog.attachments.others.length,
+            }
+
+            let currentItems: WorklogAttachment[] = []
+            if (activeTab === 'drawings') {
+              // 1) 기본 첨부 도면
+              currentItems = [...worklog.attachments.drawings]
+              // 2) 연결된 마킹 → WorklogAttachment 형식으로 변환
+              const markupAttachments: WorklogAttachment[] = linkedMarkups.map(m => ({
+                id: `markup-${m.id}`,
+                name: m.title,
+                url: m.previewUrl || '',
+                previewUrl: m.previewUrl,
+                type: 'document',
+                category: 'markup',
+                size: 0,
+                uploadedAt: m.updatedAt || '',
+              }))
+              currentItems = [...currentItems, ...markupAttachments]
+            } else {
+              currentItems = worklog.attachments[activeTab] || []
+            }
+
+            return (
+              <section aria-label="첨부">
+                <AttachmentTabs
+                  active={activeTab}
+                  counts={counts}
+                  onChange={setActiveTab}
+                  idBase="attachments"
                 />
-              )}
-            </div>
-          </section>
+                {/* 갤러리 */}
+                <div
+                  role="tabpanel"
+                  id={`attachments-panel-${activeTab}`}
+                  aria-labelledby={`attachments-tab-${activeTab}`}
+                >
+                  {activeTab === 'drawings' && loadingMarkups ? (
+                    <div className="list-footer" aria-live="polite">
+                      불러오는 중...
+                    </div>
+                  ) : (
+                    <AttachmentGallery
+                      items={currentItems}
+                      zoom={100}
+                      onOpen={item => {
+                        if (activeTab === 'drawings' && item.id.startsWith('markup-')) {
+                          const realId = item.id.replace('markup-', '')
+                          onOpenMarkupDoc?.(realId, worklog)
+                          return
+                        }
+                        onOpenDocument?.(item)
+                      }}
+                    />
+                  )}
+                </div>
+              </section>
+            )
+          })()}
         </div>
 
         <footer className="diary-viewer-footer">

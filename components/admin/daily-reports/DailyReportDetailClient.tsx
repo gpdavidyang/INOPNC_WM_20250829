@@ -123,6 +123,7 @@ export default function DailyReportDetailClient({
   const [report, setReport] = useState<UnifiedDailyReport | null>(initialReport ?? null)
   const [integrated, setIntegrated] = useState<AdminIntegratedResponse | null>(null)
   const [loading, setLoading] = useState(!initialReport)
+  const [mounted, setMounted] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [photosViewMode, setPhotosViewMode] = useState<'preview' | 'list'>('preview')
   const [photoBuckets, setPhotoBuckets] = useState<PhotoBuckets>(() =>
@@ -134,8 +135,15 @@ export default function DailyReportDetailClient({
   const dragRef = useRef<{ type: 'before' | 'after'; index: number } | null>(null)
 
   useEffect(() => {
-    setReport(initialReport ?? null)
-    setLoading(!initialReport)
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (initialReport) {
+      setReport(initialReport)
+      setPhotoBuckets(buildPhotoBuckets(initialReport.additionalPhotos))
+      setLoading(false)
+    }
   }, [initialReport])
 
   useEffect(() => {
@@ -534,28 +542,18 @@ export default function DailyReportDetailClient({
 
   const renderArray = (values?: string[]) => (values && values.length > 0 ? values.join(', ') : '-')
 
-  const memberNames = useMemo(() => {
-    const entries = (report?.workEntries || [])
-      .map(entry => entry.memberName || entry.memberNameOther)
-      .filter((value): value is string => !!value && value.trim().length > 0)
-    if (entries.length > 0) {
-      return Array.from(new Set(entries.map(item => item.trim())))
-    }
-    return (report?.memberTypes || []).filter(value => !!value && value.trim().length > 0)
-  }, [report?.workEntries, report?.memberTypes])
-
-  const processNames = useMemo(() => {
-    const entries = (report?.workEntries || [])
-      .map(entry => entry.processType || entry.processTypeOther)
-      .filter((value): value is string => !!value && value.trim().length > 0)
-    if (entries.length > 0) {
-      return Array.from(new Set(entries.map(item => item.trim())))
-    }
-    return (report?.workProcesses || []).filter(value => !!value && value.trim().length > 0)
-  }, [report?.workEntries, report?.workProcesses])
-
   const renderTaskGroups = () => {
-    // 1. Try rendering taskGroups if available (New Schema)
+    // 0. Primary DB Columns Fallback (PRIORITY)
+    // If the standard DB columns are populated, show them as the main work summary
+    const hasDbData = Boolean(
+      report?.meta?.componentName ||
+        report?.meta?.workProcess ||
+        report?.meta?.workSection ||
+        report?.memberTypes?.length ||
+        report?.workProcesses?.length
+    )
+
+    // 1. Try rendering structured taskGroups if available (New Schema)
     if (report?.taskGroups && report.taskGroups.length > 0) {
       return (
         <div className="space-y-4">
@@ -598,36 +596,38 @@ export default function DailyReportDetailClient({
       )
     }
 
-    // 2. Legacy fallback
-    if (!report?.workEntries || report.workEntries.length === 0) {
-      return <div className="text-sm text-muted-foreground">등록된 작업 내역이 없습니다.</div>
-    }
-
-    return (
-      <div className="space-y-2">
-        {report.workEntries.map(entry => (
-          <div key={entry.id} className="rounded border p-3 text-sm">
-            <div className="font-medium text-foreground">
-              {entry.memberName || entry.memberNameOther || '작업'}
-            </div>
-            <div className="grid gap-1 mt-1 md:grid-cols-3 text-muted-foreground">
-              <div>
-                <span className="text-xs">작업공정</span>
-                <div>{entry.processType || entry.processTypeOther || '-'}</div>
+    // 2. Direct simple display if no structured tasks but has DB columns
+    if (hasDbData) {
+      return (
+        <div className="space-y-2">
+          <div className="rounded border p-3 text-sm">
+            <div className="grid gap-2 text-muted-foreground">
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <span className="text-xs font-medium self-center">부재명</span>
+                <div className="text-foreground">
+                  {report?.meta?.componentName || (report?.memberTypes || []).join(', ') || '-'}
+                </div>
               </div>
-              <div>
-                <span className="text-xs">작업 구간</span>
-                <div>{entry.workSection || '-'}</div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <span className="text-xs font-medium self-center">작업공정</span>
+                <div className="text-foreground">
+                  {report?.meta?.workProcess || (report?.workProcesses || []).join(', ') || '-'}
+                </div>
               </div>
-              <div>
-                <span className="text-xs">비고</span>
-                <div>{entry.notes || '-'}</div>
+              <div className="grid grid-cols-[80px_1fr] gap-2">
+                <span className="text-xs font-medium self-center">작업유형</span>
+                <div className="text-foreground">
+                  {report?.meta?.workSection || (report?.workTypes || []).join(', ') || '-'}
+                </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-    )
+        </div>
+      )
+    }
+
+    // 3. Absolute lack of data
+    return <div className="text-sm text-muted-foreground">등록된 작업 내역이 없습니다.</div>
   }
 
   const renderWorkers = () => {
@@ -1033,17 +1033,6 @@ export default function DailyReportDetailClient({
     )
   }
 
-  if (!report && loading) {
-    return <div className="text-sm text-muted-foreground">작업일지를 불러오는 중입니다...</div>
-  }
-
-  if (!report) {
-    return (
-      <div className="text-sm text-destructive">{error || '작업일지를 불러올 수 없습니다.'}</div>
-    )
-  }
-
-  const additionalPhotosSection = renderAdditionalPhotos()
   const attachmentList = useMemo(() => {
     const withType = (
       items: UnifiedAttachment[],
@@ -1060,6 +1049,18 @@ export default function DailyReportDetailClient({
       ...withType(attachments.others, 'other'),
     ]
   }, [attachments])
+
+  if (!mounted || (!report && loading)) {
+    return <div className="text-sm text-muted-foreground p-8">작업일지를 불러오는 중입니다...</div>
+  }
+
+  if (!report) {
+    return (
+      <div className="text-sm text-destructive">{error || '작업일지를 불러올 수 없습니다.'}</div>
+    )
+  }
+
+  const additionalPhotosSection = renderAdditionalPhotos()
 
   const renderAttachmentsCard = (extraClass?: string) => (
     <Card className={`border shadow-sm ${extraClass ?? ''}`}>
@@ -1133,34 +1134,6 @@ export default function DailyReportDetailClient({
               {formatNumber(workerStats.total_hours, 1)}
             </div>
           </div>
-          {report.npcUsage && (
-            <div className="md:col-span-4 grid gap-2 rounded border p-3 md:grid-cols-4">
-              <div>
-                <div className="text-xs">NPC-1000 입고</div>
-                <div className="text-foreground">{report.npcUsage.incoming ?? '-'}</div>
-              </div>
-              <div>
-                <div className="text-xs">사용</div>
-                <div className="text-foreground">{report.npcUsage.used ?? '-'}</div>
-              </div>
-              <div>
-                <div className="text-xs">잔량</div>
-                <div className="text-foreground">{report.npcUsage.remaining ?? '-'}</div>
-              </div>
-              <div>
-                <div className="text-xs">사용률</div>
-                <div className="text-foreground">
-                  {(() => {
-                    const incoming = Number(report.npcUsage?.incoming ?? 0)
-                    const used = Number(report.npcUsage?.used ?? 0)
-                    if (!incoming || incoming <= 0) return '0%'
-                    const rate = (used / incoming) * 100
-                    return `${rate.toFixed(1)}%`
-                  })()}
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -1252,77 +1225,11 @@ export default function DailyReportDetailClient({
         <Card className="border shadow-sm h-full">
           <CardHeader className="px-4 py-3">
             <CardTitle className="text-base">작업 내용</CardTitle>
-            <CardDescription>{WORK_CONTENT_DESCRIPTION}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 px-4 pb-4 text-sm text-muted-foreground">
-            <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <div className="text-xs">부재명</div>
-                <div className="text-foreground font-medium">{renderArray(memberNames)}</div>
-              </div>
-              <div>
-                <div className="text-xs">작업공정</div>
-                <div className="text-foreground font-medium">{renderArray(processNames)}</div>
-              </div>
-              <div>
-                <div className="text-xs">작업 유형</div>
-                <div className="text-foreground font-medium">{renderArray(report.workTypes)}</div>
-              </div>
-              <div>
-                <div className="text-xs">작업 내용 요약</div>
-                <div className="text-foreground font-medium">
-                  {renderArray((report.meta?.workContents as string[]) || [])}
-                </div>
-              </div>
-            </div>
-            {renderTaskGroups()}
-          </CardContent>
+          <CardContent className="px-4 pb-4">{renderTaskGroups()}</CardContent>
         </Card>
 
-        <div className="grid gap-4">
-          <Card className="border shadow-sm">
-            <CardHeader className="px-4 py-3">
-              <CardTitle className="text-base">작업 위치</CardTitle>
-              <CardDescription>블럭 / 동 / 호</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-3">
-              <div>
-                <div className="text-xs">블럭</div>
-                <div className="text-foreground font-medium">
-                  {report.location?.block ? `${report.location.block}블록` : '-'}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs">동</div>
-                <div className="text-foreground font-medium">
-                  {report.location?.dong ? `${report.location.dong}동` : '-'}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs">호수 / 층</div>
-                <div className="text-foreground font-medium">
-                  {report.location?.unit ? `${report.location.unit}층` : '-'}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border shadow-sm">
-            <CardHeader className="px-4 py-3">
-              <CardTitle className="text-base">본사 요청 및 비고</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-2">
-              <div>
-                <div className="text-xs">본사 요청사항</div>
-                <div className="text-foreground font-medium">{report.hqRequest || '-'}</div>
-              </div>
-              <div>
-                <div className="text-xs">비고</div>
-                <div className="text-foreground font-medium">{report.notes || '-'}</div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <div className="grid gap-4" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

@@ -57,15 +57,6 @@ const mapDocumentsToAttachments = (documents?: Record<string, any[]>): UnifiedAt
       metadata: item?.metadata || undefined,
     }))
 
-  const fallbackTotalWorkers =
-    response.worker_statistics?.total_workers ??
-    (typeof dailyReport?.total_workers === 'number' ? dailyReport.total_workers : undefined)
-  const fallbackTotalHours =
-    response.worker_statistics?.total_hours ??
-    (typeof dailyReport?.total_labor_hours === 'number'
-      ? dailyReport.total_labor_hours
-      : (dailyReport?.total_hours as number | undefined))
-
   return {
     photos: mapCategory(documents?.photo, 'photo'),
     drawings: mapCategory(documents?.drawing, 'drawing'),
@@ -124,9 +115,19 @@ const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {
 const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
   (workers || []).map((worker, index) => ({
     id: worker?.id || `worker-${index}`,
-    workerId: worker?.worker_id || worker?.user_id || worker?.profiles?.id || undefined,
-    workerName: worker?.profiles?.full_name || worker?.worker_name || worker?.name || '이름없음',
-    hours: Number(worker?.labor_hours ?? worker?.work_hours ?? worker?.hours ?? 0) || 0,
+    workerId:
+      worker?.profile_id ||
+      worker?.worker_id ||
+      worker?.user_id ||
+      worker?.profiles?.id ||
+      undefined,
+    workerName:
+      worker?.profiles?.full_name ||
+      worker?.worker_name ||
+      worker?.name ||
+      worker?.workerName ||
+      '이름없음',
+    hours: Number(worker?.hours ?? worker?.labor_hours ?? worker?.work_hours ?? 0) || 0,
     isDirectInput: worker?.isDirectInput ?? !worker?.worker_id,
     notes: worker?.notes || '',
   }))
@@ -135,9 +136,9 @@ const mapMaterials = (materials: any[] | undefined): UnifiedMaterialEntry[] =>
   (materials || []).map((material, index) => ({
     id: material?.id || `material-${index}`,
     materialId: material?.material_id || null,
-    materialName: material?.material_name || '자재',
+    materialName: material?.material_name || material?.name || '자재',
     materialCode: material?.material_code || material?.material_type || null,
-    quantity: Number(material?.quantity ?? 0) || 0,
+    quantity: Number(material?.quantity_val ?? material?.amount ?? material?.quantity ?? 0) || 0,
     unit: material?.unit || null,
     notes: material?.notes || null,
   }))
@@ -166,46 +167,73 @@ const mapWorkEntries = (dailyReport: any): UnifiedWorkEntry[] => {
   ]
 }
 
-const mapTaskGroups = (dailyReport: any): UnifiedTaskGroup[] | undefined => {
-  // 1. Try work_content.tasks (New Schema)
-  if (dailyReport.work_content) {
-    let content = dailyReport.work_content
-    if (typeof content === 'string') {
-      try {
-        content = JSON.parse(content)
-      } catch (e) {
-        content = {}
-      }
+const mapTaskGroups = (dailyReport: any, locationData?: any): UnifiedTaskGroup[] | undefined => {
+  // 1. Resolve work_content (it might be a string from the DB)
+  let content = dailyReport.work_content
+  if (typeof content === 'string' && content.trim()) {
+    try {
+      content = JSON.parse(content)
+    } catch {
+      content = {}
     }
-    if (Array.isArray(content?.tasks)) {
-      return content.tasks.map((task: any) => ({
-        memberTypes: ensureArray(task?.memberTypes),
-        workProcesses: ensureArray(task?.workProcesses || task?.processes),
-        workTypes: ensureArray(task?.workTypes),
+  }
+  if (!content || typeof content !== 'object') content = {}
+
+  // 2. Give priority to structured Task arrays
+  const structuredTasks = content.tasks || dailyReport.tasks || dailyReport.work_logs
+  if (Array.isArray(structuredTasks) && structuredTasks.length > 0) {
+    return structuredTasks.map((task: any) => ({
+      memberTypes: ensureArray(task.memberTypes || task.component_type || task.memberName),
+      workProcesses: ensureArray(
+        task.workProcesses || task.processes || task.process_type || task.processType
+      ),
+      workTypes: ensureArray(task.workTypes || []),
+      location: {
+        block: task.location?.block || task.block || '',
+        dong: task.location?.dong || task.dong || '',
+        unit: task.location?.unit || task.unit || '',
+      },
+    }))
+  }
+
+  // 3. Flat DB Column Mapping as secondary source
+  const componentName =
+    dailyReport.component_name || dailyReport.member_name || content.memberTypes?.[0] || ''
+  const workProcess =
+    dailyReport.work_process || dailyReport.process_type || content.workProcesses?.[0] || ''
+  const workSection = dailyReport.work_section || content.workTypes?.[0] || ''
+
+  if (componentName || workProcess || workSection) {
+    return [
+      {
+        memberTypes: [componentName].filter(Boolean) as string[],
+        workProcesses: [workProcess].filter(Boolean) as string[],
+        workTypes: [workSection].filter(Boolean) as string[],
         location: {
-          block: task?.location?.block || '',
-          dong: task?.location?.dong || '',
-          unit: task?.location?.unit || '',
+          block:
+            locationData?.block ||
+            dailyReport.location_info?.block ||
+            dailyReport.location?.block ||
+            content.location?.block ||
+            '',
+          dong:
+            locationData?.dong ||
+            dailyReport.location_info?.dong ||
+            dailyReport.location?.dong ||
+            content.location?.dong ||
+            '',
+          unit:
+            locationData?.unit ||
+            dailyReport.location_info?.unit ||
+            dailyReport.location?.unit ||
+            content.location?.unit ||
+            '',
         },
-      }))
-    }
+      },
+    ]
   }
 
-  // 2. Legacy work_logs
-  if (!Array.isArray(dailyReport?.work_logs) || dailyReport.work_logs.length === 0) {
-    return undefined
-  }
-
-  return dailyReport.work_logs.map((log: any) => ({
-    memberTypes: ensureArray(log?.component_type ? [log.component_type] : []),
-    workProcesses: ensureArray(log?.process_type ? [log.process_type] : []),
-    workTypes: ensureArray(log?.workTypes || []),
-    location: {
-      block: log?.location?.block || '',
-      dong: log?.location?.dong || '',
-      unit: log?.location?.unit || '',
-    },
-  }))
+  return undefined
 }
 
 export const integratedResponseToUnifiedReport = (
@@ -214,16 +242,7 @@ export const integratedResponseToUnifiedReport = (
   const dailyReport = response.daily_report || {}
   const attachments = mapDocumentsToAttachments(response.documents)
   const additionalPhotos = mapAdditionalPhotos(dailyReport)
-  const workerSource =
-    (Array.isArray(response.worker_assignments) && response.worker_assignments.length > 0
-      ? response.worker_assignments
-      : Array.isArray((dailyReport as any)?.worker_entries)
-        ? (dailyReport as any).worker_entries
-        : []) || []
-  const workerAssignments = mapWorkers(workerSource)
-  const materials = mapMaterials(dailyReport.material_usage)
-
-  // Parse work_content if needed
+  // Parse fields that might be stored as JSON strings
   let workContentData: any = dailyReport.work_content || {}
   if (typeof workContentData === 'string') {
     try {
@@ -232,8 +251,14 @@ export const integratedResponseToUnifiedReport = (
       workContentData = {}
     }
   }
-
-  // Parse additional_notes if needed
+  let locationData: any = dailyReport.location_info || {}
+  if (typeof locationData === 'string') {
+    try {
+      locationData = JSON.parse(locationData)
+    } catch {
+      locationData = {}
+    }
+  }
   let additionalNotesData: any = dailyReport.additional_notes || {}
   if (typeof additionalNotesData === 'string') {
     try {
@@ -243,22 +268,55 @@ export const integratedResponseToUnifiedReport = (
     }
   }
 
-  const memberTypes = ensureArray(
-    workContentData?.memberTypes ?? additionalNotesData?.memberTypes ?? dailyReport.member_name
-  )
-  const workProcesses = ensureArray(
-    workContentData?.workProcesses ??
-      additionalNotesData?.workProcesses ??
-      additionalNotesData?.workContents ??
-      dailyReport.process_type
-  )
-  const workTypes = ensureArray(workContentData?.workTypes ?? additionalNotesData?.workTypes)
+  const workerSource =
+    (Array.isArray(response.worker_assignments) && response.worker_assignments.length > 0
+      ? response.worker_assignments
+      : Array.isArray((dailyReport as any)?.worker_entries)
+        ? (dailyReport as any).worker_entries
+        : []) || []
+
+  let workerAssignments = mapWorkers(workerSource)
+  if (workerAssignments.length === 0 && Array.isArray(workContentData?.workers)) {
+    workerAssignments = mapWorkers(workContentData.workers)
+  }
+
+  // Fallback: If no workers assigned but total_workers > 0, use author
+  if (
+    workerAssignments.length === 0 &&
+    (response.worker_statistics?.total_workers || dailyReport.total_workers || 0) > 0
+  ) {
+    const authorName =
+      response.report_author?.full_name || dailyReport.creator_profile?.full_name || '작성자'
+    workerAssignments = [
+      {
+        id: 'author-fallback',
+        workerId: dailyReport.created_by,
+        workerName: authorName,
+        hours: 8, // Default to a standard day
+        isDirectInput: true,
+        notes: '자동 배정 (내역 없음)',
+      },
+    ]
+  }
+
+  let materials = mapMaterials(response.material_usage || dailyReport.material_usage)
+  if (materials.length === 0 && Array.isArray(workContentData?.materials)) {
+    materials = mapMaterials(workContentData.materials)
+  }
+
+  const memberTypes = [dailyReport.component_name, dailyReport.member_name].filter(
+    Boolean
+  ) as string[]
+  const workProcesses = [dailyReport.work_process, dailyReport.process_type].filter(
+    Boolean
+  ) as string[]
+  const workTypes = [dailyReport.work_section].filter(Boolean) as string[]
 
   const workEntries = mapWorkEntries(dailyReport)
   const primaryEntry = workEntries[0]
 
-  // Location logic: work_content > location_info > additional_notes > legacy
-  let locationInfo = dailyReport.location_info
+  // Location logic: work_content > location_info > location > additional_notes > legacy
+  let locationInfo = dailyReport.location_info || dailyReport.location
   if (typeof locationInfo === 'string') {
     try {
       locationInfo = JSON.parse(locationInfo)
@@ -275,6 +333,23 @@ export const integratedResponseToUnifiedReport = (
       {}
   }
 
+  const taskGroups = mapTaskGroups(dailyReport, locationData)
+
+  // If top-level arrays are empty but we have tasks, backward populate them for display compatibility
+  if (
+    memberTypes.length === 0 &&
+    workProcesses.length === 0 &&
+    workTypes.length === 0 &&
+    taskGroups &&
+    taskGroups.length > 0
+  ) {
+    taskGroups.forEach(group => {
+      if (group.memberTypes) memberTypes.push(...group.memberTypes)
+      if (group.workProcesses) workProcesses.push(...group.workProcesses)
+      if (group.workTypes) workTypes.push(...group.workTypes)
+    })
+  }
+
   return {
     id: dailyReport.id ? String(dailyReport.id) : undefined,
     siteId: dailyReport.site_id || '',
@@ -286,11 +361,11 @@ export const integratedResponseToUnifiedReport = (
     authorId: dailyReport.created_by || undefined,
     authorName: response.report_author?.full_name || undefined,
     location: ensureLocation(locationInfo),
-    memberTypes,
-    workProcesses,
-    workTypes,
+    memberTypes: Array.from(new Set(memberTypes)), // Deduplicate after populate
+    workProcesses: Array.from(new Set(workProcesses)),
+    workTypes: Array.from(new Set(workTypes)),
     workEntries,
-    taskGroups: mapTaskGroups(dailyReport),
+    taskGroups,
     workers: workerAssignments,
     materials,
     npcUsage: dailyReport
