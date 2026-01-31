@@ -1061,6 +1061,63 @@ export default function DailyReportDetailClient({
   }
 
   const additionalPhotosSection = renderAdditionalPhotos()
+  const primaryMemberType = report.memberTypes?.[0] || '-'
+  const primaryProcessType = report.workProcesses?.[0] || '-'
+  const primaryWorkType = report.workTypes?.[0] || '-'
+  const totalMaterials = Array.isArray(report.materials) ? report.materials.length : 0
+  const attachmentsCount = attachmentList.length
+  const directInputCount = Array.isArray(report.workers)
+    ? report.workers.filter(worker => worker.isDirectInput).length
+    : 0
+  const linkedInputCount =
+    (Array.isArray(report.workers) ? report.workers.length : 0) - directInputCount
+
+  const locationInfo = {
+    block: report.location?.block ? `${report.location.block}블록` : '-',
+    dong: report.location?.dong ? `${report.location.dong}동` : '-',
+    unit: report.location?.unit ? `${report.location.unit}` : '-',
+  }
+
+  const infoChips = [
+    { label: '작성자', value: report.authorName || author || '-' },
+    { label: '파트너사', value: report.partnerCompanyName || '-' },
+    { label: '부재명', value: primaryMemberType },
+    { label: '작업공정', value: primaryProcessType },
+    { label: '작업유형', value: primaryWorkType },
+    { label: '블럭', value: locationInfo.block },
+    { label: '동', value: locationInfo.dong },
+    { label: '층/호', value: locationInfo.unit },
+  ]
+
+  const statCards = [
+    {
+      label: '등록된 작업자',
+      value: `${workerStats.total_workers ?? 0}명`,
+      helper: `직접 ${directInputCount} · 연동 ${Math.max(linkedInputCount, 0)}`,
+    },
+    {
+      label: '총 공수',
+      value: `${formatNumber(workerStats.total_hours, 1)} 공수`,
+      helper: `야근 ${formatNumber(workerStats.total_overtime ?? 0, 1)} 공수`,
+    },
+    {
+      label: '자재 사용',
+      value: `${totalMaterials}건`,
+      helper: totalMaterials > 0 ? '현장 자재 내역 포함' : '등록된 자재 없음',
+    },
+    {
+      label: '첨부/사진',
+      value: `${attachmentsCount}건`,
+      helper: `추가 사진 ${totalPhotoCount}장`,
+    },
+  ]
+
+  const workerHighlightItems = [
+    { label: '직접 입력', value: `${directInputCount}명` },
+    { label: '연동 입력', value: `${Math.max(linkedInputCount, 0)}명` },
+    { label: '결근 인원', value: `${workerStats.absent_workers ?? 0}명` },
+    { label: '야근 공수', value: `${formatNumber(workerStats.total_overtime ?? 0, 1)} 공수` },
+  ]
 
   const renderAttachmentsCard = (extraClass?: string) => (
     <Card className={`border shadow-sm ${extraClass ?? ''}`}>
@@ -1105,204 +1162,262 @@ export default function DailyReportDetailClient({
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Card className="border shadow-sm">
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="text-lg font-semibold">
-            {report.siteName || siteName || '-'}
-          </CardTitle>
-          <CardDescription>{formatDate(report.workDate || workDate)}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 px-4 pb-4 text-sm text-muted-foreground md:grid-cols-4">
-          <div>
-            <div className="text-xs">상태</div>
-            <div className="text-foreground font-medium">
+        <CardHeader className="px-4 py-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg font-semibold">
+                {report.siteName || siteName || '-'}
+              </CardTitle>
+              <CardDescription>
+                {formatDate(report.workDate || workDate)}
+                {report.partnerCompanyName ? ` · ${report.partnerCompanyName}` : ''}
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="px-3 py-1 text-sm font-semibold">
               {renderStatus(report.status || status)}
-            </div>
+            </Badge>
           </div>
-          <div>
-            <div className="text-xs">작성자</div>
-            <div className="text-foreground font-medium">{report.authorName || author || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">총 인원</div>
-            <div className="text-foreground font-medium">{workerStats.total_workers ?? '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">총 공수</div>
-            <div className="text-foreground font-medium">
-              {formatNumber(workerStats.total_hours, 1)}
-            </div>
+        </CardHeader>
+        <CardContent className="px-4 pb-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {infoChips.map(item => (
+              <div
+                key={item.label}
+                className="flex flex-col gap-1 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2"
+              >
+                <span className="text-xs text-muted-foreground">{item.label}</span>
+                <span className="text-sm font-semibold text-foreground">{item.value}</span>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        {linkedDrawings.length > 0 && (
-          <Card className="border shadow-sm lg:col-span-2">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {statCards.map(card => (
+          <div
+            key={card.label}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+          >
+            <div className="text-xs text-muted-foreground">{card.label}</div>
+            <div className="text-xl font-semibold text-foreground">{card.value}</div>
+            <div className="text-xs text-muted-foreground">{card.helper}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
+        <div className="space-y-6">
+          {linkedDrawings.length > 0 && (
+            <Card className="border shadow-sm">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-base">연결된 진행도면</CardTitle>
+                <CardDescription>현장공유함/마킹 도구와 연동된 도면</CardDescription>
+              </CardHeader>
+              <CardContent className="px-0 pb-4">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2">미리보기</th>
+                        <th className="px-3 py-2">도면명</th>
+                        <th className="px-3 py-2">출처</th>
+                        <th className="px-3 py-2 text-right">동작</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {linkedDrawings.map(att => {
+                        const preview = att.url
+                        const meta =
+                          att.metadata && typeof att.metadata === 'object' ? att.metadata : {}
+                        const sourceLabel =
+                          (att?.uploader?.full_name as string) ||
+                          (att?.uploaded_by_name as string) ||
+                          (meta?.uploader_name as string) ||
+                          (meta?.uploader?.full_name as string) ||
+                          (meta?.uploaded_by_profile?.full_name as string) ||
+                          '작성자 미상'
+                        const markupHref = getMarkupLinkFromAttachment(att)
+                        const snapshotPdfUrl =
+                          typeof meta?.snapshot_pdf_url === 'string' &&
+                          meta.snapshot_pdf_url.length > 0
+                            ? meta.snapshot_pdf_url
+                            : undefined
+                        return (
+                          <tr key={att.id || att.name}>
+                            <td className="px-3 py-2">
+                              <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
+                                {preview ? (
+                                  <Image
+                                    src={preview}
+                                    alt={att.name}
+                                    fill
+                                    sizes="80px"
+                                    className="object-cover"
+                                    unoptimized
+                                  />
+                                ) : (
+                                  <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                                    없음
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 font-medium text-foreground">
+                              {att.name || '-'}
+                            </td>
+                            <td className="px-3 py-2 text-xs text-muted-foreground">
+                              {sourceLabel}
+                            </td>
+                            <td className="px-3 py-2 text-right">
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                {snapshotPdfUrl ? (
+                                  <Button asChild size="sm" variant="secondary">
+                                    <a href={snapshotPdfUrl} target="_blank" rel="noreferrer">
+                                      PDF
+                                    </a>
+                                  </Button>
+                                ) : null}
+                                {markupHref ? (
+                                  <Button asChild size="sm" variant="secondary">
+                                    <a href={markupHref}>도면마킹 열기</a>
+                                  </Button>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="border shadow-sm">
             <CardHeader className="px-4 py-3">
-              <CardTitle className="text-base">연결된 진행도면</CardTitle>
-              <CardDescription>현장공유함/마킹 도구와 연동된 도면</CardDescription>
+              <CardTitle className="text-base">작업 내용</CardTitle>
             </CardHeader>
-            <CardContent className="px-0 pb-4">
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                    <tr>
-                      <th className="px-3 py-2">미리보기</th>
-                      <th className="px-3 py-2">도면명</th>
-                      <th className="px-3 py-2">출처</th>
-                      <th className="px-3 py-2 text-right">동작</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {linkedDrawings.map(att => {
-                      const preview = att.url
-                      const meta =
-                        att.metadata && typeof att.metadata === 'object' ? att.metadata : {}
-                      const sourceLabel =
-                        (att?.uploader?.full_name as string) ||
-                        (att?.uploaded_by_name as string) ||
-                        (meta?.uploader_name as string) ||
-                        (meta?.uploader?.full_name as string) ||
-                        (meta?.uploaded_by_profile?.full_name as string) ||
-                        '작성자 미상'
-                      const markupHref = getMarkupLinkFromAttachment(att)
-                      const snapshotPdfUrl =
-                        typeof meta?.snapshot_pdf_url === 'string' &&
-                        meta.snapshot_pdf_url.length > 0
-                          ? meta.snapshot_pdf_url
-                          : undefined
-                      return (
-                        <tr key={att.id || att.name}>
-                          <td className="px-3 py-2">
-                            <div className="relative h-14 w-20 overflow-hidden rounded border bg-muted">
-                              {preview ? (
-                                <Image
-                                  src={preview}
-                                  alt={att.name}
-                                  fill
-                                  sizes="80px"
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                                  없음
-                                </div>
-                              )}
-                            </div>
+            <CardContent className="px-4 pb-4">{renderTaskGroups()}</CardContent>
+          </Card>
+
+          <Card className="border shadow-sm">
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-base">자재 사용</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">{renderMaterials()}</CardContent>
+          </Card>
+
+          {additionalPhotosSection ? (
+            <div className="space-y-6">{additionalPhotosSection}</div>
+          ) : null}
+
+          {relatedReports.length > 0 && (
+            <Card className="border shadow-sm">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-base">관련 작업일지</CardTitle>
+                <CardDescription>같은 현장의 최근 작업일지</CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted-foreground">
+                        <th className="py-2 pr-4">일자</th>
+                        <th className="py-2 pr-4">구성/공정</th>
+                        <th className="py-2 pr-4">상태</th>
+                        <th className="py-2 pr-4">바로가기</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {relatedReports.map(reportItem => (
+                        <tr key={reportItem.id} className="border-t">
+                          <td className="py-2 pr-4">
+                            {formatDate(reportItem.work_date || reportItem.workDate)}
                           </td>
-                          <td className="px-3 py-2 font-medium text-foreground">
-                            {att.name || '-'}
+                          <td className="py-2 pr-4 text-foreground">
+                            {(reportItem.member_name || reportItem.memberName || '-') +
+                              ' / ' +
+                              (reportItem.process_type || reportItem.processType || '-')}
                           </td>
-                          <td className="px-3 py-2 text-xs text-muted-foreground">{sourceLabel}</td>
-                          <td className="px-3 py-2 text-right">
-                            <div className="flex flex-wrap items-center justify-end gap-2">
-                              {snapshotPdfUrl ? (
-                                <Button asChild size="sm" variant="secondary">
-                                  <a href={snapshotPdfUrl} target="_blank" rel="noreferrer">
-                                    PDF
-                                  </a>
-                                </Button>
-                              ) : null}
-                              {markupHref ? (
-                                <Button asChild size="sm" variant="secondary">
-                                  <a href={markupHref}>도면마킹 열기</a>
-                                </Button>
-                              ) : null}
-                            </div>
+                          <td className="py-2 pr-4">{reportItem.status || '-'}</td>
+                          <td className="py-2 pr-4">
+                            <a
+                              className="underline"
+                              href={`/dashboard/admin/daily-reports/${reportItem.id}`}
+                            >
+                              열기
+                            </a>
                           </td>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <Card className="border shadow-sm">
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-base">작업 현황 요약</CardTitle>
+              <CardDescription>인력 · 공수 지표</CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {workerHighlightItems.map(item => (
+                  <div
+                    key={item.label}
+                    className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2"
+                  >
+                    <div className="text-xs text-muted-foreground">{item.label}</div>
+                    <div className="text-sm font-semibold text-foreground">{item.value}</div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
-        )}
-        <Card className="border shadow-sm h-full">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">작업 내용</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">{renderTaskGroups()}</CardContent>
-        </Card>
 
-        <div className="grid gap-4" />
-      </div>
+          <Card className="border shadow-sm">
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-base">작업자 내역</CardTitle>
+              <CardDescription>배정 / 공수 / 입력 방식</CardDescription>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              <div className="max-h-[420px] overflow-auto pr-1">{renderWorkers()}</div>
+            </CardContent>
+          </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="border shadow-sm">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">작업자 내역</CardTitle>
-            <CardDescription>배정 / 공수 / 입력 방식</CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">{renderWorkers()}</CardContent>
-        </Card>
+          {(report.hqRequest || report.notes) && (
+            <Card className="border shadow-sm">
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="text-base">본사 요청 / 비고</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-4 px-4 pb-4 text-sm text-muted-foreground">
+                {report.hqRequest ? (
+                  <div>
+                    <div className="text-xs uppercase tracking-wide">본사 요청</div>
+                    <div className="mt-1 text-foreground">{report.hqRequest}</div>
+                  </div>
+                ) : null}
+                {report.notes ? (
+                  <div>
+                    <div className="text-xs uppercase tracking-wide">비고</div>
+                    <div className="mt-1 text-foreground">{report.notes}</div>
+                  </div>
+                ) : null}
+              </CardContent>
+            </Card>
+          )}
 
-        <Card className="border shadow-sm">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">자재 사용</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">{renderMaterials()}</CardContent>
-        </Card>
-      </div>
-
-      {additionalPhotosSection ? (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {renderAttachmentsCard('lg:col-span-2')}
-          <div className="lg:col-span-2">{additionalPhotosSection}</div>
+          {renderAttachmentsCard()}
         </div>
-      ) : (
-        renderAttachmentsCard()
-      )}
-
-      {relatedReports.length > 0 && (
-        <Card className="border shadow-sm">
-          <CardHeader className="px-4 py-3">
-            <CardTitle className="text-base">관련 작업일지</CardTitle>
-            <CardDescription>같은 현장의 최근 작업일지</CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="py-2 pr-4">일자</th>
-                    <th className="py-2 pr-4">구성/공정</th>
-                    <th className="py-2 pr-4">상태</th>
-                    <th className="py-2 pr-4">바로가기</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {relatedReports.map(reportItem => (
-                    <tr key={reportItem.id} className="border-t">
-                      <td className="py-2 pr-4">
-                        {formatDate(reportItem.work_date || reportItem.workDate)}
-                      </td>
-                      <td className="py-2 pr-4 text-foreground">
-                        {(reportItem.member_name || reportItem.memberName || '-') +
-                          ' / ' +
-                          (reportItem.process_type || reportItem.processType || '-')}
-                      </td>
-                      <td className="py-2 pr-4">{reportItem.status || '-'}</td>
-                      <td className="py-2 pr-4">
-                        <a
-                          className="underline"
-                          href={`/dashboard/admin/daily-reports/${reportItem.id}`}
-                        >
-                          열기
-                        </a>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      </div>
 
       {error && <div className="text-sm text-destructive">{error}</div>}
     </div>
