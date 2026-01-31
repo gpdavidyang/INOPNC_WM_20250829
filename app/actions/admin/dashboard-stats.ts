@@ -137,6 +137,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
 
           const { count, error } = await reportQuery
           if (error) {
+            console.error('[dashboard-stats] reportQuery (restricted) error:', error)
             throw new AppError('작업일지 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
           }
           todayReports = count || 0
@@ -149,6 +150,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
           .limit(1)
 
         if (error) {
+          console.error('[dashboard-stats] reportQuery (total) error:', error)
           throw new AppError('작업일지 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
         }
         todayReports = count || 0
@@ -180,6 +182,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
 
         const { data: reports, error } = await reportsQuery
         if (error) {
+          console.error('[dashboard-stats] reportsQuery error:', error)
           throw new AppError('작업일지 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
         }
 

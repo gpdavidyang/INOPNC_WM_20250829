@@ -445,7 +445,9 @@ export const WorkLogHomePage: React.FC = () => {
         dong: workLog.location?.dong || '',
         unit: workLog.location?.unit || '',
       },
+      rejectionReason: workLog.rejection_reason || (workLog as any).rejectionReason || '',
       notes: workLog.notes,
+
       materials: (workLog.materials || []).map(m => ({
         material_name: m.material_name,
         material_code: m.material_code,
@@ -1016,7 +1018,7 @@ export const WorkLogHomePage: React.FC = () => {
               ? '표시할 작업일지가 없습니다.'
               : tab === 'draft'
                 ? '임시 상태 작업일지가 없습니다.'
-                : '제출 또는 승인된 작업일지가 없습니다.'}
+                : '제출, 승인 또는 반려된 작업일지가 없습니다.'}
           </p>
           <p className="mt-2 text-sm text-[#667085]">
             {readOnly
@@ -1617,7 +1619,7 @@ export const WorkLogHomePage: React.FC = () => {
                 className={`line-tab ${activeTab === 'approved' ? 'active' : ''}`}
                 onClick={() => setActiveTab('approved')}
               >
-                제출/승인
+                제출/승인/반려
               </button>
             </nav>
           )}

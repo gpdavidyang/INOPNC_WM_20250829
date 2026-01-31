@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { WorkLog, WorkLogStatus, WorkLogFilter, WorkLogSort } from '../types/work-log.types'
-import { WorkLogService, CreateWorkLogData, UpdateWorkLogData } from '../services/work-log.service'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { CreateWorkLogData, UpdateWorkLogData, WorkLogService } from '../services/work-log.service'
+import { WorkLog, WorkLogFilter, WorkLogSort, WorkLogStatus } from '../types/work-log.types'
 import { groupWorkLogsByMonth, isAlertDismissed } from '../utils/work-log-utils'
 
 /**
@@ -62,7 +62,10 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
     // 상태 필터
     if (filter.status) {
       if (filter.status === 'approved') {
-        filtered = filtered.filter(log => log.status === 'approved' || log.status === 'submitted')
+        filtered = filtered.filter(
+          log =>
+            log.status === 'approved' || log.status === 'submitted' || log.status === 'rejected'
+        )
       } else {
         filtered = filtered.filter(log => log.status === filter.status)
       }
@@ -124,7 +127,9 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
   )
 
   const approvedWorkLogs = useMemo(() => {
-    return filteredWorkLogs.filter(log => log.status === 'approved' || log.status === 'submitted')
+    return filteredWorkLogs.filter(
+      log => log.status === 'approved' || log.status === 'submitted' || log.status === 'rejected'
+    )
   }, [filteredWorkLogs])
 
   // 월별 미작성 작업일지

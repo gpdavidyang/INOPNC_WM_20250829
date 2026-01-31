@@ -3,7 +3,8 @@
 import { assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 import { AppError, ErrorType } from '@/lib/error-handling'
-import { notifyDailyReportApproved } from '@/lib/notifications/triggers'
+import { notifyDailyReportApproved, notifyDailyReportRejected } from '@/lib/notifications/triggers'
+
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { DailyReport } from '@/types'
 import type { Database } from '@/types/database'
@@ -610,27 +611,42 @@ export async function updateDailyReport(id: string, updates: any) {
   })
 }
 
-export async function setDailyReportApproval(id: string, nextStatus: 'approved' | 'submitted') {
+export async function setDailyReportApproval(
+  id: string,
+  nextStatus: 'approved' | 'submitted' | 'rejected',
+  reason?: string
+) {
   return withAdminAuth(async (supabase, profile) => {
     const auth = profile.auth
 
     await fetchReportWithAccess(supabase, auth, id)
 
     const now = new Date().toISOString()
-    const payload =
-      nextStatus === 'approved'
-        ? {
-            status: 'approved',
-            approved_at: now,
-            approved_by: auth.userId,
-            updated_at: now,
-          }
-        : {
-            status: 'submitted',
-            approved_at: null,
-            approved_by: null,
-            updated_at: now,
-          }
+    let payload: any = {
+      status: nextStatus,
+      updated_at: now,
+    }
+
+    if (nextStatus === 'approved') {
+      payload.approved_at = now
+      payload.approved_by = auth.userId
+      payload.rejected_at = null
+      payload.rejected_by = null
+      payload.rejection_reason = null
+    } else if (nextStatus === 'rejected') {
+      payload.approved_at = null
+      payload.approved_by = null
+      payload.rejected_at = now
+      payload.rejected_by = auth.userId
+      payload.rejection_reason = reason || null
+    } else {
+      // submitted (revert)
+      payload.approved_at = null
+      payload.approved_by = null
+      payload.rejected_at = null
+      payload.rejected_by = null
+      payload.rejection_reason = null
+    }
 
     const { data, error } = await supabase
       .from('daily_reports')
@@ -646,10 +662,20 @@ export async function setDailyReportApproval(id: string, nextStatus: 'approved' 
       await notifyDailyReportApproved(data as unknown as DailyReport, auth.userId)
     }
 
+    // Send notification if rejected
+    if (nextStatus === 'rejected' && data) {
+      await notifyDailyReportRejected(data as unknown as DailyReport, auth.userId, reason)
+    }
+
+    let message = '작업일지 상태를 변경했습니다.'
+    if (nextStatus === 'approved') message = '작업일지를 승인했습니다.'
+    if (nextStatus === 'rejected') message = '작업일지를 반려했습니다.'
+    if (nextStatus === 'submitted') message = '승인을 취소했습니다.'
+
     return {
       success: true,
       data,
-      message: nextStatus === 'approved' ? '작업일지를 승인했습니다.' : '승인을 취소했습니다.',
+      message,
     }
   })
 }

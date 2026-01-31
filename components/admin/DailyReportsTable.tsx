@@ -1,12 +1,12 @@
 'use client'
 
-import React, { useTransition } from 'react'
 import { DataTable } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { Loader2 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useTransition } from 'react'
 
 const STATUS_META: Record<
   string,
@@ -18,6 +18,7 @@ const STATUS_META: Record<
   draft: { label: '임시', className: 'bg-gray-100 text-gray-700' },
   submitted: { label: '제출', className: 'bg-sky-100 text-sky-700' },
   approved: { label: '승인', className: 'bg-emerald-100 text-emerald-700' },
+  rejected: { label: '반려', className: 'bg-rose-100 text-rose-700' },
 }
 
 const isBlankValue = (value: unknown) => {
@@ -71,6 +72,9 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([])
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [approvalLoadingId, setApprovalLoadingId] = React.useState<string | null>(null)
+  const [rejectingId, setRejectingId] = React.useState<string | null>(null)
+  const [rejectionReason, setRejectionReason] = React.useState('')
+
   const selectAllRef = React.useRef<HTMLInputElement>(null)
   const reportIds = React.useMemo(() => reports.map(r => String(r.id)), [reports])
   const zeroManhourIds = React.useMemo(() => {
@@ -119,18 +123,24 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
     setSelectedIds(allSelected ? [] : [...reportIds])
   }
 
-  const handleStatusChange = async (reportId: string, action: 'approve' | 'revert') => {
+  const handleStatusChange = async (
+    reportId: string,
+    action: 'approve' | 'revert' | 'reject',
+    reason?: string
+  ) => {
     setApprovalLoadingId(reportId)
     try {
       const res = await fetch(`/api/admin/daily-reports/${reportId}/approval`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, reason }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data?.success) {
         throw new Error(data?.error || '상태 변경에 실패했습니다.')
       }
+      setRejectingId(null)
+      setRejectionReason('')
       startTransition(() => {
         router.refresh()
       })
@@ -427,84 +437,147 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             header: '작업',
             sortable: false,
             align: 'left',
-            width: 210,
+            width: 250,
             className: 'whitespace-nowrap',
-            render: (r: any) => (
-              <div className="flex justify-start gap-1">
-                <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
-                  <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
-                </Button>
-                <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
-                  <a href={`/dashboard/admin/daily-reports/${r.id}/edit`}>수정</a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="px-2 py-1 text-xs"
-                  disabled={isDeleting}
-                  onClick={async () => {
-                    const ok = await confirm({
-                      title: '작업일지 삭제',
-                      description: '이 작업일지를 삭제하시겠습니까? 되돌릴 수 없습니다.',
-                      confirmText: '삭제',
-                      cancelText: '취소',
-                      variant: 'destructive',
-                    })
-                    if (!ok) return
-                    try {
-                      const res = await fetch(`/api/admin/daily-reports/${r.id}`, {
-                        method: 'DELETE',
-                      })
-                      if (!res.ok) throw new Error('삭제 실패')
-                      setSelectedIds(prev => prev.filter(id => id !== String(r.id)))
-                      startTransition(() => {
-                        router.refresh()
-                      })
-                    } catch (e) {
-                      alert((e as Error)?.message || '삭제 중 오류가 발생했습니다.')
-                    }
-                  }}
-                >
-                  삭제
-                </Button>
-                {r?.status === 'submitted' && (
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="px-2 py-1 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
-                    disabled={approvalLoadingId === String(r.id)}
-                    onClick={() => handleStatusChange(String(r.id), 'approve')}
-                  >
-                    {approvalLoadingId === String(r.id) ? (
+            render: (r: any) => {
+              const rid = String(r.id)
+              const isRejecting = rejectingId === rid
+
+              return (
+                <div className="flex flex-col gap-2 py-1">
+                  <div className="flex justify-start gap-1">
+                    <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
+                      <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
+                      <a href={`/dashboard/admin/daily-reports/${r.id}/edit`}>수정</a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-2 py-1 text-xs"
+                      disabled={isDeleting}
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: '작업일지 삭제',
+                          description: '이 작업일지를 삭제하시겠습니까? 되돌릴 수 없습니다.',
+                          confirmText: '삭제',
+                          cancelText: '취소',
+                          variant: 'destructive',
+                        })
+                        if (!ok) return
+                        try {
+                          const res = await fetch(`/api/admin/daily-reports/${r.id}`, {
+                            method: 'DELETE',
+                          })
+                          if (!res.ok) throw new Error('삭제 실패')
+                          setSelectedIds(prev => prev.filter(id => id !== String(r.id)))
+                          startTransition(() => {
+                            router.refresh()
+                          })
+                        } catch (e) {
+                          alert((e as Error)?.message || '삭제 중 오류가 발생했습니다.')
+                        }
+                      }}
+                    >
+                      삭제
+                    </Button>
+                    {r?.status === 'submitted' && (
                       <>
-                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
-                        승인 중...
+                        <Button
+                          variant="default"
+                          size="sm"
+                          className="px-2 py-1 text-xs bg-emerald-600 text-white hover:bg-emerald-700"
+                          disabled={approvalLoadingId === rid}
+                          onClick={() => handleStatusChange(rid, 'approve')}
+                        >
+                          {approvalLoadingId === rid ? (
+                            <>
+                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
+                              승인 중...
+                            </>
+                          ) : (
+                            '승인'
+                          )}
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="px-2 py-1 text-xs"
+                          disabled={approvalLoadingId === rid}
+                          onClick={() => {
+                            if (isRejecting) {
+                              setRejectingId(null)
+                              setRejectionReason('')
+                            } else {
+                              setRejectingId(rid)
+                              setRejectionReason('')
+                            }
+                          }}
+                        >
+                          반려
+                        </Button>
                       </>
-                    ) : (
-                      '승인'
                     )}
-                  </Button>
-                )}
-                {r?.status === 'approved' && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-2 py-1 text-xs"
-                    disabled={approvalLoadingId === String(r.id)}
-                    onClick={() => handleStatusChange(String(r.id), 'revert')}
-                  >
-                    {approvalLoadingId === String(r.id) ? (
-                      <>
-                        <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
-                        처리 중...
-                      </>
-                    ) : (
-                      '승인 취소'
+                    {(r?.status === 'approved' || r?.status === 'rejected') && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="px-2 py-1 text-xs"
+                        disabled={approvalLoadingId === rid}
+                        onClick={() => handleStatusChange(rid, 'revert')}
+                      >
+                        {approvalLoadingId === rid ? (
+                          <>
+                            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden />
+                            처리 중...
+                          </>
+                        ) : (
+                          '상태 초기화'
+                        )}
+                      </Button>
                     )}
-                  </Button>
-                )}
-              </div>
-            ),
+                  </div>
+                  {isRejecting && (
+                    <div className="mt-1 flex flex-col gap-1.5 rounded-md border bg-muted/30 p-2 animate-in slide-in-from-top-1 duration-200">
+                      <textarea
+                        className="w-full rounded border bg-white p-1.5 text-xs focus:ring-1 focus:ring-rose-500"
+                        placeholder="반려 사유를 입력하세요 (예: 사진 누락)"
+                        value={rejectionReason}
+                        onChange={e => setRejectionReason(e.target.value)}
+                        rows={2}
+                      />
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[10px]"
+                          onClick={() => {
+                            setRejectingId(null)
+                            setRejectionReason('')
+                          }}
+                        >
+                          취소
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-7 px-2 text-[10px] bg-rose-600 hover:bg-rose-700"
+                          disabled={!rejectionReason.trim() || approvalLoadingId === rid}
+                          onClick={() => handleStatusChange(rid, 'reject', rejectionReason)}
+                        >
+                          반려 확정
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {r?.status === 'rejected' && r?.rejection_reason && !isRejecting && (
+                    <div className="text-[10px] text-rose-600 font-medium">
+                      사유: {r.rejection_reason}
+                    </div>
+                  )}
+                </div>
+              )
+            },
           },
         ]}
       />

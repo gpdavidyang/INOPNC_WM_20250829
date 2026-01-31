@@ -264,6 +264,7 @@ export type UnifiedDailyReportStatus =
   | 'draft'
   | 'submitted'
   | 'approved'
+  | 'rejected'
   | 'completed'
   | 'revision'
   | 'archived'
@@ -297,6 +298,9 @@ export interface UnifiedDailyReport {
   meta?: Record<string, unknown>
   createdAt?: string
   updatedAt?: string
+  rejectionReason?: string | null
+  rejectedAt?: string | null
+  rejectedBy?: string | null
 }
 
 export interface AdminDailyReportFormState {

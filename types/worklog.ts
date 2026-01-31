@@ -165,6 +165,7 @@ export interface WorklogDetail extends WorklogSummary {
     unit?: string | null
     notes?: string | null
   }>
+  rejectionReason?: string
 }
 
 export interface WorklogCalendarCell {

@@ -211,6 +211,13 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     },
   ]
 
+  if (normalizedStatus === 'rejected' && (worklog as any).rejectionReason) {
+    infoRows.splice(0, 0, {
+      label: '반려 사유',
+      value: (worklog as any).rejectionReason,
+    })
+  }
+
   const renderLinkedMarkups = () => {
     if (!linkedMarkups.length) return null
     return (

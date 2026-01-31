@@ -166,8 +166,8 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       if (status === 'approved') {
-        // Treat 'approved' tab as inclusive of legacy/alternate states
-        query = query.in('status', ['approved', 'submitted', 'completed'])
+        // Treat 'approved' tab as inclusive of legacy/alternate states, including rejected
+        query = query.in('status', ['approved', 'submitted', 'completed', 'rejected'])
       } else {
         query = query.eq('status', status)
       }

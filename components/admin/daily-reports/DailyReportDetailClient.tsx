@@ -15,9 +15,17 @@ import type {
   UnifiedDailyReport,
   UnifiedWorkerEntry,
 } from '@/types/daily-reports'
-import { GripVertical, LayoutGrid, List, Loader2, Trash2 } from 'lucide-react'
+import { Check, GripVertical, LayoutGrid, List, Loader2, RotateCcw, Trash2, X } from 'lucide-react'
 import Image from 'next/image'
-import { useEffect, useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+  type DragEvent as ReactDragEvent,
+} from 'react'
 
 interface DailyReportDetailClientProps {
   reportId: string
@@ -122,6 +130,8 @@ export default function DailyReportDetailClient({
   allowEditing = false,
 }: DailyReportDetailClientProps) {
   const { toast } = useToast()
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [report, setReport] = useState<UnifiedDailyReport | null>(initialReport ?? null)
   const [integrated, setIntegrated] = useState<AdminIntegratedResponse | null>(null)
   const [loading, setLoading] = useState(!initialReport)
@@ -134,7 +144,45 @@ export default function DailyReportDetailClient({
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<Set<string>>(new Set())
   const [photoActionLoading, setPhotoActionLoading] = useState(false)
   const [orderSaving, setOrderSaving] = useState(false)
+  const [approvalLoading, setApprovalLoading] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
   const dragRef = useRef<{ type: 'before' | 'after'; index: number } | null>(null)
+
+  const handleStatusChange = async (action: 'approve' | 'revert' | 'reject', reason?: string) => {
+    setApprovalLoading(true)
+    try {
+      const res = await fetch(`/api/admin/daily-reports/${reportId}/approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, reason }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || '상태 변경에 실패했습니다.')
+      }
+
+      toast({
+        title: '상태 변경 완료',
+        description: data.message || '작업일지 상태를 변경했습니다.',
+      })
+
+      setRejecting(false)
+      setRejectionReason('')
+
+      startTransition(() => {
+        router.refresh()
+      })
+    } catch (error) {
+      toast({
+        title: '오류 발생',
+        description: (error as Error)?.message || '상태 변경 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
+    } finally {
+      setApprovalLoading(false)
+    }
+  }
 
   useEffect(() => {
     setMounted(true)
@@ -1177,9 +1225,60 @@ export default function DailyReportDetailClient({
               </CardDescription>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="px-3 py-1 text-sm font-semibold">
+              <Badge
+                variant="outline"
+                className="px-3 py-1 text-sm font-semibold whitespace-nowrap"
+              >
                 {renderStatus(report.status || status)}
               </Badge>
+              {report?.status === 'rejected' && report?.rejectionReason && (
+                <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-1 text-xs text-rose-700">
+                  반려 사유: {report.rejectionReason}
+                </div>
+              )}
+
+              {report?.status === 'submitted' && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="bg-emerald-600 text-white hover:bg-emerald-700"
+                    disabled={approvalLoading || rejecting}
+                    onClick={() => handleStatusChange('approve')}
+                  >
+                    {approvalLoading && !rejecting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="mr-2 h-4 w-4" />
+                    )}
+                    승인
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={approvalLoading}
+                    onClick={() => {
+                      setRejecting(!rejecting)
+                      if (!rejecting) setRejectionReason('')
+                    }}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    반려
+                  </Button>
+                </div>
+              )}
+
+              {(report?.status === 'approved' || report?.status === 'rejected') && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={approvalLoading}
+                  onClick={() => handleStatusChange('revert')}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  상태 초기화
+                </Button>
+              )}
+
               {canEditReport && editHref ? (
                 <Button asChild size="sm" className="bg-[#1A254F] text-white hover:bg-[#111836]">
                   <a href={editHref}>작업일지 수정</a>
@@ -1207,6 +1306,65 @@ export default function DailyReportDetailClient({
           </div>
         </CardContent>
       </Card>
+
+      {/* Rejection UI - Inline following header */}
+      {rejecting && (
+        <Card className="border-rose-200 bg-rose-50 shadow-sm animate-in slide-in-from-top-2 duration-300">
+          <CardHeader className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-rose-900">반려 사유 입력</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-rose-900 hover:bg-rose-100"
+                onClick={() => {
+                  setRejecting(false)
+                  setRejectionReason('')
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <textarea
+              className="mb-3 w-full rounded-md border-rose-200 bg-white p-3 text-sm focus:border-rose-500 focus:ring-rose-500"
+              placeholder="반려 사유를 구체적으로 입력해 주세요 (예: 보수 전/후 사진 누락)"
+              rows={3}
+              value={rejectionReason}
+              onChange={e => setRejectionReason(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRejecting(false)
+                  setRejectionReason('')
+                }}
+                disabled={approvalLoading}
+              >
+                취소
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={!rejectionReason.trim() || approvalLoading}
+                onClick={() => handleStatusChange('reject', rejectionReason)}
+              >
+                {approvalLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    처리 중...
+                  </>
+                ) : (
+                  '반려 확정'
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {statCards.map(card => (
@@ -1413,9 +1571,10 @@ export default function DailyReportDetailClient({
   )
 }
 const STATUS_LABEL: Record<string, string> = {
-  draft: '작성 중',
-  submitted: '제출됨',
-  approved: '승인됨',
+  draft: '임시',
+  submitted: '제출',
+  approved: '승인',
+  rejected: '반려',
   completed: '완료',
   revision: '수정 필요',
   archived: '보관됨',

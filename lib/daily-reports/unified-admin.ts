@@ -390,5 +390,8 @@ export const integratedResponseToUnifiedReport = (
     },
     createdAt: dailyReport.created_at,
     updatedAt: dailyReport.updated_at,
+    rejectionReason: dailyReport.rejection_reason || null,
+    rejectedAt: dailyReport.rejected_at || null,
+    rejectedBy: dailyReport.rejected_by || null,
   }
 }
