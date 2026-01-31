@@ -26,6 +26,7 @@ interface DailyReportDetailClientProps {
   status?: string
   author?: string
   initialReport?: UnifiedDailyReport
+  allowEditing?: boolean
 }
 
 interface WorkerStatistics {
@@ -118,6 +119,7 @@ export default function DailyReportDetailClient({
   status,
   author,
   initialReport,
+  allowEditing = false,
 }: DailyReportDetailClientProps) {
   const { toast } = useToast()
   const [report, setReport] = useState<UnifiedDailyReport | null>(initialReport ?? null)
@@ -1072,11 +1074,11 @@ export default function DailyReportDetailClient({
   const linkedInputCount =
     (Array.isArray(report.workers) ? report.workers.length : 0) - directInputCount
 
-  const locationInfo = {
-    block: report.location?.block ? `${report.location.block}블록` : '-',
-    dong: report.location?.dong ? `${report.location.dong}동` : '-',
-    unit: report.location?.unit ? `${report.location.unit}` : '-',
-  }
+  const normalizedStatus = String(report.status || status || '').toLowerCase()
+  const editableStatuses: Array<string> = ['draft', 'submitted', 'rejected']
+  const canEditReport = allowEditing && editableStatuses.includes(normalizedStatus)
+  const showEditGuidance = canEditReport && normalizedStatus !== 'draft'
+  const editHref = canEditReport ? `/dashboard/admin/daily-reports/${reportId}/edit` : null
 
   const infoChips = [
     { label: '작성자', value: report.authorName || author || '-' },
@@ -1084,9 +1086,6 @@ export default function DailyReportDetailClient({
     { label: '부재명', value: primaryMemberType },
     { label: '작업공정', value: primaryProcessType },
     { label: '작업유형', value: primaryWorkType },
-    { label: '블럭', value: locationInfo.block },
-    { label: '동', value: locationInfo.dong },
-    { label: '층/호', value: locationInfo.unit },
   ]
 
   const statCards = [
@@ -1119,52 +1118,54 @@ export default function DailyReportDetailClient({
     { label: '야근 공수', value: `${formatNumber(workerStats.total_overtime ?? 0, 1)} 공수` },
   ]
 
-  const renderAttachmentsCard = (extraClass?: string) => (
-    <Card className={`border shadow-sm ${extraClass ?? ''}`}>
-      <CardHeader className="px-4 py-3">
-        <CardTitle className="text-base">첨부 문서</CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        {attachmentList.length === 0 ? (
-          <div className="text-sm text-muted-foreground">첨부 문서가 없습니다.</div>
-        ) : (
-          <div className="space-y-2">
-            {attachmentList.map(item => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between rounded border p-2 text-sm"
-              >
-                <div className="truncate">
-                  <div
-                    className="font-medium text-foreground truncate max-w-[340px]"
-                    title={item.name}
-                  >
-                    {item.name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {item.uploadedAt ? formatDate(item.uploadedAt) : '업로드 정보 없음'}
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleOpenFile(item)}
-                  disabled={!hasFileReference(item)}
+  function renderAttachmentsCard(extraClass?: string) {
+    return (
+      <Card className={`border shadow-sm ${extraClass ?? ''}`}>
+        <CardHeader className="px-4 py-3">
+          <CardTitle className="text-base">첨부 문서</CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          {attachmentList.length === 0 ? (
+            <div className="text-sm text-muted-foreground">첨부 문서가 없습니다.</div>
+          ) : (
+            <div className="space-y-2">
+              {attachmentList.map(item => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between rounded border p-2 text-sm"
                 >
-                  보기
-                </Button>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  )
+                  <div className="truncate">
+                    <div
+                      className="max-w-[340px] truncate font-medium text-foreground"
+                      title={item.name}
+                    >
+                      {item.name}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.uploadedAt ? formatDate(item.uploadedAt) : '업로드 정보 없음'}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenFile(item)}
+                    disabled={!hasFileReference(item)}
+                  >
+                    보기
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <Card className="border shadow-sm">
-        <CardHeader className="px-4 py-4 space-y-3">
+        <CardHeader className="space-y-2 px-4 py-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <CardTitle className="text-lg font-semibold">
@@ -1175,13 +1176,25 @@ export default function DailyReportDetailClient({
                 {report.partnerCompanyName ? ` · ${report.partnerCompanyName}` : ''}
               </CardDescription>
             </div>
-            <Badge variant="outline" className="px-3 py-1 text-sm font-semibold">
-              {renderStatus(report.status || status)}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="px-3 py-1 text-sm font-semibold">
+                {renderStatus(report.status || status)}
+              </Badge>
+              {canEditReport && editHref ? (
+                <Button asChild size="sm" className="bg-[#1A254F] text-white hover:bg-[#111836]">
+                  <a href={editHref}>작업일지 수정</a>
+                </Button>
+              ) : null}
+            </div>
           </div>
+          {showEditGuidance && (
+            <p className="text-xs text-muted-foreground">
+              제출·반려 상태에서도 수정 후 다시 제출할 수 있습니다.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="px-4 pb-5">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {infoChips.map(item => (
               <div
                 key={item.label}
@@ -1195,7 +1208,7 @@ export default function DailyReportDetailClient({
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {statCards.map(card => (
           <div
             key={card.label}
@@ -1208,8 +1221,8 @@ export default function DailyReportDetailClient({
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[2fr_1fr]">
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="min-w-0 space-y-6">
           {linkedDrawings.length > 0 && (
             <Card className="border shadow-sm">
               <CardHeader className="px-4 py-3">
@@ -1311,9 +1324,7 @@ export default function DailyReportDetailClient({
             <CardContent className="px-4 pb-4">{renderMaterials()}</CardContent>
           </Card>
 
-          {additionalPhotosSection ? (
-            <div className="space-y-6">{additionalPhotosSection}</div>
-          ) : null}
+          {additionalPhotosSection}
 
           {relatedReports.length > 0 && (
             <Card className="border shadow-sm">
@@ -1362,7 +1373,7 @@ export default function DailyReportDetailClient({
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card className="border shadow-sm">
             <CardHeader className="px-4 py-3">
               <CardTitle className="text-base">작업 현황 요약</CardTitle>
@@ -1392,28 +1403,6 @@ export default function DailyReportDetailClient({
               <div className="max-h-[420px] overflow-auto pr-1">{renderWorkers()}</div>
             </CardContent>
           </Card>
-
-          {(report.hqRequest || report.notes) && (
-            <Card className="border shadow-sm">
-              <CardHeader className="px-4 py-3">
-                <CardTitle className="text-base">본사 요청 / 비고</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 px-4 pb-4 text-sm text-muted-foreground">
-                {report.hqRequest ? (
-                  <div>
-                    <div className="text-xs uppercase tracking-wide">본사 요청</div>
-                    <div className="mt-1 text-foreground">{report.hqRequest}</div>
-                  </div>
-                ) : null}
-                {report.notes ? (
-                  <div>
-                    <div className="text-xs uppercase tracking-wide">비고</div>
-                    <div className="mt-1 text-foreground">{report.notes}</div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          )}
 
           {renderAttachmentsCard()}
         </div>

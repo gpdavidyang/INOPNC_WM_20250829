@@ -396,7 +396,7 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             render: (r: any) => (
               <Badge
                 variant="outline"
-                className={`font-semibold whitespace-nowrap ${STATUS_META[r?.status as keyof typeof STATUS_META]?.className || 'bg-gray-100 text-gray-700'}`}
+                className={`inline-flex min-w-[72px] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold ${STATUS_META[r?.status as keyof typeof STATUS_META]?.className || 'bg-gray-100 text-gray-700'}`}
               >
                 {STATUS_META[r?.status as keyof typeof STATUS_META]?.label || r?.status || '미정'}
               </Badge>

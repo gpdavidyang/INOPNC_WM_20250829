@@ -6,6 +6,7 @@ import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowse
 import '@/modules/mobile/styles/worklogs.css'
 import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import React from 'react'
 
 type TabKey = 'photos' | 'drawings' | 'completion' | 'others'
@@ -24,6 +25,7 @@ function isImg(a: WorklogAttachment) {
 export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail }) {
   const [active, setActive] = React.useState<TabKey>('photos')
   const [zoom, setZoom] = React.useState(100)
+  const router = useRouter()
 
   const tabs: { key: TabKey; label: string }[] = [
     { key: 'photos', label: '사진대지' },
@@ -281,6 +283,12 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
   const memberTypeDisplay = memberTypeList.length > 0 ? memberTypeList.join(', ') : '미지정'
   const workerDisplay =
     normalizedWorkerNames.length > 0 ? normalizedWorkerNames.join(', ') : '미등록'
+  const canEditReport = ['draft', 'submitted', 'rejected'].includes(detail.status)
+  const showEditHelper = canEditReport && detail.status !== 'draft'
+  const handleEditOpen = React.useCallback(() => {
+    if (!detail.id) return
+    router.push(`/mobile/worklog?edit=${detail.id}`)
+  }, [detail.id, router])
 
   return (
     <MobileLayoutShell>
@@ -306,6 +314,31 @@ export default function TaskDetailPageClient({ detail }: { detail: WorklogDetail
             닫기
           </button>
         </div>
+
+        {canEditReport && (
+          <section className="diary-detail-section" style={{ marginTop: 12 }}>
+            <button
+              type="button"
+              className="viewer-action-btn primary"
+              style={{ width: '100%' }}
+              onClick={handleEditOpen}
+            >
+              작업일지 수정하기
+            </button>
+            {showEditHelper && (
+              <p
+                style={{
+                  marginTop: 8,
+                  textAlign: 'center',
+                  fontSize: 12,
+                  color: '#475467',
+                }}
+              >
+                제출·반려 상태에서도 수정 후 다시 제출할 수 있습니다.
+              </p>
+            )}
+          </section>
+        )}
 
         {/* Info card */}
         <section className="diary-detail-section">

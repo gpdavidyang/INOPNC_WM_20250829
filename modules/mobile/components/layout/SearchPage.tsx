@@ -178,277 +178,171 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null
 
-  return (
-    <div className="search-page">
-      <div className="search-header">
-        <button className="back-btn" onClick={onClose}>
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="search-input-wrapper">
-          <Search className="search-page-icon" />
-          <input
-            ref={inputRef}
-            type="text"
-            className="search-input"
-            placeholder="현장, 작업일지, 문서 검색"
-            value={searchQuery}
-            onChange={handleInputChange}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                if (searchTimeoutRef.current) {
-                  clearTimeout(searchTimeoutRef.current)
-                }
-                runSearch(searchQuery)
-              }
-            }}
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              className="search-clear-btn"
-              aria-label="검색어 비우기"
-              onClick={clearSearchInput}
-            >
-              &times;
-            </button>
-          )}
+  const renderResultGroups = () => {
+    if (!searchQuery) return null
+    if (isSearching) {
+      return (
+        <div className="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          검색 결과를 불러오는 중입니다…
         </div>
-      </div>
+      )
+    }
+    if (!searchResults.length && hasSearched) {
+      return (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 px-6 py-10 text-center text-sm text-slate-500">
+          <Search className="h-8 w-8 text-slate-400" />
+          <p>
+            ‘<span className="font-semibold">{searchQuery}</span>’에 대한 검색 결과가 없습니다.
+          </p>
+        </div>
+      )
+    }
+    return resultOrder.map(group => {
+      const items = groupedResults[group.key]
+      if (!items.length) return null
+      return (
+        <div key={group.key} className="rounded-2xl border border-slate-100 bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b border-slate-100 px-4 py-3 text-sm font-semibold text-slate-800">
+            <span className="text-slate-500">{group.icon}</span>
+            {group.label}
+            <span className="ml-auto text-xs font-medium text-slate-400">{items.length}건</span>
+          </div>
+          <div className="divide-y divide-slate-100">
+            {items.map(item => (
+              <button
+                key={`${item.type}-${item.id}`}
+                type="button"
+                onClick={() => handleResultClick(item)}
+                className="flex w-full flex-col items-start gap-1 px-4 py-3 text-left transition hover:bg-slate-50"
+              >
+                <div className="flex w-full items-center gap-2">
+                  <span className="truncate text-sm font-semibold text-slate-900">
+                    {item.title || '제목 없음'}
+                  </span>
+                  {item.badge && (
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                {item.subtitle && (
+                  <p className="truncate text-xs text-slate-500">{item.subtitle}</p>
+                )}
+                {item.description && (
+                  <p className="truncate text-xs text-slate-400">{item.description}</p>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )
+    })
+  }
 
-      <div className="search-body">
-        {!searchQuery && recentSearches.length > 0 && (
-          <div className="recent-searches">
-            <div className="section-header">
-              <h3>최근 검색</h3>
-              <button onClick={clearRecentSearches}>전체 삭제</button>
-            </div>
-            <div className="recent-list">
-              {recentSearches.map((search, index) => (
-                <div key={`${search}-${index}`} className="recent-item-row">
+  return (
+    <div className="fixed inset-0 z-[2000] flex justify-center bg-[var(--bg)]">
+      <div className="flex h-full w-full max-w-[600px] flex-col bg-white shadow-2xl">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 text-slate-700 transition hover:bg-slate-50"
+            aria-label="검색 닫기"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              ref={inputRef}
+              type="text"
+              className="h-11 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm text-slate-900 outline-none transition focus:border-[#1A254F] focus:bg-white focus:ring-2 focus:ring-[#1A254F]/10"
+              placeholder="현장, 작업일지, 문서를 검색하세요"
+              value={searchQuery}
+              onChange={handleInputChange}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  if (searchTimeoutRef.current) {
+                    clearTimeout(searchTimeoutRef.current)
+                  }
+                  runSearch(searchQuery)
+                }
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearchInput}
+                aria-label="검색어 비우기"
+                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-600 transition hover:bg-slate-300"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto bg-slate-50/80 px-4 py-5">
+          <div className="mx-auto flex w-full max-w-[520px] flex-col gap-6">
+            {!searchQuery && recentSearches.length > 0 && (
+              <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                <div className="flex items-center justify-between text-sm font-semibold text-slate-900">
+                  <span>최근 검색어</span>
                   <button
                     type="button"
-                    className="recent-item"
-                    onClick={() => {
-                      setSearchQuery(search)
-                      if (searchTimeoutRef.current) {
-                        clearTimeout(searchTimeoutRef.current)
-                      }
-                      runSearch(search)
-                    }}
+                    className="text-xs font-medium text-slate-500 transition hover:text-slate-700"
+                    onClick={clearRecentSearches}
                   >
-                    <Search className="w-4 h-4" />
-                    <span>{search}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="recent-remove-btn"
-                    aria-label={`${search} 검색어 삭제`}
-                    onClick={() => removeRecentSearch(search)}
-                  >
-                    &times;
+                    전체 삭제
                   </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {searchQuery && (
-          <div className="search-results">
-            <div className="section-header">
-              <h3>검색 결과</h3>
-              <span>{isSearching ? '검색 중…' : `${searchResults.length}건`}</span>
-            </div>
-            {isSearching && (
-              <div className="search-loading">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>검색 결과를 불러오는 중입니다…</span>
-              </div>
-            )}
-            {!isSearching && searchResults.length > 0 && (
-              <div className="results-list">
-                {resultOrder.map(group => {
-                  const items = groupedResults[group.key]
-                  if (!items.length) return null
-                  return (
-                    <div key={group.key} className="result-group">
-                      <div className="group-header">
-                        <span className="group-icon">{group.icon}</span>
-                        <span className="group-title">{group.label}</span>
-                      </div>
-                      <div className="group-list">
-                        {items.map(item => (
-                          <button
-                            key={`${item.type}-${item.id}`}
-                            className="result-item"
-                            onClick={() => handleResultClick(item)}
-                          >
-                            <div className="result-item-content">
-                              <div className="result-title-row">
-                                <span className="result-title">{item.title || '제목 없음'}</span>
-                                {item.badge && (
-                                  <span
-                                    className={`priority-badge priority-${item.badgeColor || 'gray'}`}
-                                  >
-                                    {item.badge}
-                                  </span>
-                                )}
-                              </div>
-                              {item.subtitle && <p className="result-snippet">{item.subtitle}</p>}
-                              {item.description && (
-                                <p className="result-date">{item.description}</p>
-                              )}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
+                <div className="space-y-2">
+                  {recentSearches.map((term, index) => (
+                    <div
+                      key={`${term}-${index}`}
+                      className="flex items-center gap-2 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2"
+                    >
+                      <button
+                        type="button"
+                        className="flex flex-1 items-center gap-2 text-left text-sm font-medium text-slate-700 transition hover:text-slate-900"
+                        onClick={() => {
+                          setSearchQuery(term)
+                          if (searchTimeoutRef.current) {
+                            clearTimeout(searchTimeoutRef.current)
+                          }
+                          runSearch(term)
+                        }}
+                      >
+                        <Search className="h-4 w-4 text-slate-400" />
+                        <span className="truncate">{term}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs text-slate-400 transition hover:text-slate-600"
+                        aria-label={`${term} 검색어 삭제`}
+                        onClick={() => removeRecentSearch(term)}
+                      >
+                        삭제
+                      </button>
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
             )}
 
-            {!isSearching && hasSearched && !searchResults.length && (
-              <div className="no-results">
-                <Search className="w-12 h-12" />
-                <p>&lsquo;{searchQuery}&rsquo;에 대한 검색 결과가 없습니다.</p>
+            {searchQuery && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm text-slate-500">
+                  <span className="font-semibold text-slate-900">검색 결과</span>
+                  <span>{isSearching ? '검색 중…' : `${searchResults.length}건`}</span>
+                </div>
+                <div className="space-y-4">{renderResultGroups()}</div>
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
-
-      <style jsx>{`
-        .search-page {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: var(--bg);
-          z-index: 2000;
-          display: flex;
-          flex-direction: column;
-          animation: slideIn 0.3s ease;
-          width: 100%;
-          max-width: 600px;
-          margin: 0 auto;
-        }
-
-        .search-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px;
-          background: var(--card);
-          border-bottom: 1px solid var(--line);
-        }
-
-        .back-btn {
-          background: transparent;
-          border: none;
-          padding: 8px;
-          cursor: pointer;
-          color: var(--text);
-          border-radius: 12px;
-          height: 44px;
-          width: 44px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background 0.2s;
-        }
-
-        .back-btn:active {
-          transform: scale(0.92);
-        }
-
-        .search-input-wrapper {
-          flex: 1;
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background: var(--bg-secondary);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-base);
-          height: var(--search-h);
-          padding: 0 44px 0 16px;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .search-page-icon {
-          width: 20px;
-          height: 20px;
-          color: var(--text-muted);
-          flex-shrink: 0;
-        }
-
-        .search-input {
-          flex: 1;
-          height: 100%;
-          background: transparent;
-          border: none;
-          font-size: 17px;
-          color: var(--text);
-          outline: none;
-          padding: 0;
-        }
-
-        .search-input::placeholder {
-          color: var(--text-muted);
-        }
-
-        .search-input-wrapper:focus-within {
-          border-color: var(--brand);
-          box-shadow: 0 0 0 2px rgba(26, 37, 79, 0.1);
-        }
-
-        .search-clear-btn {
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          background: rgba(0, 0, 0, 0.1);
-          color: var(--text-muted);
-          border: none;
-          width: 24px;
-          height: 24px;
-          border-radius: 50%;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-        }
-
-        .search-body {
-          flex: 1;
-          overflow-y: auto;
-          padding: 16px;
-        }
-
-        .recent-item,
-        .result-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px;
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-base);
-          cursor: pointer;
-          text-align: left;
-          transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          width: 100%;
-          min-height: 64px;
-        }
-
-        .recent-item:active,
-        .result-item:active {
-          transform: scale(0.98);
-        }
-      `}</style>
     </div>
   )
 }

@@ -562,6 +562,12 @@
   margin-bottom: 10px;
 }
 
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .detail-title {
   font-size: 20px;
   font-weight: 700;
@@ -583,6 +589,19 @@
 .close-pill:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.2);
+}
+
+.close-pill.edit-pill {
+  border-color: #1a254f;
+  background: #1a254f;
+  color: #fff;
+}
+.close-pill.edit-pill:hover {
+  background: #111836;
+  border-color: #111836;
+}
+.close-pill.edit-pill:focus-visible {
+  box-shadow: 0 0 0 3px rgba(17, 24, 54, 0.35);
 }
 
 .diary-viewer-title {
@@ -939,6 +958,15 @@
   background: #0f172a;
   color: #e5e7eb;
   border-color: #334155;
+}
+[data-theme='dark'] .close-pill.edit-pill {
+  background: #2f6bff;
+  border-color: #2f6bff;
+  color: #fff;
+}
+[data-theme='dark'] .close-pill.edit-pill:hover {
+  background: #1f4acb;
+  border-color: #1f4acb;
 }
 
 [data-theme='dark'] .viewer-action-btn.secondary {

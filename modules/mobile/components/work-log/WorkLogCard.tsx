@@ -22,7 +22,9 @@ interface WorkLogCardProps {
 
 export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
   ({ workLog, onEdit, onSubmit, onView, onPrint, onDelete }) => {
+    const editableStatuses: Array<WorkLog['status']> = ['draft', 'submitted', 'rejected']
     const isDraft = workLog.status === 'draft'
+    const canEdit = editableStatuses.includes(workLog.status)
     const statusClasses = getStatusColor(workLog.status)
 
     const photoCount = workLog.attachments.photos.length
@@ -152,9 +154,9 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
           </div>
         </div>
 
-        {isDraft && (onEdit || onSubmit || onDelete) && (
+        {(canEdit && onEdit) || (isDraft && (onSubmit || onDelete)) ? (
           <div className="mt-5 flex flex-wrap gap-2">
-            {onEdit && (
+            {canEdit && onEdit && (
               <button
                 type="button"
                 onClick={onEdit}
@@ -164,7 +166,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                 수정
               </button>
             )}
-            {onSubmit && (
+            {isDraft && onSubmit && (
               <button
                 type="button"
                 onClick={onSubmit}
@@ -174,7 +176,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                 제출
               </button>
             )}
-            {onDelete && (
+            {isDraft && onDelete && (
               <button
                 type="button"
                 onClick={onDelete}
@@ -185,7 +187,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
               </button>
             )}
           </div>
-        )}
+        ) : null}
 
         {!isDraft && onPrint && (
           <div className="mt-5">

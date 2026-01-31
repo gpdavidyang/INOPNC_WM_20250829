@@ -16,11 +16,16 @@ import { DiaryDetailViewer } from '@/modules/mobile/components/worklogs'
 import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
 import '@/modules/mobile/styles/attendance.css'
 import '@/modules/mobile/styles/partner.css'
-import { WorkLog, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
+import {
+  type MaterialUsageEntry,
+  type WorkerHours,
+  WorkLog,
+  WorkLogTabStatus,
+} from '@/modules/mobile/types/work-log.types'
 import { dismissAlert, formatDate } from '@/modules/mobile/utils/work-log-utils'
 import type { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import { Search as SearchIcon } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
@@ -53,6 +58,8 @@ export const WorkLogHomePage: React.FC = () => {
   const { profile } = useUnifiedAuth()
   const readOnly = profile?.role === 'partner' || profile?.role === 'customer_manager'
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
   const getPartnerAbbr = (raw?: string | null): string => {
     if (!raw) return ''
     let s = String(raw)
@@ -109,6 +116,7 @@ export const WorkLogHomePage: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
   const [isDetailOpen, setDetailOpen] = useState(false)
   const [detailData, setDetailData] = useState<WorklogDetail | null>(null)
+  const [detailSourceWorkLog, setDetailSourceWorkLog] = useState<WorkLog | null>(null)
   const [pendingDraft, setPendingDraft] = useState<WorkLog | null>(null)
   const [isDraftSheetOpen, setDraftSheetOpen] = useState(false)
   const [partnerSiteOptions, setPartnerSiteOptions] = useState<
@@ -116,6 +124,7 @@ export const WorkLogHomePage: React.FC = () => {
   >([])
 
   const {
+    workLogs,
     draftWorkLogs,
     approvedWorkLogs,
     uncompletedByMonth,
@@ -352,6 +361,32 @@ export const WorkLogHomePage: React.FC = () => {
     setIsModalOpen(true)
   }, [])
 
+  useEffect(() => {
+    if (!searchParams) return
+    const editId = searchParams.get('edit')
+    if (!editId) return
+    const target =
+      draftWorkLogs.find(log => String(log.id) === editId) ||
+      approvedWorkLogs.find(log => String(log.id) === editId) ||
+      workLogs.find(log => String(log.id) === editId)
+
+    if (target) {
+      handleEditWorkLog(target)
+      router.replace(pathname || '/mobile/worklog', { scroll: false })
+    } else if (!loading) {
+      router.replace(pathname || '/mobile/worklog', { scroll: false })
+    }
+  }, [
+    searchParams,
+    draftWorkLogs,
+    approvedWorkLogs,
+    workLogs,
+    handleEditWorkLog,
+    router,
+    pathname,
+    loading,
+  ])
+
   const handleViewWorkLog = useCallback((workLog: WorkLog) => {
     // Draft → 안내 바텀시트 먼저 표시
     if (workLog.status === 'draft') {
@@ -444,73 +479,178 @@ export const WorkLogHomePage: React.FC = () => {
 
     setDetailData(detail)
     setDetailOpen(true)
+    setDetailSourceWorkLog(workLog)
   }, [])
+
+  const detailToWorkLog = useCallback((detail: WorklogDetail): WorkLog => {
+    const attachmentTimestamp = detail.updatedAt || new Date().toISOString()
+    const toAttachment = (attachments: WorklogAttachment[]) =>
+      attachments.map(attachment => ({
+        id: attachment.id,
+        url: attachment.fileUrl || attachment.previewUrl || '',
+        name: attachment.name || '파일',
+        size: 0,
+        uploadedAt: attachmentTimestamp,
+        uploadedBy: detail.createdBy?.name,
+      }))
+
+    const workerEntries: WorkerHours[] =
+      detail.additionalManpower && detail.additionalManpower.length > 0
+        ? detail.additionalManpower.map(worker => ({
+            id: worker.id || `worker-${worker.name || 'unknown'}`,
+            name: worker.name || '작업자',
+            hours: Number(worker.manpower || 0) * 8,
+          }))
+        : (detail.workerNames || []).map((name, index) => ({
+            id: `worker-${index}`,
+            name,
+            hours: 0,
+          }))
+
+    const materials: MaterialUsageEntry[] = (detail.materials || []).map((material, index) => ({
+      material_id: material.material_code || `${detail.id}-material-${index}`,
+      material_name: material.material_name || '자재',
+      material_code: material.material_code || null,
+      quantity: Number(material.quantity ?? 0),
+      unit: material.unit || null,
+      notes: material.notes || null,
+    }))
+
+    return {
+      id: detail.id,
+      date: detail.workDate,
+      siteId: detail.siteId,
+      siteName: detail.siteName,
+      siteAddress: detail.siteAddress,
+      status: detail.status as WorkLog['status'],
+      memberTypes: detail.memberTypes as any,
+      workProcesses: detail.processes as any,
+      workTypes: detail.workTypes as any,
+      location: {
+        block: detail.location?.block || '',
+        dong: detail.location?.dong || '',
+        unit: detail.location?.unit || '',
+      },
+      workers: workerEntries,
+      totalHours: Number(detail.manpower || 0) * 8,
+      materials,
+      attachments: {
+        photos: toAttachment(detail.attachments.photos),
+        drawings: toAttachment(detail.attachments.drawings),
+        confirmations: toAttachment(detail.attachments.completionDocs),
+      },
+      progress: 0,
+      notes: detail.notes || '',
+      description: detail.notes || '',
+      summary: detail.workTypes.join(', '),
+      title: detail.memberTypes.join(', '),
+      author: detail.createdBy?.name || '작성자',
+      createdBy: detail.createdBy?.id || 'unknown',
+      createdAt: detail.updatedAt || attachmentTimestamp,
+      updatedAt: detail.updatedAt || attachmentTimestamp,
+      partnerCompanyName: '',
+      organizationId: '',
+    }
+  }, [])
+
+  const buildWorklogPrefill = useCallback((workLog: WorkLog) => {
+    const additionalManpower =
+      (workLog.workers || []).map((worker, index) => ({
+        id: `prefill-${index}-${Date.now()}`,
+        workerId: worker.id || '',
+        workerName: worker.name,
+        manpower: Number(worker.hours || 0) / 8 || 0,
+      })) || []
+    const additionalTotal = additionalManpower.reduce(
+      (sum, worker) => sum + (Number(worker.manpower) || 0),
+      0
+    )
+    const estimatedMain =
+      Number(workLog.totalHours || 0) / 8 - (Number.isFinite(additionalTotal) ? additionalTotal : 0)
+    const mainManpower = estimatedMain > 0 && Number.isFinite(estimatedMain) ? estimatedMain : 1
+
+    return {
+      siteId: workLog.siteId,
+      workDate: workLog.date,
+      department: workLog.organizationId || '',
+      location: workLog.location || { block: '', dong: '', unit: '' },
+      memberTypes: workLog.memberTypes || [],
+      workProcesses: workLog.workProcesses || [],
+      workTypes: workLog.workTypes || [],
+      mainManpower,
+      materials:
+        (workLog.materials || []).map(material => {
+          const quantityVal =
+            (material as any).quantity_val ??
+            (material as any).amount ??
+            (material as any).quantity ??
+            0
+          return {
+            material_id: material.material_id || null,
+            material_name: material.material_name || '',
+            material_code: material.material_code || material.material_id || null,
+            quantity: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
+            quantity_val: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
+            amount: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
+            unit: material.unit || '',
+            notes: material.notes || '',
+          }
+        }) || [],
+      additionalManpower,
+      tasks:
+        (workLog.tasks || []).map((task: any) => ({
+          memberTypes: task.memberTypes || [],
+          processes: task.workProcesses || task.processes || [],
+          workTypes: task.workTypes || [],
+          location: task.location || { block: '', dong: '', unit: '' },
+        })) || [],
+    }
+  }, [])
+
+  const openPrefillAndNavigate = useCallback(
+    (workLog: WorkLog) => {
+      const prefill = buildWorklogPrefill(workLog)
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
+        }
+      } catch {
+        /* ignore storage errors */
+      }
+      router.push('/mobile')
+    },
+    [buildWorklogPrefill, router]
+  )
+
+  const handleDetailEdit = useCallback(
+    (detail: WorklogDetail) => {
+      if (readOnly) return
+      const matchFromSource =
+        detailSourceWorkLog && detailSourceWorkLog.id === detail.id ? detailSourceWorkLog : null
+      const fallbackMatch =
+        draftWorkLogs.find(log => String(log.id) === detail.id) ||
+        approvedWorkLogs.find(log => String(log.id) === detail.id)
+      const target = matchFromSource || fallbackMatch || detailToWorkLog(detail)
+      setDetailOpen(false)
+      setDetailSourceWorkLog(null)
+      openPrefillAndNavigate(target)
+    },
+    [
+      readOnly,
+      detailSourceWorkLog,
+      draftWorkLogs,
+      approvedWorkLogs,
+      detailToWorkLog,
+      openPrefillAndNavigate,
+    ]
+  )
 
   const proceedOpenDraft = useCallback(() => {
     const workLog = pendingDraft
     if (!workLog) return
-    try {
-      const additionalManpower =
-        (workLog.workers || []).map((worker, index) => ({
-          id: `prefill-${index}-${Date.now()}`,
-          workerId: worker.id || '',
-          workerName: worker.name,
-          manpower: Number(worker.hours || 0) / 8 || 0,
-        })) || []
-      const additionalTotal = additionalManpower.reduce(
-        (sum, worker) => sum + (Number(worker.manpower) || 0),
-        0
-      )
-      const estimatedMain =
-        Number(workLog.totalHours || 0) / 8 -
-        (Number.isFinite(additionalTotal) ? additionalTotal : 0)
-      const mainManpower = estimatedMain > 0 && Number.isFinite(estimatedMain) ? estimatedMain : 1
-
-      const prefill = {
-        siteId: workLog.siteId,
-        workDate: workLog.date,
-        department: workLog.organizationId || '',
-        location: workLog.location || { block: '', dong: '', unit: '' },
-        memberTypes: workLog.memberTypes || [],
-        workProcesses: workLog.workProcesses || [],
-        workTypes: workLog.workTypes || [],
-        mainManpower,
-        materials:
-          (workLog.materials || []).map(material => {
-            const quantityVal =
-              (material as any).quantity_val ??
-              (material as any).amount ??
-              (material as any).quantity ??
-              0
-            return {
-              material_id: material.material_id || null,
-              material_name: material.material_name || '',
-              material_code: material.material_code || material.material_id || null,
-              quantity: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
-              quantity_val: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
-              amount: Number.isFinite(Number(quantityVal)) ? Number(quantityVal) : 0,
-              unit: material.unit || '',
-              notes: material.notes || '',
-            }
-          }) || [],
-        additionalManpower,
-        tasks:
-          (workLog.tasks || []).map((task: any) => ({
-            memberTypes: task.memberTypes || [],
-            processes: task.workProcesses || task.processes || [],
-            workTypes: task.workTypes || [],
-            location: task.location || { block: '', dong: '', unit: '' },
-          })) || [],
-      }
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
-      }
-    } catch (e) {
-      void e
-    }
+    openPrefillAndNavigate(workLog)
     setDraftSheetOpen(false)
-    router.push('/mobile')
-  }, [pendingDraft, router])
+  }, [pendingDraft, openPrefillAndNavigate])
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false)
@@ -1597,7 +1737,10 @@ export const WorkLogHomePage: React.FC = () => {
           <DiaryDetailViewer
             open={isDetailOpen}
             worklog={detailData}
-            onClose={() => setDetailOpen(false)}
+            onClose={() => {
+              setDetailOpen(false)
+              setDetailSourceWorkLog(null)
+            }}
             onDownload={() => {}}
             onOpenDocument={() => {}}
             onOpenMarkup={wl => {
@@ -1615,6 +1758,7 @@ export const WorkLogHomePage: React.FC = () => {
               params.set('docId', docId)
               window.location.href = `/mobile/markup-tool?${params.toString()}`
             }}
+            onEdit={!readOnly ? handleDetailEdit : undefined}
           />
         ) : null}
 

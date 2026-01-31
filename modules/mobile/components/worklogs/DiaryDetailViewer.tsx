@@ -5,6 +5,7 @@ import { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import clsx from 'clsx'
 import { DownloadCloud, ExternalLink } from 'lucide-react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import AttachmentGallery from './AttachmentGallery'
 import { AttachmentTabs, TabKey } from './AttachmentTabs'
@@ -17,6 +18,7 @@ export interface DiaryDetailViewerProps {
   onOpenDocument?: (attachment: WorklogAttachment) => void
   onOpenMarkup?: (worklog: WorklogDetail) => void
   onOpenMarkupDoc?: (docId: string, worklog: WorklogDetail) => void
+  onEdit?: (worklog: WorklogDetail) => void
   className?: string
 }
 
@@ -35,6 +37,7 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   onOpenDocument,
   onOpenMarkup,
   onOpenMarkupDoc,
+  onEdit,
   className = '',
 }) => {
   const [linkedMarkups, setLinkedMarkups] = useState<
@@ -50,6 +53,7 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   >([])
   const [loadingMarkups, setLoadingMarkups] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('photos')
+  const router = useRouter()
 
   useEffect(() => {
     const load = async () => {
@@ -92,6 +96,20 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   }, [open, worklog?.id])
 
   if (!open || !worklog) return null
+
+  const normalizedStatus = (worklog.status || '').toLowerCase()
+  const editableStatuses: Array<string> = ['draft', 'submitted', 'rejected']
+  const canEditReport = editableStatuses.includes(normalizedStatus)
+
+  const handleEditClick = () => {
+    if (!worklog?.id) return
+    if (onEdit) {
+      onEdit(worklog)
+      onClose?.()
+      return
+    }
+    router.push(`/mobile/worklog?edit=${worklog.id}`)
+  }
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -257,9 +275,16 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
       <div className="diary-viewer-panel">
         <header className="detail-header">
           <h2 className="detail-title">작업일지 상세</h2>
-          <button type="button" className="close-pill" onClick={onClose}>
-            닫기
-          </button>
+          <div className="detail-header-actions">
+            {canEditReport && (
+              <button type="button" className="close-pill edit-pill" onClick={handleEditClick}>
+                수정
+              </button>
+            )}
+            <button type="button" className="close-pill" onClick={onClose}>
+              닫기
+            </button>
+          </div>
         </header>
 
         <div className="diary-viewer-body">
