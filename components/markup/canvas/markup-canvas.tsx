@@ -1,17 +1,17 @@
 'use client'
 
+import type { MarkupObject, ViewerState } from '@/types/markup'
 import React from 'react'
-import type { MarkupObject } from '@/types/markup'
-import type { ViewerState } from '@/types/markup'
 
 interface MarkupCanvasProps {
   backgroundUrl: string
   viewerState: ViewerState
   objects: MarkupObject[]
   selectedIds: string[]
-  onPointerDown?: (pt: { x: number; y: number }) => void
-  onPointerMove?: (pt: { x: number; y: number }) => void
-  onPointerUp?: (pt: { x: number; y: number }) => void
+  onPointerDown?: (e: React.PointerEvent) => void
+  onPointerMove?: (e: React.PointerEvent) => void
+  onPointerUp?: (e: React.PointerEvent) => void
+  previewObject?: MarkupObject | null
 }
 
 export function MarkupCanvas({
@@ -22,13 +22,12 @@ export function MarkupCanvas({
   onPointerDown,
   onPointerMove,
   onPointerUp,
+  previewObject,
 }: MarkupCanvasProps) {
   const rootRef = React.useRef<HTMLDivElement | null>(null)
 
-  const handle = (cb?: (pt: { x: number; y: number }) => void) => (e: React.PointerEvent) => {
-    if (!cb || !rootRef.current) return
-    const rect = rootRef.current.getBoundingClientRect()
-    cb({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+  const handle = (cb?: (e: React.PointerEvent) => void) => (e: React.PointerEvent) => {
+    if (cb) cb(e)
   }
 
   const { zoom, panX, panY, imageWidth, imageHeight } = viewerState
@@ -65,6 +64,7 @@ export function MarkupCanvas({
           className="absolute left-0 top-0"
         >
           {objects.map(renderObject(selectedIds))}
+          {previewObject && renderObject([])(previewObject)}
           {objects.map(obj => {
             if (!selectedIds.includes(obj.id)) return null
             const rect = getBoundingRect(obj)
@@ -95,23 +95,101 @@ function renderObject(selectedIds: string[]) {
   return (obj: MarkupObject) => {
     const selected = selectedIds.includes(obj.id)
     if (obj.type === 'box') {
-      const stroke = obj.color === 'red' ? '#ef4444' : obj.color === 'blue' ? '#3b82f6' : '#6b7280'
-      const strokeWidth = getBoxStrokeWidth((obj as any).size, selected)
-      return (
-        <g key={obj.id}>
+      const color = (obj as any).color || 'gray'
+      const stroke = color === 'red' ? '#ef4444' : color === 'blue' ? '#3b82f6' : '#6b7280'
+      const sw = getBoxStrokeWidth((obj as any).size, selected)
+      const shape = (obj as any).shape || 'square'
+      const width = (obj as any).width || 0
+      const height = (obj as any).height || 0
+
+      let element = null
+      if (shape === 'circle') {
+        element = (
+          <ellipse
+            cx={obj.x + width / 2}
+            cy={obj.y + height / 2}
+            rx={width / 2}
+            ry={height / 2}
+            fill={stroke}
+            fillOpacity={0.25}
+            stroke={stroke}
+            strokeWidth={sw}
+            strokeOpacity={0.8}
+          />
+        )
+      } else if (shape === 'triangle') {
+        const pts = `${obj.x + width / 2},${obj.y} ${obj.x + width},${obj.y + height} ${obj.x},${obj.y + height}`
+        element = (
+          <polygon
+            points={pts}
+            fill={stroke}
+            fillOpacity={0.25}
+            stroke={stroke}
+            strokeWidth={sw}
+            strokeOpacity={0.8}
+          />
+        )
+      } else if (shape === 'star') {
+        const pts = starPoints(obj.x + width / 2, obj.y + height / 2, width / 2, width / 4)
+          .map(p => `${p.x},${p.y}`)
+          .join(' ')
+        element = (
+          <polygon
+            points={pts}
+            fill={stroke}
+            fillOpacity={0.25}
+            stroke={stroke}
+            strokeWidth={sw}
+            strokeOpacity={0.8}
+          />
+        )
+      } else if (shape === 'diagonal') {
+        element = (
+          <line
+            x1={obj.x}
+            y1={obj.y + height}
+            x2={obj.x + width}
+            y2={obj.y}
+            stroke={stroke}
+            strokeWidth={sw}
+            strokeOpacity={0.8}
+            strokeLinecap="round"
+          />
+        )
+      } else {
+        element = (
           <rect
             x={obj.x}
             y={obj.y}
-            width={(obj as any).width}
-            height={(obj as any).height}
-            fill={selected ? stroke : 'transparent'}
-            fillOpacity={selected ? 0.18 : 1}
+            width={width}
+            height={height}
+            fill={stroke}
+            fillOpacity={0.25}
             stroke={stroke}
-            strokeWidth={strokeWidth}
+            strokeWidth={sw}
+            strokeOpacity={0.8}
           />
-          <text x={obj.x + 4} y={obj.y - 4} fontSize={12} fill={stroke}>
-            {(obj as any).label}
-          </text>
+        )
+      }
+
+      const displayLabel =
+        (obj as any).label && !['작업진행', '작업완료', '기타'].includes((obj as any).label)
+
+      return (
+        <g key={obj.id} pointerEvents="all">
+          {element}
+          {displayLabel && (
+            <text
+              x={obj.x + 4}
+              y={obj.y - 4}
+              fontSize={12}
+              fill={stroke}
+              fontFamily="Pretendard, sans-serif"
+              fontWeight="bold"
+            >
+              {(obj as any).label}
+            </text>
+          )}
         </g>
       )
     }

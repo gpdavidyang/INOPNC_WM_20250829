@@ -49,7 +49,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
            name,
            address
          ),
-         profiles!daily_reports_created_by_fkey(
+         profiles!created_by(
            id,
            full_name,
            role

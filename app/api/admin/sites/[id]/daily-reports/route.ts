@@ -24,6 +24,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         return createClient()
       }
     })()
+    const svc = supabase
 
     const siteId = params.id
     const { searchParams } = new URL(request.url)
@@ -34,6 +35,26 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const order = (searchParams.get('order') as 'asc' | 'desc') || 'desc'
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50')))
     const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
+
+    const { data: siteRow } = await supabase
+      .from('sites')
+      .select('id,name,address,organization_id')
+      .eq('id', siteId)
+      .maybeSingle()
+    const siteInfo = siteRow
+      ? {
+          id: String(siteRow.id),
+          name: siteRow.name ?? null,
+          address: siteRow.address ?? null,
+          organization_id: siteRow.organization_id ?? null,
+        }
+      : null
+
+    const orgId = siteInfo?.organization_id ? String(siteInfo.organization_id) : null
+    const { data: orgRow } = orgId
+      ? await supabase.from('organizations').select('id,name').eq('id', orgId).maybeSingle()
+      : { data: null }
+    const orgInfo = orgRow ? { id: String(orgRow.id), name: orgRow.name ?? null } : null
 
     // Build query - simplified to avoid foreign key issues
     let query = supabase
@@ -215,14 +236,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
         id: string
         full_name: string
         email: string | null
-        metadata: Record<string, unknown> | null
       }
     >()
 
     if (authorIds.length > 0) {
       const { data: authorProfiles, error: authorProfilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, email, metadata')
+        .select('id, full_name, email')
         .in('id', authorIds)
 
       if (authorProfilesError) {
@@ -232,21 +252,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       } else if (Array.isArray(authorProfiles)) {
         authorProfiles.forEach(profile => {
           if (!profile?.id) return
-          const metadata =
-            profile?.metadata && typeof profile.metadata === 'object'
-              ? (profile.metadata as Record<string, unknown>)
-              : null
           let resolvedName = typeof profile?.full_name === 'string' ? profile.full_name.trim() : ''
-          if (!resolvedName && metadata) {
-            const nameKeys = ['full_name', 'name', 'name_ko', 'korean_name', 'display_name']
-            for (const key of nameKeys) {
-              const value = metadata[key]
-              if (typeof value === 'string' && value.trim()) {
-                resolvedName = value.trim()
-                break
-              }
-            }
-          }
           if (!resolvedName && typeof profile?.email === 'string') {
             const [local] = profile.email.split('@')
             if (local) resolvedName = local
@@ -255,7 +261,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
             id: profile.id,
             full_name: resolvedName || profile?.full_name || '',
             email: typeof profile?.email === 'string' ? profile.email : null,
-            metadata,
           })
         })
       }
@@ -264,6 +269,26 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const reportIds = list
       .map((r: any) => (typeof r?.id === 'string' ? r.id : null))
       .filter((id): id is string => Boolean(id))
+
+    const attachmentCountMap = new Map<string, number>()
+    if (reportIds.length > 0) {
+      const { data: attachmentRows, error: attachmentError } = await supabase
+        .from('document_attachments')
+        .select('daily_report_id')
+        .in('daily_report_id', reportIds)
+      if (attachmentError) {
+        console.warn(
+          '[admin/sites/:id/daily-reports] failed to load document attachments:',
+          attachmentError.message
+        )
+      } else if (Array.isArray(attachmentRows)) {
+        attachmentRows.forEach(row => {
+          if (!row?.daily_report_id) return
+          const key = String(row.daily_report_id)
+          attachmentCountMap.set(key, (attachmentCountMap.get(key) || 0) + 1)
+        })
+      }
+    }
 
     type PhotoEntry = {
       url?: string | null
@@ -378,18 +403,34 @@ export async function GET(request: Request, { params }: { params: { id: string }
           }
 
           if (assignments && assignments.length > 0) {
-            total_manhours = assignments.reduce(
+            const assignmentHours = assignments.reduce(
               (s: number, a: any) => s + (Number(a.hours) || 0),
               0
             )
+            total_manhours = normalizeManDaysFromHours(assignmentHours)
           } else if (legacyRecords && legacyRecords.length > 0) {
-            total_manhours = legacyRecords.reduce(
+            const legacyManDays = legacyRecords.reduce(
               (s: number, w: any) => s + (Number(w.labor_hours) || 0),
               0
             )
+            total_manhours = normalizeManDays(legacyManDays)
           }
         } catch (e) {
           console.error('Error calculating stats for report', r.id, e)
+        }
+
+        if (!total_manhours) {
+          const fallbackHours = Number(r.total_labor_hours) || Number(r.total_hours)
+          if (fallbackHours > 0) {
+            total_manhours = normalizeManDaysFromHours(fallbackHours)
+          } else {
+            const fallbackWorkers = Number(r.total_workers)
+            if (fallbackWorkers > 0) {
+              total_manhours = normalizeManDays(fallbackWorkers)
+            } else {
+              total_manhours = normalizeManDays(extractManpowerFromContent(r.work_content))
+            }
+          }
         }
 
         let document_count = 0
@@ -413,6 +454,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
           document_count = (dcount || 0) + (ucount || 0)
         } catch {
           document_count = document_count || 0
+        }
+
+        if (!document_count) {
+          document_count = attachmentCountMap.get(String(r.id)) || 0
         }
 
         const existingProfile =
@@ -440,7 +485,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
           additional_after_photos: mergedAdditionalAfter,
           worker_count,
           document_count,
+          worker_details_count: worker_count,
+          daily_documents_count: document_count,
           total_manhours,
+          sites: r?.sites ?? siteInfo,
+          organization: r?.organization ?? orgInfo,
           created_by_profile: createdByProfile,
           profiles: createdByProfile ?? r?.profiles ?? null,
         }
@@ -467,4 +516,45 @@ export async function GET(request: Request, { params }: { params: { id: string }
     console.error('API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+const normalizeManDaysFromHours = (hours: number): number => {
+  if (!Number.isFinite(hours) || hours <= 0) return 0
+  return Number((hours / 8).toFixed(1))
+}
+
+const normalizeManDays = (value: number): number => {
+  if (!Number.isFinite(value) || value <= 0) return 0
+  return Number(value.toFixed(1))
+}
+
+const extractManpowerFromContent = (raw: unknown): number => {
+  if (!raw) return 0
+  let parsed: any = raw
+  if (typeof raw === 'string') {
+    try {
+      parsed = JSON.parse(raw)
+    } catch {
+      parsed = null
+    }
+  }
+  if (!parsed || typeof parsed !== 'object') return 0
+  const direct = Number(parsed?.totalManpower || parsed?.total_manpower)
+  if (Number.isFinite(direct) && direct > 0) return direct
+
+  const workersArray =
+    (Array.isArray(parsed?.workers) && parsed.workers) ||
+    (Array.isArray(parsed?.worker_entries) && parsed.worker_entries) ||
+    []
+  if (workersArray.length === 0) return 0
+
+  const totalHours = workersArray.reduce((sum: number, worker: any) => {
+    const hours = Number(worker?.hours ?? worker?.labor_hours ?? worker?.work_hours)
+    if (Number.isFinite(hours) && hours > 0) {
+      return sum + hours
+    }
+    return sum + 8
+  }, 0)
+  if (totalHours === 0) return workersArray.length
+  return Number((totalHours / 8).toFixed(1))
 }

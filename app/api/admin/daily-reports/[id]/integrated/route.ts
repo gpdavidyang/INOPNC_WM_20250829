@@ -1,6 +1,7 @@
 import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
+import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { NextResponse } from 'next/server'
@@ -11,6 +12,13 @@ const computeWorkerStats = (
   rows: any[],
   fallback?: { total_workers?: number | null; total_labor_hours?: number | null }
 ) => {
+  const normalize = (val: number | undefined | null) => {
+    const n = Number(val || 0)
+    if (!Number.isFinite(n) || n <= 0) return 0
+    // Standard: 8 hours = 1.0 man-day (공수)
+    return Number((n / 8).toFixed(1))
+  }
+
   const stats = rows.reduce(
     (acc, row) => {
       acc.total_workers += 1
@@ -38,10 +46,17 @@ const computeWorkerStats = (
   if (stats.total_workers === 0 && typeof fallback?.total_workers === 'number') {
     stats.total_workers = Number(fallback.total_workers) || 0
   }
-  if (stats.total_hours === 0 && typeof fallback?.total_labor_hours === 'number') {
-    stats.total_hours = Number(fallback.total_labor_hours) || 0
+
+  // Normalize hours to man-days (공수)
+  const final_hours =
+    stats.total_hours > 0 ? stats.total_hours : Number(fallback?.total_labor_hours || 0)
+  const final_overtime = stats.total_overtime
+
+  return {
+    ...stats,
+    total_hours: normalize(final_hours),
+    total_overtime: normalize(final_overtime),
   }
-  return stats
 }
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -82,12 +97,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
             end_date,
             manager_name,
             safety_manager_name,
+            customer_company_id,
+            organization_id,
+            customer_company:customer_company_id(
+              id,
+              company_name
+            ),
+            organization:organization_id(
+              id,
+              name
+            ),
             customer_sites(
               relationship_type,
               is_primary_customer,
               customer_companies(
                 id,
                 name,
+                company_name,
                 contact_person,
                 phone,
                 email,
@@ -107,10 +133,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
             receipt_metadata,
             created_at,
             uploaded_by,
-            profiles!unified_documents_uploaded_by_fkey(
+            uploader:uploaded_by(
               full_name,
+              email,
               role
             )
+          ),
+          partner_companies:partner_company_id(
+            id,
+            company_name
+          ),
+          customer_company:customer_company_id(
+            id,
+            company_name
           )
         `
         )
@@ -142,6 +177,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         { data: author },
         { data: materials },
         { data: workerAssignments },
+        linkedDrawingsData,
       ] = await Promise.all([
         supabase.from('daily_report_workers').select('*').eq('daily_report_id', reportId),
         supabase
@@ -177,7 +213,34 @@ export async function GET(request: Request, { params }: { params: { id: string }
           .from('worker_assignments')
           .select('*, profiles(id, full_name, role)')
           .eq('daily_report_id', reportId),
+        fetchLinkedDrawingsForWorklog(reportId, reportData.site_id),
       ])
+
+      // Merge linked drawings into unified_documents
+      if (linkedDrawingsData?.length) {
+        if (!reportData.unified_documents) reportData.unified_documents = []
+        const existingUrls = new Set(reportData.unified_documents.map((d: any) => d.file_url))
+
+        linkedDrawingsData.forEach(ld => {
+          if (!existingUrls.has(ld.url)) {
+            reportData.unified_documents.push({
+              id: ld.id,
+              document_type: 'drawing',
+              sub_type: ld.documentType,
+              file_name: ld.title,
+              file_url: ld.url,
+              title: ld.title,
+              created_at: ld.createdAt,
+              uploader: ld.uploader,
+              metadata: {
+                ...ld,
+                source: ld.source,
+                markup_document_id: ld.markupId,
+              },
+            })
+          }
+        })
+      }
 
       if (workerAssignments && workerAssignments.length > 0) {
         mergedWorkerRows = workerAssignments
@@ -206,9 +269,26 @@ export async function GET(request: Request, { params }: { params: { id: string }
       // Optionally fetch site name
       const { data: site } = await supabase
         .from('sites')
-        .select('id, name')
+        .select(
+          `
+          id, 
+          name,
+          customer_company_id,
+          organization_id,
+          customer_company:customer_company_id(id, company_name),
+          organization:organization_id(id, name),
+          customer_sites(
+            is_primary_customer,
+            customer_companies(id, name, company_name)
+          )
+        `
+        )
         .eq('id', minimal.site_id)
         .maybeSingle()
+
+      const primaryCustomer = (site as any)?.customer_sites?.find(
+        (cs: any) => cs.is_primary_customer
+      )?.customer_companies
 
       // Optionally fetch author
       const { data: author } = await supabase
@@ -262,6 +342,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         document_counts: {},
         related_reports: [],
         report_author: author,
+        primary_customer: primaryCustomer,
       }
 
       return NextResponse.json(fallbackResponse)
@@ -306,20 +387,18 @@ export async function GET(request: Request, { params }: { params: { id: string }
         {} as Record<string, any[]>
       ) || {}
 
-    // Get primary customer
-    const primaryCustomer = reportData.sites?.customer_sites?.find(
-      (cs: unknown) => cs.is_primary_customer
-    )
+    // Extract the most logical primary customer/organization name
+    const siteObj = (reportData.sites as any) || (fallbackResponse?.site as any)
+    const primaryCustomerJoined = siteObj?.customer_sites?.find(
+      (cs: any) => cs.is_primary_customer
+    )?.customer_companies
 
-    // Calculate material usage
-    const materialUsage = {
-      npc1000_incoming: reportData.npc1000_incoming || 0,
-      npc1000_used: reportData.npc1000_used || 0,
-      npc1000_remaining: reportData.npc1000_remaining || 0,
-      usage_rate: reportData.npc1000_incoming
-        ? (((reportData.npc1000_used || 0) / reportData.npc1000_incoming) * 100).toFixed(1) + '%'
-        : '0%',
-    }
+    const primaryCustomerInfo =
+      primaryCustomerJoined?.company_name ||
+      primaryCustomerJoined?.name ||
+      siteObj?.customer_company?.company_name ||
+      siteObj?.organization?.name ||
+      null
 
     const response = {
       daily_report: {
@@ -329,10 +408,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
         unified_documents: undefined,
       },
       site: reportData.sites,
-      primary_customer: primaryCustomer?.customer_companies,
+      primary_customer: primaryCustomerInfo ? { name: primaryCustomerInfo } : null,
+      primaryCustomerName: primaryCustomerInfo,
       all_customers:
-        reportData.sites?.customer_sites?.map((cs: unknown) => ({
-          ...cs.customer_companies,
+        reportData.sites?.customer_sites?.map((cs: any) => ({
+          ...(cs.customer_companies || {}),
+          name: cs.customer_companies?.company_name || cs.customer_companies?.name,
           relationship_type: cs.relationship_type,
           is_primary_customer: cs.is_primary_customer,
         })) || [],

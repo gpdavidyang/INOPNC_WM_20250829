@@ -61,6 +61,38 @@ const formatSectionName = (row: any) => {
   return ''
 }
 
+const isLikelyUuid = (value: unknown) => {
+  if (typeof value !== 'string') return false
+  const v = value.trim()
+  if (!v) return false
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
+}
+
+const resolveAuthorLabel = (row: any) => {
+  const profile =
+    row?.profiles ||
+    row?.created_by_profile ||
+    row?.submitted_by_profile ||
+    row?.submitted_by_profile?.profiles ||
+    null
+
+  const nameCandidate =
+    (typeof profile?.full_name === 'string' ? profile.full_name : '') ||
+    (typeof profile?.name === 'string' ? profile.name : '') ||
+    (typeof profile?.display_name === 'string' ? profile.display_name : '')
+
+  const trimmedName = String(nameCandidate || '').trim()
+  if (trimmedName) return trimmedName
+
+  const email = typeof profile?.email === 'string' ? profile.email.trim() : ''
+  if (email) return email.split('@')[0] || email
+
+  const createdBy = typeof row?.created_by === 'string' ? row.created_by.trim() : ''
+  if (createdBy && isLikelyUuid(createdBy)) return `사용자(${createdBy.slice(0, 8)})`
+
+  return '-'
+}
+
 export default function DailyReportsTable({ reports }: { reports: any[] }) {
   const router = useRouter()
   const sp = useSearchParams()
@@ -332,7 +364,7 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
                 </div>
               </div>
             ),
-            width: 220,
+            width: 300,
             headerClassName: 'whitespace-nowrap',
           },
           {
@@ -381,8 +413,7 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
             key: 'author',
             header: '작성자',
             sortable: false,
-            accessor: (r: any) =>
-              r?.profiles?.full_name || r?.submitted_by_profile?.full_name || '',
+            accessor: (r: any) => resolveAuthorLabel(r),
             render: (r: any) =>
               r?.created_by ? (
                 <a
@@ -390,10 +421,10 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
                   className="underline-offset-2 hover:underline"
                   title="사용자 상세 보기"
                 >
-                  {r?.profiles?.full_name || r?.submitted_by_profile?.full_name || r.created_by}
+                  {resolveAuthorLabel(r)}
                 </a>
               ) : (
-                <span>{r?.profiles?.full_name || r?.submitted_by_profile?.full_name || '-'}</span>
+                <span>{resolveAuthorLabel(r)}</span>
               ),
             width: 140,
             headerClassName: 'whitespace-nowrap',

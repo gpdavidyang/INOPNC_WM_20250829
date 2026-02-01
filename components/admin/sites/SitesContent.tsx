@@ -130,19 +130,21 @@ export function SitesContent({
     const ids = (sites || []).map(s => s.id).filter(Boolean)
     if (ids.length === 0) {
       setManagersMap({})
+      setStatsMap({})
       return
     }
     const idsParam = ids.join(',')
     let cancelled = false
+    const fetchOptions: RequestInit = {
+      cache: 'no-store',
+      credentials: 'include' as RequestCredentials,
+    }
     ;(async () => {
       setManagersLoading(true)
+      setStatsLoading(true)
       setStatsError(null)
       setManagersError(null)
       try {
-        const fetchOptions: RequestInit = {
-          cache: 'no-store',
-          credentials: 'include' as RequestCredentials,
-        }
         const mgrRes = await fetch(`/api/admin/sites/managers?ids=${idsParam}`, fetchOptions)
         const mgrJson = await mgrRes.json().catch(() => ({}))
         if (!cancelled) {
@@ -163,6 +165,37 @@ export function SitesContent({
       } finally {
         if (!cancelled) {
           setManagersLoading(false)
+        }
+      }
+
+      try {
+        const statsRes = await fetch(`/api/admin/sites/stats?ids=${idsParam}`, fetchOptions)
+        const statsJson = await statsRes.json().catch(() => ({}))
+        if (!cancelled) {
+          if (!statsRes.ok || !statsJson?.success) {
+            setStatsError(statsJson?.error || '현장 통계를 불러오지 못했습니다.')
+          } else {
+            const payload = (statsJson?.data || {}) as Record<string, SiteStats>
+            setStatsMap(prev => {
+              const next = { ...prev }
+              ids.forEach(id => {
+                const entry = payload[id] || { daily_reports_count: 0, total_labor_hours: 0 }
+                next[id] = {
+                  daily_reports_count: Number(entry.daily_reports_count || 0),
+                  total_labor_hours: Number(entry.total_labor_hours || 0),
+                }
+              })
+              return next
+            })
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setStatsError('현장 통계를 불러오지 못했습니다.')
+        }
+      } finally {
+        if (!cancelled) {
+          setStatsLoading(false)
         }
       }
     })()

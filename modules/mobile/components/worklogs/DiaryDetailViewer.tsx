@@ -3,8 +3,6 @@
 import '@/modules/mobile/styles/worklogs.css'
 import { WorklogAttachment, WorklogDetail } from '@/types/worklog'
 import clsx from 'clsx'
-import { DownloadCloud, ExternalLink } from 'lucide-react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
 import AttachmentGallery from './AttachmentGallery'
@@ -22,78 +20,64 @@ export interface DiaryDetailViewerProps {
   className?: string
 }
 
-const ATTACHMENT_LABELS: Record<keyof WorklogDetail['attachments'], string> = {
-  photos: '사진대지',
-  drawings: '진행도면',
-  completionDocs: '완료확인서',
-  others: '기타 서류',
-}
-
 export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   open,
   worklog,
   onClose,
   onDownload,
   onOpenDocument,
-  onOpenMarkup,
-  onOpenMarkupDoc,
   onEdit,
   className = '',
 }) => {
-  const [linkedMarkups, setLinkedMarkups] = useState<
-    Array<{
-      id: string
-      title: string
-      updatedAt?: string
-      previewUrl?: string
-      blueprintUrl?: string
-      pdfUrl?: string
-      linkedWorklogIds: string[]
-    }>
-  >([])
-  const [loadingMarkups, setLoadingMarkups] = useState(false)
   const [activeTab, setActiveTab] = useState<TabKey>('photos')
+  const [uploadedPhotoTotal, setUploadedPhotoTotal] = useState(0)
+  const [uploadedDrawingTotal, setUploadedDrawingTotal] = useState(0)
   const router = useRouter()
 
   useEffect(() => {
     const load = async () => {
       if (!open || !worklog?.id) return
-      setLoadingMarkups(true)
       try {
-        const res = await fetch(`/api/markup-documents?worklogId=${encodeURIComponent(worklog.id)}`)
-        const json = await res.json()
-        const arr = Array.isArray(json?.data)
-          ? json.data
-          : Array.isArray(json?.documents)
-            ? json.documents
-            : []
-        const items = arr.map((doc: any) => ({
-          id: doc.id,
-          title: doc.title || '마킹 문서',
-          updatedAt: doc.updated_at,
-          previewUrl: doc.preview_image_url || doc.previewUrl || undefined,
-          blueprintUrl: doc.original_blueprint_url || doc.blueprintUrl || undefined,
-          pdfUrl:
-            typeof doc?.metadata?.snapshot_pdf_url === 'string'
-              ? doc.metadata.snapshot_pdf_url
-              : doc.snapshot_pdf_url || undefined,
-          linkedWorklogIds: Array.isArray(doc.linked_worklog_ids)
-            ? doc.linked_worklog_ids.filter(
-                (value: unknown): value is string => typeof value === 'string' && value.length > 0
-              )
-            : doc.linked_worklog_id
-              ? [doc.linked_worklog_id]
-              : [],
-        }))
-        setLinkedMarkups(items)
+        const params = new URLSearchParams()
+        params.set('worklog_id', worklog.id)
+        params.set('limit', '1')
+        const res = await fetch(`/api/mobile/media/photos?${params.toString()}`, {
+          cache: 'no-store',
+        })
+        const json = await res.json().catch(() => ({}))
+        const total =
+          typeof json?.data?.total === 'number'
+            ? json.data.total
+            : Array.isArray(json?.data?.photos)
+              ? json.data.photos.length
+              : 0
+        setUploadedPhotoTotal(Number.isFinite(total) ? total : 0)
       } catch {
-        setLinkedMarkups([])
-      } finally {
-        setLoadingMarkups(false)
+        setUploadedPhotoTotal(0)
       }
     }
-    load()
+    void load()
   }, [open, worklog?.id])
+
+  useEffect(() => {
+    const load = async () => {
+      if (!open || !worklog?.id) return
+      try {
+        const params = new URLSearchParams()
+        params.set('worklog_id', worklog.id)
+        if (worklog.siteId) params.set('site_id', worklog.siteId)
+        const res = await fetch(`/api/mobile/media/drawings?${params.toString()}`, {
+          cache: 'no-store',
+        })
+        const json = await res.json().catch(() => ({}))
+        const total = Array.isArray(json?.data?.drawings) ? json.data.drawings.length : 0
+        setUploadedDrawingTotal(Number.isFinite(total) ? total : 0)
+      } catch {
+        setUploadedDrawingTotal(0)
+      }
+    }
+    void load()
+  }, [open, worklog?.id, worklog?.siteId])
 
   if (!open || !worklog) return null
 
@@ -117,52 +101,25 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     }
   }
 
-  const renderAttachmentGroup = (
-    items: WorklogAttachment[],
-    emptyMessage = '첨부된 파일이 없습니다.'
-  ) => {
-    if (items.length === 0) {
-      return <p style={{ color: '#94a3b8', fontSize: 13 }}>{emptyMessage}</p>
+  const handleTabChange = (key: TabKey) => {
+    if (key === 'drawings') {
+      const params = new URLSearchParams()
+      params.set('tab', 'drawing')
+      if (worklog.siteId) params.set('siteId', worklog.siteId)
+      params.set('worklogId', worklog.id)
+      router.push(`/mobile/media?${params.toString()}`)
+      onClose?.()
+      return
     }
-
-    return (
-      <div className="attachment-gallery">
-        {items.map(item => (
-          <div key={item.id} className="attachment-card">
-            <div className="attachment-card-title">{item.name}</div>
-            {item.previewUrl ? (
-              <Image
-                className="attachment-preview"
-                src={item.previewUrl}
-                alt={item.name}
-                width={400}
-                height={300}
-                unoptimized
-              />
-            ) : (
-              <div className="attachment-preview" aria-hidden="true" />
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <button
-                type="button"
-                className="viewer-action-btn secondary"
-                onClick={() => onOpenDocument?.(item)}
-              >
-                <ExternalLink size={16} aria-hidden="true" />
-              </button>
-              <a
-                className="viewer-action-btn secondary"
-                href={item.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <DownloadCloud size={16} aria-hidden="true" />
-              </a>
-            </div>
-          </div>
-        ))}
-      </div>
-    )
+    if (key === 'photos') {
+      const params = new URLSearchParams()
+      params.set('tab', 'photo')
+      if (worklog.siteId) params.set('siteId', worklog.siteId)
+      params.set('worklogId', worklog.id)
+      router.push(`/mobile/media?${params.toString()}`)
+      return
+    }
+    setActiveTab(key)
   }
 
   const normalizedWorkerNames =
@@ -195,6 +152,8 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     { label: '현장명', value: worklog.siteName },
     { label: '주소', value: worklog.siteAddress || '미등록' },
     { label: '작업자명', value: workerDisplay },
+    { label: '인원', value: `${worklog.workers || Math.ceil(worklog.manpower)} 명` },
+    { label: '공수', value: `${worklog.manpower.toFixed(1)} 공수` },
     { label: '부재명', value: memberTypeDisplay },
     { label: '작업공정', value: worklog.processes.join(', ') || '미지정' },
     { label: '작업구간:작업유형', value: worklog.workTypes.join(', ') || '미지정' },
@@ -216,60 +175,6 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
       label: '반려 사유',
       value: (worklog as any).rejectionReason,
     })
-  }
-
-  const renderLinkedMarkups = () => {
-    if (!linkedMarkups.length) return null
-    return (
-      <section className="info-table" aria-label="연결된 마킹 도면">
-        <div className="info-row">
-          <div className="info-label">연결된 도면</div>
-          <div className="info-value">
-            {linkedMarkups.map(doc => (
-              <div key={doc.id} className="linked-markup-card">
-                <div className="linked-markup-title">{doc.title}</div>
-                <div className="linked-markup-badges">
-                  {(doc.linkedWorklogIds || [worklog.id]).map(id => (
-                    <span key={id} className="linked-chip">
-                      #{id}
-                    </span>
-                  ))}
-                </div>
-                <div className="linked-markup-actions">
-                  {doc.blueprintUrl ? (
-                    <a
-                      href={doc.blueprintUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="viewer-action-btn secondary"
-                    >
-                      보기
-                    </a>
-                  ) : null}
-                  {doc.pdfUrl ? (
-                    <a
-                      href={doc.pdfUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="viewer-action-btn secondary"
-                    >
-                      PDF
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="viewer-action-btn secondary"
-                    onClick={() => onOpenMarkupDoc?.(doc.id, worklog)}
-                  >
-                    마킹 열기
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-    )
   }
 
   return (
@@ -347,44 +252,22 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
             )}
           </section>
 
-          {renderLinkedMarkups()}
-
           {/* 첨부 탭 + 줌 컨트롤 */}
           {(() => {
             const counts = {
-              photos: worklog.attachments.photos.length,
-              drawings:
-                worklog.attachments.drawings.length + (loadingMarkups ? 0 : linkedMarkups.length),
+              photos: uploadedPhotoTotal,
+              drawings: uploadedDrawingTotal,
               completionDocs: worklog.attachments.completionDocs.length,
               others: worklog.attachments.others.length,
             }
 
-            let currentItems: WorklogAttachment[] = []
-            if (activeTab === 'drawings') {
-              // 1) 기본 첨부 도면
-              currentItems = [...worklog.attachments.drawings]
-              // 2) 연결된 마킹 → WorklogAttachment 형식으로 변환
-              const markupAttachments: WorklogAttachment[] = linkedMarkups.map(m => ({
-                id: `markup-${m.id}`,
-                name: m.title,
-                url: m.previewUrl || '',
-                previewUrl: m.previewUrl,
-                type: 'document',
-                category: 'markup',
-                size: 0,
-                uploadedAt: m.updatedAt || '',
-              }))
-              currentItems = [...currentItems, ...markupAttachments]
-            } else {
-              currentItems = worklog.attachments[activeTab] || []
-            }
-
+            const galleryItems = worklog.attachments[activeTab] || []
             return (
               <section aria-label="첨부">
                 <AttachmentTabs
                   active={activeTab}
                   counts={counts}
-                  onChange={setActiveTab}
+                  onChange={handleTabChange}
                   idBase="attachments"
                 />
                 {/* 갤러리 */}
@@ -393,24 +276,11 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
                   id={`attachments-panel-${activeTab}`}
                   aria-labelledby={`attachments-tab-${activeTab}`}
                 >
-                  {activeTab === 'drawings' && loadingMarkups ? (
-                    <div className="list-footer" aria-live="polite">
-                      불러오는 중...
-                    </div>
-                  ) : (
-                    <AttachmentGallery
-                      items={currentItems}
-                      zoom={100}
-                      onOpen={item => {
-                        if (activeTab === 'drawings' && item.id.startsWith('markup-')) {
-                          const realId = item.id.replace('markup-', '')
-                          onOpenMarkupDoc?.(realId, worklog)
-                          return
-                        }
-                        onOpenDocument?.(item)
-                      }}
-                    />
-                  )}
+                  <AttachmentGallery
+                    items={galleryItems}
+                    zoom={100}
+                    onOpen={item => onOpenDocument?.(item)}
+                  />
                 </div>
               </section>
             )

@@ -8,6 +8,7 @@ import {
   PhSelectTrigger,
 } from '@/components/ui/custom-select'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { calculateWorkerCount } from '@/lib/labor/labor-hour-options'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { PartnerMobileLayout } from '@/modules/mobile/components/layout/PartnerMobileLayout'
 import { UncompletedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
@@ -427,6 +428,7 @@ export const WorkLogHomePage: React.FC = () => {
       processes: workLog.workProcesses as any,
       workTypes: workLog.workTypes as any,
       manpower: isNaN(manpower) ? 0 : manpower,
+      workers: calculateWorkerCount(manpower) || (workLog as any).totalWorkers || 0,
       status: workLog.status,
       attachmentCounts: {
         photos: photos.length,
@@ -899,6 +901,12 @@ export const WorkLogHomePage: React.FC = () => {
                 })()}
               </div>
               <div className="task-diary-work">{subtitle}</div>
+              {workLog.status === 'rejected' && workLog.rejectionReason && (
+                <div className="task-diary-rejection mt-1 pt-1 border-t border-red-50 border-dotted text-[13px] text-red-600 font-medium">
+                  <span className="opacity-70 mr-1">반려 사유:</span>
+                  {workLog.rejectionReason}
+                </div>
+              )}
             </div>
             <div className="task-diary-right">
               <span className={`status-badge ${workLog.status}`}>
@@ -1074,7 +1082,7 @@ export const WorkLogHomePage: React.FC = () => {
       totalHours += Number(log.totalHours || 0)
     })
 
-    const totalManDays = Math.round(totalHours / 8)
+    const totalManDays = Math.ceil(totalHours / 8)
 
     return {
       siteCount: uniqueSites.size,

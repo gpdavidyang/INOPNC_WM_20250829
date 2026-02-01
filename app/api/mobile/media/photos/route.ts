@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +15,11 @@ export async function GET(request: NextRequest) {
     const siteId = searchParams.get('site_id')
     const worklogId = searchParams.get('worklog_id')
     const limit = Math.min(Number(searchParams.get('limit') || 100), 200)
+    const photoType = searchParams.get('photo_type')?.toLowerCase() || null
+
+    const startDate = searchParams.get('start_date')
+    const endDate = searchParams.get('end_date')
+    const status = searchParams.get('status')
 
     let query = supabase
       .from('daily_report_additional_photos')
@@ -29,7 +34,7 @@ export async function GET(request: NextRequest) {
         file_size,
         upload_order,
         created_at,
-        daily_reports (
+        daily_reports!inner (
           id,
           site_id,
           work_date,
@@ -44,11 +49,29 @@ export async function GET(request: NextRequest) {
       )
       .order('created_at', { ascending: false })
 
-    if (siteId) {
+    if (siteId && siteId !== 'all') {
       query = query.eq('daily_reports.site_id', siteId)
     }
     if (worklogId) {
       query = query.eq('daily_report_id', worklogId)
+    }
+    if (photoType && ['before', 'after'].includes(photoType)) {
+      query = query.eq('photo_type', photoType)
+    }
+    if (startDate) {
+      query = query.gte('daily_reports.work_date', startDate)
+    }
+    if (endDate) {
+      query = query.lte('daily_reports.work_date', endDate)
+    }
+    if (status && status !== 'all') {
+      if (status === 'approved') {
+        query = query.in('daily_reports.status', ['approved', 'submitted', 'completed', 'rejected'])
+      } else if (status === 'draft') {
+        query = query.in('daily_reports.status', ['draft', 'pending'])
+      } else {
+        query = query.eq('daily_reports.status', status)
+      }
     }
 
     const { data, error, count } = await query.limit(limit)

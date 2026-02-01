@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { useToast } from '@/components/ui/use-toast'
 import { MAP_APP_LABELS, openSmartMap, SmartMapResult } from '@/lib/external-apps'
 
@@ -50,6 +50,10 @@ interface SiteInfoWorkDetails {
 
 interface SiteInfoUploadSummary {
   photoCount?: number
+  photoBreakdown?: {
+    before?: number
+    after?: number
+  }
   drawingCount?: number
   ptwCount?: number
 }
@@ -102,6 +106,7 @@ interface SiteInfoBottomSheetProps {
   onCallContact?: (phone?: string) => void
   onOpenOtherDocuments?: () => void
   onOpenWorklogList?: () => void
+  onOpenPhotoUploads?: (site?: SiteInfoLike | null) => void
 }
 
 export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
@@ -121,6 +126,7 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
   onCallContact,
   onOpenOtherDocuments,
   onOpenWorklogList,
+  onOpenPhotoUploads,
 }) => {
   const { toast } = useToast()
 
@@ -256,6 +262,20 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
     }
   }
 
+  const openPhotoUploadsHandler = useCallback(() => {
+    if (onOpenPhotoUploads) {
+      onOpenPhotoUploads(site)
+      return
+    }
+    const params = new URLSearchParams()
+    params.set('tab', 'photo')
+    if (site?.id) params.set('siteId', site.id)
+    onClose?.()
+    if (typeof window !== 'undefined') {
+      window.location.href = `/mobile/media?${params.toString()}`
+    }
+  }, [onOpenPhotoUploads, site, onClose])
+
   const derivedContacts = useMemo(() => {
     if (contactItems && contactItems.length) return contactItems
     return buildSiteContactItems(site?.managers)
@@ -281,6 +301,16 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
     (uploadSummary.photoCount != null ||
       uploadSummary.drawingCount != null ||
       uploadSummary.ptwCount != null)
+  const photoUploadLabel = useMemo(() => {
+    const total = uploadSummary?.photoCount ?? 0
+    const before = uploadSummary?.photoBreakdown?.before
+    const after = uploadSummary?.photoBreakdown?.after
+    if (!total) return '0장'
+    const breakdown: string[] = []
+    if (before != null) breakdown.push(`전${before}`)
+    if (after != null) breakdown.push(`후${after}`)
+    return breakdown.length ? `${total}장 (${breakdown.join('·')})` : `${total}장`
+  }, [uploadSummary])
 
   const resolvedDocuments = (documents || []).filter(section => !!section)
 
@@ -460,10 +490,15 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
         {hasUploadSummary && (
           <div className="site-info-sheet-section" role="group" aria-label="업로드 현황">
             <div className="site-info-sheet-upload">
-              <div className="site-info-sheet-upload-item">
+              <button
+                type="button"
+                className="site-info-sheet-upload-item site-info-sheet-upload-item-button"
+                onClick={openPhotoUploadsHandler}
+                aria-label="사진·도면 관리 페이지에서 사진 탭 열기"
+              >
                 <span className="upload-label">사진 업로드</span>
-                <span className="upload-value">{uploadSummary?.photoCount ?? 0}건</span>
-              </div>
+                <span className="upload-value">{photoUploadLabel}</span>
+              </button>
               <div className="site-info-sheet-upload-item">
                 <span className="upload-label">도면 업로드</span>
                 <span className="upload-value">{uploadSummary?.drawingCount ?? 0}건</span>
@@ -759,6 +794,14 @@ export const SiteInfoBottomSheet: React.FC<SiteInfoBottomSheetProps> = ({
           display: flex;
           flex-direction: column;
           gap: 4px;
+        }
+        .site-info-sheet-upload-item-button {
+          cursor: pointer;
+          text-align: left;
+        }
+        .site-info-sheet-upload-item-button:focus-visible {
+          outline: 2px solid #1a73e8;
+          outline-offset: 2px;
         }
         .upload-label {
           font-size: 12px;

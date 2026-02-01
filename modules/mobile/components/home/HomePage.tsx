@@ -12,6 +12,7 @@ import { useWorkOptions } from '@/hooks/use-work-options'
 import {
   FALLBACK_LABOR_HOUR_DEFAULT,
   FALLBACK_LABOR_HOUR_OPTIONS,
+  calculateWorkerCount,
   normalizeLaborHourOptions,
 } from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/client'
@@ -1330,7 +1331,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         memberTypes={normalizedMemberTypes}
         workContents={normalizedWorkProcesses}
         workTypes={normalizedWorkTypes}
-        personnelCount={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}
+        personnelCount={(() => {
+          const total = mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)
+          return calculateWorkerCount(total)
+        })()}
         location={location}
         materials={materials}
         beforePhotosCount={0}

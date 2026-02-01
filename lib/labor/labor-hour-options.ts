@@ -4,6 +4,11 @@ export const FALLBACK_LABOR_HOUR_OPTIONS: ReadonlyArray<number> = Object.freeze(
 
 export const FALLBACK_LABOR_HOUR_DEFAULT = 0.5
 
+export const calculateWorkerCount = (manpower: number): number => {
+  if (!Number.isFinite(manpower) || manpower <= 0) return 0
+  return Math.ceil(manpower)
+}
+
 export const normalizeLaborHourOptions = (values: readonly number[]): number[] => {
   const sanitized = values
     .map(value => Number(value))

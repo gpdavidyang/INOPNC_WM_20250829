@@ -2,15 +2,27 @@ import PDFDocument from 'pdfkit'
 import { Buffer } from 'node:buffer'
 
 export async function createPdfFromImageDataUrl(dataUrl: string) {
-  const match = /^data:(.+);base64,(.+)$/i.exec(dataUrl || '')
-  if (!match) return null
-  const [, , base64] = match
-  const imageBuffer = Buffer.from(base64, 'base64')
-  return createPdfFromImageBuffer(imageBuffer)
+  try {
+    const match = /^data:(.+);base64,(.+)$/i.exec(dataUrl || '')
+    if (!match) return null
+    const [, , base64] = match
+    const imageBuffer = Buffer.from(base64, 'base64')
+    return await createPdfFromImageBuffer(imageBuffer)
+  } catch (error) {
+    console.error('[markups/pdf] pdf generation failed', error)
+    return null
+  }
 }
 
 export async function createPdfFromImageBuffer(imageBuffer: Buffer) {
-  const doc = new PDFDocument({ autoFirstPage: false })
+  let doc: PDFDocument
+  try {
+    doc = new PDFDocument({ autoFirstPage: false })
+  } catch (error) {
+    console.error('[markups/pdf] unable to initialize pdf document', error)
+    return null
+  }
+
   const chunks: Buffer[] = []
 
   return await new Promise<Buffer | null>(resolve => {
@@ -29,9 +41,20 @@ export async function createPdfFromImageBuffer(imageBuffer: Buffer) {
       doc.image(image, 0, 0, { width, height })
     } catch (err) {
       console.error('[markups/pdf] unable to embed image in pdf', err)
-      doc.addPage({ size: [612, 792], margin: 0 })
+      try {
+        doc.addPage({ size: [612, 792], margin: 0 })
+      } catch (pageError) {
+        console.error('[markups/pdf] unable to add fallback page', pageError)
+        resolve(null)
+        return
+      }
     }
 
-    doc.end()
+    try {
+      doc.end()
+    } catch (endError) {
+      console.error('[markups/pdf] unable to finalize pdf', endError)
+      resolve(null)
+    }
   })
 }

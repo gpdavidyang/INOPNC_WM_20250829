@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createClient } from '@/lib/supabase/server'
 import type { SiteStatus } from '@/types'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
         { count: 'exact' }
       )
       .in('id', Array.from(allowedSiteIds))
+      .eq('is_deleted', false)
       .order(sort, { ascending: direction === 'asc' })
 
     if (search) {

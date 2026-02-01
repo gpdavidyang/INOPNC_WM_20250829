@@ -1,35 +1,35 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
-  WorkLog,
-  MemberType,
-  WorkProcess,
-  WorkType,
-  WorkerHours,
-  MaterialUsageEntry,
-} from '../../types/work-log.types'
-import { FileUploadSection } from './FileUploadSection'
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectGroup,
+  CustomSelectItem,
+  CustomSelectLabel,
+  CustomSelectSeparator,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { useToast } from '@/components/ui/use-toast'
+import { useWorkOptions } from '@/hooks/use-work-options'
+import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   MemberType as MType,
   WorkProcess as WProc,
   WorkType as WType,
 } from '../../types/work-log.types'
-import { cn } from '@/lib/utils'
-import { useWorkOptions } from '@/hooks/use-work-options'
-import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/use-toast'
-import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
 import {
-  CustomSelect,
-  CustomSelectTrigger,
-  CustomSelectValue,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectGroup,
-  CustomSelectLabel,
-  CustomSelectSeparator,
-} from '@/components/ui/custom-select'
+  MaterialUsageEntry,
+  MemberType,
+  WorkLog,
+  WorkProcess,
+  WorkType,
+  WorkerHours,
+} from '../../types/work-log.types'
+import { FileUploadSection } from './FileUploadSection'
 
 interface WorkLogModalProps {
   isOpen: boolean
@@ -100,6 +100,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   const [userOptions, setUserOptions] = useState<
     Array<{ id: string; name: string; role?: string }>
   >([])
+  const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
   const [linkedDrawings, setLinkedDrawings] = useState<
     Array<{ id: string; title: string; linkedWorklogIds: string[] }>
   >([])
@@ -172,6 +173,23 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     }
 
     if (isOpen) fetchUsers()
+  }, [isOpen])
+
+  // Load selectable sites
+  useEffect(() => {
+    const fetchSites = async () => {
+      try {
+        const res = await fetch('/api/mobile/sites/list')
+        const json = await res.json()
+        if (json.success && Array.isArray(json.data)) {
+          setSiteOptions(json.data)
+        }
+      } catch (e) {
+        console.warn('[WorkLogModal] Failed to fetch sites:', e)
+      }
+    }
+
+    if (isOpen) fetchSites()
   }, [isOpen])
 
   const fetchLinkedDocs = useCallback(async () => {
@@ -620,9 +638,11 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                   )}
                 >
                   <option value="">현장 선택</option>
-                  <option value="site-1">삼성전자 평택캠퍼스 P3</option>
-                  <option value="site-2">LG디스플레이 파주공장</option>
-                  <option value="site-3">현대자동차 울산공장</option>
+                  {siteOptions.map(site => (
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
+                  ))}
                 </select>
                 {errors.site && <p className="mt-1 text-xs text-red-500">{errors.site}</p>}
               </div>

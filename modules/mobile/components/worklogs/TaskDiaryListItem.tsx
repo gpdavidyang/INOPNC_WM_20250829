@@ -1,10 +1,10 @@
 'use client'
 
-import React from 'react'
-import clsx from 'clsx'
-import { CalendarDays, Users, Layers, MapPin } from 'lucide-react'
 import '@/modules/mobile/styles/worklogs.css'
 import { WorklogSummary } from '@/types/worklog'
+import clsx from 'clsx'
+import { CalendarDays, Layers, MapPin, Users } from 'lucide-react'
+import React from 'react'
 import { WorklogStatusBadge } from './WorklogStatusBadge'
 
 export interface TaskDiaryListItemProps {
@@ -67,7 +67,10 @@ export const TaskDiaryListItem: React.FC<TaskDiaryListItemProps> = ({
         </span>
         <span>
           <Users size={14} aria-hidden="true" />
-          <strong style={{ marginLeft: 4 }}>{worklog.manpower.toFixed(1)}</strong> 공수
+          <strong style={{ marginLeft: 4 }}>
+            {worklog.workers || Math.ceil(worklog.manpower)}
+          </strong>{' '}
+          명 / {worklog.manpower.toFixed(1)} 공수
         </span>
         <span>
           <MapPin size={14} aria-hidden="true" />

@@ -14,8 +14,8 @@ export interface AttachmentTabsProps {
 }
 
 const labels: Record<TabKey, string> = {
-  photos: '사진대지',
-  drawings: '진행도면',
+  photos: '업로드된 사진',
+  drawings: '도면',
   completionDocs: '완료확인서',
   others: '기타서류',
 }

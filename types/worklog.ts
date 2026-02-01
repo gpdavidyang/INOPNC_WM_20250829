@@ -116,6 +116,7 @@ export interface WorklogSummary {
   processes: string[]
   workTypes: string[]
   manpower: number
+  workers: number
   status: WorklogStatus
   attachmentCounts: {
     photos: number

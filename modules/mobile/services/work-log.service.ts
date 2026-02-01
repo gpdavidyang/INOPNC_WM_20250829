@@ -1,3 +1,4 @@
+import { calculateWorkerCount } from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/client'
 import {
   AttachedFile,
@@ -136,7 +137,8 @@ export class WorkLogService {
           workTypes: [],
           location: { block: '', dong: '', unit: '' },
           workers: [],
-          totalHours: 0,
+          totalWorkers: calculateWorkerCount(Number(it?.totalManhours) || 0),
+          totalHours: (Number(it?.totalManhours) || 0) * 8,
           materials: [],
           attachments: { photos: [], drawings: [], confirmations: [] },
           progress: 0,
@@ -467,7 +469,11 @@ function mapReportToWorkLog(item: any): WorkLog {
   ) {
     materials = mapMaterialUsages(workContent.materials)
   }
-  const totalHours = workers.reduce((sum, worker) => sum + worker.hours, 0)
+  const calculatedHours = workers.reduce((sum, worker) => sum + worker.hours, 0)
+  const totalHours =
+    calculatedHours > 0
+      ? calculatedHours
+      : Number(item?.total_labor_hours || (item?.total_workers || 0) * 8) || 0
 
   const status = resolveStatus(item?.status)
 
@@ -566,6 +572,7 @@ function mapReportToWorkLog(item: any): WorkLog {
     tasks: normalizedTasks && normalizedTasks.length > 0 ? normalizedTasks : undefined,
     location,
     workers,
+    totalWorkers: calculateWorkerCount(totalHours / 8) || Number(item?.total_workers) || 0,
     totalHours,
     materials: materials.length > 0 ? materials : undefined,
     attachments,
@@ -581,6 +588,7 @@ function mapReportToWorkLog(item: any): WorkLog {
     summary: effectiveSummary,
     createdAt: item?.created_at,
     updatedAt: item?.updated_at,
+    rejectionReason: item?.rejection_reason,
     createdBy: item?.created_by,
   }
 }

@@ -73,29 +73,33 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has an assignment to this site
-    const { data: existingAssignment } = await adminSupabase
+    const { data: existingAssignment, error: existingAssignmentError } = await adminSupabase
       .from('site_assignments')
       .select('id')
       .eq('user_id', authResult.userId)
       .eq('site_id', siteId)
-      .single()
+      .eq('assigned_date', today)
+      .maybeSingle()
 
-    if (existingAssignment) {
-      // Reactivate existing assignment
+    if (existingAssignmentError && existingAssignmentError.code !== 'PGRST116') {
+      throw existingAssignmentError
+    }
+
+    const reactivateAssignment = async (assignmentId: string) => {
       const { error: reactivateError } = await adminSupabase
         .from('site_assignments')
         .update({
           is_active: true,
           updated_at: nowIso,
         })
-        .eq('id', existingAssignment.id)
+        .eq('id', assignmentId)
 
       if (reactivateError) {
         if (reactivateError.message?.toLowerCase().includes('updated_at')) {
           const retry = await adminSupabase
             .from('site_assignments')
             .update({ is_active: true })
-            .eq('id', existingAssignment.id)
+            .eq('id', assignmentId)
           if (retry.error) {
             throw retry.error
           }
@@ -103,6 +107,10 @@ export async function POST(request: NextRequest) {
           throw reactivateError
         }
       }
+    }
+
+    if (existingAssignment) {
+      await reactivateAssignment(existingAssignment.id)
     } else {
       // Create new assignment
       const { error: insertError } = await adminSupabase.from('site_assignments').insert({
@@ -113,8 +121,28 @@ export async function POST(request: NextRequest) {
         updated_at: nowIso,
       })
 
+      const handleUniqueViolation = async () => {
+        const { data: todaysAssignment } = await adminSupabase
+          .from('site_assignments')
+          .select('id')
+          .eq('user_id', authResult.userId)
+          .eq('site_id', siteId)
+          .eq('assigned_date', today)
+          .maybeSingle()
+        if (todaysAssignment?.id) {
+          await reactivateAssignment(todaysAssignment.id)
+          return true
+        }
+        return false
+      }
+
       if (insertError) {
-        if (insertError.message?.toLowerCase().includes('updated_at')) {
+        if (insertError.code === '23505') {
+          const recovered = await handleUniqueViolation()
+          if (!recovered) {
+            throw insertError
+          }
+        } else if (insertError.message?.toLowerCase().includes('updated_at')) {
           const retry = await adminSupabase.from('site_assignments').insert({
             user_id: authResult.userId,
             site_id: siteId,
@@ -122,7 +150,14 @@ export async function POST(request: NextRequest) {
             is_active: true,
           })
           if (retry.error) {
-            throw retry.error
+            if (retry.error.code === '23505') {
+              const recovered = await handleUniqueViolation()
+              if (!recovered) {
+                throw retry.error
+              }
+            } else {
+              throw retry.error
+            }
           }
         } else {
           throw insertError

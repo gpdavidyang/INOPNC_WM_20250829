@@ -1,6 +1,7 @@
 import { fetchAdditionalPhotosForReport } from '@/lib/admin/site-photos'
 import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 import { fetchLinkedDrawingsForWorklog } from '@/lib/documents/worklog-links'
+import { calculateWorkerCount } from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { UnifiedDailyReport } from '@/types/daily-reports'
@@ -21,8 +22,12 @@ const computeWorkerStats = (
   const stats = rows.reduce(
     (acc, row) => {
       acc.total_workers += 1
-      const hours = Number(row?.labor_hours ?? row?.work_hours ?? row?.hours ?? 0)
-      if (Number.isFinite(hours)) acc.total_hours += hours
+      // Normalize to man-days: prioritize labor_hours, fallback to hours/8
+      let h = Number(row?.labor_hours ?? 0)
+      if (h === 0) {
+        h = Number(row?.work_hours ?? row?.hours ?? 0) / 8
+      }
+      if (Number.isFinite(h)) acc.total_hours += h
       return acc
     },
     {
@@ -35,12 +40,18 @@ const computeWorkerStats = (
     }
   )
 
-  if (stats.total_workers === 0 && typeof fallback?.total_workers === 'number') {
+  if (stats.total_hours === 0 && typeof fallback?.total_labor_hours === 'number') {
+    stats.total_hours = (Number(fallback.total_labor_hours) || 0) / 8
+  }
+
+  // Apply rounding policy: worker count is ceil of total manpower
+  const policyWorkers = calculateWorkerCount(stats.total_hours)
+  if (policyWorkers > 0) {
+    stats.total_workers = policyWorkers
+  } else if (stats.total_workers === 0 && typeof fallback?.total_workers === 'number') {
     stats.total_workers = Number(fallback.total_workers) || 0
   }
-  if (stats.total_hours === 0 && typeof fallback?.total_labor_hours === 'number') {
-    stats.total_hours = Number(fallback.total_labor_hours) || 0
-  }
+
   return stats
 }
 
@@ -161,8 +172,11 @@ export async function getUnifiedDailyReportForAdmin(
             file_url: doc.previewUrl || doc.url,
             file_size: 0,
             uploaded_at: doc.createdAt,
+            uploader: doc.uploader,
             metadata: {
               source: doc.source,
+              uploader_name: doc.uploaderName,
+              uploader_email: doc.uploaderEmail,
               original_url: doc.url,
               preview_url: doc.previewUrl,
               markup_document_id: doc.markupId,
@@ -293,8 +307,11 @@ export async function getUnifiedDailyReportForAdmin(
           file_url: doc.previewUrl || doc.url,
           file_size: 0,
           uploaded_at: doc.createdAt,
+          uploader: doc.uploader,
           metadata: {
             source: doc.source,
+            uploader_name: doc.uploaderName,
+            uploader_email: doc.uploaderEmail,
             original_url: doc.url,
             preview_url: doc.previewUrl,
             markup_document_id: doc.markupId,

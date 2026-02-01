@@ -1,0 +1,19 @@
+'use client'
+
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState, type ReactNode, useCallback } from 'react'
+import { toast } from 'sonner'
+import { ArrowLeft, X, FolderOpen, MoreVertical, Trash2 } from 'lucide-react'
+import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
+import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
+
+type MediaTab = 'photo' | 'drawing'

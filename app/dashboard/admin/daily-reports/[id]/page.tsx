@@ -15,16 +15,17 @@ const buildFallbackUnifiedReport = (report: any): any => {
     workerId: worker?.worker_id || worker?.profiles?.id || undefined,
     workerName:
       worker?.profiles?.full_name || worker?.worker_name || worker?.name || `작업자-${index + 1}`,
-    hours: Number(worker?.labor_hours ?? worker?.work_hours ?? worker?.hours ?? 0) || 0,
+    hours: Number(worker?.labor_hours) || Number(worker?.work_hours ?? worker?.hours ?? 0) / 8,
     isDirectInput: true,
     notes: worker?.notes || '',
   }))
+  const totalManDays =
+    (typeof report?.total_labor_hours === 'number'
+      ? Number(report.total_labor_hours)
+      : unifiedWorkers.reduce((sum, w) => sum + w.hours, 0) * 8) / 8
   const totalWorkers =
-    typeof report?.total_workers === 'number' ? report.total_workers : unifiedWorkers.length
-  const totalHours =
-    typeof report?.total_labor_hours === 'number'
-      ? Number(report.total_labor_hours) || 0
-      : unifiedWorkers.reduce((sum, worker) => sum + worker.hours, 0)
+    calculateWorkerCount(totalManDays) ||
+    (typeof report?.total_workers === 'number' ? report.total_workers : unifiedWorkers.length)
 
   // Parse location_info if it's a string
   let location = report.location_info || {}

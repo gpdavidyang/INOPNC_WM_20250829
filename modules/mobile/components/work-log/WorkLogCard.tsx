@@ -1,15 +1,15 @@
 'use client'
 
+import { cn } from '@/lib/utils'
+import { Edit3, FileCheck2, FileText, Image, Printer, Send, Trash2 } from 'lucide-react'
 import React from 'react'
 import { WorkLog } from '../../types/work-log.types'
-import { cn } from '@/lib/utils'
 import {
   formatDate,
+  getProgressColor,
   getStatusColor,
   getStatusText,
-  getProgressColor,
 } from '../../utils/work-log-utils'
-import { FileText, Image, FileCheck2, Edit3, Send, Trash2, Printer } from 'lucide-react'
 
 interface WorkLogCardProps {
   workLog: WorkLog
@@ -111,8 +111,16 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
             </div>
           )}
           <div>
+            <dt className="text-[#667085]">작업인원</dt>
+            <dd className="mt-1 font-semibold text-[#1A254F]">
+              {workLog.totalWorkers || Math.ceil(workLog.totalHours / 8)}명
+            </dd>
+          </div>
+          <div>
             <dt className="text-[#667085]">총 공수</dt>
-            <dd className="mt-1 font-semibold text-[#1A254F]">{workLog.totalHours}시간</dd>
+            <dd className="mt-1 font-semibold text-[#1A254F]">
+              {(workLog.totalHours / 8).toFixed(1)}공수
+            </dd>
           </div>
         </dl>
 

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { calculateWorkerCount } from '@/lib/labor/labor-hour-options'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -114,8 +115,7 @@ export async function GET(request: NextRequest) {
       if (!daily[d]) daily[d] = { manDays: 0, hours: 0, workers: 0 }
       daily[d].manDays += manDays
       daily[d].hours += hours
-      // Count each record as one person-entry for the date
-      daily[d].workers = (daily[d].workers || 0) + 1
+      // totalWorkers will be calculated in the final loop
       totalManDays += manDays
       totalHours += hours
 
@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
         m.set(sid, (m.get(sid) || 0) + manDays)
         if (!perDateSiteWorkers.has(d)) perDateSiteWorkers.set(d, new Map())
         const w = perDateSiteWorkers.get(d)!
-        w.set(sid, (w.get(sid) || 0) + 1)
+        w.set(sid, (w.get(sid) || 0) + calculateWorkerCount(manDays)) // temp, will finalize
         if (!perDateSiteManDays.has(d)) perDateSiteManDays.set(d, new Map())
         const md = perDateSiteManDays.get(d)!
         md.set(sid, (md.get(sid) || 0) + manDays)
@@ -215,7 +215,7 @@ export async function GET(request: NextRequest) {
     Object.keys(daily).forEach(k => {
       daily[k].manDays = Number(daily[k].manDays.toFixed(1))
       daily[k].hours = Number(daily[k].hours.toFixed(1))
-      daily[k].workers = daily[k].workers || 0
+      daily[k].workers = calculateWorkerCount(daily[k].manDays)
       totalWorkers += daily[k].workers as number
     })
 

@@ -72,6 +72,7 @@ export default function PhotoSheetPrint({
       (rows === 2 && cols === 1) ||
       (rows === 3 && cols === 2) ||
       (rows === 2 && cols === 3))
+  const fillPageGrid = usePerCellCaption
   const gridStyle = useMemo<CSSProperties>(() => {
     const base: CSSProperties = {
       display: 'grid',
@@ -210,12 +211,15 @@ export default function PhotoSheetPrint({
           </div>
 
           <div
-            className={`grid${isThreeByTwo ? ' grid-3x2' : ''}`}
+            className={`grid${isThreeByTwo ? ' grid-3x2' : ''}${fillPageGrid ? ' fill-page' : ''}`}
             ref={registerGridRef(pageIndex)}
             style={{
               ...gridStyle,
-              ...(gridMetrics.maxHeight > 0 ? { maxHeight: `${gridMetrics.maxHeight}px` } : {}),
-              ...(isConstrainedGrid && gridMetrics.rowHeight
+              ...(fillPageGrid ? { gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` } : {}),
+              ...(!fillPageGrid && gridMetrics.maxHeight > 0
+                ? { maxHeight: `${gridMetrics.maxHeight}px` }
+                : {}),
+              ...(!fillPageGrid && isConstrainedGrid && gridMetrics.rowHeight
                 ? {
                     height: `${gridMetrics.maxHeight}px`,
                     gridTemplateRows: `repeat(${rows}, ${gridMetrics.rowHeight}px)`,
@@ -514,6 +518,7 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
 .print-root .site-row .value { border: none; padding: 0.4mm 1mm; min-height: 4mm; }
 .print-root .site-value-strong { font-weight: 800; }
 .print-root .grid { flex: 0 0 auto; min-height: 0; align-content: start; justify-items: stretch; }
+.print-root .grid.fill-page { flex: 1 1 auto; min-height: 0; }
 .print-root .page.template .grid { gap: 0; }
 .print-root .cell { border: 0; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; break-inside: avoid; }
 .print-root .cell.percap,
@@ -588,18 +593,19 @@ function makePrintStyles({ orientation }: PrintStyleParams) {
   word-break: break-word;
 }
 /* use single rule below with fallback; 3x2 sets --cap-h inline */
-.print-root .cell.percap .img { object-fit: fill; }
+.print-root .cell.percap .img { object-fit: cover; object-position: center; }
 
 .print-root .cell .cell-image img,
 .print-root .img {
   width: 100%;
   height: 100%;
-  object-fit: fill;
+  object-fit: cover;
+  object-position: center;
   position: absolute;
   inset: 0;
 }
-.print-root .cell.cap3x2 .img { object-fit: fill; }
-.print-root .page.template .img { object-fit: fill; }
+.print-root .cell.cap3x2 .img { object-fit: cover; }
+.print-root .page.template .img { object-fit: cover; }
 .print-root .placeholder { color: #888; font-size: 12px; }
 .print-root .meta-table { width: 100%; border-collapse: collapse; flex: 0 0 auto; }
 .print-root .meta-table th, .print-root .meta-table td { border: 1px solid #000; padding: 2mm 3mm; font-size: 10pt; }

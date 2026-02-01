@@ -1,8 +1,7 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -400,8 +399,10 @@ export async function GET(request: NextRequest) {
       }
       let workerDays = 0
       let totalManDays = 0
-      for (const n of perDateCounts.values()) workerDays += n
-      for (const md of perDateManDays.values()) totalManDays += md
+      for (const md of perDateManDays.values()) {
+        totalManDays += md
+        workerDays += calculateWorkerCount(md)
+      }
 
       // Working days = number of dates with any records (after fallback)
       const workingDays = perDateCounts.size

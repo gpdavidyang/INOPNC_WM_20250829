@@ -116,6 +116,30 @@ interface AttachmentBuckets {
   photos: AttachmentFile[]
 }
 
+interface MediaPhotoItem {
+  id: string
+  url: string
+  filePath?: string | null
+  fileSize?: number | string | null
+  name?: string | null
+  type?: string | null
+  worklogId?: string | null
+  workDate?: string | null
+  workDescription?: string | null
+  siteId?: string | null
+  siteName?: string | null
+  uploadedAt?: string | null
+  status?: string | null
+  order?: number | null
+}
+
+interface MediaPhotosResponse {
+  data?: {
+    photos?: MediaPhotoItem[]
+    total?: number
+  }
+}
+
 interface NpcSummary {
   today: {
     incoming: number
@@ -165,6 +189,15 @@ const EMPTY_ATTACHMENTS: AttachmentBuckets = {
   ptw: [],
   photos: [],
 }
+
+interface PhotoUploadCounts {
+  total: number
+  before: number
+  after: number
+}
+
+const EMPTY_PHOTO_COUNTS: PhotoUploadCounts = { total: 0, before: 0, after: 0 }
+const SITE_PHOTO_ATTACHMENT_LIMIT = 200
 
 type RequestItemState = {
   id: string
@@ -391,6 +424,130 @@ async function loadSiteAttachments(siteId: string): Promise<AttachmentBuckets> {
     console.error('[SiteInfo] Failed to load attachments', error)
     return EMPTY_ATTACHMENTS
   }
+}
+
+const formatPhotoAttachmentName = (photo: MediaPhotoItem) => {
+  const typeLabel =
+    photo.type === 'after' ? '보수후' : photo.type === 'before' ? '보수전' : '현장 사진'
+  const dateLabel = photo.workDate || (photo.uploadedAt ? photo.uploadedAt.split('T')[0] : '')
+  const base = [dateLabel, typeLabel].filter(Boolean).join(' ').trim()
+  if (photo.workDescription) {
+    return `${base || typeLabel} · ${photo.workDescription}`
+  }
+  if (photo.siteName) {
+    return `${base || typeLabel} · ${photo.siteName}`
+  }
+  return base || '현장 사진'
+}
+
+const mapPhotoToAttachment = (photo: MediaPhotoItem): AttachmentFile => ({
+  id: photo.id,
+  name: formatPhotoAttachmentName(photo),
+  url: photo.url,
+  storage_bucket: photo.filePath ? 'daily-reports' : undefined,
+  storage_path: photo.filePath || undefined,
+  size: typeof photo.fileSize === 'number' ? `${photo.fileSize}KB` : photo.fileSize || undefined,
+  date: photo.uploadedAt || photo.workDate || null,
+  type: photo.type || 'photo',
+  metadata: {
+    photoType: photo.type,
+    workDate: photo.workDate,
+    worklogId: photo.worklogId,
+    siteName: photo.siteName,
+    status: photo.status,
+  },
+})
+
+const normalizePhotoType = (value?: string | null) => {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim().toLowerCase()
+  return trimmed || null
+}
+
+const aggregatePhotoCounts = (photos: MediaPhotoItem[]): PhotoUploadCounts => {
+  return photos.reduce<PhotoUploadCounts>(
+    (acc, photo) => {
+      const type = normalizePhotoType(photo.type)
+      if (type === 'before') acc.before += 1
+      else if (type === 'after') acc.after += 1
+      acc.total += 1
+      return acc
+    },
+    { total: 0, before: 0, after: 0 }
+  )
+}
+
+const toTimestamp = (value?: string | null) => {
+  if (!value) return 0
+  const ms = new Date(value).getTime()
+  return Number.isFinite(ms) ? ms : 0
+}
+
+async function fetchSitePhotos(
+  siteId: string,
+  options?: { limit?: number; type?: 'before' | 'after' }
+): Promise<MediaPhotosResponse | null> {
+  try {
+    const params = new URLSearchParams({
+      site_id: siteId,
+      limit: String(options?.limit ?? SITE_PHOTO_ATTACHMENT_LIMIT),
+    })
+    if (options?.type) {
+      params.set('photo_type', options.type)
+    }
+    return await fetchJSON<MediaPhotosResponse>(`/api/mobile/media/photos?${params.toString()}`, {
+      cache: 'no-store',
+    })
+  } catch (error) {
+    console.warn(
+      `[SiteInfo] fetchSitePhotos failed (${options?.type ?? 'all'})`,
+      error instanceof Error ? error.message : error
+    )
+    return null
+  }
+}
+
+async function loadSitePhotoUploads(siteId: string): Promise<{
+  files: AttachmentFile[]
+  counts: PhotoUploadCounts
+}> {
+  try {
+    const listResponse = await fetchSitePhotos(siteId, {
+      limit: SITE_PHOTO_ATTACHMENT_LIMIT,
+    })
+    const photoItems = Array.isArray(listResponse?.data?.photos)
+      ? (listResponse?.data?.photos as MediaPhotoItem[])
+      : []
+    const files = photoItems.map(mapPhotoToAttachment)
+    const counts = aggregatePhotoCounts(photoItems)
+    return { files, counts }
+  } catch (error) {
+    console.error('[SiteInfo] Failed to load site photos', error)
+    return { files: [], counts: EMPTY_PHOTO_COUNTS }
+  }
+}
+
+const mergePhotoAttachments = (
+  primary: AttachmentFile[],
+  secondary: AttachmentFile[]
+): AttachmentFile[] => {
+  const seen = new Set<string>()
+  const combined: AttachmentFile[] = []
+  const pushFile = (file: AttachmentFile) => {
+    const key = `${file.id ?? ''}-${file.name ?? ''}-${file.date ?? ''}`
+    if (seen.has(key)) return
+    seen.add(key)
+    combined.push(file)
+  }
+  primary.forEach(pushFile)
+  secondary.forEach(pushFile)
+
+  combined.sort((a, b) => {
+    const ad = toTimestamp(a.date)
+    const bd = toTimestamp(b.date)
+    return bd - ad
+  })
+  return combined
 }
 
 async function loadNpcSummary(siteId: string): Promise<NpcSummary | null> {
@@ -677,6 +834,7 @@ export default function SiteInfoPage() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [currentSite, setCurrentSite] = useState<SiteInfoResponse | null>(null)
   const [attachments, setAttachments] = useState<AttachmentBuckets>(EMPTY_ATTACHMENTS)
+  const [photoUploadCounts, setPhotoUploadCounts] = useState<PhotoUploadCounts>(EMPTY_PHOTO_COUNTS)
   const [npcSummary, setNpcSummary] = useState<NpcSummary | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSessionExpired, setIsSessionExpired] = useState(false)
@@ -935,6 +1093,7 @@ export default function SiteInfoPage() {
       if (!site) {
         setCurrentSite(null)
         setAttachments(EMPTY_ATTACHMENTS)
+        setPhotoUploadCounts(EMPTY_PHOTO_COUNTS)
         setNpcSummary(null)
         setSiteLaborStats({ totalHours: 0, totalManDays: 0 })
         setShowNpcRecordSheet(false)
@@ -948,14 +1107,19 @@ export default function SiteInfoPage() {
       setNpcTransactions([])
       setNpcLogError(null)
 
-      const [siteAttachments, npc, laborStats, todaySummary] = await Promise.all([
+      const [siteAttachments, npc, laborStats, todaySummary, photoUploads] = await Promise.all([
         loadSiteAttachments(site.id),
         loadNpcSummary(site.id),
         loadSiteLaborStats(site.id),
         loadTodayReportSummary(site.id),
+        loadSitePhotoUploads(site.id),
       ])
 
-      setAttachments(siteAttachments)
+      setAttachments({
+        ...siteAttachments,
+        photos: mergePhotoAttachments(photoUploads.files, siteAttachments.photos),
+      })
+      setPhotoUploadCounts(photoUploads.counts)
       setNpcSummary(npc)
       setSiteLaborStats(laborStats)
       setTodayHeadcount(todaySummary.headcount)
@@ -1033,6 +1197,7 @@ export default function SiteInfoPage() {
         setIsSessionExpired(true)
         setCurrentSite(null)
         setAttachments(EMPTY_ATTACHMENTS)
+        setPhotoUploadCounts(EMPTY_PHOTO_COUNTS)
         setNpcSummary(null)
         setMonthlyStats({ siteCount: 0, totalManDays: 0, workDays: 0 })
         setSiteLaborStats({ totalHours: 0, totalManDays: 0 })
@@ -1479,7 +1644,14 @@ export default function SiteInfoPage() {
     : undefined
 
   const sheetUploadSummary: SiteInfoUploadSummary = {
-    photoCount: attachments.photos.length,
+    photoCount: photoUploadCounts.total,
+    photoBreakdown:
+      photoUploadCounts.before || photoUploadCounts.after
+        ? {
+            before: photoUploadCounts.before,
+            after: photoUploadCounts.after,
+          }
+        : undefined,
     drawingCount: attachments.construction.length + attachments.progress.length,
     ptwCount: attachments.ptw.length,
   }

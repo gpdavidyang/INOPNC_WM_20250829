@@ -13,9 +13,10 @@ export interface BoxMarkup extends BaseMarkupObject {
   type: 'box'
   width: number
   height: number
-  color: 'gray' | 'red' | 'blue' // 자재구간, 작업진행, 작업완료
-  label: string
-  size?: 'small' | 'medium' | 'large'
+  color: string
+  label?: string
+  size: 'small' | 'medium' | 'large'
+  shape?: 'square' | 'circle' | 'triangle' | 'star' | 'diagonal'
 }
 
 // 텍스트 마킹
@@ -37,7 +38,7 @@ export interface DrawingMarkup extends BaseMarkupObject {
 // 스탬프 마킹
 export interface StampMarkup extends BaseMarkupObject {
   type: 'stamp'
-  shape: 'circle' | 'triangle' | 'square' | 'star'
+  shape: 'circle' | 'triangle' | 'square' | 'star' | 'diagonal'
   size: 'small' | 'medium' | 'large'
   color: string
 }
@@ -89,7 +90,7 @@ export type ToolType =
 
 // 스탬프 도구 상태
 export interface StampToolState {
-  shape: 'circle' | 'triangle' | 'square' | 'star'
+  shape: 'circle' | 'triangle' | 'square' | 'star' | 'diagonal'
   size: 'small' | 'medium' | 'large'
   color: string
 }

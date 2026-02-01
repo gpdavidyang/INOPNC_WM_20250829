@@ -119,6 +119,7 @@ export interface WorkLog {
 
   // 공수 정보
   workers: WorkerHours[]
+  totalWorkers: number // 전체 인원수 (자동계산)
   totalHours: number // 전체 공수 (자동계산)
 
   // 자재 정보
@@ -137,6 +138,7 @@ export interface WorkLog {
   createdAt: string
   updatedAt: string
   createdBy: string
+  rejectionReason?: string // 반려 사유
   updatedBy?: string
 }
 

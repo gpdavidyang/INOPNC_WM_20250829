@@ -1,13 +1,13 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
 import { useToast } from '@/components/ui/use-toast'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import SiteInfoBottomSheet from '@/modules/mobile/components/site/SiteInfoBottomSheet'
 import {
   fetchPartnerSiteDetail,
   type PartnerSiteDetailResult,
 } from '@/modules/mobile/utils/site-bottomsheet'
-import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import React, { useEffect, useMemo, useState } from 'react'
 
 interface Props {
   date: string
@@ -219,12 +219,12 @@ export const PartnerHomeSiteInfo: React.FC<Props> = ({ date }) => {
           })
           const jr = await rep.json().catch(() => ({}))
           const reports = Array.isArray(jr?.data?.reports) ? jr.data.reports : []
-          let count = 0
+          let totalManpower = 0
           reports.forEach((r: any) => {
-            const wa = Array.isArray(r?.worker_assignments) ? r.worker_assignments : []
-            count += wa.length
+            const manpower = Number(r?.total_labor_hours ?? (r?.total_workers || 0) * 8) / 8
+            totalManpower += manpower
           })
-          setWorkers(count)
+          setWorkers(totalManpower > 0 ? Math.ceil(totalManpower) : 0)
         } else {
           setWorkers(null)
         }

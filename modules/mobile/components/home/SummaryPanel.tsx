@@ -1,7 +1,7 @@
 'use client'
 
+import { AdditionalManpower, WorkLogLocation, WorkSection } from '@/types/worklog'
 import React from 'react'
-import { WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
 
 interface SummaryPanelProps {
   selectedSite: string
@@ -127,8 +127,12 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
         <div className="summary-section">
           <h4 className="summary-subtitle">공수 정보</h4>
           <div className="summary-row">
+            <span className="summary-label">작업 인원</span>
+            <span className="summary-value highlight">{Math.ceil(totalManpower)}명</span>
+          </div>
+          <div className="summary-row">
             <span className="summary-label">총 공수</span>
-            <span className="summary-value highlight">{totalManpower}일</span>
+            <span className="summary-value highlight">{totalManpower.toFixed(1)}일</span>
           </div>
           <div className="summary-row">
             <span className="summary-label">작업자별</span>

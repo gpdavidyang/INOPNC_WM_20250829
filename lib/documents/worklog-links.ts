@@ -10,6 +10,14 @@ export type LinkedDrawingRecord = {
   markupId?: string
   createdAt?: string | null
   linkedWorklogIds?: string[]
+  documentType?: string | null
+  uploaderName?: string | null
+  uploaderEmail?: string | null
+  uploader?: {
+    full_name?: string | null
+    email?: string | null
+    role?: string | null
+  } | null
 }
 
 const isUuid = (value?: string | null) =>
@@ -34,7 +42,13 @@ export async function fetchLinkedDrawingsForWorklog(
         original_blueprint_filename,
         site_id,
         created_at,
-        linked_worklog_id
+        linked_worklog_id,
+        created_by,
+        creator:profiles!markup_documents_created_by_fkey (
+          full_name,
+          email,
+          role
+        )
       `
       )
       .eq('is_deleted', false),
@@ -44,7 +58,9 @@ export async function fetchLinkedDrawingsForWorklog(
       .eq('worklog_id', worklogId),
     svc
       .from('unified_document_system')
-      .select('id, title, file_url, file_name, site_id, created_at, metadata')
+      .select(
+        'id, title, file_url, file_name, site_id, created_at, metadata, sub_category, uploaded_by, uploader:profiles!unified_document_system_uploaded_by_fkey(full_name, email, role)'
+      )
       .eq('category_type', 'shared')
       .eq('status', 'active')
       .eq('is_archived', false),
@@ -97,6 +113,13 @@ export async function fetchLinkedDrawingsForWorklog(
           markupId: row.id,
           createdAt: row.created_at,
           linkedWorklogIds,
+          documentType: 'progress_drawing',
+          uploaderName:
+            ((row as any).creator || (row as any).uploader || (row as any).profiles)?.full_name ||
+            null,
+          uploaderEmail:
+            ((row as any).creator || (row as any).uploader || (row as any).profiles)?.email || null,
+          uploader: (row as any).creator || (row as any).uploader || (row as any).profiles,
         }
       }) || []
 
@@ -150,19 +173,58 @@ export async function fetchLinkedDrawingsForWorklog(
           linkedWorklogIds: extendedIds,
           worklogDate: worklogSummary?.work_date || null,
           worklogDescription: worklogSummary?.work_description || null,
+          documentType: row.sub_category || metadata.document_type || metadata.documentType,
+          uploaderName: (row.profiles as any)?.full_name || null,
+          uploaderEmail: (row.profiles as any)?.email || null,
+          uploader: row.profiles as any,
         }
       })
       .filter(Boolean) || []
 
   const results = [...markupRecords, ...sharedRecords]
+
+  // Deduplicate results by markupId or ID
+  const dedupedMap = new Map<string, LinkedDrawingRecord>()
+
+  // First pass: add all records
+  results.forEach(rec => {
+    if (!rec) return
+    // Treat mirrored markups as the same item using markupId
+    const key = rec.markupId || rec.id
+    const existing = dedupedMap.get(key)
+
+    const isSharedProgress =
+      rec.source === 'shared' &&
+      (rec.documentType === 'progress_drawing' || rec.documentType === 'progress')
+    const existingIsSharedProgress =
+      existing?.source === 'shared' &&
+      (existing.documentType === 'progress_drawing' || existing.documentType === 'progress')
+
+    // Prefer shared progress drawing over markup record (avoids showing both)
+    if (existing && existing.source === 'markup' && isSharedProgress) {
+      dedupedMap.set(key, rec)
+      return
+    }
+
+    // Prefer markup source over shared (mirrored) source for non-progress items
+    if (
+      !existing ||
+      (!existingIsSharedProgress && existing.source === 'shared' && rec.source === 'markup')
+    ) {
+      dedupedMap.set(key, rec)
+    }
+  })
+
+  const resultsDeduped = Array.from(dedupedMap.values())
+
   if (siteId) {
-    results.sort((a, b) => {
+    resultsDeduped.sort((a, b) => {
       if (a.siteId === siteId && b.siteId !== siteId) return -1
       if (a.siteId !== siteId && b.siteId === siteId) return 1
       return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
     })
   }
-  return results
+  return resultsDeduped
 }
 
 export async function syncMarkupWorklogLinks(markupId: string, worklogIds: string[]) {

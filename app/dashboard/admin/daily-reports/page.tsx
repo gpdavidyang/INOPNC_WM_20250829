@@ -59,12 +59,18 @@ export default async function AdminDailyReportsPage({
     const supabase = createClient()
     const { data, error } = await supabase
       .from('sites')
-      .select('id,name')
-      .order('created_at', { ascending: false })
+      .select('id,name,is_deleted')
+      .or('is_deleted.is.null,is_deleted.eq.false')
+      .order('name', { ascending: true })
       .limit(200)
     siteOptions =
       !error && Array.isArray(data)
-        ? (data as any).map((s: any) => ({ id: String(s.id), name: String(s.name) }))
+        ? (data as any)
+            .filter((s: any) => !(typeof s?.is_deleted === 'boolean' && s.is_deleted))
+            .map((s: any) => ({
+              id: String(s.id),
+              name: typeof s.name === 'string' && s.name.trim() ? s.name : '미지정 현장',
+            }))
         : []
   }
 

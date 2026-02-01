@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
 import { Card } from '@/modules/shared/ui'
+import React, { useEffect, useState } from 'react'
 
 interface DailySiteItem {
   id: string
@@ -97,7 +97,8 @@ export const PartnerHomeDailySites: React.FC<Props> = ({ date, hideHeader }) => 
               </div>
               <div className="mt-1 flex items-center gap-2">
                 <span className={`ph-badge ${item.status || ''}`}>{item.status || 'active'}</span>
-                <span className="ph-kv">당일 공수: {Math.round(item.totalLaborHours ?? 0)}</span>
+                <span className="ph-kv">당일 공수: {(item.totalLaborHours ?? 0).toFixed(1)}</span>
+                <span className="ph-kv ml-2">인원: {Math.ceil(item.totalLaborHours ?? 0)}명</span>
               </div>
               <div className="mt-2 flex gap-3">
                 <a

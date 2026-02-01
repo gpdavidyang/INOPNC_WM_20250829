@@ -220,10 +220,10 @@ export default function LivePreviewPage() {
 
       const iframe = document.createElement('iframe')
       iframe.style.position = 'fixed'
-      iframe.style.right = '0'
-      iframe.style.bottom = '0'
-      iframe.style.width = '0'
-      iframe.style.height = '0'
+      iframe.style.left = '-10000px'
+      iframe.style.top = '0'
+      iframe.style.width = '1024px'
+      iframe.style.height = '768px'
       iframe.style.border = '0'
       iframe.style.opacity = '0'
       iframe.style.pointerEvents = 'none'

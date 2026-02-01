@@ -24,6 +24,7 @@ export interface AdminIntegratedResponse {
   document_counts?: Record<string, number>
   related_reports?: any[]
   report_author?: any
+  primary_customer?: any
 }
 
 const ensureArray = (value: unknown): string[] => {
@@ -54,6 +55,30 @@ const mapDocumentsToAttachments = (documents?: Record<string, any[]>): UnifiedAt
       size: item?.file_size || undefined,
       uploadedAt: item?.uploaded_at || item?.created_at || undefined,
       uploadedBy: item?.uploaded_by || undefined,
+      uploadedByName: (() => {
+        const p = Array.isArray(item?.profiles) ? item.profiles[0] : item?.profiles
+        const u = item?.uploader || item?.creator || p
+        const meta = (
+          item?.metadata && typeof item.metadata === 'object' ? item.metadata : {}
+        ) as any
+
+        const fullName =
+          item?.uploaded_by_name ||
+          u?.full_name ||
+          u?.name ||
+          meta?.uploader_name ||
+          meta?.uploader?.full_name ||
+          meta?.uploaded_by_profile?.full_name
+        if (fullName) return String(fullName)
+
+        const email = u?.email || meta?.uploader?.email || meta?.uploader_email
+        if (email) return String(email).split('@')[0]
+
+        return undefined
+      })(),
+      uploader: Array.isArray(item?.profiles)
+        ? item.profiles[0]
+        : item?.profiles || item?.uploader || undefined,
       metadata: item?.metadata || undefined,
     }))
 
@@ -113,24 +138,28 @@ const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {
 }
 
 const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
-  (workers || []).map((worker, index) => ({
-    id: worker?.id || `worker-${index}`,
-    workerId:
-      worker?.profile_id ||
-      worker?.worker_id ||
-      worker?.user_id ||
-      worker?.profiles?.id ||
-      undefined,
-    workerName:
-      worker?.profiles?.full_name ||
-      worker?.worker_name ||
-      worker?.name ||
-      worker?.workerName ||
-      '이름없음',
-    hours: Number(worker?.hours ?? worker?.labor_hours ?? worker?.work_hours ?? 0) || 0,
-    isDirectInput: worker?.isDirectInput ?? !worker?.worker_id,
-    notes: worker?.notes || '',
-  }))
+  (workers || []).map((worker, index) => {
+    const rawHours = Number(worker?.hours ?? worker?.labor_hours ?? worker?.work_hours ?? 0) || 0
+    return {
+      id: worker?.id || `worker-${index}`,
+      workerId:
+        worker?.profile_id ||
+        worker?.worker_id ||
+        worker?.user_id ||
+        worker?.profiles?.id ||
+        undefined,
+      workerName:
+        worker?.profiles?.full_name ||
+        worker?.worker_name ||
+        worker?.name ||
+        worker?.workerName ||
+        '이름없음',
+      // Convert hours to man-days (공수): 8 hours = 1.0
+      hours: rawHours > 0 ? Number((rawHours / 8).toFixed(1)) : 0,
+      isDirectInput: worker?.isDirectInput ?? !worker?.worker_id,
+      notes: worker?.notes || '',
+    }
+  })
 
 const mapMaterials = (materials: any[] | undefined): UnifiedMaterialEntry[] =>
   (materials || []).map((material, index) => ({
@@ -355,7 +384,14 @@ export const integratedResponseToUnifiedReport = (
     siteId: dailyReport.site_id || '',
     siteName: response.site?.name || dailyReport?.sites?.name || dailyReport?.site?.name || '',
     partnerCompanyId: dailyReport.partner_company_id || undefined,
-    partnerCompanyName: dailyReport.partner_company?.company_name || undefined,
+    partnerCompanyName:
+      dailyReport.partner_companies?.company_name ||
+      dailyReport.partner_company?.company_name ||
+      dailyReport.customer_company?.company_name ||
+      response.primaryCustomerName ||
+      response.primary_customer?.name ||
+      response.site?.organization?.name ||
+      undefined,
     workDate: dailyReport.work_date || new Date().toISOString().split('T')[0],
     status: (dailyReport.status || 'draft') as UnifiedDailyReport['status'],
     authorId: dailyReport.created_by || undefined,

@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { withOrganizationMeta } from '@/lib/sites/site-response'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,7 +82,7 @@ export async function GET() {
         organization_id?: string | null
       }> = []
       const pushSite = (row: any) => {
-        if (!row?.id) return
+        if (!row?.id || row.is_deleted) return
         const id = String(row.id)
         if (sites.some(s => s.id === id)) return
         sites.push({
@@ -99,6 +99,7 @@ export async function GET() {
           .from('sites')
           .select('id, name, status, organization_id')
           .in('organization_id', Array.from(orgIds))
+          .eq('is_deleted', false)
           .order('name', { ascending: true })
         if (orgError) {
           console.error('[mobile/sites/list] org site query error:', orgError)
@@ -110,7 +111,13 @@ export async function GET() {
       // 2) partner_site_mappings with joined sites (active only)
       const { data: mappings, error: mappingError } = await serviceClient
         .from('partner_site_mappings')
-        .select('site_id, is_active, sites(id, name, status, organization_id)')
+        .select(
+          `
+          site_id, 
+          is_active, 
+          sites(id, name, status, organization_id, is_deleted)
+        `
+        )
         .eq(
           'partner_company_id',
           partnerCompanyId || authResult.restrictedOrgId || profile.organization_id || ''
@@ -131,7 +138,7 @@ export async function GET() {
       if (legacyFallbackEnabled) {
         const { data: legacyRows, error: legacyError } = await serviceClient
           .from('site_partners')
-          .select('site_id, sites(id, name, status, organization_id)')
+          .select('site_id, sites(id, name, status, organization_id, is_deleted)')
           .eq(
             'partner_company_id',
             partnerCompanyId || authResult.restrictedOrgId || profile.organization_id || ''
@@ -162,6 +169,7 @@ export async function GET() {
     let query = serviceClient
       .from('sites')
       .select('id, name, status, organization_id')
+      .eq('is_deleted', false)
       .order('name', { ascending: true })
 
     if (authResult.role === 'worker') {

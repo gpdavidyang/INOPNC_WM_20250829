@@ -250,6 +250,14 @@ export interface UnifiedAttachment {
   size?: number
   uploadedAt?: string
   uploadedBy?: string
+  uploadedByName?: string
+  uploader?: {
+    full_name?: string
+    role?: string
+    email?: string
+  }
+  created_by?: string
+  created_at?: string
   metadata?: Record<string, unknown>
 }
 

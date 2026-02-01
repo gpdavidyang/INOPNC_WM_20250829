@@ -1,4 +1,5 @@
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { calculateWorkerCount } from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { NextRequest, NextResponse } from 'next/server'
@@ -54,51 +55,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
 
-    // Build base query
-    let query = serviceClient.from('daily_reports').select(`
-        *,
-        sites(
-          id,
-          name,
-          address,
-          organization_id
-        ),
-        profiles!daily_reports_created_by_fkey(
-          id,
-          full_name,
-          role
-        ),
-        worker_assignments(
-          id,
-          profile_id,
-          worker_name,
-          labor_hours,
-          hours,
-          profiles(
-            id,
-            full_name
-          )
-        ),
-        material_usage(
-          id,
-          material_type,
-          material_name,
-          quantity,
-          quantity_val,
-          amount,
-          unit,
-          notes
-        ),
-        document_attachments(
-          id,
-          file_name,
-          file_url,
-          file_size,
-          document_type,
-          uploaded_at
-        )
-      `)
-
+    let allowedIds: string[] = []
     // Partner/customer_manager: restrict to allowed site ids
     if (role === 'partner' || role === 'customer_manager') {
       const allowedSiteIds = new Set<string>()
@@ -142,43 +99,75 @@ export async function GET(request: NextRequest) {
           },
         })
       }
-
-      const allowedIds = Array.from(allowedSiteIds)
+      allowedIds = Array.from(allowedSiteIds)
       // If client requested a specific site, ensure it's allowed
       if (siteId && !allowedSiteIds.has(siteId)) {
         return NextResponse.json({ error: 'Not authorized for this site' }, { status: 403 })
       }
-      query = query.in('site_id', allowedIds)
     }
 
-    // Apply filters
+    // Build a separate query for the total count to avoid mutating the data fetch query
+    let countQuery = serviceClient.from('daily_reports').select('*', { count: 'exact', head: true })
+
+    if (allowedIds.length > 0) {
+      countQuery = countQuery.in('site_id', allowedIds)
+    }
     if (siteId) {
-      query = query.eq('site_id', siteId)
+      countQuery = countQuery.eq('site_id', siteId)
     }
-
     if (startDate) {
-      query = query.gte('work_date', startDate)
+      countQuery = countQuery.gte('work_date', startDate)
     }
-
     if (endDate) {
-      query = query.lte('work_date', endDate)
+      countQuery = countQuery.lte('work_date', endDate)
     }
-
     if (status) {
       if (status === 'approved') {
-        // Treat 'approved' tab as inclusive of legacy/alternate states, including rejected
-        query = query.in('status', ['approved', 'submitted', 'completed', 'rejected'])
+        countQuery = countQuery.in('status', ['approved', 'submitted', 'completed'])
+      } else if (status === 'draft') {
+        countQuery = countQuery.in('status', ['draft', 'pending'])
       } else {
-        query = query.eq('status', status)
+        countQuery = countQuery.eq('status', status)
       }
     }
 
-    // 더 이상 조직 기반 필터를 적용하지 않는다. 모든 현장 데이터를 허용
+    const { count: totalCount, error: countError } = await countQuery
+    if (countError) {
+      console.error('Count query error:', countError)
+      // Non-fatal, just log and continue
+    }
 
-    // Get total count
-    const { count: totalCount } = await query.select('*', { count: 'exact', head: true })
+    // Final data fetch with joins
+    let finalQuery = serviceClient.from('daily_reports').select(`
+        *,
+        worker_assignments(*),
+        material_usage(*),
+        document_attachments(*)
+      `)
 
-    const { data: reports, error } = await query
+    if (allowedIds.length > 0) {
+      finalQuery = finalQuery.in('site_id', allowedIds)
+    }
+    if (siteId) {
+      finalQuery = finalQuery.eq('site_id', siteId)
+    }
+    if (startDate) {
+      finalQuery = finalQuery.gte('work_date', startDate)
+    }
+    if (endDate) {
+      finalQuery = finalQuery.lte('work_date', endDate)
+    }
+    if (status) {
+      if (status === 'approved') {
+        finalQuery = finalQuery.in('status', ['approved', 'submitted', 'completed'])
+      } else if (status === 'draft') {
+        finalQuery = finalQuery.in('status', ['draft', 'pending'])
+      } else {
+        finalQuery = finalQuery.eq('status', status)
+      }
+    }
+
+    const { data: reports, error } = await finalQuery
       .order('work_date', { ascending: false })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -435,7 +424,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Some environments define daily_reports.total_workers as integer; keep exact value separately
-    const totalWorkersInt = Number.isFinite(totalManpowerExact) ? Math.round(totalManpowerExact) : 0
+    const totalWorkersInt = calculateWorkerCount(totalManpowerExact)
 
     // Check if report already exists for this site and date
     const { data: existingReport } = await serviceClient
