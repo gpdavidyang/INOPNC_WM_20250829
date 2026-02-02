@@ -1,8 +1,6 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { useToast } from '@/components/ui/use-toast'
 import {
   integratedResponseToUnifiedReport,
@@ -15,18 +13,6 @@ import type {
   UnifiedDailyReport,
   UnifiedWorkerEntry,
 } from '@/types/daily-reports'
-import {
-  Check,
-  Download,
-  GripVertical,
-  LayoutGrid,
-  List,
-  Loader2,
-  RotateCcw,
-  Trash2,
-  X,
-} from 'lucide-react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   useEffect,
@@ -36,6 +22,15 @@ import {
   useTransition,
   type DragEvent as ReactDragEvent,
 } from 'react'
+import { ImageLightbox } from './detail/ImageLightbox'
+import { LinkedDrawingSection } from './detail/LinkedDrawingSection'
+import { MaterialUsageSection } from './detail/MaterialUsageSection'
+import { PhotoRegistrySection } from './detail/PhotoRegistrySection'
+import { ReportHeader } from './detail/ReportHeader'
+import { ReportInfoGrid } from './detail/ReportInfoGrid'
+import { ReportRejectionForm } from './detail/ReportRejectionForm'
+import { ReportStats } from './detail/ReportStats'
+import { WorkforceSection } from './detail/WorkforceSection'
 
 interface DailyReportDetailClientProps {
   reportId: string
@@ -129,10 +124,10 @@ const mapWorkersToStats = (
     }
   )
 
-  // Normalize hours to man-days (공수): 8 hours = 1.0 man-day
+  // Input data (UnifiedWorkerEntry) already has hours normalized to man-days (공수)
   return {
     ...stats,
-    total_hours: stats.total_hours > 0 ? Number((stats.total_hours / 8).toFixed(1)) : 0,
+    total_hours: stats.total_hours > 0 ? Number(stats.total_hours.toFixed(1)) : 0,
   }
 }
 
@@ -649,530 +644,6 @@ export default function DailyReportDetailClient({
     }
   }
 
-  const renderArray = (values?: string[]) => (values && values.length > 0 ? values.join(', ') : '-')
-
-  const renderTaskGroups = () => {
-    // 0. Primary DB Columns Fallback (PRIORITY)
-    // If the standard DB columns are populated, show them as the main work summary
-    const hasDbData = Boolean(
-      report?.meta?.componentName ||
-        report?.meta?.workProcess ||
-        report?.meta?.workSection ||
-        report?.memberTypes?.length ||
-        report?.workProcesses?.length
-    )
-
-    // 1. Try rendering structured taskGroups if available (New Schema)
-    if (report?.taskGroups && report.taskGroups.length > 0) {
-      return (
-        <div className="space-y-4">
-          {report.taskGroups.map((group, index) => (
-            <div key={index} className="rounded border p-3 text-sm bg-muted/20">
-              <div className="font-semibold text-foreground mb-2 flex items-center gap-2">
-                <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-xs">
-                  작업 {index + 1}
-                </span>
-              </div>
-              <div className="grid gap-2 text-muted-foreground">
-                <div className="grid grid-cols-[80px_1fr] gap-2">
-                  <span className="text-xs font-medium self-center">부재명</span>
-                  <div className="text-foreground">{renderArray(group.memberTypes)}</div>
-                </div>
-                <div className="grid grid-cols-[80px_1fr] gap-2">
-                  <span className="text-xs font-medium self-center">작업공정</span>
-                  <div className="text-foreground">{renderArray(group.workProcesses)}</div>
-                </div>
-                <div className="grid grid-cols-[80px_1fr] gap-2">
-                  <span className="text-xs font-medium self-center">작업유형</span>
-                  <div className="text-foreground">{renderArray(group.workTypes)}</div>
-                </div>
-                <div className="grid grid-cols-[80px_1fr] gap-2">
-                  <span className="text-xs font-medium self-center">작업위치</span>
-                  <div className="text-foreground">
-                    {[
-                      group.location?.block ? `${group.location.block}블록` : '',
-                      group.location?.dong ? `${group.location.dong}동` : '',
-                      group.location?.unit ? `${group.location.unit}층` : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ') || '-'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )
-    }
-
-    // 2. Direct simple display if no structured tasks but has DB columns
-    if (hasDbData) {
-      return (
-        <div className="space-y-2">
-          <div className="rounded border p-3 text-sm">
-            <div className="grid gap-2 text-muted-foreground">
-              <div className="grid grid-cols-[80px_1fr] gap-2">
-                <span className="text-xs font-medium self-center">부재명</span>
-                <div className="text-foreground">
-                  {report?.meta?.componentName || (report?.memberTypes || []).join(', ') || '-'}
-                </div>
-              </div>
-              <div className="grid grid-cols-[80px_1fr] gap-2">
-                <span className="text-xs font-medium self-center">작업공정</span>
-                <div className="text-foreground">
-                  {report?.meta?.workProcess || (report?.workProcesses || []).join(', ') || '-'}
-                </div>
-              </div>
-              <div className="grid grid-cols-[80px_1fr] gap-2">
-                <span className="text-xs font-medium self-center">작업유형</span>
-                <div className="text-foreground">
-                  {report?.meta?.workSection || (report?.workTypes || []).join(', ') || '-'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    // 3. Absolute lack of data
-    return <div className="text-sm text-muted-foreground">등록된 작업 내역이 없습니다.</div>
-  }
-
-  const renderWorkers = () => {
-    if (!report?.workers || report.workers.length === 0) {
-      return <div className="text-sm text-muted-foreground">작업자 배정 정보가 없습니다.</div>
-    }
-
-    return (
-      <div className="overflow-x-auto px-5 pb-4">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="text-left text-muted-foreground border-b">
-              <th className="py-3 font-semibold">작업자</th>
-              <th className="py-3 font-semibold text-right">공수</th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.workers.map(worker => (
-              <tr
-                key={worker.id}
-                className="border-b last:border-0 hover:bg-slate-50/50 transition-colors"
-              >
-                <td className="py-3 text-foreground font-medium">
-                  {worker.workerName || worker.workerId || '이름없음'}
-                </td>
-                <td className="py-3 text-right tabular-nums font-semibold text-blue-600">
-                  {formatNumber(worker.hours / 8, 1)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  const renderMaterials = () => {
-    if (!report?.materials || report.materials.length === 0) {
-      return <div className="text-sm text-muted-foreground">자재 사용 정보가 없습니다.</div>
-    }
-
-    return (
-      <div className="overflow-x-auto px-5 pb-4">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="text-left text-muted-foreground border-b">
-              <th className="py-3 font-semibold">자재명</th>
-              <th className="py-3 font-semibold">수량</th>
-              <th className="py-3 font-semibold">단위</th>
-              <th className="py-3 font-semibold">비고</th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.materials.map(material => (
-              <tr
-                key={material.id}
-                className="border-b last:border-0 hover:bg-slate-50/50 transition-colors"
-              >
-                <td className="py-3 text-foreground font-medium">
-                  {material.materialName || material.materialCode || '자재'}
-                </td>
-                <td className="py-3 tabular-nums">{formatNumber(material.quantity, 2)}</td>
-                <td className="py-3">{material.unit || '-'}</td>
-                <td className="py-3 text-slate-500">{material.notes || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
-
-  const renderAdditionalPhotos = () => {
-    if (totalPhotoCount === 0) return null
-
-    const renderPreviewGroup = (title: string, type: 'before' | 'after') => {
-      const items = photoBuckets[type]
-      const ids = items.map(photo => photo.id).filter((id): id is string => Boolean(id))
-      const groupSelected = ids.length > 0 && ids.every(id => selectedPhotoIds.has(id))
-
-      return (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-foreground">{title}</div>
-            {items.length > 0 && (
-              <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4"
-                  checked={groupSelected}
-                  onChange={() => toggleGroupSelection(type)}
-                />
-                선택
-              </label>
-            )}
-          </div>
-          {items.length === 0 ? (
-            <div className="flex h-24 items-center justify-center rounded border border-dashed text-sm text-muted-foreground">
-              사진 없음
-            </div>
-          ) : (
-            <div className="grid gap-3 md:grid-cols-2">
-              {items.map((photo, index) => {
-                const key = photo.id || `${type}-${photo.filename}-${index}`
-                const isSelected = photo.id ? selectedPhotoIds.has(photo.id) : false
-                const draggableEnabled = !reorderDisabled && items.length > 1 && Boolean(photo.id)
-
-                return (
-                  <div
-                    key={key}
-                    className="relative overflow-hidden rounded-lg border bg-card shadow-sm"
-                    draggable={draggableEnabled || undefined}
-                    onDragStart={handleDragStart(type, index)}
-                    onDragOver={handleDragOver(type, index)}
-                    onDrop={handleDrop(type, index)}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow">
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={isSelected}
-                        disabled={!photo.id}
-                        onChange={event => {
-                          event.stopPropagation()
-                          togglePhotoSelection(photo.id)
-                        }}
-                        onClick={event => event.stopPropagation()}
-                      />
-                      <GripVertical className="h-4 w-4" />
-                    </div>
-                    <div
-                      className="relative h-48 w-full bg-muted cursor-zoom-in hover:opacity-90 transition-opacity"
-                      onClick={() => photo.url && setPreviewImage(photo.url)}
-                    >
-                      {photo.url ? (
-                        <Image
-                          src={photo.url}
-                          alt={photo.filename || 'photo'}
-                          fill
-                          sizes="(min-width: 768px) 50vw, 100vw"
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">
-                          미리보기 없음
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2 p-3 text-sm text-muted-foreground">
-                      <div
-                        className="text-sm font-semibold text-foreground"
-                        title={photo.filename || ''}
-                      >
-                        {photo.filename || '사진'}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="font-medium text-foreground">{title}</span>
-                        <span>{photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}</span>
-                      </div>
-                      <div className="text-xs">
-                        업로더: {photo.uploaded_by_name || '알 수 없음'}
-                      </div>
-                      {photo.description && (
-                        <div className="text-sm leading-relaxed text-foreground">
-                          {photo.description}
-                        </div>
-                      )}
-                      <div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenFile(photo)}
-                          disabled={!hasFileReference(photo)}
-                        >
-                          원본 보기
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    const renderListGroup = (title: string, type: 'before' | 'after') => {
-      const items = photoBuckets[type]
-      const ids = items.map(photo => photo.id).filter((id): id is string => Boolean(id))
-      const groupSelected = ids.length > 0 && ids.every(id => selectedPhotoIds.has(id))
-
-      return (
-        <div className="rounded-lg border bg-muted/20">
-          <div className="flex items-center justify-between border-b px-3 py-2">
-            <div className="text-sm font-semibold text-foreground">{title}</div>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <Badge variant="secondary">{items.length}장</Badge>
-              {items.length > 0 && (
-                <label className="flex items-center gap-1">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={groupSelected}
-                    onChange={() => toggleGroupSelection(type)}
-                  />
-                  선택
-                </label>
-              )}
-            </div>
-          </div>
-          {items.length === 0 ? (
-            <div className="flex h-24 items-center justify-center text-xs text-muted-foreground">
-              사진 없음
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-xs text-muted-foreground">
-                <thead>
-                  <tr className="bg-muted/40 text-left uppercase tracking-wide">
-                    <th className="px-3 py-2 font-medium">선택</th>
-                    <th className="px-3 py-2 font-medium">순서</th>
-                    <th className="px-3 py-2 font-medium">미리보기</th>
-                    <th className="px-3 py-2 font-medium">파일명</th>
-                    <th className="px-3 py-2 font-medium">업로드일</th>
-                    <th className="px-3 py-2 font-medium">업로더</th>
-                    <th className="px-3 py-2 font-medium">메모</th>
-                    <th className="px-3 py-2 font-medium">원본</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {items.map((photo, index) => {
-                    const key = photo.id || `${type}-${photo.filename}-${index}`
-                    const isSelected = photo.id ? selectedPhotoIds.has(photo.id) : false
-                    const draggableEnabled =
-                      !reorderDisabled && items.length > 1 && Boolean(photo.id)
-
-                    return (
-                      <tr
-                        key={key}
-                        className="bg-background/70"
-                        draggable={draggableEnabled || undefined}
-                        onDragStart={handleDragStart(type, index)}
-                        onDragOver={handleDragOver(type, index)}
-                        onDrop={handleDrop(type, index)}
-                        onDragEnd={handleDragEnd}
-                      >
-                        <td className="px-3 py-2">
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4"
-                            checked={isSelected}
-                            disabled={!photo.id}
-                            onChange={event => {
-                              event.stopPropagation()
-                              togglePhotoSelection(photo.id)
-                            }}
-                            onClick={event => event.stopPropagation()}
-                          />
-                        </td>
-                        <td className="px-3 py-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground" />
-                        </td>
-                        <td className="px-3 py-2">
-                          <div
-                            className="relative h-14 w-20 overflow-hidden rounded border bg-muted cursor-zoom-in hover:opacity-90 transition-opacity"
-                            onClick={() => photo.url && setPreviewImage(photo.url)}
-                          >
-                            {photo.url ? (
-                              <Image
-                                src={photo.url}
-                                alt={photo.filename || 'photo'}
-                                fill
-                                sizes="80px"
-                                className="object-cover"
-                                unoptimized
-                              />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                                없음
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-foreground">
-                          <span className="line-clamp-2" title={photo.filename || ''}>
-                            {photo.filename || '-'}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2">
-                          {photo.uploaded_at ? formatDate(photo.uploaded_at) : '-'}
-                        </td>
-                        <td className="px-3 py-2">{photo.uploaded_by_name || '알 수 없음'}</td>
-                        <td className="px-3 py-2">
-                          {photo.description ? (
-                            <span className="line-clamp-2">{photo.description}</span>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
-                        <td className="px-3 py-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenFile(photo)}
-                            disabled={!hasFileReference(photo)}
-                          >
-                            보기
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )
-    }
-
-    return (
-      <Card className="border shadow-sm">
-        <CardHeader className="px-4 py-3 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="text-base">업로드 된 사진</CardTitle>
-              <CardDescription>작업 전/후 사진</CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">전체 {totalPhotoCount}장</Badge>
-              <Badge variant="outline">보수 전 {photoBuckets.before.length}장</Badge>
-              <Badge variant="outline">보수 후 {photoBuckets.after.length}장</Badge>
-              {selectedCount > 0 && <Badge variant="secondary">선택 {selectedCount}장</Badge>}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={toggleAllSelection}
-                disabled={totalPhotoCount === 0}
-              >
-                전체 선택
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setSelectedPhotoIds(new Set())}
-                disabled={selectedCount === 0}
-              >
-                선택 해제
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleBulkDelete}
-                disabled={selectedCount === 0 || photoActionLoading}
-              >
-                {photoActionLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="mr-2 h-4 w-4" />
-                )}
-                선택 삭제
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 border-slate-300 text-[#1A254F]"
-                onClick={handleBulkDownload}
-                disabled={selectedCount === 0}
-              >
-                <Download className="h-4 w-4" />
-                선택 다운로드
-              </Button>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                size="sm"
-                variant={photosViewMode === 'preview' ? 'primary' : 'outline'}
-                onClick={() => setPhotosViewMode('preview')}
-                aria-pressed={photosViewMode === 'preview'}
-              >
-                <LayoutGrid className="mr-1 h-4 w-4" />
-                미리보기
-              </Button>
-              <Button
-                size="sm"
-                variant={photosViewMode === 'list' ? 'primary' : 'outline'}
-                onClick={() => setPhotosViewMode('list')}
-                aria-pressed={photosViewMode === 'list'}
-              >
-                <List className="mr-1 h-4 w-4" />
-                리스트
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 px-4 pb-4">
-          {photosViewMode === 'preview' ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {renderPreviewGroup('보수 전', 'before')}
-              {renderPreviewGroup('보수 후', 'after')}
-            </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {renderListGroup('보수 전', 'before')}
-              {renderListGroup('보수 후', 'after')}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    )
-  }
-
-  const attachmentList = useMemo(() => {
-    const withType = (
-      items: UnifiedAttachment[],
-      type?: 'photo' | 'drawing' | 'confirmation' | 'other'
-    ) =>
-      items.map(item => ({
-        ...item,
-        __type: type,
-      }))
-    return [
-      ...withType(attachments.photos, 'photo'),
-      ...withType(attachments.drawings, 'drawing'),
-      ...withType(attachments.confirmations, 'confirmation'),
-      ...withType(attachments.others, 'other'),
-    ]
-  }, [attachments])
-
   if (!mounted || (!report && loading)) {
     return <div className="text-sm text-muted-foreground p-8">작업일지를 불러오는 중입니다...</div>
   }
@@ -1183,7 +654,6 @@ export default function DailyReportDetailClient({
     )
   }
 
-  const additionalPhotosSection = renderAdditionalPhotos()
   const primaryMemberType = report.memberTypes?.[0] || '-'
   const primaryProcessType = report.workProcesses?.[0] || '-'
   const primaryWorkType = report.workTypes?.[0] || '-'
@@ -1240,358 +710,89 @@ export default function DailyReportDetailClient({
     { label: '야근 공수', value: `${formatNumber(workerStats.total_overtime ?? 0, 1)} 공수` },
   ]
 
-  function renderAttachmentsCard(extraClass?: string) {
-    return (
-      <Card className={`border shadow-sm ${extraClass ?? ''}`}>
-        <CardHeader className="px-4 py-3">
-          <CardTitle className="text-base">첨부 문서</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4 pb-4">
-          {attachmentList.length === 0 ? (
-            <div className="text-sm text-muted-foreground">첨부 문서가 없습니다.</div>
-          ) : (
-            <div className="space-y-2">
-              {attachmentList.map(item => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between rounded border p-2 text-sm"
-                >
-                  <div className="truncate">
-                    <div
-                      className="max-w-[340px] truncate font-medium text-foreground"
-                      title={item.name}
-                    >
-                      {item.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.uploadedAt ? formatDate(item.uploadedAt) : '업로드 정보 없음'}
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenFile(item)}
-                    disabled={!hasFileReference(item)}
-                  >
-                    보기
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <div className="space-y-6">
       <Card className="border shadow-sm">
-        <CardHeader className="space-y-2 px-4 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-                <span>{report.siteName || siteName || '-'}</span>
-                <Badge
-                  variant="outline"
-                  className="px-2 py-0.5 text-[11px] font-bold whitespace-nowrap"
-                >
-                  {renderStatus(report.status || status)}
-                </Badge>
-              </CardTitle>
-              <CardDescription>{formatDate(report.workDate || workDate)}</CardDescription>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {report?.status === 'rejected' && report?.rejectionReason && (
-                <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-1 text-xs text-rose-700">
-                  반려 사유: {report.rejectionReason}
-                </div>
-              )}
-
-              {report?.status === 'submitted' && (
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    className="bg-emerald-600 text-white hover:bg-emerald-700"
-                    disabled={approvalLoading || rejecting}
-                    onClick={() => handleStatusChange('approve')}
-                  >
-                    {approvalLoading && !rejecting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="mr-2 h-4 w-4" />
-                    )}
-                    승인
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={approvalLoading}
-                    onClick={() => {
-                      setRejecting(!rejecting)
-                      if (!rejecting) setRejectionReason('')
-                    }}
-                  >
-                    <X className="mr-2 h-4 w-4" />
-                    반려
-                  </Button>
-                </div>
-              )}
-
-              {(report?.status === 'approved' || report?.status === 'rejected') && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={approvalLoading}
-                  onClick={() => handleStatusChange('revert')}
-                >
-                  <RotateCcw className="mr-2 h-4 w-4" />
-                  상태 초기화
-                </Button>
-              )}
-
-              {canEditReport && editHref ? (
-                <Button asChild size="sm" className="bg-[#1A254F] text-white hover:bg-[#111836]">
-                  <a href={editHref}>작업일지 수정</a>
-                </Button>
-              ) : null}
-            </div>
-          </div>
-          {showEditGuidance && (
-            <p className="text-xs text-muted-foreground">
-              제출·반려 상태에서도 수정 후 다시 제출할 수 있습니다.
-            </p>
-          )}
-        </CardHeader>
-        <CardContent className="px-4 pb-5">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
-            {infoChips.map(item => (
-              <div
-                key={item.label}
-                className="flex flex-col gap-1 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2"
-              >
-                <span className="text-xs text-muted-foreground">{item.label}</span>
-                <span className="text-sm font-semibold text-foreground">{item.value}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
+        <ReportHeader
+          siteName={report.siteName || siteName || '-'}
+          workDate={report.workDate || workDate || ''}
+          status={report.status || status || 'draft'}
+          rejectionReason={report.rejectionReason}
+          approvalLoading={approvalLoading}
+          rejecting={rejecting}
+          setRejecting={setRejecting}
+          onStatusChange={handleStatusChange}
+          canEditReport={canEditReport}
+          editHref={editHref}
+          showEditGuidance={showEditGuidance}
+        />
+        <ReportInfoGrid items={infoChips} />
       </Card>
 
       {/* Rejection UI - Inline following header */}
       {rejecting && (
-        <Card className="border-rose-200 bg-rose-50 shadow-sm animate-in slide-in-from-top-2 duration-300">
-          <CardHeader className="px-4 py-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-rose-900">반려 사유 입력</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 text-rose-900 hover:bg-rose-100"
-                onClick={() => {
-                  setRejecting(false)
-                  setRejectionReason('')
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-4">
-            <textarea
-              className="mb-3 w-full rounded-md border-rose-200 bg-white p-3 text-sm focus:border-rose-500 focus:ring-rose-500"
-              placeholder="반려 사유를 구체적으로 입력해 주세요 (예: 보수 전/후 사진 누락)"
-              rows={3}
-              value={rejectionReason}
-              onChange={e => setRejectionReason(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setRejecting(false)
-                  setRejectionReason('')
-                }}
-                disabled={approvalLoading}
-              >
-                취소
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={!rejectionReason.trim() || approvalLoading}
-                onClick={() => handleStatusChange('reject', rejectionReason)}
-              >
-                {approvalLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    처리 중...
-                  </>
-                ) : (
-                  '반려 확정'
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <ReportRejectionForm
+          rejectionReason={rejectionReason}
+          setRejectionReason={setRejectionReason}
+          onCancel={() => {
+            setRejecting(false)
+            setRejectionReason('')
+          }}
+          onSubmit={reason => handleStatusChange('reject', reason)}
+          loading={approvalLoading}
+        />
       )}
 
       {/* Top Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {statCards.map(card => (
-          <Card key={card.label} className="overflow-hidden border-none shadow-md">
-            <div className="bg-gradient-to-br from-white to-slate-50 p-5">
-              <div className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                {card.label}
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-[#1A254F]">{card.value}</span>
-              </div>
-              <div className="mt-1 text-xs text-slate-400">{card.helper}</div>
-            </div>
-          </Card>
-        ))}
-      </div>
+      <ReportStats stats={statCards} />
 
       {/* Main Sections: 1 Row, 3 Columns */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Column 1: 작업 인력 정보 */}
-        <Card className="flex flex-col border shadow-sm">
-          <CardHeader className="border-b bg-slate-50/50 px-5 py-4">
-            <CardTitle className="text-base font-bold text-[#1A254F]">작업 인력 정보</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">{renderWorkers()}</CardContent>
-        </Card>
+        <WorkforceSection workers={report.workers ?? []} formatNumber={formatNumber} />
 
         {/* Column 2: 자재 사용 내역 */}
-        <Card className="flex flex-col border shadow-sm">
-          <CardHeader className="border-b bg-slate-50/50 px-5 py-4">
-            <CardTitle className="text-base font-bold text-[#1A254F]">자재 사용 내역</CardTitle>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">{renderMaterials()}</CardContent>
-        </Card>
+        <MaterialUsageSection materials={report.materials ?? []} formatNumber={formatNumber} />
 
         {/* Column 3: 연결 된 도면 */}
-        <Card className="flex flex-col border shadow-sm">
-          <CardHeader className="border-b bg-slate-50/50 px-5 py-4">
-            <CardTitle className="text-base font-bold text-[#1A254F]">연결 된 도면</CardTitle>
-            <CardDescription className="text-[11px]">공유함/마킹 연동 도면</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 p-0">
-            {linkedDrawings.length > 0 ? (
-              <div className="divide-y divide-slate-100">
-                {linkedDrawings.map(att => {
-                  const preview = att.url
-                  const meta = (
-                    att.metadata && typeof att.metadata === 'object' ? att.metadata : {}
-                  ) as any
-                  const markupHref = getMarkupLinkFromAttachment(att)
-                  const snapshotPdfUrl = meta?.snapshot_pdf_url || meta?.pdf_url
-
-                  return (
-                    <div key={att.id} className="group p-4 transition-colors hover:bg-slate-50">
-                      <div className="flex gap-4">
-                        <div
-                          className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md border bg-slate-100 shadow-sm cursor-zoom-in group-hover:border-blue-200"
-                          onClick={() => preview && setPreviewImage(preview)}
-                        >
-                          {preview ? (
-                            <Image
-                              src={preview}
-                              alt={att.name}
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[10px] text-slate-400">
-                              No Preview
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex min-w-0 flex-1 flex-col justify-center">
-                          <div className="flex items-center justify-between gap-3">
-                            <div
-                              className="truncate text-sm font-bold text-slate-900"
-                              title={att.name}
-                            >
-                              {att.name}
-                            </div>
-                            <div className="flex shrink-0 items-center gap-2">
-                              {markupHref && (
-                                <Button
-                                  asChild
-                                  size="sm"
-                                  className="h-9 bg-[#1A254F] px-4 text-xs font-bold text-white hover:bg-[#111836]"
-                                >
-                                  <a href={markupHref}>마킹열기</a>
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-9 gap-1.5 border-slate-300 px-3 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                                onClick={() => handleFileDownload(att.url, att.name || 'document')}
-                              >
-                                <Download className="h-4 w-4" />
-                                다운로드
-                              </Button>
-                              {snapshotPdfUrl && (
-                                <Button
-                                  asChild
-                                  size="sm"
-                                  variant="outline"
-                                  className="h-9 px-3 text-xs font-semibold"
-                                >
-                                  <a href={snapshotPdfUrl} target="_blank" rel="noreferrer">
-                                    PDF
-                                  </a>
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="flex h-32 items-center justify-center text-xs text-slate-400">
-                연결된 도면 없음
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <LinkedDrawingSection
+          linkedDrawings={linkedDrawings}
+          onPreview={setPreviewImage}
+          onDownload={handleFileDownload}
+          getMarkupLink={getMarkupLinkFromAttachment}
+        />
       </div>
 
       {/* Row 2: 추가 사진 (Full Width) */}
-      <div className="w-full">{additionalPhotosSection}</div>
+      <div className="w-full">
+        <PhotoRegistrySection
+          photoBuckets={photoBuckets}
+          photosViewMode={photosViewMode}
+          setPhotosViewMode={setPhotosViewMode}
+          totalPhotoCount={totalPhotoCount}
+          selectedCount={selectedCount}
+          selectedPhotoIds={selectedPhotoIds}
+          togglePhotoSelection={togglePhotoSelection}
+          toggleGroupSelection={toggleGroupSelection}
+          toggleAllSelection={toggleAllSelection}
+          onClearSelection={() => setSelectedPhotoIds(new Set())}
+          handleBulkDelete={handleBulkDelete}
+          handleBulkDownload={handleBulkDownload}
+          photoActionLoading={photoActionLoading}
+          reorderDisabled={reorderDisabled}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onDragEnd={handleDragEnd}
+          onOpenFile={handleOpenFile}
+          onPreview={setPreviewImage}
+          formatDate={formatDate}
+          hasFileReference={hasFileReference}
+        />
+      </div>
 
       {error && <div className="text-sm text-destructive">{error}</div>}
-      {/* Image Lightbox */}
-      {previewImage && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200"
-          onClick={() => setPreviewImage(null)}
-        >
-          <div className="relative h-full w-full max-w-5xl">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute -top-10 right-0 text-white hover:bg-white/20"
-              onClick={() => setPreviewImage(null)}
-            >
-              <X className="mr-2 h-4 w-4" />
-              닫기
-            </Button>
-            <div className="relative h-full w-full">
-              <Image src={previewImage} alt="Preview" fill className="object-contain" unoptimized />
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageLightbox previewImage={previewImage} onClose={() => setPreviewImage(null)} />
     </div>
   )
 }
