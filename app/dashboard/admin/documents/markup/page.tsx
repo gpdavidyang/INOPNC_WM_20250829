@@ -1,15 +1,9 @@
-import React from 'react'
-import type { Metadata } from 'next'
-import Link from 'next/link'
+import { getDailyReports } from '@/app/actions/admin/daily-reports'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { getMarkupDocuments } from '@/app/actions/admin/markup'
-import MarkupDocumentsTable from '@/components/admin/MarkupDocumentsTable'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { t } from '@/lib/ui/strings'
+import AdminDrawingManagementContent from '@/components/admin/markup/AdminDrawingManagementContent'
 import { PageHeader } from '@/components/ui/page-header'
-import { buttonVariants } from '@/components/ui/button'
+import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '도면마킹 관리',
@@ -24,104 +18,76 @@ export default async function AdminMarkupDocumentsPage({
 
   const page = Math.max(1, Number((searchParams?.page as string) || '1') || 1)
   const limitRaw = Number((searchParams?.limit as string) || '20') || 20
-  const limit = Math.min(50, Math.max(10, limitRaw))
+  const limit = Math.min(100, Math.max(10, limitRaw))
+  const siteId = ((searchParams?.site_id as string) || '').trim()
   const search = ((searchParams?.search as string) || '').trim()
+  const status = ((searchParams?.status as string) || '').trim()
+  const dateFrom = ((searchParams?.date_from as string) || '').trim()
+  const dateTo = ((searchParams?.date_to as string) || '').trim()
 
-  const result = await getMarkupDocuments(page, limit, search)
-  const docs = result.success && result.data ? (result.data as any).documents : []
-  const total = result.success && result.data ? (result.data as any).total : 0
-  const pages = result.success && result.data ? Math.max(1, (result.data as any).pages) : 1
+  // Fetch sites for filter
+  const supabase = createClient()
+  const { data: sitesData } = await supabase
+    .from('sites')
+    .select('id, name')
+    .eq('is_deleted', false)
+    .order('name', { ascending: true })
+  
+  const siteOptions = (sitesData || []).map(s => ({ id: s.id, name: s.name }))
 
-  const buildQuery = (nextPage: number) => {
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    params.set('limit', String(limit))
-    params.set('page', String(nextPage))
-    const qs = params.toString()
-    return qs ? `?${qs}` : ''
-  };
+  // Fetch daily reports
+  const result = await getDailyReports({
+    page,
+    itemsPerPage: limit,
+    site: siteId || undefined,
+    search: search || undefined,
+    status: status || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    sortField: 'work_date',
+    sortDirection: 'desc',
+  })
+
+  const reports = result.success && (result.data as any)?.reports 
+    ? (result.data as any).reports.map((r: any) => ({
+        id: r.id,
+        work_date: r.work_date,
+        site_name: r.sites?.name || '미지정',
+        site_id: r.site_id,
+        member_name: r.member_name || r.component_name || '작업내역 미기재',
+        status: r.status,
+        author_name: r.created_by_profile?.full_name || '작성자'
+      }))
+    : []
+
+  const total = result.success ? (result.data as any)?.totalCount || 0 : 0
+  const pages = result.success ? (result.data as any)?.totalPages || 1 : 1
 
   return (
-    <div className="px-0 pb-8">
-      <PageHeader
-        title="도면마킹 관리"
-        description="최근 생성된 도면 마킹 문서 목록"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '도면마킹' }]}
-        showBackButton
-        backButtonHref="/dashboard/admin/documents"
-        actions={
-          <a
-            href="/dashboard/admin/tools/markup"
-            className={buttonVariants({ variant: 'primary', size: 'standard' })}
-            role="button"
-          >
-            도면마킹 작성
-          </a>
-        }
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-
-      <div className="mb-6 rounded-lg border bg-card p-4 shadow-sm">
-        <form
-          method="GET"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end"
-        >
-          <input type="hidden" name="page" value="1" />
-          <div className="lg:col-span-2">
-            <label className="block text-sm text-muted-foreground mb-1">검색어</label>
-            <Input name="search" defaultValue={search} placeholder="제목/설명/파일명" />
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">페이지 크기</label>
-            <select
-              name="limit"
-              defaultValue={String(limit)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
-          </div>
-          <div className="lg:col-span-2 flex gap-2">
-            <Button type="submit" variant="outline">
-              {t('common.apply')}
-            </Button>
-            <Link
-              href="/dashboard/admin/documents/markup"
-              className={buttonVariants({ variant: 'outline', size: 'standard' })}
-              role="button"
-            >
-              {t('common.reset')}
-            </Link>
-          </div>
-        </form>
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <div className="flex-none p-6 pb-0">
+        <PageHeader
+          title="도면마킹 관리"
+          description="현장별/작업별 도면 및 마킹을 통합 관리합니다"
+          breadcrumbs={[
+            { label: '대시보드', href: '/dashboard/admin' },
+            { label: '문서 관리', href: '/dashboard/admin/documents' },
+            { label: '도면마킹 통합관리' }
+          ]}
+          showBackButton
+          backButtonHref="/dashboard/admin/documents"
+        />
       </div>
-
-      <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <MarkupDocumentsTable docs={docs} />
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)}{' '}
-            표시
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href={buildQuery(Math.max(1, page - 1))}
-              className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              {t('common.prev')}
-            </Link>
-            <Link
-              href={buildQuery(Math.min(pages, page + 1))}
-              className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              {t('common.next')}
-            </Link>
-          </div>
-        </div>
+      
+      <div className="flex-1 min-h-0 px-6 py-6 overflow-y-auto custom-scrollbar">
+        <AdminDrawingManagementContent 
+          initialReports={reports}
+          siteOptions={siteOptions}
+          totalCount={total}
+          currentPage={page}
+          totalPages={pages}
+        />
       </div>
-    </div>
     </div>
   )
 }

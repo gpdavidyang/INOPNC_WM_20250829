@@ -2399,7 +2399,7 @@ function DrawingManagerInline({
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-[#e0e6f3] bg-white p-4 shadow-sm">
+    <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm">
       {/* 탭 헤더 */}
       <div className="flex gap-1 rounded-xl bg-[#f4f6fb] p-1">
         {[
@@ -2426,7 +2426,7 @@ function DrawingManagerInline({
       {activeTab === 'list' && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-[13px] font-bold text-[#1f2942]">연계 도면 리스트</h3>
+            <h3 className="text-[13px] font-bold text-[#1f2942]">업로드 된 도면</h3>
             <button
               type="button"
               onClick={triggerRefresh}

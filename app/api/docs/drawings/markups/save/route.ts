@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { syncMarkupWorklogLinks } from '@/lib/documents/worklog-links'
+import { createPdfFromImageDataUrl } from '@/lib/markups/pdf'
+import {
+  uploadBufferToDocumentsBucket,
+  uploadDataUrlToDocumentsBucket,
+} from '@/lib/storage/data-url'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import {
-  uploadDataUrlToDocumentsBucket,
-  uploadBufferToDocumentsBucket,
-} from '@/lib/storage/data-url'
-import { createPdfFromImageDataUrl } from '@/lib/markups/pdf'
-import { syncMarkupWorklogLinks } from '@/lib/documents/worklog-links'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,7 +52,17 @@ export async function POST(request: NextRequest) {
     const serviceClient = createServiceRoleClient()
 
     const body = await request.json().catch(() => ({}))
-    const drawingId = String(body?.drawingId || body?.drawing_id || '').trim()
+    const drawingIdRaw = String(body?.drawingId || body?.drawing_id || '').trim()
+    const drawingId = drawingIdRaw.startsWith('markup-')
+      ? drawingIdRaw.replace('markup-', '')
+      : drawingIdRaw
+    const markupDocumentIdRaw = String(
+      body?.markup_document_id || body?.markupDocumentId || ''
+    ).trim()
+    const markupDocumentId = markupDocumentIdRaw.startsWith('markup-')
+      ? markupDocumentIdRaw.replace('markup-', '')
+      : markupDocumentIdRaw
+
     const siteIdFromBody = String(body?.siteId || body?.site_id || '').trim()
     const originalBlueprintUrlInput = String(
       body?.original_blueprint_url || body?.originalBlueprintUrl || ''
@@ -202,22 +212,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Insert into markup_documents
+    // Upsert into markup_documents
+    const upsertPayload = {
+      title,
+      description,
+      original_blueprint_url,
+      original_blueprint_filename,
+      markup_data: markup_data || [],
+      preview_image_url: derivedPreviewUrl,
+      created_by: auth.userId,
+      site_id: drawing.site_id,
+      markup_count,
+      file_size: 0,
+      linked_worklog_id: primaryWorklogId,
+    }
+
+    if (markupDocumentId && isUuid(markupDocumentId)) {
+      ;(upsertPayload as any).id = markupDocumentId
+    }
+
     const { data: markupDoc, error: mdErr } = await supabase
       .from('markup_documents')
-      .insert({
-        title,
-        description,
-        original_blueprint_url,
-        original_blueprint_filename,
-        markup_data: markup_data || [],
-        preview_image_url: derivedPreviewUrl,
-        created_by: auth.userId,
-        site_id: drawing.site_id,
-        markup_count,
-        file_size: 0,
-        linked_worklog_id: primaryWorklogId,
-      } as unknown)
+      .upsert(upsertPayload)
       .select()
       .single()
 
@@ -239,7 +255,13 @@ export async function POST(request: NextRequest) {
 
     // Try to sync into unified_document_system (best-effort)
     try {
-      await supabase.from('unified_document_system').insert({
+      const { data: existingUds } = await supabase
+        .from('unified_document_system')
+        .select('id')
+        .eq('metadata->>source_id', markupDoc.id)
+        .maybeSingle()
+
+      const udsPayload = {
         title,
         description,
         file_name: `${title}.markup`,
@@ -265,7 +287,13 @@ export async function POST(request: NextRequest) {
           linked_worklog_ids: worklogIds,
           daily_report_id: primaryWorklogId,
         },
-      })
+      }
+
+      if (existingUds) {
+        await supabase.from('unified_document_system').update(udsPayload).eq('id', existingUds.id)
+      } else {
+        await supabase.from('unified_document_system').insert(udsPayload)
+      }
     } catch (_) {
       // ignore
     }

@@ -179,7 +179,7 @@ export function SharedMarkupEditor({
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[#f8f9fc]">
+    <div className="relative flex flex-1 w-full flex-col overflow-hidden bg-[#f8f9fc]">
       {savePrompt === 'save-as' && saveDialogOpen && (
         <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
@@ -296,6 +296,7 @@ export function SharedMarkupEditor({
               copySelected={engine.copySelected}
               pasteSelected={engine.paste}
               updateObject={updateObject}
+              setStamp={engine.setStamp}
             />
           </div>
         )}

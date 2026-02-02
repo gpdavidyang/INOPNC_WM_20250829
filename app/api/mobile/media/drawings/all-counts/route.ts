@@ -16,123 +16,100 @@ export async function GET(request: NextRequest) {
     const svc = createServiceRoleClient()
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('siteId')
-    const filterWorklogIds = (() => {
-      const ids = new Set<string>()
-      const repeated = searchParams.getAll('worklog_id')
-      repeated.forEach(v => {
-        const t = (v || '').trim()
-        if (isUuid(t)) ids.add(t)
+    const reportIds = searchParams.getAll('worklog_id')
+
+    // Fallback for CSV format
+    const csv = searchParams.get('worklog_ids') || searchParams.get('worklogIds')
+    if (csv) {
+      csv.split(',').forEach(id => {
+        const t = id.trim()
+        if (isUuid(t) && !reportIds.includes(t)) reportIds.push(t)
       })
-
-      const csv =
-        searchParams.get('worklog_ids') ||
-        searchParams.get('worklogIds') ||
-        searchParams.get('worklogId')
-      if (csv) {
-        csv
-          .split(',')
-          .map(v => v.trim())
-          .forEach(v => {
-            if (isUuid(v)) ids.add(v)
-          })
-      }
-
-      return ids.size > 0 ? ids : null
-    })()
-
-    // 1. Fetch all valid non-deleted markups to know which ones have original_blueprint_url
-    let markupDocsQuery = svc
-      .from('markup_documents')
-      .select('id, linked_worklog_id, original_blueprint_url')
-      .eq('is_deleted', false)
-
-    // 2. Fetch all markup links
-    let markupLinksQuery = svc
-      .from('markup_document_worklog_links')
-      .select('worklog_id, markup_document_id')
-
-    // 3. Fetch UDS links
-    let udsQuery = svc
-      .from('unified_document_system')
-      .select('id, metadata')
-      .eq('category_type', 'shared')
-      .eq('status', 'active')
-      .eq('is_archived', false)
-
-    if (siteId && siteId !== 'all') {
-      markupDocsQuery = markupDocsQuery.eq('site_id', siteId)
-      udsQuery = udsQuery.eq('site_id', siteId)
     }
 
-    const [markupDocs, markupLinks, udsLinks] = await Promise.all([
-      markupDocsQuery,
-      markupLinksQuery,
-      udsQuery,
+    if (reportIds.length === 0) {
+      return NextResponse.json({ success: true, data: {} })
+    }
+
+    // Initialize counts
+    const counts: Record<string, number> = {}
+    reportIds.forEach(id => {
+      counts[id] = 0
+    })
+
+    // Fetch Markup Documents and their links for these worklogs
+    const [markupDocs, markupLinks, udsDocs] = await Promise.all([
+      svc
+        .from('markup_documents')
+        .select('id, site_id, linked_worklog_id, original_blueprint_url')
+        .eq('is_deleted', false),
+      svc
+        .from('markup_document_worklog_links')
+        .select('worklog_id, markup_document_id')
+        .in('worklog_id', reportIds),
+      svc
+        .from('unified_document_system')
+        .select('id, metadata')
+        .eq('category_type', 'shared')
+        .eq('status', 'active')
+        .eq('is_archived', false),
     ])
 
-    const validMarkupIds = new Set<string>()
-    const markupIdToDirectWorklog = new Map<string, string>()
+    const validMarkupIds = new Set<string>(
+      markupDocs.data?.filter(d => d.original_blueprint_url).map(d => d.id) || []
+    )
 
-    markupDocs.data?.forEach(doc => {
-      // Sync logic: fetchLinkedDrawingsForWorklog filters by original_blueprint_url
-      if (doc.original_blueprint_url) {
-        validMarkupIds.add(doc.id)
-        if (doc.linked_worklog_id) {
-          markupIdToDirectWorklog.set(doc.id, doc.linked_worklog_id)
-        }
-      }
-    })
-
-    const worklogToDrawings = new Map<string, Set<string>>()
-
-    const addUniqueLink = (worklogId: any, drawingId: string) => {
-      if (!worklogId || !drawingId) return
-      const wKey = String(worklogId)
-      if (filterWorklogIds && !filterWorklogIds.has(wKey)) return
-      if (!worklogToDrawings.has(wKey)) {
-        worklogToDrawings.set(wKey, new Set())
-      }
-      worklogToDrawings.get(wKey)!.add(drawingId)
+    const worklogToItems = new Map<string, Set<string>>()
+    const ensureSet = (wId: string) => {
+      if (!worklogToItems.has(wId)) worklogToItems.set(wId, new Set())
+      return worklogToItems.get(wId)!
     }
 
-    // Process valid markups (direct links)
-    validMarkupIds.forEach(mId => {
-      const wId = markupIdToDirectWorklog.get(mId)
-      if (wId) addUniqueLink(wId, mId)
+    // 1. Direct links in markup_documents
+    markupDocs.data?.forEach(doc => {
+      if (
+        doc.linked_worklog_id &&
+        reportIds.includes(doc.linked_worklog_id) &&
+        validMarkupIds.has(doc.id)
+      ) {
+        ensureSet(doc.linked_worklog_id).add(doc.id)
+      }
     })
 
-    // Process valid markup links (mapping table)
+    // 2. Mapping table links
     markupLinks.data?.forEach(link => {
       if (validMarkupIds.has(link.markup_document_id)) {
-        addUniqueLink(link.worklog_id, link.markup_document_id)
+        ensureSet(link.worklog_id).add(link.markup_document_id)
       }
     })
 
-    // Process UDS (which may include mirrored markups)
-    udsLinks.data?.forEach(doc => {
+    // 3. UDS Items
+    udsDocs.data?.forEach(doc => {
       const meta = (doc.metadata as any) || {}
-
-      // If it's a mirrored markup, use the markup ID so we don't count it twice
       const isMirroredMarkup = meta.source_table === 'markup_documents'
-      const markupId = meta.markup_document_id || meta.source_id
+      const mId = meta.markup_document_id || meta.source_id
+      const effectiveId = isMirroredMarkup && mId && validMarkupIds.has(mId) ? mId : doc.id
 
-      // Sync logic: Only count if it's not a markup link or if it's a VALID markup link
-      if (isMirroredMarkup && markupId) {
-        if (!validMarkupIds.has(markupId)) return // Skip invalid/deleted mirrored markups
-      }
-
-      const effectiveDrawingId = isMirroredMarkup && markupId ? markupId : doc.id
-
-      if (meta.linked_worklog_id) addUniqueLink(meta.linked_worklog_id, effectiveDrawingId)
+      // Extract all linked worklog IDs from metadata
+      const linkedIds = new Set<string>()
+      if (isUuid(meta.linked_worklog_id)) linkedIds.add(meta.linked_worklog_id)
+      if (isUuid(meta.daily_report_id)) linkedIds.add(meta.daily_report_id)
+      if (isUuid(meta.worklog_id)) linkedIds.add(meta.worklog_id)
       if (Array.isArray(meta.linked_worklog_ids)) {
-        meta.linked_worklog_ids.forEach((wId: any) => addUniqueLink(wId, effectiveDrawingId))
+        meta.linked_worklog_ids.forEach((id: any) => {
+          if (isUuid(String(id))) linkedIds.add(String(id))
+        })
       }
-      if (meta.daily_report_id) addUniqueLink(meta.daily_report_id, effectiveDrawingId)
+
+      linkedIds.forEach(wId => {
+        if (reportIds.includes(wId)) {
+          ensureSet(wId).add(effectiveId)
+        }
+      })
     })
 
-    const counts: Record<string, number> = {}
-    worklogToDrawings.forEach((drawingSet, wId) => {
-      counts[wId] = drawingSet.size
+    worklogToItems.forEach((items, wId) => {
+      counts[wId] = items.size
     })
 
     return NextResponse.json({ success: true, data: counts })

@@ -288,3 +288,34 @@ export async function fetchMarkupWorklogMap(markupIds: string[]) {
 
   return map
 }
+
+/**
+ * PostgREST JSONB Filter Builder for finding shared documents linked to a worklog.
+ * This handles the complexity of inconsistent JSON keys in the unified_document_system table:
+ * - linked_worklog_id (string)
+ * - linked_worklog_ids (array)
+ * - daily_report_id (legacy string)
+ * - worklog_id (legacy string)
+ *
+ * Use this to avoid manual string concatenation errors in route handlers.
+ *
+ * @param worklogId - UUID of the worklog
+ * @param column - PostgREST column name (default: "metadata")
+ * @returns A comma-separated OR condition string for PostgREST
+ */
+export function buildWorklogMetadataFilter(worklogId: string, column = 'metadata'): string {
+  if (!isUuid(worklogId))
+    return `${column}->>linked_worklog_id.eq.00000000-0000-0000-0000-000000000000` // fail safe
+
+  // Note: for 'cs' (contains) on a JSONB array, we must use `["value"]` string format.
+  // PostgREST/Postgres needs the right-hand side to be a valid JSON representation of the contained element (or array).
+  // e.g. metadata->linked_worklog_ids.cs.["uuid"]
+  const conditions = [
+    `${column}->>linked_worklog_id.eq.${worklogId}`,
+    `${column}->linked_worklog_ids.cs.["${worklogId}"]`,
+    `${column}->>daily_report_id.eq.${worklogId}`,
+    `${column}->>worklog_id.eq.${worklogId}`,
+  ]
+
+  return conditions.join(',')
+}
