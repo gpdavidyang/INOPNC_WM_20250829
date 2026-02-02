@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +29,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from('materials')
-      .select('id, name, code, unit, is_active, status, is_deleted')
+      .select('id, name, code, unit, specification, is_active')
       .order('name', { ascending: true })
 
     if (error) {
@@ -40,10 +40,7 @@ export async function GET() {
       )
     }
 
-    const list = (data || []).filter(item => {
-      if (typeof item?.is_deleted === 'boolean' && item.is_deleted) return false
-      return item
-    })
+    const list = (data || []).filter(item => item && item.is_active !== false)
 
     return NextResponse.json({ success: true, data: list })
   } catch (e) {

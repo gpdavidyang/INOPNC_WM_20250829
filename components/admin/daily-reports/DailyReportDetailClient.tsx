@@ -664,7 +664,6 @@ export default function DailyReportDetailClient({
   ].filter(Boolean)
   const locationDisplay = locationValues.length > 0 ? locationValues.join(' / ') : '미기입'
   const totalMaterials = Array.isArray(report.materials) ? report.materials.length : 0
-  const attachmentsCount = attachmentList.length
   const directInputCount = Array.isArray(report.workers)
     ? report.workers.filter(worker => worker.isDirectInput).length
     : 0
@@ -724,6 +723,7 @@ export default function DailyReportDetailClient({
           onStatusChange={handleStatusChange}
           canEditReport={canEditReport}
           editHref={editHref}
+          markupHref={`/dashboard/admin/documents/markup?site_id=${report.siteId}&report_id=${report.id}&tab=list`}
           showEditGuidance={showEditGuidance}
         />
         <ReportInfoGrid items={infoChips} />

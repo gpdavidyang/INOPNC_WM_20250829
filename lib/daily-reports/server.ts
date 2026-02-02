@@ -65,7 +65,7 @@ export async function getUnifiedDailyReportForAdmin(
     .select(
       `
         *,
-        sites(id, name, address, status),
+        sites(id, name, address, status, organization_id, organizations(name)),
         document_attachments(
           id,
           document_type,
@@ -105,7 +105,7 @@ export async function getUnifiedDailyReportForAdmin(
         await Promise.all([
           supabase
             .from('sites')
-            .select('id, name, address, status')
+            .select('id, name, address, status, organization_id, organizations(name)')
             .eq('id', minimal.site_id)
             .maybeSingle(),
           minimal.created_by

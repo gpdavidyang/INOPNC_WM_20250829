@@ -450,7 +450,7 @@ export async function getDailyReportById(id: string) {
       .select(
         `
         *,
-        sites(name, address)
+        sites(name, address, organization_id, organizations(name))
       `
       )
       .eq('id', id)

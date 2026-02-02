@@ -139,7 +139,11 @@ const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {
 
 const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
   (workers || []).map((worker, index) => {
-    const rawHours = Number(worker?.hours ?? worker?.labor_hours ?? worker?.work_hours ?? 0) || 0
+    // If labor_hours is provided, it is usually already in man-days (공수)
+    // Legacy fields (hours, work_hours) might be in real hours (8h = 1.0)
+    const laborHours = Number(worker?.labor_hours)
+    const workHours = Number(worker?.hours ?? worker?.work_hours ?? 0)
+
     return {
       id: worker?.id || `worker-${index}`,
       workerId:
@@ -154,8 +158,14 @@ const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
         worker?.name ||
         worker?.workerName ||
         '이름없음',
-      // Convert hours to man-days (공수): 8 hours = 1.0
-      hours: rawHours > 0 ? Number((rawHours / 8).toFixed(1)) : 0,
+      // If laborHours exists (>0), use it directly.
+      // Otherwise, convert workHours to man-days (공수): 8 hours = 1.0
+      hours:
+        laborHours > 0
+          ? Number(laborHours.toFixed(1))
+          : workHours > 0
+            ? Number((workHours / 8).toFixed(1))
+            : 0,
       isDirectInput: worker?.isDirectInput ?? !worker?.worker_id,
       notes: worker?.notes || '',
     }

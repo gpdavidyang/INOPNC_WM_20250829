@@ -40,6 +40,7 @@ interface ReportHeaderProps {
   onStatusChange: (action: 'approve' | 'revert' | 'reject', reason?: string) => void
   canEditReport: boolean
   editHref: string | null
+  markupHref?: string | null
   showEditGuidance: boolean
 }
 
@@ -54,6 +55,7 @@ export function ReportHeader({
   onStatusChange,
   canEditReport,
   editHref,
+  markupHref,
   showEditGuidance,
 }: ReportHeaderProps) {
   return (
@@ -120,6 +122,17 @@ export function ReportHeader({
           {canEditReport && editHref ? (
             <Button asChild size="sm" className="bg-[#1A254F] text-white hover:bg-[#111836]">
               <a href={editHref}>작업일지 수정</a>
+            </Button>
+          ) : null}
+
+          {markupHref ? (
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="border-blue-200 text-blue-700 hover:bg-blue-50"
+            >
+              <a href={markupHref}>도면마킹 관리</a>
             </Button>
           ) : null}
         </div>

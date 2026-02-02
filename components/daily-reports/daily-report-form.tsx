@@ -31,22 +31,35 @@ import {
   AlertCircle,
   ArrowLeft,
   Camera,
+  Check,
   ChevronDown,
   ChevronUp,
   FileText,
+  Loader2,
   MapPin,
-  MessageSquare,
   Package,
   Plus,
+  RotateCcw,
   Settings,
   Shield,
   Trash2,
   Users,
+  X,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 // Use REST endpoints to avoid importing server actions in client
+
+const STATUS_LABEL: Record<string, string> = {
+  draft: '임시',
+  submitted: '제출',
+  approved: '승인',
+  rejected: '반려',
+  completed: '완료',
+  revision: '수정 필요',
+  archived: '보관됨',
+}
 
 // 통합된 Props 인터페이스
 interface DailyReportFormProps {
@@ -75,6 +88,10 @@ interface WorkContentEntry {
   processType: string
   processTypeOther?: string
   workSection: string
+  workSectionOther?: string
+  block: string
+  dong: string
+  floor: string
   beforePhotos: File[]
   afterPhotos: File[]
   beforePhotoPreviews: string[]
@@ -120,6 +137,7 @@ interface MaterialOptionItem {
   name: string
   code: string | null
   unit: string | null
+  specification?: string | null
 }
 
 const formatLaborHourLabel = (value: number) =>
@@ -199,6 +217,10 @@ const buildWorkEntriesFromReport = (
       processType: log?.process_type || '',
       processTypeOther: log?.process_type_other || '',
       workSection: log?.work_section || '',
+      workSectionOther: log?.work_section_other || '',
+      block: log?.block || log?.location?.block || '',
+      dong: log?.dong || log?.location?.dong || '',
+      floor: log?.floor || log?.unit || log?.location?.unit || '',
       beforePhotos: [],
       afterPhotos: [],
       beforePhotoPreviews: [],
@@ -213,6 +235,10 @@ const buildWorkEntriesFromReport = (
       processType: '',
       processTypeOther: '',
       workSection: '',
+      workSectionOther: '',
+      block: '',
+      dong: '',
+      floor: '',
       beforePhotos: [],
       afterPhotos: [],
       beforePhotoPreviews: [],
@@ -331,9 +357,12 @@ const normalizeMaterialKeyword = (value?: string | null) =>
     : ''
 
 const isSelectableMaterial = (material: any): boolean => {
-  const activeFlag = interpretMaterialActiveFlag(material?.is_active)
-  if (activeFlag !== null) return activeFlag
+  if (!material) return false
 
+  // 'Item Management'에서 비활성화(is_active = false)된 경우만 제외
+  if (material.is_active === false) return false
+
+  // 그 외 use_yn 등의 플래그가 false인 경우 명시적으로 체크
   const useFlag = interpretMaterialActiveFlag(
     material?.use_yn ??
       material?.useYn ??
@@ -342,10 +371,16 @@ const isSelectableMaterial = (material: any): boolean => {
       material?.is_use ??
       material?.isUse
   )
-  if (useFlag !== null) return useFlag
+  if (useFlag === false) return false
 
-  const statusFlag = interpretMaterialActiveFlag(material?.status)
-  if (statusFlag !== null) return statusFlag
+  // 상태가 삭제됨 상태인 경우 제외
+  if (
+    material.status === 'deleted' ||
+    material.status === 'inactive' ||
+    material.is_deleted === true
+  ) {
+    return false
+  }
 
   return true
 }
@@ -483,6 +518,35 @@ export default function DailyReportForm({
 }: DailyReportFormProps) {
   const router = useRouter()
   const permissions = useRolePermissions(currentUser)
+  // Form state - 편집 모드일 때 기존 데이터로 초기화
+  const [formData, setFormData] = useState(() =>
+    buildFormDataFromReport(mode, reportData, currentUser)
+  )
+
+  const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
+  const [reportHydrationKey, setReportHydrationKey] = useState<string | null>(() =>
+    mode === 'edit' ? createReportKey(reportData) : null
+  )
+
+  const selectedSiteId = useMemo(() => {
+    const reportSiteId = (reportData as any)?.site_id
+    const initialSiteId =
+      initialUnifiedReport && 'siteId' in initialUnifiedReport
+        ? (initialUnifiedReport as UnifiedDailyReport).siteId
+        : undefined
+    return formData.site_id || reportSiteId || initialSiteId || ''
+  }, [formData.site_id, reportData?.site_id, initialUnifiedReport?.siteId])
+
+  const selectedSiteRecord = useMemo(() => {
+    if (!selectedSiteId) return null
+    const normalizedId = String(selectedSiteId)
+    return (
+      filteredSites.find(site => String(site?.id) === normalizedId) ||
+      sites.find(site => String(site?.id) === normalizedId) ||
+      null
+    )
+  }, [selectedSiteId, filteredSites, sites])
+
   const { options: laborHourOptionState } = useLaborHourOptions()
   const allowedLaborHours = useMemo(
     () =>
@@ -494,11 +558,21 @@ export default function DailyReportForm({
     [laborHourOptionState]
   )
   const defaultLaborHour = useMemo(() => {
+    // Prefer 1.0 if available, otherwise pick first positive non-zero
+    const siteName = selectedSiteRecord?.name || ''
+    const isGangnamA = siteName.includes('강남 A현장')
+
+    if (isGangnamA && allowedLaborHours.includes(1.0)) return 1.0
+
+    const preferred = 1.0
+    if (allowedLaborHours.includes(preferred)) return preferred
+
     const positive = allowedLaborHours.find(value => value > 0)
     return typeof positive === 'number'
       ? positive
       : (allowedLaborHours[0] ?? FALLBACK_LABOR_HOUR_DEFAULT)
-  }, [allowedLaborHours])
+  }, [allowedLaborHours, selectedSiteRecord?.name])
+
   const isAllowedLaborHourValue = useCallback(
     (value: number) => allowedLaborHours.some(option => option === value),
     [allowedLaborHours]
@@ -533,39 +607,6 @@ export default function DailyReportForm({
   // Global toggle state
   const [allExpanded, setAllExpanded] = useState(false)
 
-  // Form state - 편집 모드일 때 기존 데이터로 초기화
-  const [formData, setFormData] = useState(() =>
-    buildFormDataFromReport(mode, reportData, currentUser)
-  )
-
-  // Partner companies and filtered sites
-  const [partnerCompanies, setPartnerCompanies] = useState<any[]>([])
-  const [siteFilterPartnerId, setSiteFilterPartnerId] = useState('')
-  const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
-  const [loadingPartners, setLoadingPartners] = useState(false)
-  const [reportHydrationKey, setReportHydrationKey] = useState<string | null>(() =>
-    mode === 'edit' ? createReportKey(reportData) : null
-  )
-
-  const selectedSiteId = useMemo(() => {
-    const reportSiteId = (reportData as any)?.site_id
-    const initialSiteId =
-      initialUnifiedReport && 'siteId' in initialUnifiedReport
-        ? (initialUnifiedReport as UnifiedDailyReport).siteId
-        : undefined
-    return formData.site_id || reportSiteId || initialSiteId || ''
-  }, [formData.site_id, reportData?.site_id, initialUnifiedReport?.siteId])
-
-  const selectedSiteRecord = useMemo(() => {
-    if (!selectedSiteId) return null
-    const normalizedId = String(selectedSiteId)
-    return (
-      filteredSites.find(site => String(site?.id) === normalizedId) ||
-      sites.find(site => String(site?.id) === normalizedId) ||
-      null
-    )
-  }, [selectedSiteId, filteredSites, sites])
-
   const selectedOrganizationLabel = useMemo(() => {
     if (!selectedSiteRecord) return ORGANIZATION_UNASSIGNED_LABEL
     const record: any = selectedSiteRecord
@@ -596,70 +637,60 @@ export default function DailyReportForm({
   // Work options
   const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
 
-  // Load partner companies based on user role
-  useEffect(() => {
-    const loadPartnerCompanies = async () => {
-      // All users can now view and select partner companies
-      // Worker and Site Manager can see all partner companies
+  // Approval and rejection states
+  const [approvalLoading, setApprovalLoading] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
 
-      setLoadingPartners(true)
-      try {
-        const response = await fetch('/api/admin/organizations/partner-companies')
-        if (response.ok) {
-          const data = await response.json()
-          setPartnerCompanies(data)
-        }
-      } catch (error) {
-        console.error('Failed to load partner companies:', error)
-      } finally {
-        setLoadingPartners(false)
+  const handleStatusChange = async (action: 'approve' | 'revert' | 'reject', reason?: string) => {
+    if (!reportData?.id) return
+    setApprovalLoading(true)
+    try {
+      const res = await fetch(`/api/admin/daily-reports/${reportData.id}/approval`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, reason }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || '상태 변경에 실패했습니다.')
       }
+
+      toast.success(data.message || '작업일지 상태를 변경했습니다.')
+      setRejecting(false)
+      setRejectionReason('')
+      router.refresh()
+    } catch (error) {
+      toast.error((error as Error)?.message || '상태 변경 중 오류가 발생했습니다.')
+    } finally {
+      setApprovalLoading(false)
+    }
+  }
+
+  // Ensure current site is in the list
+  useEffect(() => {
+    const currentSiteId =
+      formData.site_id ||
+      (reportData as any)?.site_id ||
+      (initialUnifiedReport ? (initialUnifiedReport as any).siteId : '')
+
+    if (!currentSiteId) {
+      setFilteredSites(sites)
+      return
     }
 
-    loadPartnerCompanies()
-  }, [permissions.canViewAdvancedFeatures])
-
-  // Filter sites based on optional partner filter
-  useEffect(() => {
-    const withCurrentSite = (list: any[]): any[] => {
-      const currentSiteId =
-        formData.site_id ||
-        (reportData as any)?.site_id ||
-        (initialUnifiedReport ? (initialUnifiedReport as any).siteId : '')
-      if (!currentSiteId) return Array.isArray(list) ? list : []
-      const normalized = Array.isArray(list) ? [...list] : []
-      const hasSite = normalized.some(site => String(site?.id) === String(currentSiteId))
-      if (hasSite) return normalized
+    const hasSite = sites.some(site => String(site?.id) === String(currentSiteId))
+    if (!hasSite) {
       const fallback = sites.find(site => String(site.id) === String(currentSiteId))
-      if (fallback) normalized.push(fallback)
-      return normalized
-    }
-
-    const filterSites = async () => {
-      if (!siteFilterPartnerId) {
-        setFilteredSites(withCurrentSite(sites))
-        return
+      if (fallback) {
+        setFilteredSites([...sites, fallback])
+      } else {
+        setFilteredSites(sites)
       }
-
-      try {
-        const response = await fetch(
-          `/api/sites/by-partner?partner_company_id=${siteFilterPartnerId}`
-        )
-        if (response.ok) {
-          const partnerSites = await response.json()
-          setFilteredSites(withCurrentSite(partnerSites))
-        } else {
-          console.error('Failed to fetch sites for partner')
-          setFilteredSites(withCurrentSite(sites)) // Fallback to all sites
-        }
-      } catch (error) {
-        console.error('Error fetching partner sites:', error)
-        setFilteredSites(withCurrentSite(sites)) // Fallback to all sites
-      }
+    } else {
+      setFilteredSites(sites)
     }
-
-    filterSites()
-  }, [siteFilterPartnerId, formData.site_id, sites, reportData?.site_id, initialUnifiedReport])
+  }, [sites, formData.site_id, reportData?.site_id, initialUnifiedReport])
 
   // Work content entries
   const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() =>
@@ -711,6 +742,7 @@ export default function DailyReportForm({
         '이름 없는 자재',
       code: material.code || material.material_code || null,
       unit: sanitizeUnitLabel(material.unit || material.unit_name || material.unit_symbol || null),
+      specification: material.specification || material.material_specification || null,
     }),
     []
   )
@@ -1342,35 +1374,47 @@ export default function DailyReportForm({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {!hideHeader && (
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  onClick={() => router.push(getBreadcrumb())}
-                  className="flex items-center gap-2 text-gray-600 hover:text-[#15347C] hover:bg-[#F3F7FA]"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  <span>돌아가기</span>
-                </Button>
-              </div>
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-3 mb-2">
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                onClick={() => router.push(getBreadcrumb())}
+                className="flex items-center gap-2 text-gray-600 hover:text-[#15347C] hover:bg-[#F3F7FA]"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>돌아가기</span>
+              </Button>
+            </div>
+            <div className="text-center">
+              <div className="flex flex-col items-center justify-center gap-1">
+                <div className="flex items-center gap-3">
                   {getRoleIcon()}
                   <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
                 </div>
+                {mode === 'edit' && reportData?.status && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge variant="outline" className="px-2 py-0.5 text-xs font-bold">
+                      상태: {(STATUS_LABEL as any)[reportData.status] || reportData.status}
+                    </Badge>
+                    {reportData.status === 'rejected' && reportData.rejection_reason && (
+                      <span className="text-[11px] text-rose-600 font-medium">
+                        (반려 사유: {reportData.rejection_reason})
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={toggleAllSections} className="text-sm">
-                  {allExpanded ? '모두 접기' : '모두 펼치기'}
-                </Button>
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={toggleAllSections} className="text-sm">
+                {allExpanded ? '모두 접기' : '모두 펼치기'}
+              </Button>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         {error && (
@@ -1431,30 +1475,7 @@ export default function DailyReportForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-              <div>
-                <Label htmlFor="partner_filter">현장 필터 (소속)</Label>
-                <CustomSelect
-                  value={siteFilterPartnerId || 'all'}
-                  onValueChange={value => setSiteFilterPartnerId(value === 'all' ? '' : value)}
-                >
-                  <CustomSelectTrigger>
-                    <CustomSelectValue placeholder="소속으로 현장을 필터링하세요" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    <CustomSelectItem value="all">전체 소속</CustomSelectItem>
-                    {partnerCompanies.map(company => (
-                      <CustomSelectItem key={company.id} value={company.id}>
-                        {company.company_name}
-                      </CustomSelectItem>
-                    ))}
-                  </CustomSelectContent>
-                </CustomSelect>
-                {loadingPartners && (
-                  <p className="text-xs text-gray-500 mt-1">소속 목록을 불러오는 중...</p>
-                )}
-              </div>
-            </div>
+            {/* 현장 필터 (소속) 제거됨 (사용자 피드백 반영) */}
           </CollapsibleSection>
 
           {/* Section 2: 작업 내역 */}
@@ -1469,25 +1490,63 @@ export default function DailyReportForm({
           >
             <div className="space-y-4">
               {workEntries.map((entry, index) => (
-                <div key={entry.id} className="p-4 bg-gray-50 rounded-lg border">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">작업 내역 #{index + 1}</h4>
-                    {workEntries.length > 1 && (
+                <div key={entry.id} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100 flex items-center">
+                      <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">
+                        {index + 1}
+                      </span>
+                      작업 내역 #{index + 1}
+                    </h4>
+                    <div className="flex items-center gap-2">
                       <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setWorkEntries(prev => [
+                            ...prev,
+                            {
+                              id: `work-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+                              memberName: '',
+                              memberNameOther: '',
+                              processType: '',
+                              processTypeOther: '',
+                              workSection: '',
+                              workSectionOther: '',
+                              block: '',
+                              dong: '',
+                              floor: '',
+                              beforePhotos: [],
+                              afterPhotos: [],
+                              beforePhotoPreviews: [],
+                              afterPhotoPreviews: [],
+                            },
+                          ])
+                        }}
+                        className="h-8 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        작업 내역 추가
+                      </Button>
+                      <Button
+                        type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => {
                           setWorkEntries(prev => prev.filter((_, i) => i !== index))
                         }}
-                        className="text-red-600 hover:text-red-800"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title="작업 내역 삭제"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label>부재명</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    {/* 부재명 */}
+                    <div className="space-y-1.5 md:col-span-1">
+                      <Label className="text-xs text-gray-500 font-medium">부재명</Label>
                       <CustomSelect
                         value={entry.memberName}
                         onValueChange={value => {
@@ -1501,8 +1560,8 @@ export default function DailyReportForm({
                           setWorkEntries(newEntries)
                         }}
                       >
-                        <CustomSelectTrigger>
-                          <CustomSelectValue placeholder="부재명 선택" />
+                        <CustomSelectTrigger className="h-9">
+                          <CustomSelectValue placeholder="선택" />
                         </CustomSelectTrigger>
                         <CustomSelectContent>
                           {componentTypes.map(type => (
@@ -1517,8 +1576,8 @@ export default function DailyReportForm({
                       </CustomSelect>
                       {entry.memberName === '기타' && (
                         <Input
-                          className="mt-2"
-                          placeholder="부재명을 직접 입력하세요"
+                          className="mt-2 h-9"
+                          placeholder="직접 입력"
                           value={entry.memberNameOther || ''}
                           onChange={e => {
                             const newEntries = [...workEntries]
@@ -1531,8 +1590,10 @@ export default function DailyReportForm({
                         />
                       )}
                     </div>
-                    <div>
-                      <Label>작업공정</Label>
+
+                    {/* 작업공정 */}
+                    <div className="space-y-1.5 md:col-span-1">
+                      <Label className="text-xs text-gray-500 font-medium">작업공정</Label>
                       <CustomSelect
                         value={entry.processType}
                         onValueChange={value => {
@@ -1546,8 +1607,8 @@ export default function DailyReportForm({
                           setWorkEntries(newEntries)
                         }}
                       >
-                        <CustomSelectTrigger>
-                          <CustomSelectValue placeholder="작업공정 선택" />
+                        <CustomSelectTrigger className="h-9">
+                          <CustomSelectValue placeholder="선택" />
                         </CustomSelectTrigger>
                         <CustomSelectContent>
                           {processTypes.map(type => (
@@ -1562,8 +1623,8 @@ export default function DailyReportForm({
                       </CustomSelect>
                       {entry.processType === '기타' && (
                         <Input
-                          className="mt-2"
-                          placeholder="작업공정을 직접 입력하세요"
+                          className="mt-2 h-9"
+                          placeholder="직접 입력"
                           value={entry.processTypeOther || ''}
                           onChange={e => {
                             const newEntries = [...workEntries]
@@ -1576,46 +1637,128 @@ export default function DailyReportForm({
                         />
                       )}
                     </div>
-                  </div>
-                  <div className="mt-4">
-                    <Label>작업 구간</Label>
-                    <Input
-                      value={entry.workSection}
-                      onChange={e => {
-                        const newEntries = [...workEntries]
-                        newEntries[index] = { ...newEntries[index], workSection: e.target.value }
-                        setWorkEntries(newEntries)
-                      }}
-                      placeholder="작업 구간을 입력하세요"
-                    />
+
+                    {/* 작업 구간 */}
+                    <div className="space-y-1.5 md:col-span-1">
+                      <Label className="text-xs text-gray-500 font-medium">작업 구간</Label>
+                      <CustomSelect
+                        value={entry.workSection}
+                        onValueChange={value => {
+                          const newEntries = [...workEntries]
+                          newEntries[index] = {
+                            ...newEntries[index],
+                            workSection: value,
+                            workSectionOther:
+                              value === '기타' ? newEntries[index].workSectionOther || '' : '',
+                          }
+                          setWorkEntries(newEntries)
+                        }}
+                      >
+                        <CustomSelectTrigger className="h-9">
+                          <CustomSelectValue placeholder="선택" />
+                        </CustomSelectTrigger>
+                        <CustomSelectContent>
+                          <CustomSelectItem value="지하">지하</CustomSelectItem>
+                          <CustomSelectItem value="지상">지상</CustomSelectItem>
+                          <CustomSelectItem value="지붕">지붕</CustomSelectItem>
+                          <CustomSelectItem value="기타">기타</CustomSelectItem>
+                        </CustomSelectContent>
+                      </CustomSelect>
+                      {entry.workSection === '기타' && (
+                        <Input
+                          className="mt-2 h-9"
+                          placeholder="직접 입력"
+                          value={entry.workSectionOther || ''}
+                          onChange={e => {
+                            const newEntries = [...workEntries]
+                            newEntries[index] = {
+                              ...newEntries[index],
+                              workSectionOther: e.target.value,
+                            }
+                            setWorkEntries(newEntries)
+                          }}
+                        />
+                      )}
+                    </div>
+
+                    {/* 블록 */}
+                    <div className="space-y-1.5 md:col-span-1">
+                      <Label className="text-xs text-gray-500 font-medium">블록</Label>
+                      <Input
+                        className="h-9"
+                        value={entry.block}
+                        onChange={e => {
+                          const newEntries = [...workEntries]
+                          newEntries[index] = { ...newEntries[index], block: e.target.value }
+                          setWorkEntries(newEntries)
+                        }}
+                        placeholder="블록"
+                      />
+                    </div>
+
+                    {/* 동 */}
+                    <div className="space-y-1.5 md:col-span-1">
+                      <Label className="text-xs text-gray-500 font-medium">동</Label>
+                      <Input
+                        className="h-9"
+                        value={entry.dong}
+                        onChange={e => {
+                          const newEntries = [...workEntries]
+                          newEntries[index] = { ...newEntries[index], dong: e.target.value }
+                          setWorkEntries(newEntries)
+                        }}
+                        placeholder="동"
+                      />
+                    </div>
+
+                    {/* 층 */}
+                    <div className="space-y-1.5 md:col-span-1">
+                      <Label className="text-xs text-gray-500 font-medium">층</Label>
+                      <Input
+                        className="h-9"
+                        value={entry.floor}
+                        onChange={e => {
+                          const newEntries = [...workEntries]
+                          newEntries[index] = { ...newEntries[index], floor: e.target.value }
+                          setWorkEntries(newEntries)
+                        }}
+                        placeholder="층"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setWorkEntries(prev => [
-                    ...prev,
-                    {
-                      id: `work-${Date.now()}`,
-                      memberName: '',
-                      memberNameOther: '',
-                      processType: '',
-                      processTypeOther: '',
-                      workSection: '',
-                      beforePhotos: [],
-                      afterPhotos: [],
-                      beforePhotoPreviews: [],
-                      afterPhotoPreviews: [],
-                    },
-                  ])
-                }}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                작업 내역 추가
-              </Button>
+
+              {workEntries.length === 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setWorkEntries([
+                      {
+                        id: `work-${Date.now()}`,
+                        memberName: '',
+                        memberNameOther: '',
+                        processType: '',
+                        processTypeOther: '',
+                        workSection: '',
+                        workSectionOther: '',
+                        block: '',
+                        dong: '',
+                        floor: '',
+                        beforePhotos: [],
+                        afterPhotos: [],
+                        beforePhotoPreviews: [],
+                        afterPhotoPreviews: [],
+                      },
+                    ])
+                  }}
+                  className="w-full h-12 border-dashed"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  작업 내역 추가
+                </Button>
+              )}
             </div>
           </CollapsibleSection>
 
@@ -1633,7 +1776,7 @@ export default function DailyReportForm({
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600">
-                    등록된 작업자:{' '}
+                    작업인원:{' '}
                     <span className="font-semibold text-gray-900">{workerEntries.length}</span>명
                   </div>
                   <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600">
@@ -1647,71 +1790,139 @@ export default function DailyReportForm({
                 {workerEntries.map((entry, index) => (
                   <div key={entry.id} className="p-4 bg-gray-50 rounded-lg border">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-900">작업자 #{index + 1}</h4>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setWorkerEntries(prev => prev.filter((_, i) => i !== index))
-                        }}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <h4 className="font-medium text-gray-900 flex items-center">
+                        <span className="bg-slate-100 text-slate-700 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">
+                          {index + 1}
+                        </span>
+                        작업자 #{index + 1}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setWorkerEntries(prev => [
+                              ...prev,
+                              {
+                                id: `worker-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+                                worker_id: '',
+                                labor_hours: defaultLaborHour,
+                                worker_name: '',
+                                is_direct_input: false,
+                              },
+                            ])
+                          }}
+                          className="h-8 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                        >
+                          <Plus className="h-3.5 w-3.5 mr-1" />
+                          작업자 추가
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setWorkerEntries(prev => prev.filter((_, i) => i !== index))
+                          }}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          title="작업자 삭제"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label>작업자 선택</Label>
-                        <CustomSelect
-                          value={entry.is_direct_input ? 'direct' : entry.worker_id || ''}
-                          onValueChange={value => {
-                            const newEntries = [...workerEntries]
-                            const isDirect = value === 'direct'
-                            const selectedWorker = workers.find(worker => worker.id === value)
-                            newEntries[index] = {
-                              ...newEntries[index],
-                              worker_id: isDirect ? '' : value,
-                              worker_name: isDirect
-                                ? ''
-                                : selectedWorker?.full_name || newEntries[index].worker_name || '',
-                              is_direct_input: isDirect,
-                            }
-                            setWorkerEntries(newEntries)
-                          }}
-                        >
-                          <CustomSelectTrigger>
-                            <CustomSelectValue placeholder="작업자 선택" />
-                          </CustomSelectTrigger>
-                          <CustomSelectContent>
-                            <CustomSelectItem value="direct">직접 입력</CustomSelectItem>
-                            {workers.map(worker => (
-                              <CustomSelectItem key={worker.id} value={worker.id}>
-                                {worker.full_name}
-                              </CustomSelectItem>
-                            ))}
-                          </CustomSelectContent>
-                        </CustomSelect>
-                      </div>
-                      {entry.is_direct_input && (
-                        <div>
-                          <Label>작업자 이름</Label>
-                          <Input
-                            value={entry.worker_name || ''}
-                            onChange={e => {
+                      {/* 작업자 선택 (드롭다운 + 직접 입력 통합) */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500 font-medium">작업자 선택</Label>
+                        {entry.is_direct_input ? (
+                          <div className="flex gap-2">
+                            <Input
+                              className="h-9 flex-1"
+                              value={entry.worker_name || ''}
+                              onChange={e => {
+                                const newEntries = [...workerEntries]
+                                newEntries[index] = {
+                                  ...newEntries[index],
+                                  worker_name: e.target.value,
+                                }
+                                setWorkerEntries(newEntries)
+                              }}
+                              placeholder="이름 직접 입력"
+                              autoFocus
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-9 px-2 text-gray-400 hover:text-gray-600"
+                              onClick={() => {
+                                const newEntries = [...workerEntries]
+                                newEntries[index] = {
+                                  ...newEntries[index],
+                                  is_direct_input: false,
+                                  worker_id: '',
+                                }
+                                setWorkerEntries(newEntries)
+                              }}
+                              title="목록에서 선택"
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <CustomSelect
+                            value={entry.worker_id || ''}
+                            onValueChange={value => {
                               const newEntries = [...workerEntries]
-                              newEntries[index] = {
-                                ...newEntries[index],
-                                worker_name: e.target.value,
-                                is_direct_input: true,
+                              if (value === 'direct') {
+                                newEntries[index] = {
+                                  ...newEntries[index],
+                                  is_direct_input: true,
+                                  worker_id: '',
+                                  worker_name: '',
+                                }
+                              } else {
+                                const selectedWorker = workers.find(w => w.id === value)
+                                newEntries[index] = {
+                                  ...newEntries[index],
+                                  worker_id: value,
+                                  worker_name: selectedWorker?.full_name || '',
+                                  is_direct_input: false,
+                                }
                               }
                               setWorkerEntries(newEntries)
                             }}
-                            placeholder="작업자 이름을 입력하세요"
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <Label>공수</Label>
+                          >
+                            <CustomSelectTrigger className="h-9">
+                              <CustomSelectValue placeholder="작업자 선택" />
+                            </CustomSelectTrigger>
+                            <CustomSelectContent>
+                              <CustomSelectItem
+                                value="direct"
+                                className="text-blue-600 font-medium border-b border-gray-100"
+                              >
+                                <Plus className="h-3 w-3 mr-1 inline" /> 직접 입력 (명단에 없음)
+                              </CustomSelectItem>
+                              {workers.map(worker => (
+                                <CustomSelectItem key={worker.id} value={worker.id}>
+                                  <div className="flex items-center justify-between w-full gap-2">
+                                    <span>{worker.full_name}</span>
+                                    <span className="text-[10px] text-gray-400 bg-gray-100 px-1 rounded">
+                                      {worker.role === 'site_manager' ? '현장관리자' : '작업자'}
+                                    </span>
+                                  </div>
+                                </CustomSelectItem>
+                              ))}
+                            </CustomSelectContent>
+                          </CustomSelect>
+                        )}
+                      </div>
+
+                      {/* 공수 선택 */}
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-gray-500 font-medium">공수 (Man-day)</Label>
                         <CustomSelect
                           value={
                             isAllowedLaborHourValue(entry.labor_hours)
@@ -1727,8 +1938,8 @@ export default function DailyReportForm({
                             setWorkerEntries(newEntries)
                           }}
                         >
-                          <CustomSelectTrigger>
-                            <CustomSelectValue placeholder="공수를 선택하세요" />
+                          <CustomSelectTrigger className="h-9">
+                            <CustomSelectValue placeholder="선택" />
                           </CustomSelectTrigger>
                           <CustomSelectContent>
                             {allowedLaborHours.map(option => {
@@ -1745,26 +1956,27 @@ export default function DailyReportForm({
                     </div>
                   </div>
                 ))}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setWorkerEntries(prev => [
-                      ...prev,
-                      {
-                        id: `worker-${Date.now()}`,
-                        worker_id: '',
-                        labor_hours: defaultLaborHour,
-                        worker_name: '',
-                        is_direct_input: false,
-                      },
-                    ])
-                  }}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  작업자 추가
-                </Button>
+                {workerEntries.length === 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setWorkerEntries([
+                        {
+                          id: `worker-${Date.now()}`,
+                          worker_id: '',
+                          labor_hours: defaultLaborHour,
+                          worker_name: '',
+                          is_direct_input: false,
+                        },
+                      ])
+                    }}
+                    className="w-full h-12 border-dashed"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    작업자 추가
+                  </Button>
+                )}
               </div>
             </CollapsibleSection>
           )}
@@ -1772,7 +1984,7 @@ export default function DailyReportForm({
           {/* Section 4: 자재 사용 현황 (고급 기능) */}
           {permissions.canViewAdvancedFeatures && (
             <CollapsibleSection
-              title="자재 사용 현황"
+              title="자재 사용 내역"
               icon={Package}
               isExpanded={expandedSections.materials}
               onToggle={() => toggleSection('materials')}
@@ -1829,113 +2041,122 @@ export default function DailyReportForm({
                             <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-600">
                               {index + 1}
                             </span>
-                            <span>
-                              {entry.materialName
-                                ? entry.materialName
-                                : selectedOption?.name || '자재 미지정'}
-                            </span>
+                            <span>자재 내역 #{index + 1}</span>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-slate-500 hover:text-red-600"
-                            onClick={() => handleRemoveMaterial(entry.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => handleRemoveMaterial(entry.id)}
+                              title="자재 삭제"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={addMaterialEntry}
+                              className="h-8 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-1" />
+                              자재 추가
+                            </Button>
+                          </div>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label>자재 선택</Label>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          {/* 자재 선택 */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 font-medium">자재 선택</Label>
                             <CustomSelect
                               value={selectValue}
                               onValueChange={value => handleMaterialSelect(entry.id, value)}
                             >
-                              <CustomSelectTrigger className="w-full">
-                                <CustomSelectValue
-                                  placeholder="자재를 선택하세요"
-                                  className="truncate"
-                                />
+                              <CustomSelectTrigger className="h-9 w-full">
+                                <CustomSelectValue placeholder="자재 선택" className="truncate" />
                               </CustomSelectTrigger>
                               <CustomSelectContent>
                                 <CustomSelectItem value="__unset__">선택 안 함</CustomSelectItem>
                                 {materialOptionsState.map(option => (
                                   <CustomSelectItem key={option.id} value={option.id}>
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">{option.name}</span>
+                                    <div className="flex flex-col py-0.5">
+                                      <div className="flex items-center justify-between gap-4">
+                                        <span className="font-medium">{option.name}</span>
+                                        {option.code && (
+                                          <span className="text-[10px] bg-slate-100 text-slate-500 px-1 rounded font-mono">
+                                            {option.code}
+                                          </span>
+                                        )}
+                                      </div>
+                                      {option.specification && (
+                                        <span className="text-[10px] text-slate-400 truncate">
+                                          {option.specification}
+                                        </span>
+                                      )}
                                     </div>
                                   </CustomSelectItem>
                                 ))}
                               </CustomSelectContent>
                             </CustomSelect>
-                            <p className="text-xs text-muted-foreground">
-                              자재관리 도구에서 활성화된 자재만 목록에 표시됩니다.
-                            </p>
                           </div>
-                          <div className="space-y-2">
-                            <Label>자재명</Label>
-                            <Input
-                              value={entry.materialName}
-                              readOnly
-                              placeholder="자재를 선택하세요"
-                              className="bg-muted/50 cursor-not-allowed"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label>사용량</Label>
-                            <Input
-                              type="number"
-                              inputMode="decimal"
-                              value={entry.quantity}
-                              onChange={e => handleMaterialQuantityChange(entry.id, e.target.value)}
-                              placeholder="예: 12.5"
-                              className={cn(
-                                exceedsInventory &&
-                                  'border-destructive text-destructive focus-visible:ring-destructive'
-                              )}
-                              aria-invalid={exceedsInventory || undefined}
-                            />
-                            <div className="text-xs text-muted-foreground">
-                              {materialInventoryLoading ? (
-                                '현장 재고를 확인하는 중입니다...'
-                              ) : inventoryInfo ? (
-                                <span
-                                  className={cn(
-                                    inventoryInfo.quantity <= 0 && 'text-destructive font-medium'
-                                  )}
-                                >
-                                  현재 재고{' '}
-                                  <strong>
-                                    {inventoryInfo.quantity.toLocaleString()}
-                                    {inventoryInfo.unit ? ` ${inventoryInfo.unit}` : ''}
-                                  </strong>
-                                  {typeof inventoryInfo.minimum === 'number'
-                                    ? ` / 최소 ${inventoryInfo.minimum.toLocaleString()}`
-                                    : ''}
-                                </span>
-                              ) : materialInventoryError ? (
-                                <span className="text-muted-foreground">
-                                  {materialInventoryError}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground">재고 정보 없음</span>
-                              )}
-                              {exceedsInventory && (
-                                <span className="mt-1 block text-destructive font-medium">
-                                  입력 수량이 현재 재고를 초과합니다.
-                                </span>
-                              )}
+
+                          {/* 사용량 */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 font-medium">사용량</Label>
+                            <div className="space-y-1">
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                className={cn(
+                                  'h-9',
+                                  exceedsInventory &&
+                                    'border-destructive text-destructive focus-visible:ring-destructive'
+                                )}
+                                value={entry.quantity}
+                                onChange={e =>
+                                  handleMaterialQuantityChange(entry.id, e.target.value)
+                                }
+                                placeholder="0.0"
+                                aria-invalid={exceedsInventory || undefined}
+                              />
+                              <div className="text-[10px] leading-tight flex flex-col gap-0.5">
+                                {materialInventoryLoading ? (
+                                  <span className="text-gray-400">재고 확인 중...</span>
+                                ) : inventoryInfo ? (
+                                  <span
+                                    className={cn(
+                                      'text-gray-500',
+                                      inventoryInfo.quantity <= 0 && 'text-red-500 font-medium'
+                                    )}
+                                  >
+                                    재고: {inventoryInfo.quantity.toLocaleString()}{' '}
+                                    {inventoryInfo.unit || ''}
+                                  </span>
+                                ) : materialInventoryError ? (
+                                  <span className="text-gray-400">
+                                    에러: {materialInventoryError}
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">재고 정보 없음</span>
+                                )}
+                                {exceedsInventory && (
+                                  <span className="text-red-500 font-bold italic">재고 초과!</span>
+                                )}
+                              </div>
                             </div>
                           </div>
-                          <div className="space-y-2">
-                            <Label>단위</Label>
+
+                          {/* 단위 */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 font-medium">단위</Label>
                             <CustomSelect
                               value={entry.unit || DEFAULT_MATERIAL_UNIT}
                               onValueChange={value => handleMaterialUnitChange(entry.id, value)}
                             >
-                              <CustomSelectTrigger className="w-full">
-                                <CustomSelectValue placeholder="단위를 선택하세요" />
+                              <CustomSelectTrigger className="h-9 w-full">
+                                <CustomSelectValue placeholder="단위" />
                               </CustomSelectTrigger>
                               <CustomSelectContent>
                                 {materialUnitOptions.map(option => (
@@ -1946,13 +2167,15 @@ export default function DailyReportForm({
                               </CustomSelectContent>
                             </CustomSelect>
                           </div>
-                          <div className="space-y-2 md:col-span-2">
-                            <Label>비고</Label>
-                            <Textarea
+
+                          {/* 비고 */}
+                          <div className="space-y-1.5">
+                            <Label className="text-xs text-gray-500 font-medium">비고 (메모)</Label>
+                            <Input
+                              className="h-9"
                               value={entry.notes ?? ''}
                               onChange={e => handleMaterialNoteChange(entry.id, e.target.value)}
-                              placeholder="자재 사용 관련 특이사항이나 메모를 입력하세요"
-                              rows={2}
+                              placeholder="특이사항 입력"
                             />
                           </div>
                         </div>
@@ -1961,15 +2184,19 @@ export default function DailyReportForm({
                   })
                 )}
 
-                <div className="flex flex-col gap-2">
-                  <Button type="button" variant="outline" onClick={addMaterialEntry}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    자재 추가
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    자재 목록은 본사 관리자 &gt; 자재 관리 &gt; 기초 마스터에서 관리할 수 있습니다.
-                  </p>
-                </div>
+                {materialUsageEntries.length === 0 && (
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addMaterialEntry}
+                      className="h-12 border-dashed"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      자재 추가
+                    </Button>
+                  </div>
+                )}
               </div>
             </CollapsibleSection>
           )}
@@ -1988,152 +2215,6 @@ export default function DailyReportForm({
               onPhotosChange={setAdditionalPhotos}
             />
           </CollapsibleSection>
-
-          {/* Section 7: 본사 요청사항 */}
-          <CollapsibleSection
-            title="본사 요청사항"
-            icon={MessageSquare}
-            isExpanded={expandedSections.requests}
-            onToggle={() => toggleSection('requests')}
-            permissions={permissions}
-          >
-            <div>
-              <Label>요청사항</Label>
-              <Textarea
-                value={formData.hq_request || ''}
-                onChange={e => setFormData(prev => ({ ...prev, hq_request: e.target.value }))}
-                placeholder="본사에 전달할 요청사항이 있으면 입력하세요"
-                rows={4}
-              />
-            </div>
-          </CollapsibleSection>
-
-          {permissions.isAdmin && (
-            <CollapsibleSection
-              title="관리자 전용 기능"
-              icon={Shield}
-              isExpanded={expandedSections.adminFeatures}
-              onToggle={() => toggleSection('adminFeatures')}
-              adminOnly={true}
-              permissions={permissions}
-            >
-              <div className="space-y-4">
-                <div className="p-4 bg-[rgba(141,160,205,0.15)] border border-[#8DA0CD] rounded-lg">
-                  <h4 className="font-medium text-[#1B419C] mb-3">관리자 권한 기능</h4>
-                  <div className="space-y-2 text-sm text-[#5F7AB9]">
-                    <p className="font-medium">
-                      이 섹션은 관리자(admin/system_admin)만 사용 가능합니다.
-                    </p>
-
-                    <div className="mt-2 space-y-1">
-                      <p className="font-medium text-[#15347C]">📋 주요 기능:</p>
-                      <ul className="ml-4 space-y-1 list-disc">
-                        <li>
-                          <strong>작성자 이름 수정:</strong> 다른 사람을 대신하여 작업일지 작성 가능
-                        </li>
-                        <li>
-                          <strong>총 작업자 수:</strong> 전체 현장 인원 수를 수동으로 조정 (급여
-                          계산에 반영)
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div className="mt-2 space-y-1">
-                      <p className="font-medium text-[#15347C]">🎯 사용 목적:</p>
-                      <ul className="ml-4 space-y-1 list-disc">
-                        <li>현장 작업자가 직접 작성하지 못한 경우 대리 작성</li>
-                        <li>잘못 입력된 정보의 수정 및 보정</li>
-                        <li>특수 상황에서의 유연한 대처</li>
-                      </ul>
-                    </div>
-
-                    <p className="mt-2 text-xs text-[#8DA0CD] italic">
-                      ※ 추후 승인 프로세스, 일괄 처리 등 추가 기능이 확장될 예정입니다.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>작성자 (수정 가능)</Label>
-                    <CustomSelect
-                      value={createdByUserId}
-                      onValueChange={val => {
-                        setCreatedByUserId(val)
-                        const selected = userOptions.find(u => u.id === val)
-                        setFormData(prev => ({ ...prev, created_by: selected?.name || '' }))
-                      }}
-                    >
-                      <CustomSelectTrigger className="border-[#8DA0CD]">
-                        <CustomSelectValue placeholder="사용자 리스트" />
-                      </CustomSelectTrigger>
-                      <CustomSelectContent>
-                        {userOptions.map(u => (
-                          <CustomSelectItem key={u.id} value={u.id}>
-                            {u.name}
-                          </CustomSelectItem>
-                        ))}
-                      </CustomSelectContent>
-                    </CustomSelect>
-                    <p className="text-xs text-gray-500 mt-1">
-                      다른 작업자를 대신하여 작성 시 사용
-                    </p>
-                  </div>
-                  <div>
-                    <Label>총 작업자 수</Label>
-                    <Input
-                      type="number"
-                      value={formData.total_workers || 0}
-                      onChange={e =>
-                        setFormData(prev => ({ ...prev, total_workers: Number(e.target.value) }))
-                      }
-                      placeholder="총 작업자 수"
-                      className="border-[#8DA0CD] focus:border-[#5F7AB9]"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">현장 전체 인원 수 (급여 계산 기준)</p>
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>총 공수</Label>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={formData.total_labor_hours ?? 0}
-                        onChange={e =>
-                          setFormData(prev => ({
-                            ...prev,
-                            total_labor_hours: Number(e.target.value),
-                          }))
-                        }
-                        placeholder="총 공수"
-                        className="border-[#8DA0CD] focus:border-[#5F7AB9]"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          setFormData(prev => ({
-                            ...prev,
-                            total_labor_hours: Number(totalLaborHoursFromEntries.toFixed(2)),
-                          }))
-                        }
-                        className="border-[#8DA0CD] text-[#1B419C]"
-                      >
-                        공수 합계 반영
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      현재 작업자 공수 합계:{' '}
-                      <span className="font-semibold text-gray-700">
-                        {totalLaborHoursFromEntries.toFixed(2)}
-                      </span>{' '}
-                      공수
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CollapsibleSection>
-          )}
         </div>
 
         {/* Submit Buttons - Enhanced with role-based styling */}
@@ -2149,44 +2230,126 @@ export default function DailyReportForm({
           )}
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.push(getBreadcrumb())}
-              disabled={loading}
-              className="min-w-[80px]"
-            >
-              취소
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleSubmit(true)}
-              disabled={loading}
-              className="min-w-[120px] border-[#8DA0CD] text-[#5F7AB9] hover:bg-[#F3F7FA]"
-            >
-              {loading && loadingType === 'draft' ? '저장 중...' : '임시 저장'}
-            </Button>
-            <Button
-              type="button"
-              onClick={() => handleSubmit(false)}
-              disabled={loading}
-              className={cn(
-                'min-w-[160px] font-semibold text-white',
-                permissions.isAdmin
-                  ? 'bg-gradient-to-r from-[#1B419C] to-[#15347C] hover:from-[#15347C] hover:to-[#1B419C]'
-                  : permissions.isSiteManager
-                    ? 'bg-gradient-to-r from-[#FF461C] to-[#E62C00] hover:from-[#E62C00] hover:to-[#FF461C]'
-                    : 'bg-gradient-to-r from-[#8DA0CD] to-[#5F7AB9] hover:from-[#5F7AB9] hover:to-[#8DA0CD]'
-              )}
-            >
-              {loading && loadingType === 'submit'
-                ? '처리 중...'
-                : mode === 'create'
-                  ? '작업일지 제출'
-                  : '수정사항 저장'}
-            </Button>
+          <div className="flex flex-col gap-4">
+            {rejecting && (
+              <div className="mb-4 p-4 border rounded-lg bg-rose-50/30">
+                <Label className="text-rose-700 font-bold mb-2 block">반려 사유 입력</Label>
+                <Textarea
+                  value={rejectionReason}
+                  onChange={e => setRejectionReason(e.target.value)}
+                  placeholder="반려 사유를 입력하세요"
+                  className="bg-white mb-3"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setRejecting(false)
+                      setRejectionReason('')
+                    }}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={!rejectionReason.trim() || approvalLoading}
+                    onClick={() => handleStatusChange('reject', rejectionReason)}
+                  >
+                    반려 처리
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                {permissions.isAdmin && mode === 'edit' && (
+                  <>
+                    {(reportData?.status === 'submitted' || reportData?.status === 'rejected') && (
+                      <Button
+                        type="button"
+                        className="bg-emerald-600 text-white hover:bg-emerald-700 min-w-[100px]"
+                        disabled={approvalLoading || rejecting}
+                        onClick={() => handleStatusChange('approve')}
+                      >
+                        {approvalLoading && !rejecting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Check className="mr-2 h-4 w-4" />
+                        )}
+                        승인
+                      </Button>
+                    )}
+                    {reportData?.status === 'submitted' && !rejecting && (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        className="min-w-[100px]"
+                        disabled={approvalLoading}
+                        onClick={() => setRejecting(true)}
+                      >
+                        <X className="mr-2 h-4 w-4" />
+                        반려
+                      </Button>
+                    )}
+                    {(reportData?.status === 'approved' || reportData?.status === 'rejected') && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="min-w-[100px]"
+                        disabled={approvalLoading}
+                        onClick={() => handleStatusChange('revert')}
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        상태 초기화
+                      </Button>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="flex justify-end gap-3 flex-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.push(getBreadcrumb())}
+                  disabled={loading}
+                  className="min-w-[80px]"
+                >
+                  취소
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleSubmit(true)}
+                  disabled={loading}
+                  className="min-w-[120px] border-[#8DA0CD] text-[#5F7AB9] hover:bg-[#F3F7FA]"
+                >
+                  {loading && loadingType === 'draft' ? '저장 중...' : '임시 저장'}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleSubmit(false)}
+                  disabled={loading}
+                  className={cn(
+                    'min-w-[160px] font-semibold text-white',
+                    permissions.isAdmin
+                      ? 'bg-gradient-to-r from-[#1B419C] to-[#15347C] hover:from-[#15347C] hover:to-[#1B419C]'
+                      : permissions.isSiteManager
+                        ? 'bg-gradient-to-r from-[#FF461C] to-[#E62C00] hover:from-[#E62C00] hover:to-[#FF461C]'
+                        : 'bg-gradient-to-r from-[#8DA0CD] to-[#5F7AB9] hover:from-[#5F7AB9] hover:to-[#8DA0CD]'
+                  )}
+                >
+                  {loading && loadingType === 'submit'
+                    ? '처리 중...'
+                    : mode === 'create'
+                      ? '작업일지 제출'
+                      : '수정사항 저장'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

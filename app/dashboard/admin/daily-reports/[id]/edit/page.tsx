@@ -1,17 +1,19 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { PageHeader } from '@/components/ui/page-header'
 import { ToggleAllSectionsButton } from '@/components/daily-reports/ToggleAllSectionsButton'
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
-import { unifiedReportToLegacyPayload } from '@/lib/daily-reports/unified'
+import { PageHeader } from '@/components/ui/page-header'
 import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
+import { unifiedReportToLegacyPayload } from '@/lib/daily-reports/unified'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { Profile } from '@/types'
+import { redirect } from 'next/navigation'
 
 async function fetchSites(preferredSiteId?: string) {
   const supabase = createClient()
-  let query = supabase.from('sites').select('id, name, status')
+  let query = supabase
+    .from('sites')
+    .select('id, name, status, organization_id, organizations(name)')
 
   if (preferredSiteId) {
     query = query.or(`status.eq.active,id.eq.${preferredSiteId}`)

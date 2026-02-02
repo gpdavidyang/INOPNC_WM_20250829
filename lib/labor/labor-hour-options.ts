@@ -2,7 +2,7 @@ export const FALLBACK_LABOR_HOUR_OPTIONS: ReadonlyArray<number> = Object.freeze(
   0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5,
 ])
 
-export const FALLBACK_LABOR_HOUR_DEFAULT = 0.5
+export const FALLBACK_LABOR_HOUR_DEFAULT = 1.0
 
 export const calculateWorkerCount = (manpower: number): number => {
   if (!Number.isFinite(manpower) || manpower <= 0) return 0

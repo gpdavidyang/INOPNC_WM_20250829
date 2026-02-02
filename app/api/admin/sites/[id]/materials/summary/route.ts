@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -40,9 +40,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
           material_id,
           current_stock,
           minimum_stock,
-          maximum_stock,
           updated_at,
-          created_at,
           materials:materials(
             name,
             code,
@@ -59,7 +57,6 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         .select(
           `
           id,
-          shipment_number,
           status,
           shipment_date,
           site_id,
@@ -100,11 +97,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
         material_id: row.material_id || null,
         quantity,
         minimum_stock: minimum,
-        maximum_stock:
-          row.maximum_stock === null || row.maximum_stock === undefined
-            ? null
-            : Number(row.maximum_stock),
-        last_updated: row.updated_at || row.created_at || null,
+        maximum_stock: null,
+        last_updated: row.updated_at || null,
         status,
         materials: {
           name: mat.name || '',

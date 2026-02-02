@@ -95,9 +95,22 @@ export default function AdminDrawingManagementContent({
 
   // Reset tab when report changes
   useEffect(() => {
-    setActiveTab('list')
+    const tabParam = searchParams.get('tab')
+    if (tabParam && ['list', 'upload', 'markup'].includes(tabParam)) {
+      setActiveTab(tabParam)
+    } else {
+      setActiveTab('list')
+    }
     setEditingDocument(null)
-  }, [selectedReportId])
+  }, [selectedReportId, searchParams])
+
+  // Initialize selected report from URL
+  useEffect(() => {
+    const reportIdParam = searchParams.get('report_id')
+    if (reportIdParam && !selectedReportId) {
+      setSelectedReportId(reportIdParam)
+    }
+  }, [searchParams, selectedReportId])
 
   useEffect(() => {
     setReports(initialReports)
