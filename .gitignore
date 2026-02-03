@@ -267,3 +267,4 @@ images_worklog/
 .vercel
 ## Large local memo zips
 dy_memo/**/*.zip
+dy_memo_bak/
