@@ -1,4 +1,4 @@
-import { createServiceClient } from '@/lib/supabase/service'
+import { normalizeLaborUnit } from '@/lib/labor/labor-hour-options'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export interface SiteStatsResult {
@@ -40,9 +40,9 @@ export async function computeSiteStats(
   // Batch query with basic counts and totals
   const { data: rows, error } = await supabase
     .from('daily_reports')
-    .select('site_id, total_labor_hours')
+    .select('site_id, status, man_days, total_labor_hours, total_workers, work_content')
     .in('site_id', siteIds)
-    .eq('is_deleted', false)
+    .in('status', ['submitted', 'approved'])
 
   if (error) {
     console.error('[site-stats] daily_reports query error:', error)
@@ -54,10 +54,13 @@ export async function computeSiteStats(
     const sid = String((row as any)?.site_id)
     if (!sid || !stats[sid]) continue
 
+    // Count all submitted/approved reports as "Reports"
     stats[sid].daily_reports_count += 1
 
-    // Complex labor calculation logic remains same for accuracy but input is minimized
-    stats[sid].total_labor_hours += calculateReportManDays(row)
+    // Calculate Labor ONLY for Approved reports
+    if ((row as any).status === 'approved') {
+      stats[sid].total_labor_hours += calculateReportManDays(row)
+    }
   }
 
   Object.keys(stats).forEach(id => {
@@ -75,7 +78,13 @@ export const calculateReportManDays = (row: any): number => {
     return contentManDays
   }
 
-  // 2. Fallback to total_labor_hours column (Data may be mixed units)
+  // 2. New: Check man_days column (Migrated Source)
+  const md = Number(row?.man_days)
+  if (Number.isFinite(md) && md > 0) {
+    return md
+  }
+
+  // 3. Fallback to total_labor_hours column (Deprecated, mixed units)
   const val = Number(row?.total_labor_hours)
   if (Number.isFinite(val) && val > 0) {
     // Heuristic:
@@ -83,8 +92,7 @@ export const calculateReportManDays = (row: any): number => {
     // - New data (man-days): values like 0.5, 1.0, 1.5, 2.0
     // If value >= 8, assume it's HOURS (legacy) and divide by 8
     // If value < 8, assume it's MAN-DAYS (new) and use as is
-    // Note: If new data has >8 man-days (e.g. big team), work_content would have caught it in step 1.
-    return val >= 8 ? val / 8 : val
+    return normalizeLaborUnit(val)
   }
 
   // 3. Fallback to worker count
@@ -123,14 +131,13 @@ export const extractManpowerFromContent = (raw: unknown): number => {
     // 1. New data format: 'labor_hours' (Man-Days unit, e.g. 1.0)
     // Recent daily report forms save 'labor_hours' in the JSON.
     if (worker?.labor_hours !== undefined) {
-      const val = Number(worker.labor_hours)
-      return Number.isFinite(val) ? sum + val : sum
+      return sum + normalizeLaborUnit(Number(worker.labor_hours))
     }
 
     // 2. Legacy data format: 'hours' or 'work_hours' (Hours unit, e.g. 8)
     const hours = Number(worker?.hours ?? worker?.work_hours)
     if (Number.isFinite(hours) && hours > 0) {
-      return sum + hours / 8
+      return sum + normalizeLaborUnit(hours)
     }
 
     // 3. Fallback: 1 Man-Day per worker if no time info

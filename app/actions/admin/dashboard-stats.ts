@@ -169,7 +169,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
             created_at,
             status,
             site_id,
-            profiles:profiles!daily_reports_created_by_fkey(full_name),
+            created_by_profile:profiles!daily_reports_created_by_fkey(full_name),
             site:sites(name, organization_id)
           `
           )
@@ -249,8 +249,8 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
           created_at,
           status,
           site_id,
-          profiles:profiles!photo_sheets_created_by_fkey(full_name, organization_id),
-          site:sites!photo_sheets_site_id_fkey(name, organization_id)
+          profiles(full_name, organization_id),
+          site:sites(name, organization_id)
         `
         )
         .order('created_at', { ascending: false })

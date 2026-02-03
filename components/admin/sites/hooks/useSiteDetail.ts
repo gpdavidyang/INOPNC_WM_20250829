@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface UseSiteDetailProps {
   siteId: string
@@ -117,13 +117,35 @@ export function useSiteDetail({
 
   // Fetch assignments with filter/sort (Always needed if filter changes)
   const isFirstMount = useRef(true)
+
+  // Helper to fetch labor for a list of assignments
+  const fetchLaborForAssignments = async (assignments: any[]) => {
+    const ids = assignments.map((a: any) => a.user_id).filter(Boolean)
+    if (ids.length === 0) return
+
+    try {
+      const laborRes = await fetch(
+        `/api/admin/sites/${siteId}/labor-summary?users=${encodeURIComponent(ids.join(','))}`
+      )
+      const laborJson = await laborRes.json()
+      if (laborJson?.success) setLaborByUser(prev => ({ ...prev, ...laborJson.data }))
+
+      const globalRes = await fetch(
+        `/api/admin/users/labor-summary?users=${encodeURIComponent(ids.join(','))}`
+      )
+      const globalJson = await globalRes.json()
+      if (globalJson?.success) setGlobalLaborByUser(prev => ({ ...prev, ...globalJson.data }))
+    } catch (e) {
+      console.error('Failed to fetch labor summaries', e)
+    }
+  }
+
   useEffect(() => {
     if (isFirstMount.current && initialAssignments?.length > 0) {
       isFirstMount.current = false
-      // Even if we have initial assignments, we might need to fetch labor summary
-      // but let's avoid the first big fetch if initial data matches default filters
+      // Even if we have initial assignments, we MUST fetch labor summary
       if (!assignmentQuery && assignmentSort === 'date_desc' && assignmentRole === 'all') {
-        // Optionally fetch labor summary for initial ones if not included in SSR
+        fetchLaborForAssignments(initialAssignments)
         return
       }
     }
@@ -170,21 +192,8 @@ export function useSiteDetail({
           if (typeof json.total === 'number') setAssignTotal(json.total)
 
           // Fetch labor summary for these users
-          const ids = arr.map((a: any) => a.user_id).filter(Boolean)
-          if (ids.length > 0) {
-            const laborRes = await fetch(
-              `/api/admin/sites/${siteId}/labor-summary?users=${encodeURIComponent(ids.join(','))}`,
-              { cache: 'no-store' }
-            )
-            const laborJson = await laborRes.json()
-            if (active && laborJson?.success) setLaborByUser(laborJson.data)
-
-            const globalLaborRes = await fetch(
-              `/api/admin/users/labor-summary?users=${encodeURIComponent(ids.join(','))}`,
-              { cache: 'no-store' }
-            )
-            const globalLaborJson = await globalLaborRes.json()
-            if (active && globalLaborJson?.success) setGlobalLaborByUser(globalLaborJson.data)
+          if (active) {
+            await fetchLaborForAssignments(arr)
           }
         }
       } finally {

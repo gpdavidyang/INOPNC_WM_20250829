@@ -5,7 +5,7 @@ import { mergeWorkers } from '@/lib/daily-reports/merge-workers'
 import { AppError, ErrorType } from '@/lib/error-handling'
 import { notifyDailyReportApproved, notifyDailyReportRejected } from '@/lib/notifications/triggers'
 
-import { calculateWorkerCount } from '@/lib/labor/labor-hour-options'
+import { calculateWorkerCount, normalizeLaborUnit } from '@/lib/labor/labor-hour-options'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { DailyReport } from '@/types'
 import type { Database } from '@/types/database'
@@ -379,11 +379,11 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
         : null
 
       // Resolve workers from DB summary columns (Database-based approach)
-      let workerCount =
-        Number(r.total_workers) ||
-        calculateWorkerCount((Number(r.total_labor_hours) || Number(r.total_hours) || 0) / 8)
       let totalManhours =
         Number((r as any).total_labor_hours) || Number((r as any).total_hours) || 0
+
+      let workerCount =
+        Number(r.total_workers) || calculateWorkerCount(normalizeLaborUnit(totalManhours))
 
       // Fallback: If relational tables are empty, check work_content JSON (Mobile V2 format)
       if (workerCount === 0 || totalManhours === 0) {
@@ -399,23 +399,24 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
           const jsonWorkers = content.workers || content.worker_entries || []
           if (Array.isArray(jsonWorkers) && jsonWorkers.length > 0) {
             let jCount = 0
-            let jHours = 0
+            let jManpower = 0
             for (const w of jsonWorkers) {
               jCount++
               const h = Number(w.hours ?? w.labor_hours ?? w.work_hours ?? 0)
-              // If hours are missing but worker exists, default to 8 (standard day) as per detail view behavior
-              jHours += h || 8
+              // Use heuristic to normalize each worker
+              jManpower += h > 0 ? normalizeLaborUnit(h) : 1.0
             }
             if (workerCount === 0) {
-              workerCount = calculateWorkerCount(jHours / 8)
+              workerCount = calculateWorkerCount(jManpower)
             }
-            if (totalManhours === 0) totalManhours = Number(jHours.toFixed(1))
+            if (totalManhours === 0) totalManhours = Number((jManpower * 8).toFixed(1))
           }
         }
       }
 
-      const totalManpowerValue =
-        (totalManhours || Number(r.total_labor_hours) || Number((r as any).total_hours) || 0) / 8
+      const totalManpowerValue = normalizeLaborUnit(
+        totalManhours || Number(r.total_labor_hours) || Number((r as any).total_hours) || 0
+      )
 
       return {
         ...r,

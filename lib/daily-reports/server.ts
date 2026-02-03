@@ -115,27 +115,20 @@ export async function getUnifiedDailyReportForAdmin(
                 .eq('id', minimal.created_by)
                 .maybeSingle()
             : Promise.resolve({ data: null, error: null }),
-          supabase
-            .from('work_records')
-            .select(
-              `
-              id,
-              user_id,
-              labor_hours,
-              work_hours,
-              overtime_hours,
-              work_type,
-              notes,
-              metadata,
-              profiles:profiles!work_records_user_id_fkey(
-                id,
-                full_name,
-                role,
-                email
-              )
-            `
-            )
-            .eq('daily_report_id', id),
+          // supabase
+          // .from('work_records')
+          // .select(
+          //   `
+          //   id,
+          //   user_id,
+          //   labor_hours,
+          //   work_hours,
+          //   overtime_hours,
+          //   // ...
+          // `
+          // )
+          // .eq('daily_report_id', id),
+          Promise.resolve({ data: [] }),
           supabase
             .from('document_attachments')
             .select('id, document_type, file_name, file_url, file_size, uploaded_at, uploaded_by')
@@ -226,33 +219,34 @@ export async function getUnifiedDailyReportForAdmin(
 
   const [
     { data: legacyWorkers },
-    { data: workRecordRows },
+    // { data: workRecordRows }, // Deprecated: Work Records
     { data: authorProfile },
     { data: workerAssignments },
     { data: materials },
   ] = await Promise.all([
     supabase.from('daily_report_workers').select('*').eq('daily_report_id', id),
-    supabase
-      .from('work_records')
-      .select(
-        `
-        id,
-        user_id,
-        labor_hours,
-        work_hours,
-        overtime_hours,
-        work_type,
-        notes,
-        metadata,
-        profiles:profiles!work_records_user_id_fkey(
-          id,
-          full_name,
-          role,
-          email
-        )
-      `
-      )
-      .eq('daily_report_id', id),
+    // supabase
+    //   .from('work_records')
+    //   .select(
+    //     `
+    //     id,
+    //     user_id,
+    //     labor_hours,
+    //     work_hours,
+    //     overtime_hours,
+    //     work_type,
+    //     notes,
+    //     metadata,
+    //     profiles:profiles!work_records_user_id_fkey(
+    //       id,
+    //       full_name,
+    //       role,
+    //       email
+    //     )
+    //   `
+    //   )
+    //   .eq('daily_report_id', id),
+    Promise.resolve({ data: [] }), // Placeholder for workRecordRows
     supabase
       .from('profiles')
       .select('id, full_name, email, role')
@@ -267,7 +261,7 @@ export async function getUnifiedDailyReportForAdmin(
 
   const workerRows = workerAssignments?.length
     ? workerAssignments
-    : mergeWorkers(legacyWorkers || [], workRecordRows || [])
+    : mergeWorkers(legacyWorkers || [], []) // Pass empty array for workRecords
 
   data.worker_assignments = workerRows
   data.material_usage = materials || []

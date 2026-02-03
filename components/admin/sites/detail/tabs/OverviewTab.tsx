@@ -1,7 +1,6 @@
 'use client'
 
 import DailyReportsTable from '@/components/admin/DailyReportsTable'
-import DataTable from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
+import { AssignmentsTable } from '../AssignmentsTable'
 
 const SITE_STATUS_LABELS: Record<string, string> = {
   planning: '준비 중',
@@ -32,6 +32,8 @@ const ROLE_KO: Record<string, string> = {
   worker: '작업자',
   site_manager: '현장관리자',
   supervisor: '감리/감독',
+  admin: '본사관리자',
+  system_admin: '시스템 관리자',
 }
 
 interface OverviewTabProps {
@@ -157,7 +159,7 @@ export function OverviewTab({
             </div>
             <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl">
               <div className="text-[11px] uppercase font-black tracking-tighter text-amber-600">
-                총공수
+                총공수(승인)
               </div>
               <div className="text-2xl font-black text-amber-700 italic">
                 {statsLoading ? '...' : formatLabor(stats?.labor)}
@@ -333,7 +335,8 @@ export function OverviewTab({
           {assignmentsLoading && recentAssignments.length === 0 ? (
             <TableSkeleton rows={5} />
           ) : (
-            <DataTable
+            <AssignmentsTable
+              siteId={siteId}
               data={filteredAndSortedAssignments(
                 recentAssignments,
                 laborByUser,
@@ -341,34 +344,8 @@ export function OverviewTab({
                 assignmentSort,
                 assignmentRole
               )}
-              columns={[
-                {
-                  key: 'name',
-                  header: '이름',
-                  render: (a: any) => (
-                    <a
-                      href={`/dashboard/admin/users/${a.user_id}`}
-                      className="text-blue-600 font-bold hover:underline"
-                    >
-                      {a?.profile?.full_name || a.user_id}
-                    </a>
-                  ),
-                },
-                {
-                  key: 'company',
-                  header: '소속',
-                  render: (a: any) => a?.profile?.organization?.name || '-',
-                },
-                { key: 'role', header: '역할', render: (a: any) => ROLE_KO[a.role] || a.role },
-                {
-                  key: 'site_labor',
-                  header: '현장 공수',
-                  align: 'left',
-                  render: (a: any) => `${(laborByUser[a.user_id] || 0).toFixed(1)}공수`,
-                },
-              ]}
-              rowKey="user_id"
-              emptyMessage="배정된 인원이 없습니다."
+              laborByUser={laborByUser}
+              globalLaborByUser={globalLaborByUser}
             />
           )}
         </div>

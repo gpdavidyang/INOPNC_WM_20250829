@@ -1,5 +1,6 @@
 import { withSignedPhotoUrls } from '@/lib/admin/site-photos'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { normalizeLaborUnit } from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { NextResponse } from 'next/server'
@@ -70,6 +71,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
         work_process,
         work_section,
         total_workers,
+        total_labor_hours,
+        man_days,
+        work_content,
         npc1000_incoming,
         npc1000_used,
         npc1000_remaining,
@@ -164,6 +168,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
           work_process,
           work_section,
           total_workers,
+          total_labor_hours,
+          work_content,
           npc1000_incoming,
           npc1000_used,
           npc1000_remaining,
@@ -210,7 +216,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Get additional statistics for the site
     const { data: statsData } = await supabase
       .from('daily_reports')
-      .select('status, total_workers')
+      .select('status, total_workers, total_labor_hours, work_content')
       .eq('site_id', siteId)
 
     const statistics = {
@@ -218,7 +224,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       submitted_reports: statsData?.filter((r: unknown) => r.status === 'submitted').length || 0,
       draft_reports: statsData?.filter((r: unknown) => r.status === 'draft').length || 0,
       total_workers:
-        statsData?.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0) || 0,
+        statsData?.reduce(
+          (sum: number, r: any) => sum + extractManpowerFromContent(r.work_content),
+          0
+        ) || 0,
     }
 
     // Enrich per report: worker_count, document_count, total_manhours
@@ -419,16 +428,33 @@ export async function GET(request: Request, { params }: { params: { id: string }
           console.error('Error calculating stats for report', r.id, e)
         }
 
+        // Bug fix: The previous logic blindly divided fallbackHours by 8.
+        // We must prioritize `work_content` as the source of truth if available.
+        // If not, we use the heuristic for total_labor_hours (>=8 -> hours, <8 -> man-days).
+
         if (!total_manhours) {
-          const fallbackHours = Number(r.total_labor_hours) || Number(r.total_hours)
-          if (fallbackHours > 0) {
-            total_manhours = normalizeManDaysFromHours(fallbackHours)
-          } else {
-            const fallbackWorkers = Number(r.total_workers)
-            if (fallbackWorkers > 0) {
-              total_manhours = normalizeManDays(fallbackWorkers)
-            } else {
-              total_manhours = normalizeManDays(extractManpowerFromContent(r.work_content))
+          // 1. Check work_content (JSON) - Highest priority
+          const contentManPower = extractManpowerFromContent(r.work_content)
+          if (contentManPower > 0) {
+            total_manhours = normalizeManDays(contentManPower)
+          }
+          // 2. New: Check man_days column (Migrated Source)
+          else {
+            const md = Number(r.man_days)
+            if (md > 0) {
+              total_manhours = md
+            }
+            // 3. Fallback to Column (Heuristic - Deprecated)
+            else {
+              const val = Number(r.total_labor_hours)
+              if (val > 0) {
+                // If val >= 8, assume Hours (div 8). If < 8, assume Man-Days.
+                total_manhours = val >= 8 ? normalizeManDaysFromHours(val) : normalizeManDays(val)
+              } else {
+                // 4. Last resort: worker count
+                const wc = Number(r.total_workers)
+                if (wc > 0) total_manhours = normalizeManDays(wc)
+              }
             }
           }
         }
@@ -520,7 +546,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
 const normalizeManDaysFromHours = (hours: number): number => {
   if (!Number.isFinite(hours) || hours <= 0) return 0
-  return Number((hours / 8).toFixed(1))
+  return Number(normalizeLaborUnit(hours).toFixed(1))
 }
 
 const normalizeManDays = (value: number): number => {
@@ -548,13 +574,22 @@ const extractManpowerFromContent = (raw: unknown): number => {
     []
   if (workersArray.length === 0) return 0
 
-  const totalHours = workersArray.reduce((sum: number, worker: any) => {
-    const hours = Number(worker?.hours ?? worker?.labor_hours ?? worker?.work_hours)
-    if (Number.isFinite(hours) && hours > 0) {
-      return sum + hours
+  const totalManDays = workersArray.reduce((sum: number, worker: any) => {
+    // 1. New data format: 'labor_hours' (Man-Days, e.g. 1.0)
+    if (worker?.labor_hours !== undefined) {
+      const val = Number(worker.labor_hours)
+      return Number.isFinite(val) ? sum + val : sum
     }
-    return sum + 8
+
+    // 2. Legacy data format: 'hours' / 'work_hours' (Hours, e.g. 8)
+    const hours = Number(worker?.hours ?? worker?.work_hours)
+    if (Number.isFinite(hours) && hours > 0) {
+      return sum + normalizeLaborUnit(hours)
+    }
+
+    // 3. Fallback
+    return sum + 1
   }, 0)
-  if (totalHours === 0) return workersArray.length
-  return Number((totalHours / 8).toFixed(1))
+
+  return Number(totalManDays.toFixed(1))
 }

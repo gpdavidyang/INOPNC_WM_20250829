@@ -1,3 +1,4 @@
+import { normalizeLaborUnit } from '@/lib/labor/labor-hour-options'
 import { createClient } from '@/lib/supabase/server'
 import type {
   ListSiteAssignmentsResponse,
@@ -90,7 +91,11 @@ export async function listSiteAssignments(
     })
   }
   if (opts?.role && opts.role !== 'all') {
-    rows = rows.filter(r => String(r.role || '').toLowerCase() === String(opts.role).toLowerCase())
+    const targetRole = String(opts.role).toLowerCase()
+    rows = rows.filter(r => {
+      const displayRole = (r.profile?.role || r.role || '').toLowerCase()
+      return displayRole === targetRole
+    })
   }
   if (opts?.company && String(opts.company).trim()) {
     const comp = String(opts.company).trim().toLowerCase()
@@ -140,25 +145,113 @@ export async function getSiteLaborSummary(
   siteId: string,
   userIds?: string[]
 ): Promise<SiteLaborSummaryResponse> {
-  const supabase = createClient()
-  let query = supabase
-    .from('work_records')
-    .select('user_id, labor_hours, work_hours')
+  let supabase
+  try {
+    supabase = createClient()
+  } catch (error) {
+    // Fallback: This handles cases like running in a script where `cookies()` is not available
+    const { createServiceRoleClient } = require('@/lib/supabase/service-role')
+    supabase = createServiceRoleClient()
+  }
+
+  // 1. Fetch Daily Report Workers (Primary Source now - from JSON/Table in Approved Reports)
+  // Site Labor Summary includes ONLY 'approved' reports per user request
+  const { data: reports } = await supabase
+    .from('daily_reports')
+    .select('id, work_date, work_content, status')
     .eq('site_id', siteId)
-  if (userIds && userIds.length > 0) {
-    query = query.in('user_id', userIds)
-  }
-  const { data, error } = await query
-  if (error) return {}
+    .eq('status', 'approved')
+
+  const reportIds = (reports || []).map(r => r.id)
+
+  const { data: reportWorkers } =
+    reportIds.length > 0
+      ? await supabase
+          .from('daily_report_workers')
+          .select('worker_id, work_hours, daily_report_id')
+          .in('daily_report_id', reportIds)
+          .not('worker_id', 'is', null)
+      : { data: [] }
+
   const map: Record<string, number> = {}
-  for (const r of data || []) {
-    const key = (r as any).user_id
-    if (!key) continue
-    const labor = Number((r as any).labor_hours) || 0
-    const hours = Number((r as any).work_hours) || 0
-    const manDays = labor > 0 ? labor : hours > 0 ? hours / 8 : 0
-    map[key] = (map[key] || 0) + manDays
+
+  // B. Process Secondary (Report Workers - Table)
+  const reportDateMap = new Map<string, string>() // reportId -> date
+  const reportContentMap = new Map<string, any>() // reportId -> work_content (JSON)
+
+  reports?.forEach(r => {
+    reportDateMap.set(r.id, r.work_date)
+    reportContentMap.set(r.id, r.work_content)
+  })
+
+  // Set of (userId, date) handled by Table to avoid counting JSON again for same day
+  const tableHandled = new Set<string>()
+
+  for (const rw of (reportWorkers as any[]) || []) {
+    const uid = rw.worker_id
+    if (!uid) continue
+    if (userIds && userIds.length > 0 && !userIds.includes(uid)) continue
+
+    const date = reportDateMap.get(rw.daily_report_id)
+
+    const hours = Number(rw.work_hours) || 0
+    const manDays = normalizeLaborUnit(hours > 0 ? hours : 1.0)
+    map[uid] = (map[uid] || 0) + manDays
+
+    if (date) tableHandled.add(`${uid}_${date}`)
   }
+
+  // C. Process Tertiary (Report Content - JSON)
+  // This is needed because sometimes daily_report_workers table is empty but JSON has data.
+  // We iterate through ALL reports for the site.
+  for (const r of reports || []) {
+    const date = r.work_date
+    let content: any = r.work_content
+
+    if (!content) continue
+    if (typeof content === 'string') {
+      try {
+        content = JSON.parse(content)
+      } catch {
+        continue
+      }
+    }
+
+    // Check for workers array
+    const workers = Array.isArray(content?.workers)
+      ? content.workers
+      : Array.isArray(content?.worker_entries)
+        ? content.worker_entries
+        : []
+
+    for (const w of workers) {
+      // Identify User
+      const wUid = w.workerId || w.worker_id || w.id || w.userId
+      if (!wUid) continue
+
+      // Filter if specific users requested
+      if (userIds && userIds.length > 0 && !userIds.includes(wUid)) continue
+
+      // Skip if already handled by Table
+      if (date && tableHandled.has(`${wUid}_${date}`)) continue
+
+      // Calculate Labor
+      let manDays = 0
+      if (w.labor_hours !== undefined) {
+        manDays = normalizeLaborUnit(Number(w.labor_hours))
+      } else {
+        const h = Number(w.hours ?? w.work_hours ?? 0)
+        manDays = normalizeLaborUnit(h > 0 ? h : 1.0)
+      }
+
+      if (manDays > 0) {
+        map[wUid] = (map[wUid] || 0) + manDays
+        // Mark as handled to prevent duplicate counting if multiple entries per day (rare but possible)
+        if (date) tableHandled.add(`${wUid}_${date}`)
+      }
+    }
+  }
+
   return map
 }
 
@@ -168,20 +261,102 @@ export async function getSiteLaborSummary(
  */
 export async function getGlobalLaborSummary(userIds?: string[]): Promise<Record<string, number>> {
   const supabase = createClient()
-  let query = supabase.from('work_records').select('user_id, labor_hours, work_hours')
+
+  // 1. Fetch Daily Reports where these users might be present
+  // Global Labor Summary ONLY includes 'approved' reports per user request
+  let reportIds: string[] = []
   if (userIds && userIds.length > 0) {
-    query = query.in('user_id', userIds)
+    const { data: rwData } = await supabase
+      .from('daily_report_workers')
+      .select('daily_report_id')
+      .in('worker_id', userIds)
+    reportIds = Array.from(new Set((rwData || []).map(r => r.daily_report_id)))
+  } else {
+    const { data: rAll } = await supabase
+      .from('daily_reports')
+      .select('id')
+      .eq('status', 'approved')
+    reportIds = (rAll || []).map(r => r.id)
   }
-  const { data, error } = await query
-  if (error) return {}
+
+  const { data: reports } =
+    reportIds.length > 0
+      ? await supabase
+          .from('daily_reports')
+          .select('id, work_date, work_content, status')
+          .in('id', reportIds)
+          .eq('status', 'approved')
+      : { data: [] }
+
+  let reportWorkers: any[] = []
+  if (reportIds.length > 0) {
+    let rwQuery = supabase
+      .from('daily_report_workers')
+      .select('worker_id, work_hours, daily_report_id')
+      .in('daily_report_id', reportIds)
+      .not('worker_id', 'is', null)
+    if (userIds && userIds.length > 0) {
+      rwQuery = rwQuery.in('worker_id', userIds)
+    }
+    const { data } = await rwQuery
+    reportWorkers = data || []
+  }
+
   const map: Record<string, number> = {}
-  for (const r of data || []) {
-    const uid = (r as any).user_id
-    if (!uid) continue
-    const labor = Number((r as any).labor_hours) || 0 // already man-days
-    const hours = Number((r as any).work_hours) || 0 // hours
-    const manDays = labor > 0 ? labor : hours > 0 ? hours / 8 : 0
+
+  // B. Report Workers Table
+  const reportDateMap = new Map<string, string>()
+  reports?.forEach(r => reportDateMap.set(r.id, r.work_date))
+  const tableHandled = new Set<string>()
+
+  for (const rw of reportWorkers) {
+    const uid = rw.worker_id
+    const date = reportDateMap.get(rw.daily_report_id)
+
+    const hours = Number(rw.work_hours) || 0
+    const manDays = normalizeLaborUnit(hours > 0 ? hours : 1.0)
     map[uid] = (map[uid] || 0) + manDays
+    if (date) tableHandled.add(`${uid}_${date}`)
   }
+
+  // C. Report JSON Content
+  for (const r of reports || []) {
+    const date = r.work_date
+    let content: any = r.work_content
+    if (!content) continue
+    if (typeof content === 'string') {
+      try {
+        content = JSON.parse(content)
+      } catch {
+        continue
+      }
+    }
+
+    const workers = Array.isArray(content?.workers)
+      ? content.workers
+      : Array.isArray(content?.worker_entries)
+        ? content.worker_entries
+        : []
+    for (const w of workers) {
+      const wUid = w.workerId || w.worker_id || w.id || w.userId
+      if (!wUid) continue
+      if (userIds && userIds.length > 0 && !userIds.includes(wUid)) continue
+      if (date && tableHandled.has(`${wUid}_${date}`)) continue
+
+      let manDays = 0
+      if (w.labor_hours !== undefined) {
+        manDays = normalizeLaborUnit(Number(w.labor_hours))
+      } else {
+        const h = Number(w.hours ?? w.work_hours ?? 0)
+        manDays = normalizeLaborUnit(h > 0 ? h : 1.0)
+      }
+
+      if (manDays > 0) {
+        map[wUid] = (map[wUid] || 0) + manDays
+        if (date) tableHandled.add(`${wUid}_${date}`)
+      }
+    }
+  }
+
   return map
 }

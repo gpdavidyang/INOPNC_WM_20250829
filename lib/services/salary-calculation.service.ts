@@ -3,8 +3,7 @@
  * 모든 역할(Admin, Worker, Site Manager)에서 동일한 계산 로직 사용
  */
 import { createClient } from '@/lib/supabase/server'
-import { format } from 'date-fns'
-import { startOfMonth, endOfMonth } from 'date-fns'
+import { endOfMonth, format, startOfMonth } from 'date-fns'
 
 export interface WorkData {
   user_id: string
@@ -58,7 +57,7 @@ export class SalaryCalculationService {
   }
 
   /**
-   * 일일 급여 계산 (labor_hours 기준 통일)
+   * 일일 급여 계산 (man_days 기준 통일)
    */
   async calculateDailySalary(workData: WorkData): Promise<SalaryResult> {
     try {
@@ -69,8 +68,12 @@ export class SalaryCalculationService {
       }
 
       // labor_hours를 기준으로 계산 (1공수 = 8시간)
-      const laborDays =
-        workData.labor_hours > 0 ? workData.labor_hours : (workData.work_hours || 0) / 8
+      // New: man_days 우선 사용
+      let laborDays = workData.man_days ?? workData.labor_hours
+      if (!(laborDays > 0) && (workData.work_hours || 0) > 0) {
+        laborDays = (workData.work_hours || 0) / 8
+      }
+
       const normalizedLaborDays = laborDays > 0 ? laborDays : 0
 
       // 급여 계산
@@ -109,22 +112,61 @@ export class SalaryCalculationService {
       const period_start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd')
       const period_end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd')
 
-      // 출근 기록 조회 (work_records 테이블 사용)
+      // 1. Fetch Approved Daily Report Workers (DB Columns Source of Truth)
       const supabase = this.getSupabaseClient(useServiceRole)
-      let query = supabase
-        .from('work_records')
-        .select('*')
-        .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
-        .gte('work_date', period_start)
-        .lte('work_date', period_end)
+      let rwQuery = supabase
+        .from('daily_report_workers')
+        .select(
+          `
+          work_hours,
+          man_days,
+          daily_report_id,
+          daily_report:daily_reports!inner(
+            id, work_date, status
+          )
+        `
+        )
+        .eq('worker_id', userId)
+        .eq('daily_report.status', 'approved')
+        .gte('daily_report.work_date', period_start)
+        .lte('daily_report.work_date', period_end)
 
       if (siteId) {
-        query = query.eq('site_id', siteId)
+        rwQuery = rwQuery.eq('daily_report.site_id', siteId)
       }
 
-      const { data: attendanceData, error } = await query
+      const { data: reportRows, error: reportError } = await rwQuery
 
-      if (error) throw error
+      if (reportError) throw reportError
+
+      // Transform report rows into standard format
+      const attendanceData = []
+
+      for (const row of reportRows || []) {
+        const report = (row as any).daily_report
+        if (!report) continue
+
+        // Use DB columns directly.
+        // Priority: man_days > work_hours
+        let laborDays = Number((row as any).man_days)
+        let workHours = Number((row as any).work_hours)
+
+        // If man_days is missing but work_hours exists, calculate it
+        if (!(laborDays > 0) && workHours > 0) {
+          laborDays = workHours / 8
+        }
+
+        // If man_days exists but work_hours missing, calculate it
+        if (laborDays > 0 && !(workHours > 0)) {
+          workHours = laborDays * 8
+        }
+
+        attendanceData.push({
+          work_date: report.work_date,
+          labor_hours: laborDays,
+          work_hours: workHours > 0 ? workHours : laborDays * 8,
+        })
+      }
 
       // 급여 정보 조회
       const salaryInfo = await this.getSalaryInfo(userId, period_end, useServiceRole)
@@ -139,33 +181,17 @@ export class SalaryCalculationService {
       let total_overtime_hours = 0
       let total_base_pay = 0
 
-      for (const record of attendanceData || []) {
-        const workHours = Number(record.work_hours || 0)
-        let laborDays = Number(record.labor_hours || 0)
-        if (!(laborDays > 0) && workHours > 0) laborDays = workHours / 8
-
-        // 일자 상태가 출근/지각/진행 중인데 시간 값이 비어있는 경우 보정(8시간/1공수 가정)
-        const statusRaw = String((record as any).status || '').toLowerCase()
-        const presentKeywords = [
-          'present',
-          'late',
-          'in-progress',
-          'in_progress',
-          'working',
-          'work',
-          'checked_in',
-          'checked-in',
-          'checkedout',
-          'checked_out',
-          'done',
-        ]
-        const hasTimes = Boolean((record as any).check_in_time || (record as any).check_out_time)
-        const isPresent = presentKeywords.some(k => statusRaw.includes(k)) || hasTimes
+      for (const record of attendanceData) {
+        const workHours = record.work_hours
+        const laborDays = record.labor_hours
 
         let dailyHours = workHours > 0 ? workHours : laborDays > 0 ? laborDays * 8 : 0
-        if (dailyHours === 0 && isPresent) {
-          dailyHours = 8
-          if (!(laborDays > 0)) laborDays = 1
+
+        // Minimal hours for a day if present
+        if (dailyHours === 0 && laborDays > 0) dailyHours = 8
+        if (laborDays === 0 && dailyHours > 0) {
+          // Should be handled by normalizeLaborUnit but just in case
+          // laborDays = dailyHours / 8
         }
 
         if (dailyHours > 0 || laborDays > 0) {
@@ -174,13 +200,14 @@ export class SalaryCalculationService {
 
         total_labor_hours += laborDays
         total_work_hours += dailyHours
+
         const etLower = String(salaryInfo.employment_type || '').toLowerCase()
         const noOvertime = etLower === 'daily_worker' || etLower === 'freelancer'
-        const recordedOvertime =
-          Number(record.overtime_hours || 0) > 0
-            ? Number(record.overtime_hours)
-            : Math.max(dailyHours - 8, 0)
-        total_overtime_hours += noOvertime ? 0 : recordedOvertime
+
+        // Calculate overtime: hours > 8
+        const overtime = Math.max(dailyHours - 8, 0)
+
+        total_overtime_hours += noOvertime ? 0 : overtime
       }
 
       // 기본급 산출: 일당 × 총공수
