@@ -4,6 +4,14 @@ import DailyReportsTable from '@/components/admin/DailyReportsTable'
 import DataTable from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { Input } from '@/components/ui/input'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 
 const SITE_STATUS_LABELS: Record<string, string> = {
@@ -87,7 +95,7 @@ export function OverviewTab({
           <h4 className="font-bold text-foreground">기본 정보</h4>
           <div className="grid grid-cols-2 gap-y-3">
             <div>
-              <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 현장 상태
               </div>
               <Badge variant={site?.status === 'active' ? 'default' : 'outline'}>
@@ -95,16 +103,16 @@ export function OverviewTab({
               </Badge>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 공사 기간
               </div>
               <div className="font-medium text-foreground">
-                {site?.start_date ? new Date(site.start_date).toLocaleDateString() : '-'} ~{' '}
-                {site?.end_date ? new Date(site.end_date).toLocaleDateString() : 'TBD'}
+                {site?.start_date ? new Date(site.start_date).toLocaleDateString('ko-KR') : '-'} ~{' '}
+                {site?.end_date ? new Date(site.end_date).toLocaleDateString('ko-KR') : 'TBD'}
               </div>
             </div>
             <div className="col-span-2 border-t pt-3 mt-1">
-              <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 현장 주소
               </div>
               <div className="font-medium text-foreground">{site?.address || '-'}</div>
@@ -116,19 +124,19 @@ export function OverviewTab({
           <h4 className="font-bold text-foreground">담당자 정보</h4>
           <div className="grid grid-cols-2 gap-y-3">
             <div>
-              <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 현장 관리자
               </div>
               <div className="font-medium text-foreground">{site?.manager_name || '-'}</div>
             </div>
             <div>
-              <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 관리자 연락처
               </div>
               <div className="font-medium text-foreground">{site?.manager_phone || '-'}</div>
             </div>
             <div className="col-span-2 border-t pt-3 mt-1">
-              <div className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 안전 관리자
               </div>
               <div className="font-medium text-foreground">{site?.safety_manager_name || '-'}</div>
@@ -140,16 +148,16 @@ export function OverviewTab({
           <h4 className="font-bold text-foreground">통계 요약</h4>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-blue-50 dark:bg-blue-900/10 p-3 rounded-xl">
-              <div className="text-[10px] uppercase font-black tracking-tighter text-blue-600">
-                Reports
+              <div className="text-[11px] uppercase font-black tracking-tighter text-blue-600">
+                작업일지
               </div>
               <div className="text-2xl font-black text-blue-700 italic">
                 {statsLoading ? '...' : (stats?.reports ?? 0)}
               </div>
             </div>
             <div className="bg-amber-50 dark:bg-amber-900/10 p-3 rounded-xl">
-              <div className="text-[10px] uppercase font-black tracking-tighter text-amber-600">
-                Man-Hours
+              <div className="text-[11px] uppercase font-black tracking-tighter text-amber-600">
+                총공수
               </div>
               <div className="text-2xl font-black text-amber-700 italic">
                 {statsLoading ? '...' : formatLabor(stats?.labor)}
@@ -177,19 +185,19 @@ export function OverviewTab({
         {organization ? (
           <dl className="grid gap-6 text-sm md:grid-cols-2 xl:grid-cols-4">
             <div className="space-y-1">
-              <dt className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <dt className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 소속명
               </dt>
               <dd className="text-base font-bold text-foreground">{organization.name}</dd>
             </div>
             <div className="space-y-1">
-              <dt className="text-[10px] uppercase font-black tracking-tighter opacity-50">구분</dt>
+              <dt className="text-[11px] uppercase font-black tracking-tighter opacity-50">구분</dt>
               <dd className="text-base font-bold text-foreground">
                 {ORGANIZATION_TYPE_LABELS[organization.type] || organization.type}
               </dd>
             </div>
             <div className="space-y-1">
-              <dt className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <dt className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 연락처
               </dt>
               <dd className="text-base font-bold text-foreground">
@@ -197,7 +205,7 @@ export function OverviewTab({
               </dd>
             </div>
             <div className="space-y-1">
-              <dt className="text-[10px] uppercase font-black tracking-tighter opacity-50">
+              <dt className="text-[11px] uppercase font-black tracking-tighter opacity-50">
                 이메일
               </dt>
               <dd className="text-base font-bold text-foreground">
@@ -257,11 +265,11 @@ export function OverviewTab({
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-black text-foreground">최근 작업일지</h3>
-          <Button asChild variant="ghost" size="sm" className="rounded-xl">
+          <Button asChild variant="outline" size="sm" className="rounded-xl">
             <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>전체보기</a>
           </Button>
         </div>
-        <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+        <div className="rounded-2xl border bg-card p-6 shadow-sm overflow-hidden">
           {reportsLoading && recentReports.length === 0 ? (
             <TableSkeleton rows={5} />
           ) : (
@@ -280,7 +288,7 @@ export function OverviewTab({
             </Button>
             <Button
               asChild
-              variant="ghost"
+              variant="outline"
               size="sm"
               className="rounded-xl"
               onClick={() => onTabChange('assignments')}
@@ -292,22 +300,34 @@ export function OverviewTab({
         <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-4">
           {/* Quick Filter */}
           <div className="flex flex-wrap gap-2">
-            <input
+            <Input
               value={assignmentQuery}
               onChange={e => setAssignmentQuery(e.target.value)}
               placeholder="검색..."
-              className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm"
+              className="h-10 w-48 rounded-xl bg-gray-50 border-none px-4 text-sm"
             />
-            <select
-              value={assignmentRole}
-              onChange={e => setAssignmentRole(e.target.value)}
-              className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm"
-            >
-              <option value="all">전체 역할</option>
-              <option value="worker">작업자</option>
-              <option value="site_manager">현장관리자</option>
-              <option value="supervisor">감리/감독</option>
-            </select>
+            <CustomSelect value={assignmentRole} onValueChange={v => setAssignmentRole(v)}>
+              <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm w-32">
+                <CustomSelectValue placeholder="역할" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">전체 역할</CustomSelectItem>
+                <CustomSelectItem value="worker">작업자</CustomSelectItem>
+                <CustomSelectItem value="site_manager">현장관리자</CustomSelectItem>
+                <CustomSelectItem value="supervisor">감리/감독</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+            <CustomSelect value={assignmentSort} onValueChange={v => setAssignmentSort(v)}>
+              <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm w-32">
+                <CustomSelectValue placeholder="정렬" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="date_desc">최신순</CustomSelectItem>
+                <CustomSelectItem value="date_asc">오래된순</CustomSelectItem>
+                <CustomSelectItem value="name_asc">이름순</CustomSelectItem>
+                <CustomSelectItem value="labor_desc">공수순</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
           </div>
 
           {assignmentsLoading && recentAssignments.length === 0 ? (
@@ -343,7 +363,7 @@ export function OverviewTab({
                 {
                   key: 'site_labor',
                   header: '현장 공수',
-                  align: 'right',
+                  align: 'left',
                   render: (a: any) => `${(laborByUser[a.user_id] || 0).toFixed(1)}공수`,
                 },
               ]}

@@ -8,6 +8,7 @@ interface UseSiteDetailProps {
   initialReports: any[]
   initialAssignments: any[]
   initialRequests: any[]
+  initialStats?: { reports: number; labor: number } | null
 }
 
 export function useSiteDetail({
@@ -16,10 +17,13 @@ export function useSiteDetail({
   initialReports,
   initialAssignments,
   initialRequests,
+  initialStats,
 }: UseSiteDetailProps) {
   // Stats
-  const [stats, setStats] = useState<{ reports: number; labor: number } | null>(null)
-  const [statsLoading, setStatsLoading] = useState(true)
+  const [stats, setStats] = useState<{ reports: number; labor: number } | null>(
+    initialStats || null
+  )
+  const [statsLoading, setStatsLoading] = useState(!initialStats)
 
   // Reports
   const [recentReports, setRecentReports] = useState(initialReports)
@@ -50,8 +54,9 @@ export function useSiteDetail({
   // Invoices
   const [invoiceProgress, setInvoiceProgress] = useState<any>(null)
 
-  // Fetch stats
+  // Fetch stats only if not provided
   useEffect(() => {
+    if (initialStats) return
     let active = true
     setStatsLoading(true)
     ;(async () => {
@@ -73,10 +78,11 @@ export function useSiteDetail({
     return () => {
       active = false
     }
-  }, [siteId])
+  }, [siteId, initialStats])
 
-  // Fetch recent data
+  // Fetch recent reports/requests only if not provided or when strictly needed
   useEffect(() => {
+    if (initialReports?.length > 0 && initialRequests?.length > 0) return
     let active = true
     ;(async () => {
       try {
@@ -107,10 +113,20 @@ export function useSiteDetail({
     return () => {
       active = false
     }
-  }, [siteId])
+  }, [siteId, initialReports, initialRequests])
 
-  // Fetch assignments with filter/sort
+  // Fetch assignments with filter/sort (Always needed if filter changes)
+  const isFirstMount = useRef(true)
   useEffect(() => {
+    if (isFirstMount.current && initialAssignments?.length > 0) {
+      isFirstMount.current = false
+      // Even if we have initial assignments, we might need to fetch labor summary
+      // but let's avoid the first big fetch if initial data matches default filters
+      if (!assignmentQuery && assignmentSort === 'date_desc' && assignmentRole === 'all') {
+        // Optionally fetch labor summary for initial ones if not included in SSR
+        return
+      }
+    }
     let active = true
     ;(async () => {
       try {

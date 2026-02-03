@@ -77,13 +77,13 @@ export function DrawingListTab({
           </span>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center bg-white p-1 rounded-xl border shadow-sm">
+          <div className="flex items-center bg-gray-50/50 p-1 rounded-xl border border-gray-100 shadow-sm">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded-lg transition-all ${
                 viewMode === 'grid'
-                  ? 'bg-primary/10 text-primary shadow-inner'
-                  : 'text-[#9aa4c5] hover:text-primary/60'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
               title="카드형 보기"
             >
@@ -93,8 +93,8 @@ export function DrawingListTab({
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded-lg transition-all ${
                 viewMode === 'list'
-                  ? 'bg-primary/10 text-primary shadow-inner'
-                  : 'text-[#9aa4c5] hover:text-primary/60'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
               title="리스트형 보기"
             >
@@ -103,7 +103,7 @@ export function DrawingListTab({
           </div>
           <button
             onClick={load}
-            className="px-4 py-2 bg-[#f0f4ff] hover:bg-[#e0eaff] text-[#31a3fa] text-[13px] font-black rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm border border-[#31a3fa]/10"
+            className="px-4 py-2 bg-[#f0f4ff] hover:bg-[#e0eaff] text-[#31a3fa] text-[13px] font-black rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-sm border border-[#31a3fa]/10 whitespace-nowrap"
           >
             새로고침
           </button>
@@ -192,14 +192,14 @@ export function DrawingListTab({
                 <div className="flex items-center gap-2 pt-2 border-t border-[#f0f4ff]">
                   <button
                     onClick={() => onEditMarkup(doc)}
-                    className="flex-1 h-10 rounded-xl bg-[#f0f4ff] hover:bg-[#31a3fa] text-[#31a3fa] hover:text-white text-[13px] font-black transition-all flex items-center justify-center gap-2 active:scale-95"
+                    className="flex-1 h-10 rounded-xl bg-[#f0f4ff] hover:bg-[#31a3fa] text-[#31a3fa] hover:text-white text-[13px] font-black transition-all flex items-center justify-center gap-2 active:scale-95 whitespace-nowrap"
                   >
                     <Pencil className="h-4 w-4" />
                     수정하기
                   </button>
                   <button
                     onClick={e => handleUnlink(e, doc)}
-                    className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20"
+                    className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20 whitespace-nowrap"
                   >
                     해제
                   </button>
@@ -217,7 +217,7 @@ export function DrawingListTab({
             >
               {/* Thumbnail Mini */}
               <div
-                className="h-16 w-16 shrink-0 rounded-xl bg-[#f8faff] overflow-hidden cursor-pointer"
+                className="h-16 w-16 shrink-0 relative rounded-xl bg-[#f8faff] overflow-hidden cursor-pointer"
                 onClick={() => setSelectedImg(doc.url)}
               >
                 {doc.preview_url || doc.url ? (
@@ -272,14 +272,14 @@ export function DrawingListTab({
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => onEditMarkup(doc)}
-                  className="h-9 px-4 rounded-xl bg-[#f0f4ff] hover:bg-[#31a3fa] text-[#31a3fa] hover:text-white text-[12px] font-black transition-all flex items-center gap-1.5 active:scale-95"
+                  className="h-9 px-4 rounded-xl bg-[#f0f4ff] hover:bg-[#31a3fa] text-[#31a3fa] hover:text-white text-[12px] font-black transition-all flex items-center gap-1.5 active:scale-95 whitespace-nowrap"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   마킹
                 </button>
                 <button
                   onClick={e => handleUnlink(e, doc)}
-                  className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20"
+                  className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20 whitespace-nowrap"
                 >
                   해제
                 </button>
@@ -311,6 +311,7 @@ export function DrawingListTab({
               width={1600}
               height={1200}
               className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-500 select-none pointer-events-none"
+              style={{ width: 'auto', height: 'auto' }}
               onClick={e => e.stopPropagation()}
               unoptimized
             />

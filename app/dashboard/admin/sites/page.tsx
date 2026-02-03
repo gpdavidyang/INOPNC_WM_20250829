@@ -1,9 +1,9 @@
-import type { Metadata } from 'next'
-import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getSites } from '@/app/actions/admin/sites'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { SitesContent } from '@/components/admin/sites/SitesContent'
-import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '현장 관리',
@@ -20,7 +20,7 @@ export default async function AdminSitesPage() {
   const initialPages = initialResult.success ? (initialResult.data?.pages ?? 1) : 1
 
   return (
-    <div className="px-0 pb-8">
+    <div className="px-0 pb-8 space-y-6">
       <PageHeader
         title="현장 관리"
         description="현장 목록을 관리하고 세부 정보를 확인합니다."
@@ -29,14 +29,14 @@ export default async function AdminSitesPage() {
           <div className="flex items-center gap-3">
             <a
               href="/dashboard/admin/sites/new"
-              className={`${buttonVariants({ variant: 'primary', size: 'standard' })} rounded-[8px]`}
+              className={`${buttonVariants({ variant: 'primary', size: 'standard' })} rounded-xl`}
               role="button"
             >
               현장 등록
             </a>
             <a
               href="/dashboard/admin/sites"
-              className={`${buttonVariants({ variant: 'outline', size: 'standard' })} rounded-[8px]`}
+              className={`${buttonVariants({ variant: 'outline', size: 'standard' })} rounded-xl`}
               role="button"
             >
               새로고침

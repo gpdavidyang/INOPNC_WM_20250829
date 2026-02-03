@@ -1,14 +1,14 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { Upload, X } from 'lucide-react'
@@ -90,19 +90,22 @@ export function PhotoUploader({
           <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
             연동 작업일지
           </label>
-          <Select value={form.reportId} onValueChange={v => setForm({ ...form, reportId: v })}>
-            <SelectTrigger className="h-11 rounded-xl">
-              <SelectValue placeholder="작업일지를 선택해 주세요 (필수)" />
-            </SelectTrigger>
-            <SelectContent>
+          <CustomSelect
+            value={form.reportId}
+            onValueChange={v => setForm({ ...form, reportId: v })}
+          >
+            <CustomSelectTrigger className="h-11 rounded-xl">
+              <CustomSelectValue placeholder="작업일지를 선택해 주세요 (필수)" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
               {reports.map(r => (
-                <SelectItem key={r.id} value={r.id}>
+                <CustomSelectItem key={r.id} value={r.id}>
                   {r.work_date ? format(new Date(r.work_date), 'yyyy-MM-dd') : '-'} |{' '}
                   {r.process_type || r.member_name}
-                </SelectItem>
+                </CustomSelectItem>
               ))}
-            </SelectContent>
-          </Select>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
@@ -137,13 +140,18 @@ export function PhotoUploader({
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="ghost" onClick={onClose} disabled={uploading} className="rounded-xl px-8">
+        <Button
+          variant="ghost"
+          onClick={onClose}
+          disabled={uploading}
+          className="rounded-xl px-8 whitespace-nowrap"
+        >
           취소
         </Button>
         <Button
           onClick={onUpload}
           disabled={uploading || !form.reportId}
-          className="rounded-xl px-12 font-bold shadow-lg shadow-blue-500/20"
+          className="rounded-xl px-12 font-bold shadow-lg shadow-blue-500/20 whitespace-nowrap"
         >
           {uploading ? '업로드 중...' : '사진 등록 완료'}
         </Button>

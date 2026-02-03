@@ -40,16 +40,35 @@ export const useSiteSearch = (initialData: {
     const ids = siteList.map(s => s.id).filter(Boolean) as string[]
     if (ids.length === 0) return
 
+    // Populate statsMap from siteList if data exists (Avoid redundant fetch)
+    const newStatsMap: Record<string, SiteStats> = {}
+    let allHaveStats = true
+    siteList.forEach(s => {
+      if ((s as any).daily_reports_count !== undefined) {
+        newStatsMap[s.id] = {
+          daily_reports_count: (s as any).daily_reports_count,
+          total_labor_hours: (s as any).total_labor_hours,
+        }
+      } else {
+        allHaveStats = false
+      }
+    })
+
+    if (Object.keys(newStatsMap).length > 0) {
+      setStatsMap(prev => ({ ...prev, ...newStatsMap }))
+    }
+
     setManagersLoading(true)
-    setStatsLoading(true)
+    if (!allHaveStats) setStatsLoading(true)
 
     try {
-      const [managers, stats] = await Promise.all([
-        sitesApi.getSiteManagers(ids),
-        sitesApi.getSiteStats(ids),
-      ])
+      const promises: any[] = [sitesApi.getSiteManagers(ids)]
+      if (!allHaveStats) promises.push(sitesApi.getSiteStats(ids))
+
+      const [managers, stats] = await Promise.all(promises)
+
       setManagersMap(managers)
-      setStatsMap(stats)
+      if (stats) setStatsMap(prev => ({ ...prev, ...stats }))
     } catch (err) {
       console.error('Failed to fetch extra site data', err)
     } finally {

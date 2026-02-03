@@ -105,9 +105,9 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
 
         <ManagerInfoSection form={form} setFieldValue={setFieldValue} />
 
-        {mode === 'edit' && siteId && <SharedDocumentsSection siteId={siteId} />}
-
         <AccommodationSection form={form} setFieldValue={setFieldValue} />
+
+        {mode === 'edit' && siteId && <SharedDocumentsSection siteId={siteId} />}
       </div>
 
       {/* Bottom Action Bar (Optional mobile focus) */}

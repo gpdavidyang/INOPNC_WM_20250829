@@ -60,6 +60,8 @@ export const collectDocCategoryValues = (doc: Record<string, any>): string[] => 
     doc?.category_label,
     doc?.label,
     doc?.display_category,
+    doc?.document_type,
+    doc?.documentType,
     metadata?.sub_category,
     metadata?.subcategory,
     metadata?.category,

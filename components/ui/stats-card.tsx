@@ -1,10 +1,10 @@
 'use client'
 
-import React from 'react'
-import { cn } from '@/lib/utils'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
+import { getFullTypographyClass, useFontSize } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { formatMetric, unitLabel, type UnitKey } from '@/lib/ui/metrics'
+import { cn } from '@/lib/utils'
+import React from 'react'
 
 interface StatsCardProps {
   label: string
@@ -32,9 +32,9 @@ export default function StatsCard({
   return (
     <div
       className={cn(
-        'rounded-[8px] border',
-        // Color guideline: background/border/text within #F3F7FA, #BAC6E1, #8DA0CD range
-        'bg-[#F3F7FA] border-[#BAC6E1] text-gray-900',
+        'rounded-[8px]',
+        // Color guideline: background/text within #F3F7FA, #8DA0CD range
+        'bg-[#F3F7FA] text-gray-900',
         'min-h-[96px]',
         padClass,
         className

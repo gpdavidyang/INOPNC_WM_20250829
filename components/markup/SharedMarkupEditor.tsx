@@ -206,7 +206,7 @@ export function SharedMarkupEditor({
               <button
                 type="button"
                 onClick={() => setSaveDialogOpen(false)}
-                className="rounded-xl border border-[#e0e6f3] bg-white px-4 py-2 text-xs font-extrabold text-[#5a6182] hover:bg-[#f4f6fb]"
+                className="rounded-xl border border-[#e0e6f3] bg-white px-4 py-2 text-xs font-extrabold text-[#5a6182] hover:bg-[#f4f6fb] whitespace-nowrap"
               >
                 취소
               </button>
@@ -226,7 +226,7 @@ export function SharedMarkupEditor({
                   setSaveDialogOpen(false)
                   await performSave()
                 }}
-                className="rounded-xl bg-[#31a3fa] px-4 py-2 text-xs font-extrabold text-white shadow-sm disabled:opacity-60"
+                className="rounded-xl bg-[#31a3fa] px-4 py-2 text-xs font-extrabold text-white shadow-sm disabled:opacity-60 whitespace-nowrap"
               >
                 저장
               </button>
@@ -239,7 +239,7 @@ export function SharedMarkupEditor({
         <TopToolbar>
           <div className="flex items-center gap-2">
             <button
-              className="px-3 py-1.5 rounded border bg-white text-sm font-medium"
+              className="px-3 py-1.5 rounded border bg-white text-sm font-medium whitespace-nowrap"
               onClick={onClose}
             >
               닫기
@@ -251,7 +251,7 @@ export function SharedMarkupEditor({
           </div>
           <div className="flex items-center gap-2">
             <button
-              className="px-4 py-1.5 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-sm"
+              className="px-4 py-1.5 rounded-lg bg-blue-500 text-white text-sm font-bold shadow-sm whitespace-nowrap"
               onClick={handleSaveClick}
             >
               저장하기

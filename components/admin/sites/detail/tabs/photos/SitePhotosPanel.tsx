@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, LayoutGrid, List, RefreshCw, XCircle } from 'lucide-react'
 import Image from 'next/image'
 
-import { useSitePhotos } from '../../hooks/useSitePhotos'
+import { useSitePhotos } from '../../../hooks/useSitePhotos'
 import { PhotoFilters } from './PhotoFilters'
 import { PhotoGridView } from './PhotoGridView'
 import { PhotoListView } from './PhotoListView'
@@ -84,33 +84,38 @@ export function SitePhotosPanel({ siteId }: SitePhotosPanelProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 p-1.5 bg-gray-100/80 rounded-2xl backdrop-blur-sm border">
-            <Button
-              variant={p.viewMode === 'preview' ? 'default' : 'ghost'}
-              size="sm"
+          <div className="flex items-center bg-gray-50/50 p-1 rounded-xl border border-gray-100 shadow-sm">
+            <button
               onClick={() => p.setViewMode('preview')}
-              className="rounded-xl h-9 px-4 font-bold gap-2"
+              className={`p-1.5 rounded-lg transition-all ${
+                p.viewMode === 'preview'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title="카드형 보기"
             >
-              <LayoutGrid className="w-4 h-4" /> 그리드뷰
-            </Button>
-            <Button
-              variant={p.viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
               onClick={() => p.setViewMode('list')}
-              className="rounded-xl h-9 px-4 font-bold gap-2"
+              className={`p-1.5 rounded-lg transition-all ${
+                p.viewMode === 'list'
+                  ? 'bg-white text-blue-600 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+              title="리스트형 보기"
             >
-              <List className="w-4 h-4" /> 리스트뷰
-            </Button>
-            <div className="w-px h-6 bg-gray-300 mx-1" />
-            <Button
-              variant="ghost"
-              size="icon"
+              <List className="h-4 w-4" />
+            </button>
+            <div className="w-px h-5 bg-gray-200 mx-1.5" />
+            <button
               onClick={() => p.fetchPhotos(p.pagination.page)}
               disabled={p.loading}
-              className="h-9 w-9 rounded-xl hover:bg-white"
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-white/50 transition-all disabled:opacity-50"
+              title="새로고침"
             >
               <RefreshCw className={cn('w-4 h-4', p.loading && 'animate-spin')} />
-            </Button>
+            </button>
           </div>
         </div>
 

@@ -2,6 +2,13 @@
 
 import DailyReportsTable from '@/components/admin/DailyReportsTable'
 import { Button } from '@/components/ui/button'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import { Plus, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -54,19 +61,23 @@ export function ReportsTab({ siteId }: ReportsTabProps) {
               className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
             />
           </div>
-          <select
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-            className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs"
-          >
-            <option value="all">전체 상태</option>
-            <option value="draft">임시</option>
-            <option value="submitted">제출</option>
-            <option value="approved">승인</option>
-            <option value="rejected">반려</option>
-          </select>
-          <Button asChild size="sm" className="rounded-lg gap-2">
-            <a href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}>
+          <CustomSelect value={status} onValueChange={v => setStatus(v)}>
+            <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
+              <CustomSelectValue placeholder="상태" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 상태</CustomSelectItem>
+              <CustomSelectItem value="draft">임시</CustomSelectItem>
+              <CustomSelectItem value="submitted">제출</CustomSelectItem>
+              <CustomSelectItem value="approved">승인</CustomSelectItem>
+              <CustomSelectItem value="rejected">반려</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
+          <Button asChild size="sm" className="rounded-lg gap-2 whitespace-nowrap">
+            <a
+              href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}
+              className="inline-flex items-center gap-2 whitespace-nowrap"
+            >
               <Plus className="w-4 h-4" />
               일지 작성
             </a>

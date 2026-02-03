@@ -58,23 +58,29 @@ export function RegistryBulkActions({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 p-1.5 bg-gray-100/80 rounded-2xl backdrop-blur-sm border">
-          <Button
-            variant={viewMode === 'preview' ? 'default' : 'ghost'}
-            size="sm"
+        <div className="flex items-center bg-gray-50/50 p-1 rounded-xl border border-gray-100 shadow-sm">
+          <button
             onClick={() => setViewMode('preview')}
-            className="rounded-xl h-9 px-4 font-bold gap-2"
+            className={`p-1.5 rounded-lg transition-all ${
+              viewMode === 'preview'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title="그리드 보기"
           >
-            <LayoutGrid className="w-4 h-4" /> 그리드
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'ghost'}
-            size="sm"
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
             onClick={() => setViewMode('list')}
-            className="rounded-xl h-9 px-4 font-bold gap-2"
+            className={`p-1.5 rounded-lg transition-all ${
+              viewMode === 'list'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-400 hover:text-gray-600'
+            }`}
+            title="리스트 보기"
           >
-            <List className="w-4 h-4" /> 리스트
-          </Button>
+            <List className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
@@ -97,7 +103,7 @@ export function RegistryBulkActions({
             variant="ghost"
             size="sm"
             onClick={onSelectAll}
-            className="h-9 px-4 rounded-xl text-white hover:bg-white/10 font-bold gap-2"
+            className="h-9 px-4 rounded-xl text-white hover:bg-white/10 font-bold gap-2 whitespace-nowrap"
           >
             <CheckSquare className="w-4 h-4" /> 전체 선택
           </Button>
@@ -105,7 +111,7 @@ export function RegistryBulkActions({
             variant="ghost"
             size="sm"
             onClick={onClearSelection}
-            className="h-9 px-4 rounded-xl text-white hover:bg-white/10 font-bold gap-2"
+            className="h-9 px-4 rounded-xl text-white hover:bg-white/10 font-bold gap-2 whitespace-nowrap"
           >
             <XSquare className="w-4 h-4" /> 해제
           </Button>
@@ -114,7 +120,7 @@ export function RegistryBulkActions({
             variant="secondary"
             size="sm"
             onClick={onDownload}
-            className="h-9 px-4 rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50 gap-2"
+            className="h-9 px-4 rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50 gap-2 whitespace-nowrap"
           >
             <Download className="w-4 h-4" /> 다운로드
           </Button>
@@ -123,7 +129,7 @@ export function RegistryBulkActions({
             size="sm"
             onClick={onDelete}
             disabled={loading}
-            className="h-9 px-4 rounded-xl font-bold gap-2 border-2 border-white/20"
+            className="h-9 px-4 rounded-xl font-bold gap-2 border-2 border-white/20 whitespace-nowrap"
           >
             <Trash2 className="w-4 h-4" /> 일괄 삭제
           </Button>

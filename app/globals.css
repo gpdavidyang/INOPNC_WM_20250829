@@ -2525,3 +2525,18 @@ html.dark .doc-hub .grid-thumbs .thumb {
   -webkit-appearance: none !important;
   margin: 0 !important;
 }
+
+/* Site Detail Tabs - Remove underline from active tabs */
+[data-state='active']::after {
+  content: none !important;
+  display: none !important;
+  height: 0 !important;
+  opacity: 0 !important;
+}
+
+/* Ensure no pseudo-elements on tab triggers */
+button[role='tab']::after,
+button[role='tab']::before {
+  content: none !important;
+  display: none !important;
+}

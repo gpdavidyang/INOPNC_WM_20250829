@@ -47,7 +47,7 @@ export const BasicInfoSection = ({
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
       <Field label="현장명" required className="md:col-span-8">
         <Input
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none focus:ring-2 focus:ring-blue-500/20"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
           value={form.name}
           onChange={e => setFieldValue('name', e.target.value)}
           placeholder="현장 이름을 입력하세요"
@@ -55,7 +55,7 @@ export const BasicInfoSection = ({
       </Field>
       <Field label="상태" className="md:col-span-4">
         <CustomSelect value={form.status} onValueChange={v => setFieldValue('status', v)}>
-          <CustomSelectTrigger className="h-11 rounded-xl border-none bg-gray-50/50 dark:bg-gray-900/50">
+          <CustomSelectTrigger className="h-11 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 font-medium">
             <CustomSelectValue placeholder="상태 선택" />
           </CustomSelectTrigger>
           <CustomSelectContent>
@@ -81,7 +81,7 @@ export const BasicInfoSection = ({
           value={form.organization_id || 'none'}
           onValueChange={v => setFieldValue('organization_id', v === 'none' ? '' : v)}
         >
-          <CustomSelectTrigger className="h-11 rounded-xl border-none bg-gray-50/50 dark:bg-gray-900/50">
+          <CustomSelectTrigger className="h-11 rounded-xl border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 font-medium">
             <CustomSelectValue placeholder={orgLoading ? '로딩 중...' : '소속 선택'} />
           </CustomSelectTrigger>
           <CustomSelectContent>
@@ -103,7 +103,7 @@ export const BasicInfoSection = ({
       >
         <Input
           type="date"
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none mb-2"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 mb-2 font-medium"
           value={form.start_date}
           onChange={e => setFieldValue('start_date', e.target.value)}
           disabled={startDateTbd}
@@ -122,7 +122,7 @@ export const BasicInfoSection = ({
       <Field label="준공일" className="md:col-span-6">
         <Input
           type="date"
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none mb-2"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 mb-2 font-medium"
           value={form.end_date}
           onChange={e => setFieldValue('end_date', e.target.value)}
           disabled={endDateTbd}
@@ -147,14 +147,14 @@ export const ManagerInfoSection = ({ form, setFieldValue }: any) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Field label="현장 소장 (공사 담당)">
         <Input
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
           value={form.manager_name}
           onChange={e => setFieldValue('manager_name', e.target.value)}
         />
       </Field>
       <Field label="연락처">
         <Input
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
           value={form.manager_phone}
           onChange={e => setFieldValue('manager_phone', e.target.value)}
         />
@@ -162,14 +162,14 @@ export const ManagerInfoSection = ({ form, setFieldValue }: any) => (
       <Field label="이메일">
         <Input
           type="email"
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
           value={form.manager_email}
           onChange={e => setFieldValue('manager_email', e.target.value)}
         />
       </Field>
       <Field label="안전 관리자">
         <Input
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
           value={form.safety_manager_name}
           onChange={e => setFieldValue('safety_manager_name', e.target.value)}
         />
@@ -185,14 +185,14 @@ export const AccommodationSection = ({ form, setFieldValue }: any) => (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Field label="숙소명">
           <Input
-            className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+            className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
             value={form.accommodation_name}
             onChange={e => setFieldValue('accommodation_name', e.target.value)}
           />
         </Field>
         <Field label="숙소 연락처">
           <Input
-            className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+            className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
             value={form.accommodation_phone}
             onChange={e => setFieldValue('accommodation_phone', e.target.value)}
           />
@@ -200,7 +200,7 @@ export const AccommodationSection = ({ form, setFieldValue }: any) => (
       </div>
       <Field label="숙소 주소">
         <Input
-          className="h-11 rounded-xl bg-gray-50/50 dark:bg-gray-900/50 border-none"
+          className="h-11 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 font-medium"
           value={form.accommodation_address}
           onChange={e => setFieldValue('accommodation_address', e.target.value)}
           placeholder="검색 또는 직접 입력"
@@ -208,7 +208,7 @@ export const AccommodationSection = ({ form, setFieldValue }: any) => (
       </Field>
       <Field label="현장 설명 / 메모">
         <Textarea
-          className="min-h-[120px] rounded-2xl bg-gray-50/50 dark:bg-gray-900/50 border-none p-4"
+          className="min-h-[120px] rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 p-4 font-medium transition-all"
           value={form.description}
           onChange={e => setFieldValue('description', e.target.value)}
           placeholder="현장 특이사항이나 추가 설명을 입력하세요"

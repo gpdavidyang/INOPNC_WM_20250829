@@ -3,6 +3,13 @@
 import DataTable from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   isMaterialPriorityValue,
@@ -137,27 +144,29 @@ export function RequestsSection({
               className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
             />
           </div>
-          <select
-            value={status}
-            onChange={e => onStatusChange(e.target.value)}
-            className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs"
-          >
-            <option value="all">전체 상태</option>
-            {Object.entries(STATUS_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </select>
-          <select
-            value={sort}
-            onChange={e => onSortChange(e.target.value)}
-            className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs"
-          >
-            <option value="date_desc">최신순</option>
-            <option value="date_asc">오래된순</option>
-            <option value="status">상태순</option>
-          </select>
+          <CustomSelect value={status} onValueChange={v => onStatusChange(v)}>
+            <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
+              <CustomSelectValue placeholder="상태" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 상태</CustomSelectItem>
+              {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                <CustomSelectItem key={k} value={k}>
+                  {v}
+                </CustomSelectItem>
+              ))}
+            </CustomSelectContent>
+          </CustomSelect>
+          <CustomSelect value={sort} onValueChange={v => onSortChange(v)}>
+            <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
+              <CustomSelectValue placeholder="정렬" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="date_desc">최신순</CustomSelectItem>
+              <CustomSelectItem value="date_asc">오래된순</CustomSelectItem>
+              <CustomSelectItem value="status">상태순</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
       </div>
 
@@ -178,7 +187,7 @@ export function RequestsSection({
             {/* Pagination UI */}
             <div className="p-4 border-t flex items-center justify-between bg-gray-50/30">
               <div className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-                Total <span className="text-foreground italic">{total ?? 0}</span>
+                전체 <span className="text-foreground italic">{total ?? 0}</span>
               </div>
               <div className="flex items-center gap-1">
                 <Button
@@ -190,7 +199,9 @@ export function RequestsSection({
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <span className="text-xs font-black min-w-[4rem] text-center">Page {page + 1}</span>
+                <span className="text-xs font-black min-w-[4rem] text-center">
+                  페이지 {page + 1}
+                </span>
                 <Button
                   variant="outline"
                   size="icon"

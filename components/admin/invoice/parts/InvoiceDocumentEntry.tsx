@@ -57,9 +57,14 @@ export function InvoiceDocumentEntry({
               <div className="flex items-center gap-2 mt-0.5">
                 <Badge
                   variant={isFulfilled ? 'default' : 'outline'}
-                  className="text-[9px] h-4 font-black uppercase px-1"
+                  className={cn(
+                    'text-[10px] h-5 font-black px-2 rounded-lg',
+                    isFulfilled
+                      ? 'bg-blue-600 text-white border-none'
+                      : 'text-gray-400 border-gray-200'
+                  )}
                 >
-                  {isFulfilled ? 'Fulfillment' : 'Pending'}
+                  {isFulfilled ? '증빙 완료' : '서류 미등록'}
                 </Badge>
               </div>
             </div>
@@ -100,28 +105,28 @@ export function InvoiceDocumentEntry({
         {/* Action Area */}
         <div className="flex items-center gap-2 shrink-0">
           {isFulfilled && (
-            <div className="flex items-center gap-1.5 p-1.5 bg-gray-50 rounded-xl border opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1.5 p-1 bg-white dark:bg-gray-800 rounded-xl border border-blue-100 dark:border-blue-900 shadow-sm transition-all">
               <Button
                 variant="ghost"
-                size="xs"
-                className="h-8 px-2.5 text-blue-600 rounded-lg font-bold text-[11px]"
+                size="sm"
+                className="h-8 px-3 text-blue-600 hover:bg-blue-50 rounded-lg font-bold text-[11px] transition-colors"
                 onClick={() => onPreview(latest)}
               >
                 보기
               </Button>
               <Button
                 variant="ghost"
-                size="xs"
-                className="h-8 px-2.5 text-blue-600 rounded-lg font-bold text-[11px]"
+                size="sm"
+                className="h-8 px-3 text-blue-600 hover:bg-blue-50 rounded-lg font-bold text-[11px] transition-colors"
                 onClick={() => onDownload(latest)}
               >
                 다운로드
               </Button>
-              <div className="w-px h-4 bg-gray-200 mx-1" />
+              <div className="w-px h-4 bg-gray-100 dark:bg-gray-700 mx-1" />
               <Button
                 variant="ghost"
-                size="xs"
-                className="h-8 px-2.5 text-rose-600 rounded-lg hover:bg-rose-50 font-bold text-[11px]"
+                size="sm"
+                className="h-8 px-3 text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg font-bold text-[11px] transition-colors"
                 onClick={() => onDelete(latest)}
               >
                 삭제

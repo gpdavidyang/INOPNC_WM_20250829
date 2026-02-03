@@ -136,7 +136,7 @@ export function DrawingUploadTab({
       <Button
         disabled={selectedFiles.length === 0 || uploading}
         onClick={handleUpload}
-        className="w-full h-14 rounded-2xl text-[16px] font-black bg-[#9aa4c5] hover:bg-[#838db0] text-white shadow-lg transition-all active:scale-[0.98]"
+        className="w-full h-14 rounded-2xl text-[16px] font-black bg-[#9aa4c5] hover:bg-[#838db0] text-white shadow-lg transition-all active:scale-[0.98] whitespace-nowrap"
       >
         {uploading ? (
           <span className="flex items-center gap-2">

@@ -6,7 +6,7 @@ import { useConfirm } from '@/components/ui/use-confirm'
 import { Loader2, Trash2 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { getDailyReportColumns } from './daily-reports/table/DailyReportColumns'
-import { useDailyReportsTable } from './table/useDailyReportsTable'
+import { useDailyReportsTable } from './daily-reports/table/useDailyReportsTable'
 
 export default function DailyReportsTable({ reports }: { reports: any[] }) {
   const router = useRouter()
@@ -67,36 +67,31 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-4">
-          <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest">
-            작업일지 목록 ({reports.length})
-          </h3>
-          {state.selectedIds.length > 0 && (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 transition-all">
-              <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
-                {state.selectedIds.length}개 항목 선택됨
-              </span>
-              <Button
-                variant="destructive"
-                size="sm"
-                className="h-8 rounded-lg font-black uppercase text-[10px] tracking-widest gap-2 bg-red-600 shadow-lg shadow-red-200"
-                onClick={actions.handleBulkDelete}
-                disabled={state.isDeleting}
-              >
-                {state.isDeleting ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3 h-3" />
-                )}
-                선택 항목 삭제
-              </Button>
-            </div>
-          )}
+      {state.selectedIds.length > 0 && (
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 transition-all">
+            <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
+              {state.selectedIds.length}개 항목 선택됨
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-8 rounded-lg font-black uppercase text-[10px] tracking-widest gap-2 bg-red-600 shadow-lg shadow-red-200"
+              onClick={actions.handleBulkDelete}
+              disabled={state.isDeleting}
+            >
+              {state.isDeleting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Trash2 className="w-3 h-3" />
+              )}
+              선택 항목 삭제
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-white rounded-[32px] shadow-2xl shadow-black/5 overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-2xl shadow-black/5 overflow-hidden border border-gray-100">
         <DataTable
           data={reports}
           rowKey="id"

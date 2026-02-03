@@ -274,7 +274,10 @@ export default function AdminDrawingManagementContent({
                 onChange={e => setDateTo(e.target.value)}
               />
             </div>
-            <Button onClick={handleApplyFilters} className="h-10 px-8 rounded-[8px] ml-auto">
+            <Button
+              onClick={handleApplyFilters}
+              className="h-10 px-8 rounded-[8px] ml-auto whitespace-nowrap"
+            >
               조회하기
             </Button>
           </div>
@@ -292,15 +295,15 @@ export default function AdminDrawingManagementContent({
               작업일지 목록
             </h3>
             <div className="flex items-center gap-4">
-              <div className="flex items-center bg-white p-1 rounded-xl border shadow-sm">
+              <div className="flex items-center bg-gray-50/50 p-1 rounded-xl border border-gray-100 shadow-sm">
                 <button
                   onClick={() => setWorklogViewMode('grid')}
                   className={`p-1.5 rounded-lg transition-all ${
                     worklogViewMode === 'grid'
-                      ? 'bg-primary/10 text-primary shadow-inner'
-                      : 'text-[#9aa4c5] hover:text-primary/60'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-600'
                   }`}
-                  title="카드 보기"
+                  title="카드형 보기"
                 >
                   <LayoutGrid className="h-4 w-4" />
                 </button>
@@ -308,10 +311,10 @@ export default function AdminDrawingManagementContent({
                   onClick={() => setWorklogViewMode('list')}
                   className={`p-1.5 rounded-lg transition-all ${
                     worklogViewMode === 'list'
-                      ? 'bg-primary/10 text-primary shadow-inner'
-                      : 'text-[#9aa4c5] hover:text-primary/60'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-600'
                   }`}
-                  title="리스트 보기"
+                  title="리스트형 보기"
                 >
                   <List className="h-4 w-4" />
                 </button>
@@ -479,7 +482,7 @@ export default function AdminDrawingManagementContent({
                   <Button
                     variant="outline"
                     onClick={() => setSelectedReportId(null)}
-                    className="h-11 px-5 rounded-xl border-[#e0e6f3] text-[13px] font-black hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100 transition-all flex items-center gap-2"
+                    className="h-11 px-5 rounded-xl border-[#e0e6f3] text-[13px] font-black hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100 transition-all flex items-center gap-2 whitespace-nowrap"
                   >
                     <X className="h-4 w-4" />
                     닫기
@@ -507,7 +510,7 @@ export default function AdminDrawingManagementContent({
                         <TabsTrigger
                           key={tab.value}
                           value={tab.value}
-                          className="rounded-[18px] font-black text-[14px] transition-all duration-300 data-[state=active]:bg-white data-[state=active]:text-[#31a3fa] data-[state=active]:shadow-lg data-[state=active]:after:hidden"
+                          className="rounded-[18px] font-black text-[14px] transition-all duration-300 data-[state=active]:bg-white data-[state=active]:text-[#31a3fa] data-[state=active]:shadow-lg data-[state=active]:after:hidden whitespace-nowrap"
                         >
                           {tab.label}
                         </TabsTrigger>

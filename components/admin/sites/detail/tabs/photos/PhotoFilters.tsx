@@ -1,14 +1,14 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { Input } from '@/components/ui/input'
 import { format } from 'date-fns'
 import { UploadCloud } from 'lucide-react'
 
@@ -53,16 +53,19 @@ export function PhotoFilters({
           <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
             사진 구분
           </label>
-          <Select value={filters.type} onValueChange={v => setFilters({ ...filters, type: v })}>
-            <SelectTrigger className="h-10 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체</SelectItem>
-              <SelectItem value="before">보수 전</SelectItem>
-              <SelectItem value="after">보수 후</SelectItem>
-            </SelectContent>
-          </Select>
+          <CustomSelect
+            value={filters.type}
+            onValueChange={v => setFilters({ ...filters, type: v })}
+          >
+            <CustomSelectTrigger className="h-10 rounded-xl">
+              <CustomSelectValue />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체</CustomSelectItem>
+              <CustomSelectItem value="before">보수 전</CustomSelectItem>
+              <CustomSelectItem value="after">보수 후</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
 
         <div className="space-y-1.5">
@@ -93,45 +96,45 @@ export function PhotoFilters({
           <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
             작업일지
           </label>
-          <Select
+          <CustomSelect
             value={filters.reportId || 'all'}
             onValueChange={v => setFilters({ ...filters, reportId: v === 'all' ? undefined : v })}
           >
-            <SelectTrigger className="h-10 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체</SelectItem>
+            <CustomSelectTrigger className="h-10 rounded-xl">
+              <CustomSelectValue />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체</CustomSelectItem>
               {reports.map(r => (
-                <SelectItem key={r.id} value={r.id}>
+                <CustomSelectItem key={r.id} value={r.id}>
                   {r.work_date ? format(new Date(r.work_date), 'MM-dd') : '-'}{' '}
                   {r.process_type || r.member_name}
-                </SelectItem>
+                </CustomSelectItem>
               ))}
-            </SelectContent>
-          </Select>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
 
         <div className="space-y-1.5">
           <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
             업로더
           </label>
-          <Select
+          <CustomSelect
             value={filters.uploaderId || 'all'}
             onValueChange={v => setFilters({ ...filters, uploaderId: v === 'all' ? undefined : v })}
           >
-            <SelectTrigger className="h-10 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">전체</SelectItem>
+            <CustomSelectTrigger className="h-10 rounded-xl">
+              <CustomSelectValue />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체</CustomSelectItem>
               {uploaderOptions.map(o => (
-                <SelectItem key={o.id} value={o.id}>
+                <CustomSelectItem key={o.id} value={o.id}>
                   {o.name}
-                </SelectItem>
+                </CustomSelectItem>
               ))}
-            </SelectContent>
-          </Select>
+            </CustomSelectContent>
+          </CustomSelect>
         </div>
       </div>
 
@@ -141,7 +144,7 @@ export function PhotoFilters({
             variant="default"
             onClick={onSearch}
             disabled={loading}
-            className="rounded-xl px-6"
+            className="rounded-xl px-6 whitespace-nowrap"
           >
             검색
           </Button>
@@ -149,7 +152,7 @@ export function PhotoFilters({
             variant="outline"
             onClick={onReset}
             disabled={loading}
-            className="rounded-xl px-6"
+            className="rounded-xl px-6 whitespace-nowrap"
           >
             초기화
           </Button>
@@ -157,7 +160,7 @@ export function PhotoFilters({
         <Button
           onClick={onOpenUploader}
           variant="secondary"
-          className="rounded-xl gap-2 font-bold px-6 border-2 border-blue-100"
+          className="rounded-xl gap-2 font-bold px-6 border-2 border-blue-100 whitespace-nowrap"
         >
           <UploadCloud className="w-4 h-4" />새 사진 추가
         </Button>

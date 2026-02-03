@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -9,10 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -20,8 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import { Loader2, Upload } from 'lucide-react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export type StageKey = 'start' | 'progress' | 'completion'
 
@@ -275,24 +275,30 @@ export function InvoiceUploadForm({
           type="file"
           accept="*/*"
           onChange={handleFileChange}
-          className="w-full sm:w-64 cursor-pointer"
+          className="hidden"
           disabled={submitting}
         />
-        <div className="flex items-center gap-2 text-xs min-h-[1.5rem]">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all font-bold text-xs shadow-sm"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={submitting}
+        >
           {status === 'uploading' ? (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              업로드 중…
-            </span>
-          ) : null}
+            <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin text-blue-500" />
+          ) : (
+            <Upload className="h-3.5 w-3.5 mr-2 text-gray-400" />
+          )}
+          문서 등록
+        </Button>
+        <div className="flex items-center gap-2 text-xs min-h-[1.5rem]">
           {status === 'success' && lastFileName ? (
-            <span className="text-emerald-600">{lastFileName} 업로드 완료</span>
+            <span className="text-emerald-600 font-bold">{lastFileName} 업로드 완료</span>
           ) : null}
           {status === 'error' && statusMessage ? (
-            <span className="text-destructive">{statusMessage}</span>
-          ) : null}
-          {status === 'idle' ? (
-            <span className="text-muted-foreground">파일 선택 시 자동 업로드됩니다.</span>
+            <span className="text-destructive font-bold">{statusMessage}</span>
           ) : null}
         </div>
       </div>

@@ -61,7 +61,7 @@ export function PhotoSheetList({ photoSheets, loading, siteId }: PhotoSheetListP
     {
       key: 'actions',
       header: '관리',
-      width: 120,
+      width: 200,
       align: 'right',
       render: (s: any) => <PhotoSheetActions id={s.id} />,
     },
@@ -75,13 +75,18 @@ export function PhotoSheetList({ photoSheets, loading, siteId }: PhotoSheetListP
           <p className="text-xs text-muted-foreground">이 현장에서 생성된 사진대지 목록입니다.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="rounded-xl border-gray-200" asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-xl border-gray-200 whitespace-nowrap"
+            asChild
+          >
             <a href={`/dashboard/admin/photo-sheets?site_id=${siteId}`}>전체 관리</a>
           </Button>
           <Button
             variant="secondary"
             size="sm"
-            className="rounded-xl border-2 border-blue-50"
+            className="rounded-xl border-2 border-blue-50 whitespace-nowrap"
             asChild
           >
             <a href={`/dashboard/admin/tools/photo-grid?site_id=${siteId}`}>사진대지 신규 생성</a>

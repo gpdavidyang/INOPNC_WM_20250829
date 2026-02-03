@@ -1,9 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
-import { useToast } from '@/components/ui/use-toast'
 import {
   Table,
   TableBody,
@@ -12,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { useToast } from '@/components/ui/use-toast'
 import { getRoleLabel } from '@/lib/auth/role-labels'
+import { useEffect, useMemo, useState } from 'react'
 
 type AvailableWorker = {
   id: string
@@ -346,19 +353,23 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
             </div>
             <div className="flex items-center gap-2">
               <label>페이지 크기</label>
-              <select
-                value={pageSize}
-                onChange={e => {
+              <CustomSelect
+                value={String(pageSize)}
+                onValueChange={v => {
                   setPage(0)
-                  setPageSize(Number(e.target.value))
+                  setPageSize(Number(v))
                 }}
-                className="rounded border px-2 py-1"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+                <CustomSelectTrigger className="h-8 w-20 rounded border px-2 py-1 text-xs">
+                  <CustomSelectValue />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="10">10</CustomSelectItem>
+                  <CustomSelectItem value="20">20</CustomSelectItem>
+                  <CustomSelectItem value="50">50</CustomSelectItem>
+                  <CustomSelectItem value="100">100</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
               <Button
                 variant="outline"
                 size="sm"
@@ -495,19 +506,23 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
             </div>
             <div className="flex items-center gap-2">
               <label>페이지 크기</label>
-              <select
-                value={assignedPageSize}
-                onChange={e => {
+              <CustomSelect
+                value={String(assignedPageSize)}
+                onValueChange={v => {
                   setAssignedPage(0)
-                  setAssignedPageSize(Number(e.target.value))
+                  setAssignedPageSize(Number(v))
                 }}
-                className="rounded border px-2 py-1"
               >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
+                <CustomSelectTrigger className="h-8 w-20 rounded border px-2 py-1 text-xs">
+                  <CustomSelectValue />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="10">10</CustomSelectItem>
+                  <CustomSelectItem value="20">20</CustomSelectItem>
+                  <CustomSelectItem value="50">50</CustomSelectItem>
+                  <CustomSelectItem value="100">100</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
               <Button
                 variant="outline"
                 size="sm"

@@ -190,7 +190,7 @@ export default function DailyReportDetailClient({
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
         <LoadingSpinner />
         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-          Loading Report Details...
+          작업일지 정보를 불러오는 중...
         </p>
       </div>
     )
@@ -201,7 +201,7 @@ export default function DailyReportDetailClient({
       <div className="min-h-[40vh] flex flex-col items-center justify-center gap-6 p-12 bg-gray-50 rounded-3xl border-2 border-dashed">
         <AlertCircle className="w-12 h-12 text-rose-500" />
         <div className="text-center">
-          <h2 className="text-xl font-black text-foreground">Report Not Found</h2>
+          <h2 className="text-xl font-black text-foreground">작업일지를 찾을 수 없습니다</h2>
           <p className="text-sm text-muted-foreground mt-1">
             {error || '해당 작업일지 정보를 불러올 수 없거나 존재하지 않습니다.'}
           </p>
@@ -283,21 +283,21 @@ export default function DailyReportDetailClient({
       <ReportStats
         stats={[
           {
-            label: 'Total Labor Hours',
+            label: '총 공수',
             value: formatNumber(workerStats.total_hours),
-            helper: `Overtime: ${formatNumber(workerStats.total_overtime)}`,
+            helper: `연장: ${formatNumber(workerStats.total_overtime)}`,
             color: 'blue',
           },
           {
-            label: 'Materials Used',
-            value: `${report.materials.length} Items`,
-            helper: report.materials.length > 0 ? 'Inventory Deducted' : 'No records',
+            label: '사용 자재',
+            value: `${report.materials.length} 항목`,
+            helper: report.materials.length > 0 ? '재고 차감됨' : '기록 없음',
             color: 'amber',
           },
           {
-            label: 'Assets Uploaded',
-            value: `${linkedDrawings.length + totalPhotoCount} Files`,
-            helper: `${linkedDrawings.length} Drawings / ${totalPhotoCount} Photos`,
+            label: '업로드된 자산',
+            value: `${linkedDrawings.length + totalPhotoCount} 파일`,
+            helper: `${linkedDrawings.length} 도면 / ${totalPhotoCount} 사진`,
             color: 'emerald',
           },
         ]}

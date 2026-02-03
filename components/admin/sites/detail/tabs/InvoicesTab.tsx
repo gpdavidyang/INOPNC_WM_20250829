@@ -1,6 +1,6 @@
 'use client'
 
-import InvoiceDocumentsManager from '@/components/admin/invoices/InvoiceDocumentsManager'
+import InvoiceDocumentsManager from '@/components/admin/invoice/InvoiceDocumentsManager'
 
 interface InvoicesTabProps {
   siteId: string

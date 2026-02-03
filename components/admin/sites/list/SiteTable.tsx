@@ -116,7 +116,7 @@ export const SiteTable = ({
       },
       {
         key: 'daily_reports_count',
-        header: '통계 (보고서/공수)',
+        header: '통계 (보고서/총공수)',
         sortable: false,
         render: s => {
           const stats = statsMap[s.id] || {
@@ -127,7 +127,7 @@ export const SiteTable = ({
             <div className="flex items-center gap-4">
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">
-                  Reports
+                  작업일지
                 </span>
                 <span className="text-sm font-black text-gray-900 dark:text-gray-100 italic">
                   {stats.daily_reports_count}
@@ -135,11 +135,11 @@ export const SiteTable = ({
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">
-                  Labor
+                  총공수
                 </span>
                 <span className="text-sm font-black text-blue-600 dark:text-blue-400 italic">
                   {(stats.total_labor_hours || 0).toFixed(1)}{' '}
-                  <small className="text-[10px] uppercase font-bold not-italic ml-0.5">mh</small>
+                  <small className="text-[10px] uppercase font-bold not-italic ml-0.5">공수</small>
                 </span>
               </div>
             </div>
@@ -153,21 +153,26 @@ export const SiteTable = ({
         align: 'right',
         render: s => (
           <div className="flex items-center justify-end gap-1">
-            <Button asChild variant="secondary" size="xs" className="h-8 rounded-lg font-bold">
+            <Button
+              asChild
+              variant="secondary"
+              size="xs"
+              className="h-8 rounded-md font-normal px-4 whitespace-nowrap"
+            >
               <Link href={`/dashboard/admin/sites/${s.id}`}>상세</Link>
             </Button>
             <Button
               asChild
               variant="outline"
               size="xs"
-              className="h-8 rounded-lg font-bold border-amber-200 text-amber-700 hover:bg-amber-50"
+              className="h-8 rounded-md font-normal border-amber-200 text-amber-700 hover:bg-amber-50 px-4 whitespace-nowrap"
             >
               <Link href={`/dashboard/admin/sites/${s.id}?tab=edit`}>수정</Link>
             </Button>
             <Button
               variant="ghost"
               size="xs"
-              className="h-8 rounded-lg font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+              className="h-8 rounded-md font-normal text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-4 border border-rose-300 whitespace-nowrap"
               onClick={() => onDelete(s)}
             >
               삭제

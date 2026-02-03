@@ -1,9 +1,9 @@
-import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { PageHeader } from '@/components/ui/page-header'
-import { buttonVariants } from '@/components/ui/button'
 import AssignUsersPage from '@/components/admin/sites/AssignUsersPage'
+import { buttonVariants } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: '사용자 배정' }
 
@@ -16,7 +16,7 @@ export default async function AssignUsersPageRoute({ params }: { params: { id: s
     .eq('id', params.id)
     .maybeSingle()
   return (
-    <div className="px-0 pb-8">
+    <div className="px-0 pb-8 space-y-6">
       <PageHeader
         title="사용자 배정"
         subtitle={
@@ -27,14 +27,14 @@ export default async function AssignUsersPageRoute({ params }: { params: { id: s
         actions={
           <a
             href={`/dashboard/admin/sites/${params.id}?tab=assignments`}
-            className={buttonVariants({ variant: 'outline', size: 'standard' })}
+            className={`${buttonVariants({ variant: 'outline', size: 'standard' })} rounded-xl`}
             role="button"
           >
             현장으로 돌아가기
           </a>
         }
       />
-      <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-4 sm:px-6 lg:px-8">
         <AssignUsersPage siteId={params.id} />
       </div>
     </div>

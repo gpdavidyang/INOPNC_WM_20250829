@@ -1,12 +1,10 @@
-import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { createClient } from '@/lib/supabase/server'
-import { headers } from 'next/headers'
-// integrated overview SSR via internal API
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { PageHeader } from '@/components/page-header'
-import SiteDetailTabs from '@/components/admin/sites/SiteDetailTabs'
 import SiteDetailActions from '@/components/admin/sites/SiteDetailActions'
+import SiteDetailTabs from '@/components/admin/sites/SiteDetailTabs'
+import { PageHeader } from '@/components/page-header'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getIntegratedSiteDetail } from '@/lib/admin/site-detail'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: '현장 상세' }
 
@@ -18,39 +16,30 @@ interface SitePageProps {
 
 export default async function AdminSiteDetailPage({ params }: SitePageProps) {
   await requireAdminProfile()
-  const supabase = createClient()
 
-  const { data: site } = await supabase
-    .from('sites')
-    .select('*')
-    .eq('id', params.id)
-    .eq('is_deleted', false)
-    .maybeSingle()
+  // Fetch all site data in one optimized pass
+  const data = await getIntegratedSiteDetail(params.id)
 
-  let organization: any = null
-  if (site?.organization_id) {
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('*')
-      .eq('id', site.organization_id)
-      .maybeSingle()
-    organization = org
+  if (!data) {
+    return (
+      <div className="px-0 pb-8 space-y-6">
+        <PageHeader
+          title="현장 상세"
+          description="현장 정보를 불러올 수 없습니다."
+          breadcrumbs={[
+            { label: '대시보드', href: '/dashboard/admin' },
+            { label: '현장 관리', href: '/dashboard/admin/sites' },
+            { label: '현장 상세' },
+          ]}
+        />
+        <div className="p-8 text-center bg-white rounded-3xl border border-dashed text-gray-400">
+          현장이 존재하지 않거나 접근 권한이 없습니다.
+        </div>
+      </div>
+    )
   }
 
-  const h = headers()
-  const host = h.get('x-forwarded-host') || h.get('host') || 'localhost:3000'
-  const proto = h.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https')
-  const baseUrl = `${proto}://${host}`
-  const res = await fetch(`${baseUrl}/api/admin/sites/${params.id}/integrated`, {
-    cache: 'no-store',
-  })
-  const integrated = await res.json().catch(() => ({}))
-  const docs = Array.isArray(integrated?.data?.docs) ? integrated.data.docs : []
-  const reports = Array.isArray(integrated?.data?.reports) ? integrated.data.reports : []
-  const assignments = Array.isArray(integrated?.data?.assignments)
-    ? integrated.data.assignments
-    : []
-  const requests = Array.isArray(integrated?.data?.requests) ? integrated.data.requests : []
+  const { site, organization, docs, reports, assignments, requests, stats } = data
 
   return (
     <div className="px-0 pb-8 space-y-6">
@@ -69,20 +58,21 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
         actions={<SiteDetailActions siteId={params.id} />}
       />
 
-      <Card className="!rounded-[8px]">
-        <CardHeader>
-          <CardTitle>{site?.name || '-'}</CardTitle>
-          <CardDescription>{site?.address || '-'}</CardDescription>
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardHeader className="border-b border-gray-100 bg-gradient-to-b from-gray-50/50 to-transparent">
+          <CardTitle className="text-2xl">{site?.name || '-'}</CardTitle>
+          <CardDescription className="text-sm">{site?.address || '-'}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <SiteDetailTabs
             siteId={params.id}
             site={site}
             organization={organization}
-            initialDocs={Array.isArray(docs) ? docs : []}
-            initialReports={Array.isArray(reports) ? reports : []}
+            initialDocs={docs}
+            initialReports={reports}
             initialAssignments={assignments}
             initialRequests={requests}
+            initialStats={stats}
           />
         </CardContent>
       </Card>

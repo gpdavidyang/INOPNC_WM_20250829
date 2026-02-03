@@ -117,13 +117,13 @@ export function SitesContent({
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm border-gray-100 dark:border-gray-800"
+            className="h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm border-gray-100 dark:border-gray-800 whitespace-nowrap"
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             {t('common.refresh')}
           </Button>
           <Link href="/dashboard/admin/sites/new">
-            <Button className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none transition-all">
+            <Button className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none transition-all whitespace-nowrap">
               <Plus className="w-4 h-4 mr-2" />
               {t('sites.create')}
             </Button>
@@ -179,7 +179,7 @@ export function SitesContent({
         </div>
         <div className="flex items-center gap-4">
           <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Page{' '}
+            페이지{' '}
             <span className="text-gray-900 dark:text-gray-100 italic ml-1">
               {page} / {pages}
             </span>

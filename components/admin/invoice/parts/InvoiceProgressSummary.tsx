@@ -22,10 +22,11 @@ export function InvoiceProgressSummary({ progress }: InvoiceProgressSummaryProps
         const isDone = percent === 100 && data.required > 0
 
         const colorClasses = {
-          blue: 'from-blue-500 to-blue-600 bg-blue-50 border-blue-100 text-blue-700',
-          amber: 'from-amber-500 to-amber-600 bg-amber-50 border-amber-100 text-amber-700',
+          blue: 'from-blue-500 to-blue-600 bg-white border-blue-200 text-blue-700 shadow-blue-100/50',
+          amber:
+            'from-amber-500 to-amber-600 bg-white border-amber-200 text-amber-700 shadow-amber-100/50',
           emerald:
-            'from-emerald-500 to-emerald-600 bg-emerald-50 border-emerald-100 text-emerald-700',
+            'from-emerald-500 to-emerald-600 bg-white border-emerald-200 text-emerald-700 shadow-emerald-100/50',
         }[stage.color as 'blue' | 'amber' | 'emerald']
 
         return (

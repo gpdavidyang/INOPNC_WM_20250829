@@ -31,6 +31,7 @@ interface SiteDetailTabsProps {
   initialAssignments?: any[]
   initialRequests?: any[]
   initialDocs?: any[]
+  initialStats?: { reports: number; labor: number } | null
 }
 
 export default function SiteDetailTabs({
@@ -40,6 +41,7 @@ export default function SiteDetailTabs({
   initialReports = [],
   initialAssignments = [],
   initialRequests = [],
+  initialStats = null,
 }: SiteDetailTabsProps) {
   const [tab, setTab] = useState('overview')
 
@@ -49,13 +51,14 @@ export default function SiteDetailTabs({
     initialReports,
     initialAssignments,
     initialRequests,
+    initialStats,
   })
 
   return (
     <div className="w-full space-y-6">
       <Tabs value={tab} onValueChange={setTab} className="w-full">
-        <div className="sticky top-0 z-10 bg-gray-50/80 backdrop-blur-md pb-2 border-b">
-          <TabsList className="flex h-14 items-center gap-1 bg-transparent p-0 overflow-x-auto no-scrollbar">
+        <div className="sticky top-0 z-10 bg-gradient-to-b from-white via-white to-transparent pb-4 -mx-6 px-6 mb-2">
+          <TabsList className="grid grid-cols-8 h-auto items-center gap-2 bg-gray-50/50 p-1.5 rounded-2xl border border-gray-100">
             <TabTrigger
               value="overview"
               icon={<LayoutDashboard className="w-4 h-4" />}
@@ -131,7 +134,7 @@ export default function SiteDetailTabs({
         </TabsContent>
 
         <TabsContent value="shared">
-          <DrawingsTab siteId={siteId} />
+          <DrawingsTab siteId={siteId} siteName={site?.name} />
         </TabsContent>
 
         <TabsContent value="invoices">
@@ -167,7 +170,7 @@ function TabTrigger({
   return (
     <TabsTrigger
       value={value}
-      className="relative flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-bold text-muted-foreground transition-all hover:bg-gray-100 data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-gray-200"
+      className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-gray-600 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-md data-[state=active]:shadow-blue-100/50 whitespace-nowrap"
     >
       {icon}
       <span>{label}</span>

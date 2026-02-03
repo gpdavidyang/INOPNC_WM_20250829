@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { ExternalLink, Eye, MoveRight, Trash2 } from 'lucide-react'
 import Image from 'next/image'

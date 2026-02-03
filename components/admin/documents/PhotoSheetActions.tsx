@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export default function PhotoSheetActions({ id }: { id: string }) {
   const router = useRouter()
@@ -35,10 +35,11 @@ export default function PhotoSheetActions({ id }: { id: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center justify-end gap-1.5">
       <Button
-        variant="outline"
-        size="compact"
+        variant="secondary"
+        size="xs"
+        className="h-8 px-3 rounded-lg font-bold whitespace-nowrap"
         onClick={() => {
           router.push(
             `/dashboard/admin/tools/photo-grid?sheet_id=${encodeURIComponent(id)}&tab=upload`
@@ -49,7 +50,8 @@ export default function PhotoSheetActions({ id }: { id: string }) {
       </Button>
       <Button
         variant="outline"
-        size="compact"
+        size="xs"
+        className="h-8 px-3 rounded-lg font-bold border-gray-200 text-gray-700 hover:bg-gray-50 whitespace-nowrap"
         onClick={() =>
           router.push(
             `/dashboard/admin/tools/photo-grid/preview/live?sheet_id=${encodeURIComponent(id)}`
@@ -59,12 +61,11 @@ export default function PhotoSheetActions({ id }: { id: string }) {
         미리보기
       </Button>
       <Button
-        variant="destructive"
-        size="compact"
+        variant="ghost"
+        size="xs"
+        className="h-8 px-3 rounded-lg font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-300 whitespace-nowrap"
         onClick={() => void handleDelete()}
         disabled={deleting}
-        aria-label="사진대지 삭제"
-        title="삭제"
       >
         {deleting ? '삭제 중…' : '삭제'}
       </Button>

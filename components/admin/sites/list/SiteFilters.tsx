@@ -1,14 +1,14 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { Input } from '@/components/ui/input'
 import { t } from '@/lib/ui/strings'
 import { Filter, RotateCcw, Search, X } from 'lucide-react'
 
@@ -62,28 +62,28 @@ export const SiteFilters = ({
         </div>
 
         <div className="flex items-center gap-2 w-full md:w-auto">
-          <Select value={statusFilter} onValueChange={onStatusChange}>
-            <SelectTrigger className="w-full md:w-[160px] h-10 rounded-lg border-none bg-gray-50/50 dark:bg-gray-900/50">
+          <CustomSelect value={statusFilter} onValueChange={onStatusChange}>
+            <CustomSelectTrigger className="w-full md:w-[160px] h-10 rounded-lg border-none bg-gray-50/50 dark:bg-gray-900/50">
               <div className="flex items-center gap-2">
                 <Filter className="w-3.5 h-3.5 text-gray-400" />
-                <SelectValue placeholder={t('sites.statusFilter')} />
+                <CustomSelectValue placeholder={t('sites.statusFilter')} />
               </div>
-            </SelectTrigger>
-            <SelectContent>
+            </CustomSelectTrigger>
+            <CustomSelectContent>
               {STATUS_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
+                <CustomSelectItem key={opt.value} value={opt.value}>
                   {opt.label}
-                </SelectItem>
+                </CustomSelectItem>
               ))}
-            </SelectContent>
-          </Select>
+            </CustomSelectContent>
+          </CustomSelect>
 
           <Button
             variant="ghost"
             size="sm"
             onClick={onReset}
             disabled={loading}
-            className="h-10 px-3 text-gray-500 hover:text-blue-600"
+            className="h-10 px-3 text-gray-500 hover:text-blue-600 whitespace-nowrap"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
             초기화
@@ -92,7 +92,7 @@ export const SiteFilters = ({
           <Button
             onClick={onSearchSubmit}
             disabled={loading}
-            className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm"
+            className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm whitespace-nowrap"
           >
             검색
           </Button>

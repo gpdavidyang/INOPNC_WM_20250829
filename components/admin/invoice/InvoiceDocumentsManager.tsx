@@ -25,7 +25,7 @@ export default function InvoiceDocumentsManager({
   organizationId,
   onProgressUpdate,
 }: InvoiceDocumentsManagerProps) {
-  const p = useInvoiceDocuments(siteId, organizationId)
+  const p = useInvoiceDocuments(siteId)
 
   // Sync progress back to parent
   React.useEffect(() => {
