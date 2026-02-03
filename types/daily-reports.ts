@@ -303,7 +303,16 @@ export interface UnifiedDailyReport {
   safetyNotes?: string
   notes?: string
   progress?: number
-  meta?: Record<string, unknown>
+  meta?: Record<string, any>
+  relatedReports?: any[]
+  workerStatistics?: {
+    total_workers?: number
+    total_hours?: number
+    total_overtime?: number
+    absent_workers?: number
+    by_trade?: Record<string, number>
+    by_skill?: Record<string, number>
+  }
   createdAt?: string
   updatedAt?: string
   rejectionReason?: string | null

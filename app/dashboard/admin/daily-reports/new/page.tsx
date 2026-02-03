@@ -85,7 +85,7 @@ export default async function AdminNewDailyReportPage() {
   // Get materials (best-effort)
   const { data: materialsData } = await supabase
     .from('materials')
-    .select('id, name, code, unit, is_active, use_yn, use_flag, status')
+    .select('id, name, code, unit, specification, is_active')
     .order('name')
   const materials = Array.isArray(materialsData) ? materialsData.filter(isMaterialSelectable) : []
 

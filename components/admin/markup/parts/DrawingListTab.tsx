@@ -12,9 +12,9 @@ import {
   Loader2,
   Maximize2,
   Pencil,
-  Trash2,
   X,
 } from 'lucide-react'
+import Image from 'next/image'
 
 export function DrawingListTab({
   worklogId,
@@ -134,10 +134,12 @@ export function DrawingListTab({
                 onClick={() => setSelectedImg(doc.url)}
               >
                 {doc.preview_url || doc.url ? (
-                  <img
+                  <Image
                     src={doc.preview_url || doc.url}
                     alt=""
-                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    unoptimized
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">
@@ -197,10 +199,9 @@ export function DrawingListTab({
                   </button>
                   <button
                     onClick={e => handleUnlink(e, doc)}
-                    className="w-10 h-10 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95"
-                    title="연결 해제"
+                    className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20"
                   >
-                    <Trash2 className="h-5 w-5" />
+                    해제
                   </button>
                 </div>
               </div>
@@ -220,10 +221,12 @@ export function DrawingListTab({
                 onClick={() => setSelectedImg(doc.url)}
               >
                 {doc.preview_url || doc.url ? (
-                  <img
+                  <Image
                     src={doc.preview_url || doc.url}
                     alt=""
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    unoptimized
                   />
                 ) : (
                   <div className="h-full w-full flex items-center justify-center text-[#31a3fa]/30">
@@ -276,9 +279,9 @@ export function DrawingListTab({
                 </button>
                 <button
                   onClick={e => handleUnlink(e, doc)}
-                  className="w-9 h-9 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95"
+                  className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  해제
                 </button>
               </div>
             </div>
@@ -302,11 +305,14 @@ export function DrawingListTab({
             </button>
           </div>
           <div className="flex-1 relative flex items-center justify-center p-8 overflow-hidden">
-            <img
+            <Image
               src={selectedImg}
               alt=""
+              width={1600}
+              height={1200}
               className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-500 select-none pointer-events-none"
               onClick={e => e.stopPropagation()}
+              unoptimized
             />
           </div>
           <div className="h-16 flex items-center justify-center px-6 text-white/40 text-[12px] font-medium">

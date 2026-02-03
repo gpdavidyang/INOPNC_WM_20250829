@@ -1,7 +1,5 @@
 'use client'
 
-import { CardContent } from '@/components/ui/card'
-
 interface InfoItem {
   label: string
   value: string
@@ -13,18 +11,15 @@ interface ReportInfoGridProps {
 
 export function ReportInfoGrid({ items }: ReportInfoGridProps) {
   return (
-    <CardContent className="px-4 pb-5">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
-        {items.map(item => (
-          <div
-            key={item.label}
-            className="flex flex-col gap-1 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2"
-          >
-            <span className="text-xs text-muted-foreground">{item.label}</span>
-            <span className="text-sm font-semibold text-foreground">{item.value}</span>
-          </div>
-        ))}
-      </div>
-    </CardContent>
+    <div className="flex flex-wrap items-center gap-6 px-8 py-5 border-t bg-gray-50/30">
+      {items.map(item => (
+        <div key={item.label} className="flex flex-col min-w-[120px]">
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all">
+            {item.label}
+          </span>
+          <span className="text-sm font-bold text-foreground">{item.value}</span>
+        </div>
+      ))}
+    </div>
   )
 }

@@ -1,13 +1,9 @@
 'use client'
 
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import MarkupMetadataForm, { type SiteOption } from '@/components/admin/markup/MarkupMetadataForm'
-import {
-  linkUnifiedDocumentToMarkupDoc,
-  syncMarkupUpdateToUnifiedDocument,
-} from '@/lib/unified-documents'
+import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
+import { useRouter } from 'next/navigation'
+import React from 'react'
 
 type AnyDoc = {
   id?: string
@@ -123,6 +119,7 @@ export default function AdminMarkupToolClient({
       payload?.unified_document_id ||
       activeDocument?.unified_document_id ||
       initialDocument?.unified_document_id
+    /* 
     if (!payload?.id && unifiedId && savedDoc?.id) {
       await linkUnifiedDocumentToMarkupDoc({
         unifiedDocumentId: unifiedId,
@@ -142,7 +139,9 @@ export default function AdminMarkupToolClient({
         },
       })
     }
+    */
 
+    /*
     if (unifiedId && savedDoc?.id) {
       await syncMarkupUpdateToUnifiedDocument({
         unifiedDocumentId: unifiedId,
@@ -173,6 +172,7 @@ export default function AdminMarkupToolClient({
           null,
       })
     }
+    */
 
     // 저장 후 목록으로 이동
     router.push('/dashboard/admin/documents/markup')

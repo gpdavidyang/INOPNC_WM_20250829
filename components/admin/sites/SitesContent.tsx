@@ -1,40 +1,17 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-// No direct router navigation needed; links used inline
-import DataTable, { type Column, type SortDirection } from '@/components/admin/DataTable'
-import { Building2, MapPin, RefreshCw, Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button, buttonVariants } from '@/components/ui/button'
-import StatsCard from '@/components/ui/stats-card'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import type { Site, SiteStatus } from '@/types'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { useToast } from '@/components/ui/use-toast'
-// Detail view moved to dedicated page: /dashboard/admin/sites/[id]
 import { t } from '@/lib/ui/strings'
-
-type SiteStats = { daily_reports_count: number; total_labor_hours: number }
-
-// ManagerLinkCell replaced by bulk managersMap above
+import type { Site } from '@/types'
+import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react'
+import Link from 'next/link'
+import { StatusFilterOption, useSiteSearch } from './hooks/useSiteSearch'
+import { SiteFilters } from './list/SiteFilters'
+import { SiteStats } from './list/SiteStats'
+import { SiteTable } from './list/SiteTable'
 
 interface SitesContentProps {
   initialSites: Site[]
@@ -42,22 +19,9 @@ interface SitesContentProps {
   initialPages: number
   pageSize: number
   initialLoadErrored?: boolean
-  fetchBaseUrl?: string // default: /api/admin/sites
-  assignmentsBaseUrl?: string // default: /api/admin/sites
-  hideHeader?: boolean
 }
 
-type StatusFilterOption = 'all' | SiteStatus
-
-const STATUS_OPTIONS: { value: StatusFilterOption; label: string }[] = [
-  { value: 'all', label: '전체 상태' },
-  { value: 'planning', label: '준비 중' },
-  { value: 'active', label: '진행 중' },
-  { value: 'inactive', label: '중단' },
-  { value: 'completed', label: '완료' },
-]
-
-const STATUS_LABELS: Record<StatusFilterOption, string> = {
+const STATUS_LABELS: Record<string, string> = {
   all: '전체',
   planning: '준비 중',
   active: '진행 중',
@@ -65,583 +29,183 @@ const STATUS_LABELS: Record<StatusFilterOption, string> = {
   completed: '완료',
 }
 
-const formatDate = (value?: string | null) => {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) {
-    return '-'
-  }
-  return date.toLocaleDateString('ko-KR')
-}
-
-const buildStatsMapFromSites = (list: Site[]): Record<string, SiteStats> => {
-  const map: Record<string, SiteStats> = {}
-  for (const site of list) {
-    if (!site?.id) continue
-    map[site.id] = {
-      daily_reports_count: site.daily_reports_count ?? 0,
-      total_labor_hours: site.total_labor_hours ?? 0,
-    }
-  }
-  return map
-}
-
 export function SitesContent({
   initialSites,
   initialTotal,
   initialPages,
   pageSize,
-  initialLoadErrored = false,
-  fetchBaseUrl = '/api/admin/sites',
-  assignmentsBaseUrl = '/api/admin/sites',
-  hideHeader = false,
 }: SitesContentProps) {
-  const [sites, setSites] = useState<Site[]>(initialSites)
-  const [total, setTotal] = useState(initialTotal)
-  const [page, setPage] = useState(1)
-  const [pages, setPages] = useState(Math.max(initialPages, 1))
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(
-    initialLoadErrored ? t('sites.errors.fetchSites') : null
-  )
+  const {
+    sites,
+    total,
+    page,
+    pages,
+    loading,
+    searchTerm,
+    statusFilter,
+    sortKey,
+    sortDir,
+    statsMap,
+    managersMap,
+    setSearchTerm,
+    loadSites,
+    deleteSite,
+  } = useSiteSearch({
+    sites: initialSites,
+    total: initialTotal,
+    pages: initialPages,
+    pageSize,
+  })
 
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searchInput, setSearchInput] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all')
-  const [sortKey, setSortKey] = useState<string>('created_at')
-  const [sortDir, setSortDir] = useState<SortDirection>('desc')
-  // 삭제 포함/삭제됨만 보기 옵션 제거됨
-  const activeCount = useMemo(() => sites.filter(site => site.status === 'active').length, [sites])
   const { confirm } = useConfirm()
   const { toast } = useToast()
-  const [statsMap, setStatsMap] = useState<Record<string, SiteStats>>(
-    buildStatsMapFromSites(initialSites)
-  )
-  const [managersMap, setManagersMap] = useState<
-    Record<string, { user_id: string; full_name: string }>
-  >({})
-  const [statsLoading, setStatsLoading] = useState(false)
-  const [managersLoading, setManagersLoading] = useState(false)
-  const [statsError, setStatsError] = useState<string | null>(null)
-  const [managersError, setManagersError] = useState<string | null>(null)
 
-  // Bulk-load stats and managers for current page sites
-  useEffect(() => {
-    const ids = (sites || []).map(s => s.id).filter(Boolean)
-    if (ids.length === 0) {
-      setManagersMap({})
-      setStatsMap({})
-      return
-    }
-    const idsParam = ids.join(',')
-    let cancelled = false
-    const fetchOptions: RequestInit = {
-      cache: 'no-store',
-      credentials: 'include' as RequestCredentials,
-    }
-    ;(async () => {
-      setManagersLoading(true)
-      setStatsLoading(true)
-      setStatsError(null)
-      setManagersError(null)
-      try {
-        const mgrRes = await fetch(`/api/admin/sites/managers?ids=${idsParam}`, fetchOptions)
-        const mgrJson = await mgrRes.json().catch(() => ({}))
-        if (!cancelled) {
-          if (!mgrRes.ok || !mgrJson?.success) {
-            setManagersError(mgrJson?.error || '관리자 정보를 불러오지 못했습니다.')
-            setManagersMap({})
-          } else {
-            setManagersMap(
-              (mgrJson?.data || {}) as Record<string, { user_id: string; full_name: string }>
-            )
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setManagersError('관리자 정보를 불러오지 못했습니다.')
-          setManagersMap({})
-        }
-      } finally {
-        if (!cancelled) {
-          setManagersLoading(false)
-        }
-      }
+  const activeCount = sites.filter(s => s.status === 'active').length
 
-      try {
-        const statsRes = await fetch(`/api/admin/sites/stats?ids=${idsParam}`, fetchOptions)
-        const statsJson = await statsRes.json().catch(() => ({}))
-        if (!cancelled) {
-          if (!statsRes.ok || !statsJson?.success) {
-            setStatsError(statsJson?.error || '현장 통계를 불러오지 못했습니다.')
-          } else {
-            const payload = (statsJson?.data || {}) as Record<string, SiteStats>
-            setStatsMap(prev => {
-              const next = { ...prev }
-              ids.forEach(id => {
-                const entry = payload[id] || { daily_reports_count: 0, total_labor_hours: 0 }
-                next[id] = {
-                  daily_reports_count: Number(entry.daily_reports_count || 0),
-                  total_labor_hours: Number(entry.total_labor_hours || 0),
-                }
-              })
-              return next
-            })
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setStatsError('현장 통계를 불러오지 못했습니다.')
-        }
-      } finally {
-        if (!cancelled) {
-          setStatsLoading(false)
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [sites])
-
-  const fetchSites = useCallback(
-    async (
-      nextPage: number,
-      overrides?: {
-        search?: string
-        status?: StatusFilterOption
-        sort?: string
-        direction?: SortDirection
-      }
-    ) => {
-      setLoading(true)
-      setError(null)
-
-      const effectiveSearch = overrides?.search ?? searchTerm
-      const effectiveStatus = overrides?.status ?? statusFilter
-      const effectiveSort = overrides?.sort ?? sortKey
-      const effectiveDirection = overrides?.direction ?? sortDir
-
-      try {
-        const params = new URLSearchParams({
-          page: String(nextPage),
-          limit: String(pageSize),
-        })
-
-        if (effectiveSearch.trim()) {
-          params.set('search', effectiveSearch.trim())
-        }
-        if (effectiveStatus !== 'all') {
-          params.set('status', effectiveStatus)
-        }
-
-        params.set('sort', effectiveSort)
-        params.set('direction', effectiveDirection)
-
-        const response = await fetch(`${fetchBaseUrl}?${params.toString()}`, { cache: 'no-store' })
-        const payload = await response.json()
-
-        if (!response.ok || !payload?.success) {
-          throw new Error(payload?.error || '현장 목록을 불러오지 못했습니다.')
-        }
-
-        const nextSites = payload.data?.sites ?? []
-        setSites(nextSites)
-        setTotal(payload.data?.total ?? 0)
-        setPages(Math.max(payload.data?.pages ?? 1, 1))
-        setPage(nextPage)
-        setSearchTerm(effectiveSearch)
-        setSearchInput(effectiveSearch)
-        setStatusFilter(effectiveStatus)
-        setStatsMap(buildStatsMapFromSites(nextSites))
-      } catch (err) {
-        console.error('Failed to fetch sites', err)
-        setError(err instanceof Error ? err.message : '현장 목록을 불러오지 못했습니다.')
-      } finally {
-        setLoading(false)
-      }
-    },
-    [pageSize, searchTerm, statusFilter, sortKey, sortDir]
-  )
-
-  const handleSearch = useCallback(() => {
-    fetchSites(1, { search: searchInput })
-  }, [fetchSites, searchInput])
-
-  const handleResetFilters = useCallback(() => {
-    setSearchInput('')
-    fetchSites(1, { search: '', status: 'all', sort: 'created_at', direction: 'desc' })
-    setSortKey('created_at')
-    setSortDir('desc')
-    // 삭제 포함/삭제됨만 보기 초기화 제거
-  }, [fetchSites])
-
-  // 선택/일괄 작업 제거됨
-
-  // Cell render helpers for bulk-fetched data
-  const renderManagerCell = (s: Site) => {
-    const m = managersMap[s.id]
-    if (managersLoading && !m) {
-      return <span className="inline-block h-3 w-20 bg-gray-200 animate-pulse rounded" />
-    }
-    return m ? (
-      <a
-        href={`/dashboard/admin/users/${m.user_id}`}
-        className="underline-offset-2 hover:underline"
-        title="사용자 상세 보기"
-      >
-        {m.full_name}
-      </a>
-    ) : (
-      <>{(s as any).manager_name || '미지정'}</>
-    )
+  const handleRefresh = () => {
+    loadSites({ page })
   }
 
-  const renderReportsCountCell = (s: Site) => {
-    const stats = statsMap[s.id] || {
-      daily_reports_count: s.daily_reports_count ?? 0,
-      total_labor_hours: s.total_labor_hours ?? 0,
+  const handleDeleteSite = async (site: Site) => {
+    const ok = await confirm({
+      title: '현장 삭제',
+      description: `'${site.name}' 현장을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+
+    if (!ok) return
+
+    const result = await deleteSite(site.id)
+    if (result.success) {
+      toast({
+        title: '삭제 완료',
+        description: '현장이 성공적으로 삭제되었습니다.',
+        variant: 'success',
+      })
+    } else {
+      toast({
+        title: '삭제 실패',
+        description: result.error || '삭제 중 오류가 발생했습니다.',
+        variant: 'destructive',
+      })
     }
-    if (statsLoading && statsMap[s.id] === undefined) {
-      return <span className="inline-block h-3 w-8 bg-gray-200 animate-pulse rounded" />
-    }
-    return (stats.daily_reports_count ?? 0) as any
   }
 
-  const renderLaborCell = (s: Site) => {
-    const stats = statsMap[s.id] || {
-      daily_reports_count: s.daily_reports_count ?? 0,
-      total_labor_hours: s.total_labor_hours ?? 0,
-    }
-    const v = stats.total_labor_hours
-    if (statsLoading && statsMap[s.id] === undefined) {
-      return <span className="inline-block h-3 w-12 bg-gray-200 animate-pulse rounded" />
-    }
-    if (typeof v !== 'number') {
-      const fallback = Number(s.total_labor_hours ?? 0)
-      return `${fallback.toFixed(1)} 공수` as any
-    }
-    const n = Math.floor(v * 10) / 10
-    return `${n.toFixed(1)} 공수` as any
+  const handleStatusChange = (val: string) => {
+    loadSites({ page: 1, status: val as StatusFilterOption })
   }
 
-  // 복구/영구 삭제 대량 작업 제거됨
+  const handleReset = () => {
+    loadSites({ page: 1, search: '', status: 'all', sort: 'created_at', direction: 'desc' })
+  }
 
-  // Detail navigation handled via anchor links in DataTable cells
-
-  const columns: Column<Site>[] = useMemo(
-    () => [
-      // 선택 컬럼 제거됨
-      {
-        key: 'name',
-        header: t('sites.table.name'),
-        sortable: true,
-        render: s => (
-          <div className="font-medium text-foreground">
-            <a
-              href={`/dashboard/admin/sites/${s.id}`}
-              className="underline-offset-2 hover:underline"
-            >
-              {s.name}
-            </a>
-            <div className="text-xs text-muted-foreground">{s.address}</div>
-          </div>
-        ),
-      },
-      {
-        key: 'status',
-        header: t('sites.table.status'),
-        sortable: true,
-        className: 'whitespace-nowrap',
-        render: s => (
-          <Badge variant={s.status === 'active' ? 'default' : 'outline'}>
-            {STATUS_LABELS[(s.status || 'all') as StatusFilterOption] || '미정'}
-          </Badge>
-        ),
-      },
-      {
-        key: 'start_date',
-        header: t('sites.table.period'),
-        sortable: true,
-        render: s => (
-          <div>
-            {formatDate(s.start_date)} ~ {formatDate(s.end_date || null)}
-          </div>
-        ),
-      },
-      {
-        key: 'manager_name',
-        header: t('sites.table.manager'),
-        sortable: true,
-        render: s => renderManagerCell(s),
-      },
-      {
-        key: 'manager_phone',
-        header: t('sites.table.phone'),
-        sortable: false,
-        render: s => (s as any).manager_phone || (s as any).construction_manager_phone || '미등록',
-      },
-      {
-        key: 'daily_reports_count',
-        header: t('sites.table.dailyReports'),
-        sortable: false,
-        render: s => renderReportsCountCell(s),
-      },
-      {
-        key: 'total_labor_hours',
-        header: t('sites.table.totalLabor'),
-        sortable: false,
-        render: s => renderLaborCell(s),
-      },
-      {
-        key: 'actions',
-        header: '작업',
-        sortable: false,
-        align: 'left',
-        className: 'whitespace-nowrap',
-        render: s => (
-          <div className="flex items-center justify-start gap-1 flex-nowrap">
-            <Button asChild variant="outline" size="sm">
-              <a href={`/dashboard/admin/sites/${s.id}`}>상세</a>
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
+            {t('sites.title')}
+          </h1>
+          <p className="text-sm text-gray-500 font-medium">{t('sites.subtitle')}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm border-gray-100 dark:border-gray-800"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            {t('common.refresh')}
+          </Button>
+          <Link href="/dashboard/admin/sites/new">
+            <Button className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none transition-all">
+              <Plus className="w-4 h-4 mr-2" />
+              {t('sites.create')}
             </Button>
-            <Button asChild variant="outline" size="sm">
-              <a href={`/dashboard/admin/sites/${s.id}?tab=edit`}>수정</a>
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <SiteStats
+        total={total}
+        activeCount={activeCount}
+        statusFilterLabel={STATUS_LABELS[statusFilter]}
+      />
+
+      {/* Filters */}
+      <SiteFilters
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onSearchSubmit={() => loadSites({ page: 1 })}
+        statusFilter={statusFilter}
+        onStatusChange={handleStatusChange}
+        onReset={handleReset}
+        loading={loading}
+      />
+
+      {/* Table */}
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 z-10 flex items-center justify-center rounded-2xl">
+            <LoadingSpinner />
+          </div>
+        )}
+        <SiteTable
+          sites={sites}
+          statsMap={statsMap}
+          managersMap={managersMap}
+          loading={loading}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={(key, dir) => loadSites({ page: 1, sort: key, direction: dir })}
+          onDelete={handleDeleteSite}
+        />
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-6 flex items-center justify-between">
+        <div className="text-sm font-medium text-gray-400">
+          총{' '}
+          <span className="text-gray-900 dark:text-gray-100 font-bold">
+            {total.toLocaleString()}
+          </span>
+          개 현장
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+            Page{' '}
+            <span className="text-gray-900 dark:text-gray-100 italic ml-1">
+              {page} / {pages}
+            </span>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 rounded-xl border-gray-100 dark:border-gray-800"
+              onClick={() => loadSites({ page: Math.max(page - 1, 1) })}
+              disabled={loading || page <= 1}
+            >
+              <ChevronLeft className="w-4 h-4" />
             </Button>
             <Button
               variant="outline"
-              size="sm"
-              onClick={async () => {
-                const ok = await confirm({
-                  title: '현장 삭제',
-                  description: `'${s.name}' 현장을 삭제할까요? 되돌릴 수 없습니다.`,
-                  confirmText: '삭제',
-                  cancelText: '취소',
-                  variant: 'destructive',
-                })
-                if (!ok) return
-                try {
-                  const res = await fetch(`/api/admin/sites/${s.id}`, { method: 'DELETE' })
-                  let payload: any = {}
-                  try {
-                    payload = await res.clone().json()
-                  } catch (error) {
-                    /* ignore JSON parse issues */
-                  }
-
-                  if (res.status === 409) {
-                    toast({
-                      title: '삭제할 수 없습니다.',
-                      description:
-                        payload?.error ||
-                        '현장에 연결된 작업일지나 데이터가 있습니다. 작업일지를 정리하거나 상태를 완료로 변경한 뒤 다시 시도하세요.',
-                      variant: 'warning',
-                    })
-                    return
-                  }
-
-                  if (!res.ok || payload?.success === false) {
-                    throw new Error(payload?.error || `삭제 실패 (코드 ${res.status})`)
-                  }
-                  toast({
-                    title: '삭제 완료',
-                    description: '현장이 삭제되었습니다.',
-                    variant: 'success',
-                  })
-                  await fetchSites(page)
-                } catch (e: any) {
-                  toast({
-                    title: '오류',
-                    description: e?.message || '삭제 실패',
-                    variant: 'destructive',
-                  })
-                }
-              }}
+              size="icon"
+              className="h-9 w-9 rounded-xl border-gray-100 dark:border-gray-800"
+              onClick={() => loadSites({ page: Math.min(page + 1, pages) })}
+              disabled={loading || page >= pages}
             >
-              삭제
+              <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-        ),
-      },
-    ],
-    []
-  )
-
-  return (
-    <>
-      <div className="admin-sites-surface space-y-6">
-        {!hideHeader && (
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">{t('sites.title')}</h1>
-              <p className="text-sm text-muted-foreground">{t('sites.subtitle')}</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <a
-                href="/dashboard/admin/sites/new"
-                className={`${buttonVariants({ variant: 'primary', size: 'standard' })} rounded-[8px]`}
-                role="button"
-              >
-                {t('sites.create')}
-              </a>
-              <Button
-                variant="outline"
-                size="standard"
-                className="rounded-[8px]"
-                onClick={() => fetchSites(page)}
-                disabled={loading}
-              >
-                <RefreshCw className={`mr-2 h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-                {t('common.refresh')}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <section className="grid gap-4 md:grid-cols-3">
-          <StatsCard label={t('sites.stats.total')} value={total} unit="site" />
-          <StatsCard label={t('sites.stats.activeOnPage')} value={activeCount} unit="site" />
-          <StatsCard
-            label={t('users.filters.statusSelected')}
-            value={STATUS_LABELS[statusFilter]}
-          />
-        </section>
-
-        <section className="rounded-lg border bg-card p-4 shadow-sm">
-          {(statsError || managersError) && (
-            <div className="mb-3 text-xs text-red-600">
-              {statsError && <div>통계 로딩 오류: {statsError}</div>}
-              {managersError && <div>관리자 로딩 오류: {managersError}</div>}
-            </div>
-          )}
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-              <div className="relative flex-1 md:w-72">
-                <Input
-                  placeholder={t('sites.searchPlaceholder')}
-                  value={searchInput}
-                  onChange={event => setSearchInput(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      handleSearch()
-                    }
-                  }}
-                  className="pl-10"
-                />
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              </div>
-              <Button variant="secondary" onClick={handleSearch} disabled={loading}>
-                {t('common.search')}
-              </Button>
-              <Select
-                value={statusFilter}
-                onValueChange={value => fetchSites(1, { status: value as StatusFilterOption })}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder={t('sites.statusFilter')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {/* 삭제 포함/삭제됨만 보기 옵션 제거됨 */}
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
-              {t('common.reset')}
-            </Button>
-          </div>
-
-          {/* 선택/일괄작업 바 제거됨 */}
-
-          <div className="mt-6">
-            {loading && <LoadingSpinner />}
-
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertTitle>{t('sites.errors.fetchList')}</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {!loading && sites.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-                <Search className="h-8 w-8" />
-                <p>{t('sites.empty')}</p>
-              </div>
-            ) : (
-              <DataTable
-                data={sites}
-                columns={columns}
-                rowKey="id"
-                initialSort={{ columnKey: sortKey, direction: sortDir }}
-                onSortChange={(key, dir) => {
-                  setSortKey(key)
-                  setSortDir(dir)
-                  setPage(1)
-                  fetchSites(1, { sort: key, direction: dir })
-                }}
-              />
-            )}
-          </div>
-
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <div>
-              총 <span className="font-medium text-foreground">{total.toLocaleString()}</span> 개
-              현장
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchSites(Math.max(page - 1, 1))}
-                disabled={loading || page <= 1}
-              >
-                {t('common.prev')}
-              </Button>
-              <span>
-                {page} / {pages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => fetchSites(Math.min(page + 1, pages))}
-                disabled={loading || page >= pages}
-              >
-                {t('common.next')}
-              </Button>
-            </div>
-          </div>
-        </section>
+        </div>
       </div>
-      <style jsx>{`
-        .admin-sites-surface :global(.rounded),
-        .admin-sites-surface :global(.rounded-sm),
-        .admin-sites-surface :global(.rounded-md),
-        .admin-sites-surface :global(.rounded-lg),
-        .admin-sites-surface :global(.rounded-xl),
-        .admin-sites-surface :global(.rounded-2xl),
-        .admin-sites-surface :global(.rounded-3xl),
-        .admin-sites-surface :global(.rounded-full),
-        .admin-sites-surface :global(.radius-default) {
-          border-radius: 8px !important;
-        }
-        .admin-sites-surface :global(button),
-        .admin-sites-surface :global(input),
-        .admin-sites-surface :global(select),
-        .admin-sites-surface :global(textarea),
-        .admin-sites-surface :global(.select-trigger),
-        .admin-sites-surface :global(.select-content),
-        .admin-sites-surface :global(.badge),
-        .admin-sites-surface :global(.filter-chip),
-        .admin-sites-surface :global(.table),
-        .admin-sites-surface :global(.card),
-        .admin-sites-surface :global(.doc-filter-trigger) {
-          border-radius: 8px !important;
-        }
-      `}</style>
-    </>
+    </div>
   )
 }

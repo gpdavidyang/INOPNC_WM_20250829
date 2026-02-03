@@ -1,5 +1,4 @@
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { ToggleAllSectionsButton } from '@/components/daily-reports/ToggleAllSectionsButton'
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { PageHeader } from '@/components/ui/page-header'
 import { getUnifiedDailyReportForAdmin } from '@/lib/daily-reports/server'
@@ -105,7 +104,7 @@ async function fetchMaterials() {
   })()
   const { data, error } = await supabase
     .from('materials')
-    .select('id, name, code, unit, is_active, use_yn, use_flag, status, is_deleted')
+    .select('id, name, code, unit, specification, is_active')
     .order('name', { ascending: true })
 
   if (error) {
@@ -166,28 +165,44 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
   const materialUsage = Array.isArray(unifiedReport.materials)
     ? unifiedReport.materials.map(material => ({
         id: material.id || `material-${Math.random().toString(36).slice(2, 8)}`,
-        materialId: material.materialId ?? material.materialCode ?? null,
-        materialCode: material.materialCode ?? null,
-        materialName: material.materialName ?? material.materialCode ?? '',
-        unit: material.unit ?? null,
-        quantity: material.quantity ?? '',
-        notes: material.notes ?? '',
+        materialId:
+          material.materialId ||
+          (material as any).material_id ||
+          material.materialCode ||
+          (material as any).material_code ||
+          null,
+        materialCode: material.materialCode || (material as any).material_code || null,
+        materialName:
+          material.materialName ||
+          (material as any).material_name ||
+          material.materialCode ||
+          (material as any).material_code ||
+          '',
+        unit: material.unit || (material as any).unit_name || null,
+        quantity:
+          material.quantity !== undefined && material.quantity !== null ? material.quantity : '',
+        notes: material.notes || (material as any).memo || '',
       }))
     : Array.isArray((legacyPayload as any).materials)
       ? ((legacyPayload as any).materials as any[]).map(material => ({
           id: material.id || `material-${Math.random().toString(36).slice(2, 8)}`,
-          materialId: material.materialId ?? material.material_code ?? material.materialId ?? null,
-          materialCode: material.materialCode ?? material.material_code ?? null,
+          materialId:
+            material.materialId ||
+            material.material_id ||
+            material.material_code ||
+            material.materialCode ||
+            null,
+          materialCode: material.materialCode || material.material_code || null,
           materialName:
             material.materialName ||
             material.material_name ||
             material.materialCode ||
             material.material_code ||
             '',
-          unit: material.unit ?? material.unit_name ?? null,
+          unit: material.unit || material.unit_name || null,
           quantity:
             material.quantity !== undefined && material.quantity !== null ? material.quantity : '',
-          notes: material.notes ?? '',
+          notes: material.notes || material.memo || '',
         }))
       : []
 
@@ -230,9 +245,6 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
           { label: '작업일지 관리', href: '/dashboard/admin/daily-reports' },
           { label: '작업일지 수정' },
         ]}
-        showBackButton
-        backButtonHref={`/dashboard/admin/daily-reports/${params.id}`}
-        actions={<ToggleAllSectionsButton />}
       />
       <div className="px-0">
         <DailyReportForm
@@ -243,7 +255,7 @@ export default async function AdminDailyReportEditPage({ params }: PageProps) {
           workers={(workers as any) || []}
           reportData={normalizedReportData as any}
           initialUnifiedReport={unifiedReport as any}
-          hideHeader={true}
+          hideHeader={false}
         />
       </div>
     </div>

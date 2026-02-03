@@ -599,15 +599,23 @@ export async function updateDailyReport(id: string, updates: any) {
 
     const { material_usage, additional_photos, ...updateFields } = updates
 
-    const { data, error } = await supabase
-      .from('daily_reports')
-      .update({
-        ...updateFields,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id)
-      .select()
-      .single()
+    if ('id' in updateFields) {
+      delete updateFields.id
+    }
+
+    const now = new Date().toISOString()
+    const attemptUpdate = async (fields: any) =>
+      supabase.from('daily_reports').update(fields).eq('id', id).select().single()
+
+    let { data, error } = await attemptUpdate({ ...updateFields, updated_at: now })
+    if (
+      error &&
+      String((error as any).code || '') === '23503' &&
+      /partner_company_id/i.test(`${(error as any).message || ''} ${(error as any).details || ''}`)
+    ) {
+      const { partner_company_id: _unused, ...rest } = updateFields || {}
+      ;({ data, error } = await attemptUpdate({ ...rest, updated_at: now }))
+    }
 
     if (error) throw error
 

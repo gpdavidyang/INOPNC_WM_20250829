@@ -33,24 +33,9 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     const [invRes, shipRes, pendingCountRes] = await Promise.all([
       svc
         .from('material_inventory')
-        .select(
-          `
-          id,
-          site_id,
-          material_id,
-          current_stock,
-          minimum_stock,
-          updated_at,
-          materials:materials(
-            name,
-            code,
-            unit,
-            specification
-          )
-        `
-        )
+        // Avoid selecting non-existent columns (e.g. minimum_stock) by default; map dynamically below.
+        .select('*, materials:materials(*)')
         .eq('site_id', siteId)
-        .order('updated_at', { ascending: false, nullsFirst: false })
         .limit(200),
       svc
         .from('material_shipments')
@@ -83,28 +68,50 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     if (pendingCountRes.error) throw pendingCountRes.error
 
     const inventory = (invRes.data || []).map((row: any) => {
-      const quantity = Number(row.current_stock ?? 0)
+      const matRaw = (row as any).materials
+      const mat = Array.isArray(matRaw) ? matRaw[0] : matRaw || {}
+
+      const rawQuantity =
+        row?.current_stock ??
+        row?.currentStock ??
+        row?.quantity ??
+        row?.qty ??
+        row?.stock ??
+        row?.current_quantity ??
+        0
+      const quantity = Number.isFinite(Number(rawQuantity)) ? Number(rawQuantity) : 0
+
+      const rawMinimum =
+        row?.minimum_stock ??
+        row?.minimumStock ??
+        row?.min_stock ??
+        row?.minStock ??
+        mat?.minimum_stock ??
+        mat?.min_stock ??
+        null
       const minimum =
-        row.minimum_stock === null || row.minimum_stock === undefined
+        rawMinimum === null || rawMinimum === undefined || rawMinimum === ''
           ? null
-          : Number(row.minimum_stock)
+          : Number.isFinite(Number(rawMinimum))
+            ? Number(rawMinimum)
+            : null
+
       const status =
         quantity <= 0 ? 'out' : minimum !== null && quantity <= minimum ? 'low' : 'normal'
 
-      const mat = (row as any).materials || {}
       return {
         id: row.id,
-        material_id: row.material_id || null,
+        material_id: row.material_id || row.materialId || null,
         quantity,
         minimum_stock: minimum,
         maximum_stock: null,
-        last_updated: row.updated_at || null,
+        last_updated: row.updated_at || row.last_updated || row.lastUpdated || null,
         status,
         materials: {
-          name: mat.name || '',
-          code: mat.code || '',
-          specification: mat.specification || '',
-          unit: mat.unit || '',
+          name: mat?.name || row?.material_name || row?.materialName || '',
+          code: mat?.code || row?.material_code || row?.materialCode || '',
+          specification: mat?.specification || row?.specification || '',
+          unit: mat?.unit || row?.unit || '',
         },
       }
     })

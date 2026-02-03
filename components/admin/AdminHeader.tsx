@@ -1,222 +1,171 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { signOut } from '@/app/auth/actions'
+import { getLoginLogoSrc } from '@/lib/ui/brand'
+import { t } from '@/lib/ui/strings'
+import { cn } from '@/lib/utils'
+import { Bell, ChevronDown, Command, LogOut, Menu, Search, Settings, User } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Menu, Bell, Sun, Moon, User, ChevronDown, Settings, LogOut, Search } from 'lucide-react'
-import { useTheme } from '@/hooks/use-theme'
-import { useFontSize } from '@/hooks/use-font-size'
-import { useTouchMode } from '@/hooks/use-touch-mode'
-import { signOut } from '@/app/auth/actions'
+import { useEffect, useState } from 'react'
 import GlobalSearchModal from './GlobalSearchModal'
-import { t } from '@/lib/ui/strings'
-import { getLoginLogoSrc } from '@/lib/ui/brand'
 
 interface Profile {
   id: string
   email: string
-  name?: string
+  name?: string | null
   role?: string
 }
 
 interface AdminHeaderProps {
   profile?: Profile | null
-  onMenuClick?: () => void
   onDesktopMenuClick?: () => void
-  isSidebarOpen?: boolean
   isSidebarCollapsed?: boolean
 }
 
 export default function AdminHeader({
   profile,
-  onMenuClick,
   onDesktopMenuClick,
-  isSidebarOpen,
   isSidebarCollapsed,
 }: AdminHeaderProps) {
-  const { isLargeFont, toggleFontSize } = useFontSize()
-  const { touchMode } = useTouchMode()
-  const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true)
-  }, [])
-
-  // Keyboard shortcut for search
-  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
         setIsSearchOpen(true)
       }
     }
-
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const handleLogout = async () => {
-    try {
-      const result = await signOut()
-      if (result.success) {
-        window.location.href = '/auth/login'
-      }
-    } catch (error) {
-      console.error('Logout error:', error)
-      window.location.href = '/auth/login'
-    }
+    const result = await signOut()
+    if (result.success) window.location.href = '/auth/login'
   }
+
+  if (!mounted) return null
 
   return (
     <>
-      <header className="admin-header sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between h-16 px-6">
-          {/* Left Section */}
-          <div className="flex items-center gap-4 min-w-fit">
-            {/* Sidebar Toggle - Enhanced for mobile */}
+      <header className="admin-header fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 h-16 transition-all duration-300">
+        <div className="flex items-center justify-between h-full px-6 max-w-[2560px] mx-auto">
+          {/* Left: Brand & Sidebar Toggle */}
+          <div className="flex items-center gap-6">
             <button
               onClick={onDesktopMenuClick}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
-              aria-label={isSidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
+              className="p-2.5 rounded-xl bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all active:scale-95 border border-transparent hover:border-gray-200"
             >
-              <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+              <Menu
+                className={cn(
+                  'h-5 w-5 transition-transform duration-500',
+                  !isSidebarCollapsed ? 'rotate-180' : 'rotate-0'
+                )}
+              />
             </button>
 
-            {/* Logo/Title */}
-            <div className="flex items-center">
-              <div className="flex items-center gap-3">
-                <div className="brand-logos">
-                  <span className="brand-logo logo-light">
-                    <Image
-                      src={getLoginLogoSrc()}
-                      alt="INOPNC 로고"
-                      width={160}
-                      height={32}
-                      unoptimized
-                      priority
-                    />
-                  </span>
-                  <span className="brand-logo logo-dark">
-                    <Image
-                      src={getLoginLogoSrc()}
-                      alt="INOPNC 로고"
-                      width={160}
-                      height={32}
-                      unoptimized
-                      priority
-                    />
-                  </span>
-                </div>
-                <div className="whitespace-nowrap">
-                  <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                    {t('admin.dashboard')}
-                  </h1>
-                </div>
+            <Link href="/dashboard/admin" className="flex items-center gap-3 group">
+              <div className="brand-logos relative h-8 w-32 overflow-hidden transition-transform group-hover:scale-105 duration-300">
+                <Image
+                  src={getLoginLogoSrc()}
+                  alt="Logo"
+                  fill
+                  className="object-contain"
+                  unoptimized
+                  priority
+                />
               </div>
-            </div>
+              <div className="h-6 w-px bg-gray-200 mx-1" />
+              <h1 className="text-sm font-black text-gray-900 uppercase tracking-widest italic">
+                {t('admin.dashboard')}
+              </h1>
+            </Link>
           </div>
 
-          {/* Center Section - Search Bar */}
-          <div className="flex flex-1 max-w-2xl mx-8 min-w-[480px]">
+          {/* Center: Quick Search */}
+          <div className="flex-1 max-w-xl mx-12">
             <button
               onClick={() => setIsSearchOpen(true)}
-              className="w-full max-w-md mx-auto flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-[8px] hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+              className="w-full flex items-center justify-between gap-4 px-5 py-2.5 bg-gray-50/50 rounded-2xl border-2 border-transparent hover:border-gray-100 hover:bg-white transition-all group ring-offset-2 ring-transparent hover:ring-gray-100/50 ring-2"
             >
-              <Search className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
-              <span className="flex-1 text-left text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap overflow-hidden truncate">
-                {t('admin.searchPlaceholder')}
-              </span>
-              <kbd className="inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                <span className="text-lg leading-none">⌘</span>K
-              </kbd>
+              <div className="flex items-center gap-3">
+                <Search className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                <span className="text-sm font-bold text-gray-400 group-hover:text-gray-600 transition-colors">
+                  검색어를 입력하세요...
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-[10px] font-black text-gray-400 shadow-sm uppercase tracking-tighter">
+                <Command className="w-2.5 h-2.5" /> K
+              </div>
             </button>
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-2 whitespace-nowrap">
-            {/* Notifications */}
-            <button
-              className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label={t('admin.notifications')}
-            >
-              <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          {/* Right: Actions & Profile */}
+          <div className="flex items-center gap-4">
+            <button className="relative p-2.5 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all group">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-600 rounded-full ring-2 ring-white animate-pulse" />
             </button>
 
-            {/* Theme Toggle - Hidden for admin */}
-            {mounted && (
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                aria-label="테마 변경"
-              >
-                {theme === 'dark' ? (
-                  <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                ) : (
-                  <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                )}
-              </button>
-            )}
+            <div className="h-8 w-px bg-gray-100 mx-2" />
 
-            {/* Font Size Toggle - Hidden for admin */}
-            <button
-              onClick={toggleFontSize}
-              className="hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="글자 크기"
-            >
-              <span
-                className={`font-medium ${isLargeFont ? 'text-lg' : 'text-sm'} text-gray-600 dark:text-gray-400`}
-              >
-                가
-              </span>
-            </button>
-
-            {/* Profile Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="flex items-center gap-3 p-1.5 pr-4 rounded-2xl hover:bg-gray-50 transition-all active:scale-[0.98] group"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-600 rounded-[8px] flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-gray-800 to-gray-900 flex items-center justify-center text-white shadow-lg shadow-gray-200 group-hover:rotate-12 transition-transform duration-500">
+                  <User className="h-4.5 w-4.5" />
                 </div>
-                <span className="hidden lg:block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {profile?.name || profile?.email || '관리자'}
-                </span>
-                <ChevronDown className="hidden lg:block h-4 w-4 text-gray-400" />
+                <div className="flex flex-col items-start leading-none gap-0.5">
+                  <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                    관리자
+                  </span>
+                  <span className="text-sm font-black text-gray-900 tracking-tight">
+                    {profile?.name || '관리자'}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 text-gray-300 transition-transform duration-300',
+                    isProfileOpen ? 'rotate-180' : ''
+                  )}
+                />
               </button>
 
-              {/* Profile Dropdown Menu */}
               {isProfileOpen && (
                 <>
-                  <div className="fixed inset-0 z-30" onClick={() => setIsProfileOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-40">
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {profile?.name || '관리자'}
+                  <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)} />
+                  <div className="absolute right-0 mt-3 w-72 bg-white/90 backdrop-blur-2xl rounded-[32px] shadow-2xl border border-gray-100 p-3 z-50 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="px-5 py-4 bg-gray-900 rounded-[24px] text-white mb-2">
+                      <p className="text-xs font-black uppercase text-gray-400 tracking-widest mb-1">
+                        세션 정보
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{profile?.email}</p>
+                      <p className="text-sm font-bold truncate italic">
+                        {profile?.email || '인증됨'}
+                      </p>
                     </div>
-                    <Link
-                      href="/dashboard/admin/account"
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      onClick={() => setIsProfileOpen(false)}
-                    >
-                      <Settings className="h-4 w-4" />
-                      {t('admin.accountSettings')}
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      {t('common.logout')}
-                    </button>
+
+                    <div className="space-y-1">
+                      <Link
+                        href="/dashboard/admin/account"
+                        className="flex items-center gap-3 px-5 py-3.5 text-sm font-bold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-2xl transition-all"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <Settings className="h-4 w-4" /> 계정 설정
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-3 px-5 py-3.5 text-sm font-bold text-red-500 hover:bg-red-50 rounded-2xl transition-all w-full text-left"
+                      >
+                        <LogOut className="h-4 w-4" /> 로그아웃
+                      </button>
+                    </div>
                   </div>
                 </>
               )}
@@ -225,7 +174,6 @@ export default function AdminHeader({
         </div>
       </header>
 
-      {/* Search Modal */}
       <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   )

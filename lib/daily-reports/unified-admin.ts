@@ -149,9 +149,10 @@ const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
       workerId:
         worker?.profile_id ||
         worker?.worker_id ||
+        worker?.workerId ||
         worker?.user_id ||
         worker?.profiles?.id ||
-        undefined,
+        (worker?.id && worker.id.length > 30 ? worker.id : undefined),
       workerName:
         worker?.profiles?.full_name ||
         worker?.worker_name ||
@@ -166,7 +167,16 @@ const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
           : workHours > 0
             ? Number((workHours / 8).toFixed(1))
             : 0,
-      isDirectInput: worker?.isDirectInput ?? !worker?.worker_id,
+      isDirectInput:
+        worker?.isDirectInput ??
+        worker?.is_direct_input ??
+        !(
+          worker?.worker_id ||
+          worker?.workerId ||
+          worker?.profile_id ||
+          worker?.user_id ||
+          (worker?.id && worker.id.length > 30)
+        ),
       notes: worker?.notes || '',
     }
   })
@@ -174,9 +184,13 @@ const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
 const mapMaterials = (materials: any[] | undefined): UnifiedMaterialEntry[] =>
   (materials || []).map((material, index) => ({
     id: material?.id || `material-${index}`,
-    materialId: material?.material_id || null,
-    materialName: material?.material_name || material?.name || '자재',
-    materialCode: material?.material_code || material?.material_type || null,
+    materialId:
+      material?.material_id ||
+      material?.materialId ||
+      (material?.id && material.id.length > 30 ? material.id : null),
+    materialName: material?.material_name || material?.name || material?.materialName || '자재',
+    materialCode:
+      material?.material_code || material?.material_type || material?.materialCode || null,
     quantity: Number(material?.quantity_val ?? material?.amount ?? material?.quantity ?? 0) || 0,
     unit: material?.unit || null,
     notes: material?.notes || null,
@@ -426,6 +440,8 @@ export const integratedResponseToUnifiedReport = (
     hqRequest: dailyReport.hq_request || '',
     notes: dailyReport.notes || '',
     progress: dailyReport.progress_rate ?? undefined,
+    relatedReports: response.related_reports ?? [],
+    workerStatistics: response.worker_statistics,
     meta: {
       componentName: dailyReport.component_name || primaryEntry?.memberName || '',
       workProcess: dailyReport.work_process || primaryEntry?.processType || '',

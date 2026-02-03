@@ -58,6 +58,8 @@ interface AdminDrawingManagementContentProps {
   totalCount: number
   currentPage: number
   totalPages: number
+  fixedSiteId?: string
+  navigateOnRowClick?: boolean
 }
 
 export default function AdminDrawingManagementContent({
@@ -66,6 +68,8 @@ export default function AdminDrawingManagementContent({
   totalCount,
   currentPage,
   totalPages,
+  fixedSiteId,
+  navigateOnRowClick,
 }: AdminDrawingManagementContentProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -75,11 +79,17 @@ export default function AdminDrawingManagementContent({
   const [refreshKey, setRefreshKey] = useState(0)
 
   // Filter states
-  const [siteId, setSiteId] = useState<string>(searchParams.get('site_id') || 'all')
+  const [siteId, setSiteId] = useState<string>(fixedSiteId || searchParams.get('site_id') || 'all')
   const [search, setSearch] = useState(searchParams.get('search') || '')
   const [status, setStatus] = useState<string>(searchParams.get('status') || 'all')
   const [dateFrom, setDateFrom] = useState<string>(searchParams.get('date_from') || '')
   const [dateTo, setDateTo] = useState<string>(searchParams.get('date_to') || '')
+
+  useEffect(() => {
+    if (fixedSiteId) {
+      setSiteId(fixedSiteId)
+    }
+  }, [fixedSiteId])
 
   const [activeTab, setActiveTab] = useState('list')
   const [editingDocument, setEditingDocument] = useState<any | null>(null)
@@ -143,8 +153,11 @@ export default function AdminDrawingManagementContent({
 
   const handleApplyFilters = () => {
     const params = new URLSearchParams(searchParams.toString())
-    if (siteId && siteId !== 'all') params.set('site_id', siteId)
-    else params.delete('site_id')
+    if (fixedSiteId || (siteId && siteId !== 'all')) {
+      params.set('site_id', fixedSiteId || siteId)
+    } else {
+      params.delete('site_id')
+    }
     if (search) params.set('search', search)
     else params.delete('search')
     if (status && status !== 'all') params.set('status', status)
@@ -154,7 +167,7 @@ export default function AdminDrawingManagementContent({
     if (dateTo) params.set('date_to', dateTo)
     else params.delete('date_to')
     params.set('page', '1')
-    router.push(`?${params.toString()}`)
+    router.push(`?${params.toString()}`, { scroll: false })
   }
 
   const handlePageChange = (newPage: number) => {
@@ -164,9 +177,12 @@ export default function AdminDrawingManagementContent({
   }
 
   const handleRowClick = (reportId: string) => {
-    setSelectedReportId(reportId)
+    if (navigateOnRowClick) {
+      router.push(`/dashboard/admin/tools/markup?report_id=${reportId}`)
+      return
+    }
+    setSelectedReportId(reportId === selectedReportId ? null : reportId)
   }
-
   const getStatusBadge = (status: string) => {
     const config: Record<string, { label: string; className: string }> = {
       draft: { label: '임시', className: 'bg-gray-100 text-gray-700' },
@@ -193,22 +209,25 @@ export default function AdminDrawingManagementContent({
       <Card className="rounded-lg border bg-card shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-1.5 min-w-[200px]">
-              <span className="text-xs font-semibold text-muted-foreground">현장 필터</span>
-              <Select value={siteId} onValueChange={setSiteId}>
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="전체 현장" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체 현장</SelectItem>
-                  {siteOptions.map(site => (
-                    <SelectItem key={site.id} value={site.id}>
-                      {site.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {!fixedSiteId && (
+              <div className="space-y-1.5 min-w-[200px]">
+                <span className="text-xs font-semibold text-muted-foreground">현장 필터</span>
+                <Select value={siteId} onValueChange={setSiteId}>
+                  <SelectTrigger className="h-10">
+                    <SelectValue placeholder="전체 현장" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체 현장</SelectItem>
+                    {siteOptions.map(site => (
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div className="space-y-1.5 min-w-[140px]">
               <span className="text-xs font-semibold text-muted-foreground">문서 상태</span>
               <Select value={status} onValueChange={setStatus}>
