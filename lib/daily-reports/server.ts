@@ -65,7 +65,8 @@ export async function getUnifiedDailyReportForAdmin(
     .select(
       `
         *,
-        sites(id, name, address, status, organization_id, organizations(name)),
+        sites!site_id(id, name, address, status, organization_id, organizations(name)),
+        created_by_profile:profiles!created_by(id, full_name, email, role),
         document_attachments(
           id,
           document_type,
@@ -115,20 +116,7 @@ export async function getUnifiedDailyReportForAdmin(
                 .eq('id', minimal.created_by)
                 .maybeSingle()
             : Promise.resolve({ data: null, error: null }),
-          // supabase
-          // .from('work_records')
-          // .select(
-          //   `
-          //   id,
-          //   user_id,
-          //   labor_hours,
-          //   work_hours,
-          //   overtime_hours,
-          //   // ...
-          // `
-          // )
-          // .eq('daily_report_id', id),
-          Promise.resolve({ data: [] }),
+          Promise.resolve({ data: [] }), // Placeholder for work_records
           supabase
             .from('document_attachments')
             .select('id, document_type, file_name, file_url, file_size, uploaded_at, uploaded_by')
@@ -217,36 +205,8 @@ export async function getUnifiedDailyReportForAdmin(
 
   const linkedDrawings = await fetchLinkedDrawingsForWorklog(id, data.site_id)
 
-  const [
-    { data: legacyWorkers },
-    // { data: workRecordRows }, // Deprecated: Work Records
-    { data: authorProfile },
-    { data: workerAssignments },
-    { data: materials },
-  ] = await Promise.all([
+  const responses = await Promise.all([
     supabase.from('daily_report_workers').select('*').eq('daily_report_id', id),
-    // supabase
-    //   .from('work_records')
-    //   .select(
-    //     `
-    //     id,
-    //     user_id,
-    //     labor_hours,
-    //     work_hours,
-    //     overtime_hours,
-    //     work_type,
-    //     notes,
-    //     metadata,
-    //     profiles:profiles!work_records_user_id_fkey(
-    //       id,
-    //       full_name,
-    //       role,
-    //       email
-    //     )
-    //   `
-    //   )
-    //   .eq('daily_report_id', id),
-    Promise.resolve({ data: [] }), // Placeholder for workRecordRows
     supabase
       .from('profiles')
       .select('id, full_name, email, role')
@@ -259,12 +219,21 @@ export async function getUnifiedDailyReportForAdmin(
     supabase.from('material_usage').select('*').eq('daily_report_id', id),
   ])
 
-  const workerRows = workerAssignments?.length
-    ? workerAssignments
-    : mergeWorkers(legacyWorkers || [], []) // Pass empty array for workRecords
+  const legacyWorkers = responses[0].data || []
+  const authorProfile = responses[1].data
+  const workerAssignments = responses[2].data || []
+  const materials = responses[3].data || []
 
-  data.worker_assignments = workerRows
-  data.material_usage = materials || []
+  const workerRows = workerAssignments.length > 0 ? workerAssignments : legacyWorkers
+
+  // Simplify: Ensure dailyReport has everything unified-admin needs
+  const dailyReport: Record<string, any> = {
+    ...data,
+    author: authorProfile,
+    created_by_profile: authorProfile,
+    worker_assignments: workerRows,
+    material_usage: materials || [],
+  }
 
   const integrated: AdminIntegratedResponse = {
     daily_report: {

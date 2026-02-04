@@ -1,17 +1,20 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { t } from '@/lib/ui/strings'
-import { createClient } from '@/lib/supabase/client'
-import { useToast } from '@/components/ui/use-toast'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   CustomSelect,
-  CustomSelectTrigger,
-  CustomSelectValue,
   CustomSelectContent,
   CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
 } from '@/components/ui/custom-select'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/use-toast'
+import { createClient } from '@/lib/supabase/client'
+import { Calendar, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 const getDefaultYearMonth = () => {
   const now = new Date()
@@ -369,372 +372,338 @@ export default function SnapshotList() {
   }, [recentWorker, recentRange])
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
-        <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-          <div className="w-full md:w-auto">
-            <input
-              type="month"
-              className="h-10 w-full md:w-36 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-              value={yearMonth}
-              onChange={e => setYearMonth(e.target.value || getDefaultYearMonth())}
-              aria-label="조회 년월"
-            />
+    <div className="space-y-8">
+      {/* 월별 조회 섹션 */}
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-blue-600 rounded-sm" />
+              월별 명세서 조회
+            </h2>
+            <p className="text-sm text-muted-foreground">발행된 명세서를 조건별로 검색하고 승인/지급 상태를 관리합니다.</p>
           </div>
-          <div className="w-full md:w-64">
-            <CustomSelect
-            value={selectedWorker || 'all'}
-            onValueChange={value => setSelectedWorker(value === 'all' ? '' : value)}
-          >
-            <CustomSelectTrigger className="h-10 w-full" aria-label="작업자 선택">
-              <CustomSelectValue placeholder="전체 작업자" />
-            </CustomSelectTrigger>
-            <CustomSelectContent className="min-w-[220px]">
-              <CustomSelectItem value="all">전체</CustomSelectItem>
-              {workers.map(w => (
-                <CustomSelectItem key={w.id} value={w.id}>
-                  {w.full_name}
-                </CustomSelectItem>
-              ))}
-            </CustomSelectContent>
-          </CustomSelect>
-          </div>
-          <div className="w-full md:w-52">
-            <CustomSelect
-            value={employmentType || 'all'}
-            onValueChange={value => setEmploymentType(value === 'all' ? '' : (value as any))}
-          >
-            <CustomSelectTrigger className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30" aria-label="고용형태">
-              <CustomSelectValue placeholder="전체 형태" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">전체 형태</CustomSelectItem>
-              <CustomSelectItem value="freelancer">프리랜서</CustomSelectItem>
-              <CustomSelectItem value="daily_worker">일용직</CustomSelectItem>
-              <CustomSelectItem value="regular_employee">상용직</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-          </div>
-        </div>
-        <div className="flex justify-end gap-2">
-        <button
-          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-          type="button"
-          onClick={fetchList}
-          disabled={loading}
-        >
-          {t('common.refresh')}
-        </button>
-        <button
-          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-          type="button"
-          onClick={exportCSV}
-        >
-          CSV 내보내기
-        </button>
-        <button
-          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-          type="button"
-          onClick={() => paySelected()}
-          disabled={selectedKeys.size === 0}
-        >
-          선택 지급
-        </button>
-      </div>
 
-      {loading && <p className="text-sm text-gray-600">불러오는 중...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="overflow-x-auto border rounded-md">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="px-3 py-2">
-                <input
-                  type="checkbox"
-                  aria-label="전체 선택"
-                  checked={
-                    selectedKeys.size > 0 &&
-                    selectedKeys.size === (Array.isArray(filtered) ? filtered.length : 0)
-                  }
-                  onChange={onSelectAll}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">년월 선택</span>
+              <div className="relative w-fit">
+                <Input
+                  type="month"
+                  className="h-10 w-40 rounded-xl bg-gray-50 border-none pl-4 pr-10 text-sm font-medium"
+                  value={yearMonth}
+                  onChange={e => setYearMonth(e.target.value || getDefaultYearMonth())}
                 />
-              </th>
-              <th className="px-3 py-2">이름</th>
-              <th className="px-3 py-2">월</th>
-              <th className="px-3 py-2">상태</th>
-              <th className="px-3 py-2 text-right">일당</th>
-              <th className="px-3 py-2 text-right">총공수</th>
-              <th className="px-3 py-2 text-right">총액</th>
-              <th className="px-3 py-2 text-right">공제</th>
-              <th className="px-3 py-2 text-right">실수령액</th>
-              <th className="px-3 py-2">액션</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(Array.isArray(filtered) ? filtered : []).map((s, idx) => (
-              <tr key={`${s.worker_id}-${s.year}-${s.month}-${idx}`} className="border-t">
-                <td className="px-3 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label="선택"
-                    checked={selectedKeys.has(makeKey(s))}
-                    onChange={() => toggleSelect(s)}
-                  />
-                </td>
-                <td className="px-3 py-2 text-sm text-gray-900">
-                  {workerNameMap[s.worker_id] || '—'}
-                </td>
-                <td className="px-3 py-2">
-                  {s.month_label || `${s.year}-${String(s.month).padStart(2, '0')}`}
-                </td>
-                <td className="px-3 py-2">
-                  <div className="flex flex-wrap gap-1">
-                    <span className="px-2 py-1 rounded-full text-xs bg-amber-50 text-amber-700">발행</span>
-                    {s.status === 'paid' && (
-                      <span className="px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-700">지급</span>
-                    )}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {s.daily_rate != null
-                    ? `₩${Number(s.daily_rate).toLocaleString()}`
-                    : '—'}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {typeof s.totalManDays === 'number'
-                    ? Number(s.totalManDays).toFixed(1)
-                    : typeof (s as any).workDays === 'number'
-                      ? Number((s as any).workDays).toFixed(1)
-                      : '—'}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  ₩{(s.salary?.total_gross_pay ?? 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  ₩{(s.salary?.total_deductions ?? 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-2 text-right font-semibold">
-                  ₩{(s.salary?.net_pay ?? 0).toLocaleString()}
-                </td>
-                <td className="px-3 py-2 flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
-                    onClick={() => {
-                      const displayName = (workerNameMap[s.worker_id] || '').trim()
-                      const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
-                      openFileRecordInNewTab({
-                        file_url: `/payslip/${s.worker_id}/${s.year}/${s.month}${query}`,
-                        file_name: `${displayName || 'payslip'}-${s.year}-${s.month}.html`,
-                        title: `${displayName || '급여'} ${s.year}-${s.month}`,
-                      })
-                    }}
-                  >
-                    HTML 보기
-                  </button>
-                  <button
-                    className="px-2 py-1 text-xs rounded-md bg-indigo-600 text-white"
-                    onClick={() => paySingle(s)}
-                  >
-                    지급
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {(Array.isArray(filtered) ? filtered.length === 0 : true) && !loading && (
-              <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={10}>
-                  발행 된 급여명세서가 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-      </section>
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
 
-      <section className="space-y-3">
-        <h3 className="text-lg font-semibold">이름별 조회</h3>
-        <p className="text-sm text-gray-600">선택한 작업자의 최근 기간(기본 3개월) 발행 내역을 확인하세요.</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="w-full md:w-64">
-            <CustomSelect
-              value={recentWorker || undefined}
-              onValueChange={value => setRecentWorker(value)}
-            >
-              <CustomSelectTrigger className="h-10 w-full" aria-label="이름 선택">
-                <CustomSelectValue
-                  placeholder="이름을 선택하세요"
-                  className={`text-sm ${recentWorker ? 'text-gray-900' : 'text-gray-500'}`}
-                />
-              </CustomSelectTrigger>
-              <CustomSelectContent className="min-w-[220px]">
-                {uniqueWorkerOptions.map(w => (
-                  <CustomSelectItem key={w.id} value={w.id}>
-                    {w.full_name}
-                  </CustomSelectItem>
-                ))}
-              </CustomSelectContent>
-            </CustomSelect>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">작업자 필터</span>
+              <CustomSelect
+                value={selectedWorker || 'all'}
+                onValueChange={value => setSelectedWorker(value === 'all' ? '' : value)}
+              >
+                <CustomSelectTrigger className="h-10 w-48 rounded-xl bg-gray-50 border-none px-4 text-sm font-medium">
+                  <CustomSelectValue placeholder="전체 작업자" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="all">전체 작업자</CustomSelectItem>
+                  {workers.map(w => (
+                    <CustomSelectItem key={w.id} value={w.id}>{w.full_name}</CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">고용 형태</span>
+              <CustomSelect
+                value={employmentType || 'all'}
+                onValueChange={value => setEmploymentType(value === 'all' ? '' : (value as any))}
+              >
+                <CustomSelectTrigger className="h-10 w-40 rounded-xl bg-gray-50 border-none px-4 text-sm font-medium">
+                  <CustomSelectValue placeholder="전체 형태" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="all">전체 형태</CustomSelectItem>
+                  <CustomSelectItem value="freelancer">프리랜서</CustomSelectItem>
+                  <CustomSelectItem value="daily_worker">일용직</CustomSelectItem>
+                  <CustomSelectItem value="regular_employee">상용직</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchList}
+                className="h-10 rounded-xl px-4 border-gray-200 font-bold"
+                disabled={loading}
+              >
+                <span>동기화</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportCSV}
+                className="h-10 rounded-xl px-4 border-gray-200 font-bold"
+              >
+                <span>CSV 다운로드</span>
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => paySelected()}
+                disabled={selectedKeys.size === 0}
+                className="h-10 rounded-xl px-6 bg-[#1A254F] hover:bg-[#2A355F] text-white font-bold"
+              >
+                <span>선택 지급 ({selectedKeys.size})</span>
+              </Button>
+            </div>
           </div>
-          <div className="w-full md:w-40">
-            <CustomSelect
-              value={recentRange}
-              onValueChange={value => setRecentRange(value as '3' | '6' | '12')}
-            >
-              <CustomSelectTrigger className="h-10 w-full" aria-label="기간">
-                <CustomSelectValue placeholder="최근 3개월" />
-              </CustomSelectTrigger>
-              <CustomSelectContent>
-                <CustomSelectItem value="3">최근 3개월</CustomSelectItem>
-                <CustomSelectItem value="6">최근 6개월</CustomSelectItem>
-                <CustomSelectItem value="12">최근 12개월</CustomSelectItem>
-              </CustomSelectContent>
-            </CustomSelect>
+
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-[#8da0cd] text-white">
+                    <th className="px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        className="rounded border-none bg-white/20"
+                        checked={selectedKeys.size > 0 && selectedKeys.size === filtered.length}
+                        onChange={onSelectAll}
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-left font-bold">이름</th>
+                    <th className="px-4 py-3 text-left font-bold">년월</th>
+                    <th className="px-4 py-3 text-left font-bold">상태</th>
+                    <th className="px-4 py-3 text-right font-bold">총공수</th>
+                    <th className="px-4 py-3 text-right font-bold">실수령액</th>
+                    <th className="px-4 py-3 text-center font-bold">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-600">
+                  {filtered.map((s, idx) => {
+                    const isPaid = s.status === 'paid'
+                    return (
+                      <tr key={`${s.worker_id}-${s.year}-${s.month}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={selectedKeys.has(makeKey(s))}
+                            onChange={() => toggleSelect(s)}
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-bold text-gray-900">{workerNameMap[s.worker_id] || '—'}</td>
+                        <td className="px-4 py-3 font-medium">{s.month_label}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-1">
+                            <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-100">발행</Badge>
+                            {isPaid && <Badge variant="default" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-100">지급완료</Badge>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold">
+                          {Number(s.totalManDays || (s as any).workDays || 0).toFixed(1)} <span className="text-[10px] opacity-40">공수</span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-[#1A254F]">
+                          ₩{(s.salary?.net_pay ?? 0).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                             <Button
+                                variant="outline"
+                                size="xs"
+                                className="h-8 rounded-md px-3 text-xs border-gray-200 gap-1.5"
+                                onClick={() => {
+                                  const displayName = (workerNameMap[s.worker_id] || '').trim()
+                                  const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
+                                  window.open(`/payslip/${s.worker_id}/${s.year}/${s.month}${query}`, '_blank')
+                                }}
+                              >
+                                <Search className="w-3 h-3 text-gray-400" />
+                                명세서
+                              </Button>
+                              {!isPaid && (
+                                <Button
+                                  variant="secondary"
+                                  size="xs"
+                                  className="h-8 rounded-md px-3 text-xs"
+                                  onClick={() => paySingle(s)}
+                                >
+                                  지급처리
+                                </Button>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {filtered.length === 0 && !loading && (
+                    <tr>
+                      <td className="px-4 py-16 text-center text-gray-400" colSpan={7}>
+                        {selectedWorker ? "해당 작업자의 발행 내역이 없습니다." : "조회된 명세서가 없습니다."}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-            type="button"
-            onClick={fetchRecentSnapshots}
-            disabled={recentLoading}
-          >
-            {t('common.refresh')}
-          </button>
-          <button
-            className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-            type="button"
-            onClick={() => exportCSV()}
-          >
-            CSV 내보내기
-          </button>
-          <button
-            className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-            type="button"
-          onClick={async () => {
-              const entries = recentItems
-                .filter(s => recentSelected.has(makeKey(s)))
-                .map(toEntry)
-                .filter((entry): entry is { userId: string; year: number; month: number } => !!entry)
-              if (!entries.length) {
-                toast({ title: '선택 없음', description: '지급할 내역이 없습니다.' })
-                return
-              }
-              await paySelected(entries)
-              setRecentSelected(new Set())
-            }}
-            disabled={!recentWorker || recentSelected.size === 0}
-          >
-            선택 지급
-          </button>
-        </div>
-        {recentLoading && <p className="text-sm text-gray-600">불러오는 중...</p>}
-        {recentError && <p className="text-sm text-red-600">{recentError}</p>}
-        <div className="overflow-x-auto border rounded-md">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-3 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label="전체 선택"
-                    checked={
-                      recentWorker &&
-                      recentSelected.size > 0 &&
-                      recentSelected.size === recentItems.length
-                    }
-                    onChange={onSelectAllRecent}
-                    disabled={!recentWorker || recentItems.length === 0}
-                  />
-                </th>
-                <th className="px-3 py-2">이름</th>
-                <th className="px-3 py-2">월</th>
-                <th className="px-3 py-2">상태</th>
-                <th className="px-3 py-2 text-right">일당</th>
-                <th className="px-3 py-2 text-right">총공수</th>
-                <th className="px-3 py-2 text-right">총액</th>
-                <th className="px-3 py-2 text-right">공제</th>
-                <th className="px-3 py-2 text-right">실수령액</th>
-                <th className="px-3 py-2">액션</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(recentWorker ? recentItems : []).map((s, idx) => (
-                <tr key={`recent-${s.worker_id}-${s.year}-${s.month}-${idx}`} className="border-t">
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      aria-label="선택"
-                      checked={recentSelected.has(makeKey(s))}
-                      onChange={() => toggleRecentEntry(s)}
-                    />
-                  </td>
-                  <td className="px-3 py-2">{workerNameMap[s.worker_id] || '—'}</td>
-                  <td className="px-3 py-2">{s.month_label || `${s.year}-${String(s.month).padStart(2, '0')}`}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      <span className="px-2 py-1 rounded-full text-xs bg-amber-50 text-amber-700">발행</span>
-                      {s.status === 'paid' && (
-                        <span className="px-2 py-1 rounded-full text-xs bg-slate-100 text-slate-700">지급</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {s.daily_rate != null ? `₩${Number(s.daily_rate).toLocaleString()}` : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {typeof s.totalManDays === 'number'
-                      ? Number(s.totalManDays).toFixed(1)
-                      : typeof (s as any).workDays === 'number'
-                        ? Number((s as any).workDays).toFixed(1)
-                        : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-right">₩{(s.salary?.total_gross_pay ?? 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">₩{(s.salary?.total_deductions ?? 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right font-semibold">₩{(s.salary?.net_pay ?? 0).toLocaleString()}</td>
-                  <td className="px-3 py-2 flex items-center gap-2">
-                    <button
-                      className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
-                    onClick={() => {
-                      const displayName = (workerNameMap[s.worker_id] || '').trim()
-                      const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
-                      openFileRecordInNewTab({
-                        file_url: `/payslip/${s.worker_id}/${s.year}/${s.month}${query}`,
-                        file_name: `${displayName || 'payslip'}-${s.year}-${s.month}.html`,
-                        title: `${displayName || '급여'} ${s.year}-${s.month}`,
-                      })
-                    }}
-                  >
-                      HTML 보기
-                    </button>
-                    <button
-                      className="px-2 py-1 text-xs rounded-md bg-indigo-600 text-white"
-                      onClick={() => paySingle(s)}
-                    >
-                      지급
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {recentWorker && recentItems.length === 0 && !recentLoading && (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={10}>
-                    최근 데이터가 없습니다.
-                  </td>
-                </tr>
-              )}
-              {!recentWorker && (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={10}>
-                    이름을 선택하면 최근 명세서가 표시됩니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
+
+      {/* 이름별 조회 섹션 */}
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-emerald-600 rounded-sm" />
+              이름별 최근 내역 모니터링
+            </h2>
+            <p className="text-sm text-muted-foreground">특정 작업자의 과거 발행 내역을 시계열로 확인하고 일괄 관리합니다.</p>
+          </div>
+
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">작업자 선택</span>
+              <CustomSelect
+                value={recentWorker || undefined}
+                onValueChange={value => setRecentWorker(value)}
+              >
+                <CustomSelectTrigger className="h-10 w-64 rounded-xl bg-gray-50 border-none px-4 text-sm font-medium">
+                  <CustomSelectValue placeholder="이름을 선택하세요" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  {uniqueWorkerOptions.map(w => (
+                    <CustomSelectItem key={w.id} value={w.id}>{w.full_name}</CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">조회 범위</span>
+              <CustomSelect
+                value={recentRange}
+                onValueChange={value => setRecentRange(value as any)}
+              >
+                <CustomSelectTrigger className="h-10 w-40 rounded-xl bg-gray-50 border-none px-4 text-sm font-medium">
+                  <CustomSelectValue placeholder="최근 3개월" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="3">최근 3개월</CustomSelectItem>
+                  <CustomSelectItem value="6">최근 6개월</CustomSelectItem>
+                  <CustomSelectItem value="12">최근 12개월</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchRecentSnapshots}
+                className="h-10 rounded-xl px-4 border-gray-200 font-bold"
+                disabled={recentLoading}
+              >
+                <span>새로고침</span>
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="h-10 rounded-xl px-6 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                onClick={async () => {
+                  const entries = recentItems.filter(s => recentSelected.has(makeKey(s))).map(toEntry).filter(e => !!e) as any[]
+                  await paySelected(entries)
+                  setRecentSelected(new Set())
+                }}
+                disabled={!recentWorker || recentSelected.size === 0}
+              >
+                <span>선택 지급 ({recentSelected.size})</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-[#8da0cd] text-white">
+                    <th className="px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        className="rounded border-none bg-white/20"
+                        checked={recentWorker && recentSelected.size > 0 && recentSelected.size === recentItems.length}
+                        onChange={onSelectAllRecent}
+                        disabled={!recentWorker || recentItems.length === 0}
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-left font-bold">대상 월</th>
+                    <th className="px-4 py-3 text-left font-bold">상태</th>
+                    <th className="px-4 py-3 text-right font-bold">실수령액</th>
+                    <th className="px-4 py-3 text-center font-bold">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 text-gray-600">
+                  {recentItems.map((s, idx) => {
+                     const isPaid = s.status === 'paid'
+                     return (
+                        <tr key={`recent-${s.worker_id}-${s.year}-${s.month}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3">
+                            <input
+                              type="checkbox"
+                              className="rounded border-gray-300"
+                              checked={recentSelected.has(makeKey(s))}
+                              onChange={() => toggleRecentEntry(s)}
+                            />
+                          </td>
+                          <td className="px-4 py-3 font-bold text-gray-900">{s.month_label}</td>
+                          <td className="px-4 py-3">
+                             <div className="flex gap-1">
+                                <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-100">발행</Badge>
+                                {isPaid && <Badge variant="default" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-100">지급완료</Badge>}
+                             </div>
+                          </td>
+                          <td className="px-4 py-3 text-right font-black text-[#1A254F]">
+                             ₩{(s.salary?.net_pay ?? 0).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex justify-center gap-2">
+                               <Button variant="outline" size="xs" className="h-8 rounded-md" onClick={() => {
+                                  const displayName = (workerNameMap[s.worker_id] || '').trim()
+                                  const query = displayName ? `?name=${encodeURIComponent(displayName)}` : ''
+                                  window.open(`/payslip/${s.worker_id}/${s.year}/${s.month}${query}`, '_blank')
+                               }}>명세서</Button>
+                               {!isPaid && <Button variant="secondary" size="xs" className="h-8 rounded-md" onClick={() => paySingle(s)}>지급</Button>}
+                            </div>
+                          </td>
+                        </tr>
+                     )
+                  })}
+                  {recentWorker && recentItems.length === 0 && !recentLoading && (
+                    <tr>
+                      <td className="px-4 py-16 text-center text-gray-400" colSpan={5}>
+                        해당 기간의 발행 내역이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {!recentWorker && (
+                    <tr>
+                      <td className="px-4 py-16 text-center text-gray-400" colSpan={5}>
+                        좌측 이름 선택 후 조회를 시작하세요.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

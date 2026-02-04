@@ -1,15 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import DataTable, { type Column } from '@/components/admin/DataTable'
-import {
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 type Shipment = {
   id: string
@@ -156,6 +152,23 @@ const getPaymentChips = (shipment: Shipment): Array<{ label: string; tone: Payme
   ]
 }
 
+const PaymentChip = ({ label, tone }: { label: string; tone: PaymentTone }) => (
+  <span
+    className={cn(
+      'inline-flex items-center rounded-lg border px-2 py-0.5 text-[10px] font-black uppercase tracking-tighter shadow-sm',
+      CHIP_STYLES[tone]
+    )}
+  >
+    {label}
+  </span>
+)
+
+const FlagBadge = ({ label }: { label: string }) => (
+  <span className="inline-flex items-center rounded-lg border border-slate-100 bg-slate-50/50 px-2 py-0.5 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+    {label}
+  </span>
+)
+
 const computeAmountSummary = (
   shipment: Shipment
 ): { total: number; paid: number; outstanding: number } => {
@@ -175,20 +188,6 @@ const computeAmountSummary = (
       : Math.max(0, total - paid)
   return { total, paid, outstanding }
 }
-
-const PaymentChip = ({ label, tone }: { label: string; tone: PaymentTone }) => (
-  <span
-    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium ${CHIP_STYLES[tone]}`}
-  >
-    {label}
-  </span>
-)
-
-const FlagBadge = ({ label }: { label: string }) => (
-  <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-700">
-    {label}
-  </span>
-)
 
 export default function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
   const [savingId, setSavingId] = useState<string | null>(null)
@@ -255,7 +254,7 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
                   <span className="font-medium text-foreground">{summary.label}</span>
                   {summary.quantity > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      총 {summary.quantity.toLocaleString('ko-KR')} ea
+                      총 {summary.quantity.toLocaleString('ko-KR')} 개
                     </span>
                   )}
                   {summary.notes.length > 0 && (
@@ -307,9 +306,13 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
             render: sp => {
               const { total } = computeAmountSummary(sp)
               return (
-                <div className="flex flex-col items-end gap-1 text-sm">
-                  <span className="text-xs text-muted-foreground mr-1">총액</span>
-                  <span className="text-lg font-semibold">{formatCurrency(total)}</span>
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                    총 금액
+                  </span>
+                  <span className="text-base font-black text-[#1A254F] italic tracking-tight">
+                    {formatCurrency(total)}
+                  </span>
                 </div>
               )
             },
@@ -320,14 +323,25 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
             sortable: true,
             render: sp => {
               const labelMap: Record<string, string> = {
-                preparing: '대기',
-                shipped: '출고',
-                delivered: '완료',
-                cancelled: '취소',
+                preparing: '상태 대기',
+                shipped: '출고 완료',
+                delivered: '최종 인도',
+                cancelled: '취소됨',
+              }
+              const colorMap: Record<string, string> = {
+                preparing: 'bg-slate-50 text-slate-400 border-slate-100',
+                shipped: 'bg-blue-50 text-blue-600 border-blue-100',
+                delivered: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                cancelled: 'bg-rose-50 text-rose-600 border-rose-100',
               }
               const value = String(sp.status || 'preparing').toLowerCase()
               return (
-                <span className="inline-flex items-center rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700">
+                <span
+                  className={cn(
+                    'inline-flex items-center rounded-lg border px-2.5 py-1 text-[11px] font-bold shadow-none whitespace-nowrap',
+                    colorMap[value] || colorMap.preparing
+                  )}
+                >
                   {labelMap[value] || '대기'}
                 </span>
               )
@@ -338,21 +352,24 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
             header: '작업',
             sortable: false,
             render: sp => (
-              <div className="flex flex-wrap gap-2">
-                <a
-                  href={`/dashboard/admin/materials/shipments/${sp.id}/edit`}
-                  className="rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Button
+                  asChild
+                  variant="outline"
+                  size="compact"
+                  className="h-8 rounded-md border-amber-200 text-amber-700 hover:bg-amber-50 font-bold px-3 whitespace-nowrap"
                 >
-                  수정
-                </a>
-                <button
-                  type="button"
-                  className="rounded border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                  <Link href={`/dashboard/admin/materials/shipments/${sp.id}/edit`}>수정</Link>
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  className="h-8 rounded-md text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3 border border-rose-200 font-bold whitespace-nowrap"
                   onClick={() => handleDelete(sp.id)}
                   disabled={deletingId === sp.id}
                 >
-                  {deletingId === sp.id ? '삭제 중...' : '삭제'}
-                </button>
+                  {deletingId === sp.id ? '...' : '삭제'}
+                </Button>
               </div>
             ),
           },

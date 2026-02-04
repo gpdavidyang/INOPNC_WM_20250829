@@ -1,10 +1,12 @@
 'use client'
 
-import React from 'react'
 import { DataTable } from '@/components/admin/DataTable'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { openFileRecordInNewTab } from '@/lib/files/preview'
 import { REQUIRED_DOC_STATUS_LABELS, normalizeRequiredDocStatus } from '@/lib/documents/status'
+import { openFileRecordInNewTab } from '@/lib/files/preview'
+import { cn } from '@/lib/utils'
+import { FileText, User } from 'lucide-react'
 import Link from 'next/link'
 
 type Props = {
@@ -24,19 +26,28 @@ export default function RequiredDocumentsTable({ docs, onOpen, onApprove, onReje
       columns={[
         {
           key: 'submission_date',
-          header: '제출일',
+          header: '제출일자',
           sortable: true,
           accessor: (d: any) => (d?.submission_date ? new Date(d.submission_date).getTime() : 0),
           render: (d: any) =>
-            d?.submission_date ? new Date(d.submission_date).toLocaleDateString('ko-KR') : '-',
+            d?.submission_date ? (
+              <span className="text-gray-500 font-medium">
+                {new Date(d.submission_date).toLocaleDateString('ko-KR')}
+              </span>
+            ) : (
+              <span className="text-gray-300">-</span>
+            ),
         },
         {
           key: 'title',
-          header: '문서명',
+          header: '문서 제목',
           sortable: true,
           accessor: (d: any) => d?.title || '',
           render: (d: any) => (
-            <span className="font-medium text-foreground">{d?.title || '-'}</span>
+            <div className="flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-blue-500/50" />
+              <span className="font-bold text-gray-900">{d?.title || '-'}</span>
+            </div>
           ),
         },
         {
@@ -46,40 +57,66 @@ export default function RequiredDocumentsTable({ docs, onOpen, onApprove, onReje
           accessor: (d: any) => d?.submitted_by?.full_name || d?.submitted_by?.email || '',
           render: (d: any) =>
             d?.submitted_by?.id ? (
-              <a
+              <Link
                 href={`/dashboard/admin/users/${d.submitted_by.id}`}
-                className="underline underline-offset-2"
-                title="사용자 상세"
+                className="flex items-center gap-1.5 font-semibold text-gray-700 hover:text-blue-700 hover:underline underline-offset-4 transition-colors"
                 onClick={e => e.stopPropagation()}
               >
+                <User className="w-3 h-3 opacity-30" />
                 {d?.submitted_by?.full_name || d?.submitted_by?.email || '-'}
-              </a>
+              </Link>
             ) : (
-              d?.submitted_by?.full_name || d?.submitted_by?.email || '-'
+              <span className="text-gray-500 font-medium">
+                {d?.submitted_by?.full_name || d?.submitted_by?.email || '-'}
+              </span>
             ),
         },
         {
           key: 'document_type',
-          header: '문서 유형',
+          header: '문서 구분',
           sortable: true,
           accessor: (d: any) => d?.document_type_label || d?.document_type || '',
-          render: (d: any) => d?.document_type_label || d?.document_type || '-',
+          render: (d: any) => (
+            <span className="px-2 py-0.5 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold uppercase tracking-tight">
+              {d?.document_type_label || d?.document_type || '-'}
+            </span>
+          ),
         },
         {
           key: 'status',
-          header: '상태',
+          header: '처리 상태',
           sortable: true,
           accessor: (d: any) => d?.status || '',
           render: (d: any) => {
             if (!d?.status) return '-'
             const normalized = normalizeRequiredDocStatus(d.status)
-            return REQUIRED_DOC_STATUS_LABELS[normalized] || REQUIRED_DOC_STATUS_LABELS.pending
+            const label =
+              REQUIRED_DOC_STATUS_LABELS[normalized] || REQUIRED_DOC_STATUS_LABELS.pending
+
+            return (
+              <Badge
+                className={cn(
+                  'rounded-lg px-2 py-0.5 text-[10px] font-bold italic uppercase transition-all whitespace-nowrap',
+                  normalized === 'approved'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : normalized === 'rejected'
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : normalized === 'pending'
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-gray-50 text-gray-400 border-gray-200'
+                )}
+                variant="outline"
+              >
+                {label}
+              </Badge>
+            )
           },
         },
         {
           key: 'actions',
-          header: '동작',
+          header: '관리 동작',
           sortable: false,
+          align: 'right',
           render: (d: any) => {
             const actionable = Boolean(d?.file_url) && (!d?.is_placeholder || !!d?.document_id)
             const fileRecord = {
@@ -95,12 +132,12 @@ export default function RequiredDocumentsTable({ docs, onOpen, onApprove, onReje
               title: d?.title,
             }
             return (
-              <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="flex items-center justify-end gap-1.5 whitespace-nowrap">
                 <Button
                   type="button"
                   variant="outline"
-                  size="compact"
-                  className="px-2 py-1 text-sm"
+                  size="xs"
+                  className="h-8 rounded-md border-blue-200 text-blue-700 font-medium px-3 hover:bg-blue-50"
                   onClick={() => {
                     if (!d?.file_url) return
                     if (onOpen) onOpen(d)
@@ -113,26 +150,26 @@ export default function RequiredDocumentsTable({ docs, onOpen, onApprove, onReje
                   }}
                   disabled={!d?.file_url}
                 >
-                  열기
+                  미리보기
                 </Button>
-                {onApprove ? (
+                {onApprove && d?.status === 'pending' ? (
                   <Button
                     type="button"
                     variant="outline"
-                    size="compact"
-                    className="px-2 py-1 text-sm"
+                    size="xs"
+                    className="h-8 rounded-md border-emerald-200 text-emerald-700 font-medium px-3 hover:bg-emerald-50"
                     onClick={() => actionable && onApprove(d)}
                     disabled={!actionable}
                   >
                     승인
                   </Button>
                 ) : null}
-                {onReject ? (
+                {onReject && d?.status === 'pending' ? (
                   <Button
                     type="button"
                     variant="outline"
-                    size="compact"
-                    className="px-2 py-1 text-sm"
+                    size="xs"
+                    className="h-8 rounded-md border-rose-200 text-rose-700 font-medium px-3 hover:bg-rose-50"
                     onClick={() => actionable && onReject(d)}
                     disabled={!actionable}
                   >

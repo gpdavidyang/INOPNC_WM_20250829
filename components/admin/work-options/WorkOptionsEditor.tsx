@@ -1,9 +1,23 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import {
+  Activity,
+  ArrowDown,
+  ArrowUp,
+  Check,
+  Clock,
+  Edit2,
+  Layers,
+  Loader2,
+  Plus,
+  RotateCcw,
+  Trash2,
+  X,
+} from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 
 type OptionType = 'component_type' | 'process_type' | 'labor_hour'
 
@@ -24,7 +38,17 @@ function slugify(value: string) {
     .replace(/[^a-z0-9_\-]/g, '')
 }
 
-function Section({ title, type }: { title: string; type: OptionType }) {
+function Section({
+  title,
+  description,
+  type,
+  icon: Icon,
+}: {
+  title: string
+  description: string
+  type: OptionType
+  icon: any
+}) {
   const [items, setItems] = useState<WorkOptionSetting[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -135,136 +159,178 @@ function Section({ title, type }: { title: string; type: OptionType }) {
     }
   }
 
-  const list = useMemo(() => items, [items])
-
   return (
-    <Card className="shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold">{title}</CardTitle>
+    <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden h-full flex flex-col">
+      <CardHeader className="border-b border-gray-100 bg-gray-50/30 px-6 py-6 sm:px-8">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-50 rounded-xl">
+            <Icon className="w-5 h-5 text-indigo-600" />
+          </div>
+          <div className="flex-1">
+            <CardTitle className="text-lg font-bold text-[#1A254F]">{title}</CardTitle>
+            <CardDescription className="text-xs font-medium text-slate-400 truncate">
+              {description}
+            </CardDescription>
+          </div>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => void load()}
+            className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
-      <CardContent>
-        {loading ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">불러오는 중…</div>
-        ) : error ? (
-          <div className="py-3 text-sm text-red-600">{error}</div>
-        ) : (
-          <div className="space-y-2">
-            {list.map((opt, i) => (
-              <div key={opt.id} className="flex items-center gap-3 rounded-lg border p-2.5">
-                <div className="w-8 text-xs text-muted-foreground text-center">{i + 1}</div>
-                <div className="flex-1">
-                  {editingId === opt.id ? (
-                    <Input
-                      value={editingLabel}
-                      onChange={e => setEditingLabel(e.target.value)}
-                      onKeyDown={e => {
-                        if (e.key === 'Enter') {
-                          void handleUpdate(opt.id, { option_label: editingLabel })
-                          setEditingId(null)
-                          setEditingLabel('')
-                        }
-                        if (e.key === 'Escape') {
-                          setEditingId(null)
-                          setEditingLabel('')
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="font-medium">{opt.option_label}</div>
-                  )}
-                  <div className="text-xs text-muted-foreground">{opt.option_value}</div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    className="px-2 py-1 text-xs rounded border hover:bg-muted"
-                    onClick={() => move(opt.id, 'up')}
-                    aria-label="위로"
-                    title="위로"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    className="px-2 py-1 text-xs rounded border hover:bg-muted"
-                    onClick={() => move(opt.id, 'down')}
-                    aria-label="아래로"
-                    title="아래로"
-                  >
-                    ↓
-                  </button>
-                </div>
-                <div className="flex items-center gap-2">
-                  {editingId === opt.id ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          void handleUpdate(opt.id, { option_label: editingLabel })
-                          setEditingId(null)
-                          setEditingLabel('')
-                        }}
-                      >
-                        저장
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setEditingId(null)
-                          setEditingLabel('')
-                        }}
-                      >
-                        취소
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setEditingId(opt.id)
-                          setEditingLabel(opt.option_label)
-                        }}
-                        disabled={opt.option_value === 'other'}
-                      >
-                        수정
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDelete(opt.id)}
-                        disabled={opt.option_value === 'other'}
-                      >
-                        삭제
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ))}
 
-            <div className="mt-3 flex items-center gap-2 flex-nowrap">
+      <CardContent className="p-6 flex-1 flex flex-col">
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center gap-2 text-slate-400">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <span className="text-sm font-medium">불러오는 중...</span>
+          </div>
+        ) : error ? (
+          <div className="py-6 text-center">
+            <p className="text-sm font-bold text-rose-500">{error}</p>
+            <Button
+              variant="link"
+              onClick={() => void load()}
+              className="text-xs text-indigo-600 mt-2"
+            >
+              다시 조회하기
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3 flex-1">
+            <div className="max-h-[500px] overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+              {items.map((opt, i) => (
+                <div
+                  key={opt.id}
+                  className="group flex items-center gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all"
+                >
+                  <div className="w-6 h-6 flex items-center justify-center rounded-lg bg-slate-50 text-[10px] font-black text-slate-400">
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {editingId === opt.id ? (
+                      <Input
+                        value={editingLabel}
+                        onChange={e => setEditingLabel(e.target.value)}
+                        className="h-8 rounded-lg text-sm font-bold border-indigo-200 focus:ring-indigo-100"
+                        autoFocus
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            void handleUpdate(opt.id, { option_label: editingLabel })
+                            setEditingId(null)
+                            setEditingLabel('')
+                          }
+                          if (e.key === 'Escape') {
+                            setEditingId(null)
+                            setEditingLabel('')
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="font-bold text-slate-700 text-sm truncate">
+                        {opt.option_label}
+                      </div>
+                    )}
+                    <div className="text-[10px] font-mono font-bold text-slate-300 uppercase tracking-tighter">
+                      {opt.option_value}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => move(opt.id, 'up')}
+                      disabled={i === 0}
+                      className="h-7 w-7 rounded-lg hover:bg-slate-100 text-slate-400"
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => move(opt.id, 'down')}
+                      disabled={i === items.length - 1}
+                      className="h-7 w-7 rounded-lg hover:bg-slate-100 text-slate-400"
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </Button>
+
+                    {editingId === opt.id ? (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            void handleUpdate(opt.id, { option_label: editingLabel })
+                            setEditingId(null)
+                            setEditingLabel('')
+                          }}
+                          className="h-7 w-7 rounded-lg text-emerald-500 hover:bg-emerald-50"
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingId(null)
+                            setEditingLabel('')
+                          }}
+                          className="h-7 w-7 rounded-lg text-rose-500 hover:bg-rose-50"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            setEditingId(opt.id)
+                            setEditingLabel(opt.option_label)
+                          }}
+                          disabled={opt.option_value === 'other'}
+                          className="h-7 w-7 rounded-lg text-indigo-500 hover:bg-indigo-50"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => handleDelete(opt.id)}
+                          disabled={opt.option_value === 'other'}
+                          className="h-7 w-7 rounded-lg text-rose-500 hover:bg-rose-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto pt-4 flex items-center gap-2 border-t border-slate-50">
               <Input
-                className="w-auto flex-1 min-w-0"
-                placeholder={
-                  type === 'labor_hour' ? '공수 값 입력 (예: 0.5, 1, 1.5)' : `${title} 추가`
-                }
+                className="h-10 rounded-xl bg-slate-50 border-slate-100 text-sm font-bold placeholder:text-slate-300 focus:bg-white transition-all pr-10"
+                placeholder={type === 'labor_hour' ? '예: 0.5, 1, 1.5' : '항목 추가'}
                 value={newLabel}
                 onChange={e => setNewLabel(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter') void handleAdd()
                 }}
               />
-              <Button className="shrink-0" onClick={() => void handleAdd()}>
-                추가
-              </Button>
               <Button
-                className="shrink-0 bg-[#F3F7FA] border-[#8DA0CD] text-[#15347C] hover:bg-[#8DA0CD] hover:text-white hover:border-[#5F7AB9]"
-                variant="outline"
-                onClick={() => void load()}
+                onClick={() => void handleAdd()}
+                className="h-10 w-10 shrink-0 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] text-white p-0 shadow-sm transition-all"
               >
-                새로고침
+                <Plus className="w-5 h-5" />
               </Button>
             </div>
           </div>
@@ -276,10 +342,25 @@ function Section({ title, type }: { title: string; type: OptionType }) {
 
 export default function WorkOptionsEditor() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-      <Section title="부재명 옵션" type="component_type" />
-      <Section title="작업공정 옵션" type="process_type" />
-      <Section title="공수 옵션" type="labor_hour" />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 px-4 sm:px-0">
+      <Section
+        title="부재명 옵션"
+        description="작업일지에 표시될 부재 목록을 설정합니다."
+        type="component_type"
+        icon={Layers}
+      />
+      <Section
+        title="작업공정 옵션"
+        description="현장에서 수행되는 표준 작업 공정을 관리합니다."
+        type="process_type"
+        icon={Activity}
+      />
+      <Section
+        title="공수 옵션"
+        description="작업일지에 입력 가능한 표준 공수 단위를 설정합니다."
+        type="labor_hour"
+        icon={Clock}
+      />
     </div>
   )
 }

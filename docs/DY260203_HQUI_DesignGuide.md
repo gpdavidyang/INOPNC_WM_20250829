@@ -156,7 +156,35 @@
 
 ### 1. 탭 (Tabs)
 
-#### 탭 컨테이너
+#### 1.1 내비게이션 탭 (Next.js Link 기반)
+
+Next.js의 `<Link>`를 사용한 페이지 이동형 탭도 Radix UI의 `<Tabs>`와 동일한 시각적 스타일을 유지해야 합니다.
+
+```tsx
+// 활성 상태 판별 후 스타일 적용
+<Link
+  href={tab.href}
+  className={`
+    relative flex h-11 items-center justify-center gap-2.5 rounded-xl px-3 text-sm font-black transition-all whitespace-nowrap
+    ${
+      isActive
+        ? 'bg-blue-50 text-blue-700 shadow-md shadow-blue-100/50 border border-blue-100'
+        : 'text-gray-500 hover:text-gray-900 hover:bg-white/60'
+    }
+  `}
+>
+  <Icon className={isActive ? 'text-blue-600' : 'text-gray-400'} />
+  <span>{tab.label}</span>
+</Link>
+```
+
+**표준 색상**:
+
+- **활성 배경**: `bg-blue-50` (필수)
+- **비활성 상태**: `text-gray-500`, 호버 시 `bg-white/60`
+- **테두리**: 활성 시 `border-blue-100`
+
+#### 1.2 탭 컨테이너 (UI Components)
 
 ```tsx
 <div className="sticky top-0 z-10 bg-gradient-to-b from-white via-white to-transparent pb-4 -mx-6 px-6 mb-2">
@@ -166,7 +194,7 @@
 </div>
 ```
 
-#### 탭 버튼
+#### 1.3 탭 버튼 (TabsTrigger)
 
 ```tsx
 <TabsTrigger className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-gray-600 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-md data-[state=active]:shadow-blue-100/50 whitespace-nowrap">

@@ -10,9 +10,7 @@ import { CollapsibleSection } from '../CollapsibleSection'
 // Dynamic import to avoid SSR issues with photo upload
 const AdditionalPhotoUploadSection = dynamic(
   () =>
-    import('@/components/daily-reports/additional-photo-upload-section').then(
-      mod => mod.AdditionalPhotoUploadSection
-    ),
+    import('@/components/daily-reports/additional-photo-upload-section').then(mod => mod.default),
   { ssr: false }
 )
 

@@ -13,10 +13,11 @@ export function InvoiceProgressSummary({ progress }: InvoiceProgressSummaryProps
     { key: 'start', label: '착수 단계', color: 'blue' },
     { key: 'progress', label: '진행 단계', color: 'amber' },
     { key: 'completion', label: '완료 단계', color: 'emerald' },
+    { key: 'other', label: '기타 보조/추가 내역', color: 'slate' },
   ]
 
   return (
-    <div className="grid gap-6 md:grid-cols-3">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
       {stages.map(stage => {
         const data = progress[stage.key] || { fulfilled: 0, required: 0 }
         const percent = data.required > 0 ? (data.fulfilled / data.required) * 100 : 0
@@ -88,7 +89,9 @@ export function InvoiceProgressSummary({ progress }: InvoiceProgressSummaryProps
                       ? 'bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.4)]'
                       : stage.color === 'amber'
                         ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]'
-                        : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                        : stage.color === 'emerald'
+                          ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                          : 'bg-slate-400 shadow-[0_0_8px_rgba(148,163,184,0.4)]'
                   )}
                   style={{ width: `${percent}%` }}
                 />

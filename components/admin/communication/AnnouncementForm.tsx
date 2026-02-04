@@ -1,10 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import CustomMultiSelect from '@/components/ui/custom-multi-select'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -12,8 +9,13 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import CustomMultiSelect from '@/components/ui/custom-multi-select'
+import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { cn } from '@/lib/utils'
+import { Info, Users } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 type AnnouncementRecord = {
   id: string
@@ -160,85 +162,141 @@ export default function AnnouncementForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <div>
-        <label className="block text-sm text-muted-foreground mb-1">제목</label>
-        <Input value={title} onChange={e => setTitle(e.target.value)} required />
+    <form onSubmit={handleSubmit} className="space-y-8">
+      {/* 1. 기본 내용 섹션 */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <div className="p-1.5 bg-blue-50 rounded-lg">
+            <Info className="w-4 h-4 text-blue-600" />
+          </div>
+          <h3 className="font-bold text-slate-800 tracking-tight text-sm">기본 내용</h3>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-[13px] font-semibold text-slate-600 ml-1">공지 제목 *</label>
+            <Input
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="공지사항 제목을 입력하세요"
+              className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all text-sm font-medium"
+              required
+              disabled={busy}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[13px] font-semibold text-slate-600 ml-1">상세 내용 *</label>
+            <Textarea
+              className="w-full min-h-[160px] rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all text-sm font-medium py-3 px-4 resize-none shadow-sm"
+              value={content}
+              onChange={e => setContent(e.target.value)}
+              placeholder="공지할 내용을 구체적으로 작성하세요"
+              required
+              disabled={busy}
+            />
+          </div>
+        </div>
       </div>
-      <div>
-        <label className="block text-sm text-muted-foreground mb-1">내용</label>
-        <Textarea
-          className="w-full h-24"
-          value={content}
-          onChange={e => setContent(e.target.value)}
-          required
-        />
+
+      {/* 2. 게시 설정 섹션 */}
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <div className="p-1.5 bg-indigo-50 rounded-lg">
+            <Users className="w-4 h-4 text-indigo-600" />
+          </div>
+          <h3 className="font-bold text-slate-800 tracking-tight text-sm">게시 및 타겟 설정</h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <label className="text-[13px] font-semibold text-slate-600 ml-1">우선순위</label>
+            <CustomSelect
+              value={priority}
+              onValueChange={v => setPriority(v as AnnouncementRecord['priority'])}
+              disabled={busy}
+            >
+              <CustomSelectTrigger className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all text-sm font-medium">
+                <CustomSelectValue placeholder="우선순위 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent className="rounded-xl">
+                {priorityItems.map(item => (
+                  <CustomSelectItem key={item.value} value={item.value} className="font-medium">
+                    {item.label}
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[13px] font-semibold text-slate-600 ml-1">활성 상태</label>
+            <div className="flex items-center justify-between h-11 px-4 rounded-xl bg-slate-50/50 border border-slate-200">
+              <span className="text-sm font-medium text-slate-500">
+                {isActive ? '운영 중' : '중지됨'}
+              </span>
+              <Switch checked={isActive} onCheckedChange={setIsActive} disabled={busy} />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[13px] font-semibold text-slate-600 ml-1">대상 현장</label>
+            <CustomMultiSelect
+              options={availableSites}
+              selected={selectedSiteIds}
+              onChange={setSelectedSiteIds}
+              placeholder="전체 현장"
+              className="rounded-xl min-h-[44px]"
+            />
+            <p className="text-[10px] font-medium text-slate-400 ml-1">* 미선택 시 전체 노출</p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[13px] font-semibold text-slate-600 ml-1">대상 역할</label>
+            <CustomMultiSelect
+              options={roleOptions}
+              selected={selectedRoles}
+              onChange={setSelectedRoles}
+              placeholder="전체 역할"
+              className="rounded-xl min-h-[44px]"
+            />
+            <p className="text-[10px] font-medium text-slate-400 ml-1">* 비워 두면 전체 발송</p>
+          </div>
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className="block text-sm text-muted-foreground mb-1">우선순위</label>
-          <CustomSelect
-            value={priority}
-            onValueChange={v => setPriority(v as AnnouncementRecord['priority'])}
+
+      {/* 하단 액션 바 */}
+      <div className="pt-8 border-t border-slate-100 flex items-center justify-end gap-3">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={busy}
+            className="h-11 px-6 rounded-xl border-slate-200 text-slate-500 font-semibold hover:bg-slate-50 transition-all text-sm"
           >
-            <CustomSelectTrigger>
-              <CustomSelectValue placeholder="우선순위" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              {priorityItems.map(item => (
-                <CustomSelectItem key={item.value} value={item.value}>
-                  {item.label}
-                </CustomSelectItem>
-              ))}
-            </CustomSelectContent>
-          </CustomSelect>
-        </div>
-        <div>
-          <CustomMultiSelect
-            label="대상 현장"
-            options={availableSites}
-            selected={selectedSiteIds}
-            onChange={setSelectedSiteIds}
-            placeholder="전체 (미선택 시 전체)"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            선택하지 않으면 전체 현장 대상으로 발송됩니다.
-          </p>
-        </div>
-        <div>
-          <CustomMultiSelect
-            label="대상 역할"
-            options={roleOptions}
-            selected={selectedRoles}
-            onChange={setSelectedRoles}
-            placeholder="전체 (미선택 시 전체)"
-          />
-          <p className="mt-1 text-xs text-muted-foreground">
-            비워 두면 전체 역할 대상으로 발송됩니다.
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2">
-        <div>
-          <p className="text-sm font-medium text-foreground">활성 상태</p>
-          <p className="text-xs text-muted-foreground">
-            비활성화 시 사용자 화면에 표시되지 않습니다.
-          </p>
-        </div>
-        <Switch checked={isActive} onCheckedChange={checked => setIsActive(checked)} />
-      </div>
-      <div className="flex items-center gap-2">
-        <Button type="submit" disabled={busy}>
-          {busy ? '처리 중…' : isEdit ? '공지 수정' : '공지 생성'}
-        </Button>
-        {onCancel ? (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={busy}>
             취소
           </Button>
-        ) : null}
-        {message && <span className="text-sm text-muted-foreground">{message}</span>}
-        {errorMessage && <span className="text-sm text-destructive">{errorMessage}</span>}
+        )}
+        <Button
+          type="submit"
+          disabled={busy}
+          className="h-11 px-10 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] text-white font-bold shadow-lg shadow-blue-900/10 transition-all text-sm"
+        >
+          {busy ? '처리 중...' : isEdit ? '공지 수정 완료' : '새 공지 발행하기'}
+        </Button>
       </div>
+
+      {(message || errorMessage) && (
+        <div
+          className={cn(
+            'p-4 rounded-xl text-sm font-bold animate-in fade-in duration-300',
+            message ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
+          )}
+        >
+          {message || errorMessage}
+        </div>
+      )}
     </form>
   )
 }

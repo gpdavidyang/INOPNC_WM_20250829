@@ -1,10 +1,10 @@
 'use client'
 
-import React from 'react'
 import { DataTable } from '@/components/admin/DataTable'
-import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 type DocumentRequirementRow = {
   id: string
@@ -36,54 +36,77 @@ export default function DocumentRequirementsTable({
   const columns: any[] = [
     {
       key: 'name',
-      header: '이름(국문)',
+      header: '유형 명칭',
       sortable: true,
       accessor: (t: DocumentRequirementRow) => t?.name_ko || t?.name_en || '',
       render: (t: DocumentRequirementRow) => (
-        <Link
-          href={`/dashboard/admin/document-requirements/${t.id}`}
-          className="underline text-blue-600"
-        >
-          {t?.name_ko || t?.name_en || '-'}
-        </Link>
+        <div className="flex flex-col">
+          <Link
+            href={`/dashboard/admin/document-requirements/${t.id}`}
+            className="font-bold text-blue-700 hover:underline underline-offset-4"
+          >
+            {t?.name_ko || t?.name_en || '-'}
+          </Link>
+          <span className="text-[10px] font-medium text-gray-400 font-mono">{t.code}</span>
+        </div>
       ),
     },
     {
       key: 'max_file_size',
-      header: '최대 크기',
+      header: '제한용량',
       align: 'right',
       sortable: true,
       accessor: (t: DocumentRequirementRow) => t?.max_file_size || 0,
       render: (t: DocumentRequirementRow) =>
-        t?.max_file_size ? `${Math.round(t.max_file_size / (1024 * 1024))} MB` : '-',
+        t?.max_file_size ? (
+          <span className="font-medium text-gray-700">
+            {Math.round(t.max_file_size / (1024 * 1024))}{' '}
+            <span className="text-[10px] opacity-50">MB</span>
+          </span>
+        ) : (
+          '-'
+        ),
     },
     {
       key: 'is_active',
-      header: '활성',
+      header: '상태',
       sortable: true,
       accessor: (t: DocumentRequirementRow) => (t?.is_active ? 1 : 0),
       render: (t: DocumentRequirementRow) => (
-        <Badge variant={t?.is_active ? 'default' : 'outline'}>
-          {t?.is_active ? '활성' : '비활성'}
+        <Badge
+          className={cn(
+            'rounded-lg px-2 py-0.5 text-[10px] font-bold italic uppercase transition-all',
+            t?.is_active
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-gray-50 text-gray-400 border-gray-200'
+          )}
+          variant="outline"
+        >
+          {t?.is_active ? '노출' : '숨김'}
         </Badge>
       ),
     },
     {
       key: 'sort_order',
-      header: '정렬',
-      align: 'right',
+      header: '순서',
+      align: 'center',
       sortable: true,
       accessor: (t: DocumentRequirementRow) => t?.sort_order ?? 0,
-      render: (t: DocumentRequirementRow) => String(t?.sort_order ?? 0),
+      render: (t: DocumentRequirementRow) => (
+        <span className="font-mono font-medium text-gray-400">{t?.sort_order ?? 0}</span>
+      ),
     },
     {
       key: 'created_at',
-      header: '생성일',
+      header: '등록일',
       sortable: true,
       accessor: (t: DocumentRequirementRow) =>
         t?.created_at ? new Date(t.created_at).getTime() : 0,
-      render: (t: DocumentRequirementRow) =>
-        t?.created_at ? new Date(t.created_at).toLocaleDateString('ko-KR') : '-',
+      render: (t: DocumentRequirementRow) => (
+        <span className="text-gray-400 font-medium">
+          {t?.created_at ? new Date(t.created_at).toLocaleDateString() : '-'}
+        </span>
+      ),
     },
   ]
 
@@ -93,12 +116,13 @@ export default function DocumentRequirementsTable({
       header: '동작',
       align: 'right',
       render: (t: DocumentRequirementRow) => (
-        <div className="flex items-center justify-end gap-2">
+        <div className="flex items-center justify-end gap-1.5">
           {onEdit ? (
             <Button
               type="button"
               variant="outline"
-              size="compact"
+              size="xs"
+              className="h-8 rounded-md border-amber-200 text-amber-700 font-medium px-3 hover:bg-amber-50"
               onClick={e => {
                 e.stopPropagation()
                 onEdit(t)
@@ -111,20 +135,27 @@ export default function DocumentRequirementsTable({
             <Button
               type="button"
               variant="outline"
-              size="compact"
+              size="xs"
+              className={cn(
+                'h-8 rounded-md font-medium px-3',
+                t?.is_active
+                  ? 'border-gray-200 text-gray-400 hover:bg-gray-50'
+                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+              )}
               onClick={e => {
                 e.stopPropagation()
                 onToggleActive(t)
               }}
             >
-              {t?.is_active ? '비활성' : '활성'}
+              {t?.is_active ? '숨김' : '노출'}
             </Button>
           ) : null}
           {onDelete ? (
             <Button
               type="button"
-              variant="destructive"
-              size="compact"
+              variant="outline"
+              size="xs"
+              className="h-8 rounded-md border-rose-200 text-rose-700 font-medium px-3 hover:bg-rose-50"
               onClick={e => {
                 e.stopPropagation()
                 onDelete(t)

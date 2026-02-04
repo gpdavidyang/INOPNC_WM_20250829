@@ -10,7 +10,8 @@ import {
   CustomSelectValue,
 } from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
-import { RotateCcw, Search } from 'lucide-react'
+import { Plus, Search } from 'lucide-react'
+import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState } from 'react'
 
@@ -87,7 +88,7 @@ export function DailyReportFilters({
         className="flex flex-wrap items-end gap-4"
       >
         <div className="space-y-1.5 w-full sm:w-[200px]">
-          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+          <label className="text-[11px] font-bold text-muted-foreground tracking-tight ml-1">
             현장
           </label>
           <CustomSelect
@@ -109,7 +110,7 @@ export function DailyReportFilters({
         </div>
 
         <div className="space-y-1.5 w-full sm:w-[140px]">
-          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+          <label className="text-[11px] font-bold text-muted-foreground tracking-tight ml-1">
             상태
           </label>
           <CustomSelect
@@ -130,7 +131,7 @@ export function DailyReportFilters({
         </div>
 
         <div className="space-y-1.5 flex-1 min-w-[200px]">
-          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+          <label className="text-[11px] font-bold text-muted-foreground tracking-tight ml-1">
             검색어
           </label>
           <div className="relative">
@@ -145,7 +146,7 @@ export function DailyReportFilters({
         </div>
 
         <div className="space-y-1.5 w-full sm:w-[150px]">
-          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+          <label className="text-[11px] font-bold text-muted-foreground tracking-tight ml-1">
             시작일
           </label>
           <Input
@@ -157,7 +158,7 @@ export function DailyReportFilters({
         </div>
 
         <div className="space-y-1.5 w-full sm:w-[150px]">
-          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+          <label className="text-[11px] font-bold text-muted-foreground tracking-tight ml-1">
             종료일
           </label>
           <Input
@@ -171,18 +172,26 @@ export function DailyReportFilters({
         <div className="flex items-center gap-2 ml-auto sm:ml-0">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             onClick={handleReset}
-            className="h-10 px-4 rounded-xl font-bold text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 whitespace-nowrap"
+            className="h-10 px-4 rounded-xl font-bold text-xs text-slate-600 bg-slate-50 hover:bg-slate-100 border-gray-200 whitespace-nowrap"
           >
-            <RotateCcw className="w-3.5 h-3.5 mr-2" />
-            초기화
+            새로고침
           </Button>
           <Button
             type="submit"
             className="h-10 px-6 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-sm whitespace-nowrap"
           >
-            조회하기
+            검색
+          </Button>
+          <Button
+            asChild
+            className="h-10 px-4 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] text-white font-bold text-xs shadow-sm whitespace-nowrap gap-1.5 shrink-0"
+          >
+            <Link href="/dashboard/admin/daily-reports/new" className="flex items-center">
+              <Plus className="w-3.5 h-3.5" />
+              <span className="whitespace-nowrap">작업일지 작성</span>
+            </Link>
           </Button>
         </div>
       </form>

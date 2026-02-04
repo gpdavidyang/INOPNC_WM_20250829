@@ -137,10 +137,24 @@ const mapAdditionalPhotos = (dailyReport: any): AdditionalPhotoData[] => {
   return [...before, ...after].sort((a, b) => (a.upload_order || 0) - (b.upload_order || 0))
 }
 
+const getBestName = (profile: any, fallback?: string): string => {
+  if (!profile) return fallback || ''
+  return (
+    String(profile.full_name || '').trim() ||
+    String(profile.name || '').trim() ||
+    String(profile.member_name || '').trim() ||
+    String(profile.email || '').split('@')[0] ||
+    fallback ||
+    ''
+  )
+}
+
 const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
   (workers || []).map((worker, index) => {
-    // If labor_hours is provided, it is usually already in man-days (공수)
-    // Legacy fields (hours, work_hours) might be in real hours (8h = 1.0)
+    const workerProfile = Array.isArray(worker?.profiles) ? worker.profiles[0] : worker?.profiles
+    const workerName =
+      getBestName(workerProfile) || String(worker?.worker_name || worker?.name || '이름없음').trim()
+
     const laborHours = Number(worker?.labor_hours)
     const workHours = Number(worker?.hours ?? worker?.work_hours ?? 0)
 
@@ -153,12 +167,7 @@ const mapWorkers = (workers: any[] | undefined): UnifiedWorkerEntry[] =>
         worker?.user_id ||
         worker?.profiles?.id ||
         (worker?.id && worker.id.length > 30 ? worker.id : undefined),
-      workerName:
-        worker?.profiles?.full_name ||
-        worker?.worker_name ||
-        worker?.name ||
-        worker?.workerName ||
-        '이름없음',
+      workerName,
       // If laborHours exists (>0), use it directly.
       // Otherwise, convert workHours to man-days (공수): 8 hours = 1.0
       hours:
@@ -338,8 +347,11 @@ export const integratedResponseToUnifiedReport = (
     workerAssignments.length === 0 &&
     (response.worker_statistics?.total_workers || dailyReport.total_workers || 0) > 0
   ) {
+    const authorProfile =
+      response.report_author || dailyReport.author || dailyReport.created_by_profile
     const authorName =
-      response.report_author?.full_name || dailyReport.creator_profile?.full_name || '작성자'
+      getBestName(authorProfile) || String(dailyReport.member_name || '').trim() || '미기입'
+
     workerAssignments = [
       {
         id: 'author-fallback',
@@ -347,7 +359,7 @@ export const integratedResponseToUnifiedReport = (
         workerName: authorName,
         hours: 8, // Default to a standard day
         isDirectInput: true,
-        notes: '자동 배정 (내역 없음)',
+        notes: '자동 배정 (작성자 기준)',
       },
     ]
   }

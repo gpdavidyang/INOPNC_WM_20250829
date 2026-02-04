@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { AlertCircle, Calendar, Check, Loader2, MapPin, Pencil, RotateCcw, X } from 'lucide-react'
+import { AlertCircle, Calendar, Loader2, MapPin, RotateCcw } from 'lucide-react'
 
 const STATUS_META: Record<
   string,
@@ -120,12 +120,8 @@ export function ReportHeader({
                 disabled={approvalLoading || rejecting}
                 className="bg-[#1A254F] text-white hover:bg-black rounded-lg h-9 px-4 font-bold text-xs gap-1.5 whitespace-nowrap shadow-sm transition-all"
               >
-                {approvalLoading && !rejecting ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Check className="w-3.5 h-3.5" />
-                )}
-                최종 승인
+                {approvalLoading && !rejecting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                승인
               </Button>
               <Button
                 variant="outline"
@@ -138,8 +134,7 @@ export function ReportHeader({
                     : 'hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
                 )}
               >
-                <X className="w-3.5 h-3.5" />
-                반려 처리
+                반려
               </Button>
             </>
           )}
@@ -153,17 +148,6 @@ export function ReportHeader({
             >
               <RotateCcw className={cn('w-3 h-3', approvalLoading && 'animate-spin')} />
               상태 초기화
-            </Button>
-          )}
-
-          {canEditReport && editHref && (
-            <Button
-              asChild
-              className="bg-blue-600 text-white hover:bg-blue-700 rounded-lg h-9 px-5 font-bold text-xs gap-1.5 whitespace-nowrap shadow-sm transition-all"
-            >
-              <a href={editHref}>
-                <Pencil className="w-3 h-3" /> 편집기
-              </a>
             </Button>
           )}
         </div>

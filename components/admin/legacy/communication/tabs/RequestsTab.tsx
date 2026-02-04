@@ -1,9 +1,14 @@
 'use client'
 
-import React, { Fragment, useEffect, useState } from 'react'
-import { Search, Calendar, User } from 'lucide-react'
-import type { Profile } from '@/types'
+import DataTable from '@/components/admin/DataTable'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
+import type { Profile } from '@/types'
+import { Building2, Calendar, ClipboardList, Search, User } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 interface RequestsTabProps {
   profile: Profile
@@ -18,31 +23,18 @@ interface HeadquartersRequest {
   requester_role: string
   site_id?: string
   site_name?: string
-  category: 'general' | 'technical' | 'administrative' | 'complaint' | 'suggestion' | 'other'
+  category: string
   subject: string
   content: string
   urgency: 'low' | 'medium' | 'high' | 'critical'
   status: 'pending' | 'in_progress' | 'resolved' | 'closed'
-  assigned_to?: string
-  assigned_to_name?: string
-  response?: string
-  response_date?: string
-  resolved_date?: string
-  attachments?: string[]
   created_at: string
-  updated_at: string
 }
 
 export default function RequestsTab({ profile }: RequestsTabProps) {
   const [requests, setRequests] = useState<HeadquartersRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  const [sortField, setSortField] = useState<
-    'request_date' | 'site_name' | 'subject' | 'requester_name' | 'content'
-  >('request_date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-
   const supabase = createClient()
 
   useEffect(() => {
@@ -52,28 +44,24 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
   const loadRequests = async () => {
     setLoading(true)
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('headquarters_requests')
         .select(
           `
           *,
           profiles!requester_id(full_name, email, role),
-          sites!site_id(name),
-          assigned_profile:profiles!assigned_to(full_name)
+          sites!site_id(name)
         `
         )
         .order('created_at', { ascending: false })
 
-      const { data, error } = await query
-
       if (!error && data) {
         const formattedData: HeadquartersRequest[] = data.map(item => ({
           ...item,
-          requester_name: (item as unknown).profiles?.full_name || '알 수 없음',
-          requester_email: (item as unknown).profiles?.email || '',
-          requester_role: (item as unknown).profiles?.role || 'worker',
-          site_name: (item as unknown).sites?.name || '',
-          assigned_to_name: (item as unknown).assigned_profile?.full_name || '',
+          requester_name: (item as any).profiles?.full_name || '알 수 없음',
+          requester_email: (item as any).profiles?.email || '',
+          requester_role: (item as any).profiles?.role || 'worker',
+          site_name: (item as any).sites?.name || '',
         }))
         setRequests(formattedData)
       }
@@ -84,185 +72,208 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
     }
   }
 
-  const handleViewDetail = (request: HeadquartersRequest) => {
-    setExpandedId(prev => (prev === request.id ? null : request.id))
-  }
-
-  const getRoleLabel = (role: string) => {
+  const roleLabel = (role: string) => {
     const labels: Record<string, string> = {
       worker: '작업자',
       site_manager: '현장관리자',
       partner: '시공업체',
       customer_manager: '고객관리자',
-      admin: '관리자',
+      admin: '본사관리자',
     }
     return labels[role] || role
   }
 
-  const filteredRequests = requests.filter(
-    request =>
-      searchTerm === '' ||
-      request.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester_name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const sortedRequests = [...filteredRequests].sort((a, b) => {
-    const dir = sortDirection === 'asc' ? 1 : -1
-    const getVal = (r: HeadquartersRequest) => {
-      switch (sortField) {
-        case 'request_date':
-          return r.request_date || ''
-        case 'site_name':
-          return r.site_name || ''
-        case 'subject':
-          return r.subject || ''
-        case 'requester_name':
-          return r.requester_name || ''
-        case 'content':
-          return r.content || ''
-        default:
-          return ''
-      }
-    }
-    const va = getVal(a)
-    const vb = getVal(b)
-
-    if (sortField === 'request_date') {
-      return (new Date(va).getTime() - new Date(vb).getTime()) * dir
-    }
-
-    return va.localeCompare(vb) * dir
-  })
-
-  const handleSort = (field: typeof sortField) => {
-    if (sortField === field) {
-      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
-    }
-  }
-
-  const stats = {
-    total: requests.length,
-  }
+  const filtered = useMemo(() => {
+    if (!searchTerm.trim()) return requests
+    const s = searchTerm.toLowerCase()
+    return requests.filter(
+      r =>
+        r.subject.toLowerCase().includes(s) ||
+        r.content.toLowerCase().includes(s) ||
+        r.requester_name.toLowerCase().includes(s) ||
+        r.site_name?.toLowerCase().includes(s)
+    )
+  }, [requests, searchTerm])
 
   return (
-    <div className="p-6">
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-          <p className="text-sm text-gray-600 dark:text-gray-400">전체 요청</p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-        </div>
-      </div>
-
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            placeholder="제목, 내용, 요청자 검색..."
-            className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          />
-        </div>
-      </div>
-
-      {/* Requests Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer select-none"
-                onClick={() => handleSort('request_date')}
-              >
-                요청일
-              </th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer select-none"
-                onClick={() => handleSort('site_name')}
-              >
-                현장
-              </th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer select-none"
-                onClick={() => handleSort('subject')}
-              >
-                작업일지
-              </th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer select-none"
-                onClick={() => handleSort('requester_name')}
-              >
-                요청자
-              </th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer select-none"
-                onClick={() => handleSort('content')}
-              >
-                요청 내용
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                  데이터를 불러오는 중...
-                </td>
-              </tr>
-            ) : filteredRequests.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                  요청사항이 없습니다.
-                </td>
-              </tr>
-            ) : (
-              sortedRequests.map(request => (
-                <tr
-                  key={request.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                  onClick={() => handleViewDetail(request)}
-                >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 text-gray-400" />
-                      {request.request_date}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {request.site_name || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    <p className="line-clamp-1" title={request.subject}>
-                      {request.subject || '-'}
-                    </p>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <div className="flex items-center text-gray-900 dark:text-white">
-                      <User className="h-4 w-4 mr-1 text-gray-400" />
-                      {request.requester_name}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      역할:{getRoleLabel(request.requester_role)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-normal text-sm text-gray-900 dark:text-white">
-                    <p className="line-clamp-3" title={request.content}>
-                      {request.content}
-                    </p>
-                  </td>
-                </tr>
-              ))
+    <div className="space-y-6">
+      {/* 1. Stats Grid (v1.66) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          {
+            label: '누적 요청',
+            value: requests.length,
+            unit: '건',
+            bg: 'bg-indigo-50/50',
+            text: 'text-indigo-600',
+          },
+          {
+            label: '미처리 요청',
+            value: requests.filter(r => r.status === 'pending').length,
+            unit: '건',
+            bg: 'bg-amber-50/50',
+            text: 'text-amber-600',
+          },
+          {
+            label: '최근 7일',
+            value: requests.filter(r => {
+              const sevenDaysAgo = new Date()
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+              return new Date(r.created_at) > sevenDaysAgo
+            }).length,
+            unit: '건',
+            bg: 'bg-blue-50/50',
+            text: 'text-blue-600',
+          },
+        ].map((stat, idx) => (
+          <Card
+            key={idx}
+            className={cn(
+              'rounded-2xl border-none shadow-sm shadow-gray-200/40 overflow-hidden',
+              stat.bg
             )}
-          </tbody>
-        </table>
+          >
+            <CardContent className="p-5 flex flex-col justify-between h-full">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                {stat.label}
+              </p>
+              <div className="flex items-baseline gap-1 mt-2">
+                <span className={cn('text-2xl font-black tracking-tight', stat.text)}>
+                  {stat.value}
+                </span>
+                <span className="text-xs font-bold text-slate-400">{stat.unit}</span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
+
+      {/* 2. Main Content Card */}
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+        <CardHeader className="border-b border-gray-100 bg-gray-50/30 px-6 py-6 sm:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-lg font-bold text-[#1A254F] flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-indigo-500" />
+                요청 내역 리스트
+              </CardTitle>
+              <CardDescription className="text-sm font-normal text-slate-400">
+                접수된 모든 본사 요청 사항을 통합 조회합니다.
+              </CardDescription>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  placeholder="제목, 내용, 요청자 검색..."
+                  className="h-10 rounded-xl bg-white border-slate-200 pl-10 text-sm font-normal shadow-sm focus:ring-2 focus:ring-blue-500/10 min-w-[240px]"
+                />
+              </div>
+              <Button
+                onClick={loadRequests}
+                className="h-10 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] text-white px-6 font-semibold text-sm shadow-sm"
+              >
+                조회하기
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <DataTable
+            data={filtered}
+            rowKey="id"
+            emptyMessage="접수된 본사 요청이 없습니다."
+            columns={[
+              {
+                key: 'request_date',
+                header: '요청일',
+                sortable: true,
+                width: '160px',
+                render: (r: HeadquartersRequest) => (
+                  <div className="flex items-center gap-2 text-slate-500 font-normal">
+                    <Calendar className="w-3.5 h-3.5 text-slate-300" />
+                    {new Date(r.request_date).toLocaleDateString('ko-KR')}
+                  </div>
+                ),
+              },
+              {
+                key: 'site_name',
+                header: '현장',
+                sortable: true,
+                width: '180px',
+                render: (r: HeadquartersRequest) => (
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                    <Building2 className="w-3.5 h-3.5 text-indigo-300" />
+                    <span className="truncate">{r.site_name || '글로벌'}</span>
+                  </div>
+                ),
+              },
+              {
+                key: 'requester_name',
+                header: '요청자',
+                width: '150px',
+                render: (r: HeadquartersRequest) => (
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+                      <User className="w-3.5 h-3.5 text-slate-300" />
+                      {r.requester_name}
+                    </div>
+                    <span className="text-[10px] text-slate-400 ml-5 font-medium">
+                      {roleLabel(r.requester_role)}
+                    </span>
+                  </div>
+                ),
+              },
+              {
+                key: 'subject',
+                header: '제목',
+                render: (r: HeadquartersRequest) => (
+                  <div className="space-y-0.5">
+                    <p className="font-semibold text-[#1A254F] line-clamp-1">{r.subject}</p>
+                    <p className="text-[12px] text-slate-400 font-normal line-clamp-1">
+                      {r.content}
+                    </p>
+                  </div>
+                ),
+              },
+              {
+                key: 'status',
+                header: '상태',
+                width: '100px',
+                align: 'center',
+                render: (r: HeadquartersRequest) => {
+                  const colors: Record<string, string> = {
+                    pending: 'bg-amber-50 text-amber-600 border-amber-100',
+                    in_progress: 'bg-blue-50 text-blue-600 border-blue-100',
+                    resolved: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                    closed: 'bg-slate-50 text-slate-400 border-slate-100',
+                  }
+                  const labels: Record<string, string> = {
+                    pending: '접수대기',
+                    in_progress: '처리중',
+                    resolved: '해결됨',
+                    closed: '종료',
+                  }
+                  return (
+                    <span
+                      className={cn(
+                        'px-2 py-0.5 rounded-full text-[10px] font-bold border',
+                        colors[r.status] || colors.pending
+                      )}
+                    >
+                      {labels[r.status] || r.status}
+                    </span>
+                  )
+                },
+              },
+            ]}
+          />
+        </CardContent>
+      </Card>
     </div>
   )
 }

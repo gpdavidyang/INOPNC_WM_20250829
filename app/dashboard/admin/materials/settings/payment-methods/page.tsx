@@ -1,7 +1,9 @@
-import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { revalidatePath } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import EmptyState from '@/components/ui/empty-state'
+import { Input } from '@/components/ui/input'
 import { PageHeader } from '@/components/ui/page-header'
 import {
   Table,
@@ -11,7 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import EmptyState from '@/components/ui/empty-state'
+import { createClient } from '@/lib/supabase/server'
+import { cn } from '@/lib/utils'
+import { CreditCard, Plus, Power, Receipt, Trash2, Truck } from 'lucide-react'
+import type { Metadata } from 'next'
+import { revalidatePath } from 'next/cache'
+import Link from 'next/link'
 
 export const metadata: Metadata = { title: '배송결제방식 관리' }
 
@@ -242,22 +249,38 @@ async function deleteTermAction(category: PaymentCategory, formData: FormData) {
 
 const CATEGORY_META: Record<
   PaymentCategory,
-  { title: string; description: string; placeholder: string }
+  {
+    title: string
+    description: string
+    placeholder: string
+    icon: any
+    iconColor: string
+    bgColor: string
+  }
 > = {
   billing: {
-    title: '청구방식',
+    title: '청구방식 관리',
     description: '즉시청구, 월말청구 등 출고 금액 청구 방식을 관리합니다.',
     placeholder: '예: 분기청구',
+    icon: Receipt,
+    iconColor: 'text-blue-600',
+    bgColor: 'bg-blue-50',
   },
   shipping: {
-    title: '배송방식',
+    title: '배송방식 관리',
     description: '택배, 화물, 직접 등 배송 방식을 관리합니다.',
     placeholder: '예: 퀵서비스',
+    icon: Truck,
+    iconColor: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
   },
   freight: {
-    title: '선불/착불 방식',
-    description: '운임 결제 방식을 관리합니다.',
+    title: '선불/착불 방식 관리',
+    description: '운임 결제 방식(선불, 착불 등)을 관리합니다.',
     placeholder: '예: 부분선불',
+    icon: CreditCard,
+    iconColor: 'text-amber-600',
+    bgColor: 'bg-amber-50',
   },
 }
 
@@ -345,125 +368,195 @@ export default async function PaymentMethodsListPage() {
   }
 
   return (
-    <div className="px-0 pb-8">
+    <div className="px-0 pb-12 space-y-6">
       <PageHeader
-        title="배송결제방식 관리"
+        title="배송 및 결제 옵션 관리"
+        description="출고 업무에 사용되는 청구, 배송, 운임 결제 기준 정보를 통합 관리합니다."
         breadcrumbs={[
           { label: '대시보드', href: '/dashboard/admin' },
           { label: '자재 관리', href: '/dashboard/admin/materials' },
           { label: '설정', href: '/dashboard/admin/materials/settings' },
           { label: '배송결제방식 관리' },
         ]}
-        showBackButton
-        backButtonHref="/dashboard/admin/materials/settings"
       />
 
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {categories.map(category => {
-          const meta = CATEGORY_META[category]
-          const items = sortMethods(grouped.get(category) || [])
-          return (
-            <section key={category} className="space-y-4">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">{meta.title}</h2>
-                <p className="text-sm text-muted-foreground">{meta.description}</p>
-              </div>
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50 overflow-hidden mx-4 sm:mx-6 lg:mx-8">
+        <CardHeader className="border-b border-gray-100 bg-gradient-to-b from-gray-50/50 to-transparent pb-6 px-8 py-10 flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle className="text-2xl font-black text-[#1A254F] tracking-tight">
+              결제 및 배송 구성
+            </CardTitle>
+            <CardDescription className="text-sm font-medium text-slate-500 mt-1">
+              시스템 전체의 물류 결제 엔진 옵션을 구성합니다.
+            </CardDescription>
+          </div>
+          <Button
+            asChild
+            variant="outline"
+            className="h-10 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 font-bold px-5 transition-all gap-2"
+          >
+            <Link href="/dashboard/admin/materials/settings">
+              <span>뒤로가기</span>
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="p-8 space-y-12">
+          {categories.map(category => {
+            const meta = CATEGORY_META[category]
+            const items = sortMethods(grouped.get(category) || [])
+            const Icon = meta.icon
 
-              <form
-                action={createTermAction.bind(null, category)}
-                className="flex flex-wrap items-center gap-2"
+            return (
+              <section
+                key={category}
+                className="rounded-2xl border border-slate-100 bg-slate-50/30 p-6 shadow-sm border-slate-200"
               >
-                <input
-                  name="name"
-                  placeholder={meta.placeholder}
-                  className="w-full md:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[--focus] focus:ring-offset-2"
-                  required
-                />
-                <input type="hidden" name="sort_order" value={items.length * 10 + 10} />
-                <button
-                  type="submit"
-                  className="inline-flex items-center rounded-md bg-[--brand-600] px-3 py-1.5 text-sm font-semibold text-white shadow-button transition-colors hover:bg-[--brand-700]"
-                >
-                  추가
-                </button>
-              </form>
+                <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={cn(
+                        'w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm',
+                        meta.bgColor
+                      )}
+                    >
+                      <Icon className={cn('w-6 h-6', meta.iconColor)} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-black text-[#1A254F] tracking-tight">
+                        {meta.title}
+                      </h2>
+                      <p className="text-sm font-medium text-slate-400">{meta.description}</p>
+                    </div>
+                  </div>
 
-              <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="min-w-[240px]">이름</TableHead>
-                      <TableHead className="w-[100px]">사용</TableHead>
-                      <TableHead className="w-[200px]">동작</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {items.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="py-10">
-                          <EmptyState description="등록된 항목이 없습니다." />
-                        </TableCell>
+                  <form
+                    action={createTermAction.bind(null, category)}
+                    className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm w-full md:w-auto"
+                  >
+                    <Input
+                      name="name"
+                      placeholder={meta.placeholder}
+                      className="border-none bg-transparent h-9 px-3 text-sm font-bold focus-visible:ring-0 w-full md:w-48"
+                      required
+                    />
+                    <input type="hidden" name="sort_order" value={items.length * 10 + 10} />
+                    <Button
+                      type="submit"
+                      size="compact"
+                      className="h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 gap-2 shrink-0"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>추가</span>
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white shadow-sm">
+                  <Table>
+                    <TableHeader className="bg-[#8da0cd]">
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableHead className="text-white font-bold text-[11px] uppercase tracking-tighter pl-8">
+                          항목명
+                        </TableHead>
+                        <TableHead className="text-white font-bold text-[11px] uppercase tracking-tighter w-[120px] text-center">
+                          상태
+                        </TableHead>
+                        <TableHead className="text-white font-bold text-[11px] uppercase tracking-tighter w-[240px] text-center pr-8">
+                          관리 동작
+                        </TableHead>
                       </TableRow>
-                    )}
-                    {items.map(item => (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <form
-                            action={updateTermAction.bind(null, category)}
-                            className="flex flex-wrap items-center gap-2"
-                          >
-                            <input type="hidden" name="id" value={item.id} />
-                            <input
-                              name="name"
-                              defaultValue={item.name}
-                              className="w-full md:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-[--focus] focus:ring-offset-2"
-                              required
-                            />
-                            <button
-                              type="submit"
-                              className="inline-flex items-center rounded-md border border-[--brand-300] bg-white px-3 py-1.5 text-sm font-semibold text-[--brand-700] shadow-sm transition-colors hover:bg-[--neutral-50]"
+                    </TableHeader>
+                    <TableBody>
+                      {items.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={3} className="py-20">
+                            <EmptyState description="등록된 항목이 없습니다." />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {items.map(item => (
+                        <TableRow key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                          <TableCell className="pl-8 py-4">
+                            <form
+                              action={updateTermAction.bind(null, category)}
+                              className="flex items-center gap-2"
                             >
-                              수정
-                            </button>
-                          </form>
-                        </TableCell>
-                        <TableCell>{item.is_active ? '사용' : '중지'}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap items-center gap-2">
-                            <form action={toggleTermAction.bind(null, category)}>
                               <input type="hidden" name="id" value={item.id} />
-                              <input
-                                type="hidden"
-                                name="next"
-                                value={item.is_active ? 'false' : 'true'}
+                              <Input
+                                name="name"
+                                defaultValue={item.name}
+                                className="h-9 border-slate-200 focus:ring-blue-500/20 font-bold text-[#1A254F] w-full md:w-64 rounded-lg px-3"
+                                required
                               />
-                              <button
+                              <Button
                                 type="submit"
-                                className="inline-flex items-center rounded-md border border-[--brand-400] px-3 py-1.5 text-sm font-semibold text-[--brand-700] transition-colors hover:bg-[--brand-300]/15"
+                                variant="ghost"
+                                size="compact"
+                                className="h-9 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-bold px-3 border border-blue-100"
                               >
-                                {item.is_active ? '사용 중지' : '사용'}
-                              </button>
+                                갱신
+                              </Button>
                             </form>
-                            <form action={deleteTermAction.bind(null, category)}>
-                              <input type="hidden" name="id" value={item.id} />
-                              <button
-                                type="submit"
-                                className="inline-flex items-center rounded-md bg-[--accent-600] px-3 py-1.5 text-sm font-semibold text-white shadow-button transition-colors hover:brightness-95"
-                              >
-                                삭제
-                              </button>
-                            </form>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </section>
-          )
-        })}
-      </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {item.is_active ? (
+                              <Badge className="bg-emerald-50 text-emerald-600 border-none font-bold text-[10px] rounded-lg h-5 px-2 shadow-none">
+                                활성
+                              </Badge>
+                            ) : (
+                              <Badge className="bg-slate-50 text-slate-300 border-none font-bold text-[10px] rounded-lg h-5 px-2 shadow-none">
+                                비활성
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="pr-8">
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                              <form action={toggleTermAction.bind(null, category)}>
+                                <input type="hidden" name="id" value={item.id} />
+                                <input
+                                  type="hidden"
+                                  name="next"
+                                  value={item.is_active ? 'false' : 'true'}
+                                />
+                                <Button
+                                  type="submit"
+                                  variant="ghost"
+                                  size="compact"
+                                  className={cn(
+                                    'h-8 rounded-lg font-bold px-3 border flex gap-2 items-center',
+                                    item.is_active
+                                      ? 'text-slate-500 border-slate-200 hover:bg-slate-50'
+                                      : 'text-emerald-600 border-emerald-100 hover:bg-emerald-50'
+                                  )}
+                                >
+                                  <Power className="w-3.5 h-3.5" />
+                                  <span>{item.is_active ? '사용 중지' : '사용'}</span>
+                                </Button>
+                              </form>
+                              <form action={deleteTermAction.bind(null, category)}>
+                                <input type="hidden" name="id" value={item.id} />
+                                <Button
+                                  type="submit"
+                                  variant="ghost"
+                                  size="compact"
+                                  className="h-8 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-bold px-3 border border-rose-100 flex gap-2 items-center"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <span>삭제</span>
+                                </Button>
+                              </form>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </section>
+            )
+          })}
+        </CardContent>
+      </Card>
     </div>
   )
 }

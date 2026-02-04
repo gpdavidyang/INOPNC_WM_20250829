@@ -99,8 +99,8 @@ export const resolveReportMetadata = (
   const resolvedWorkSection = normalizeLabel(primaryEntry?.workSection) || existingWorkSection
 
   return {
-    memberName: resolvedMemberName || existingMemberName || null,
-    processType: resolvedProcessType || existingProcessType || null,
-    workSection: resolvedWorkSection || null,
+    memberName: resolvedMemberName || existingMemberName || '',
+    processType: resolvedProcessType || existingProcessType || '',
+    workSection: resolvedWorkSection || '',
   }
 }

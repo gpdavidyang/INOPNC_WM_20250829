@@ -1,10 +1,8 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { useConfirm } from '@/components/ui/use-confirm'
-import { PageHeader } from '@/components/ui/page-header'
-import { useToast } from '@/components/ui/use-toast'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -12,8 +10,13 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import { t } from '@/lib/ui/strings'
+import { Input } from '@/components/ui/input'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
+import { Check, Search, X } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
 type PersonalRate = {
   id?: string
@@ -421,263 +424,273 @@ export default function PersonalRatesPage() {
   }
 
   return (
-    <div className="px-0 pb-8">
-      <PageHeader
-        title="개인 세율/일당 관리"
-        description="작업자별 일당 및 커스텀 세율 관리"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '개인 설정' }]}
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="search"
-          placeholder={t('common.search')}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-        />
-        <select
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value as any)}
-        >
-          <option value="">전체 형태</option>
-          <option value="freelancer">{TYPE_LABEL.freelancer}</option>
-          <option value="daily_worker">{TYPE_LABEL.daily_worker}</option>
-          <option value="regular_employee">{TYPE_LABEL.regular_employee}</option>
-        </select>
-        <button
-          type="button"
-          onClick={load}
-          className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-          disabled={loading}
-        >
-          {t('common.refresh')}
-        </button>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={bulkApplyDefaultRates}
-          disabled={selected.size === 0}
-          className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm disabled:bg-gray-400"
-        >
-          선택 기본세율 적용
-        </button>
-      </div>
-      <div className="rounded-md border border-blue-100 bg-blue-50 text-blue-700 text-sm p-3 space-y-1">
-        <p>1. 이미 발행된 급여명세서는 저장 시점의 일당·세율을 그대로 유지합니다. 이 화면에서 값을 변경하면 이후 새로 계산·발행하는 급여에만 적용됩니다.</p>
-        <p>2. 개인세율을 입력하면 해당 사용자는 기본세율 대신 입력한 개인세율이 우선 적용되어 계산됩니다.</p>
-        <p>3. 적용일은 새로 저장한 일당·세율이 효력을 발휘하기 시작한 날짜입니다. 이 날짜 이후 계산되는 급여부터 수정한 값이 적용됩니다.</p>
-      </div>
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-wrap items-end gap-3">
+             <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">사용자 검색</span>
+                <div className="relative w-fit">
+                   <Input
+                     type="search"
+                     placeholder="이름 또는 ID 검색"
+                     value={query}
+                     onChange={e => setQuery(e.target.value)}
+                     className="h-10 w-64 rounded-xl bg-gray-50 border-none pl-10 pr-4 text-sm font-medium"
+                   />
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
+             </div>
 
-      {loading && <p className="text-sm text-gray-600">불러오는 중...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+             <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">고용 형태 필터</span>
+                <CustomSelect
+                  value={typeFilter || 'all'}
+                  onValueChange={value => setTypeFilter(value === 'all' ? '' : (value as any))}
+                >
+                  <CustomSelectTrigger className="h-10 w-40 rounded-xl bg-gray-50 border-none px-4 text-sm font-medium">
+                    <CustomSelectValue placeholder="전체 형태" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="all">전체 형태</CustomSelectItem>
+                    <CustomSelectItem value="freelancer">{TYPE_LABEL.freelancer}</CustomSelectItem>
+                    <CustomSelectItem value="daily_worker">{TYPE_LABEL.daily_worker}</CustomSelectItem>
+                    <CustomSelectItem value="regular_employee">{TYPE_LABEL.regular_employee}</CustomSelectItem>
+                  </CustomSelectContent>
+                </CustomSelect>
+             </div>
 
-      <div className="overflow-x-auto border rounded-md">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="px-3 py-2">
-                <input
-                  type="checkbox"
-                  aria-label="전체 선택"
-                  checked={selected.size > 0 && selected.size === filtered.length}
-                  onChange={selectAll}
-                />
-              </th>
-              <th className="px-3 py-2">사용자</th>
-              <th className="px-3 py-2">형태</th>
-              <th className="px-3 py-2 text-right">일당</th>
-              <th className="px-3 py-2">적용일</th>
-              <th className="px-3 py-2">기본세율</th>
-              <th className="px-3 py-2">개인세율</th>
-              <th className="px-3 py-2">작업</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(it => {
-              const isEditing = editingTarget?.workerId === it.worker_id
-              return (
-                <tr key={it.worker_id} className="border-t">
-                  <td className="px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(it.worker_id)}
-                      onChange={() => toggle(it.worker_id)}
-                    />
-                  </td>
-                  <td className="px-3 py-2">{it.name}</td>
-                  <td className="px-3 py-2">
-                    {isEditing ? (
-                      <CustomSelect
-                        value={editingTarget?.employmentType || ''}
-                        onValueChange={value =>
-                          setEditingTarget(prev =>
-                            prev
-                              ? {
-                                  ...prev,
-                                  employmentType: value as PersonalRate['employment_type'],
-                                }
-                              : prev
-                          )
-                        }
-                      >
-                        <CustomSelectTrigger className="h-9 w-40">
-                          <CustomSelectValue placeholder="형태 선택" />
-                        </CustomSelectTrigger>
-                        <CustomSelectContent>
-                          <CustomSelectItem value="freelancer">
-                            {TYPE_LABEL.freelancer}
-                          </CustomSelectItem>
-                          <CustomSelectItem value="daily_worker">
-                            {TYPE_LABEL.daily_worker}
-                          </CustomSelectItem>
-                          <CustomSelectItem value="regular_employee">
-                            {TYPE_LABEL.regular_employee}
-                          </CustomSelectItem>
-                        </CustomSelectContent>
-                      </CustomSelect>
-                    ) : it.employment_type ? (
-                      TYPE_LABEL[it.employment_type]
-                    ) : (
-                      '미설정'
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    {isEditing ? (
+             <div className="flex items-center gap-2 ml-auto">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={load}
+                  className="h-10 rounded-xl px-4 border-gray-200"
+                  disabled={loading}
+                >
+                  <span>새로고침</span>
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={bulkApplyDefaultRates}
+                  disabled={selected.size === 0}
+                  className="h-10 rounded-xl px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+                >
+                  <span>선택 기본세율 적용 ({selected.size})</span>
+                </Button>
+             </div>
+          </div>
+
+          <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 text-xs font-medium text-blue-900 grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div className="flex gap-2">
+                <div className="w-1 h-full bg-blue-600 rounded-full" />
+                <span>변경사항은 이후 발행하는 급여에만 적용됩니다.</span>
+             </div>
+             <div className="flex gap-2">
+                <div className="w-1 h-full bg-blue-600 rounded-full" />
+                <span>개인세율 설정 시 기본세율보다 우선 적용됩니다.</span>
+             </div>
+             <div className="flex gap-2">
+                <div className="w-1 h-full bg-blue-600 rounded-full" />
+                <span>적용일은 설정값이 효력을 발휘하는 기준일입니다.</span>
+             </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-[#8da0cd] text-white">
+                    <th className="px-4 py-3 text-left w-12">
                       <input
-                        type="number"
-                        className="w-28 rounded-md border border-gray-300 px-2 py-1 text-sm text-right"
-                        value={editingTarget?.rate || ''}
-                        onChange={e =>
-                          setEditingTarget(prev => (prev ? { ...prev, rate: e.target.value } : prev))
-                        }
+                        type="checkbox"
+                        className="rounded border-none bg-white/20"
+                        checked={selected.size > 0 && selected.size === filtered.length}
+                        onChange={selectAll}
                       />
-                    ) : it.daily_rate != null ? (
-                      `₩${Number(it.daily_rate || 0).toLocaleString()}`
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                  <td className="px-3 py-2">{formatEffectiveDate(it.effective_date)}</td>
-                  <td className="px-3 py-2">
-                    {it.employment_type && defaultTotals[it.employment_type]
-                      ? `${defaultTotals[it.employment_type].toFixed(2)}%`
-                      : '-'}
-                  </td>
-                  <td className="px-3 py-2">
-                    {isEditing ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="w-28 rounded-md border border-gray-300 px-2 py-1 text-sm text-right"
-                          placeholder="0"
-                          value={editingTarget?.customTaxes?.[0]?.value || ''}
-                          onChange={e =>
-                            setEditingTarget(prev =>
-                              prev
-                                ? {
-                                    ...prev,
-                                    customTaxes: [{ key: 'custom', value: e.target.value }],
-                                  }
-                                : prev
-                            )
-                          }
-                        />
-                        <span className="text-sm text-gray-600">%</span>
-                      </div>
-                    ) : (
-                      formatCustomTax(it.custom_tax_rates)
-                    )}
-                 </td>
-                  <td className="px-3 py-2 flex items-center gap-2">
-                    {isEditing ? (
-                      <>
-                        <button
-                          className="px-2 py-1 text-xs rounded-md bg-blue-600 text-white"
-                          onClick={() =>
-                            changeRate(
-                              it.worker_id,
-                              (editingTarget?.employmentType || it.employment_type || null) as
-                                | PersonalRate['employment_type']
-                                | null,
-                              editingTarget?.rate || '',
-                              editingTarget?.customTaxes || []
-                            )
-                          }
-                        >
-                          저장
-                        </button>
-                        <button
-                          className="px-2 py-1 text-xs rounded-md bg-gray-200 text-gray-800"
-                          onClick={() => setEditingTarget(null)}
-                        >
-                          취소
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          className="px-2 py-1 text-xs rounded-md bg-blue-600 text-white"
-                          onClick={() =>
-                            setEditingTarget({
-                              workerId: it.worker_id,
-                              rate: it.daily_rate != null ? String(it.daily_rate) : '',
-                              employmentType: it.employment_type || '',
-                              customTaxes: toCustomTaxRows(it.custom_tax_rates),
-                            })
-                          }
-                        >
-                          수정
-                        </button>
-                        <button
-                          className="px-2 py-1 text-xs rounded-md bg-white border"
-                          onClick={async () => {
-                            const ok = await (async () =>
-                              confirm({
-                                title: '기본 세율 적용',
-                                description: '이 사용자에 기본 세율을 적용하시겠습니까?',
-                                confirmText: '적용',
-                                cancelText: '취소',
-                                variant: 'warning',
-                              }))()
-                            if (!ok) return
-                            await fetch('/api/admin/payroll/rates/personal', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                worker_id: it.worker_id,
-                                employment_type: it.employment_type || 'daily_worker',
-                                daily_rate: it.daily_rate || 0,
-                                effective_date: new Date().toISOString().split('T')[0],
-                                is_active: true,
-                                custom_tax_rates: null,
-                                replaceActive: true,
-                              }),
-                            })
-                            await load()
-                          }}
-                        >
-                          기본세율 적용
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-            {filtered.length === 0 && !loading && (
-              <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={7}>
-                  데이터가 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+                    </th>
+                    <th className="px-4 py-3 text-left font-bold w-40">사용자</th>
+                    <th className="px-4 py-3 text-left font-bold w-40">형태</th>
+                    <th className="px-4 py-3 text-right font-bold w-40">일당 설정</th>
+                    <th className="px-4 py-3 text-left font-bold w-32">적용일</th>
+                    <th className="px-4 py-3 text-center font-bold">기본세율</th>
+                    <th className="px-4 py-3 text-center font-bold">개인세율</th>
+                    <th className="px-4 py-3 text-center font-bold">환경설정</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map(it => {
+                    const isEditing = editingTarget?.workerId === it.worker_id
+                    const hasCustomTax = it.custom_tax_rates && Object.keys(it.custom_tax_rates).length > 0
+                    return (
+                      <tr key={it.worker_id} className={`hover:bg-gray-50/50 transition-colors ${isEditing ? 'bg-blue-50/30' : ''}`}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={selected.has(it.worker_id)}
+                            onChange={() => toggle(it.worker_id)}
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                           <div className="flex flex-col">
+                              <span className="font-black text-gray-900">{it.name}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase">{it.worker_id.slice(0, 8)}</span>
+                           </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {isEditing ? (
+                            <CustomSelect
+                              value={editingTarget?.employmentType || ''}
+                              onValueChange={value => setEditingTarget(prev => prev ? { ...prev, employmentType: value as any } : prev)}
+                            >
+                              <CustomSelectTrigger className="h-9 w-full rounded-lg bg-white border-blue-200 text-xs font-bold">
+                                <CustomSelectValue placeholder="형태 선택" />
+                              </CustomSelectTrigger>
+                              <CustomSelectContent>
+                                <CustomSelectItem value="freelancer">{TYPE_LABEL.freelancer}</CustomSelectItem>
+                                <CustomSelectItem value="daily_worker">{TYPE_LABEL.daily_worker}</CustomSelectItem>
+                                <CustomSelectItem value="regular_employee">{TYPE_LABEL.regular_employee}</CustomSelectItem>
+                              </CustomSelectContent>
+                            </CustomSelect>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-100">
+                               {it.employment_type ? TYPE_LABEL[it.employment_type] : '미설정'}
+                            </Badge>
+                          )}
+                        </td>
+                         <td className="px-4 py-3 text-right">
+                          {isEditing ? (
+                            <div className="relative">
+                               <Input
+                                type="number"
+                                className="h-9 w-full text-right rounded-lg bg-white border-blue-200 font-bold text-blue-700 pr-8"
+                                value={editingTarget?.rate || ''}
+                                onChange={e => setEditingTarget(prev => prev ? { ...prev, rate: e.target.value } : prev)}
+                              />
+                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-blue-400">₩</span>
+                            </div>
+                          ) : (
+                            <span className="font-bold text-gray-900 italic">
+                               {it.daily_rate != null ? `₩ ${Number(it.daily_rate).toLocaleString()}` : '-'}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground tabular-nums">
+                           {formatEffectiveDate(it.effective_date)}
+                        </td>
+                        <td className="px-4 py-3 text-center font-bold text-gray-500">
+                          {it.employment_type && defaultTotals[it.employment_type]
+                            ? `${defaultTotals[it.employment_type].toFixed(2)} %`
+                            : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {isEditing ? (
+                             <div className="flex items-center justify-center gap-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-white border-blue-200 font-black text-blue-700"
+                                  placeholder="0"
+                                  value={editingTarget?.customTaxes?.[0]?.value || ''}
+                                  onChange={e => setEditingTarget(prev => prev ? { ...prev, customTaxes: [{ key: 'custom', value: e.target.value }] } : prev)}
+                                />
+                                <span className="text-[10px] font-black text-blue-400">%</span>
+                             </div>
+                          ) : (
+                             <span className={`font-black ${hasCustomTax ? 'text-indigo-600' : 'text-gray-300'}`}>
+                                {formatCustomTax(it.custom_tax_rates)}
+                             </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                             {isEditing ? (
+                                <>
+                                  <Button
+                                    size="xs"
+                                    className="h-8 rounded-md bg-blue-600 hover:bg-blue-700 text-white gap-1"
+                                    onClick={() => changeRate(it.worker_id, (editingTarget?.employmentType || it.employment_type) as any, editingTarget?.rate || '', editingTarget?.customTaxes || [])}
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    저장
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    className="h-8 rounded-md text-gray-400"
+                                    onClick={() => setEditingTarget(null)}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </Button>
+                                </>
+                             ) : (
+                                <>
+                                   <Button
+                                      variant="outline"
+                                      size="xs"
+                                      className="h-8 rounded-md border-amber-200 text-amber-700 font-medium px-4 whitespace-nowrap"
+                                      onClick={() => setEditingTarget({
+                                         workerId: it.worker_id,
+                                         rate: it.daily_rate != null ? String(it.daily_rate) : '',
+                                         employmentType: it.employment_type || '',
+                                         customTaxes: toCustomTaxRows(it.custom_tax_rates),
+                                      })}
+                                   >
+                                      정보수정
+                                   </Button>
+                                   <Button
+                                      variant="outline"
+                                      size="xs"
+                                      className="h-8 rounded-md border-gray-200 text-gray-600 font-medium px-4 whitespace-nowrap"
+                                      onClick={async () => {
+                                         const ok = await confirm({
+                                            title: '기본 세율 적용',
+                                            description: '해당 사용자에게 개별 커스텀 세율을 해제하고 고용형태 기본 세율을 적용하시겠습니까?',
+                                            confirmText: '기본세율로 초기화',
+                                            cancelText: '취소',
+                                            variant: 'warning',
+                                         })
+                                         if (!ok) return
+                                         await fetch('/api/admin/payroll/rates/personal', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({
+                                               worker_id: it.worker_id,
+                                               employment_type: it.employment_type || 'daily_worker',
+                                               daily_rate: it.daily_rate || 0,
+                                               effective_date: new Date().toISOString().split('T')[0],
+                                               is_active: true,
+                                               custom_tax_rates: null,
+                                               replaceActive: true,
+                                            }),
+                                         })
+                                         await load()
+                                      }}
+                                    >
+                                       기본 복구
+                                    </Button>
+                                </>
+                             )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {filtered.length === 0 && !loading && (
+                    <tr>
+                      <td className="px-4 py-20 text-center text-gray-400" colSpan={8}>
+                         검색 조건과 일치하는 사용자가 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

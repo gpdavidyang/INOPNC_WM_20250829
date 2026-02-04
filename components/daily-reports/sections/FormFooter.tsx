@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
-import { AlertCircle, Check, Loader2, RotateCcw, X } from 'lucide-react'
+import { AlertCircle, Loader2, RotateCcw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { useRolePermissions } from '../CollapsibleSection'
 
@@ -85,12 +85,8 @@ export const FormFooter = ({
                 onClick={() => handleStatusChange('reject', rejectionReason)}
                 className="h-9 rounded-xl px-8 whitespace-nowrap font-bold bg-rose-600 hover:bg-rose-700 shadow-md shadow-rose-100"
               >
-                {approvalLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <X className="h-4 w-4 mr-2" />
-                )}
-                반려 처리 완료
+                {approvalLoading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                반려
               </Button>
             </div>
           </div>
@@ -107,12 +103,10 @@ export const FormFooter = ({
                     disabled={approvalLoading || rejecting}
                     onClick={() => handleStatusChange('approve')}
                   >
-                    {approvalLoading && !rejecting ? (
+                    {approvalLoading && !rejecting && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Check className="mr-2 h-4 w-4" />
                     )}
-                    최종 승인
+                    승인
                   </Button>
                 )}
                 {reportData?.status === 'submitted' && !rejecting && (
@@ -123,7 +117,7 @@ export const FormFooter = ({
                     disabled={approvalLoading}
                     onClick={() => setRejecting(true)}
                   >
-                    반려 처리
+                    반려
                   </Button>
                 )}
                 {(reportData?.status === 'approved' || reportData?.status === 'rejected') && (

@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@/types'
-import { Plus, RotateCcw, Trash2, Users } from 'lucide-react'
+import { Plus, RotateCcw, Users } from 'lucide-react'
 import React from 'react'
 import { CollapsibleSection } from '../CollapsibleSection'
 import type { WorkerEntry } from '../types'
@@ -273,12 +273,11 @@ export const WorkforceSection = ({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-10 w-full md:w-10 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all flex items-center justify-center gap-2"
+                      className="h-9 px-3 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-100 hover:border-rose-200 transition-all font-black text-sm flex items-center justify-center gap-1.5"
                       onClick={() => removeWorkerEntry(entry.id)}
                       title="항목 삭제"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="md:hidden font-bold">삭제</span>
+                      <span>삭제</span>
                     </Button>
                   </div>
                 </div>

@@ -69,7 +69,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (workerEntriesRaw.length > 0) {
           const insertRows = workerEntriesRaw.map((entry: any) => ({
             daily_report_id: id,
-            worker_id: entry.worker_id || null,
+            profile_id: entry.worker_id || null, // Primary FK
+            worker_id: entry.worker_id || null, // Alias column
             worker_name: entry.worker_name || '이름없음',
             labor_hours: Number(entry.labor_hours || entry.hours || 0),
             is_direct_input: entry.is_direct_input ?? !entry.worker_id,

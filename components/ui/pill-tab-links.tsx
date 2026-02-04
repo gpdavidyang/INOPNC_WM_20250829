@@ -1,6 +1,5 @@
-import * as React from 'react'
-import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 interface PillTabLinkItem {
   key: string
@@ -22,7 +21,7 @@ export default function PillTabLinks({
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 rounded-xl border-0 shadow bg-gradient-to-r from-[--brand-600] to-[--brand-700] p-1',
+        'inline-flex items-center gap-2 rounded-2xl bg-slate-50/80 p-1.5 border border-slate-100 shadow-inner',
         fill ? 'w-full' : '',
         className
       )}
@@ -34,9 +33,11 @@ export default function PillTabLinks({
             key={t.key}
             href={t.href}
             className={cn(
-              'px-3 py-1.5 text-sm rounded-md transition-colors',
+              'px-4 py-2 text-sm rounded-xl transition-all duration-200 font-bold whitespace-nowrap',
               fill ? 'flex-1 text-center' : '',
-              isActive ? 'bg-white text-[--brand-700] shadow-md' : 'text-white/90 hover:text-white'
+              isActive
+                ? 'bg-blue-50 text-blue-700 shadow-md shadow-blue-100/50'
+                : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
             )}
           >
             {t.label}

@@ -1,13 +1,21 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Search, Users, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import StatsCard from '@/components/ui/stats-card'
-import { Card, CardContent } from '@/components/ui/card'
+import type { UserWithSites } from '@/app/actions/admin/users'
+import AdminActionButtons from '@/components/admin/AdminActionButtons'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import EmptyState from '@/components/ui/empty-state'
+import { Input } from '@/components/ui/input'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -16,21 +24,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import type { UserWithSites } from '@/app/actions/admin/users'
-import type { UserRole, UserStatus } from '@/types'
-import { t } from '@/lib/ui/strings'
-import EmptyState from '@/components/ui/empty-state'
 import { getRoleLabel } from '@/lib/auth/role-labels'
-import AdminActionButtons from '@/components/admin/AdminActionButtons'
+import { t } from '@/lib/ui/strings'
+import { cn } from '@/lib/utils'
+import type { UserRole, UserStatus } from '@/types'
+import { ArrowDown, ArrowUp, ArrowUpDown, Search } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useMemo, useState } from 'react'
 
 interface UsersContentProps {
   initialUsers: UserWithSites[]
@@ -223,17 +223,26 @@ export function UsersContent({
   const renderSortableHeader = useCallback(
     (label: string, column: SortColumn, align: 'left' | 'right' = 'left') => {
       const isActive = sortKey === column
-      const Icon = !isActive ? ArrowUpDown : sortDirection === 'asc' ? ArrowUp : ArrowDown
+      const nextOrder = isActive && sortDirection === 'asc' ? 'desc' : 'asc'
+      const icon = !isActive ? (
+        <ArrowUpDown className="h-4 w-4 text-white/50" />
+      ) : sortDirection === 'asc' ? (
+        <ArrowUp className="h-4 w-4 text-white" />
+      ) : (
+        <ArrowDown className="h-4 w-4 text-white" />
+      )
+
       return (
         <button
           type="button"
           onClick={() => handleSort(column)}
-          className={`flex w-full items-center gap-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground ${
-            align === 'right' ? 'justify-end text-right' : 'justify-start text-left'
-          }`}
+          className={cn(
+            'flex items-center gap-1.5 text-[11px] font-black uppercase tracking-tighter text-white/80 hover:text-white transition-all',
+            align === 'right' && 'justify-end w-full'
+          )}
         >
           <span>{label}</span>
-          <Icon className="h-3.5 w-3.5" />
+          {icon}
         </button>
       )
     },
@@ -249,205 +258,322 @@ export function UsersContent({
   )
 
   return (
-    <div className="space-y-6">
-      {/* Top actions only — remove duplicate page title/subtitle */}
-      <div className="flex items-center justify-end">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => fetchUsers(page)} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
-          </Button>
-          {isSystemAdmin && (
-            <Button variant="default" size="sm" disabled>
-              <Users className="mr-2 h-4 w-4" />
-              {t('users.invitePlanned')}
-            </Button>
-          )}
+    <div className="space-y-6 animate-in fade-in duration-700">
+      {/* v1.66 High-Density Stats Grid */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-indigo-50/50 rounded-2xl p-5 border-none shadow-sm shadow-indigo-100/20">
+          <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-tight mb-1">
+            전체 사용자
+          </p>
+          <div className="text-2xl font-black text-indigo-900 italic tracking-tighter flex items-center gap-2">
+            {total.toLocaleString()}
+            <span className="text-xs font-semibold text-indigo-400 not-italic">명</span>
+          </div>
         </div>
-      </div>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <StatsCard label={t('users.stats.total')} value={total} unit="person" />
-        <StatsCard label={t('users.filters.roleSelected')} value={ROLE_FILTER_LABELS[roleFilter]} />
-        <StatsCard label={t('users.filters.statusSelected')} value={STATUS_LABELS[statusFilter]} />
+        <div className="bg-emerald-50/50 rounded-2xl p-5 border-none shadow-sm shadow-emerald-100/20">
+          <p className="text-[10px] font-bold text-emerald-400 uppercase tracking-tight mb-1">
+            활성 계정
+          </p>
+          <div className="text-2xl font-black text-emerald-700 italic tracking-tighter flex items-center gap-2">
+            {users.filter(u => u.status === 'active').length}
+            <span className="text-xs font-semibold text-emerald-400 not-italic">명</span>
+          </div>
+        </div>
+        <div className="bg-amber-50/50 rounded-2xl p-5 border-none shadow-sm shadow-amber-100/20">
+          <p className="text-[10px] font-bold text-amber-500 uppercase tracking-tight mb-1">
+            비활성 계정
+          </p>
+          <div className="text-2xl font-black text-amber-700 italic tracking-tighter">
+            {users.filter(u => u.status === 'inactive').length}
+          </div>
+        </div>
+        <div className="bg-slate-50 rounded-2xl p-5 border-none shadow-sm">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-1">
+            최근 접속자 (오늘)
+          </p>
+          <div className="text-2xl font-black text-slate-600 italic tracking-tighter flex items-center gap-1.5 line-clamp-1">
+            N/A
+          </div>
+        </div>
       </section>
 
-      <section className="rounded-lg border bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 md:w-72">
-                <Input
-                  placeholder={t('users.searchPlaceholder')}
-                  value={searchInput}
-                  onChange={event => setSearchInput(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      handleSearch()
-                    }
-                  }}
-                  className="pl-10"
-                />
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50 overflow-hidden">
+        <CardHeader className="border-b border-gray-100 bg-gradient-to-b from-gray-50/20 to-transparent px-8 py-3">
+          <div className="flex flex-col md:flex-row md:items-center justify-end gap-6">
+            {isSystemAdmin && (
+              <div className="flex items-center gap-2 bg-slate-50/80 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled
+                  className="h-9 px-4 rounded-xl opacity-40 font-semibold text-xs"
+                >
+                  + 사용자 초대
+                </Button>
               </div>
-              <Button variant="secondary" onClick={handleSearch} disabled={loading}>
-                {t('common.search')}
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Select
-                value={roleFilter}
-                onValueChange={value => fetchUsers(1, { role: value as RoleFilterOption })}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder={t('users.roleFilter')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {ROLE_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={statusFilter}
-                onValueChange={value => fetchUsers(1, { status: value as StatusFilterOption })}
-              >
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder={t('users.statusFilter')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-0">
+          <div className="bg-slate-50/30 px-8 py-5 border-b border-gray-100">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex flex-col md:flex-row items-center gap-3 flex-1">
+                <div className="relative w-full md:w-80 group">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                  <Input
+                    placeholder="사용자명, 이메일 검색..."
+                    value={searchInput}
+                    onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
+                    className="h-11 pl-10 pr-4 rounded-xl bg-white border-slate-200 focus:bg-white focus:ring-4 focus:ring-indigo-100/50 transition-all font-medium text-sm"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <Select
+                    value={roleFilter}
+                    onValueChange={v => fetchUsers(1, { role: v as RoleFilterOption })}
+                  >
+                    <SelectTrigger className="h-11 w-full md:w-[140px] rounded-xl bg-white border-slate-200 font-semibold text-xs">
+                      <SelectValue placeholder="역할 필터" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {ROLE_OPTIONS.map(o => (
+                        <SelectItem
+                          key={o.value}
+                          value={o.value}
+                          className="font-bold text-xs py-2.5"
+                        >
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <Select
+                    value={statusFilter}
+                    onValueChange={v => fetchUsers(1, { status: v as StatusFilterOption })}
+                  >
+                    <SelectTrigger className="h-11 w-full md:w-[140px] rounded-xl bg-white border-slate-200 font-semibold text-xs">
+                      <SelectValue placeholder="상태 필터" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      {STATUS_OPTIONS.map(o => (
+                        <SelectItem
+                          key={o.value}
+                          value={o.value}
+                          className="font-bold text-xs py-2.5"
+                        >
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex gap-2 w-full md:w-auto">
+                  <Button
+                    onClick={handleSearch}
+                    disabled={loading}
+                    className="h-11 px-6 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] font-semibold text-sm shadow-md shadow-blue-900/10"
+                  >
+                    검색
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => fetchUsers(page)}
+                    disabled={loading}
+                    className="h-11 px-4 rounded-xl border-slate-200 bg-slate-50/50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 font-semibold text-sm transition-all"
+                  >
+                    새로고침
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleResetFilters}
+                    className="h-11 px-4 rounded-xl border-slate-200 bg-slate-50/50 text-slate-500 hover:bg-slate-100 hover:text-slate-700 font-semibold text-sm transition-all"
+                  >
+                    초기화
+                  </Button>
+                </div>
+              </div>
+
+              <div className="hidden lg:flex items-center gap-4 border-l border-slate-200 pl-6 shrink-0">
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
+                    적용된 필터
+                  </p>
+                  <p className="text-xs font-semibold text-[#1A254F] line-clamp-1 max-w-[120px]">
+                    {ROLE_FILTER_LABELS[roleFilter]} / {STATUS_LABELS[statusFilter]}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
-            {t('common.reset')}
-          </Button>
-        </div>
 
-        <div className="mt-6">
-          {loading && <LoadingSpinner />}
-
-          {error && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>{t('users.errors.fetchList')}</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {!loading && users.length === 0 ? (
-            <EmptyState description={t('users.empty')} />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead aria-sort={getAriaSort('name')}>
-                      {renderSortableHeader(t('users.table.user'), 'name')}
-                    </TableHead>
-                    <TableHead aria-sort={getAriaSort('role')}>
-                      {renderSortableHeader(t('users.table.role'), 'role')}
-                    </TableHead>
-                    <TableHead aria-sort={getAriaSort('organization')}>
-                      {renderSortableHeader(t('users.table.organization'), 'organization')}
-                    </TableHead>
-                    <TableHead aria-sort={getAriaSort('status')}>
-                      {renderSortableHeader(t('users.table.status'), 'status')}
-                    </TableHead>
-                    <TableHead aria-sort={getAriaSort('last_activity')}>
-                      {renderSortableHeader(t('users.table.lastActivity'), 'last_activity')}
-                    </TableHead>
-                    <TableHead className="text-right">상세</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map(user => (
-                    <TableRow
-                      key={user.id}
-                      className="cursor-pointer"
-                      onClick={() => handleOpenDetail(user.id)}
-                    >
-                      <TableCell>
-                        <div className="font-medium text-foreground">
-                          {user.full_name || t('users.noName')}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{user.email}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={ROLE_BADGE_VARIANT[user.role as UserRole] ?? 'outline'}>
-                          <span suppressHydrationWarning>{getRoleLabel(user.role)}</span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.organization?.name || t('commonExtra.unassigned')}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.status === 'active' ? 'default' : 'outline'}>
-                          {STATUS_LABELS[user.status as StatusFilterOption] ||
-                            user.status ||
-                            t('commonExtra.unknown')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatDate(user.work_log_stats?.last_report_date)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <AdminActionButtons
-                            size="compact"
-                            stopPropagation
-                            detailHref={`/dashboard/admin/users/${user.id}`}
-                            editHref={`/dashboard/admin/users/${user.id}/edit`}
-                            deleteHref={`/api/admin/users/${user.id}`}
-                            onDeleted={() => {
-                              setUsers(prev => prev.filter(u => u.id !== user.id))
-                              setTotal(prev => Math.max(prev - 1, 0))
-                            }}
-                          />
-                        </div>
-                      </TableCell>
+          <div className="min-h-[400px]">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-32 space-y-4">
+                <LoadingSpinner className="w-10 h-10 text-indigo-500" />
+                <p className="text-xs font-bold text-slate-400 animate-pulse">
+                  데이터를 불러오는 중입니다...
+                </p>
+              </div>
+            ) : error ? (
+              <div className="p-8">
+                <Alert variant="destructive" className="rounded-2xl border-rose-100 bg-rose-50/50">
+                  <AlertTitle className="font-black">오류 발생</AlertTitle>
+                  <AlertDescription className="font-medium text-xs opacity-80">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="py-24">
+                <EmptyState description="검색 조건에 맞는 사용자가 존재하지 않습니다." />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-[#8da0cd]">
+                    <TableRow className="hover:bg-[#8da0cd] border-none">
+                      <TableHead className="px-8 h-12" aria-sort={getAriaSort('name')}>
+                        {renderSortableHeader('사용자 정보', 'name')}
+                      </TableHead>
+                      <TableHead className="px-6 h-12" aria-sort={getAriaSort('role')}>
+                        {renderSortableHeader('역할', 'role')}
+                      </TableHead>
+                      <TableHead className="px-6 h-12" aria-sort={getAriaSort('organization')}>
+                        {renderSortableHeader('소속 기관/업체', 'organization')}
+                      </TableHead>
+                      <TableHead className="px-6 h-12" aria-sort={getAriaSort('status')}>
+                        {renderSortableHeader('계정 상태', 'status')}
+                      </TableHead>
+                      <TableHead className="px-6 h-12" aria-sort={getAriaSort('last_activity')}>
+                        {renderSortableHeader('최근 활동', 'last_activity')}
+                      </TableHead>
+                      <TableHead className="px-8 h-12 text-right text-[11px] font-black uppercase text-white/80 tracking-tighter">
+                        관리 도구
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map(user => (
+                      <TableRow
+                        key={user.id}
+                        className="group border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                        onClick={() => handleOpenDetail(user.id)}
+                      >
+                        <TableCell className="px-8 py-5">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-black text-[#1A254F] group-hover:text-indigo-600 transition-colors">
+                              {user.full_name || t('users.noName')}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium tracking-tight">
+                              {user.email}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                          <Badge
+                            variant="outline"
+                            className="border-indigo-100 bg-indigo-50/30 text-indigo-700 font-bold text-[10px] h-5 px-2.5 rounded-lg whitespace-nowrap shadow-none"
+                          >
+                            <span suppressHydrationWarning>{getRoleLabel(user.role)}</span>
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                          <span className="text-xs font-medium text-slate-600 truncate max-w-[150px] inline-block">
+                            {user.organization?.name || '소속 없음'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-6 py-5">
+                          {user.status === 'active' ? (
+                            <Badge
+                              variant="success"
+                              className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px] h-5 rounded-lg"
+                            >
+                              활성
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="secondary"
+                              className="bg-slate-100 text-slate-400 border-none font-bold text-[10px] h-5 rounded-lg"
+                            >
+                              {STATUS_LABELS[user.status as StatusFilterOption] || '비활성'}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-6 py-5 font-medium text-slate-400 text-xs text-center">
+                          {formatDate(user.work_log_stats?.last_report_date)}
+                        </TableCell>
+                        <TableCell
+                          className="px-8 py-5 text-right"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <div className="inline-flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-lg border-slate-200 text-xs font-semibold px-3 hover:bg-white hover:text-indigo-600"
+                              onClick={() => handleOpenDetail(user.id)}
+                            >
+                              상세
+                            </Button>
+                            <AdminActionButtons
+                              size="compact"
+                              stopPropagation
+                              detailHref={`/dashboard/admin/users/${user.id}`}
+                              editHref={`/dashboard/admin/users/${user.id}/edit`}
+                              deleteHref={`/api/admin/users/${user.id}`}
+                              onDeleted={() => {
+                                setUsers(prev => prev.filter(u => u.id !== user.id))
+                                setTotal(prev => Math.max(prev - 1, 0))
+                              }}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+
+          <div className="px-8 py-6 bg-slate-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+              전체 <span className="text-[#1A254F] font-bold">{total.toLocaleString()}</span> 명
             </div>
-          )}
-        </div>
 
-        <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-          <div>
-            총 <span className="font-medium text-foreground">{total.toLocaleString()}</span> 명
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchUsers(Math.max(page - 1, 1))}
+                  disabled={loading || page <= 1}
+                  className="h-9 w-9 rounded-xl border-slate-200 bg-white p-0 hover:bg-slate-50 disabled:opacity-30"
+                >
+                  <ArrowUp className="w-3.5 h-3.5 -rotate-90" />
+                </Button>
+                <div className="flex items-center px-4 h-9 bg-white border border-slate-200 rounded-xl font-bold text-xs text-slate-700 shadow-sm">
+                  {page} <span className="mx-1.5 text-slate-300 font-medium">/</span> {pages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchUsers(Math.min(page + 1, pages))}
+                  disabled={loading || page >= pages}
+                  className="h-9 w-9 rounded-xl border-slate-200 bg-white p-0 hover:bg-slate-50 disabled:opacity-30"
+                >
+                  <ArrowUp className="w-3.5 h-3.5 rotate-90" />
+                </Button>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchUsers(Math.max(page - 1, 1))}
-              disabled={loading || page <= 1}
-            >
-              {t('common.prev')}
-            </Button>
-            <span>
-              {page} / {pages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fetchUsers(Math.min(page + 1, pages))}
-              disabled={loading || page >= pages}
-            >
-              {t('common.next')}
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {null}
+        </CardContent>
+      </Card>
     </div>
   )
 }

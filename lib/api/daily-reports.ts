@@ -104,4 +104,26 @@ export const dailyReportApi = {
     }
     return data
   },
+
+  /**
+   * Upload additional photos
+   */
+  async uploadAdditionalPhotos(reportId: string, beforeFiles: File[], afterFiles: File[]) {
+    const formData = new FormData()
+    beforeFiles.forEach(file => formData.append('before_photos', file))
+    afterFiles.forEach(file => formData.append('after_photos', file))
+
+    const response = await fetch(
+      `/api/mobile/daily-reports/${encodeURIComponent(reportId)}/additional-photos`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    )
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.error || '사진 업로드에 실패했습니다.')
+    }
+    return data
+  },
 }

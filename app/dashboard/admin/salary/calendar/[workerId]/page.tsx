@@ -1,12 +1,12 @@
-import type { Metadata } from 'next'
-import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { calculateMonthlySalary } from '@/app/actions/salary'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import StatsCard from '@/components/ui/stats-card'
-import { PageHeader } from '@/components/ui/page-header'
-import DataTable, { type Column } from '@/components/admin/DataTable'
-import { createClient } from '@/lib/supabase/server'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
+import { createClient } from '@/lib/supabase/server'
+import { ArrowLeft, Banknote, Clock, ShieldAlert, Wallet } from 'lucide-react'
+import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = { title: '근로자 급여 캘린더' }
 
@@ -69,59 +69,120 @@ export default async function AdminWorkerSalaryCalendarPage({
   }
 
   return (
-    <div className="px-0 pb-8">
-      <PageHeader
-        title="근로자 급여 요약"
-        description={`${params.workerId} · ${year}-${String(month).padStart(2, '0')}`}
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '근로자 캘린더' }]}
-        showBackButton
-        backButtonHref="/dashboard/admin/salary/records"
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <StatsCard label="총 근로시간" value={Number(calc?.total_labor_hours || 0)} unit="count" />
-        <StatsCard label="총급여" value={Number(calc?.total_gross_pay || 0)} unit="won" currency />
-        <StatsCard label="공제합계" value={Number(calc?.total_deductions || 0)} unit="won" currency />
-        <StatsCard label="실수령" value={Number(calc?.net_pay || 0)} unit="won" currency />
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Button variant="outline" size="sm" asChild className="h-9 rounded-xl border-gray-200">
+           <Link href="/dashboard/admin/salary/records">
+              <ArrowLeft className="w-4 h-4 mr-1.5" />
+              목록으로 돌아가기
+           </Link>
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>기간</CardTitle>
-          <CardDescription>급여 계산 기준</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">
-            {calc ? (
-              <span>
-                {calc.period_start} ~ {calc.period_end}
-              </span>
-            ) : (
-              <span>데이터가 없습니다.</span>
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="rounded-3xl border-gray-200 shadow-sm bg-[#1A254F] text-white overflow-hidden">
+          <CardContent className="p-5 flex flex-col gap-1">
+             <span className="text-[11px] font-black uppercase text-white/50 tracking-tighter">총 근로시간</span>
+             <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black italic">{Number(calc?.total_labor_hours || 0).toFixed(1)}</span>
+                <span className="text-xs font-bold text-white/70">시간</span>
+             </div>
+             <Clock className="absolute right-4 top-4 w-10 h-10 text-white/5 pointer-events-none" />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-gray-200 shadow-sm bg-white overflow-hidden">
+          <CardContent className="p-5 flex flex-col gap-1">
+             <span className="text-[11px] font-black uppercase text-muted-foreground tracking-tighter">총 지급액 (세전)</span>
+             <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black italic text-[#1A254F]">₩ {Number(calc?.total_gross_pay || 0).toLocaleString()}</span>
+             </div>
+             <Banknote className="absolute right-4 top-4 w-10 h-10 text-gray-50 pointer-events-none" />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-gray-200 shadow-sm bg-white overflow-hidden">
+          <CardContent className="p-5 flex flex-col gap-1">
+             <span className="text-[11px] font-black uppercase text-rose-600/70 tracking-tighter">공제 합계</span>
+             <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black italic text-rose-600">₩ {Number(calc?.total_deductions || 0).toLocaleString()}</span>
+             </div>
+             <ShieldAlert className="absolute right-4 top-4 w-10 h-10 text-rose-50 pointer-events-none" />
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-gray-200 shadow-sm bg-blue-600 text-white overflow-hidden">
+          <CardContent className="p-5 flex flex-col gap-1">
+             <span className="text-[11px] font-black uppercase text-white/50 tracking-tighter">실지급액 (세후)</span>
+             <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black italic">₩ {Number(calc?.net_pay || 0).toLocaleString()}</span>
+             </div>
+             <Wallet className="absolute right-4 top-4 w-10 h-10 text-white/10 pointer-events-none" />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="rounded-3xl border-gray-200 shadow-sm overflow-hidden">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-blue-600 rounded-sm" />
+              일자별 급여 산출 내역
+            </h2>
+            <p className="text-sm text-muted-foreground">
+               {year}년 {month}월 · {calc?.period_start} ~ {calc?.period_end} 기준
+            </p>
+          </div>
+
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-[#8da0cd] text-white">
+                    <th className="px-4 py-3 text-left font-bold">날짜</th>
+                    <th className="px-4 py-3 text-right font-bold w-32">근로시간</th>
+                    <th className="px-4 py-3 text-right font-bold w-32">공수(MD)</th>
+                    <th className="px-4 py-3 text-right font-bold w-40">기본급</th>
+                    <th className="px-4 py-3 text-right font-bold w-40">총급여</th>
+                    <th className="px-4 py-3 text-right font-bold w-40">실수령</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {breakdown.map((d) => (
+                    <tr key={d.date} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-4 py-3 font-bold text-gray-900 tabular-nums">
+                         {new Date(d.date).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', weekday: 'short' })}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
+                         {d.hours} <span className="text-[10px] text-muted-foreground font-black">H</span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-black text-blue-600 italic tabular-nums">
+                         {formatManhours(d.labor)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-600 tabular-nums">
+                         ₩{d.base_pay.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-slate-800 tabular-nums">
+                         ₩{d.gross.toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-right font-black text-[#1A254F] italic tabular-nums">
+                         ₩{d.net.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                  {breakdown.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-20 text-center text-gray-400">
+                         해당 기간의 급여 산출 내역이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </CardContent>
       </Card>
-
-      <div className="mt-6">
-        <div className="mb-3 text-sm text-muted-foreground">일자별 근태/금액 브레이크다운</div>
-        <DataTable<typeof breakdown[number]>
-          data={breakdown}
-          rowKey={d => d.date}
-          stickyHeader
-          emptyMessage="표시할 데이터가 없습니다."
-          columns={([
-            { key: 'date', header: '날짜', sortable: true, render: d => new Date(d.date).toLocaleDateString('ko-KR') },
-            { key: 'hours', header: '근로시간', sortable: true, align: 'right', render: d => d.hours },
-            { key: 'labor', header: '공수', sortable: true, align: 'right', render: d => formatManhours(d.labor) },
-            { key: 'base_pay', header: '기본급', sortable: true, align: 'right', render: d => `₩${d.base_pay.toLocaleString()}` },
-            { key: 'gross', header: '총급여', sortable: true, align: 'right', render: d => `₩${d.gross.toLocaleString()}` },
-            { key: 'net', header: '실수령', sortable: true, align: 'right', render: d => `₩${d.net.toLocaleString()}` },
-          ] as Column<typeof breakdown[number]>)}
-        />
-      </div>
-    </div>
     </div>
   )
 }

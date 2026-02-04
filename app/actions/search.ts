@@ -2,8 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-import type { SearchOptions, SearchResult, AppliedFilter, SearchOperator } from '@/lib/search/types'
-import type { DailyReport, Site } from '@/types'
+import type { AppliedFilter, SearchOptions, SearchResult } from '@/lib/search/types'
+import type { DailyReport } from '@/types'
 
 export async function searchDailyReports(
   options: SearchOptions
@@ -12,12 +12,12 @@ export async function searchDailyReports(
     const supabase = createClient()
     let query = supabase.from('daily_reports').select(`
         *,
-        profiles!daily_reports_created_by_fkey(
+        profiles!created_by(
           id,
           full_name,
           role
         ),
-        sites!daily_reports_site_id_fkey(
+        sites!site_id(
           id,
           name,
           location

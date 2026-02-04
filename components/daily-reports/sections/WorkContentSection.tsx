@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FileText, Plus, Trash2 } from 'lucide-react'
+import { FileText, Plus } from 'lucide-react'
 import React from 'react'
 import { CollapsibleSection } from '../CollapsibleSection'
 import type { WorkContentEntry } from '../types'
@@ -110,10 +110,10 @@ export const WorkContentSection = ({
                   variant="ghost"
                   size="sm"
                   onClick={() => removeWorkEntry(index)}
-                  className="h-9 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 px-3 transition-all"
+                  className="h-9 px-3 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-100 hover:border-rose-200 transition-all font-black text-sm flex items-center justify-center gap-1.5"
                   title="작업 내역 삭제"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <span>삭제</span>
                 </Button>
               </div>
             </div>

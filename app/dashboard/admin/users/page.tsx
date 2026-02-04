@@ -1,8 +1,8 @@
-import type { Metadata } from 'next'
-import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getUsers } from '@/app/actions/admin/users'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { UsersContent } from '@/components/admin/users/UsersContent'
 import { PageHeader } from '@/components/ui/page-header'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '사용자 관리',
@@ -22,7 +22,7 @@ export default async function AdminUsersPage() {
     <div className="px-0 pb-8">
       <PageHeader
         title="사용자 관리"
-        description="시스템 사용자 계정을 관리합니다"
+        description="시스템에 등록된 전체 사용자 계정 및 권한을 통합 관리합니다."
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '사용자 관리' }]}
       />
 

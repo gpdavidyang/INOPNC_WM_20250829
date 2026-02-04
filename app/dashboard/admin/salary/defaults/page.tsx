@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useToast } from '@/components/ui/use-toast'
-import EmptyState from '@/components/ui/empty-state'
-import { PageHeader } from '@/components/ui/page-header'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/use-toast'
+import { CheckCircle2, Info, RefreshCw, Save } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
 const EMPLOYMENT_TYPES = ['freelancer', 'daily_worker', 'regular_employee'] as const
 
@@ -148,222 +150,213 @@ export default function DefaultRatesPage() {
   }
 
   return (
-    <div className="px-0 pb-8">
-      <PageHeader
-        title="기본 세율 관리"
-        description="고용형태별 기본세율 설정"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '기본 세율' }]}
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-3">
-      <p className="text-sm text-gray-600">
-        고용형태별 기본세율. 개인세율이 설정되면 기본세율보다 우선합니다.
-      </p>
-      {loading ? (
-        <EmptyState description="불러오는 중..." />
-      ) : error ? (
-        <EmptyState title="오류" description={error} />
-      ) : (
-        <>
-          <div className="overflow-x-auto border rounded-md">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-3 py-2">고용형태</th>
-                  <th className="px-3 py-2">소득세(%)</th>
-                  <th className="px-3 py-2">지방세(%)</th>
-                  <th className="px-3 py-2">국민연금(%)</th>
-                  <th className="px-3 py-2">건강보험(%)</th>
-                  <th className="px-3 py-2">고용보험(%)</th>
-                  <th className="px-3 py-2">장기요양(%)</th>
-                  <th className="px-3 py-2">산재보험(%)</th>
-                  <th className="px-3 py-2 text-right">기본세율 합(%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...items]
-                  .sort((a, b) => {
-                    return (
-                      EMPLOYMENT_TYPES.indexOf(a.employment_type) -
-                      EMPLOYMENT_TYPES.indexOf(b.employment_type)
-                    )
-                  })
-                  .map((it, idx) => (
-                    <tr key={`${it.employment_type}-${idx}`} className="border-t">
-                      <td className="px-3 py-2">
-                        {it.employment_type === 'freelancer'
-                          ? '프리랜서'
-                          : it.employment_type === 'daily_worker'
-                            ? '일용직'
-                            : '상용직'}
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.income_tax_rate}
-                          onChange={e =>
-                            onChange(idx, 'income_tax_rate', Number(e.target.value) || 0)
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.local_tax_rate}
-                          onChange={e =>
-                            onChange(idx, 'local_tax_rate', Number(e.target.value) || 0)
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.pension_rate}
-                          onChange={e => onChange(idx, 'pension_rate', Number(e.target.value) || 0)}
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.health_insurance_rate}
-                          onChange={e =>
-                            onChange(idx, 'health_insurance_rate', Number(e.target.value) || 0)
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.employment_insurance_rate}
-                          onChange={e =>
-                            onChange(idx, 'employment_insurance_rate', Number(e.target.value) || 0)
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.long_term_care_rate}
-                          onChange={e =>
-                            onChange(idx, 'long_term_care_rate', Number(e.target.value) || 0)
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2">
-                        <input
-                          type="number"
-                          step="0.01"
-                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                          value={it.industrial_accident_rate}
-                          onChange={e =>
-                            onChange(idx, 'industrial_accident_rate', Number(e.target.value) || 0)
-                          }
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-right font-medium">
-                        {formatRate(getTotalRate(it))}
-                      </td>
-                    </tr>
-                  ))}
-                {items.length === 0 && (
-                  <tr>
-                    <td className="px-3 py-6 text-center text-gray-500" colSpan={9}>
-                      데이터가 없습니다.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-black text-foreground flex items-center gap-2">
+              <div className="w-1.5 h-6 bg-blue-600 rounded-sm" />
+              고용형태별 기본 세율 설정
+            </h2>
+            <p className="text-sm text-muted-foreground">개인별 세율이 명시되지 않은 모든 작업자에게 적용되는 표준 세율입니다.</p>
           </div>
-          <div className="pt-3">
-            <button
-              type="button"
-              onClick={onSave}
-              className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm"
-            >
-              저장
-            </button>
-          </div>
-        </>
-      )}
-      <div className="pt-6">
-        <Alert className="bg-blue-50/80 border-blue-100 text-gray-800">
-          <AlertTitle className="text-sm font-semibold text-blue-900">대한민국 기본세율 참고</AlertTitle>
-          <AlertDescription className="mt-2 text-sm space-y-1">
-            <p>2024년 국세청/4대보험 고시 기준 대표 항목입니다. 현장 단가나 고용형태별 특수규정이 있다면 최신 고시값으로 조정해 주세요.</p>
-            <ul className="list-disc pl-4 space-y-1 text-gray-700">
-              <li>프리랜서·일용직: 소득세 3.0% + 지방소득세 0.3% (총 3.3%)</li>
-              <li>상용직: 근로소득 간이세율표(갑근세) 기준, 급여·부양가족 수·보험료 공제 여부에 따라 변동</li>
-              <li>상용직 국민연금 근로자 부담분 4.5%, 건강보험 3.545% + 장기요양 12.95% 가산, 고용보험 0.8~0.9%</li>
-              <li>산재보험은 업종별 요율이 달라 별도 관리가 필요합니다.</li>
-            </ul>
-            <p className="mt-2 text-xs text-gray-600">
-              (경기도 기준) 지방소득세는 산출된 소득세의 10%가 기본이며, 프리랜서·일용직 3%에 대해 0.3%를 추가 부담합니다.
-            </p>
-            <div className="mt-3 rounded-lg border border-blue-100 bg-white/70 p-3 text-xs leading-5 text-gray-700">
-              <p className="font-semibold text-blue-900">간이세액표(2024, 부양가족 1명 기준 예시)</p>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <div className="rounded-md bg-blue-50/80 p-2">
-                  <p className="text-[11px] text-gray-500">월급여 1,000,000원 이하</p>
-                  <p className="text-sm font-semibold text-gray-900">세액 약 55,000원</p>
-                </div>
-                <div className="rounded-md bg-blue-50/80 p-2">
-                  <p className="text-[11px] text-gray-500">월급여 2,000,000원</p>
-                  <p className="text-sm font-semibold text-gray-900">세액 약 85,000원</p>
-                </div>
-                <div className="rounded-md bg-blue-50/80 p-2">
-                  <p className="text-[11px] text-gray-500">월급여 3,000,000원</p>
-                  <p className="text-sm font-semibold text-gray-900">세액 약 140,000원</p>
-                </div>
-                <div className="rounded-md bg-blue-50/80 p-2">
-                  <p className="text-[11px] text-gray-500">월급여 4,000,000원</p>
-                  <p className="text-sm font-semibold text-gray-900">세액 약 215,000원</p>
-                </div>
-                <div className="rounded-md bg-blue-50/80 p-2">
-                  <p className="text-[11px] text-gray-500">월급여 5,000,000원</p>
-                  <p className="text-sm font-semibold text-gray-900">세액 약 305,000원</p>
-                </div>
-                <div className="rounded-md bg-blue-50/80 p-2">
-                  <p className="text-[11px] text-gray-500">월급여 6,000,000원</p>
-                  <p className="text-sm font-semibold text-gray-900">세액 약 415,000원</p>
+
+          {loading ? (
+            <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
+               <RefreshCw className="w-8 h-8 animate-spin opacity-20" />
+               <p className="text-sm font-medium">기본 설정 불러오는 중...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-rose-50 border border-rose-100 p-6 rounded-2xl text-rose-700 text-center">
+               <p className="font-bold mb-1">설정을 불러올 수 없습니다</p>
+               <p className="text-sm opacity-80">{error}</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#8da0cd] text-white">
+                        <th className="px-4 py-3 text-left font-bold w-32">고용형태</th>
+                        <th className="px-3 py-3 text-center font-bold">소득세</th>
+                        <th className="px-3 py-3 text-center font-bold">지방세</th>
+                        <th className="px-3 py-3 text-center font-bold">국민연금</th>
+                        <th className="px-3 py-3 text-center font-bold">건강보험</th>
+                        <th className="px-3 py-3 text-center font-bold">고용보험</th>
+                        <th className="px-3 py-3 text-center font-bold">장기요양</th>
+                        <th className="px-3 py-3 text-center font-bold">산재보험</th>
+                        <th className="px-4 py-3 text-right font-bold bg-[#7a8dbd]">합계 요율</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {[...items]
+                        .sort((a, b) => EMPLOYMENT_TYPES.indexOf(a.employment_type) - EMPLOYMENT_TYPES.indexOf(b.employment_type))
+                        .map((it, idx) => (
+                          <tr key={`${it.employment_type}-${idx}`} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-4 py-3 font-bold text-gray-900 border-r border-gray-50">
+                              {it.employment_type === 'freelancer' ? '프리랜서' : it.employment_type === 'daily_worker' ? '일용직' : '상용직'}
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-blue-700"
+                                  value={it.income_tax_rate}
+                                  onChange={e => onChange(idx, 'income_tax_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-blue-700"
+                                  value={it.local_tax_rate}
+                                  onChange={e => onChange(idx, 'local_tax_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-indigo-700"
+                                  value={it.pension_rate}
+                                  onChange={e => onChange(idx, 'pension_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-indigo-700"
+                                  value={it.health_insurance_rate}
+                                  onChange={e => onChange(idx, 'health_insurance_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-indigo-700"
+                                  value={it.employment_insurance_rate}
+                                  onChange={e => onChange(idx, 'employment_insurance_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-indigo-700"
+                                  value={it.long_term_care_rate}
+                                  onChange={e => onChange(idx, 'long_term_care_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-2 py-3">
+                              <div className="flex items-center justify-center gap-1.5 translate-x-1">
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  className="h-9 w-16 text-center rounded-lg bg-gray-50 border-none font-bold text-rose-700"
+                                  value={it.industrial_accident_rate}
+                                  onChange={e => onChange(idx, 'industrial_accident_rate', Number(e.target.value) || 0)}
+                                />
+                                <span className="text-[10px] font-black text-muted-foreground">%</span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right bg-slate-50 font-black text-slate-900 border-l border-gray-100 italic">
+                               {formatRate(getTotalRate(it))}%
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-              <p className="mt-2 text-[11px] text-gray-500">
-                ※ 국세청 근로소득 간이세액표(부양가족/보험료에 따라 가감) 참고. 상세 표는 홈택스 자료를 확인하세요.
-              </p>
+
+              <div className="flex justify-end">
+                <Button 
+                  size="lg" 
+                  className="rounded-2xl h-12 px-10 gap-2 bg-[#1A254F] hover:bg-[#2A355F] text-white font-bold"
+                  onClick={onSave}
+                >
+                  <Save className="w-5 h-5" />
+                  기본 세율 설정 저장하기
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-gray-500">
-              출처: 국세청 원천징수 세율표, 국민연금공단·건강보험공단·고용보험 2024 고시.
-            </p>
-            <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50/80 p-3 text-xs leading-5 text-amber-900">
-              <p className="font-semibold">산재보험(건설업) 참고</p>
-              <p className="mt-1">
-                건설업 산재보험 요율은 공종·공사금액에 따라 1.5%~3% 이상으로 구간별 차등 적용됩니다. 현장별 표준안:
-              </p>
-              <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>토목·건축 일반 공사: 1.7% 내외</li>
-                <li>철골·교량·터널 등 고위험 공종: 2.3%~3.1%</li>
-                <li>조경·설비·마감 공종: 1.5%~2.0%</li>
-              </ul>
-              <p className="mt-2 text-[11px] text-amber-800">
-                ※ 실제 요율은 근로복지공단 고지서(업종코드/공사종류)에 따르며, 연도·공사별 산정 자료를 확인해 반영하세요.
-              </p>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
-      </div>
+          )}
+
+          <div className="pt-6 border-t border-gray-100">
+            <Alert className="rounded-2xl bg-indigo-50/50 border-indigo-100/50 shadow-none p-5">
+              <div className="flex items-start gap-4">
+                <div className="bg-white p-2.5 rounded-xl shadow-sm border border-indigo-100">
+                   <Info className="w-6 h-6 text-indigo-600" />
+                </div>
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <AlertTitle className="text-lg font-black text-[#1A254F]">대한민국 기본세율 정책 가이드</AlertTitle>
+                    <AlertDescription className="text-sm text-slate-600 font-medium leading-relaxed mt-1">
+                      2024년 국세청 고시 기준 대표 항목입니다. 현장 및 고용형태별 특수규정에 따라 자유롭게 조정 가능합니다.
+                    </AlertDescription>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                       <h5 className="text-[11px] font-black uppercase text-indigo-700 tracking-wider">세율 기준 (프리랜서·일용직)</h5>
+                       <ul className="text-xs space-y-1.5 font-bold text-slate-700">
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-indigo-400" /> 프리랜서: 소득세 3.0% + 지방세 0.3% (총 3.3%)</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-indigo-400" /> 일용직: 일정 일당 초과 시 원천징수 대상</li>
+                       </ul>
+                    </div>
+                    <div className="space-y-3">
+                       <h5 className="text-[11px] font-black uppercase text-indigo-700 tracking-wider">4대보험 기준 (상용직)</h5>
+                       <ul className="text-xs space-y-1.5 font-bold text-slate-700">
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-indigo-400" /> 국민연금: 근로자 부담분 4.5%</li>
+                          <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-indigo-400" /> 건강보험: 3.545% (요양보험 별도 가산)</li>
+                       </ul>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-indigo-100 bg-white/70 p-4">
+                    <p className="text-[10px] font-black text-indigo-900 uppercase tracking-tighter opacity-40 mb-3">간이세액표 참고 (2024, 부양가족 1명)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {[
+                        { label: '월 100만', val: '약 5.5만' },
+                        { label: '월 200만', val: '약 8.5만' },
+                        { label: '월 300만', val: '약 14만' },
+                        { label: '월 400만', val: '약 21만' },
+                      ].map(card => (
+                        <div key={card.label} className="bg-indigo-50/50 p-3 rounded-lg border border-indigo-100/50">
+                           <div className="text-[10px] font-black text-slate-500 mb-1">{card.label}</div>
+                           <div className="text-sm font-black text-slate-900">{card.val}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Alert>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

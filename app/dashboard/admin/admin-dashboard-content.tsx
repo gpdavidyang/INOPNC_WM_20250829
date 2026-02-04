@@ -1,14 +1,13 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { getDashboardStats, type DashboardStats } from '@/app/actions/admin/dashboard-stats'
 import { Card } from '@/components/ui/card'
 import StatsCard from '@/components/ui/stats-card'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
+import { getFullTypographyClass, useFontSize } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
-import { getDashboardStats, type DashboardStats } from '@/app/actions/admin/dashboard-stats'
 import { formatRelativeTime } from '@/lib/utils/format-time'
 import * as Icons from 'lucide-react'
+import React, { useEffect, useState } from 'react'
 
 // Destructure icons to ensure they're properly imported
 const {
@@ -91,10 +90,12 @@ export function AdminDashboardContent() {
   const fetchUnreadNotifications = async () => {
     try {
       const response = await fetch('/api/notifications/history')
-      if (response.ok) {
+      if (response && response.ok) {
         const data = await response.json()
-        const unreadCount = data.notifications?.filter((n: unknown) => !n.is_read).length || 0
-        setUnreadNotifications(unreadCount)
+        if (data && data.notifications) {
+          const unreadCount = data.notifications.filter((n: any) => !n.is_read).length || 0
+          setUnreadNotifications(unreadCount)
+        }
       }
     } catch (error) {
       console.error('Error fetching notifications:', error)
@@ -105,9 +106,11 @@ export function AdminDashboardContent() {
   const fetchPendingSignups = async () => {
     try {
       const signupModule = await import('@/app/actions/admin/signup-approvals')
-      const result = await signupModule.getPendingSignupRequests()
-      if (result.requests) {
-        setPendingSignups(result.requests.length)
+      if (signupModule && typeof signupModule.getPendingSignupRequests === 'function') {
+        const result = await signupModule.getPendingSignupRequests()
+        if (result && Array.isArray(result.requests)) {
+          setPendingSignups(result.requests.length)
+        }
       }
     } catch (error) {
       console.error('Error fetching pending signups:', error)
@@ -118,8 +121,10 @@ export function AdminDashboardContent() {
   const fetchDashboardStats = async () => {
     try {
       const result = await getDashboardStats()
-      if (result.success && result.data) {
+      if (result && result.success && result.data) {
         setDashboardStats(result.data)
+      } else if (result && result.error) {
+        console.error('Dashboard stats error:', result.error)
       }
     } catch (error) {
       console.error('Error fetching dashboard stats:', error)

@@ -1,8 +1,11 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
 import { DataTable } from '@/components/admin/DataTable'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { Star } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import React, { useMemo, useState } from 'react'
 
 async function postJson(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -89,8 +92,27 @@ export default function NotificationsTable({
           key: 'notification_type',
           header: '유형',
           sortable: true,
+          width: '100px',
           accessor: (n: any) => n?.notification_type || '-',
-          render: (n: any) => typeLabel(String(n?.notification_type || '')),
+          render: (n: any) => {
+            const types: Record<string, string> = {
+              site_announcement: 'bg-blue-50 text-blue-600',
+              material_approval: 'bg-indigo-50 text-indigo-600',
+              daily_report_reminder: 'bg-amber-50 text-amber-600',
+              safety_alert: 'bg-rose-50 text-rose-600',
+              equipment_maintenance: 'bg-emerald-50 text-emerald-600',
+            }
+            return (
+              <span
+                className={cn(
+                  'px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap',
+                  types[String(n?.notification_type)] || 'bg-slate-50 text-slate-500'
+                )}
+              >
+                {typeLabel(String(n?.notification_type || ''))}
+              </span>
+            )
+          },
         },
         {
           key: 'title',
@@ -107,8 +129,30 @@ export default function NotificationsTable({
           key: 'status',
           header: '상태',
           sortable: true,
+          width: '80px',
+          align: 'center',
           accessor: (n: any) => n?.status || '',
-          render: (n: any) => statusLabel(String(n?.status || '')),
+          render: (n: any) => {
+            const status = String(n?.status || 'pending')
+            const colors: Record<string, string> = {
+              pending: 'bg-slate-100 text-slate-500',
+              delivered: 'bg-blue-50 text-blue-600',
+              failed: 'bg-rose-50 text-rose-600',
+              read: 'bg-emerald-50 text-emerald-600',
+              acknowledged: 'bg-indigo-50 text-indigo-600',
+              rejected: 'bg-orange-50 text-orange-600',
+            }
+            return (
+              <span
+                className={cn(
+                  'px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap',
+                  colors[status] || colors.pending
+                )}
+              >
+                {statusLabel(status)}
+              </span>
+            )
+          },
         },
         {
           key: 'target_role',
@@ -173,35 +217,44 @@ export default function NotificationsTable({
               return <span className="text-xs text-muted-foreground">대기 중</span>
             }
             return (
-              <div className="flex gap-2">
-                <button
-                  className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
+              <div className="flex items-center gap-1.5 pr-2">
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  className="h-7 px-2 rounded-md text-[11px] font-semibold border bg-white hover:bg-slate-50 border-slate-100 transition-all"
                   onClick={() => handleStatus(id, 'read')}
-                  title="읽음 처리"
                 >
                   읽음
-                </button>
-                <button
-                  className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  className="h-7 px-2 rounded-md text-[11px] font-semibold border bg-white hover:bg-slate-50 border-slate-100 transition-all font-bold text-blue-600"
                   onClick={() => handleStatus(id, 'ack')}
-                  title="확인/승인 처리"
                 >
                   확인
-                </button>
-                <button
-                  className="px-2 py-1 text-xs rounded border bg-white hover:bg-gray-50"
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  className="h-7 px-2 rounded-md text-[11px] font-semibold border bg-white hover:bg-slate-50 border-slate-100 transition-all text-rose-600"
                   onClick={() => handleStatus(id, 'reject')}
-                  title="반려 처리"
                 >
                   반려
-                </button>
-                <button
-                  className={`px-2 py-1 text-xs rounded border ${starred ? 'bg-yellow-100 border-yellow-300' : 'bg-white hover:bg-gray-50'}`}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="compact"
+                  className={cn(
+                    'h-7 w-7 rounded-md border flex items-center justify-center transition-all p-0',
+                    starred
+                      ? 'bg-amber-50 border-amber-200 text-amber-500'
+                      : 'bg-white border-slate-100 text-slate-300 hover:text-slate-400'
+                  )}
                   onClick={() => handleStar(id, !starred)}
-                  title={starred ? '즐겨찾기 해제' : '즐겨찾기'}
                 >
-                  {starred ? '★' : '☆'}
-                </button>
+                  <Star className={cn('w-3.5 h-3.5', starred && 'fill-current')} />
+                </Button>
               </div>
             )
           },

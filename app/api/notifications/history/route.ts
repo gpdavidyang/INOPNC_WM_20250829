@@ -75,28 +75,39 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
-    // Get engagement data for these notifications
-    const notificationIds = notifications?.map((n: unknown) => n.id) || []
-    const { data: engagements } = await supabase
-      .from('notification_engagement')
-      .select('*')
-      .in('notification_id', notificationIds)
-      .eq('user_id', authResult.userId)
+    const notificationIds = (notifications || []).map((n: any) => n.id)
+    // Build query for engagement
+    let engagements: any[] = []
+    try {
+      if (notificationIds.length > 0) {
+        const { data: engagementData, error: engagementError } = await supabase
+          .from('notification_engagement')
+          .select('*')
+          .in('notification_id', notificationIds)
+          .eq('user_id', authResult.userId)
+
+        if (!engagementError) {
+          engagements = engagementData || []
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch engagements:', e)
+    }
 
     // Map engagement data to notifications
-    const notificationsWithEngagement = notifications?.map((notification: unknown) => {
-      const engagement =
-        engagements?.filter((e: Event) => e.notification_id === notification.id) || []
+    const notificationsWithEngagement = (notifications || []).map((notification: any) => {
+      const items = engagements.filter((e: any) => e.notification_id === notification.id)
       return {
         ...notification,
         engagement: {
-          clicked: engagement.some((e: Event) => e.engagement_type === 'notification_clicked'),
-          deepLinked: engagement.some((e: Event) => e.engagement_type === 'deep_link_navigation'),
-          actionPerformed: engagement.some((e: Event) => e.engagement_type === 'action_performed'),
-          lastEngagement: engagement.sort(
-            (a: unknown, b: unknown) =>
-              new Date(b.engaged_at).getTime() - new Date(a.engaged_at).getTime()
-          )[0]?.engaged_at,
+          clicked: items.some((e: any) => e.engagement_type === 'notification_clicked'),
+          deepLinked: items.some((e: any) => e.engagement_type === 'deep_link_navigation'),
+          actionPerformed: items.some((e: any) => e.engagement_type === 'action_performed'),
+          lastEngagement:
+            items.sort(
+              (a: any, b: any) =>
+                new Date(b.engaged_at).getTime() - new Date(a.engaged_at).getTime()
+            )[0]?.engaged_at || null,
         },
       }
     })
@@ -130,12 +141,12 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(((count || 0) + 1) / limit),
       },
     })
-  } catch (error: unknown) {
+  } catch (error: any) {
     console.error('Notification history error:', error)
     return NextResponse.json(
       {
         error: 'Failed to fetch notification history',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
       },
       { status: 500 }
     )

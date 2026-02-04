@@ -1,9 +1,9 @@
-import React from 'react'
-import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { createClient } from '@/lib/supabase/server'
-import { PageHeader } from '@/components/ui/page-header'
 import RequiredManagerClient from '@/components/admin/required/RequiredManagerClient'
+import { Card, CardContent } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
+import { createClient } from '@/lib/supabase/server'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '필수서류 관리',
@@ -49,17 +49,23 @@ export default async function AdminRequiredDocumentsPage({
   const types = Array.isArray(typesData) ? typesData : []
 
   return (
-    <div className="px-0 pb-8">
+    <div className="space-y-6">
       <PageHeader
         title="필수서류 관리"
-        description="제출현황과 유형 설정을 한 화면에서 관리합니다"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '필수서류 관리' }]}
+        description="근로자 필수 제출 서류의 현황 파악 및 유형을 설정합니다."
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '문서 관리', href: '/dashboard/admin/documents' },
+          { label: '필수서류 관리' }
+        ]}
         showBackButton
         backButtonHref="/dashboard/admin/documents"
       />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
-        <RequiredManagerClient initialDocs={docs} types={types} defaultTab={defaultTab as any} />
-      </div>
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <RequiredManagerClient initialDocs={docs} types={types} defaultTab={defaultTab as any} />
+        </CardContent>
+      </Card>
     </div>
   )
 }

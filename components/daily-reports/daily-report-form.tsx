@@ -404,9 +404,42 @@ export default function DailyReportForm({
         .map(photo => ({
           id: photo.id,
           file_url: photo.url,
+          photo_type: photo.photo_type,
           description: photo.description || null,
         }))
         .filter(p => Boolean(p.file_url))
+
+      // NEW: Handle New Photo Uploads before PATCH
+      if (mode === 'edit' && reportData?.id) {
+        const newBefore = additionalPhotos.filter(p => p.photo_type === 'before' && p.file)
+        const newAfter = additionalPhotos.filter(p => p.photo_type === 'after' && p.file)
+
+        if (newBefore.length > 0 || newAfter.length > 0) {
+          try {
+            const uploadRes = await dailyReportApi.uploadAdditionalPhotos(
+              String(reportData.id),
+              newBefore.map(p => p.file!),
+              newAfter.map(p => p.file!)
+            )
+
+            // Merge uploaded photo IDs into the persistent payload with their intended descriptions
+            if (uploadRes.success && Array.isArray(uploadRes.photos)) {
+              const allNewPhotos = [...newBefore, ...newAfter]
+              uploadRes.photos.forEach((uploaded: any, idx: number) => {
+                additionalPhotosPayload.push({
+                  id: uploaded.id,
+                  file_url: uploaded.file_url,
+                  photo_type: uploaded.photo_type,
+                  description: allNewPhotos[idx]?.description || null,
+                })
+              })
+            }
+          } catch (uploadErr) {
+            console.error('Photo upload failed:', uploadErr)
+            toast.error('추가 사진 업로드 중 오류가 발생했습니다.')
+          }
+        }
+      }
 
       const submitData: Record<string, any> = {
         id: reportData?.id,
@@ -414,11 +447,11 @@ export default function DailyReportForm({
         partner_company_id: formData.partner_company_id || null,
         work_date: formData.work_date,
         created_by: createdByUserId || undefined,
-        member_name: memberName,
-        process_type: processType,
-        component_name: memberName,
-        work_process: processType,
-        work_section: workSection,
+        member_name: memberName || '',
+        process_type: processType || '',
+        component_name: memberName || '',
+        work_process: processType || '',
+        work_section: workSection || '',
         total_workers: Number(formData.total_workers ?? 0) || 0,
         total_labor_hours: totalLaborHoursFromEntries,
         npc1000_incoming: Number(formData.npc1000_incoming ?? 0) || 0,
@@ -457,7 +490,33 @@ export default function DailyReportForm({
         }
       } else {
         try {
-          await dailyReportApi.createReport(submitData)
+          const res = await dailyReportApi.createReport(submitData)
+          const newId = res.data?.id
+
+          // Handle photos for newly created report
+          if (newId) {
+            const newBefore = additionalPhotos.filter(p => p.photo_type === 'before' && p.file)
+            const newAfter = additionalPhotos.filter(p => p.photo_type === 'after' && p.file)
+
+            if (newBefore.length > 0 || newAfter.length > 0) {
+              try {
+                await dailyReportApi.uploadAdditionalPhotos(
+                  String(newId),
+                  newBefore.map(p => p.file!),
+                  newAfter.map(p => p.file!)
+                )
+                // Minimal sync to manifest photos in the main table
+                await dailyReportApi.updateReport(String(newId), {
+                  ...submitData,
+                  id: newId,
+                })
+              } catch (photoErr) {
+                console.error('Initial photo upload failed:', photoErr)
+                toast.error('사진 업로드에 실패했습니다. 수정 페이지에서 다시 시도해 주세요.')
+              }
+            }
+          }
+
           toast.success(`작업일지가 ${isDraft ? '임시 상태로 저장' : '제출'}되었습니다.`)
           router.push(getBreadcrumb())
         } catch (err: any) {

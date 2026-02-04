@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
 import CustomSelect, {
   CustomSelectContent,
   CustomSelectItem,
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import DocumentVersionsDialog from './DocumentVersionsDialog'
+import { InvoiceProgressSummary } from './parts/InvoiceProgressSummary'
 
 type DocType = {
   code: string
@@ -150,6 +151,40 @@ export default function InvoiceTabsClient() {
       (summary.sites || []).filter(site => (siteIdFilter ? site.site_id === siteIdFilter : true)),
     [summary.sites, siteIdFilter]
   )
+
+  const globalProgress = useMemo(() => {
+    const p = {
+      start: { fulfilled: 0, required: 0 },
+      progress: { fulfilled: 0, required: 0 },
+      completion: { fulfilled: 0, required: 0 },
+      other: { fulfilled: 0, required: 0 },
+    }
+    const targetSites = summary.sites || []
+    const targetTypes = summary.docTypes || []
+
+    targetSites.forEach(site => {
+      targetTypes.forEach(t => {
+        const has = !!getSummaryDocEntry(site.docs || {}, t.code)?.id
+        if (t.required?.start) {
+          p.start.required++
+          if (has) p.start.fulfilled++
+        }
+        if (t.required?.progress) {
+          p.progress.required++
+          if (has) p.progress.fulfilled++
+        }
+        if (t.required?.completion) {
+          p.completion.required++
+          if (has) p.completion.fulfilled++
+        }
+        if (!t.required?.start && !t.required?.progress && !t.required?.completion) {
+          p.other.required++
+          if (has) p.other.fulfilled++
+        }
+      })
+    })
+    return p
+  }, [summary.sites, summary.docTypes])
 
   useEffect(() => {
     const load = async () => {
@@ -373,21 +408,19 @@ export default function InvoiceTabsClient() {
     <div className="space-y-6">
       <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50 overflow-hidden">
         <CardHeader className="border-b border-gray-100 bg-gradient-to-b from-gray-50/50 to-transparent pb-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <CardTitle className="text-2xl font-black text-[#1A254F] tracking-tight">
-                문서 준비 현황
-              </CardTitle>
-              <CardDescription className="text-sm font-medium text-slate-500 mt-1">
-                기성청구 및 계약 관련 필수 문서의 준비 상태를 통합 관리합니다.
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex-1">
+              <CardDescription className="text-sm font-bold text-slate-400 mt-1 max-w-lg leading-relaxed">
+                협력업체별 기성청구 및 계약 관련 필수 문서의 준비 상태를{' '}
+                <span className="text-indigo-600">통합 관리</span>합니다.
               </CardDescription>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 bg-white/50 p-2 rounded-2xl border border-slate-100 shadow-sm">
-              <div className="flex flex-col gap-1.5 min-w-[200px]">
-                <div className="flex items-center gap-1.5 px-1">
-                  <Building2 className="w-3 h-3 text-[#1A254F] opacity-40" />
-                  <span className="text-[11px] font-black text-[#1A254F] uppercase tracking-tighter opacity-40">
+            <div className="flex items-center gap-4 bg-white/60 px-4 py-2.5 rounded-2xl border border-indigo-100 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 pr-3 border-r border-indigo-100 shrink-0">
+                  <Building2 className="w-4 h-4 text-indigo-500" />
+                  <span className="text-[11px] font-black text-indigo-900 uppercase tracking-tighter whitespace-nowrap">
                     소속사 필터
                   </span>
                 </div>
@@ -395,7 +428,7 @@ export default function InvoiceTabsClient() {
                   value={orgId || 'all'}
                   onValueChange={v => setOrgId(v === 'all' ? '' : v)}
                 >
-                  <CustomSelectTrigger className="h-9 rounded-xl bg-slate-50 border-none px-3 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-bold">
+                  <CustomSelectTrigger className="h-9 min-w-[180px] rounded-xl bg-white/50 border-none px-3 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all font-bold">
                     <CustomSelectValue placeholder="전체 소속사" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
@@ -417,24 +450,24 @@ export default function InvoiceTabsClient() {
         <CardContent className="p-0">
           <Tabs value={tab} onValueChange={v => setTab(v as any)} className="w-full">
             <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-3">
-              <TabsList className="grid grid-cols-3 w-full h-auto items-center gap-2 bg-slate-50/50 p-1.5 rounded-2xl border border-slate-100 shadow-inner">
+              <TabsList className="grid grid-cols-3 w-full h-auto items-center gap-2 bg-slate-100/50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
                 <TabsTrigger
                   value="summary"
-                  className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-gray-500 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-[#1A254F] data-[state=active]:shadow-md data-[state=active]:after:hidden whitespace-nowrap"
+                  className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-500 transition-all hover:text-slate-900 hover:bg-white/60 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-md data-[state=active]:shadow-blue-100/50 data-[state=active]:after:hidden whitespace-nowrap"
                 >
                   <BarChart3 className="w-4 h-4" />
                   <span>요약 현황</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="documents"
-                  className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-gray-500 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-[#1A254F] data-[state=active]:shadow-md data-[state=active]:after:hidden whitespace-nowrap"
+                  className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-500 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-md data-[state=active]:shadow-blue-100/50 data-[state=active]:after:hidden whitespace-nowrap"
                 >
                   <FileCheck className="w-4 h-4" />
                   <span>현장별 현황</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="settings"
-                  className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-gray-500 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-white data-[state=active]:text-[#1A254F] data-[state=active]:shadow-md data-[state=active]:after:hidden whitespace-nowrap"
+                  className="relative flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-500 transition-all hover:text-gray-900 hover:bg-white/60 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:shadow-md data-[state=active]:shadow-blue-100/50 data-[state=active]:after:hidden whitespace-nowrap"
                 >
                   <Settings className="w-4 h-4" />
                   <span>유형 설정</span>
@@ -473,6 +506,16 @@ export default function InvoiceTabsClient() {
                         </div>
                       </div>
                     </div>
+
+                    <section className="space-y-4">
+                      <div className="flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-[#1A254F] opacity-40" />
+                        <h3 className="text-lg font-black text-[#1A254F] uppercase tracking-tight">
+                          단계별 문서 준비율 (전체 현장 통합)
+                        </h3>
+                      </div>
+                      <InvoiceProgressSummary progress={globalProgress} />
+                    </section>
 
                     <section className="space-y-4">
                       <div className="flex items-center justify-between">
@@ -850,9 +893,9 @@ export default function InvoiceTabsClient() {
                         문서 유형 관리 유의사항
                       </p>
                       <p className="text-xs text-amber-700/80 leading-relaxed">
-                        문서 유형의 라벨을 수정하거나 활성화 상태를 변경할 수 있습니다. 코드는
-                        시스템 내에서 자동으로 관리되며, 동일한 이름이 있을 경우 숫자가 추가되어
-                        구분됩니다.
+                        문서 유형의 라벨을 수정하거나 활성화 상태를 변경할 수 있습니다. 만약 기존
+                        유형과 이름이 중복될 경우, 시스템에서 자동으로 순번(예: (1), (2))을 부여하여
+                        구분 관리합니다.
                       </p>
                     </div>
                   </div>
@@ -876,6 +919,9 @@ export default function InvoiceTabsClient() {
                             </th>
                             <th className="px-4 py-4 text-center font-black text-[11px] uppercase tracking-tighter">
                               완료
+                            </th>
+                            <th className="px-4 py-4 text-center font-black text-[11px] uppercase tracking-tighter">
+                              기타
                             </th>
                             <th className="px-4 py-4 text-center font-black text-[11px] uppercase tracking-tighter">
                               활성화 상태
@@ -945,7 +991,7 @@ export default function InvoiceTabsClient() {
                                     <input
                                       type="checkbox"
                                       className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
-                                      defaultChecked={t.required.start}
+                                      checked={t.required.start}
                                       onChange={async e => {
                                         const nextRequired = {
                                           ...t.required,
@@ -968,7 +1014,6 @@ export default function InvoiceTabsClient() {
                                           toast({ title: '저장됨' })
                                         } catch {
                                           toast({ title: '저장 실패', variant: 'destructive' })
-                                          e.target.checked = t.required.start
                                         }
                                       }}
                                     />
@@ -979,7 +1024,7 @@ export default function InvoiceTabsClient() {
                                     <input
                                       type="checkbox"
                                       className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
-                                      defaultChecked={t.required.progress}
+                                      checked={t.required.progress}
                                       onChange={async e => {
                                         const nextRequired = {
                                           ...t.required,
@@ -1002,7 +1047,6 @@ export default function InvoiceTabsClient() {
                                           toast({ title: '저장됨' })
                                         } catch {
                                           toast({ title: '저장 실패', variant: 'destructive' })
-                                          e.target.checked = t.required.progress
                                         }
                                       }}
                                     />
@@ -1013,7 +1057,7 @@ export default function InvoiceTabsClient() {
                                     <input
                                       type="checkbox"
                                       className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
-                                      defaultChecked={t.required.completion}
+                                      checked={t.required.completion}
                                       onChange={async e => {
                                         const nextRequired = {
                                           ...t.required,
@@ -1036,7 +1080,57 @@ export default function InvoiceTabsClient() {
                                           toast({ title: '저장됨' })
                                         } catch {
                                           toast({ title: '저장 실패', variant: 'destructive' })
-                                          e.target.checked = t.required.completion
+                                        }
+                                      }}
+                                    />
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex justify-center">
+                                    <input
+                                      type="checkbox"
+                                      className="w-4 h-4 rounded-md border-slate-300 text-blue-600 focus:ring-blue-500 accent-blue-600 cursor-pointer"
+                                      checked={
+                                        !t.required.start &&
+                                        !t.required.progress &&
+                                        !t.required.completion
+                                      }
+                                      onChange={async e => {
+                                        if (!e.target.checked) {
+                                          // Cannot uncheck 'Other' without checking something else
+                                          toast({
+                                            title: '안내',
+                                            description:
+                                              '착수/진행/완료 중 최소 하나를 선택하면 관리 품목으로 전환됩니다.',
+                                          })
+                                          // Revert visual state by not updating the underlying data
+                                          return
+                                        }
+                                        const nextRequired = {
+                                          start: false,
+                                          progress: false,
+                                          completion: false,
+                                        }
+                                        try {
+                                          const res = await fetch(`/api/invoice/types/${t.code}`, {
+                                            method: 'PATCH',
+                                            headers: { 'content-type': 'application/json' },
+                                            body: JSON.stringify({ stageRequired: nextRequired }),
+                                          })
+                                          if (!res.ok) throw new Error('fail')
+                                          setTypes(prev =>
+                                            prev.map(x =>
+                                              x.code === t.code
+                                                ? { ...x, required: nextRequired }
+                                                : x
+                                            )
+                                          )
+                                          toast({
+                                            title: '저장됨',
+                                            description: '기타 보조 내역으로 변경되었습니다.',
+                                          })
+                                        } catch {
+                                          toast({ title: '저장 실패', variant: 'destructive' })
                                         }
                                       }}
                                     />

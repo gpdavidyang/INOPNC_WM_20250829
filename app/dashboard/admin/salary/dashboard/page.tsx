@@ -1,9 +1,11 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { PageHeader } from '@/components/ui/page-header'
-import EmptyState from '@/components/ui/empty-state'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { t } from '@/lib/ui/strings'
+import { Calendar } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 export default function PayrollDashboardPage() {
   const [yearMonth, setYearMonth] = useState<string>(new Date().toISOString().slice(0, 7))
@@ -151,252 +153,253 @@ export default function PayrollDashboardPage() {
     if (workerSort.key !== key) return ''
     return workerSort.direction === 'asc' ? '▲' : '▼'
   }
-  const maxTrendGross = React.useMemo(() => {
-    if (!trend.length) return 1
-    const values = trend.map(t => Number(t.gross) || 0)
-    const max = Math.max(...values, 1)
-    return max <= 0 ? 1 : max
-  }, [trend])
-  const BAR_MAX_HEIGHT = 128
 
   return (
-    <div className="px-0 pb-8">
-      <PageHeader
-        title="급여 대시보드"
-        description="월별 요약/추이/인력별 상세"
-        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '대시보드' }]}
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="month"
-          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-          value={yearMonth}
-          onChange={e => setYearMonth(e.target.value)}
-          aria-label="년월"
-        />
-        <button
-          type="button"
-          onClick={fetchSummary}
-          className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-          disabled={loading}
-        >
-          {t('common.refresh')}
-        </button>
-      </div>
-      {loading && <EmptyState description="불러오는 중..." />}
-      {error && <EmptyState title="오류" description={error} />}
-      <div className="flex items-center gap-3">
-        <span
-          className={`text-[11px] px-2 py-1 rounded-full border ${source === 'fallback' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-green-50 border-green-200 text-green-700'}`}
-          title={
-            source === 'fallback' ? '스냅샷 부재시 작업기록 기반 추정치' : '스냅샷 데이터 기준'
-          }
-        >
-          {source === 'fallback' ? '자료원: 추정(폴백)' : '자료원: 급여명세서'}
-        </span>
-        {source === 'fallback' && (
-          <button
-            type="button"
-            onClick={() => setShowFallbackInfo(v => !v)}
-            className="text-xs underline text-blue-600"
-          >
-            폴백 계산 기준
-          </button>
-        )}
-      </div>
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative w-fit">
+                <Input
+                  type="month"
+                  className="h-10 w-40 rounded-xl bg-gray-50 border-none pl-4 pr-10 text-sm font-medium"
+                  value={yearMonth}
+                  onChange={e => setYearMonth(e.target.value)}
+                  aria-label="년월"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchSummary}
+                className="h-10 rounded-xl px-4 border-gray-200 font-bold"
+                disabled={loading}
+              >
+                <span>{t('common.refresh')}</span>
+              </Button>
+            </div>
 
-      {source === 'fallback' && showFallbackInfo && (
-        <div className="rounded-md border border-yellow-200 bg-yellow-50 text-yellow-900 p-3 text-xs">
-          <div className="font-medium mb-1">폴백(추정) 계산 기준</div>
-          <ul className="list-disc pl-4 space-y-1">
-            <li>선택한 연월에 대해 salary_snapshots 데이터가 없을 때 적용</li>
-            <li>해당 월의 work_records 범위에서 사용자 집합을 수집</li>
-            <li>사용자별 월 급여를 서비스 권한으로 재계산(salaryCalculationService)</li>
-            <li>개인 설정(worker_salary_settings)과 기본 세율(employment_tax_rates) 활용</li>
-            <li>근무기록이 있지만 시간값이 비어 있으면 1일 8시간(1공수)로 보정</li>
-          </ul>
-          <div className="mt-2">
-            <a href="/dashboard/admin/salary/defaults" className="underline text-blue-700">
-              기본 세율 관리
-            </a>
-            <span className="mx-2 text-yellow-700">·</span>
-            <a href="/dashboard/admin/salary/personal" className="underline text-blue-700">
-              개인 세율/일당 관리
-            </a>
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-[11px] font-bold uppercase tracking-tighter px-3 py-1 rounded-full border ${
+                  source === 'fallback' 
+                    ? 'bg-amber-50 border-amber-200 text-amber-700' 
+                    : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                }`}
+                title={
+                  source === 'fallback' ? '스냅샷 부재시 작업기록 기반 추정치' : '스냅샷 데이터 기준'
+                }
+              >
+                {source === 'fallback' ? '자료원: 추정(폴백)' : '자료원: 명세서 기반'}
+              </span>
+              {source === 'fallback' && (
+                <Button 
+                  variant="ghost" 
+                  size="xs" 
+                  onClick={() => setShowFallbackInfo(v => !v)}
+                  className="text-[11px] font-bold uppercase text-blue-600 hover:bg-blue-50"
+                >
+                  폴백 기준 보기
+                </Button>
+              )}
+            </div>
           </div>
+
+          {source === 'fallback' && showFallbackInfo && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 text-sm space-y-3">
+              <div className="font-black text-amber-900 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-amber-600" />
+                폴백(추정) 계산 기준
+              </div>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-amber-800/80 text-xs">
+                <li className="flex items-start gap-2">
+                  <span className="opacity-50">•</span>
+                  <span>명세서 데이터(salary_snapshots) 부재 시 적용</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="opacity-50">•</span>
+                  <span>해당 월의 실제 근무기록(work_records) 기반 추출</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="opacity-50">•</span>
+                  <span>salaryCalculationService를 통한 실시간 재계산</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="opacity-50">•</span>
+                  <span>개인 설정 및 기본 세율 정보를 최우선 적용</span>
+                </li>
+              </ul>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+            <div className="bg-slate-50 p-5 rounded-2xl flex flex-col gap-1.5 border border-slate-100">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-[#1A254F] opacity-40">
+                발행 명세서 수
+              </div>
+              <div className="text-2xl font-bold text-[#1A254F] italic tracking-tight">
+                {data.count}<span className="text-sm font-medium not-italic ml-1 opacity-50">건</span>
+              </div>
+            </div>
+            <div className="bg-indigo-50/50 p-5 rounded-2xl flex flex-col gap-1.5 border border-indigo-100/50">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-[#1A254F] opacity-40">
+                총지급액
+              </div>
+              <div className="text-2xl font-bold text-[#1A254F] italic tracking-tight">
+                <span className="text-lg font-medium not-italic mr-0.5 opacity-50">₩</span>
+                {data.gross.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-rose-50/30 p-5 rounded-2xl flex flex-col gap-1.5 border border-rose-100/50">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-rose-600 opacity-50">
+                총공제액
+              </div>
+              <div className="text-2xl font-bold text-rose-700 italic tracking-tight">
+                <span className="text-lg font-medium not-italic mr-0.5 opacity-50">₩</span>
+                {data.deductions.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-emerald-50/20 p-5 rounded-2xl flex flex-col gap-1.5 border border-emerald-100/50">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-emerald-600 opacity-50">
+                총실수령액
+              </div>
+              <div className="text-2xl font-bold text-emerald-700 italic tracking-tight">
+                <span className="text-lg font-medium not-italic mr-0.5 opacity-50">₩</span>
+                {data.net.toLocaleString()}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* 최근 추이 */}
+            <div className="lg:col-span-1 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-foreground">최근 추이 (3개월)</h3>
+              </div>
+              <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#8da0cd] text-white">
+                        <th className="px-3 py-2.5 font-bold text-left">월</th>
+                        <th className="px-3 py-2.5 font-bold text-right">인원</th>
+                        <th className="px-3 py-2.5 font-bold text-right">실수령</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {trend.map(t => (
+                        <tr key={t.month} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-3 py-3 font-medium">{t.month}</td>
+                          <td className="px-3 py-3 text-right font-bold text-gray-900">{t.count}<span className="text-[10px] ml-0.5 opacity-40">명</span></td>
+                          <td className="px-3 py-3 text-right font-black text-[#1A254F]">₩{t.net.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {trendLoading && (
+                        <tr>
+                          <td className="px-3 py-10 text-center text-gray-400" colSpan={3}>
+                            추이 데이터 계산 중...
+                          </td>
+                        </tr>
+                      )}
+                      {!trendLoading && trend.length === 0 && (
+                        <tr>
+                          <td className="px-3 py-10 text-center text-gray-400" colSpan={3}>
+                            데이터가 없습니다.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* 인력별 상세 */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-foreground">인력별 상세 <span className="text-sm font-medium text-muted-foreground ml-2">({yearMonth})</span></h3>
+              </div>
+              <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#8da0cd] text-white">
+                        <th className="px-4 py-2.5 text-left font-bold">
+                          <button
+                            type="button"
+                            onClick={() => toggleWorkerSort('name')}
+                            className="flex items-center gap-1 hover:text-white/80 transition-colors"
+                          >
+                            이름 <span className="text-[10px]">{getSortIndicator('name')}</span>
+                          </button>
+                        </th>
+                        <th className="px-4 py-2.5 text-left font-bold">고용형태</th>
+                        <th className="px-4 py-2.5 text-right font-bold">
+                          <button
+                            type="button"
+                            onClick={() => toggleWorkerSort('total_labor_hours')}
+                            className="inline-flex items-center gap-1 hover:text-white/80 transition-colors"
+                          >
+                            총공수 <span className="text-[10px]">{getSortIndicator('total_labor_hours')}</span>
+                          </button>
+                        </th>
+                        <th className="px-4 py-2.5 text-right font-bold">
+                          <button
+                            type="button"
+                            onClick={() => toggleWorkerSort('net_pay')}
+                            className="inline-flex items-center gap-1 hover:text-white/80 transition-colors"
+                          >
+                            실수령 <span className="text-[10px]">{getSortIndicator('net_pay')}</span>
+                          </button>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {sortedWorkers.map(w => (
+                        <tr key={w.worker_id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-3 font-bold text-gray-900">{w.name}</td>
+                          <td className="px-4 py-3 text-xs">
+                            <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-medium border border-gray-200">
+                              {formatEmploymentType(w.employment_type)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-gray-600">
+                            {formatManhours(w.total_labor_hours)} <span className="text-[10px] opacity-40 ml-0.5">공수</span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-black text-[#1A254F]">₩{w.net_pay.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                      {loading && workers.length === 0 && (
+                        <tr>
+                          <td className="px-4 py-16 text-center text-gray-400" colSpan={4}>
+                            데이터를 불러오는 중입니다...
+                          </td>
+                        </tr>
+                      )}
+                      {!loading && workers.length === 0 && (
+                        <tr>
+                          <td className="px-4 py-16 text-center text-gray-400" colSpan={4}>
+                            해당 월의 데이터가 없습니다.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {error && (
+        <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl text-rose-700 text-sm flex items-center gap-3">
+          <div className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+          {error}
         </div>
       )}
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">발행 된 급여명세서 수</div>
-          <div className="text-2xl font-semibold">{data.count}</div>
-        </div>
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">총액</div>
-          <div className="text-2xl font-semibold">₩{data.gross.toLocaleString()}</div>
-        </div>
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">공제</div>
-          <div className="text-2xl font-semibold">₩{data.deductions.toLocaleString()}</div>
-        </div>
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">실수령</div>
-          <div className="text-2xl font-semibold">₩{data.net.toLocaleString()}</div>
-        </div>
-      </div>
-
-      {/* 추이: 최근 3개월 총급여지급액 표 */}
-      <div className="mt-6 space-y-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold">최근 추이 (3개월)</span>
-        </div>
-        <div className="overflow-x-auto border rounded-md">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-3 py-2">월</th>
-                <th className="px-3 py-2 text-right">인원</th>
-                <th className="px-3 py-2 text-right">총급여</th>
-                <th className="px-3 py-2 text-right">공제</th>
-                <th className="px-3 py-2 text-right">실수령</th>
-              </tr>
-            </thead>
-            <tbody>
-              {trend.map(t => (
-                <tr key={t.month} className="border-t">
-                  <td className="px-3 py-2">{t.month}</td>
-                  <td className="px-3 py-2 text-right">{t.count}</td>
-                  <td className="px-3 py-2 text-right">₩{t.gross.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">₩{t.deductions.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">₩{t.net.toLocaleString()}</td>
-                </tr>
-              ))}
-              {trendLoading && (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
-                    최근 추이 계산 중...
-                  </td>
-                </tr>
-              )}
-              {!trendLoading && trend.length === 0 && (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
-                    데이터가 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 인력별 표 */}
-      <div className="mt-6 space-y-3">
-        <div className="text-sm font-semibold">인력별 상세 ({yearMonth})</div>
-        <div className="overflow-x-auto border rounded-md">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-left">
-                <th className="px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkerSort('name')}
-                    className="flex items-center gap-1 text-left font-semibold"
-                  >
-                    이름 <span className="text-xs text-gray-500">{getSortIndicator('name')}</span>
-                  </button>
-                </th>
-                <th className="px-3 py-2">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkerSort('employment_type')}
-                    className="flex items-center gap-1 text-left font-semibold"
-                  >
-                    고용형태{' '}
-                    <span className="text-xs text-gray-500">
-                      {getSortIndicator('employment_type')}
-                    </span>
-                  </button>
-                </th>
-                <th className="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkerSort('daily_rate')}
-                    className="inline-flex w-full justify-end gap-1 font-semibold"
-                  >
-                    일당 <span className="text-xs text-gray-500">{getSortIndicator('daily_rate')}</span>
-                  </button>
-                </th>
-                <th className="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkerSort('total_labor_hours')}
-                    className="inline-flex w-full justify-end gap-1 font-semibold"
-                  >
-                    총공수{' '}
-                    <span className="text-xs text-gray-500">
-                      {getSortIndicator('total_labor_hours')}
-                    </span>
-                  </button>
-                </th>
-                <th className="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkerSort('total_gross_pay')}
-                    className="inline-flex w-full justify-end gap-1 font-semibold"
-                  >
-                    총급여{' '}
-                    <span className="text-xs text-gray-500">
-                      {getSortIndicator('total_gross_pay')}
-                    </span>
-                  </button>
-                </th>
-                <th className="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    onClick={() => toggleWorkerSort('net_pay')}
-                    className="inline-flex w-full justify-end gap-1 font-semibold"
-                  >
-                    실수령{' '}
-                    <span className="text-xs text-gray-500">{getSortIndicator('net_pay')}</span>
-                  </button>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedWorkers.map(w => (
-                <tr key={w.worker_id} className="border-t">
-                  <td className="px-3 py-2">{w.name}</td>
-                  <td className="px-3 py-2">{formatEmploymentType(w.employment_type)}</td>
-                  <td className="px-3 py-2 text-right">
-                    {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
-                  </td>
-                  <td className="px-3 py-2 text-right">{formatManhours(w.total_labor_hours)}</td>
-                  <td className="px-3 py-2 text-right">₩{w.total_gross_pay.toLocaleString()}</td>
-                  <td className="px-3 py-2 text-right">₩{w.net_pay.toLocaleString()}</td>
-                </tr>
-              ))}
-              {loading && workers.length === 0 && (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
-                    데이터를 불러오는 중입니다...
-                  </td>
-                </tr>
-              )}
-              {!loading && workers.length === 0 && (
-                <tr>
-                  <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
-                    데이터가 없습니다.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
     </div>
   )
 }

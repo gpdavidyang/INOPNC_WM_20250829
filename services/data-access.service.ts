@@ -68,7 +68,7 @@ export class DataAccessService {
     let query = this.supabase.from('daily_reports').select(`
         *,
         sites(*),
-        profiles!daily_reports_created_by_fkey(*)
+        profiles!created_by(*)
       `)
 
     // Customer managers only see reports from their sites

@@ -1,11 +1,12 @@
 'use client'
 
-import React from 'react'
 import { DataTable } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
-import { useRouter } from 'next/navigation'
-import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
+import React from 'react'
 
 interface AnnounceTableProps {
   announcements: any[]
@@ -111,10 +112,30 @@ export default function AnnounceTable({ announcements, siteNameMap = {} }: Annou
           },
           {
             key: 'priority',
-            header: '우선순위',
+            header: '중요도',
             sortable: true,
+            width: '100px',
             accessor: (a: any) => a?.priority || '',
-            render: (a: any) => priorityLabel(String(a?.priority || '')),
+            render: (a: any) => {
+              const p = String(a?.priority || 'medium')
+              const colorMap: Record<string, string> = {
+                urgent: 'bg-rose-50 text-rose-600 border-rose-100',
+                critical: 'bg-amber-50 text-amber-600 border-amber-100',
+                high: 'bg-orange-50 text-orange-600 border-orange-100',
+                medium: 'bg-blue-50 text-blue-600 border-blue-100',
+                low: 'bg-slate-50 text-slate-500 border-slate-100',
+              }
+              return (
+                <span
+                  className={cn(
+                    'px-2 py-0.5 rounded-md text-[10px] font-bold border',
+                    colorMap[p] || colorMap.medium
+                  )}
+                >
+                  {priorityLabel(p)}
+                </span>
+              )
+            },
           },
           {
             key: 'title',
@@ -134,9 +155,16 @@ export default function AnnounceTable({ announcements, siteNameMap = {} }: Annou
               const roles = Array.isArray(a?.target_roles) ? a.target_roles : []
               const labels = roles.length > 0 ? roles.map((r: string) => roleLabel(r)) : ['전체']
               return (
-                <span className="truncate inline-block max-w-[320px]" title={labels.join(', ')}>
-                  {labels.join(', ') || '-'}
-                </span>
+                <div className="flex flex-wrap gap-1">
+                  {labels.map((L, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold whitespace-nowrap"
+                    >
+                      {L}
+                    </span>
+                  ))}
+                </div>
               )
             },
           },
@@ -160,35 +188,54 @@ export default function AnnounceTable({ announcements, siteNameMap = {} }: Annou
             key: 'is_active',
             header: '상태',
             sortable: true,
+            align: 'center',
+            width: '80px',
             accessor: (a: any) => (a?.is_active ? 1 : 0),
-            render: (a: any) => (a?.is_active ? '활성' : '비활성'),
+            render: (a: any) => (
+              <span
+                className={cn(
+                  'inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold',
+                  a?.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'
+                )}
+              >
+                {a?.is_active ? '활성' : '비활성'}
+              </span>
+            ),
           },
           {
             key: 'actions',
             header: '동작',
             render: (a: any) => (
-              <div className="flex flex-wrap justify-end gap-2">
+              <div className="flex items-center justify-end gap-2 pr-2">
                 <Button
                   type="button"
-                  variant="secondary"
+                  variant="ghost"
                   size="compact"
+                  className="h-8 rounded-lg text-blue-600 hover:text-blue-700 hover:bg-blue-50 font-semibold px-3 border border-blue-100/50 transition-all text-xs"
                   onClick={() => router.push(`/dashboard/admin/communication/editor?id=${a.id}`)}
                 >
                   수정
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="compact"
+                  className={cn(
+                    'h-8 rounded-lg font-semibold px-3 border transition-all text-xs',
+                    a?.is_active
+                      ? 'text-amber-600 hover:text-amber-700 hover:bg-amber-50 border-amber-100/50'
+                      : 'text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border-emerald-100/50'
+                  )}
                   onClick={() => handleToggleActive(a)}
                   disabled={actionTarget === a.id}
                 >
-                  {a?.is_active ? '비활성화' : '활성화'}
+                  {a?.is_active ? '비활성' : '활성'}
                 </Button>
                 <Button
                   type="button"
-                  variant="danger"
+                  variant="ghost"
                   size="compact"
+                  className="h-8 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-semibold px-3 border border-rose-100/50 transition-all text-xs"
                   onClick={() => handleDelete(a)}
                   disabled={actionTarget === a.id}
                 >

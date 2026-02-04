@@ -5,6 +5,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { useToast } from '@/components/ui/use-toast'
 import { t } from '@/lib/ui/strings'
+import { cn } from '@/lib/utils'
 import type { Site } from '@/types'
 import { ChevronLeft, ChevronRight, Plus, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
@@ -19,6 +20,7 @@ interface SitesContentProps {
   initialPages: number
   pageSize: number
   initialLoadErrored?: boolean
+  hideHeader?: boolean
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -34,6 +36,7 @@ export function SitesContent({
   initialTotal,
   initialPages,
   pageSize,
+  hideHeader,
 }: SitesContentProps) {
   const {
     sites,
@@ -102,34 +105,41 @@ export function SitesContent({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
+    <div
+      className={cn(
+        'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500',
+        !hideHeader && 'py-8'
+      )}
+    >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
-            {t('sites.title')}
-          </h1>
-          <p className="text-sm text-gray-500 font-medium">{t('sites.subtitle')}</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm border-gray-100 dark:border-gray-800 whitespace-nowrap"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
-          </Button>
-          <Link href="/dashboard/admin/sites/new">
-            <Button className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none transition-all whitespace-nowrap">
-              <Plus className="w-4 h-4 mr-2" />
-              {t('sites.create')}
+      {!hideHeader && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-black text-gray-900 dark:text-gray-100 tracking-tight">
+              {t('sites.title')}
+            </h1>
+            <p className="text-sm text-gray-500 font-medium">{t('sites.subtitle')}</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="h-10 rounded-xl bg-white dark:bg-gray-800 shadow-sm border-gray-100 dark:border-gray-800 whitespace-nowrap"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              {t('common.refresh')}
             </Button>
-          </Link>
+            <Link href="/dashboard/admin/sites/new">
+              <Button className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-200 dark:shadow-none transition-all whitespace-nowrap">
+                <Plus className="w-4 h-4 mr-2" />
+                {t('sites.create')}
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Stats */}
       <SiteStats

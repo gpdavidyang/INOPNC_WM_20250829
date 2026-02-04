@@ -1,16 +1,17 @@
-import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import AnnounceTable from '@/components/admin/AnnounceTable'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { t } from '@/lib/ui/strings'
-import { PageHeader } from '@/components/ui/page-header'
-import AnnouncementCreateForm from '@/components/admin/communication/AnnouncementCreateForm'
-import PillTabLinks from '@/components/ui/pill-tab-links'
 import NotificationsTable from '@/components/admin/NotificationsTable'
 import { AdminAuditTimeline } from '@/components/admin/communication/AdminAuditTimeline'
+import AnnouncementCreateForm from '@/components/admin/communication/AnnouncementCreateForm'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { PageHeader } from '@/components/ui/page-header'
+import PillTabLinks from '@/components/ui/pill-tab-links'
 import { createClient } from '@/lib/supabase/server'
+import { cn } from '@/lib/utils'
+import { Info, Search } from 'lucide-react'
+import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: '공지사항 관리' }
 
@@ -158,171 +159,246 @@ export default async function CommunicationManagementPage({
     auditEvents = Array.isArray(auditJson?.events) ? auditJson.events : []
   }
 
-  // 분석/설정 탭 제거됨
+  // analytics/settings 탭 제거됨
+  const isLogsTab = tab === 'logs'
+  const isAnnouncementsTab = tab === 'announcements'
+  const isComposeTab = tab === 'compose'
 
   return (
     <div className="px-0 pb-8 space-y-6">
       <PageHeader
         title="공지사항 관리"
-        description="공지 작성과 전달 로그를 통합 관리합니다"
+        description="전사 공지사항 작성 및 자동 알림 발송 이력을 통합 관리합니다."
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '공지사항 관리' }]}
       />
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* 상단 지표 */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
-            <p className="text-sm text-muted-foreground">활성 공지</p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">
-              {announcementStats.active}
-            </p>
-          </div>
-          <div className="rounded-lg border bg-card p-4 shadow-sm">
-            <p className="text-sm text-muted-foreground">총 공지</p>
-            <p className="mt-2 text-2xl font-semibold text-foreground">{announcementStats.total}</p>
-          </div>
-          {tab === 'logs' && (
-            <div className="rounded-lg border bg-card p-4 shadow-sm">
-              <p className="text-sm text-muted-foreground">알림 총수</p>
-              <p className="mt-2 text-2xl font-semibold text-foreground">{totalLogs}</p>
+
+      <div className="px-4 sm:px-6 lg:px-8 space-y-6">
+        {/* 1. Stats Grid (v1.66 Silent Efficiency) */}
+        {(() => {
+          const stats = [
+            {
+              label: '활성 운영 공지',
+              value: announcementStats.active,
+              unit: '건',
+              bg: 'bg-emerald-50/50',
+              text: 'text-emerald-600',
+            },
+            {
+              label: '누적 등록 공지',
+              value: announcementStats.total,
+              unit: '건',
+              bg: 'bg-indigo-50/50',
+              text: 'text-indigo-600',
+            },
+            ...(isLogsTab
+              ? [
+                  {
+                    label: '알림 발송 총수',
+                    value: totalLogs,
+                    unit: '건',
+                    bg: 'bg-blue-50/50',
+                    text: 'text-blue-600',
+                  },
+                ]
+              : []),
+          ]
+          const gridCols =
+            stats.length === 2
+              ? 'sm:grid-cols-2'
+              : stats.length === 3
+                ? 'sm:grid-cols-3'
+                : 'sm:grid-cols-2 lg:grid-cols-4'
+
+          return (
+            <div className={cn('grid grid-cols-1 gap-4', gridCols)}>
+              {stats.map((stat, idx) => (
+                <Card
+                  key={idx}
+                  className={cn(
+                    'rounded-2xl border-none shadow-sm shadow-gray-200/40 overflow-hidden',
+                    stat.bg
+                  )}
+                >
+                  <CardContent className="p-5 flex flex-col justify-between h-full">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter">
+                      {stat.label}
+                    </p>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className={cn('text-2xl font-black tracking-tight', stat.text)}>
+                        {stat.value.toLocaleString()}
+                      </span>
+                      <span className="text-xs font-bold text-slate-400">{stat.unit}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          )}
+          )
+        })()}
+
+        {/* 2. Navigation Hub */}
+        <div className="w-full">
+          <PillTabLinks
+            activeKey={tab}
+            items={[
+              {
+                key: 'compose',
+                label: '공지 작성',
+                href: '/dashboard/admin/communication?tab=compose',
+              },
+              {
+                key: 'announcements',
+                label: '공지 목록',
+                href: '/dashboard/admin/communication?tab=announcements',
+              },
+              { key: 'logs', label: '전달 로그', href: '/dashboard/admin/communication?tab=logs' },
+            ]}
+            className="w-full"
+            fill
+          />
         </div>
 
-        {/* 탭 내비게이션: 네이비(브랜드) 스타일 Pill Tabs */}
-        <PillTabLinks
-          activeKey={tab}
-          items={[
-            {
-              key: 'compose',
-              label: '공지 작성',
-              href: '/dashboard/admin/communication?tab=compose',
-            },
-            {
-              key: 'announcements',
-              label: '공지 목록',
-              href: '/dashboard/admin/communication?tab=announcements',
-            },
-            { key: 'logs', label: '전달 로그', href: '/dashboard/admin/communication?tab=logs' },
-          ]}
-          className="w-full"
-          fill
-        />
-
-        {/* 탭 콘텐츠 */}
-        {tab === 'compose' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>공지 작성</CardTitle>
-              <CardDescription>필수 필드만 입력하여 공지를 생성합니다.</CardDescription>
+        {/* 3. Tab Contents */}
+        {isComposeTab && (
+          <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+            <CardHeader className="border-b border-gray-100 bg-gray-50/30 px-6 py-6 sm:px-8">
+              <CardTitle className="text-lg font-bold text-[#1A254F]">새 공지사항 작성</CardTitle>
+              <CardDescription className="text-sm font-medium text-slate-400">
+                필수 항목을 입력하여 전사 또는 특정 현장에 공지사항을 발행합니다.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6 sm:p-10">
               <AnnouncementCreateForm />
             </CardContent>
           </Card>
         )}
 
-        {tab === 'announcements' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>공지사항</CardTitle>
-              <CardDescription>역할/현장 조건에 따라 노출되는 관리자 공지</CardDescription>
+        {isAnnouncementsTab && (
+          <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+            <CardHeader className="border-b border-gray-100 bg-gray-50/30 px-6 py-6 sm:px-8">
+              <CardTitle className="text-lg font-bold text-[#1A254F]">발행 공지 목록</CardTitle>
+              <CardDescription className="text-sm font-medium text-slate-400">
+                현재 시스템에 등록되어 노출 중인 공지사항 목록입니다.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="mb-3 flex items-center gap-2">
+            <CardContent className="p-0">
+              <div className="p-6 border-b border-slate-100 bg-slate-50/30">
                 <form method="GET" className="flex flex-wrap items-center gap-2">
                   <input type="hidden" name="tab" value="announcements" />
                   {roleFilter && <input type="hidden" name="role" value={roleFilter} />}
-                  <Input
-                    name="search"
-                    defaultValue={search}
-                    placeholder={t('common.search')}
-                    className="w-64 md:w-80"
-                  />
-                  <Button type="submit" variant="outline">
-                    {t('common.search')}
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <Input
+                      name="search"
+                      defaultValue={search}
+                      placeholder="제목 또는 내용으로 검색..."
+                      className="w-64 md:w-80 h-10 rounded-xl bg-white border-slate-200 pl-10 text-sm font-medium shadow-sm focus:ring-2 focus:ring-blue-500/10 transition-all"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="h-10 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] text-white px-6 font-bold text-sm shadow-sm transition-all"
+                  >
+                    검색
                   </Button>
                 </form>
               </div>
-              <AnnounceTable announcements={announcements} siteNameMap={siteNameMap} />
+              <div className="p-0">
+                <AnnounceTable announcements={announcements} siteNameMap={siteNameMap} />
+              </div>
             </CardContent>
           </Card>
         )}
 
-        {tab === 'logs' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>최근 알림 이력</CardTitle>
-              <CardDescription>최신 20개</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md border border-dashed border-muted-foreground/40 bg-muted/20 px-3 py-3 text-xs text-muted-foreground mb-3 space-y-1">
-                <p>
-                  <strong className="text-foreground">전달 로그</strong>는 공지나 자동 알림이 실제
-                  사용자에게 언제 전달됐는지 기록한 목록입니다.
-                </p>
-                <ul className="list-disc pl-4">
-                  <li>
-                    <strong>상태가 대기</strong>로 표시되면 아직 발송 결과가 기록되지 않은 초기
-                    상태입니다. 잠시 후 전달 완료/읽음 등으로 바뀝니다.
-                  </li>
-                  <li>
-                    <strong>동작이 대기 중</strong>이면 개별 로그 ID가 아직 없어 읽음/확인/반려
-                    버튼을 사용할 수 없다는 뜻입니다.
-                  </li>
-                  <li>
-                    실제 알림은 작업자·현장관리자의 앱 알림 센터에서 확인하며, 이 탭은 관리자용 전달
-                    현황 모니터링 화면입니다.
-                  </li>
-                </ul>
-              </div>
-              <div className="mb-3">
-                <form method="GET" className="flex flex-wrap items-end gap-3">
-                  <input type="hidden" name="tab" value="logs" />
-                  <div className="flex flex-col">
-                    <label htmlFor="log-role" className="text-xs text-muted-foreground">
-                      대상 역할
-                    </label>
-                    <select
-                      id="log-role"
-                      name="role"
-                      defaultValue={roleFilter}
-                      className="h-9 rounded-md border border-input bg-background px-2 text-sm"
-                    >
-                      <option value="">전체</option>
-                      <option value="worker">작업자</option>
-                      <option value="site_manager">현장관리자</option>
-                      <option value="customer_manager">파트너</option>
-                      <option value="admin">본사관리자</option>
-                    </select>
+        {isLogsTab && (
+          <div className="space-y-6">
+            <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+              <CardHeader className="border-b border-gray-100 bg-gray-50/30 px-6 py-6 sm:px-8">
+                <CardTitle className="text-lg font-bold text-[#1A254F]">알림 전달 로그</CardTitle>
+                <CardDescription className="text-sm font-medium text-slate-400">
+                  사용자 기기로 발송된 개별 알림의 수신 현황을 모니터링합니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="p-6 bg-amber-50/40 border-b border-amber-100 flex items-start gap-4">
+                  <div className="p-2 bg-amber-100 rounded-xl mt-0.5">
+                    <Info className="w-4 h-4 text-amber-600" />
                   </div>
-                  <Input
-                    name="search"
-                    defaultValue={search}
-                    placeholder={t('common.search')}
-                    className="w-64 md:w-80"
-                  />
-                  <Button type="submit" variant="outline">
-                    {t('common.search')}
-                  </Button>
-                </form>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  검색어와 역할 필터는 주소창에 저장되어 새로고침하거나 다시 방문해도 유지됩니다.
-                </p>
-              </div>
-              <NotificationsTable logs={logs} initialStars={initialStars} />
-            </CardContent>
-          </Card>
-        )}
-        {tab === 'logs' && (
-          <Card>
-            <CardHeader>
-              <CardTitle>감사 로그</CardTitle>
-              <CardDescription>상태 변경 및 즐겨찾기 활동</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AdminAuditTimeline events={auditEvents} />
-            </CardContent>
-          </Card>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                      시스템 발송 현행화 안내
+                    </p>
+                    <p className="text-xs text-amber-700/80 leading-relaxed font-medium">
+                      발송 직후에는 상태가 &apos;대기&apos;로 표시될 수 있으며, 실제 전달 여부는
+                      서비스 제공자의 발송 결과 피드백에 따라 수 초 내에 업데이트됩니다.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-6 border-b border-slate-100 bg-slate-50/30">
+                  <form method="GET" className="flex flex-wrap items-end gap-3">
+                    <input type="hidden" name="tab" value="logs" />
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter ml-1">
+                        대상 역할
+                      </label>
+                      <select
+                        name="role"
+                        defaultValue={roleFilter}
+                        className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 transition-all appearance-none min-w-[140px]"
+                      >
+                        <option value="">전체 역할</option>
+                        <option value="worker">작업자</option>
+                        <option value="site_manager">현장관리자</option>
+                        <option value="customer_manager">파트너</option>
+                        <option value="admin">본사관리자</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 flex-grow">
+                      <label className="text-[11px] font-bold text-slate-400 uppercase tracking-tighter ml-1">
+                        검색어
+                      </label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <Input
+                          name="search"
+                          defaultValue={search}
+                          placeholder="공지 제목 또는 수신자 검색..."
+                          className="h-10 rounded-xl bg-white border-slate-200 pl-10 text-sm font-medium shadow-sm focus:ring-2 focus:ring-blue-500/10 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="h-10 rounded-xl bg-[#1A254F] hover:bg-[#2A355F] text-white px-8 font-bold text-sm shadow-sm transition-all mb-[1px]"
+                    >
+                      조회하기
+                    </Button>
+                  </form>
+                </div>
+
+                <div className="p-0">
+                  <NotificationsTable logs={logs} initialStars={initialStars} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+              <CardHeader className="border-b border-gray-100 bg-gray-50/30 px-6 py-6 sm:px-8">
+                <CardTitle className="text-lg font-bold text-[#1A254F]">
+                  감사 기록 (Audit Logs)
+                </CardTitle>
+                <CardDescription className="text-sm font-medium text-slate-400">
+                  공지 관리 및 알림 관련 주요 활동 이력입니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <AdminAuditTimeline events={auditEvents} />
+              </CardContent>
+            </Card>
+          </div>
         )}
         {/* analytics/settings 탭 제거됨 */}
       </div>

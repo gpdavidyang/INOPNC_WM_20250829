@@ -1,16 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Building2, Mail, MapPin, Phone, RefreshCw, Users } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import DataTable, { type Column } from '@/components/admin/DataTable'
-import { Badge } from '@/components/ui/badge'
+import DataTable from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { t } from '@/lib/ui/strings'
-import Link from 'next/link'
 import { useConfirm } from '@/components/ui/use-confirm'
 import { useToast } from '@/components/ui/use-toast'
+import { cn } from '@/lib/utils'
+import { Building2, Mail, MapPin, Phone, Plus, RefreshCw, Search } from 'lucide-react'
+import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 interface Organization {
   id: string
@@ -35,6 +34,13 @@ export function OrganizationsOverview() {
   const [error, setError] = useState<string | null>(null)
   const [keyword, setKeyword] = useState('')
   const [refreshing, setRefreshing] = useState(false)
+
+  const stats = useMemo(() => {
+    const total = organizations.length
+    const totalMembers = organizations.reduce((acc, o) => acc + (o.member_count ?? 0), 0)
+    const totalSites = organizations.reduce((acc, o) => acc + (o.site_count ?? 0), 0)
+    return { total, totalMembers, totalSites }
+  }, [organizations])
 
   const loadOrganizations = useCallback(async () => {
     try {
@@ -68,15 +74,21 @@ export function OrganizationsOverview() {
   }, [loadOrganizations])
 
   const filtered = useMemo(() => {
+    let result = organizations
+
+    // Keyword Search
     const text = keyword.trim().toLowerCase()
-    if (!text) return organizations
-    return organizations.filter(org => {
-      const haystack = [org.name, org.type, org.address, org.contact_email, org.contact_phone]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      return haystack.includes(text)
-    })
+    if (text) {
+      result = result.filter(org => {
+        const haystack = [org.name, org.type, org.address, org.contact_email, org.contact_phone]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+        return haystack.includes(text)
+      })
+    }
+
+    return result
   }, [keyword, organizations])
 
   const handleRefresh = () => {
@@ -115,176 +127,251 @@ export function OrganizationsOverview() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Building2 className="h-5 w-5" />
-              소속(시공사) 관리
-            </CardTitle>
-            <CardDescription>
-              현장 연동에 사용되는 시공업체(소속사) 정보를 조회합니다.
-            </CardDescription>
+      {/* 1. Filter & Action Hub (Combined) */}
+      <Card className="rounded-2xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
+          <div className="flex flex-col md:flex-row items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-grow w-full">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <Input
+                placeholder="업체명, 주소, 연락처 등으로 검색..."
+                value={keyword}
+                onChange={event => setKeyword(event.target.value)}
+                className="h-10 rounded-xl bg-white border-slate-200 pl-10 pr-4 text-sm font-medium shadow-sm focus:ring-2 focus:ring-blue-500/20 transition-all w-full"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+              {/* Refresh Button */}
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="h-10 px-4 rounded-xl border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all text-sm font-medium shrink-0"
+              >
+                {refreshing ? '갱신 중...' : '새로고침'}
+              </Button>
+
+              {/* New Button */}
+              <Button
+                asChild
+                className="h-10 rounded-xl bg-[#1A254F] hover:bg-[#1A254F]/90 text-white px-5 shadow-sm transition-all text-sm flex items-center justify-center whitespace-nowrap shrink-0 border-none"
+              >
+                <Link
+                  href="/dashboard/admin/organizations/new"
+                  className="flex items-center gap-2 whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4 shrink-0" />
+                  <span className="font-medium whitespace-nowrap text-white">신규 소속 등록</span>
+                </Link>
+              </Button>
+            </div>
           </div>
-          <div className="flex w-full max-w-xl items-center gap-2">
-            <Input
-              placeholder={t('common.search')}
-              value={keyword}
-              onChange={event => setKeyword(event.target.value)}
-            />
-            <Button
-              variant="outline"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="shrink-0"
-            >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="sr-only">{t('common.refresh')}</span>
-            </Button>
-            <Button asChild variant="primary" className="shrink-0">
-              <Link href="/dashboard/admin/organizations/new">신규 등록</Link>
-            </Button>
-          </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
+      {/* 2. Stats Grid (v1.66 Standard) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[
+          {
+            label: '총 관리 업체',
+            value: stats.total,
+            unit: '개소',
+            bg: 'bg-indigo-50/50',
+            text: 'text-[#1A254F]',
+          },
+          {
+            label: '전체 연동 인원',
+            value: stats.totalMembers,
+            unit: '명',
+            bg: 'bg-blue-50/50',
+            text: 'text-blue-700',
+          },
+          {
+            label: '활성 운영 현장',
+            value: stats.totalSites,
+            unit: '곳',
+            bg: 'bg-sky-50/50',
+            text: 'text-sky-700',
+          },
+        ].map(card => (
+          <div
+            key={card.label}
+            className={cn('flex flex-col gap-1 p-5 rounded-xl border-none text-left', card.bg)}
+          >
+            <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">
+              {card.label}
+            </span>
+            <div className="flex items-baseline gap-1 mt-auto">
+              <span className={cn('text-2xl font-bold italic tracking-tighter', card.text)}>
+                {card.value.toLocaleString()}
+              </span>
+              <span className="text-[11px] font-medium opacity-30 ml-1">{card.unit}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {loading ? (
-        <Card>
-          <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            소속(시공사) 정보를 불러오는 중입니다...
-          </CardContent>
+        <Card className="rounded-3xl border-gray-200 shadow-sm p-12">
+          <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
+            <RefreshCw className="w-8 h-8 animate-spin opacity-20" />
+            <p className="text-sm font-medium">소속 정보를 불러오는 중...</p>
+          </div>
         </Card>
       ) : error ? (
-        <Card>
-          <CardContent className="py-16 text-center text-sm text-red-500">{error}</CardContent>
+        <Card className="rounded-3xl border-rose-100 bg-rose-50/10 shadow-sm p-12">
+          <div className="text-center py-10">
+            <p className="text-rose-600 font-bold mb-2">데이터 로드 오류</p>
+            <p className="text-slate-500 text-sm">{error}</p>
+            <Button variant="outline" className="mt-6 gap-2" onClick={handleRefresh}>
+              <RefreshCw className="w-4 h-4" />
+              다시 시도
+            </Button>
+          </div>
         </Card>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-20 text-center text-sm text-muted-foreground">
-            조건에 맞는 소속(시공사)이 없습니다.
-          </CardContent>
+        <Card className="rounded-3xl border-gray-200 shadow-sm p-12 bg-slate-50/30 border-dashed">
+          <div className="text-center py-20 flex flex-col items-center gap-4">
+            <div className="p-4 bg-white rounded-full shadow-sm border border-slate-100">
+              <Building2 className="w-8 h-8 text-slate-300" />
+            </div>
+            <div>
+              <p className="font-bold text-slate-800">조회된 소속사가 없습니다</p>
+              <p className="text-xs text-slate-500 mt-1">검색어나 필터를 조정해 보세요.</p>
+            </div>
+          </div>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="px-0">
+        <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/40 overflow-hidden">
+          <CardContent className="p-0">
             <DataTable<Organization>
               data={filtered}
               rowKey={o => o.id}
               stickyHeader
-              columns={
-                [
-                  {
-                    key: 'name',
-                    header: '시공업체명',
-                    sortable: true,
-                    width: '28%',
-                    render: (o: Organization) => (
-                      <div className="font-medium text-foreground">
+              headerClassName="bg-[#8da0cd]"
+              columns={[
+                {
+                  key: 'name',
+                  header: '시공업체 상세',
+                  sortable: true,
+                  width: '30%',
+                  render: (o: Organization) => (
+                    <div className="flex flex-col gap-0.5 pl-4">
+                      <div className="font-semibold text-sm text-[#1A254F] tracking-tight">
                         {o.name}
-                        {o.contact_email ? (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Mail className="h-3 w-3" />
-                            {o.contact_email}
-                          </div>
-                        ) : null}
                       </div>
-                    ),
-                  },
-                  {
-                    key: 'address',
-                    header: '주소',
-                    sortable: true,
-                    render: (o: Organization) =>
-                      o.address ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>{o.address}</span>
+                      {o.contact_email && (
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                          <Mail className="h-3 w-3 opacity-50" />
+                          {o.contact_email}
                         </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      ),
-                  },
-                  {
-                    key: 'contact',
-                    header: '연락처',
-                    sortable: false,
-                    width: '18%',
-                    render: (o: Organization) => (
-                      <div className="space-y-1 text-sm">
-                        {o.contact_phone ? (
-                          <div className="flex items-center gap-1">
-                            <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                            {o.contact_phone}
-                          </div>
-                        ) : null}
-                        {o.contact_email ? (
-                          <div className="flex items-center gap-1">
-                            <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            {o.contact_email}
-                          </div>
-                        ) : null}
-                        {!o.contact_phone && !o.contact_email ? (
-                          <span className="text-xs text-muted-foreground">등록된 연락처 없음</span>
-                        ) : null}
+                      )}
+                    </div>
+                  ),
+                },
+                {
+                  key: 'address',
+                  header: '사업장 주소',
+                  sortable: true,
+                  render: (o: Organization) =>
+                    o.address ? (
+                      <div className="flex items-center gap-1.5 text-sm font-medium text-slate-600">
+                        <MapPin className="h-4 w-4 text-slate-300 shrink-0" />
+                        <span className="truncate max-w-[200px]" title={o.address}>
+                          {o.address}
+                        </span>
                       </div>
+                    ) : (
+                      <span className="text-xs text-slate-300 italic">미등록</span>
                     ),
-                  },
-                  {
-                    key: 'member_count',
-                    header: '연동 인원',
-                    sortable: true,
-                    width: '12%',
-                    align: 'right',
-                    render: (o: Organization) => (
-                      <div className="flex items-center justify-end gap-1 text-sm font-medium">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        {o.member_count ?? 0}명
+                },
+                {
+                  key: 'contact',
+                  header: '유선 연락처',
+                  sortable: false,
+                  width: '18%',
+                  render: (o: Organization) =>
+                    o.contact_phone ? (
+                      <div className="flex items-center gap-2 text-blue-600 font-medium text-sm leading-none bg-blue-50/50 px-2 py-1 rounded-lg border border-blue-100/50 w-fit">
+                        <Phone className="h-3.5 w-3.5" />
+                        {o.contact_phone}
                       </div>
+                    ) : (
+                      <span className="text-xs text-slate-300 italic">미등록</span>
                     ),
-                  },
-                  {
-                    key: 'site_count',
-                    header: '연동 현장',
-                    sortable: true,
-                    width: '12%',
-                    align: 'right',
-                    render: (o: Organization) => (
-                      <div className="flex items-center justify-end gap-1 text-sm font-medium">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        {o.site_count ?? 0}곳
-                      </div>
-                    ),
-                  },
-                  {
-                    key: 'actions',
-                    header: '작업',
-                    sortable: false,
-                    width: '16%',
-                    align: 'right',
-                    className: 'whitespace-nowrap',
-                    render: (o: Organization) => (
-                      <div className="flex flex-nowrap items-center justify-end gap-2">
-                        <Button asChild size="sm" variant="outline" className="whitespace-nowrap">
-                          <Link href={`/dashboard/admin/organizations/${o.id}`}>상세</Link>
-                        </Button>
-                        <Button asChild size="sm" variant="outline" className="whitespace-nowrap">
-                          <Link href={`/dashboard/admin/organizations/${o.id}/edit`}>수정</Link>
-                        </Button>
-                        <form
-                          onSubmit={event => {
-                            event.preventDefault()
-                            void handleDelete(o.id, o.name)
-                          }}
-                        >
-                          <Button size="sm" variant="outline" className="whitespace-nowrap">
-                            삭제
-                          </Button>
-                        </form>
-                      </div>
-                    ),
-                  },
-                ] as Column<Organization>[]
-              }
+                },
+                {
+                  key: 'member_count',
+                  header: '연동 인원',
+                  sortable: true,
+                  width: '12%',
+                  align: 'right',
+                  render: (o: Organization) => (
+                    <div className="flex items-center justify-end gap-1.5 pr-4">
+                      <span className="text-base font-bold italic text-[#1A254F]">
+                        {o.member_count ?? 0}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-400 uppercase">명</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'site_count',
+                  header: '연동 현장',
+                  sortable: true,
+                  width: '12%',
+                  align: 'right',
+                  render: (o: Organization) => (
+                    <div className="flex items-center justify-end gap-1.5 pr-4">
+                      <span className="text-base font-bold italic text-sky-700">
+                        {o.site_count ?? 0}
+                      </span>
+                      <span className="text-[10px] font-medium text-slate-400 uppercase">곳</span>
+                    </div>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: '관리 액션',
+                  sortable: false,
+                  width: '18%',
+                  align: 'right',
+                  render: (o: Organization) => (
+                    <div className="flex flex-nowrap items-center justify-end gap-2 pr-4">
+                      <Button
+                        asChild
+                        size="xs"
+                        variant="outline"
+                        className="h-8 rounded-lg px-3 font-medium"
+                      >
+                        <Link href={`/dashboard/admin/organizations/${o.id}`}>상세</Link>
+                      </Button>
+                      <Button
+                        asChild
+                        size="xs"
+                        variant="outline"
+                        className="h-8 rounded-lg px-3 font-medium border-amber-200 text-amber-700 bg-amber-50/50"
+                      >
+                        <Link href={`/dashboard/admin/organizations/${o.id}/edit`}>수정</Link>
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        className="h-8 rounded-lg px-3 font-medium border-rose-100 text-rose-600 bg-rose-50/50"
+                        onClick={event => {
+                          event.preventDefault()
+                          void handleDelete(o.id, o.name)
+                        }}
+                      >
+                        삭제
+                      </Button>
+                    </div>
+                  ),
+                },
+              ]}
             />
           </CardContent>
         </Card>

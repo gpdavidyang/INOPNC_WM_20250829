@@ -1,7 +1,7 @@
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import PhotoSheetsManager from '@/components/admin/photo-sheets/PhotoSheetsManager'
 import { PageHeader } from '@/components/ui/page-header'
 import { createServiceClient } from '@/lib/supabase/service'
-import PhotoSheetsManager from '@/components/admin/photo-sheets/PhotoSheetsManager'
 
 type SearchParams = {
   site_id?: string
@@ -50,7 +50,20 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
         site_id,
         source_daily_report_id,
         source_daily_report_summary,
-        site:sites!photo_sheets_site_id_fkey ( id, name, address )
+        site:sites ( id, name, address )
+      `
+
+  const fallbackSelect = `
+        id,
+        title,
+        rows,
+        cols,
+        orientation,
+        status,
+        created_at,
+        site_id,
+        source_daily_report_id,
+        site:sites ( id, name, address )
       `
 
   const basicSelect = `
@@ -62,7 +75,7 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
         status,
         created_at,
         site_id,
-        site:sites!photo_sheets_site_id_fkey ( id, name, address )
+        site:sites ( id, name, address )
       `
 
   const buildQuery = (selectFields: string) => {
@@ -76,26 +89,25 @@ async function fetchPhotoSheets(searchParams: SearchParams) {
   }
 
   let data: PhotoSheetRow[] | null = null
-  let errorMessage: string | null = null
-  let query = buildQuery(baseSelect)
-  const { data: primaryData, error: primaryError } = await query
-  if (primaryError) {
-    errorMessage = primaryError.message || ''
-    if (primaryError.code === '42703' || /source_daily_report/i.test(errorMessage)) {
-      const fallback = await buildQuery(basicSelect)
-      const { data: fallbackData, error: fallbackError } = await fallback
-      if (fallbackError) {
-        console.error('[photo-sheets] fallback fetch error:', fallbackError)
-        return []
-      }
-      data = (fallbackData || []) as PhotoSheetRow[]
-    } else {
-      console.error('[photo-sheets] fetch error:', primaryError)
-      return []
+  let res = await buildQuery(baseSelect)
+
+  if (res.error) {
+    console.warn(
+      '[photo-sheets] Primary fetch failed, trying secondary fallback...',
+      res.error.message
+    )
+    res = await buildQuery(fallbackSelect)
+
+    if (res.error) {
+      console.warn(
+        '[photo-sheets] Secondary fetch failed, trying basic fallback...',
+        res.error.message
+      )
+      res = await buildQuery(basicSelect)
     }
-  } else {
-    data = (primaryData || []) as PhotoSheetRow[]
   }
+
+  data = (res.data || []) as PhotoSheetRow[]
 
   const sheets = (data || []).map(sheet => ({ ...sheet, photo_count: 0 }))
   const sheetIds = sheets.map(sheet => sheet.id).filter(Boolean)

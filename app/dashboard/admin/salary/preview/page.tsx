@@ -1,16 +1,20 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
-import { PageHeader } from '@/components/ui/page-header'
-import { t } from '@/lib/ui/strings'
-import { useToast } from '@/components/ui/use-toast'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
+    CustomSelect,
+    CustomSelectContent,
+    CustomSelectItem,
+    CustomSelectTrigger,
+    CustomSelectValue,
 } from '@/components/ui/custom-select'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/components/ui/use-toast'
+import { t } from '@/lib/ui/strings'
+import { Calendar, FileText, RefreshCw, Search } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 type WorkerPreview = {
   worker_id: string
@@ -133,18 +137,6 @@ export default function PayrollPreviewPage() {
     const key = String(val || '').toLowerCase()
     return employmentTypeLabel[key] || val || '-'
   }
-  const statusLabel: Record<NonNullable<WorkerPreview['status']>, string> = {
-    issued: '발행',
-    approved: '승인',
-    paid: '지급',
-  }
-  const getStatusBadgeClass = (status?: WorkerPreview['status']) => {
-    if (status === 'paid') return 'bg-slate-100 text-slate-700'
-    if (status === 'approved') return 'bg-green-50 text-green-700'
-    if (status === 'issued') return 'bg-amber-50 text-amber-700'
-    return 'bg-gray-100 text-gray-500'
-  }
-  const isPublished = (row: WorkerPreview) => Boolean(row.status)
 
   const openDetail = async (worker: WorkerPreview) => {
     setDetail(null)
@@ -205,9 +197,6 @@ export default function PayrollPreviewPage() {
     return list
   }, [rows, query, employmentType, workerId])
 
-  const employmentSelectValue = employmentType || 'all'
-  const workerSelectValue = workerId || 'all'
-
   const totals = useMemo(() => {
     return filtered.reduce(
       (acc, r) => {
@@ -223,7 +212,7 @@ export default function PayrollPreviewPage() {
   const publishableSelectedIds = useMemo(() => {
     return Array.from(selected).filter(id => {
       const row = rows.find(r => r.worker_id === id)
-      return row && !isPublished(row)
+      return row && !row.status
     })
   }, [selected, rows])
   const hasPublishableSelection = publishableSelectedIds.length > 0
@@ -257,300 +246,292 @@ export default function PayrollPreviewPage() {
   }
 
   return (
-    <div className="px-0 pb-8">
-      <PageHeader
-        title="급여계산 & 급여명세서 발행"
-        description="선택 월/필터에 따라 급여를 계산하고 필요한 대상에게 즉시 발행하세요"
-        breadcrumbs={[
-          { label: '대시보드', href: '/dashboard/admin' },
-          { label: '급여 관리', href: '/dashboard/admin/salary' },
-          { label: '급여계산 & 급여명세서 발행' },
-        ]}
-      />
-      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="w-full sm:w-auto">
-          <input
-            type="month"
-            className="h-10 w-full sm:w-36 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-            value={yearMonth}
-            onChange={e => setYearMonth(e.target.value)}
-            aria-label="년월"
-          />
-        </div>
-        <div className="w-full sm:w-40">
-          <CustomSelect
-            value={employmentSelectValue}
-            onValueChange={value =>
-              setEmploymentType(value === 'all' ? '' : (value as typeof employmentType))
-            }
-          >
-            <CustomSelectTrigger
-              className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-              aria-label="고용형태"
-            >
-              <CustomSelectValue placeholder="전체 형태" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">전체 형태</CustomSelectItem>
-              <CustomSelectItem value="freelancer">프리랜서</CustomSelectItem>
-              <CustomSelectItem value="daily_worker">일용직</CustomSelectItem>
-              <CustomSelectItem value="regular_employee">상용직</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-        </div>
-        <div className="w-full sm:w-40">
-          <CustomSelect
-            value={workerSelectValue}
-            onValueChange={value => setWorkerId(value === 'all' ? '' : value)}
-          >
-            <CustomSelectTrigger
-              className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-              aria-label="이름"
-            >
-              <CustomSelectValue placeholder="전체 이름" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">전체 이름</CustomSelectItem>
-              {workerOptions.map(option => (
-                <CustomSelectItem key={option.id} value={option.id}>
-                  {option.name}
-                </CustomSelectItem>
-              ))}
-            </CustomSelectContent>
-          </CustomSelect>
-        </div>
-        <div className="flex-1 min-w-[160px]">
-          <input
-            type="search"
-            placeholder="이름 검색"
-            className="h-10 w-full rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-          />
-        </div>
-      </div>
-      <p className="text-xs text-gray-500">
-        선택한 월에 대해 계산된 급여명세서가 있는 작업자만 이름 목록에 표시됩니다.
-      </p>
-      <div className="flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={fetchAll}
-          className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
-          disabled={loading}
-        >
-          {t('common.refresh')}
-        </button>
-        <button
-          type="button"
-          onClick={publishSelected}
-          disabled={!hasPublishableSelection || publishLoading}
-          className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm disabled:bg-gray-400"
-        >
-          선택 발행
-        </button>
-      </div>
-
-      {publishLoading && (
-        <div className="border border-blue-200 bg-blue-50 text-blue-800 text-sm rounded-md p-3">
-          <div className="font-medium mb-1">급여명세서 발행 중...</div>
-          {publishProgress && publishProgress.total > 0 ? (
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-2 bg-blue-100 rounded">
-                <div
-                  className="h-2 bg-blue-500 rounded"
-                  style={{
-                    width: `${Math.min(
-                      100,
-                      Math.round((publishProgress.current / publishProgress.total) * 100)
-                    )}%`,
-                  }}
+    <div className="space-y-6">
+      <Card className="rounded-3xl border-gray-200 shadow-sm shadow-gray-200/50">
+        <CardContent className="pt-6 space-y-6">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">년월 선택</span>
+              <div className="relative w-fit">
+                <Input
+                  type="month"
+                  className="h-10 w-40 rounded-xl bg-gray-50 border-none pl-4 pr-10 text-sm font-medium"
+                  value={yearMonth}
+                  onChange={e => setYearMonth(e.target.value)}
+                  aria-label="년월"
                 />
-              </div>
-              <div className="text-xs">
-                {publishProgress.current}/{publishProgress.total}
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               </div>
             </div>
-          ) : (
-            <div className="text-xs">요청 준비 중...</div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">고용 형태</span>
+              <CustomSelect
+                value={employmentType || 'all'}
+                onValueChange={value => setEmploymentType(value === 'all' ? '' : (value as any))}
+              >
+                <CustomSelectTrigger className="h-10 w-40 rounded-xl bg-gray-50 border-none px-4 text-sm font-medium">
+                  <CustomSelectValue placeholder="전체 형태" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="all">전체 형태</CustomSelectItem>
+                  <CustomSelectItem value="freelancer">프리랜서</CustomSelectItem>
+                  <CustomSelectItem value="daily_worker">일용직</CustomSelectItem>
+                  <CustomSelectItem value="regular_employee">상용직</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium text-muted-foreground tracking-tight ml-1">직접 이름 검색</span>
+              <div className="relative w-fit">
+                <Input
+                  type="search"
+                  placeholder="이름 검색"
+                  className="h-10 w-64 rounded-xl bg-gray-50 border-none pl-10 pr-4 text-sm font-medium"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchAll}
+                className="h-10 rounded-xl px-4 border-gray-200 font-bold"
+                disabled={loading}
+              >
+                <span>{t('common.refresh')}</span>
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={publishSelected}
+                disabled={!hasPublishableSelection || publishLoading}
+                className="h-10 rounded-xl px-6 bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap font-bold"
+              >
+                <span>선택 발행 ({publishableSelectedIds.length})</span>
+              </Button>
+            </div>
+          </div>
+
+          {publishLoading && (
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 text-sm space-y-3">
+              <div className="font-black text-blue-900 flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin text-blue-600" />
+                급여명세서 발행 중...
+              </div>
+              {publishProgress && (
+                <div className="space-y-1.5">
+                  <div className="h-1.5 w-full bg-blue-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-600 transition-all duration-300"
+                      style={{ width: `${(publishProgress.current / publishProgress.total) * 100}%` }}
+                    />
+                  </div>
+                  <div className="text-[10px] text-blue-700 font-bold text-right">
+                    {publishProgress.current} / {publishProgress.total} 처리 완료
+                  </div>
+                </div>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">인원</div>
-          <div className="text-2xl font-semibold">{totals.count}</div>
-        </div>
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">총급여</div>
-          <div className="text-2xl font-semibold">₩{totals.gross.toLocaleString()}</div>
-        </div>
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">실수령</div>
-          <div className="text-2xl font-semibold">₩{totals.net.toLocaleString()}</div>
-        </div>
-        <div className="rounded-xl border bg-[#F3F7FA] border-[#BAC6E1] p-4 min-h-[96px]">
-          <div className="text-sm text-[#8DA0CD] mb-1">선택</div>
-          <div className="text-2xl font-semibold">{selected.size}</div>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto border rounded-md">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-gray-50 text-left">
-              <th className="px-3 py-2">
-                <input
-                  type="checkbox"
-                  aria-label="전체 선택"
-                  checked={selected.size > 0 && selected.size === filtered.length}
-                  onChange={selectAll}
-                />
-              </th>
-              <th className="px-3 py-2">이름</th>
-              <th className="px-3 py-2">고용형태</th>
-              <th className="px-3 py-2">상태</th>
-              <th className="px-3 py-2 text-right">일당</th>
-              <th className="px-3 py-2 text-right">총공수</th>
-              <th className="px-3 py-2 text-right">총급여</th>
-              <th className="px-3 py-2 text-right">실수령</th>
-              <th className="px-3 py-2">액션</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map(w => (
-              <tr key={w.worker_id} className={`border-t ${isPublished(w) ? 'bg-gray-50/60' : ''}`}>
-                <td className="px-3 py-2">
-                  <input
-                    type="checkbox"
-                    aria-label="선택"
-                    checked={selected.has(w.worker_id)}
-                    onChange={() => toggle(w.worker_id)}
-                    disabled={publishLoading}
-                  />
-                </td>
-                <td className="px-3 py-2">{w.name}</td>
-                <td className="px-3 py-2">
-                  {formatEmploymentType(w.employment_type, w.employment_type_label)}
-                </td>
-                <td className="px-3 py-2">
-                  {w.status === 'paid' ? (
-                    <div className="flex flex-wrap gap-1">
-                      {(['issued', 'paid'] as const).map(st => (
-                        <span
-                          key={`${w.worker_id}-${st}`}
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(st)}`}
-                        >
-                          {statusLabel[st]}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusBadgeClass(w.status)}`}
-                    >
-                      {w.status ? statusLabel[w.status] : '미발행'}
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
-                </td>
-                <td className="px-3 py-2 text-right">{formatManhours(w.total_labor_hours)}</td>
-                <td className="px-3 py-2 text-right">₩{w.total_gross_pay.toLocaleString()}</td>
-                <td className="px-3 py-2 text-right font-semibold">
-                  ₩{w.net_pay.toLocaleString()}
-                </td>
-                <td className="px-3 py-2 flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
-                    onClick={() => {
-                      const safeName = (w.name || '').trim()
-                      const query = safeName ? `?name=${encodeURIComponent(safeName)}` : ''
-                      openFileRecordInNewTab({
-                        file_url: `/payslip/${w.worker_id}/${y}/${m}${query}`,
-                        file_name: `${safeName || 'payslip'}-${y}-${m}.html`,
-                        title: `${safeName || '급여'} ${y}-${m}`,
-                      })
-                    }}
-                  >
-                    HTML 보기
-                  </button>
-                  <button
-                    className="px-2 py-1 text-xs rounded-md bg-white border"
-                    onClick={() => openDetail(w)}
-                  >
-                    상세
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && !loading && (
-              <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={9}>
-                  표시할 데이터가 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {detailLoading && <p className="text-sm text-gray-600">상세 계산 불러오는 중...</p>}
-      {detail && (
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="border rounded-md p-3">
-            <h3 className="font-semibold mb-2">결과 요약</h3>
-            <ul className="text-sm space-y-1">
-              <li>
-                공수: {detail.work_days}일 / 총공수 {formatManhours(detail.total_labor_hours)}
-              </li>
-              <li>기본급: ₩{Number(detail.base_pay || 0).toLocaleString()}</li>
-              <li>총액: ₩{Number(detail.total_gross_pay || 0).toLocaleString()}</li>
-              <li>공제: ₩{Number(detail.total_deductions || 0).toLocaleString()}</li>
-              <li className="font-semibold">
-                실수령: ₩{Number(detail.net_pay || 0).toLocaleString()}
-              </li>
-            </ul>
-          </div>
-          <div className="border rounded-md p-3">
-            <h3 className="font-semibold mb-2">세율 정보</h3>
-            <div className="text-sm space-y-2">
-              <div>
-                고용형태:{' '}
-                {formatEmploymentType(
-                  detail?.employment_type || detailWorker?.employment_type,
-                  detailWorker?.employment_type_label
-                )}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+            <div className="bg-slate-50 p-5 rounded-2xl flex flex-col gap-1.5 border border-slate-100">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-[#1A254F] opacity-40">
+                조회 인원
               </div>
-              {detail.rate_source && (
-                <div>
-                  세율 출처: {detail.rate_source === 'custom' ? '개인 설정' : '고용형태 기본' }
-                </div>
-              )}
-              {rateEntries ? (
-                <ul className="text-xs list-disc pl-5">
-                  {rateEntries.map(entry => (
-                    <li key={entry.label}>
-                      {entry.label}: {entry.value}%
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-gray-600">
-                  기본세율: {summarizeDefaultRate() || '세율 정보 없음'}
-                </div>
-              )}
+              <div className="text-2xl font-bold text-[#1A254F] italic tracking-tight">
+                {totals.count}<span className="text-sm font-medium not-italic ml-1 opacity-50">명</span>
+              </div>
+            </div>
+            <div className="bg-indigo-50/50 p-5 rounded-2xl flex flex-col gap-1.5 border border-indigo-100/50">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-[#1A254F] opacity-40">
+                총지급액
+              </div>
+              <div className="text-2xl font-bold text-[#1A254F] italic tracking-tight">
+                <span className="text-lg font-medium not-italic mr-0.5 opacity-50">₩</span>
+                {totals.gross.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-emerald-50/20 p-5 rounded-2xl flex flex-col gap-1.5 border border-emerald-100/50">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-emerald-600 opacity-50">
+                총실수령액
+              </div>
+              <div className="text-2xl font-bold text-emerald-700 italic tracking-tight">
+                <span className="text-lg font-medium not-italic mr-0.5 opacity-50">₩</span>
+                {totals.net.toLocaleString()}
+              </div>
+            </div>
+            <div className="bg-slate-50 p-5 rounded-2xl flex flex-col gap-1.5 border border-slate-100">
+              <div className="text-[11px] font-medium uppercase tracking-tighter text-[#1A254F] opacity-40">
+                선택 대상
+              </div>
+              <div className="text-2xl font-bold text-[#1A254F] italic tracking-tight">
+                {selected.size}<span className="text-sm font-medium not-italic ml-1 opacity-50">명</span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-    </div>
+          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-[#8da0cd] text-white">
+                    <th className="px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        className="rounded border-none bg-white/20"
+                        checked={selected.size > 0 && selected.size === filtered.length}
+                        onChange={selectAll}
+                        aria-label="전체 선택"
+                      />
+                    </th>
+                    <th className="px-4 py-3 text-left font-bold">이름</th>
+                    <th className="px-4 py-3 text-left font-bold">고용형태</th>
+                    <th className="px-4 py-3 text-left font-bold">상태</th>
+                    <th className="px-4 py-3 text-right font-bold">총공수</th>
+                    <th className="px-4 py-3 text-right font-bold">총실수령</th>
+                    <th className="px-4 py-3 text-center font-bold">액션</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filtered.map(w => {
+                    const issued = Boolean(w.status)
+                    return (
+                      <tr key={w.worker_id} className={`hover:bg-gray-50/50 transition-colors ${issued ? 'bg-gray-50/20' : ''}`}>
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            className="rounded border-gray-300"
+                            checked={selected.has(w.worker_id)}
+                            onChange={() => toggle(w.worker_id)}
+                            disabled={publishLoading}
+                          />
+                        </td>
+                        <td className="px-4 py-3 font-bold text-gray-900">{w.name}</td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 font-medium text-xs border border-gray-200">
+                            {formatEmploymentType(w.employment_type, w.employment_type_label)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge 
+                            variant={issued ? "default" : "outline"}
+                            className={issued ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "text-gray-400 border-gray-200"}
+                          >
+                            {issued ? '발행완료' : '미발행'}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-gray-600">
+                          {formatManhours(w.total_labor_hours)} <span className="text-[10px] opacity-40">공수</span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-black text-[#1A254F]">
+                          ₩{w.net_pay.toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center gap-2">
+                             <Button
+                                variant="outline"
+                                size="xs"
+                                className="h-8 rounded-md px-3 text-xs border-gray-200 whitespace-nowrap gap-1.5"
+                                onClick={() => {
+                                  const safeName = (w.name || '').trim()
+                                  const query = safeName ? `?name=${encodeURIComponent(safeName)}` : ''
+                                  window.open(`/payslip/${w.worker_id}/${y}/${m}${query}`, '_blank')
+                                }}
+                              >
+                                <FileText className="w-3 h-3 text-gray-400" />
+                                미리보기
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="xs"
+                                className="h-8 rounded-md px-3 text-xs whitespace-nowrap"
+                                onClick={() => openDetail(w)}
+                              >
+                                계산상세
+                              </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                  {!loading && filtered.length === 0 && (
+                    <tr>
+                      <td className="px-4 py-16 text-center text-gray-400" colSpan={7}>
+                        조회된 데이터가 없습니다. 년월을 확인해 주세요.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            {detailWorker && (
+              <div className="space-y-4">
+                <h4 className="text-lg font-black text-foreground flex items-center gap-2">
+                  <div className="w-1.5 h-6 bg-blue-600 rounded-sm" />
+                  계산 상세 모니터: {detailWorker.name}
+                </h4>
+                {detailLoading ? (
+                  <div className="p-10 text-center text-gray-400 animate-pulse">상세 계산 산출 중...</div>
+                ) : detail ? (
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3">
+                      <div className="text-[11px] font-black uppercase tracking-tighter opacity-30 text-[#1A254F]">기본 지급 항목</div>
+                      <dl className="grid grid-cols-2 gap-y-2 text-sm font-bold">
+                        <dt className="text-gray-500">근무일수</dt>
+                        <dd className="text-right">{detail.work_days}일</dd>
+                        <dt className="text-gray-500">총 공수</dt>
+                        <dd className="text-right">{formatManhours(detail.total_labor_hours)} H</dd>
+                        <dt className="text-gray-500 pt-2 border-t border-slate-200">총급여액</dt>
+                        <dd className="text-right pt-2 border-t border-slate-200 text-blue-700">₩{Number(detail.total_gross_pay).toLocaleString()}</dd>
+                      </dl>
+                    </div>
+                    <div className="bg-rose-50/30 p-5 rounded-2xl border border-rose-100/50 flex flex-col gap-3">
+                      <div className="text-[11px] font-black uppercase tracking-tighter opacity-30 text-rose-600">공제/세율 정보</div>
+                      <div className="flex-1 space-y-2">
+                        {rateEntries ? (
+                          <div className="grid grid-cols-2 gap-y-1 text-xs font-bold text-rose-800">
+                             {rateEntries.map(entry => (
+                               <React.Fragment key={entry.label}>
+                                 <dt>{entry.label}</dt>
+                                 <dd className="text-right">{entry.value}%</dd>
+                               </React.Fragment>
+                             ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-rose-700/60 font-medium">
+                            {summarizeDefaultRate() || '표준 세율 적용'}
+                          </div>
+                        )}
+                        <div className="pt-2 border-t border-rose-200 flex justify-between items-center">
+                          <span className="text-sm font-black text-rose-800">공제 합계</span>
+                          <span className="text-sm font-black text-rose-800">₩{Number(detail.total_deductions).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+            
+            {error && (
+              <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl text-rose-700 text-sm flex items-center gap-3 self-end">
+                <div className="w-1.5 h-1.5 rounded-full bg-rose-600" />
+                {error}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,15 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
 import DocumentRequirementsTable from '@/components/admin/DocumentRequirementsTable'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { useToast } from '@/components/ui/use-toast'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 import { generateEnglishNameFromCode } from '@/lib/documents/required-document-types'
+import { cn } from '@/lib/utils'
+import { FileEdit, Info, Plus, RefreshCw, Save, X } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+
 type DocumentType = {
   id: string
   code: string
@@ -257,60 +261,85 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
   const formId = 'required-type-editor'
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-foreground">필수서류 유형</h3>
-          <p className="text-sm text-muted-foreground">
-            모바일/현장 화면과 연동되는 필수서류 유형을 관리합니다.
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+            <div className="w-1.5 h-6 bg-blue-600 rounded-sm" />
+            필수서류 유형 관리
+          </h2>
+          <p className="text-sm text-gray-500 ml-3.5 font-medium">
+            모바일 및 배정 시스템에서 요구하는 서류 유형을 구성합니다.
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
-            size="compact"
+            className="h-10 rounded-xl px-4 border-gray-200 font-bold"
             onClick={loadTypes}
             disabled={loading}
           >
             새로고침
           </Button>
-          <Button type="button" size="compact" onClick={openCreate}>
-            새 유형 추가
+          <Button
+            type="button"
+            className="h-10 rounded-xl px-4 gap-2 bg-[#1A254F] hover:bg-[#1A254F]/90"
+            onClick={openCreate}
+          >
+            <Plus className="w-4 h-4" />새 유형 추가
           </Button>
         </div>
       </div>
-      {modalOpen ? (
-        <div className="rounded-lg border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b px-6 py-4">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">
-                {editing ? '필수서류 유형 수정' : '필수서류 유형 추가'}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                파일 형식, 크기 제한 등 세부 설정을 입력하세요.
-              </p>
+
+      {modalOpen && (
+        <Card className="rounded-3xl border-blue-200 bg-blue-50/30 overflow-hidden shadow-md shadow-blue-100/20">
+          <div className="flex items-center justify-between border-b border-blue-100/50 px-6 py-4 bg-white/50 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-xl text-white">
+                <FileEdit className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">
+                  {editing ? '서류 유형 수정' : '새 서류 유형 등록'}
+                </h3>
+                <p className="text-[11px] font-semibold text-blue-600/70 uppercase tracking-tighter">
+                  {editing ? 'Edit Document Requirement' : 'Create New Requirement'}
+                </p>
+              </div>
             </div>
             <div className="flex gap-2">
               <Button
                 type="button"
-                variant="outline"
-                size="compact"
+                variant="ghost"
+                className="h-10 rounded-xl px-4 gap-2 text-gray-500 hover:bg-white/60"
                 onClick={() => setModalOpen(false)}
                 disabled={saving}
               >
+                <X className="w-4 h-4" />
                 닫기
               </Button>
-              <Button type="submit" form={formId} size="compact" disabled={saving}>
-                {saving ? '저장 중...' : '저장'}
+              <Button
+                type="submit"
+                form={formId}
+                className="h-10 rounded-xl px-6 gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200"
+                disabled={saving}
+              >
+                <Save className="w-4 h-4" />
+                {saving ? '저장 중...' : '설정 저장'}
               </Button>
             </div>
           </div>
-          <div className="px-5 py-5 sm:px-6">
-            <form id={formId} className="space-y-3" onSubmit={handleSubmit}>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <div>
-                  <Label htmlFor="code">코드</Label>
+          <CardContent className="p-6">
+            <form id={formId} className="space-y-6" onSubmit={handleSubmit}>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="code"
+                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
+                  >
+                    식별 코드 (고유)
+                  </Label>
                   <Input
                     id="code"
                     value={form.code}
@@ -318,87 +347,141 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
                     placeholder="예: id-card"
                     required
                     disabled={!!editing}
-                    className="h-10 text-sm"
+                    className="h-10 rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="name_ko">이름(국문)</Label>
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="name_ko"
+                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
+                  >
+                    유형 명칭 (국문)
+                  </Label>
                   <Input
                     id="name_ko"
                     value={form.name_ko}
                     onChange={e => handleInput('name_ko', e.target.value)}
+                    placeholder="예: 신분증 사본"
                     required
-                    className="h-10 text-sm"
+                    className="h-10 rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="sort_order">정렬 순서</Label>
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="sort_order"
+                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
+                  >
+                    노출 순서
+                  </Label>
                   <Input
                     id="sort_order"
                     type="number"
                     value={form.sort_order}
                     onChange={e => handleInput('sort_order', Number(e.target.value))}
-                    className="h-10 text-sm"
+                    className="h-10 rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="max_file_size">최대 크기(MB)</Label>
-                  <Input
-                    id="max_file_size"
-                    type="number"
-                    min={1}
-                    value={form.max_file_size_mb}
-                    onChange={e => handleInput('max_file_size_mb', Number(e.target.value))}
-                    className="h-10 text-sm"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="is_active_toggle">활성 상태</Label>
-                  <div
-                    id="is_active_toggle"
-                    className="flex h-10 w-full items-center justify-between rounded-md border border-[--neutral-200] bg-white px-3 text-sm text-gray-900"
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="max_file_size"
+                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
                   >
-                    <span className="text-muted-foreground">
-                      {form.is_active ? '사용' : '숨김'}
-                    </span>
-                    <Switch
-                      className="h-5 w-9"
-                      checked={form.is_active}
-                      onCheckedChange={checked => handleInput('is_active', checked)}
+                    최대 용량 (MB)
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="max_file_size"
+                      type="number"
+                      min={1}
+                      value={form.max_file_size_mb}
+                      onChange={e => handleInput('max_file_size_mb', Number(e.target.value))}
+                      className="h-10 rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium pr-10"
                     />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold opacity-30">
+                      MB
+                    </span>
                   </div>
                 </div>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="description">설명</Label>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="description"
+                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
+                  >
+                    세부 설명
+                  </Label>
                   <Textarea
                     id="description"
                     value={form.description}
                     onChange={e => handleInput('description', e.target.value)}
+                    placeholder="이 서류 유형에 대한 간단한 설명을 입력하세요."
                     rows={3}
-                    className="min-h-[72px] text-sm"
+                    className="min-h-[80px] rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="instructions">제출 안내</Label>
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="instructions"
+                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
+                  >
+                    제출 지침 (사용자 안내용)
+                  </Label>
                   <Textarea
                     id="instructions"
                     value={form.instructions}
                     onChange={e => handleInput('instructions', e.target.value)}
+                    placeholder="사용자가 서류를 준비할 때 주의해야 할 사항을 입력하세요."
                     rows={3}
-                    className="min-h-[72px] text-sm"
+                    className="min-h-[80px] rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-white/50 p-4 rounded-2xl flex items-center justify-between border border-blue-100/30">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={cn(
+                      'p-1.5 rounded-lg text-white',
+                      form.is_active ? 'bg-emerald-500' : 'bg-gray-400'
+                    )}
+                  >
+                    <Info className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-gray-900">시스템 활성화 상태</span>
+                    <p className="text-[11px] text-gray-500 font-medium">
+                      활성화 시 즉시 사용자 앱 및 관리자 화면에 반영됩니다.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={cn(
+                      'text-sm font-bold italic uppercase',
+                      form.is_active ? 'text-emerald-600' : 'text-gray-400'
+                    )}
+                  >
+                    {form.is_active ? 'Active' : 'Hidden'}
+                  </span>
+                  <Switch
+                    checked={form.is_active}
+                    onCheckedChange={checked => handleInput('is_active', checked)}
                   />
                 </div>
               </div>
             </form>
-          </div>
-        </div>
-      ) : null}
+          </CardContent>
+        </Card>
+      )}
 
-      <div className="rounded-lg border bg-card p-4 shadow-sm">
+      <div className="pt-4">
         {loading ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">목록을 불러오는 중…</div>
+          <div className="py-20 flex flex-col items-center justify-center text-gray-400 gap-3">
+            <RefreshCw className="w-8 h-8 animate-spin opacity-20" />
+            <p className="text-sm font-medium">유형 목록을 불러오는 중...</p>
+          </div>
         ) : (
           <DocumentRequirementsTable
             types={types}

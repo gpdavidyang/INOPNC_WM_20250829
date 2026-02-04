@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import { Package, Plus, Trash2 } from 'lucide-react'
+import { Package, Plus } from 'lucide-react'
 import { useMemo } from 'react'
 import { CollapsibleSection } from '../CollapsibleSection'
 import {
@@ -182,11 +182,11 @@ export const MaterialUsageSection = (props: MaterialUsageSectionProps) => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-9 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 px-3 transition-all"
+                        className="h-9 px-3 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-100 hover:border-rose-200 transition-all font-black text-sm flex items-center justify-center gap-1.5"
                         onClick={() => handleRemoveMaterial(entry.id)}
                         title="자재 삭제"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <span>삭제</span>
                       </Button>
                     </div>
                   </div>

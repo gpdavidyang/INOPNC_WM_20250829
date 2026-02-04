@@ -1,8 +1,5 @@
 'use client'
 
-import React from 'react'
-import { Badge } from '@/components/ui/badge'
-
 interface AuditEvent {
   id: string
   engagement_type: string
@@ -38,21 +35,39 @@ export function AdminAuditTimeline({ events }: { events: AuditEvent[] }) {
     )[type] || type
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 relative before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-[1px] before:bg-slate-100 pb-0">
       {events.map(event => (
-        <div key={event.id} className="border rounded-lg p-3">
-          <div className="flex items-center justify-between gap-2">
-            <Badge variant="outline">{label(event.engagement_type)}</Badge>
-            {event.engaged_at && (
-              <span className="text-xs text-muted-foreground">
-                {new Date(event.engaged_at).toLocaleString('ko-KR')}
-              </span>
-            )}
+        <div key={event.id} className="relative pl-10">
+          {/* Timeline Dot */}
+          <div className="absolute left-0 top-1 w-9 h-9 flex items-center justify-center">
+            <div className="w-2.5 h-2.5 rounded-full border-2 border-white bg-slate-200 shadow-sm z-10" />
           </div>
-          <div className="mt-2 text-sm">
-            <div className="text-foreground font-medium">{event.notification?.title || '공지'}</div>
-            <div className="text-xs text-muted-foreground">
-              {event.user?.name || '관리자'} · {event.notification?.type || 'site_announcement'}
+
+          <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+              <span className="inline-flex items-center px-2 py-0.5 rounded bg-white border border-slate-200 text-[10px] font-bold text-slate-500">
+                {label(event.engagement_type)}
+              </span>
+              {event.engaged_at && (
+                <span className="text-[11px] font-bold text-slate-400">
+                  {new Date(event.engaged_at).toLocaleString('ko-KR')}
+                </span>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-[#1A254F] tracking-tight truncate">
+                {event.notification?.title || '공지 알림'}
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-medium text-slate-500">
+                  {event.user?.name || '관리자'}
+                </span>
+                <span className="w-1 h-1 rounded-full bg-slate-300" />
+                <span className="text-[11px] font-medium text-slate-400">
+                  {event.notification?.type || 'site_announcement'}
+                </span>
+              </div>
             </div>
           </div>
         </div>

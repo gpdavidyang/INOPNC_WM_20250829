@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { buildVariantStoragePaths, generateImageVariants } from '@/lib/admin/site-photos'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { buildVariantStoragePaths, generateImageVariants } from '@/lib/admin/site-photos'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     let uploaded = 0
+    const allUploaded: any[] = []
     const errors: string[] = []
 
     const uploadSet = async (files: File[], type: 'before' | 'after') => {
@@ -104,11 +105,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
           const {
             data: { publicUrl: displayUrl },
           } = (svc as any).storage.from('daily-reports').getPublicUrl(paths.displayPath)
-          const {
-            data: { publicUrl: thumbUrl },
-          } = (svc as any).storage.from('daily-reports').getPublicUrl(paths.thumbPath)
 
-          const { error: dbErr } = await (svc as any)
+          const { data: dbEntry, error: dbErr } = await (svc as any)
             .from('daily_report_additional_photos')
             .insert({
               daily_report_id: reportId,
@@ -121,12 +119,14 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
               upload_order: order,
               uploaded_by: authResult.userId,
             })
+            .select()
+            .single()
+
           if (dbErr) throw dbErr
+          allUploaded.push(dbEntry)
           uploaded += 1
         } catch (e: any) {
           errors.push(`${file.name}: ${e?.message || 'upload failed'}`)
-        } finally {
-          // no-op
         }
       }
     }
@@ -137,6 +137,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     return NextResponse.json({
       success: true,
       uploaded,
+      photos: allUploaded,
       errors: errors.length ? errors : undefined,
     })
   } catch (error) {

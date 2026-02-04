@@ -1,11 +1,13 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
-import { DataTable } from '@/components/admin/DataTable'
-import { Button } from '@/components/ui/button'
 import AdminActionButtons from '@/components/admin/AdminActionButtons'
+import { DataTable } from '@/components/admin/DataTable'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
+import { CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import React, { useMemo, useState } from 'react'
 
 export default function SignupRequestsTable({ requests }: { requests: any[] }) {
   const router = useRouter()
@@ -68,10 +70,11 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
     }, 600)
   }
 
-  const STATUS_KO: Record<string, string> = {
-    pending: '대기',
-    approved: '승인',
-    rejected: '거절',
+  const ROLE_KO: Record<string, string> = {
+    admin: '관리자',
+    partner: '협력업체',
+    driver: '운송기사',
+    manager: '현장관리자',
   }
 
   const columns = useMemo(
@@ -81,63 +84,118 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
         header: '요청일',
         sortable: true,
         accessor: (r: any) => (r?.requested_at ? new Date(r.requested_at).getTime() : 0),
-        render: (r: any) =>
-          r?.requested_at ? new Date(r.requested_at).toLocaleString('ko-KR') : '-',
+        render: (r: any) => (
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-slate-700">
+              {r?.requested_at ? new Date(r.requested_at).toLocaleDateString('ko-KR') : '-'}
+            </span>
+            <span className="text-[10px] text-slate-400 font-medium">
+              {r?.requested_at
+                ? new Date(r.requested_at).toLocaleTimeString('ko-KR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                : ''}
+            </span>
+          </div>
+        ),
       },
       {
         key: 'full_name',
-        header: '이름',
+        header: '신청자 정보',
         sortable: true,
         accessor: (r: any) => r?.full_name || '',
-        render: (r: any) => r?.full_name || '-',
-      },
-      {
-        key: 'email',
-        header: '이메일',
-        sortable: true,
-        accessor: (r: any) => r?.email || '',
-        render: (r: any) => r?.email || '-',
+        render: (r: any) => (
+          <div className="flex flex-col">
+            <span className="text-sm font-black text-[#1A254F]">{r?.full_name || '-'}</span>
+            <span className="text-xs text-slate-400 font-medium">{r?.email || '-'}</span>
+          </div>
+        ),
       },
       {
         key: 'company',
         header: '소속사',
         sortable: true,
         accessor: (r: any) => r?.company || r?.company_name || '',
-        render: (r: any) => r?.company || r?.company_name || '-',
+        render: (r: any) => (
+          <span className="text-xs font-bold text-slate-600">
+            {r?.company || r?.company_name || '-'}
+          </span>
+        ),
       },
       {
         key: 'requested_role',
-        header: '역할',
+        header: '요청 역할',
         sortable: true,
         accessor: (r: any) => r?.requested_role || '',
-        render: (r: any) => r?.requested_role || '-',
+        render: (r: any) => (
+          <Badge
+            variant="outline"
+            className="border-indigo-100 bg-indigo-50/30 text-indigo-600 font-bold text-[10px] h-5"
+          >
+            {ROLE_KO[String(r?.requested_role || '').toLowerCase()] || r?.requested_role || '-'}
+          </Badge>
+        ),
       },
       {
         key: 'status',
         header: '상태',
         sortable: true,
         accessor: (r: any) => r?.status || '',
-        render: (r: any) => STATUS_KO[String(r?.status || '').toLowerCase()] || '-',
+        render: (r: any) => {
+          const s = String(r?.status || '').toLowerCase()
+          if (s === 'pending')
+            return (
+              <Badge
+                variant="warning"
+                className="bg-amber-50 text-amber-600 border-amber-100 font-bold text-[10px] h-5 gap-1"
+              >
+                <Clock className="w-2.5 h-2.5" />
+                대기
+              </Badge>
+            )
+          if (s === 'approved')
+            return (
+              <Badge
+                variant="success"
+                className="bg-emerald-50 text-emerald-600 border-emerald-100 font-bold text-[10px] h-5 gap-1"
+              >
+                <CheckCircle2 className="w-2.5 h-2.5" />
+                승인
+              </Badge>
+            )
+          if (s === 'rejected')
+            return (
+              <Badge
+                variant="error"
+                className="bg-rose-50 text-rose-600 border-rose-100 font-bold text-[10px] h-5 gap-1"
+              >
+                <XCircle className="w-2.5 h-2.5" />
+                거절
+              </Badge>
+            )
+          return <span className="text-xs text-slate-400">-</span>
+        },
       },
       {
         key: 'actions',
-        header: '작업',
+        header: '관리',
         sortable: false,
-        className: 'min-w-[320px]',
         render: (r: any) => (
-          <div className="flex flex-nowrap gap-1 overflow-x-auto [&>*]:shrink-0">
-            <AdminActionButtons
-              size="compact"
-              detailHref={`/dashboard/admin/signup-requests/${r.id}`}
-              // Only show delete for pending/rejected; guarded below with overall condition
-              className="shrink-0"
-            />
-            {['pending', 'rejected'].includes(String(r?.status || '').toLowerCase()) ? (
+          <div className="flex items-center gap-1.5 justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 rounded-lg border-slate-200 text-xs font-bold hover:bg-slate-50 px-3"
+              onClick={() => router.push(`/dashboard/admin/signup-requests/${r.id}`)}
+            >
+              상세
+            </Button>
+            {['pending', 'rejected'].includes(String(r?.status || '').toLowerCase()) && (
               <>
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="shrink-0"
+                  className="h-8 rounded-lg bg-[#1A254F] hover:bg-[#2A355F] text-white text-xs font-bold px-3 shadow-sm"
                   disabled={busyId === r.id}
                   onClick={() => approve(r.id)}
                 >
@@ -146,7 +204,7 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="shrink-0"
+                  className="h-8 rounded-lg border-rose-100 bg-rose-50/50 text-rose-600 hover:bg-rose-100 hover:border-rose-200 text-xs font-bold px-3 transition-all shadow-sm shadow-rose-100/20"
                   disabled={busyId === r.id}
                   onClick={() => setRejectId(r.id)}
                 >
@@ -156,12 +214,10 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
                   size="compact"
                   deleteHref={`/api/admin/signup-requests/${r.id}`}
                   deleteConfirmMessage="해당 가입 요청을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
-                  className="shrink-0"
+                  className="ml-1"
                   onDeleted={() => onDeleted(r.id)}
                 />
               </>
-            ) : (
-              <span className="text-xs text-muted-foreground">-</span>
             )}
           </div>
         ),
@@ -175,31 +231,50 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
       <DataTable
         data={rows}
         rowKey="id"
-        emptyMessage="표시할 요청이 없습니다."
+        emptyMessage="표시할 가입 신청 내역이 없습니다."
         stickyHeader
         columns={columns as any}
       />
 
       {rejectId && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-4">
-            <h3 className="text-lg font-semibold mb-2">거절 사유</h3>
-            <p className="text-sm text-muted-foreground mb-2">
-              선택 사항이며, 후속 대응에 사용됩니다.
-            </p>
-            <textarea
-              className="w-full min-h-[100px] border rounded p-2 mb-3"
-              placeholder="거절 사유를 입력하세요"
-              value={rejectReason}
-              onChange={e => setRejectReason(e.target.value)}
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setRejectId(null)}>
-                취소
-              </Button>
-              <Button onClick={submitReject} disabled={busyId === rejectId}>
-                확인
-              </Button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden border border-slate-100 scale-in-center">
+            <div className="p-8 space-y-4">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center">
+                  <XCircle className="w-5 h-5 text-rose-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-[#1A254F] tracking-tight">가입 거절</h3>
+                  <p className="text-xs font-medium text-slate-400">
+                    요청을 거절하는 사유를 입력해주세요.
+                  </p>
+                </div>
+              </div>
+
+              <textarea
+                className="w-full min-h-[120px] bg-slate-50 border-none rounded-2xl p-4 text-sm font-medium placeholder:text-slate-300 focus:ring-2 focus:ring-rose-500/20 transition-all resize-none"
+                placeholder="관련 사유를 입력하세요 (선택 사항)"
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+              />
+
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  className="flex-1 h-11 rounded-xl font-bold bg-slate-100 hover:bg-slate-200"
+                  onClick={() => setRejectId(null)}
+                >
+                  취소
+                </Button>
+                <Button
+                  className="flex-1 h-11 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-100"
+                  onClick={submitReject}
+                  disabled={busyId === rejectId}
+                >
+                  거절 확인
+                </Button>
+              </div>
             </div>
           </div>
         </div>

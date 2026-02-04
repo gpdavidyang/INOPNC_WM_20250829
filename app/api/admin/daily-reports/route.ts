@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { createDailyReport } from '@/app/actions/admin/daily-reports'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -58,9 +58,57 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await createDailyReport(body)
-    if (!result.success) {
+    if (!result.success || !result.data?.id) {
       return NextResponse.json({ success: false, error: result.error }, { status: 400 })
     }
+
+    const newId = result.data.id
+
+    // Sync worker entries if provided
+    if (Array.isArray(body.worker_entries)) {
+      try {
+        const service = createServiceClient()
+        const insertRows = body.worker_entries.map((entry: any) => ({
+          daily_report_id: newId,
+          profile_id: entry.worker_id || null,
+          worker_id: entry.worker_id || null,
+          worker_name: entry.worker_name || '이름없음',
+          labor_hours: Number(entry.labor_hours || entry.hours || 0),
+          is_direct_input: entry.is_direct_input ?? !entry.worker_id,
+          notes: entry.notes || null,
+        }))
+        if (insertRows.length > 0) {
+          await service.from('worker_assignments').insert(insertRows)
+        }
+      } catch (err) {
+        console.error('[admin/daily-reports:POST] worker sync failed:', err)
+      }
+    }
+
+    // Sync material usage if provided
+    if (Array.isArray(body.material_usage)) {
+      try {
+        const service = createServiceClient()
+        const insertRows = body.material_usage.map((entry: any) => ({
+          daily_report_id: newId,
+          material_id: entry.material_id || null,
+          material_code: entry.material_code || null,
+          material_name: entry.material_name || '자재',
+          material_type: String(entry.material_code || entry.material_name || 'ETC').toUpperCase(),
+          quantity: Number(entry.quantity || 0),
+          quantity_val: Number(entry.quantity || 0),
+          amount: Number(entry.quantity || 0),
+          unit: entry.unit || null,
+          notes: entry.notes || null,
+        }))
+        if (insertRows.length > 0) {
+          await service.from('material_usage').insert(insertRows)
+        }
+      } catch (err) {
+        console.error('[admin/daily-reports:POST] material sync failed:', err)
+      }
+    }
+
     return NextResponse.json({ success: true, data: result.data })
   } catch (e) {
     console.error('[admin/daily-reports:POST] error:', e)
