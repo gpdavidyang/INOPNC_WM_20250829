@@ -260,40 +260,71 @@ export async function getSiteLaborSummary(
  * Returns man-days (공수) per user_id.
  */
 export async function getGlobalLaborSummary(userIds?: string[]): Promise<Record<string, number>> {
-  const supabase = createClient()
+  let supabase
+  try {
+    supabase = createClient()
+  } catch (error) {
+    const { createServiceRoleClient } = require('@/lib/supabase/service-role')
+    supabase = createServiceRoleClient()
+  }
 
   // 1. Fetch Daily Reports where these users might be present
   // Global Labor Summary ONLY includes 'approved' reports per user request
-  let reportIds: string[] = []
+  let reportIds = new Set<string>()
+
   if (userIds && userIds.length > 0) {
+    // A. From daily_report_workers (Index table - Fast)
     const { data: rwData } = await supabase
       .from('daily_report_workers')
       .select('daily_report_id')
       .in('worker_id', userIds)
-    reportIds = Array.from(new Set((rwData || []).map(r => r.daily_report_id)))
+
+    if (rwData) rwData.forEach(r => reportIds.add(r.daily_report_id))
+
+    // B. From Relevant Sites (Robustness - covers cases where index is missing but user is in JSON)
+    // Find sites these users are assigned to
+    const { data: userAssignments } = await supabase
+      .from('site_assignments')
+      .select('site_id')
+      .in('user_id', userIds)
+
+    const siteIds = Array.from(new Set((userAssignments || []).map(a => a.site_id)))
+
+    if (siteIds.length > 0) {
+      // Fetch approved reports for these sites
+      const { data: siteReports } = await supabase
+        .from('daily_reports')
+        .select('id')
+        .in('site_id', siteIds)
+        .eq('status', 'approved')
+
+      if (siteReports) siteReports.forEach(r => reportIds.add(r.id))
+    }
   } else {
     const { data: rAll } = await supabase
       .from('daily_reports')
       .select('id')
       .eq('status', 'approved')
-    reportIds = (rAll || []).map(r => r.id)
+    if (rAll) rAll.forEach(r => reportIds.add(r.id))
   }
 
+  const uniqueReportIds = Array.from(reportIds)
+
   const { data: reports } =
-    reportIds.length > 0
+    uniqueReportIds.length > 0
       ? await supabase
           .from('daily_reports')
           .select('id, work_date, work_content, status')
-          .in('id', reportIds)
+          .in('id', uniqueReportIds)
           .eq('status', 'approved')
       : { data: [] }
 
   let reportWorkers: any[] = []
-  if (reportIds.length > 0) {
+  if (uniqueReportIds.length > 0) {
     let rwQuery = supabase
       .from('daily_report_workers')
       .select('worker_id, work_hours, daily_report_id')
-      .in('daily_report_id', reportIds)
+      .in('daily_report_id', uniqueReportIds)
       .not('worker_id', 'is', null)
     if (userIds && userIds.length > 0) {
       rwQuery = rwQuery.in('worker_id', userIds)

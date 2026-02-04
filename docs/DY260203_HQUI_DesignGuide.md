@@ -1,7 +1,7 @@
 # 본사관리자 화면 디자인 스타일 가이드
 
-> **작성일**: 2026년 2월 3일  
-> **버전**: 1.4  
+> **작성일**: 2026년 2월 4일
+> **버전**: 1.9
 > **목적**: 본사관리자 화면의 일관성 있는 UI/UX 제공을 위한 디자인 표준
 
 ---
@@ -35,60 +35,57 @@
 
 ---
 
-## 📝 타이포그래피
+## 📝 타이포그래피 (Typography)
 
-### 폰트 크기 체계
+가독성과 시각적 피로도 감소를 위해 **굵기(Weight)의 조화**를 중요시합니다.
 
-| 용도            | 클래스        | 크기 | 사용 예시                        |
-| --------------- | ------------- | ---- | -------------------------------- |
-| **대형 숫자**   | `text-2xl`    | 24px | 통계 카드의 주요 수치            |
-| **페이지 제목** | `text-lg`     | 18px | 섹션 제목 (예: "최근 작업일지")  |
-| **본문**        | `text-base`   | 16px | 일반 데이터 값                   |
-| **보조 텍스트** | `text-sm`     | 14px | 설명문, 필터 입력                |
-| **작은 텍스트** | `text-xs`     | 12px | 부가 정보, 도움말                |
-| **라벨**        | `text-[11px]` | 11px | 통계 카드 라벨, 테이블 헤더 보조 |
+### 폰트 크기 및 굵기 체계
 
-### 폰트 굵기
+| 용도            | 클래스        | 굵기          | 사용 예시                            |
+| --------------- | ------------- | ------------- | ------------------------------------ |
+| **대형 숫자**   | `text-2xl`    | `font-black`  | 통계 카드의 주요 수치 (이탤릭 권장)  |
+| **섹션 제목**   | `text-lg`     | `font-black`  | 페이지 및 섹션의 대제목              |
+| **데이터 명칭** | `text-base`   | `font-bold`   | 정보 그리드의 값, 테이블 주요 필드   |
+| **일반 텍스트** | `text-sm`     | `font-medium` | 설명문, 테이블 일반 텍스트           |
+| **보조 라벨**   | `text-[11px]` | `font-black`  | 통계 라벨 (저대비/Opacity 적용 필수) |
 
-| 용도            | 클래스        | 사용 예시              |
-| --------------- | ------------- | ---------------------- |
-| **강조 제목**   | `font-black`  | 섹션 제목, 통계 라벨   |
-| **중요 데이터** | `font-bold`   | 데이터 값, 중요 정보   |
-| **일반 텍스트** | `font-normal` | 버튼 텍스트, 일반 내용 |
+### 타이포그래피 원칙
 
-### 특수 스타일
+1.  **Bold 남용 금지**: 모든 텍스트가 Bold일 경우 강조 효과가 사라지고 시각적 피로도가 높습니다. 정적인 정보(설명문, 일반 값)는 `font-medium` 또는 `font-normal`을 사용합니다.
+2.  **계층 구조**: `Black(제목/라벨) > Bold(데이터) > Medium(일반)` 순으로 위계를 설정합니다.
+3.  **한글 우선**: 모든 레이아웃에서 한글 표기를 원칙으로 하며, 영문은 디자인적 요소(Sub-title 등)로만 최소화하여 사용합니다.
 
 ```tsx
-// 통계 카드 라벨
-className = 'text-[11px] uppercase font-black tracking-tighter opacity-50'
+// ✅ 권장: 라벨(Black/Low Opacity) + 데이터(Bold)
+<div className="space-y-1">
+  <div className="text-[11px] font-black uppercase tracking-tighter opacity-50">작성자</div>
+  <div className="text-base font-bold text-foreground">홍길동</div>
+</div>
 
-// 섹션 제목
-className = 'text-lg font-black text-foreground'
-
-// 통계 숫자 (이탤릭)
-className = 'text-2xl font-black text-blue-700 italic'
+// ❌ 지양: 모든 항목이 과도하게 굵은 경우
+<div className="font-black text-lg">작성자: 홍길동</div>
 ```
 
 ---
 
-## 🎨 색상 시스템
+### 색상 시스템 (Color System)
 
-### 주요 색상
+#### 핵심 브랜드 컬러 (Core Brand Colors)
 
-#### 브랜드 컬러
+- **Management Navy**: `#1A254F` (브랜드 핵심 컬러 / 주요 버튼 / 카드 헤더)
+- **Table Header Background**: `#8da0cd` (`--brand-300`) (현장 관리/작업일지 관리 등에서 공통으로 사용되는 표준 표 헤더 색상)
+- **Primary Blue**: `text-blue-600`, `bg-blue-600` (일반 액션/강조)
+- **Accent Amber**: `text-amber-600`, `bg-amber-600` (경고/수정)
+- **Success Green**: `bg-emerald-600`, `hover:bg-emerald-700` (승인/완료)
 
-- **Primary Blue**: `text-blue-600`, `bg-blue-600`
-- **Accent Amber**: `text-amber-600`, `bg-amber-600`
-- **Success Green**: `bg-emerald-600`, `hover:bg-emerald-700`
+#### 상태 및 톤앤매너 색상 (State Colors)
 
-#### 상태 색상
-
-| 상태          | 텍스트           | 배경             | 테두리             | 사용처               |
-| ------------- | ---------------- | ---------------- | ------------------ | -------------------- |
-| **정보**      | `text-blue-600`  | `bg-blue-50`     | `border-blue-200`  | 선택된 탭, 정보 강조 |
-| **성공/승인** | `text-white`     | `bg-emerald-600` | -                  | 승인 버튼            |
-| **경고**      | `text-amber-700` | `bg-amber-50`    | `border-amber-200` | 수정 버튼            |
-| **위험/삭제** | `text-rose-600`  | `bg-rose-50`     | `border-rose-200`  | 삭제 버튼            |
+| 상태          | 텍스트          | 배경             | 테두리             | 주요 사용처            |
+| ------------- | --------------- | ---------------- | ------------------ | ---------------------- |
+| **관리/집계** | `#1A254F`       | `bg-slate-50`    | `border-slate-100` | 통계 카드, 주요 집계   |
+| **정보**      | `text-blue-600` | `bg-blue-50`     | `border-blue-100`  | 일반 강조, 선택 상태   |
+| **성공/승인** | `text-white`    | `bg-emerald-600` | -                  | 승인 버튼              |
+| **위험/삭제** | `text-rose-600` | `bg-rose-50`     | `border-rose-100`  | 삭제, 반려, 비정상상태 |
 
 #### 중립 색상
 
@@ -163,8 +160,8 @@ className = 'text-2xl font-black text-blue-700 italic'
 
 ```tsx
 <div className="sticky top-0 z-10 bg-gradient-to-b from-white via-white to-transparent pb-4 -mx-6 px-6 mb-2">
-  <TabsList className="grid grid-cols-8 h-auto items-center gap-2 bg-gray-50/50 p-1.5 rounded-2xl border border-gray-100">
-    {/* 탭 버튼들 */}
+  <TabsList className="grid grid-cols-3 w-full h-auto items-center gap-2 bg-gray-50/50 p-1.5 rounded-2xl border border-gray-100">
+    {/* 탭 버튼들: grid-cols-N으로 화면 가로폭을 균등하게 분할하여 사용 */}
   </TabsList>
 </div>
 ```
@@ -180,7 +177,8 @@ className = 'text-2xl font-black text-blue-700 italic'
 
 **특징**:
 
-- 균등 분배 (`grid grid-cols-8`)
+- **균등 분배** (`grid grid-cols-N`): 탭의 개수에 맞춰 가로폭을 균등하게 나누어 사용합니다.
+- **가로폭 최대** (`w-full`): 탭 리스트가 화면의 좌우 폭을 모두 채우도록 설정합니다.
 - 활성 탭: 파란색 배경 (`bg-blue-50`)
 - 밑줄 없음 (전역 CSS로 제거)
 - 부드러운 그림자 효과
@@ -219,34 +217,62 @@ className = 'text-2xl font-black text-blue-700 italic'
 4. **간격**: `gap-2` 유지
 5. **패딩**: `p-1.5` 유지
 
+### 2. 통계 카드 (Stats Cards)
+
+통계 카드 섹션은 화면 가로폭을 꽉 채우는 균등 Grid 방식을 사용합니다.
+
+```tsx
+<section className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+  <StatsCard label="항목 1" value={100} />
+  <StatsCard label="항목 2" value={200} />
+  {/* 항목 개수에 맞게 grid-cols 설정 */}
+</section>
+```
+
+**규칙**:
+
+1. **균등 분배**: 항목 개수에 맞게 `grid-cols-N`을 설정하여 좌우 여백 없이 배치합니다.
+2. **반응형**: 모바일(`grid-cols-2`)과 데스크탑(`md:grid-cols-N`) 설정을 상황에 맞게 조정합니다.
+
 ### 2. 버튼 (Buttons)
 
 #### 액션 버튼 표준
 
-| 버튼 타입    | 스타일                                                  | 사용처         |
-| ------------ | ------------------------------------------------------- | -------------- |
-| **상세**     | `variant="secondary"`                                   | 상세 보기      |
-| **수정**     | `variant="outline"` + `border-amber-200 text-amber-700` | 편집           |
-| **삭제**     | `variant="ghost"` + `text-rose-600 border-rose-200`     | 삭제           |
-| **승인**     | `variant="default"` + `bg-emerald-600 text-white`       | 승인           |
-| **반려**     | `variant="destructive"`                                 | 반려           |
-| **전체보기** | `variant="outline"`                                     | 목록 전체 보기 |
+| 버튼 타입    | 스타일                                                                  | 사용처         |
+| ------------ | ----------------------------------------------------------------------- | -------------- |
+| **상세**     | `variant="secondary"`                                                   | 상세 보기      |
+| **수정**     | `variant="outline"` + `border-amber-200 text-amber-700`                 | 편집           |
+| **삭제**     | `variant="ghost"` + `text-rose-600 border-rose-200`                     | 삭제           |
+| **해제**     | `variant="ghost"` + `text-gray-400 hover:text-rose-600 border-gray-200` | 연결 해제      |
+| **승인**     | `variant="default"` + `bg-emerald-600 text-white`                       | 승인           |
+| **반려**     | `variant="destructive"`                                                 | 반려           |
+| **전체보기** | `variant="outline"`                                                     | 목록 전체 보기 |
 
 #### 버튼 공통 스타일
 
 ```tsx
-// 기본 구조
-<Button size="xs" className="h-8 rounded-md font-normal px-4">
+// 버튼 공통 스타일
+<Button size="xs" className="h-8 rounded-md font-normal px-4 whitespace-nowrap">
   버튼 텍스트
+</Button>
+
+// 상세 버튼 (테이블 내)
+<Button asChild variant="secondary" size="xs" className="h-8 rounded-md font-normal px-4 whitespace-nowrap">
+  <Link href={`/detail/${id}`}>상세</Link>
 </Button>
 ```
 
 **특징**:
 
-- 높이: `h-8` (32px)
-- 모서리: `rounded-md` (6px)
-- 폰트: `font-normal` (Regular)
-- 패딩: `px-4` (충분한 클릭 영역)
+- 높이: `h-8` (32px) 또는 `h-9` (36px)
+- 모서리: `rounded-md` (6px) 또는 `rounded-lg` (8px)
+- 폰트: `font-medium` (또는 `font-normal`)
+- 패딩: `px-4 ~ px-6`
+
+#### 액션 버튼 스타일 가이드
+
+- **텍스트형 버튼도 테두리 권장**: "원본 보기"와 같은 보조 액션 버튼은 시각적 명확성을 위해 연한 테두리(`border-gray-200`)를 포함한 `variant="outline"` 스타일을 권장합니다.
+- **아이콘 대비**: 보조 버튼 내부 아이콘은 텍스트보다 한 단계 낮은 명도를 사용합니다.
 
 #### 버튼 예시
 
@@ -307,61 +333,64 @@ className = 'text-2xl font-black text-blue-700 italic'
 ```
 
 - 모든 버튼에 `whitespace-nowrap` 클래스 추가
+- 모든 버튼에 `whitespace-nowrap` 클래스 추가
 - 특히 아이콘과 텍스트가 함께 있는 버튼은 필수
 - 반응형 레이아웃에서 버튼이 줄바꿈되는 것을 방지하여 디자인 정체성 유지
 
 ### 3. 통계 카드 (Stats Cards)
 
-#### 기본 통계 카드 (테두리 없음)
+Management Navy를 기반으로 한 **최대 3가지** 색상 체계로 정보를 그룹화합니다.
+
+#### 통계 카드 색상 유형
+
+| 유형        | 텍스트 컬러 | 배경 컬러      | 테두리(Optional) | 사용 대상                 |
+| ----------- | ----------- | -------------- | ---------------- | ------------------------- |
+| **Primary** | `#1A254F`   | `bg-indigo-50` | -                | 총 공수, 핵심 집계 데이터 |
+| **Active**  | `blue-700`  | `bg-blue-50`   | -                | 현재 진행 중, 수량 관련   |
+| **Neutral** | `sky-700`   | `bg-sky-50`    | -                | 기타 부수 정보            |
+
+#### 표준 마크업
 
 ```tsx
-// ✅ 표준 스타일 - 테두리 없음, 배경색만 사용
-<div className="grid gap-6 text-sm text-muted-foreground md:grid-cols-2 xl:grid-cols-3">
-  <div className="space-y-2">
-    <div className="text-[11px] uppercase font-black tracking-tighter opacity-50">라벨명</div>
-    <div className="text-base font-bold text-foreground">데이터 값</div>
+// ✅ 최신 표준: Simple & Navy Modern
+// 헤더 레이아웃: 텍스트는 uppercase, tracking-tighter, opacity-30으로 가볍게 처리
+// 값 레이아웃: 2xl, font-black, italic, tracking-tight로 강조
+<div className="bg-slate-50 p-5 rounded-2xl flex flex-col gap-1.5">
+  <div className="text-[11px] font-black uppercase tracking-tighter text-[#1A254F] opacity-30">
+    현장 총공수
   </div>
-</div>
-```
-
-#### 강조 통계 (큰 숫자)
-
-```tsx
-<div className="flex items-center gap-6">
-  <div className="space-y-1">
-    <div className="text-[11px] uppercase font-black tracking-tighter text-blue-600">작업일지</div>
-    <div className="text-2xl font-black text-blue-700 italic">{count}</div>
-  </div>
-</div>
-```
-
-#### 그리드 통계 카드 (배경색 사용)
-
-```tsx
-// ✅ 올바른 사용 - 테두리 없이 배경색만 사용
-<div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-  <div className="rounded-xl bg-blue-50/50 p-4 space-y-2">
-    <div className="text-[11px] uppercase font-black tracking-tighter text-blue-600">
-      라벨
-    </div>
-    <div className="text-2xl font-black text-blue-700">
-      {value}
-    </div>
-  </div>
-</div>
-
-// ❌ 피해야 할 사용 - 테두리 사용
-<div className="rounded-xl border bg-blue-50/50 p-4">
-  {/* 테두리가 있으면 시각적으로 무거워 보임 */}
+  <div className="text-2xl font-black text-[#1A254F] italic tracking-tight">{value}</div>
 </div>
 ```
 
 **특징**:
 
-- **테두리 없음**: `border` 클래스 사용하지 않음
-- **배경색**: 연한 색상 사용 (예: `bg-blue-50/50`)
-- **모서리**: `rounded-xl` (12px)
-- **패딩**: `p-4` (16px)
+- **Navy 강조**: 가벼운 블루(`blue-600`) 대신 묵직한 네이비(`#1A254F`)를 주 색상으로 사용하여 전문성을 강화합니다.
+- **심플함**: 모든 카드의 폰트 스타일이 동일하며, 색상으로만 정보의 성격을 구분합니다.
+
+---
+
+## 📏 간격, 밀도 및 여백 (Density & Spacing)
+
+화면 전체의 공간 활용도를 높이고 일관된 리듬감을 유지합니다.
+
+### 1. 섹션 간격 (Section Spacing)
+
+- **페이지 상단 여백**: `mt-4` 또는 `mt-6`
+- **섹션 간 간격**: `space-y-6` 또는 `space-y-8`
+- **카드 내부 간격**: 기본 `p-6`, 소형 정보 카드는 `p-4`
+
+### 2. 정보 밀도 (Depth & Density)
+
+- **섹션 구분**: 단순 여백보다는 `rounded-2xl border bg-card shadow-sm` 패턴의 섹션 카드를 사용하여 정보를 그룹화합니다.
+- **그룹 내부 구분**: 카드 내부에서 연관된 정보군은 `border-t` 또는 연한 배경색(`bg-gray-50/50`)을 가진 행(Row)으로 구분합니다.
+
+### 3. 일관성 (Consistency)
+
+- 모든 입력 필드 높이는 **`h-10`**, 버튼 높이는 **`h-8`** (테이블 내부) 또는 **`h-9`** (헤더/일반)로 고정합니다.
+- 모서리 곡률: `rounded-3xl`(메인카드), `rounded-2xl`(섹션/테이블), `rounded-xl`(입력필드/버튼), `rounded-md`(소형버튼).
+
+---
 
 ### 4. 테이블 (Tables)
 
@@ -418,6 +447,23 @@ className = 'text-2xl font-black text-blue-700 italic'
     <CustomSelectItem value="opt2">옵션 2</CustomSelectItem>
   </CustomSelectContent>
 </CustomSelect>
+
+// 날짜 입력 (아이콘 우측 배치 표준)
+<div className="relative w-fit">
+  <Input
+    type="date"
+    className="h-10 w-36 rounded-xl bg-gray-50 border-none pl-4 pr-10 text-sm"
+  />
+  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+</div>
+
+// 필터 라벨 (입력 필드 상단 배치 표준)
+<div className="flex flex-col gap-1.5 align-top">
+  <span className="text-[11px] font-bold text-muted-foreground tracking-tight">
+    필드명
+  </span>
+  <Input className="h-9 ..." />
+</div>
 
 // ❌ 사용 금지 - 기본 select 태그 또는 표준 Select 컴포넌트
 <select className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm">

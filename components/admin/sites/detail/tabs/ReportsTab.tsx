@@ -50,30 +50,40 @@ export function ReportsTab({ siteId }: ReportsTabProps) {
     <div className="mt-4 space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h3 className="text-lg font-black text-foreground">작업일지 목록</h3>
-        <div className="flex items-center gap-2">
-          <div className="relative w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && fetchReports()}
-              placeholder="내용 검색..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
-            />
+        <div className="flex items-end gap-2">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+              검색
+            </span>
+            <div className="relative w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && fetchReports()}
+                placeholder="내용 검색..."
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
+              />
+            </div>
           </div>
-          <CustomSelect value={status} onValueChange={v => setStatus(v)}>
-            <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
-              <CustomSelectValue placeholder="상태" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">전체 상태</CustomSelectItem>
-              <CustomSelectItem value="draft">임시</CustomSelectItem>
-              <CustomSelectItem value="submitted">제출</CustomSelectItem>
-              <CustomSelectItem value="approved">승인</CustomSelectItem>
-              <CustomSelectItem value="rejected">반려</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-          <Button asChild size="sm" className="rounded-lg gap-2 whitespace-nowrap">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+              상태
+            </span>
+            <CustomSelect value={status} onValueChange={v => setStatus(v)}>
+              <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
+                <CustomSelectValue placeholder="상태" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">전체 상태</CustomSelectItem>
+                <CustomSelectItem value="draft">임시</CustomSelectItem>
+                <CustomSelectItem value="submitted">제출</CustomSelectItem>
+                <CustomSelectItem value="approved">승인</CustomSelectItem>
+                <CustomSelectItem value="rejected">반려</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
+          <Button asChild size="sm" className="rounded-lg gap-2 whitespace-nowrap h-9">
             <a
               href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}
               className="inline-flex items-center gap-2 whitespace-nowrap"

@@ -5,6 +5,7 @@ import { useRolePermissions } from '@/components/daily-reports/CollapsibleSectio
 import { AdditionalPhotosSection } from '@/components/daily-reports/sections/AdditionalPhotosSection'
 import { FormFooter } from '@/components/daily-reports/sections/FormFooter'
 import { FormHeader } from '@/components/daily-reports/sections/FormHeader'
+import { IssuesSection } from '@/components/daily-reports/sections/IssuesSection'
 import { MaterialUsageSection } from '@/components/daily-reports/sections/MaterialUsageSection'
 import { SiteInfoSection } from '@/components/daily-reports/sections/SiteInfoSection'
 import { WorkContentSection } from '@/components/daily-reports/sections/WorkContentSection'
@@ -331,19 +332,7 @@ export default function DailyReportForm({
     setMaterialUsageEntries(buildMaterialUsageEntriesFromReport(mode, reportData))
     setAdditionalPhotos(buildAdditionalPhotosFromReport(mode, reportData))
     setReportHydrationKey(nextKey ?? null)
-  }, [
-    mode,
-    reportData,
-    currentUser,
-    permissions.canManageWorkers,
-    reportHydrationKey,
-    coerceLaborHourValue,
-    defaultLaborHour,
-    setWorkEntries,
-    setWorkerEntries,
-    setMaterialUsageEntries,
-    setAdditionalPhotos,
-  ])
+  }, [mode, reportData, currentUser, permissions.canManageWorkers, reportHydrationKey])
 
   const userOptions = useMemo(() => {
     const map = new Map<string, Profile>()
@@ -506,7 +495,7 @@ export default function DailyReportForm({
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#F8FAFC]">
       <FormHeader
         mode={mode}
         reportData={reportData}
@@ -519,18 +508,22 @@ export default function DailyReportForm({
         hideHeader={hideHeader}
       />
 
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <span className="text-red-700 font-medium">오류</span>
+          <div className="mb-8 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4">
+            <div className="bg-rose-100 p-2 rounded-xl">
+              <AlertCircle className="h-5 w-5 text-rose-600" />
             </div>
-            <p className="text-red-600 mt-1">{error}</p>
+            <div>
+              <h4 className="text-sm font-black text-rose-900 tracking-tight">
+                저장 중 오류가 발생했습니다
+              </h4>
+              <p className="text-rose-600 text-xs mt-0.5">{error}</p>
+            </div>
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <SiteInfoSection
             formData={formData}
             setFormData={setFormData}
@@ -592,9 +585,17 @@ export default function DailyReportForm({
             permissions={permissions}
           />
 
+          <IssuesSection
+            formData={formData}
+            setFormData={setFormData}
+            isExpanded={expandedSections.specialNotes}
+            onToggle={() => toggleSection('specialNotes')}
+            permissions={permissions}
+          />
+
           {mode === 'edit' && permissions.isAdmin && (
             <UploadedDrawingsSection
-              className="mt-4"
+              className="mt-6"
               drawings={worklogDrawings}
               managementHref={drawingManagementHref}
               onPreview={handleDrawingPreview}

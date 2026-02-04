@@ -53,19 +53,19 @@ export const CollapsibleSection = ({
   if (managerOnly && !permissions?.canViewAdvancedFeatures) return null
 
   const getBorderColor = () => {
-    if (adminOnly) return 'border-[#8DA0CD] shadow-sm'
-    return 'border-gray-200 dark:border-gray-700'
+    if (adminOnly) return 'border-blue-200 shadow-sm shadow-blue-50'
+    return 'border-gray-200 dark:border-gray-700 shadow-sm shadow-gray-100/50'
   }
 
   const getHeaderBg = () => {
-    if (adminOnly) return 'hover:bg-[rgba(141,160,205,0.15)]'
-    return 'hover:bg-[#F3F7FA] dark:hover:bg-gray-700'
+    if (adminOnly) return 'hover:bg-blue-50/50'
+    return 'hover:bg-gray-50/80 dark:hover:bg-gray-800/50'
   }
 
   return (
     <div
       className={cn(
-        'bg-white dark:bg-gray-800 rounded-lg border overflow-hidden',
+        'bg-white dark:bg-gray-800 rounded-2xl border transition-all duration-300 overflow-hidden',
         getBorderColor()
       )}
     >
@@ -73,44 +73,53 @@ export const CollapsibleSection = ({
         type="button"
         onClick={onToggle}
         className={cn(
-          'w-full px-3 py-2.5 flex items-center justify-between transition-all duration-200',
+          'w-full px-4 py-3.5 flex items-center justify-between transition-all duration-200',
           getHeaderBg()
         )}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <div
             className={cn(
-              'p-1.5 rounded',
-              adminOnly ? 'bg-[rgba(141,160,205,0.25)]' : 'bg-[#F3F7FA]'
+              'p-2 rounded-xl transition-colors',
+              adminOnly ? 'bg-blue-100 text-blue-700' : 'bg-slate-50 text-[#1A254F]'
             )}
           >
-            <Icon className={cn('h-4 w-4', adminOnly ? 'text-[#1B419C]' : 'text-[#5F7AB9]')} />
+            <Icon className="h-4 w-4" />
           </div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          <div className="flex items-center gap-3">
+            <h3 className="text-[15px] font-black text-foreground tracking-tight flex items-center">
               {title}
-              {required && <span className="text-red-500 ml-1">*</span>}
+              {required && <span className="text-rose-500 ml-1.5">*</span>}
             </h3>
             {adminOnly && (
-              <Badge className="px-1.5 py-0.5 text-xs bg-[rgba(141,160,205,0.25)] text-[#1B419C] border-[#8DA0CD]">
+              <Badge className="px-1.5 py-0.5 text-[10px] font-bold bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-50">
                 <Shield className="h-3 w-3 mr-1" />
-                관리자
+                ADMIN ONLY
               </Badge>
             )}
             {badge && !adminOnly && badge}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          )}
+          <div
+            className={cn(
+              'p-1 rounded-full transition-transform duration-300',
+              isExpanded ? 'bg-gray-100 rotate-0' : 'rotate-0'
+            )}
+          >
+            {isExpanded ? (
+              <ChevronUp className="h-4 w-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-500" />
+            )}
+          </div>
         </div>
       </button>
 
       {isExpanded && (
-        <div className="p-4 border-t border-gray-100 dark:border-gray-700">{children}</div>
+        <div className="p-6 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+          {children}
+        </div>
       )}
     </div>
   )

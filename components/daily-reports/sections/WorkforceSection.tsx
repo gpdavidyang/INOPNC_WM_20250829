@@ -11,10 +11,11 @@ import {
 } from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 import type { Profile } from '@/types'
 import { Plus, RotateCcw, Trash2, Users } from 'lucide-react'
 import React from 'react'
-import { CollapsibleSection, useRolePermissions } from '../CollapsibleSection'
+import { CollapsibleSection } from '../CollapsibleSection'
 import type { WorkerEntry } from '../types'
 
 interface WorkforceSectionProps {
@@ -23,7 +24,7 @@ interface WorkforceSectionProps {
   workers: Profile[]
   isExpanded: boolean
   onToggle: () => void
-  permissions: ReturnType<typeof useRolePermissions>
+  permissions: any
   defaultLaborHour: number
   allowedLaborHours: number[]
   isAllowedLaborHourValue: (value: number) => boolean
@@ -44,7 +45,7 @@ export const WorkforceSection = ({
   formatLaborHourLabel,
   coerceLaborHourValue,
 }: WorkforceSectionProps) => {
-  const totalLaborHoursFromEntries = workerEntries.reduce(
+  const totalLaborHours = workerEntries.reduce(
     (sum, entry) => sum + (Number(entry.labor_hours) || 0),
     0
   )
@@ -62,16 +63,14 @@ export const WorkforceSection = ({
     ])
   }
 
-  const removeWorkerEntry = (index: number) => {
-    setWorkerEntries(prev => prev.filter((_, i) => i !== index))
+  const removeWorkerEntry = (id: string) => {
+    setWorkerEntries(prev => prev.filter(e => e.id !== id))
   }
 
-  const updateWorkerEntry = (index: number, updates: Partial<WorkerEntry>) => {
-    setWorkerEntries(prev => {
-      const next = [...prev]
-      next[index] = { ...next[index], ...updates }
-      return next
-    })
+  const updateWorkerEntry = (id: string, updates: Partial<WorkerEntry>) => {
+    setWorkerEntries(prev =>
+      prev.map(entry => (entry.id === id ? { ...entry, ...updates } : entry))
+    )
   }
 
   if (!permissions.canManageWorkers) return null
@@ -84,167 +83,210 @@ export const WorkforceSection = ({
       onToggle={onToggle}
       managerOnly={true}
       permissions={permissions}
-      badge={<Badge variant="outline">{workerEntries.length}명</Badge>}
+      badge={
+        <Badge
+          variant="secondary"
+          className="bg-slate-50 text-[#1A254F] border-slate-200 font-bold"
+        >
+          {workerEntries.length}명 / {totalLaborHours.toFixed(1)}공수
+        </Badge>
+      }
     >
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600">
-            작업인원: <span className="font-semibold text-gray-900">{workerEntries.length}</span>명
+      <div className="space-y-6">
+        {/* 통계 요약 */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-slate-50 p-4 rounded-2xl flex flex-col gap-1 border border-slate-100">
+            <div className="text-[11px] font-black uppercase tracking-tighter text-[#1A254F] opacity-30">
+              투입 작업자
+            </div>
+            <div className="text-2xl font-black text-[#1A254F] italic tracking-tight">
+              {workerEntries.length} <span className="text-sm font-bold not-italic ml-0.5">명</span>
+            </div>
           </div>
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white px-3 py-2 text-sm text-gray-600">
-            공수 합계:{' '}
-            <span className="font-semibold text-gray-900">
-              {totalLaborHoursFromEntries.toFixed(1)}
-            </span>{' '}
-            공수
+          <div className="bg-slate-50 p-4 rounded-2xl flex flex-col gap-1 border border-slate-100">
+            <div className="text-[11px] font-black uppercase tracking-tighter text-[#1A254F] opacity-30">
+              총 투입공수
+            </div>
+            <div className="text-2xl font-black text-[#1A254F] italic tracking-tight">
+              {totalLaborHours.toFixed(1)}{' '}
+              <span className="text-sm font-bold not-italic ml-0.5">공수</span>
+            </div>
           </div>
         </div>
 
-        {workerEntries.map((entry, index) => (
-          <div key={entry.id} className="p-4 bg-gray-50 rounded-lg border">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="font-medium text-gray-900 flex items-center">
-                <span className="bg-slate-100 text-slate-700 w-6 h-6 rounded-full flex items-center justify-center text-xs mr-2">
-                  {index + 1}
-                </span>
-                작업자 #{index + 1}
-              </h4>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={addWorkerEntry}
-                  className="h-8 border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 transition-colors"
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1" />
-                  작업자 추가
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeWorkerEntry(index)}
-                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  title="작업자 삭제"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+        {/* 리스트 */}
+        <div className="space-y-3">
+          {workerEntries.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/30 px-6 py-10 flex flex-col items-center text-center">
+              <div className="bg-white p-3 rounded-full shadow-sm mb-4">
+                <Users className="h-6 w-6 text-slate-300" />
               </div>
+              <p className="font-black text-slate-800 tracking-tight">
+                등록된 인력 투입 내역이 없습니다.
+              </p>
+              <p className="mt-2 text-xs text-slate-500 max-w-sm leading-relaxed mb-6">
+                “항목 추가” 버튼을 눌러 투입 인원과 공수를 등록해 주세요.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addWorkerEntry}
+                className="h-10 rounded-xl border-dashed border-slate-300 hover:border-blue-400 hover:text-blue-600 px-6 font-bold"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                항목 추가
+              </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500 font-medium">작업자 선택</Label>
-                {entry.is_direct_input ? (
-                  <div className="flex gap-2">
-                    <Input
-                      className="h-9 flex-1"
-                      value={entry.worker_name || ''}
-                      onChange={e => updateWorkerEntry(index, { worker_name: e.target.value })}
-                      placeholder="이름 직접 입력"
-                      autoFocus
-                    />
+          ) : (
+            workerEntries.map((entry, index) => (
+              <div
+                key={entry.id}
+                className="p-5 bg-white dark:bg-gray-800 rounded-2xl border border-slate-200 dark:border-gray-700 shadow-sm shadow-slate-100/50"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                  {/* 작업자 선택 */}
+                  <div className="col-span-1 md:col-span-5 space-y-1.5">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="bg-[#1A254F] text-white w-6 h-6 rounded flex items-center justify-center text-[10px] font-black italic">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <Label className="text-[11px] font-black text-foreground uppercase tracking-tighter opacity-50">
+                        투입 인원 (성명)
+                      </Label>
+                    </div>
+
+                    {entry.is_direct_input ? (
+                      <div className="flex gap-2">
+                        <Input
+                          autoFocus
+                          placeholder="성명 직접 입력"
+                          className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all flex-1"
+                          value={entry.worker_name}
+                          onChange={e =>
+                            updateWorkerEntry(entry.id, { worker_name: e.target.value })
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-10 w-10 px-0 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                          onClick={() =>
+                            updateWorkerEntry(entry.id, { is_direct_input: false, worker_id: '' })
+                          }
+                          title="목록에서 선택"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <CustomSelect
+                        value={entry.worker_id || '__unset__'}
+                        onValueChange={value => {
+                          if (value === 'direct') {
+                            updateWorkerEntry(entry.id, {
+                              is_direct_input: true,
+                              worker_id: '',
+                              worker_name: '',
+                            })
+                          } else {
+                            const selectedWorker = workers.find(w => w.id === value)
+                            updateWorkerEntry(entry.id, {
+                              worker_id: value,
+                              worker_name: selectedWorker?.full_name || '',
+                              is_direct_input: false,
+                            })
+                          }
+                        }}
+                      >
+                        <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all">
+                          <CustomSelectValue placeholder="작업자 선택" />
+                        </CustomSelectTrigger>
+                        <CustomSelectContent>
+                          <CustomSelectItem
+                            value="direct"
+                            className="text-blue-600 font-bold border-b border-gray-100"
+                          >
+                            <Plus className="h-3.5 w-3.5 mr-1.5 inline" /> 명단에 없는 인원 직접
+                            입력
+                          </CustomSelectItem>
+                          <CustomSelectItem value="__unset__">선택 안 함</CustomSelectItem>
+                          {(workers || []).map(profile => (
+                            <CustomSelectItem key={profile.id} value={profile.id}>
+                              {profile.full_name}
+                            </CustomSelectItem>
+                          ))}
+                        </CustomSelectContent>
+                      </CustomSelect>
+                    )}
+                  </div>
+
+                  {/* 공수 선택 */}
+                  <div className="col-span-1 md:col-span-5 space-y-1.5">
+                    <Label className="text-[11px] font-black text-foreground uppercase tracking-tighter opacity-50 pl-1 mb-1 block">
+                      투입 공수 (단위: 공수)
+                    </Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {allowedLaborHours
+                        .filter(val => val !== 0)
+                        .map(val => (
+                          <Button
+                            key={val}
+                            type="button"
+                            variant={entry.labor_hours === val ? 'default' : 'outline'}
+                            size="sm"
+                            className={cn(
+                              'h-9 min-w-[3.5rem] rounded-xl text-xs font-bold transition-all whitespace-nowrap',
+                              entry.labor_hours === val
+                                ? 'bg-[#1A254F] text-white shadow-md'
+                                : 'bg-white hover:bg-gray-50 text-gray-500 border-slate-200'
+                            )}
+                            onClick={() => updateWorkerEntry(entry.id, { labor_hours: val })}
+                          >
+                            {formatLaborHourLabel(val)}
+                          </Button>
+                        ))}
+                      {!isAllowedLaborHourValue(entry.labor_hours) && (
+                        <Badge
+                          variant="outline"
+                          className="h-9 px-3 rounded-xl border-amber-200 text-amber-700 font-bold"
+                        >
+                          기타: {formatLaborHourLabel(entry.labor_hours)}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 삭제 버튼 */}
+                  <div className="col-span-1 md:col-span-2 md:pt-6 flex justify-end items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addWorkerEntry}
+                      className="h-9 rounded-xl border-dashed border-gray-300 hover:border-blue-400 hover:text-blue-600 transition-all whitespace-nowrap px-4"
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1.5" />
+                      항목 추가
+                    </Button>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-9 px-2 text-gray-400 hover:text-gray-600"
-                      onClick={() =>
-                        updateWorkerEntry(index, { is_direct_input: false, worker_id: '' })
-                      }
-                      title="목록에서 선택"
+                      className="h-10 w-full md:w-10 rounded-xl text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all flex items-center justify-center gap-2"
+                      onClick={() => removeWorkerEntry(entry.id)}
+                      title="항목 삭제"
                     >
-                      <RotateCcw className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
+                      <span className="md:hidden font-bold">삭제</span>
                     </Button>
                   </div>
-                ) : (
-                  <CustomSelect
-                    value={entry.worker_id || ''}
-                    onValueChange={value => {
-                      if (value === 'direct') {
-                        updateWorkerEntry(index, {
-                          is_direct_input: true,
-                          worker_id: '',
-                          worker_name: '',
-                        })
-                      } else {
-                        const selectedWorker = workers.find(w => w.id === value)
-                        updateWorkerEntry(index, {
-                          worker_id: value,
-                          worker_name: selectedWorker?.full_name || '',
-                          is_direct_input: false,
-                        })
-                      }
-                    }}
-                  >
-                    <CustomSelectTrigger className="h-9">
-                      <CustomSelectValue placeholder="작업자 선택" />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      <CustomSelectItem
-                        value="direct"
-                        className="text-blue-600 font-medium border-b border-gray-100"
-                      >
-                        <Plus className="h-3 w-3 mr-1 inline" /> 직접 입력 (명단에 없음)
-                      </CustomSelectItem>
-                      {workers.map(worker => (
-                        <CustomSelectItem key={worker.id} value={worker.id}>
-                          <div className="flex items-center justify-between w-full gap-2">
-                            <span>{worker.full_name}</span>
-                            <span className="text-[10px] text-gray-400 bg-gray-100 px-1 rounded">
-                              {worker.role === 'site_manager' ? '현장관리자' : '작업자'}
-                            </span>
-                          </div>
-                        </CustomSelectItem>
-                      ))}
-                    </CustomSelectContent>
-                  </CustomSelect>
-                )}
+                </div>
               </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs text-gray-500 font-medium">공수 (Man-day)</Label>
-                <CustomSelect
-                  value={
-                    isAllowedLaborHourValue(entry.labor_hours)
-                      ? formatLaborHourLabel(entry.labor_hours)
-                      : ''
-                  }
-                  onValueChange={value => {
-                    updateWorkerEntry(index, {
-                      labor_hours: coerceLaborHourValue(parseFloat(value)),
-                    })
-                  }}
-                >
-                  <CustomSelectTrigger className="h-9">
-                    <CustomSelectValue placeholder="선택" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    {allowedLaborHours.map(option => {
-                      const optionValue = formatLaborHourLabel(option)
-                      return (
-                        <CustomSelectItem key={optionValue} value={optionValue}>
-                          {optionValue} 공수
-                        </CustomSelectItem>
-                      )
-                    })}
-                  </CustomSelectContent>
-                </CustomSelect>
-              </div>
-            </div>
-          </div>
-        ))}
-        {workerEntries.length === 0 && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={addWorkerEntry}
-            className="w-full h-12 border-dashed"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            작업자 추가
-          </Button>
-        )}
+            ))
+          )}
+          {/* 하단 추가 버튼 제거 (항목별 우측 버튼으로 대체) */}
+        </div>
       </div>
     </CollapsibleSection>
   )

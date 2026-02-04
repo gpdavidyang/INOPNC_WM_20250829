@@ -37,7 +37,7 @@ export function PhotoFilters({
     <section className="rounded-2xl border bg-card p-6 shadow-sm space-y-4">
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6 items-end">
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             검색어
           </label>
           <Input
@@ -50,7 +50,7 @@ export function PhotoFilters({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             사진 구분
           </label>
           <CustomSelect
@@ -69,7 +69,7 @@ export function PhotoFilters({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             시작일
           </label>
           <Input
@@ -81,7 +81,7 @@ export function PhotoFilters({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             종료일
           </label>
           <Input
@@ -93,7 +93,7 @@ export function PhotoFilters({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             작업일지
           </label>
           <CustomSelect
@@ -116,7 +116,7 @@ export function PhotoFilters({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black uppercase tracking-widest opacity-50">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             업로더
           </label>
           <CustomSelect

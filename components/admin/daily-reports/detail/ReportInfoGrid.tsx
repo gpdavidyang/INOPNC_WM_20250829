@@ -11,13 +11,13 @@ interface ReportInfoGridProps {
 
 export function ReportInfoGrid({ items }: ReportInfoGridProps) {
   return (
-    <div className="flex flex-wrap items-center gap-6 px-8 py-5 border-t bg-gray-50/30">
+    <div className="flex flex-wrap items-center gap-x-10 gap-y-4 px-8 py-5 border-t border-gray-50 bg-white/50 backdrop-blur-sm">
       {items.map(item => (
-        <div key={item.label} className="flex flex-col min-w-[120px]">
-          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all">
+        <div key={item.label} className="flex flex-col min-w-[110px] gap-1">
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30">
             {item.label}
           </span>
-          <span className="text-sm font-bold text-foreground">{item.value}</span>
+          <span className="text-sm font-bold text-gray-700">{item.value || ''}</span>
         </div>
       ))}
     </div>

@@ -12,9 +12,12 @@ interface SitePageProps {
   params: {
     id: string
   }
+  searchParams: {
+    tab?: string
+  }
 }
 
-export default async function AdminSiteDetailPage({ params }: SitePageProps) {
+export default async function AdminSiteDetailPage({ params, searchParams }: SitePageProps) {
   await requireAdminProfile()
 
   // Fetch all site data in one optimized pass
@@ -73,6 +76,7 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
             initialAssignments={assignments}
             initialRequests={requests}
             initialStats={stats}
+            initialTab={searchParams.tab}
           />
         </CardContent>
       </Card>

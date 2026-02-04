@@ -45,12 +45,15 @@ export const useDailyReportSite = (
     if (!hasSite) {
       const fallback = sites.find(site => String(site.id) === String(currentSiteId))
       if (fallback) {
-        setFilteredSites([...sites, fallback])
+        setFilteredSites(prev => {
+          if (prev.length === sites.length + 1 && prev.some(s => s.id === fallback.id)) return prev
+          return [...sites, fallback]
+        })
       } else {
-        setFilteredSites(sites)
+        setFilteredSites(prev => (prev === sites ? prev : sites))
       }
     } else {
-      setFilteredSites(sites)
+      setFilteredSites(prev => (prev === sites ? prev : sites))
     }
   }, [sites, formData.site_id, reportData?.site_id, initialUnifiedReport])
 

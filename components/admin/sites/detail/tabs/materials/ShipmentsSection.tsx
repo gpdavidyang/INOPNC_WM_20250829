@@ -4,10 +4,11 @@ import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import StatsCard from '@/components/ui/stats-card'
-import { Search } from 'lucide-react'
+import { Calendar, Download, Search } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
+import { MaterialStatsCard } from './MaterialStatsCard'
 
 // --- Types & Helper Functions from B Page (ShipmentsTable.tsx) ---
 
@@ -345,20 +346,23 @@ export function ShipmentsSection({
         sortable: false,
         render: sp => (
           <div className="flex flex-wrap gap-2">
-            <a
-              href={`/dashboard/admin/materials/shipments/${sp.id}/edit`}
-              className="rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            <Button
+              asChild
+              variant="outline"
+              size="xs"
+              className="h-8 rounded-md font-normal border-amber-200 text-amber-700 hover:bg-amber-50 px-4 whitespace-nowrap"
             >
-              수정
-            </a>
-            <button
-              type="button"
-              className="rounded border border-red-200 px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              <Link href={`/dashboard/admin/materials/shipments/${sp.id}/edit`}>수정</Link>
+            </Button>
+            <Button
+              variant="ghost"
+              size="xs"
+              className="h-8 rounded-md font-normal text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-4 border border-rose-200 whitespace-nowrap"
               onClick={() => handleDelete(sp.id)}
               disabled={deletingId === sp.id}
             >
               {deletingId === sp.id ? '삭제 중...' : '삭제'}
-            </button>
+            </Button>
           </div>
         ),
       },
@@ -389,58 +393,89 @@ export function ShipmentsSection({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatsCard label="출고건수" value={stats.totalCount} unit="건" />
-        <StatsCard
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MaterialStatsCard label="출고건수" value={stats.totalCount} unit="건" />
+        <MaterialStatsCard
           label="총 출고금액"
           value={Math.round(stats.totalAmount / 10000)} // 만원 단위 등으로 보여줄 수도 있으나 일단 Raw Number
           unit="만원"
           // To be nicer: format with prefix
         />
-        <StatsCard label="배송/출고중" value={stats.statusCounts['shipped'] || 0} unit="건" />
-        <StatsCard label="완료" value={stats.statusCounts['delivered'] || 0} unit="건" />
+        <MaterialStatsCard
+          label="배송/출고중"
+          value={stats.statusCounts['shipped'] || 0}
+          unit="건"
+          variant="gray"
+        />
+        <MaterialStatsCard
+          label="완료"
+          value={stats.statusCounts['delivered'] || 0}
+          unit="건"
+          variant="gray"
+        />
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-6">
-        <h3 className="text-lg font-black text-foreground mb-1 sm:mb-0">출고배송결제 내역</h3>
+        <h3 className="text-lg font-black text-foreground mb-1 sm:mb-0">출고배송결제</h3>
 
         <div className="flex flex-wrap items-end gap-2 w-full sm:w-auto">
           {/* Search */}
-          <div className="relative w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={e => onQueryChange(e.target.value)}
-              placeholder="검색어 입력..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
-            />
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+              검색
+            </span>
+            <div className="relative w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={e => onQueryChange(e.target.value)}
+                placeholder="검색어 입력..."
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
+              />
+            </div>
           </div>
           {/* Date Filters (UI Only) */}
-          <div className="flex items-center gap-2">
-            <Input
-              type="date"
-              className="h-9 w-32 text-xs bg-gray-50 border-none"
-              placeholder="시작일"
-            />
-            <span className="text-muted-foreground text-xs">~</span>
-            <Input
-              type="date"
-              className="h-9 w-32 text-xs bg-gray-50 border-none"
-              placeholder="종료일"
-            />
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+              기간
+            </span>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Input
+                  type="date"
+                  className="h-9 w-36 text-xs bg-gray-50 border-none pr-10"
+                  placeholder="시작일"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+              <span className="text-muted-foreground text-xs">~</span>
+              <div className="relative">
+                <Input
+                  type="date"
+                  className="h-9 w-36 text-xs bg-gray-50 border-none pr-10"
+                  placeholder="종료일"
+                />
+                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
           </div>
           <Button variant="outline" size="sm" className="h-9">
             적용
           </Button>
-          <Button variant="ghost" size="sm" className="h-9">
+          <Button variant="outline" size="sm" className="h-9 border-gray-300 text-gray-700">
             초기화
           </Button>
           {/* Excel */}
           <a
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            className={buttonVariants({
+              variant: 'outline',
+              size: 'sm',
+              className: 'h-8 rounded-md font-normal px-4 whitespace-nowrap gap-2',
+            })}
             role="button"
             href={`/api/admin/materials/export?tab=shipments${query ? `&search=${encodeURIComponent(query)}` : ''}`}
           >
+            <Download className="w-3.5 h-3.5" />
             엑셀 다운로드
           </a>
         </div>

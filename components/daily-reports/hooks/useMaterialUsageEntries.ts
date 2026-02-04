@@ -1,12 +1,12 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { MaterialOptionItem, MaterialUsageFormEntry } from '../daily-reports/types'
+import type { MaterialOptionItem, MaterialUsageFormEntry } from '../types'
 import {
   buildMaterialUsageEntriesFromReport,
   normalizeMaterialKeyword,
   sanitizeUnitLabel,
-} from '../daily-reports/utils/builders'
+} from '../utils/builders'
 
 export const useMaterialUsageEntries = (
   mode: 'create' | 'edit',

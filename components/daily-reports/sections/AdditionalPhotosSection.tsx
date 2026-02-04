@@ -5,7 +5,7 @@ import type { AdditionalPhotoData } from '@/types/daily-reports'
 import { Camera } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import React from 'react'
-import { CollapsibleSection, useRolePermissions } from '../CollapsibleSection'
+import { CollapsibleSection } from '../CollapsibleSection'
 
 // Dynamic import to avoid SSR issues with photo upload
 const AdditionalPhotoUploadSection = dynamic(
@@ -21,7 +21,7 @@ interface AdditionalPhotosSectionProps {
   setPhotos: React.Dispatch<React.SetStateAction<AdditionalPhotoData[]>>
   isExpanded: boolean
   onToggle: () => void
-  permissions: ReturnType<typeof useRolePermissions>
+  permissions: any
 }
 
 export const AdditionalPhotosSection = ({
@@ -38,7 +38,14 @@ export const AdditionalPhotosSection = ({
       isExpanded={isExpanded}
       onToggle={onToggle}
       permissions={permissions}
-      badge={<Badge variant="outline">{photos.length}개</Badge>}
+      badge={
+        <Badge
+          variant="secondary"
+          className="bg-slate-50 text-[#1A254F] border-slate-200 font-bold"
+        >
+          {photos.length}개
+        </Badge>
+      }
     >
       <AdditionalPhotoUploadSection photos={photos} onPhotosChange={setPhotos} />
     </CollapsibleSection>

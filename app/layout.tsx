@@ -1,16 +1,15 @@
+import { Providers } from '@/components/providers'
 import type { Metadata } from 'next'
 import { Noto_Sans_KR, Poppins } from 'next/font/google'
 import { cookies } from 'next/headers'
-import { Providers } from '@/components/providers'
 import './globals.css'
 
 // Optimized Font configurations for production
 const notoSansKR = Noto_Sans_KR({
-  subsets: ['latin'],
   weight: ['200', '300', '400', '500', '600', '700', '800', '900'],
   variable: '--font-noto-sans-kr',
   display: 'swap',
-  preload: true,
+  preload: false,
   fallback: [
     'system-ui',
     '-apple-system',

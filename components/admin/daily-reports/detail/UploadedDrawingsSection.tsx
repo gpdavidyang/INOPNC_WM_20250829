@@ -30,16 +30,21 @@ export function UploadedDrawingsSection({
   const drawingCount = drawings.length
 
   return (
-    <Card className={`flex flex-col border shadow-sm p-0 ${className ?? ''}`}>
-      <CardHeader className="border-b bg-white px-3 py-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <CardTitle className="text-sm font-semibold text-gray-900">
-            <span className="inline-flex items-center gap-2">
-              <span className="rounded bg-[#F3F7FA] p-1.5">
-                <FileText className="h-4 w-4 text-[#5F7AB9]" />
+    <Card
+      className={`flex flex-col border shadow-sm p-0 rounded-2xl overflow-hidden shadow-slate-100/50 ${className ?? ''}`}
+    >
+      <CardHeader className="border-b bg-white px-4 py-3.5">
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-[15px] font-black text-gray-900 tracking-tight">
+            <span className="inline-flex items-center gap-3">
+              <span className="rounded-xl bg-slate-50 p-2">
+                <FileText className="h-4 w-4 text-[#1A254F]" />
               </span>
               업로드 된 도면
-              <Badge variant="secondary" className="h-5 rounded-full px-2 text-[10px] font-bold">
+              <Badge
+                variant="secondary"
+                className="bg-slate-50 text-[#1A254F] border-slate-200 font-bold"
+              >
                 {drawingCount}
               </Badge>
             </span>
@@ -48,21 +53,17 @@ export function UploadedDrawingsSection({
             <Button
               asChild
               size="sm"
-              className="h-9 bg-[#1A254F] px-4 text-xs font-bold text-white hover:bg-[#111836]"
+              className="h-9 bg-[#1A254F] px-4 rounded-xl text-[11px] font-black uppercase tracking-tighter text-white hover:bg-[#111836] whitespace-nowrap"
             >
-              <Link href={managementHref}>도면마킹 관리</Link>
+              <Link href={managementHref}>도면 관리</Link>
             </Button>
             <button
               type="button"
               onClick={onToggle}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600 hover:bg-[#F3F7FA] dark:hover:bg-gray-700"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
               aria-label={isExpanded ? '접기' : '펼치기'}
             >
-              {isExpanded ? (
-                <ChevronUp className="h-3 w-3 text-gray-600 dark:text-gray-400" />
-              ) : (
-                <ChevronDown className="h-3 w-3 text-gray-600 dark:text-gray-400" />
-              )}
+              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
           </div>
         </div>

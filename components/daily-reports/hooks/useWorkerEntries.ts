@@ -2,8 +2,8 @@
 
 import type { Profile } from '@/types'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { WorkerEntry } from '../daily-reports/types'
-import { buildWorkerEntriesFromReport } from '../daily-reports/utils/builders'
+import type { WorkerEntry } from '../types'
+import { buildWorkerEntriesFromReport } from '../utils/builders'
 
 export const useWorkerEntries = (
   mode: 'create' | 'edit',

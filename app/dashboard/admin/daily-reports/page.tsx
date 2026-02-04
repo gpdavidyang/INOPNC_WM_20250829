@@ -109,39 +109,54 @@ export default async function AdminDailyReportsPage({
           </a>
         }
       />
-      <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         {/* 필터 */}
-        <div className="mb-4 rounded-lg border bg-card p-4 shadow-sm">
-          <DailyReportFilters
-            siteOptions={siteOptions}
-            initialSiteId={siteId || undefined}
-            initialSearch={search || ''}
-            initialStatus={status || ''}
-            initialDateFrom={dateFrom || ''}
-            initialDateTo={dateTo || ''}
-          />
-        </div>
+        <DailyReportFilters
+          siteOptions={siteOptions}
+          initialSiteId={siteId || undefined}
+          initialSearch={search || ''}
+          initialStatus={status || ''}
+          initialDateFrom={dateFrom || ''}
+          initialDateTo={dateTo || ''}
+        />
 
-        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-          <div className="mb-2 text-sm text-muted-foreground">
-            총 {total.toLocaleString()}건 · 페이지 {page} / {pages}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+            <div>
+              총 <span className="font-bold text-foreground">{total.toLocaleString()}</span>건 ·
+              페이지 <span className="font-bold text-foreground">{page}</span> / {pages}
+            </div>
           </div>
+
           <DailyReportsTable reports={reports} />
-          <div className="mt-4 flex items-center justify-between">
+
+          <div className="flex items-center justify-between pt-2">
             <div className="text-sm text-muted-foreground">
               {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)}{' '}
               표시
             </div>
             <div className="flex gap-2">
               <Link
-                href={`?${new URLSearchParams({ page: String(Math.max(1, page - 1)), limit: String(limit) })}`}
-                className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
+                href={`?${new URLSearchParams({
+                  ...Object.fromEntries(Object.entries(searchParams || {})),
+                  page: String(Math.max(1, page - 1)),
+                  limit: String(limit),
+                })}`}
+                className={`inline-flex items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors ${
+                  page <= 1 ? 'pointer-events-none opacity-50' : ''
+                }`}
               >
                 {t('common.prev')}
               </Link>
               <Link
-                href={`?${new URLSearchParams({ page: String(Math.min(pages, page + 1)), limit: String(limit) })}`}
-                className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
+                href={`?${new URLSearchParams({
+                  ...Object.fromEntries(Object.entries(searchParams || {})),
+                  page: String(Math.min(pages, page + 1)),
+                  limit: String(limit),
+                })}`}
+                className={`inline-flex items-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors ${
+                  page >= pages ? 'pointer-events-none opacity-50' : ''
+                }`}
               >
                 {t('common.next')}
               </Link>

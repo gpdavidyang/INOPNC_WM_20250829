@@ -301,35 +301,50 @@ export function OverviewTab({
         </div>
         <div className="rounded-2xl border bg-card p-6 shadow-sm space-y-4">
           {/* Quick Filter */}
-          <div className="flex flex-wrap gap-2">
-            <Input
-              value={assignmentQuery}
-              onChange={e => setAssignmentQuery(e.target.value)}
-              placeholder="검색..."
-              className="h-10 w-48 rounded-xl bg-gray-50 border-none px-4 text-sm"
-            />
-            <CustomSelect value={assignmentRole} onValueChange={v => setAssignmentRole(v)}>
-              <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm w-32">
-                <CustomSelectValue placeholder="역할" />
-              </CustomSelectTrigger>
-              <CustomSelectContent>
-                <CustomSelectItem value="all">전체 역할</CustomSelectItem>
-                <CustomSelectItem value="worker">작업자</CustomSelectItem>
-                <CustomSelectItem value="site_manager">현장관리자</CustomSelectItem>
-                <CustomSelectItem value="supervisor">감리/감독</CustomSelectItem>
-              </CustomSelectContent>
-            </CustomSelect>
-            <CustomSelect value={assignmentSort} onValueChange={v => setAssignmentSort(v)}>
-              <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm w-32">
-                <CustomSelectValue placeholder="정렬" />
-              </CustomSelectTrigger>
-              <CustomSelectContent>
-                <CustomSelectItem value="date_desc">최신순</CustomSelectItem>
-                <CustomSelectItem value="date_asc">오래된순</CustomSelectItem>
-                <CustomSelectItem value="name_asc">이름순</CustomSelectItem>
-                <CustomSelectItem value="labor_desc">공수순</CustomSelectItem>
-              </CustomSelectContent>
-            </CustomSelect>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                검색
+              </span>
+              <Input
+                value={assignmentQuery}
+                onChange={e => setAssignmentQuery(e.target.value)}
+                placeholder="검색..."
+                className="h-10 w-48 rounded-xl bg-gray-50 border-none px-4 text-sm"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                역할
+              </span>
+              <CustomSelect value={assignmentRole} onValueChange={v => setAssignmentRole(v)}>
+                <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm w-32">
+                  <CustomSelectValue placeholder="역할" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="all">전체 역할</CustomSelectItem>
+                  <CustomSelectItem value="worker">작업자</CustomSelectItem>
+                  <CustomSelectItem value="site_manager">현장관리자</CustomSelectItem>
+                  <CustomSelectItem value="supervisor">감리/감독</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                정렬
+              </span>
+              <CustomSelect value={assignmentSort} onValueChange={v => setAssignmentSort(v)}>
+                <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm w-32">
+                  <CustomSelectValue placeholder="정렬" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="date_desc">최신순</CustomSelectItem>
+                  <CustomSelectItem value="date_asc">오래된순</CustomSelectItem>
+                  <CustomSelectItem value="name_asc">이름순</CustomSelectItem>
+                  <CustomSelectItem value="labor_desc">공수순</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
           </div>
 
           {assignmentsLoading && recentAssignments.length === 0 ? (

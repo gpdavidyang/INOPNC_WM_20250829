@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { cn } from '@/lib/utils'
-import { RefreshCw } from 'lucide-react'
+import { BarChart3, CheckCircle2, FileCheck, FileText, LayoutGrid, RefreshCw } from 'lucide-react'
 import React, { useMemo } from 'react'
 
 import { fetchSignedUrlForRecord, openFileRecordInNewTab } from '@/lib/files/preview'
@@ -94,29 +94,32 @@ export default function InvoiceDocumentsManager({
     return (
       <div className="py-24 flex flex-col items-center justify-center gap-4">
         <LoadingSpinner />
-        <p className="text-sm font-bold text-muted-foreground animate-pulse">
-          기성 문서 정보를 구성 중입니다...
+        <p className="text-sm font-bold text-slate-400 animate-pulse">
+          기성 문서 정보를 최신화하고 있습니다...
         </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-10 mt-6">
+    <div className="space-y-12 animate-in fade-in duration-500">
       {/* 1. Progress Overview */}
-      <section className="space-y-4">
+      <section className="space-y-6">
         <div className="flex items-center justify-between">
-          <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
-            기성 진행 현황
-          </h3>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-[#1A254F] opacity-40" />
+            <h3 className="text-xl font-black text-[#1A254F] uppercase tracking-tight">
+              기성 준비 진척도
+            </h3>
+          </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => p.fetchData(true)}
-            className="rounded-xl h-9 px-4 font-bold border"
+            className="rounded-xl h-10 px-5 font-bold border-slate-200 text-slate-600 hover:text-[#1A254F] hover:bg-slate-50 transition-all gap-2"
           >
-            <RefreshCw className={cn('w-4 h-4 mr-2', p.refreshing && 'animate-spin')} />
-            업데이트
+            <RefreshCw className={cn('w-4 h-4', p.refreshing && 'animate-spin')} />
+            새로고침
           </Button>
         </div>
         <InvoiceProgressSummary progress={p.progress} />
@@ -124,26 +127,43 @@ export default function InvoiceDocumentsManager({
 
       {/* 2. Document Stages */}
       {[
-        { key: 'start', label: '착수 단계 서류', color: 'blue' },
-        { key: 'progress', label: '진행 단계 서류', color: 'amber' },
-        { key: 'completion', label: '완료 단계 서류', color: 'emerald' },
-        { key: 'other', label: '기타 추가 내역', color: 'gray' },
+        { key: 'start', label: '착수 단계 필수 서류', color: 'blue', icon: FileCheck },
+        { key: 'progress', label: '진행 단계 필수 서류', color: 'amber', icon: FileText },
+        { key: 'completion', label: '완료 단계 최종 서류', color: 'emerald', icon: CheckCircle2 },
+        { key: 'other', label: '기타 보조/추가 내역', color: 'gray', icon: LayoutGrid },
       ].map(stage => {
         const types = stageBuckets[stage.key]
         if (types.length === 0) return null
 
         return (
-          <section key={stage.key} className="space-y-4">
-            <div className="flex items-center gap-3 pb-2 border-b-2">
-              <h3 className="text-lg font-black text-foreground uppercase tracking-tight">
+          <section key={stage.key} className="space-y-6">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+              <div
+                className={cn(
+                  'p-2 rounded-xl',
+                  stage.color === 'blue'
+                    ? 'bg-blue-50 text-blue-600'
+                    : stage.color === 'amber'
+                      ? 'bg-amber-50 text-amber-600'
+                      : stage.color === 'emerald'
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : 'bg-slate-50 text-slate-500'
+                )}
+              >
+                <stage.icon className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-black text-[#1A254F] uppercase tracking-tight">
                 {stage.label}
               </h3>
-              <Badge variant="outline" className="text-[10px] font-black">
-                {types.length} Types
+              <Badge
+                variant="secondary"
+                className="bg-slate-50 text-[#1A254F] border-slate-100 font-black text-[10px] h-6 rounded-lg px-2 shadow-sm"
+              >
+                {types.length} 항목
               </Badge>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-6">
               {types.map(type => (
                 <InvoiceDocumentEntry
                   key={type.code}

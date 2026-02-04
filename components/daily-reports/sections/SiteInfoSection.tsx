@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import type { Site } from '@/types'
 import { MapPin } from 'lucide-react'
 import React from 'react'
-import { CollapsibleSection, useRolePermissions } from '../CollapsibleSection'
+import { CollapsibleSection } from '../CollapsibleSection'
 
 interface SiteInfoSectionProps {
   formData: {
@@ -24,7 +24,7 @@ interface SiteInfoSectionProps {
   selectedOrganizationLabel: string
   isExpanded: boolean
   onToggle: () => void
-  permissions: ReturnType<typeof useRolePermissions>
+  permissions: any
 }
 
 export const SiteInfoSection = ({
@@ -45,16 +45,19 @@ export const SiteInfoSection = ({
       required={true}
       permissions={permissions}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="site_id" className="text-xs text-gray-500 font-medium">
-            현장 선택 *
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-1.5 align-top">
+          <Label
+            htmlFor="site_id"
+            className="text-[11px] font-black text-foreground uppercase tracking-tighter opacity-50"
+          >
+            현장 선택 <span className="text-rose-500">*</span>
           </Label>
           <CustomSelect
             value={formData.site_id}
             onValueChange={value => setFormData((prev: any) => ({ ...prev, site_id: value }))}
           >
-            <CustomSelectTrigger className="h-9">
+            <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all">
               <CustomSelectValue placeholder="현장을 선택하세요" />
             </CustomSelectTrigger>
             <CustomSelectContent>
@@ -66,16 +69,25 @@ export const SiteInfoSection = ({
             </CustomSelectContent>
           </CustomSelect>
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-gray-500 font-medium">소속 (자동)</Label>
-          <Input value={selectedOrganizationLabel} readOnly className="h-9 bg-gray-50" />
-          <p className="text-[10px] text-gray-400 mt-0.5">
+        <div className="space-y-1.5 align-top">
+          <Label className="text-[11px] font-black text-foreground uppercase tracking-tighter opacity-50">
+            소속 (자동)
+          </Label>
+          <Input
+            value={selectedOrganizationLabel}
+            readOnly
+            className="h-10 rounded-xl bg-gray-100/50 border-none px-4 text-sm font-medium text-gray-500"
+          />
+          <p className="text-[10px] text-gray-400 mt-1 pl-1">
             현장을 선택하면 연결된 소속이 자동으로 표시됩니다.
           </p>
         </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="work_date" className="text-xs text-gray-500 font-medium">
-            작업일자 *
+        <div className="space-y-1.5 align-top">
+          <Label
+            htmlFor="work_date"
+            className="text-[11px] font-black text-foreground uppercase tracking-tighter opacity-50"
+          >
+            작업일자 <span className="text-rose-500">*</span>
           </Label>
           <Input
             id="work_date"
@@ -83,7 +95,7 @@ export const SiteInfoSection = ({
             value={formData.work_date}
             onChange={e => setFormData((prev: any) => ({ ...prev, work_date: e.target.value }))}
             required
-            className="h-9"
+            className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm focus:ring-2 focus:ring-blue-500/20 transition-all"
           />
         </div>
       </div>

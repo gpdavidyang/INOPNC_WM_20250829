@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/ui/badge'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
 import { RegistryBulkActions } from './RegistryBulkActions'
 import { RegistryPhotoItem } from './RegistryPhotoItem'
@@ -64,42 +65,42 @@ export function PhotoRegistrySection({
 
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3 pb-2 border-b-2">
-          <h3 className="text-lg font-black text-foreground uppercase tracking-tight">{title}</h3>
-          <span className="bg-gray-100 text-[10px] font-black px-2 py-0.5 rounded-full text-muted-foreground uppercase tracking-widest">
-            {photos.length} Photos
-          </span>
+        <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+          <h3 className="text-base font-black text-foreground tracking-tight">{title}</h3>
+          <Badge className="bg-blue-50 text-blue-700 text-[11px] font-black tracking-tighter px-2.5 py-0.5 border-none rounded-md">
+            {photos.length}
+          </Badge>
         </div>
 
         {photos.length === 0 ? (
-          <div className="py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2">
-            <p className="text-sm font-bold text-muted-foreground opacity-40 italic">
-              업로드된 사진이 없습니다.
+          <div className="py-16 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center gap-2">
+            <p className="text-sm font-medium text-muted-foreground/40 italic">
+              해당 구분의 사진 데이터가 없습니다.
             </p>
           </div>
         ) : isListView ? (
-          <div className="rounded-2xl border bg-card shadow-sm overflow-hidden">
+          <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gray-50/80 border-b">
+                <tr className="bg-gray-50/50 border-b border-gray-100">
                   <th className="p-4 w-10"></th>
                   <th className="p-4 w-10"></th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">
-                    Preview
+                  <th className="p-4 text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30">
+                    미리보기
                   </th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">
-                    Filename / Memo
+                  <th className="p-4 text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30">
+                    파일명 / 메모
                   </th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">
-                    Date
+                  <th className="p-4 text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30 text-center">
+                    등록일
                   </th>
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest opacity-40">
-                    Uploader
+                  <th className="p-4 text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30 text-center">
+                    작성자
                   </th>
                   <th className="p-4"></th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-50">
                 {photos.map((photo, index) => (
                   <RegistryPhotoItem
                     key={photo.id || index}
@@ -121,7 +122,7 @@ export function PhotoRegistrySection({
             </table>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {photos.map((photo, index) => (
               <RegistryPhotoItem
                 key={photo.id || index}
@@ -146,7 +147,7 @@ export function PhotoRegistrySection({
   }
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-5">
       <RegistryBulkActions
         viewMode={photosViewMode}
         setViewMode={setPhotosViewMode}
@@ -161,9 +162,9 @@ export function PhotoRegistrySection({
         loading={photoActionLoading}
       />
 
-      <div className="space-y-16">
-        {renderSection('보수 전 (Before Repair)', 'before')}
-        {renderSection('보수 후 (After Repair)', 'after')}
+      <div className="space-y-8">
+        {renderSection('보수 전 사진 기록', 'before')}
+        {renderSection('보수 후 사진 기록', 'after')}
       </div>
     </div>
   )

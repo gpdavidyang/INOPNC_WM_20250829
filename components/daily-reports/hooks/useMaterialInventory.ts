@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { MaterialInventoryEntry } from '../daily-reports/types'
+import type { MaterialInventoryEntry } from '../types'
 
 export const useMaterialInventory = (selectedSiteId: string) => {
   const [materialInventory, setMaterialInventory] = useState<
@@ -24,10 +24,18 @@ export const useMaterialInventory = (selectedSiteId: string) => {
       .then(data => {
         if (data.success && data.data) {
           const invMap: Record<string, MaterialInventoryEntry> = {}
-          data.data.forEach((item: any) => {
-            invMap[item.material_id] = {
-              quantity: item.qty_remaining ?? item.current_stock ?? 0,
-              unit: item.unit_name || item.unit || '',
+          // The API returns an object { inventory: [...], shipments: [...], stats: {...} }
+          const items = Array.isArray(data.data) ? data.data : data.data.inventory || []
+
+          items.forEach((item: any) => {
+            const materialId = item.material_id || item.materialId
+            if (!materialId) return
+            invMap[materialId] = {
+              materialId,
+              quantity: item.quantity ?? 0,
+              unit: item.materials?.unit || item.unit || '',
+              status: item.status || 'normal',
+              name: item.materials?.name || item.name || '',
             }
           })
           setMaterialInventory(invMap)

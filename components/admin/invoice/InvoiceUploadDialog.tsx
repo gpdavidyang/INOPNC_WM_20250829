@@ -1,6 +1,12 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import CustomSelect, {
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import {
   Dialog,
   DialogContent,
@@ -9,18 +15,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/components/ui/use-toast'
 import { cn } from '@/lib/utils'
-import { Loader2, Upload } from 'lucide-react'
+import { AlertCircle, CheckCircle2, FileUp, Loader2, X } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export type StageKey = 'start' | 'progress' | 'completion'
@@ -265,11 +263,8 @@ export function InvoiceUploadForm({
 
   if (isCompact) {
     return (
-      <div className={cn('flex flex-wrap items-center gap-2 sm:gap-3', className)}>
-        <Label htmlFor={fileInputId} className="sr-only">
-          {docTypeLabel} 파일 선택
-        </Label>
-        <Input
+      <div className={cn('flex flex-wrap items-center gap-2 group', className)}>
+        <input
           id={fileInputId}
           ref={fileInputRef}
           type="file"
@@ -281,24 +276,28 @@ export function InvoiceUploadForm({
         <Button
           type="button"
           variant="outline"
-          size="sm"
-          className="h-10 px-4 rounded-xl bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all font-bold text-xs shadow-sm"
+          size="xs"
+          className="h-8 rounded-lg font-bold px-4 whitespace-nowrap bg-white border-slate-200 text-slate-600 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all shadow-sm"
           onClick={() => fileInputRef.current?.click()}
           disabled={submitting}
         >
           {status === 'uploading' ? (
-            <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin text-blue-500" />
-          ) : (
-            <Upload className="h-3.5 w-3.5 mr-2 text-gray-400" />
-          )}
-          문서 등록
+            <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin text-blue-600" />
+          ) : null}
+          {status === 'uploading' ? '업로드 중' : '문서 등록'}
         </Button>
-        <div className="flex items-center gap-2 text-xs min-h-[1.5rem]">
+        <div className="flex items-center gap-2 text-[11px] min-h-[1.5rem] font-bold">
           {status === 'success' && lastFileName ? (
-            <span className="text-emerald-600 font-bold">{lastFileName} 업로드 완료</span>
+            <span className="text-emerald-600 flex items-center gap-1 animate-in fade-in slide-in-from-left-2">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              업로드 완료
+            </span>
           ) : null}
           {status === 'error' && statusMessage ? (
-            <span className="text-destructive font-bold">{statusMessage}</span>
+            <span className="text-rose-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" />
+              상세 오류 확인
+            </span>
           ) : null}
         </div>
       </div>
@@ -306,98 +305,158 @@ export function InvoiceUploadForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cn('space-y-4', className)}>
-      {enableStageSelection ? (
-        <div className="space-y-2">
-          <Label>단계</Label>
-          <Select value={stage || undefined} onValueChange={value => setStage(value as StageKey)}>
-            <SelectTrigger>
-              <SelectValue placeholder="단계를 선택하세요" />
-            </SelectTrigger>
-            <SelectContent>
-              {stageOptions.map(opt => (
-                <SelectItem key={opt.key} value={opt.key}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      ) : null}
+    <form onSubmit={handleSubmit} className={cn('space-y-6', className)}>
+      <div className="grid gap-6 md:grid-cols-2">
+        {enableStageSelection && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 px-1">
+              <span className="text-[11px] font-black text-[#1A254F] uppercase tracking-tighter opacity-40">
+                투입 단계
+              </span>
+            </div>
+            <CustomSelect value={stage || ''} onValueChange={value => setStage(value as StageKey)}>
+              <CustomSelectTrigger className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm font-bold shadow-sm">
+                <CustomSelectValue placeholder="단계 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                {stageOptions.map(opt => (
+                  <CustomSelectItem key={opt.key} value={opt.key} className="font-bold">
+                    {opt.label}
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
+        )}
 
-      {showTitleField ? (
-        <div className="space-y-2">
-          <Label htmlFor={`invoice-title-${docType}`}>문서 제목</Label>
-          <Input
-            id={`invoice-title-${docType}`}
-            placeholder={`${docTypeLabel} 제목`}
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-          />
-        </div>
-      ) : null}
+        {showTitleField && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 px-1">
+              <span className="text-[11px] font-black text-[#1A254F] uppercase tracking-tighter opacity-40">
+                문서 제목
+              </span>
+            </div>
+            <Input
+              id={`invoice-title-${docType}`}
+              placeholder={`${docTypeLabel} 제목 입력`}
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              className="h-10 rounded-xl bg-slate-50 border-none px-4 text-sm font-bold shadow-sm focus:bg-white transition-all"
+            />
+          </div>
+        )}
+      </div>
 
-      {showDescriptionField ? (
+      {showDescriptionField && (
         <div className="space-y-2">
-          <Label htmlFor={`invoice-description-${docType}`}>설명 (선택)</Label>
+          <div className="flex items-center gap-1.5 px-1">
+            <span className="text-[11px] font-black text-[#1A254F] uppercase tracking-tighter opacity-40">
+              상세 설명 (메모)
+            </span>
+          </div>
           <Textarea
             id={`invoice-description-${docType}`}
-            placeholder="관리자 참고용 메모를 입력하세요."
+            placeholder="관리자 참고용 비고 사항을 입력하세요."
             value={description}
             onChange={e => setDescription(e.target.value)}
             rows={3}
+            className="rounded-2xl bg-slate-50 border-none p-4 text-sm font-medium shadow-sm focus:bg-white transition-all resize-none"
           />
         </div>
-      ) : null}
+      )}
 
       <div className="space-y-2">
-        <Label htmlFor={fileInputId}>파일</Label>
-        <Input
-          id={fileInputId}
-          ref={fileInputRef}
-          type="file"
-          accept="*/*"
-          onChange={handleFileChange}
-          className="cursor-pointer"
-          disabled={submitting}
-        />
-        <p className="text-xs text-muted-foreground">
-          허용 확장자: PDF, Office 문서, 이미지 (최대 50MB)
-        </p>
-        {selectedFile ? (
-          <p className="text-xs text-foreground">
-            선택된 파일: <strong>{selectedFile.name}</strong>
-          </p>
-        ) : null}
+        <div className="flex items-center gap-1.5 px-1">
+          <span className="text-[11px] font-black text-[#1A254F] uppercase tracking-tighter opacity-40">
+            파일 업로드
+          </span>
+        </div>
+        <div
+          className={cn(
+            'relative border-2 border-dashed rounded-3xl p-8 flex flex-col items-center justify-center gap-3 transition-all',
+            selectedFile
+              ? 'border-blue-200 bg-blue-50/20'
+              : 'border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-200'
+          )}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            id={fileInputId}
+            ref={fileInputRef}
+            type="file"
+            accept="*/*"
+            onChange={handleFileChange}
+            className="hidden"
+            disabled={submitting}
+          />
+          <div
+            className={cn(
+              'p-4 rounded-full shadow-sm',
+              selectedFile ? 'bg-blue-600 text-white' : 'bg-white text-slate-300'
+            )}
+          >
+            <FileUp className="w-6 h-6" />
+          </div>
+          <div className="text-center">
+            <p
+              className={cn('text-sm font-bold', selectedFile ? 'text-blue-900' : 'text-slate-400')}
+            >
+              {selectedFile ? selectedFile.name : '파일을 드래그하거나 클릭하여 선택하세요'}
+            </p>
+            <p className="text-[11px] text-slate-400 font-medium mt-1">
+              PDF, 이미지, Office 문서 (최대 50MB)
+            </p>
+          </div>
+          {selectedFile && (
+            <button
+              onClick={e => {
+                e.stopPropagation()
+                clearFileSelection()
+              }}
+              className="absolute top-4 right-4 p-1.5 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-400 hover:text-rose-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2">
-        {onCancel ? (
-          <Button type="button" variant="outline" onClick={handleCancel}>
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-50">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={handleCancel}
+            className="h-11 rounded-xl font-bold text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all px-6"
+          >
             취소
           </Button>
-        ) : null}
-        <Button type="submit" disabled={submitting || !selectedFile}>
-          {submitting ? '업로드 중…' : '업로드'}
+        )}
+        <Button
+          type="submit"
+          disabled={submitting || !selectedFile}
+          className="h-11 rounded-xl bg-[#1A254F] hover:bg-[#111836] font-black px-10 shadow-lg shadow-blue-900/10 transition-all uppercase tracking-tighter"
+        >
+          {submitting ? '처리 중...' : '문서 업로드'}
         </Button>
       </div>
 
-      {status !== 'idle' ? (
-        <div className="text-xs text-muted-foreground">
-          {status === 'uploading' ? (
-            <span className="flex items-center gap-1">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              업로드 중…
-            </span>
-          ) : null}
-          {status === 'success' && lastFileName ? (
-            <span className="text-emerald-600">{lastFileName} 업로드 완료</span>
-          ) : null}
-          {status === 'error' && statusMessage ? (
-            <span className="text-destructive">{statusMessage}</span>
-          ) : null}
+      {status !== 'idle' && (
+        <div className="flex items-center justify-center pt-2">
+          {status === 'uploading' && (
+            <div className="flex items-center gap-2 text-blue-600 font-bold text-sm animate-pulse">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              서버로 파일을 전송하고 있습니다...
+            </div>
+          )}
+          {status === 'success' && (
+            <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm">
+              <CheckCircle2 className="h-4 w-4" />
+              업로드 성공! 목록에 자동 반영됩니다.
+            </div>
+          )}
         </div>
-      ) : null}
+      )}
     </form>
   )
 }
@@ -420,36 +479,36 @@ export default function InvoiceUploadDialog({
   variant,
   autoUpload,
 }: DialogProps) {
-  const handleOpenChange = (next: boolean) => {
-    onOpenChange(next)
-  }
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{docTypeLabel} 업로드</DialogTitle>
-          <DialogDescription>
-            현장에 공유할 {docTypeLabel} 문서를 업로드합니다. 파일은 기존 문서 위에 버전으로
-            쌓입니다.
-          </DialogDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="bg-[#1A254F] px-8 py-10">
+          <div>
+            <DialogTitle className="text-2xl font-black text-white tracking-tight">
+              {docTypeLabel} 등록
+            </DialogTitle>
+            <DialogDescription className="text-white/50 font-medium text-sm mt-1">
+              파일을 업로드하면 기존 문서에 새로운 버전으로 추가됩니다.
+            </DialogDescription>
+          </div>
         </DialogHeader>
-        <InvoiceUploadForm
-          siteId={siteId}
-          docType={docType}
-          docTypeLabel={docTypeLabel}
-          initialStage={initialStage}
-          lockedStage={lockedStage}
-          organizationId={organizationId}
-          onUploaded={async payload => {
-            if (onUploaded) await onUploaded(payload)
-            onOpenChange(false)
-          }}
-          onCancel={() => onOpenChange(false)}
-          className="pt-4"
-          variant={variant}
-          autoUpload={autoUpload}
-        />
+        <div className="p-8">
+          <InvoiceUploadForm
+            siteId={siteId}
+            docType={docType}
+            docTypeLabel={docTypeLabel}
+            initialStage={initialStage}
+            lockedStage={lockedStage}
+            organizationId={organizationId}
+            onUploaded={async payload => {
+              if (onUploaded) await onUploaded(payload)
+              onOpenChange(false)
+            }}
+            onCancel={() => onOpenChange(false)}
+            variant={variant}
+            autoUpload={autoUpload}
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )

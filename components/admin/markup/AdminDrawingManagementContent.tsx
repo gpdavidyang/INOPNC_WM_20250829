@@ -211,7 +211,9 @@ export default function AdminDrawingManagementContent({
           <div className="flex flex-wrap items-end gap-4">
             {!fixedSiteId && (
               <div className="space-y-1.5 min-w-[200px]">
-                <span className="text-xs font-semibold text-muted-foreground">현장 필터</span>
+                <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                  현장 필터
+                </span>
                 <Select value={siteId} onValueChange={setSiteId}>
                   <SelectTrigger className="h-10">
                     <SelectValue placeholder="전체 현장" />
@@ -229,7 +231,9 @@ export default function AdminDrawingManagementContent({
             )}
 
             <div className="space-y-1.5 min-w-[140px]">
-              <span className="text-xs font-semibold text-muted-foreground">문서 상태</span>
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                문서 상태
+              </span>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger className="h-10">
                   <SelectValue placeholder="전체 상태" />
@@ -244,7 +248,9 @@ export default function AdminDrawingManagementContent({
               </Select>
             </div>
             <div className="space-y-1.5 flex-1 min-w-[240px]">
-              <span className="text-xs font-semibold text-muted-foreground">키워드 검색</span>
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                키워드 검색
+              </span>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
                 <Input
@@ -257,7 +263,9 @@ export default function AdminDrawingManagementContent({
               </div>
             </div>
             <div className="space-y-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">시작일</span>
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                시작일
+              </span>
               <Input
                 type="date"
                 className="h-10 w-[170px] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 transition-opacity"
@@ -266,7 +274,9 @@ export default function AdminDrawingManagementContent({
               />
             </div>
             <div className="space-y-1.5">
-              <span className="text-xs font-semibold text-muted-foreground">종료일</span>
+              <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+                종료일
+              </span>
               <Input
                 type="date"
                 className="h-10 w-[170px] [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60 hover:[&::-webkit-calendar-picker-indicator]:opacity-100 transition-opacity"

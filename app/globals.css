@@ -1,14 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Import INOPNC Design System Tokens */
 @import '../styles/design-tokens.css';
 /* Mobile UI standard (type scale, stat card sizes, etc.) */
 @import '../styles/design-system/mobile.css';
-
 /* Import Component Styles */
 @import '../styles/components.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* ========================================
    MOBILE UI UPGRADE - DESIGN TOKENS
@@ -431,35 +430,35 @@ body.role-customer-manager {
   .admin-role .2xl\:block,
   .role-admin .lg\:block,
   .role-admin .xl\:block,
-  .role-admin .2xl\:block,
+  .role-admin .\32 xl\:block,
   .role-system-admin .lg\:block,
   .role-system-admin .xl\:block,
-  .role-system-admin .2xl\:block {
+  .role-system-admin .\32 xl\:block {
     display: block !important;
   }
 
   .admin-role .lg\:flex,
   .admin-role .xl\:flex,
-  .admin-role .2xl\:flex,
+  .admin-role .\32 xl\:flex,
   .role-admin .lg\:flex,
   .role-admin .xl\:flex,
-  .role-admin .2xl\:flex,
+  .role-admin .\32 xl\:flex,
   .role-system-admin .lg\:flex,
   .role-system-admin .xl\:flex,
-  .role-system-admin .2xl\:flex {
+  .role-system-admin .\32 xl\:flex {
     display: flex !important;
   }
 
   /* Hide mobile elements for admin */
   .admin-role .lg\:hidden,
   .admin-role .xl\:hidden,
-  .admin-role .2xl\:hidden,
+  .admin-role .\32 xl\:hidden,
   .role-admin .lg\:hidden,
   .role-admin .xl\:hidden,
-  .role-admin .2xl\:hidden,
+  .role-admin .\32 xl\:hidden,
   .role-system-admin .lg\:hidden,
   .role-system-admin .xl\:hidden,
-  .role-system-admin .2xl\:hidden {
+  .role-system-admin .\32 xl\:hidden {
     display: none !important;
   }
 
@@ -1831,29 +1830,30 @@ html.dark .doc-hub .grid-thumbs .thumb {
     }
 
     /* FORCE show desktop elements */
+    /* FORCE show desktop elements */
     .hidden.lg\:block,
     .hidden.xl\:block,
-    .hidden.2xl\:block {
+    .hidden.\32 xl\:block {
       display: block !important;
     }
     .hidden.lg\:flex,
     .hidden.xl\:flex,
-    .hidden.2xl\:flex {
+    .hidden.\32 xl\:flex {
       display: flex !important;
     }
     .hidden.lg\:inline-block,
     .hidden.xl\:inline-block,
-    .hidden.2xl\:inline-block {
+    .hidden.\32 xl\:inline-block {
       display: inline-block !important;
     }
     .hidden.lg\:inline-flex,
     .hidden.xl\:inline-flex,
-    .hidden.2xl\:inline-flex {
+    .hidden.\32 xl\:inline-flex {
       display: inline-flex !important;
     }
     .hidden.lg\:grid,
     .hidden.xl\:grid,
-    .hidden.2xl\:grid {
+    .hidden.\32 xl\:grid {
       display: grid !important;
     }
 

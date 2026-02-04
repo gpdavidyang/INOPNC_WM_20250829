@@ -23,33 +23,38 @@ export function MaterialUsageSection({ materials, formatNumber }: MaterialUsageS
   }
 
   return (
-    <Card className="flex flex-col border shadow-sm">
-      <CardHeader className="border-b bg-slate-50/50 px-5 py-4">
-        <CardTitle className="text-base font-bold text-[#1A254F]">자재 사용 내역</CardTitle>
+    <Card className="flex flex-col rounded-2xl border bg-card shadow-sm overflow-hidden">
+      <CardHeader className="border-b border-gray-100 bg-gray-50/50 px-5 py-4">
+        <CardTitle className="text-base font-black text-foreground tracking-tight">
+          자재 투입 내역
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 p-0">
-        <div className="overflow-x-auto px-5 pb-4">
+        <div className="overflow-x-auto px-5 pb-3 pt-1">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="text-left text-muted-foreground border-b">
-                <th className="py-3 font-semibold">자재명</th>
-                <th className="py-3 font-semibold">수량</th>
-                <th className="py-3 font-semibold">단위</th>
-                <th className="py-3 font-semibold">비고</th>
+              <tr className="text-left text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30 border-b border-gray-100">
+                <th className="py-3 px-1">자재명</th>
+                <th className="py-3 px-1">수량</th>
+                <th className="py-3 px-1">단위</th>
+                <th className="py-3 px-1">비고</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-50">
               {materials.map(material => (
-                <tr
-                  key={material.id}
-                  className="border-b last:border-0 hover:bg-slate-50/50 transition-colors"
-                >
-                  <td className="py-3 text-foreground font-medium">
-                    {material.materialName || material.materialCode || '자재'}
+                <tr key={material.id} className="group hover:bg-gray-50/30 transition-colors">
+                  <td className="py-3.5 px-1 text-foreground font-bold">
+                    {material.materialName || material.materialCode || '-'}
                   </td>
-                  <td className="py-3 tabular-nums">{formatNumber(material.quantity, 2)}</td>
-                  <td className="py-3">{material.unit || '-'}</td>
-                  <td className="py-3 text-slate-500">{material.notes || '-'}</td>
+                  <td className="py-3.5 px-1 tabular-nums font-black italic text-foreground/80">
+                    {formatNumber(material.quantity, 2)}
+                  </td>
+                  <td className="py-3.5 px-1 text-muted-foreground font-medium">
+                    {material.unit || '-'}
+                  </td>
+                  <td className="py-3.5 px-1 text-muted-foreground/60 text-xs font-medium">
+                    {material.notes || '-'}
+                  </td>
                 </tr>
               ))}
             </tbody>

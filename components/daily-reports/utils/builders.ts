@@ -19,7 +19,7 @@ export const sanitizeUnitLabel = (value: unknown): string | null => {
 }
 export const createReportKey = (reportData?: DailyReportFormProps['reportData'] | null) => {
   if (!reportData?.id) return null
-  return `edit-${reportData.id}-${reportData.updated_at || Date.now()}`
+  return `edit-${reportData.id}-${reportData.updated_at || 'stable'}`
 }
 
 export const normalizeMaterialKeyword = (value?: string | null) =>

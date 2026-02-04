@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
-import { Calendar, Check, Loader2, MapPin, Pencil, RotateCcw, X } from 'lucide-react'
+import { AlertCircle, Calendar, Check, Loader2, MapPin, Pencil, RotateCcw, X } from 'lucide-react'
 
 const STATUS_META: Record<
   string,
@@ -12,22 +12,22 @@ const STATUS_META: Record<
 > = {
   draft: {
     label: '임시 저장',
-    color: 'bg-gray-100 text-gray-700 border-gray-200',
+    color: 'bg-gray-100 text-gray-600 border-gray-200',
     variant: 'outline',
   },
   submitted: {
     label: '결재 대기',
-    color: 'bg-blue-50 text-blue-700 border-blue-100',
+    color: 'bg-blue-50 text-blue-700 border-blue-200',
     variant: 'secondary',
   },
   approved: {
     label: '최종 승인',
-    color: 'bg-emerald-500 text-white border-emerald-500',
+    color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     variant: 'default',
   },
   rejected: {
     label: '반려됨',
-    color: 'bg-rose-500 text-white border-rose-500',
+    color: 'bg-rose-50 text-rose-700 border-rose-200',
     variant: 'destructive',
   },
 }
@@ -63,7 +63,7 @@ export function ReportHeader({
 }: ReportHeaderProps) {
   const meta = STATUS_META[status.toLowerCase()] || {
     label: status,
-    color: 'bg-gray-100',
+    color: 'bg-gray-100 text-gray-600',
     variant: 'outline',
   }
   const isApproved = status.toLowerCase() === 'approved'
@@ -71,42 +71,43 @@ export function ReportHeader({
   const isSubmitted = status.toLowerCase() === 'submitted'
 
   return (
-    <div className="relative overflow-hidden bg-white/80 backdrop-blur-xl border-b p-6 sm:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
+    <div className="relative overflow-hidden bg-white border-b p-5 sm:px-8 sm:py-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
             <Badge
-              variant={meta.variant}
+              variant="outline"
               className={cn(
-                'text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-full shadow-sm',
+                'text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-md border-none shadow-none',
                 meta.color
               )}
             >
-              {meta.label}
+              • {meta.label}
             </Badge>
             {isRejected && rejectionReason && (
-              <div className="bg-rose-50 text-rose-700 text-[10px] font-bold px-3 py-0.5 rounded-full border border-rose-100 animate-in fade-in slide-in-from-left-2">
-                반려 사유: {rejectionReason}
+              <div className="bg-rose-50 text-rose-600 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-rose-100 flex items-center gap-1.5">
+                <AlertCircle className="w-3 h-3" />
+                반려: {rejectionReason}
               </div>
             )}
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-3xl font-black text-foreground tracking-tight flex items-center gap-3">
+            <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">
               {siteName}
-              <div className="hidden sm:block h-6 w-px bg-gray-200" />
-              <span className="text-muted-foreground/40 font-light hidden sm:inline">
-                Daily Report
-              </span>
             </h1>
-            <div className="flex flex-wrap items-center gap-4 text-sm font-bold text-muted-foreground uppercase tracking-wider opacity-60">
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-4 h-4" />{' '}
-                {workDate ? format(new Date(workDate), 'yyyy년 MM월 dd일') : '-'}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-4 h-4" /> INOPNC SITE SYSTEM
-              </span>
+
+            <div className="flex flex-wrap items-center gap-4 text-[11px] font-medium text-muted-foreground/50 tracking-tight">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3 h-3" />
+                <span className="text-gray-500 font-bold">
+                  {workDate ? format(new Date(workDate), 'yyyy. MM. dd') : '-'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3 h-3" />
+                <span>본사 관리 시스템</span>
+              </div>
             </div>
           </div>
         </div>
@@ -117,27 +118,27 @@ export function ReportHeader({
               <Button
                 onClick={() => onStatusChange('approve')}
                 disabled={approvalLoading || rejecting}
-                className="bg-emerald-600 text-white hover:bg-emerald-700 rounded-2xl h-11 px-6 font-black gap-2 shadow-lg shadow-emerald-500/20"
+                className="bg-[#1A254F] text-white hover:bg-black rounded-lg h-9 px-4 font-bold text-xs gap-1.5 whitespace-nowrap shadow-sm transition-all"
               >
                 {approvalLoading && !rejecting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 ) : (
-                  <Check className="w-4 h-4" />
+                  <Check className="w-3.5 h-3.5" />
                 )}
-                승인 완료
+                최종 승인
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setRejecting(!rejecting)}
                 disabled={approvalLoading}
                 className={cn(
-                  'rounded-2xl h-11 px-6 font-black gap-2 border-2',
+                  'rounded-lg h-9 px-4 font-bold text-xs gap-1.5 border-gray-200 whitespace-nowrap',
                   rejecting
                     ? 'bg-rose-50 border-rose-200 text-rose-700'
                     : 'hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200'
                 )}
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
                 반려 처리
               </Button>
             </>
@@ -145,12 +146,12 @@ export function ReportHeader({
 
           {(isApproved || isRejected) && (
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={() => onStatusChange('revert')}
               disabled={approvalLoading}
-              className="rounded-2xl h-11 px-6 font-black gap-2 text-muted-foreground hover:bg-gray-100"
+              className="bg-white hover:bg-gray-50 text-gray-400 rounded-lg h-9 px-3.5 font-bold text-xs gap-1.5 whitespace-nowrap border-gray-200 transition-all shadow-sm"
             >
-              <RotateCcw className={cn('w-4 h-4', approvalLoading && 'animate-spin')} />
+              <RotateCcw className={cn('w-3 h-3', approvalLoading && 'animate-spin')} />
               상태 초기화
             </Button>
           )}
@@ -158,10 +159,10 @@ export function ReportHeader({
           {canEditReport && editHref && (
             <Button
               asChild
-              className="bg-blue-600 text-white hover:bg-blue-700 rounded-2xl h-11 px-8 font-black gap-2 shadow-lg shadow-blue-500/20"
+              className="bg-blue-600 text-white hover:bg-blue-700 rounded-lg h-9 px-5 font-bold text-xs gap-1.5 whitespace-nowrap shadow-sm transition-all"
             >
               <a href={editHref}>
-                <Pencil className="w-4 h-4" /> 일지 편집
+                <Pencil className="w-3 h-3" /> 편집기
               </a>
             </Button>
           )}
@@ -169,9 +170,9 @@ export function ReportHeader({
       </div>
 
       {showEditGuidance && (
-        <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-2 flex items-center gap-3">
+        <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-2.5 flex items-center gap-3">
           <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-          <p className="text-[11px] font-bold text-blue-700 uppercase tracking-tight">
+          <p className="text-[11px] font-bold text-blue-700 tracking-tight">
             현재 {isRejected ? '반려' : '제출'} 상태입니다. 내용 수정 후 다시 제출 시 결재
             프로세스가 초기화됩니다.
           </p>

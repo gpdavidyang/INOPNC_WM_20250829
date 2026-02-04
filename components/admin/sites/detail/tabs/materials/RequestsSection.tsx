@@ -11,7 +11,6 @@ import {
   CustomSelectValue,
 } from '@/components/ui/custom-select'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import StatsCard from '@/components/ui/stats-card'
 import {
   isMaterialPriorityValue,
   MATERIAL_PRIORITY_BADGE_VARIANTS,
@@ -19,8 +18,9 @@ import {
   MaterialPriorityValue,
   normalizeMaterialPriority,
 } from '@/lib/materials/priorities'
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Search } from 'lucide-react'
 import { useMemo } from 'react'
+import { MaterialStatsCard } from './MaterialStatsCard'
 
 // --- Helpers from B Page ---
 const numberFormatter = new Intl.NumberFormat('ko-KR')
@@ -205,57 +205,75 @@ export function RequestsSection({
   return (
     <div className="space-y-4">
       {/* Functionally identical stats cards to B page */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <StatsCard label="요청건수" value={stats.totalReq} unit="건" />
-        <StatsCard label="요청수량" value={stats.totalRequestQuantity} unit="ea" />
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <MaterialStatsCard label="요청건수" value={stats.totalReq} unit="건" />
+        <MaterialStatsCard label="요청수량" value={stats.totalRequestQuantity} unit="ea" />
         {priorityOrder.map(priority => (
-          <StatsCard
+          <MaterialStatsCard
             key={priority}
             label={`긴급도 (${MATERIAL_PRIORITY_LABELS[priority]})`}
             value={stats.priorityCounts[priority]}
             unit="건"
+            variant="gray"
           />
         ))}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mt-6">
+        <h3 className="text-lg font-black text-foreground mb-1 sm:mb-0">입고 요청</h3>
+
         <div className="flex flex-wrap items-end gap-2 w-full sm:w-auto">
           {/* Search */}
-          <div className="relative w-48">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            <input
-              value={query}
-              onChange={e => onQueryChange(e.target.value)}
-              placeholder="검색..."
-              className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
-            />
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+              검색
+            </span>
+            <div className="relative w-48">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <input
+                value={query}
+                onChange={e => onQueryChange(e.target.value)}
+                placeholder="검색..."
+                className="w-full h-9 pl-9 pr-3 rounded-lg bg-gray-50 border-none text-xs"
+              />
+            </div>
           </div>
 
           {/* Priority Filter (Visual for now) */}
-          <CustomSelect value="all">
-            <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
-              <CustomSelectValue placeholder="전체 긴급도" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">전체 긴급도</CustomSelectItem>
-              {/* Hardcoded options for UI match - logic pending hook update */}
-              <CustomSelectItem value="urgent">긴급</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+              긴급도
+            </span>
+            <CustomSelect value="all">
+              <CustomSelectTrigger className="h-9 rounded-lg bg-gray-50 border-none px-3 text-xs w-28">
+                <CustomSelectValue placeholder="전체 긴급도" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">전체 긴급도</CustomSelectItem>
+                {/* Hardcoded options for UI match - logic pending hook update */}
+                <CustomSelectItem value="urgent">긴급</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
 
           <Button variant="outline" size="sm" className="h-9">
             적용
           </Button>
-          <Button variant="ghost" size="sm" className="h-9">
+          <Button variant="outline" size="sm" className="h-9 border-gray-300 text-gray-700">
             초기화
           </Button>
 
           {/* Excel */}
           <a
-            className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            className={buttonVariants({
+              variant: 'outline',
+              size: 'sm',
+              className: 'h-8 rounded-md font-normal px-4 whitespace-nowrap gap-2',
+            })}
             role="button"
             href={`/api/admin/materials/export?tab=requests${query ? `&search=${encodeURIComponent(query)}` : ''}`}
           >
+            <Download className="w-3.5 h-3.5" />
             엑셀 다운로드
           </a>
         </div>

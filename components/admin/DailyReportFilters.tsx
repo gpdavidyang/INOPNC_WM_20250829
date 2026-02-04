@@ -1,4 +1,5 @@
 'use client'
+// Force HMR refresh
 
 import { Button } from '@/components/ui/button'
 import {
@@ -9,7 +10,7 @@ import {
   CustomSelectValue,
 } from '@/components/ui/custom-select'
 import { Input } from '@/components/ui/input'
-import { Calendar, Filter, RotateCcw, Search } from 'lucide-react'
+import { RotateCcw, Search } from 'lucide-react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useState } from 'react'
 
@@ -77,35 +78,23 @@ export function DailyReportFilters({
   }
 
   return (
-    <div className="bg-white rounded-[32px] p-8 shadow-2xl shadow-black/5 border border-gray-100 mb-8">
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400">
-          <Filter className="w-5 h-5" />
-        </div>
-        <div>
-          <h3 className="text-base font-black tracking-tight">상세 필터</h3>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            보고서 검색 및 필터링
-          </p>
-        </div>
-      </div>
-
+    <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm mb-6">
       <form
         onSubmit={e => {
           e.preventDefault()
           applyFilters()
         }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6"
+        className="flex flex-wrap items-end gap-4"
       >
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+        <div className="space-y-1.5 w-full sm:w-[200px]">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             현장
           </label>
           <CustomSelect
             value={siteId || '__all__'}
             onValueChange={v => setSiteId(v === '__all__' ? '' : v)}
           >
-            <CustomSelectTrigger className="h-12 rounded-2xl bg-gray-50 border-transparent hover:border-gray-200 transition-all focus:ring-2 focus:ring-red-100">
+            <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm">
               <CustomSelectValue placeholder="모든 현장" />
             </CustomSelectTrigger>
             <CustomSelectContent>
@@ -119,15 +108,15 @@ export function DailyReportFilters({
           </CustomSelect>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+        <div className="space-y-1.5 w-full sm:w-[140px]">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             상태
           </label>
           <CustomSelect
             value={status || '__all__'}
             onValueChange={v => setStatus(v === '__all__' ? '' : v)}
           >
-            <CustomSelectTrigger className="h-12 rounded-2xl bg-gray-50 border-transparent hover:border-gray-200 transition-all focus:ring-2 focus:ring-red-100">
+            <CustomSelectTrigger className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm">
               <CustomSelectValue placeholder="모든 상태" />
             </CustomSelectTrigger>
             <CustomSelectContent>
@@ -140,62 +129,60 @@ export function DailyReportFilters({
           </CustomSelect>
         </div>
 
-        <div className="space-y-2 lg:col-span-1">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+        <div className="space-y-1.5 flex-1 min-w-[200px]">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
             검색어
           </label>
           <div className="relative">
             <Input
-              className="h-12 pl-11 rounded-2xl bg-gray-50 border-transparent hover:border-gray-200 transition-all focus:ring-2 focus:ring-red-100"
+              className="h-10 pl-10 rounded-xl bg-gray-50 border-none text-sm"
               placeholder="이름, 내용 등"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           </div>
         </div>
 
-        <div className="space-y-2 lg:col-span-2">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-            날짜 범위
+        <div className="space-y-1.5 w-full sm:w-[150px]">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+            시작일
           </label>
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1">
-              <Input
-                type="date"
-                className="h-12 pl-11 rounded-2xl bg-gray-50 border-transparent hover:border-gray-200 transition-all focus:ring-2 focus:ring-red-100"
-                value={dateFrom}
-                onChange={e => setDateFrom(e.target.value)}
-              />
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
-            <span className="text-gray-300 font-bold">~</span>
-            <div className="relative flex-1">
-              <Input
-                type="date"
-                className="h-12 pl-11 rounded-2xl bg-gray-50 border-transparent hover:border-gray-200 transition-all focus:ring-2 focus:ring-red-100"
-                value={dateTo}
-                onChange={e => setDateTo(e.target.value)}
-              />
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            </div>
-          </div>
+          <Input
+            type="date"
+            className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+          />
         </div>
 
-        <div className="lg:col-span-5 flex justify-end gap-3 pt-2">
+        <div className="space-y-1.5 w-full sm:w-[150px]">
+          <label className="text-[11px] font-black text-muted-foreground tracking-tight ml-1">
+            종료일
+          </label>
+          <Input
+            type="date"
+            className="h-10 rounded-xl bg-gray-50 border-none px-4 text-sm"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 ml-auto sm:ml-0">
           <Button
             type="button"
             variant="ghost"
             onClick={handleReset}
-            className="h-12 px-6 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-400 hover:text-gray-900 gap-2"
+            className="h-10 px-4 rounded-xl font-bold text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 whitespace-nowrap"
           >
-            <RotateCcw className="w-4 h-4" /> 초기화
+            <RotateCcw className="w-3.5 h-3.5 mr-2" />
+            초기화
           </Button>
           <Button
             type="submit"
-            className="h-12 px-10 rounded-2xl bg-gray-900 hover:bg-black text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-gray-200"
+            className="h-10 px-6 rounded-xl bg-gray-900 hover:bg-black text-white font-bold text-xs shadow-sm whitespace-nowrap"
           >
-            필터 적용
+            조회하기
           </Button>
         </div>
       </form>

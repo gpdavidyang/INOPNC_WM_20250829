@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import type { WorkContentEntry } from '../daily-reports/types'
-import { buildWorkEntriesFromReport } from '../daily-reports/utils/builders'
+import type { WorkContentEntry } from '../types'
+import { buildWorkEntriesFromReport } from '../utils/builders'
 
 export const useWorkEntries = (mode: 'create' | 'edit', reportData: any) => {
   const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() =>

@@ -160,14 +160,14 @@ export function getDailyReportColumns({
                 asChild
                 variant="secondary"
                 size="xs"
-                className="h-8 rounded-md font-normal px-4"
+                className="h-8 rounded-md font-normal px-4 whitespace-nowrap"
               >
                 <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
               </Button>
               <Button
                 variant="ghost"
                 size="xs"
-                className="h-8 rounded-md font-normal text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-4 border border-rose-200"
+                className="h-8 rounded-md font-normal text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-4 border border-rose-200 whitespace-nowrap"
                 onClick={() => onSingleDelete(rid)}
               >
                 삭제
@@ -178,7 +178,7 @@ export function getDailyReportColumns({
                   <Button
                     variant="default"
                     size="xs"
-                    className="h-8 rounded-md font-normal bg-emerald-600 hover:bg-emerald-700 text-white px-4"
+                    className="h-8 rounded-md font-normal bg-emerald-600 hover:bg-emerald-700 text-white px-4 whitespace-nowrap"
                     disabled={isLoading}
                     onClick={() => onStatusChange(rid, 'approve')}
                   >
@@ -187,7 +187,7 @@ export function getDailyReportColumns({
                   <Button
                     variant="destructive"
                     size="xs"
-                    className="h-8 rounded-md font-normal px-4"
+                    className="h-8 rounded-md font-normal px-4 whitespace-nowrap"
                     disabled={isLoading}
                     onClick={() => onSetRejectingId(isRejecting ? null : rid)}
                   >
@@ -200,7 +200,7 @@ export function getDailyReportColumns({
                 <Button
                   variant="outline"
                   size="xs"
-                  className="h-8 rounded-md font-normal px-4"
+                  className="h-8 rounded-md font-normal px-4 whitespace-nowrap"
                   onClick={() => onStatusChange(rid, 'revert')}
                 >
                   초기화
@@ -221,14 +221,14 @@ export function getDailyReportColumns({
                   <Button
                     size="xs"
                     variant="ghost"
-                    className="h-7 text-[11px]"
+                    className="h-7 text-[11px] whitespace-nowrap"
                     onClick={() => onSetRejectingId(null)}
                   >
                     취소
                   </Button>
                   <Button
                     size="xs"
-                    className="h-7 text-[11px] bg-red-600"
+                    className="h-7 text-[11px] bg-red-600 whitespace-nowrap"
                     onClick={() => onStatusChange(rid, 'reject', rejectionReason)}
                   >
                     확정

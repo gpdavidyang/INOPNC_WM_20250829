@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { CheckSquare, Download, LayoutGrid, List, Trash2, XSquare } from 'lucide-react'
+import { Download, LayoutGrid, List, Trash2 } from 'lucide-react'
 
 interface RegistryBulkActionsProps {
   viewMode: 'preview' | 'list'
@@ -33,25 +33,26 @@ export function RegistryBulkActions({
   loading,
 }: RegistryBulkActionsProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
-            작업 현장 사진대지
-          </h3>
+          <h3 className="text-base font-black text-foreground tracking-tight">현장 작업 사진</h3>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="bg-white text-[10px] font-black h-6">
+            <Badge
+              variant="outline"
+              className="bg-gray-50 text-[11px] font-black tracking-tighter h-6 px-3 border-none"
+            >
               전체 {totalCount}
             </Badge>
             <Badge
               variant="secondary"
-              className="bg-blue-50 text-blue-700 border-blue-100 text-[10px] font-black h-6"
+              className="bg-blue-50 text-blue-700 text-[11px] font-black tracking-tighter h-6 px-3 border-none"
             >
               보수 전 {beforeCount}
             </Badge>
             <Badge
               variant="secondary"
-              className="bg-emerald-50 text-emerald-700 border-emerald-100 text-[10px] font-black h-6"
+              className="bg-emerald-50 text-emerald-700 text-[11px] font-black tracking-tighter h-6 px-3 border-none"
             >
               보수 후 {afterCount}
             </Badge>
@@ -87,51 +88,51 @@ export function RegistryBulkActions({
       {/* Selected Action Bar */}
       <div
         className={cn(
-          'flex flex-wrap items-center justify-between p-3 rounded-2xl transition-all duration-300',
+          'flex flex-wrap items-center justify-between p-2 rounded-xl transition-all duration-300',
           selectedCount > 0
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-100'
-            : 'bg-gray-100 text-gray-400 scale-95 opacity-50 pointer-events-none'
+            ? 'bg-[#1A254F] text-white shadow-lg shadow-black/10 scale-100 translate-y-0'
+            : 'bg-gray-50 text-gray-400 scale-[0.98] translate-y-1 opacity-0 pointer-events-none hidden'
         )}
       >
         <div className="flex items-center gap-4 px-3">
-          <span className="text-[11px] font-black italic tracking-widest uppercase">
-            {selectedCount > 0 ? `${selectedCount} Photos Selected` : 'Select photos to act'}
+          <span className="text-[11px] font-black italic tracking-widest">
+            {selectedCount}개 항목 선택됨
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={onSelectAll}
-            className="h-9 px-4 rounded-xl text-white hover:bg-white/10 font-bold gap-2 whitespace-nowrap"
+            className="h-8 px-3 rounded-lg text-white hover:bg-white/10 font-medium whitespace-nowrap"
           >
-            <CheckSquare className="w-4 h-4" /> 전체 선택
+            전체 선택
           </Button>
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             onClick={onClearSelection}
-            className="h-9 px-4 rounded-xl text-white hover:bg-white/10 font-bold gap-2 whitespace-nowrap"
+            className="h-8 px-3 rounded-lg text-white hover:bg-white/10 font-medium whitespace-nowrap"
           >
-            <XSquare className="w-4 h-4" /> 해제
+            선택 해제
           </Button>
-          <div className="w-px h-6 bg-white/20 mx-1" />
+          <div className="w-px h-4 bg-white/20 mx-1" />
           <Button
             variant="secondary"
-            size="sm"
+            size="xs"
             onClick={onDownload}
-            className="h-9 px-4 rounded-xl font-bold bg-white text-blue-600 hover:bg-blue-50 gap-2 whitespace-nowrap"
+            className="h-8 px-4 rounded-lg font-medium bg-white text-blue-600 hover:bg-blue-50 gap-2 whitespace-nowrap border-none shadow-sm"
           >
-            <Download className="w-4 h-4" /> 다운로드
+            <Download className="w-3.5 h-3.5" /> 다운로드
           </Button>
           <Button
             variant="destructive"
-            size="sm"
+            size="xs"
             onClick={onDelete}
             disabled={loading}
-            className="h-9 px-4 rounded-xl font-bold gap-2 border-2 border-white/20 whitespace-nowrap"
+            className="h-8 px-4 rounded-lg font-medium gap-2 whitespace-nowrap bg-rose-500 hover:bg-rose-600 text-white border-none shadow-sm"
           >
-            <Trash2 className="w-4 h-4" /> 일괄 삭제
+            <Trash2 className="w-3.5 h-3.5" /> 일괄 삭제
           </Button>
         </div>
       </div>

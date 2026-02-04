@@ -199,7 +199,7 @@ export function DrawingListTab({
                   </button>
                   <button
                     onClick={e => handleUnlink(e, doc)}
-                    className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20 whitespace-nowrap"
+                    className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-gray-200 hover:border-[#ef4444]/30 whitespace-nowrap shadow-sm"
                   >
                     해제
                   </button>
@@ -279,7 +279,7 @@ export function DrawingListTab({
                 </button>
                 <button
                   onClick={e => handleUnlink(e, doc)}
-                  className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-transparent hover:border-[#ef4444]/20 whitespace-nowrap"
+                  className="h-9 px-3 flex items-center justify-center text-[#9aa4c5] hover:text-[#ef4444] hover:bg-[#ef4444]/5 rounded-xl transition-all active:scale-95 text-[12px] font-black border border-gray-200 hover:border-[#ef4444]/30 whitespace-nowrap shadow-sm"
                 >
                   해제
                 </button>

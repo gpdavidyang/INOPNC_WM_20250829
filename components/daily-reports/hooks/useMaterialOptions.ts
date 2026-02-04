@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import type { MaterialOptionItem } from '../daily-reports/types'
-import { isSelectableMaterial, normalizeMaterialKeyword } from '../daily-reports/utils/builders'
+import type { MaterialOptionItem } from '../types'
+import { isSelectableMaterial, normalizeMaterialKeyword } from '../utils/builders'
 
 const DEFAULT_MATERIAL_KEYWORD = 'npc1000'
 
@@ -14,7 +14,15 @@ export const useMaterialOptions = (
 
   useEffect(() => {
     const fromProps = Array.isArray(materials) ? materials.map(mapMaterialToOption) : []
-    setMaterialOptions(fromProps)
+    setMaterialOptions(prev => {
+      if (
+        prev.length === fromProps.length &&
+        prev.every((item, i) => item.id === fromProps[i].id)
+      ) {
+        return prev
+      }
+      return fromProps
+    })
   }, [materials, mapMaterialToOption])
 
   useEffect(() => {

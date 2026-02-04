@@ -1,5 +1,6 @@
 'use client'
 
+import { useDailyReportDetail } from '@/components/daily-reports/hooks/useDailyReportDetail'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToast } from '@/components/ui/use-toast'
@@ -19,7 +20,6 @@ import type {
 } from '@/types/daily-reports'
 import { AlertCircle } from 'lucide-react'
 import { useMemo, useRef, useState, type DragEvent as ReactDragEvent } from 'react'
-import { useDailyReportDetail } from '../hooks/useDailyReportDetail'
 import { ImageLightbox } from './detail/ImageLightbox'
 import { LinkedDrawingSection } from './detail/LinkedDrawingSection'
 import { MaterialUsageSection } from './detail/MaterialUsageSection'
@@ -77,6 +77,12 @@ export default function DailyReportDetailClient({
   const dragRef = useRef<{ type: 'before' | 'after'; index: number } | null>(null)
 
   const workerStats = useMemo<WorkerStatistics>(() => {
+    // Priority: Calculate from current workers list to ensure consistency with the UI table
+    if (report?.workers && report.workers.length > 0) {
+      return mapWorkersToStats(report.workers)
+    }
+
+    // Fallback: Use pre-aggregated statistics if available
     if (report?.workerStatistics) {
       return {
         total_workers: report.workerStatistics.total_workers || 0,
@@ -86,9 +92,6 @@ export default function DailyReportDetailClient({
         by_trade: report.workerStatistics.by_trade || {},
         by_skill: report.workerStatistics.by_skill || {},
       }
-    }
-    if (report?.workers && report.workers.length > 0) {
-      return mapWorkersToStats(report.workers)
     }
     return initialWorkerStats
   }, [report])
@@ -189,7 +192,7 @@ export default function DailyReportDetailClient({
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
         <LoadingSpinner />
-        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground animate-pulse">
+        <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/30 animate-pulse">
           작업일지 정보를 불러오는 중...
         </p>
       </div>
@@ -198,18 +201,20 @@ export default function DailyReportDetailClient({
 
   if (!report) {
     return (
-      <div className="min-h-[40vh] flex flex-col items-center justify-center gap-6 p-12 bg-gray-50 rounded-3xl border-2 border-dashed">
-        <AlertCircle className="w-12 h-12 text-rose-500" />
-        <div className="text-center">
-          <h2 className="text-xl font-black text-foreground">작업일지를 찾을 수 없습니다</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+      <div className="min-h-[40vh] flex flex-col items-center justify-center gap-6 p-12 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200">
+        <AlertCircle className="w-12 h-12 text-rose-500/50" />
+        <div className="text-center space-y-1">
+          <h2 className="text-lg font-black text-foreground tracking-tight">
+            작업일지를 찾을 수 없습니다
+          </h2>
+          <p className="text-sm font-medium text-muted-foreground/60">
             {error || '해당 작업일지 정보를 불러올 수 없거나 존재하지 않습니다.'}
           </p>
         </div>
         <Button
           variant="outline"
           onClick={() => window.history.back()}
-          className="rounded-xl px-8 font-bold"
+          className="h-9 rounded-md px-8 font-normal border-gray-200 shadow-sm"
         >
           뒤로 가기
         </Button>
@@ -235,9 +240,9 @@ export default function DailyReportDetailClient({
   const editHref = canEditReport ? `/dashboard/admin/daily-reports/${reportId}/edit` : null
 
   return (
-    <div className="space-y-12 max-w-7xl mx-auto pb-24">
+    <div className="space-y-6 max-w-7xl mx-auto pb-24 px-4 sm:px-6">
       {/* 1. Integrated Header Section */}
-      <section className="rounded-3xl border bg-white shadow-xl shadow-gray-200/50 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <section className="rounded-3xl border bg-white shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
         <ReportHeader
           siteName={report.siteName || siteName || '-'}
           workDate={report.workDate || workDate || ''}
@@ -279,54 +284,50 @@ export default function DailyReportDetailClient({
         />
       </section>
 
-      {/* 2. Stats Grid */}
-      <ReportStats
-        stats={[
-          {
-            label: '총 공수',
-            value: formatNumber(workerStats.total_hours),
-            helper: `연장: ${formatNumber(workerStats.total_overtime)}`,
-            color: 'blue',
-          },
-          {
-            label: '사용 자재',
-            value: `${report.materials.length} 항목`,
-            helper: report.materials.length > 0 ? '재고 차감됨' : '기록 없음',
-            color: 'amber',
-          },
-          {
-            label: '업로드된 자산',
-            value: `${linkedDrawings.length + totalPhotoCount} 파일`,
-            helper: `${linkedDrawings.length} 도면 / ${totalPhotoCount} 사진`,
-            color: 'emerald',
-          },
-        ]}
-      />
-
-      {/* 3. Detail Content Sections */}
-      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3">
-        <div className="xl:col-span-1">
-          <WorkforceSection workers={report.workers} formatNumber={formatNumber} />
-        </div>
-        <div className="xl:col-span-1">
-          <MaterialUsageSection materials={report.materials} formatNumber={formatNumber} />
-        </div>
-        <div className="xl:col-span-1">
-          <LinkedDrawingSection
-            linkedDrawings={linkedDrawings}
-            onPreview={setPreviewImage}
-            onDownload={handleFileDownload}
-            getMarkupLink={att =>
-              att.metadata?.markup_document_id
-                ? `/dashboard/admin/tools/markup?docId=${att.metadata.markup_document_id}`
-                : null
-            }
-          />
-        </div>
+      {/* 2. Key Stats Summary */}
+      <div className="animate-in fade-in duration-700 delay-100">
+        <ReportStats
+          stats={[
+            {
+              label: '현장 총 공수 (승인)',
+              value: formatNumber(workerStats.total_hours),
+              helper: `투입: ${workerStats.total_workers}명`,
+              color: 'primary',
+            },
+            {
+              label: '자재 투입 항목',
+              value: `${report.materials.length} 항목`,
+              helper: report.materials.length > 0 ? '재고 차감됨' : '기록 없음',
+              color: 'neutral',
+            },
+            {
+              label: '증빙 자산 업로드',
+              value: `${linkedDrawings.length + totalPhotoCount} 파일`,
+              helper: `${linkedDrawings.length} 도면 / ${totalPhotoCount} 사진`,
+              color: 'active',
+            },
+          ]}
+        />
       </div>
 
-      {/* 4. Photo Registry Gallery */}
-      <section className="pt-8 border-t">
+      {/* 3. Detail Status Sections */}
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-3 animate-in fade-in duration-700 delay-200">
+        <WorkforceSection workers={report.workers} formatNumber={formatNumber} />
+        <MaterialUsageSection materials={report.materials} formatNumber={formatNumber} />
+        <LinkedDrawingSection
+          linkedDrawings={linkedDrawings}
+          onPreview={setPreviewImage}
+          onDownload={handleFileDownload}
+          getMarkupLink={att =>
+            att.metadata?.markup_document_id
+              ? `/dashboard/admin/tools/markup?docId=${att.metadata.markup_document_id}`
+              : null
+          }
+        />
+      </div>
+
+      {/* 4. Photo Registry Section */}
+      <section className="rounded-2xl border bg-white shadow-sm p-6 sm:p-8 animate-in fade-in duration-700 delay-300">
         <PhotoRegistrySection
           photoBuckets={photoBuckets}
           photosViewMode={photosViewMode}

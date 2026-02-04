@@ -116,7 +116,7 @@ export const SiteTable = ({
       },
       {
         key: 'daily_reports_count',
-        header: '통계 (보고서/총공수)',
+        header: '작업일지/총공수(승인)',
         sortable: false,
         render: s => {
           const stats = statsMap[s.id] || {
@@ -135,7 +135,7 @@ export const SiteTable = ({
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">
-                  총공수
+                  총공수(승인)
                 </span>
                 <span className="text-sm font-black text-blue-600 dark:text-blue-400 italic">
                   {(stats.total_labor_hours || 0).toFixed(1)}{' '}

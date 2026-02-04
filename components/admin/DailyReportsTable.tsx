@@ -70,13 +70,13 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
       {state.selectedIds.length > 0 && (
         <div className="flex items-center justify-between px-2">
           <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 transition-all">
-            <span className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
-              {state.selectedIds.length}개 항목 선택됨
+            <span className="text-[11px] font-black text-muted-foreground tracking-tight">
+              {state.selectedIds.length}개 선택됨
             </span>
             <Button
               variant="destructive"
-              size="sm"
-              className="h-8 rounded-lg font-black uppercase text-[10px] tracking-widest gap-2 bg-red-600 shadow-lg shadow-red-200"
+              size="xs"
+              className="h-8 rounded-md px-4 whitespace-nowrap gap-2"
               onClick={actions.handleBulkDelete}
               disabled={state.isDeleting}
             >
@@ -91,7 +91,7 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-2xl shadow-black/5 overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-200">
         <DataTable
           data={reports}
           rowKey="id"
@@ -106,8 +106,8 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
       {(state.isPending || state.isDeleting) && (
         <div className="fixed inset-0 z-[60] bg-white/40 backdrop-blur-[2px] pointer-events-none flex items-center justify-center">
           <div className="bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 flex flex-col items-center gap-4">
-            <Loader2 className="w-8 h-8 text-red-600 animate-spin" />
-            <span className="text-xs font-black uppercase tracking-[0.2em] text-gray-400">
+            <Loader2 className="w-8 h-8 text-rose-600 animate-spin" />
+            <span className="text-[11px] font-black uppercase tracking-tight text-gray-400">
               요청을 처리 중입니다
             </span>
           </div>

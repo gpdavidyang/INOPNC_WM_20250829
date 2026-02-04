@@ -11,7 +11,8 @@ import {
   Settings,
   Users,
 } from 'lucide-react'
-import React, { useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 import { AssignmentsTab } from './detail/tabs/AssignmentsTab'
 import { DrawingsTab } from './detail/tabs/DrawingsTab'
 import { EditSiteTab } from './detail/tabs/EditSiteTab'
@@ -32,6 +33,7 @@ interface SiteDetailTabsProps {
   initialRequests?: any[]
   initialDocs?: any[]
   initialStats?: { reports: number; labor: number } | null
+  initialTab?: string
 }
 
 export default function SiteDetailTabs({
@@ -42,8 +44,29 @@ export default function SiteDetailTabs({
   initialAssignments = [],
   initialRequests = [],
   initialStats = null,
+  initialTab = 'overview',
 }: SiteDetailTabsProps) {
-  const [tab, setTab] = useState('overview')
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const [tab, setTab] = useState(initialTab)
+
+  // Sync tab with URL on mount and when params change
+  useEffect(() => {
+    const currentTab = searchParams?.get('tab')
+    if (currentTab && currentTab !== tab) {
+      setTab(currentTab)
+    } else if (!currentTab && tab !== 'overview') {
+      // Handle the case where the tab param is removed
+      setTab('overview')
+    }
+  }, [searchParams])
+
+  const handleTabChange = (newTab: string) => {
+    setTab(newTab)
+    const params = new URLSearchParams(searchParams?.toString() || '')
+    params.set('tab', newTab)
+    router.replace(`?${params.toString()}`, { scroll: false })
+  }
 
   const d = useSiteDetail({
     siteId,
@@ -56,7 +79,7 @@ export default function SiteDetailTabs({
 
   return (
     <div className="w-full space-y-6">
-      <Tabs value={tab} onValueChange={setTab} className="w-full">
+      <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
         <div className="sticky top-0 z-10 bg-gradient-to-b from-white via-white to-transparent pb-4 -mx-6 px-6 mb-2">
           <TabsList className="grid grid-cols-8 h-auto items-center gap-2 bg-gray-50/50 p-1.5 rounded-2xl border border-gray-100">
             <TabTrigger
@@ -68,7 +91,7 @@ export default function SiteDetailTabs({
             <TabTrigger value="materials" icon={<Package className="w-4 h-4" />} label="자재관리" />
             <TabTrigger value="assignments" icon={<Users className="w-4 h-4" />} label="배정인원" />
             <TabTrigger value="shared" icon={<FileCode className="w-4 h-4" />} label="공유도면" />
-            <TabTrigger value="invoices" icon={<Receipt className="w-4 h-4" />} label="기성문서" />
+            <TabTrigger value="invoices" icon={<Receipt className="w-4 h-4" />} label="기성청구" />
             <TabTrigger value="photos" icon={<ImageIcon className="w-4 h-4" />} label="현장사진" />
             <TabTrigger value="edit" icon={<Settings className="w-4 h-4" />} label="현장편집" />
           </TabsList>
@@ -91,7 +114,7 @@ export default function SiteDetailTabs({
             laborByUser={d.laborByUser}
             globalLaborByUser={d.globalLaborByUser}
             invoiceStageSummary={d.invoiceProgress}
-            onTabChange={setTab}
+            onTabChange={handleTabChange}
             assignmentQuery={d.assignmentQuery}
             setAssignmentQuery={d.setAssignmentQuery}
             assignmentRole={d.assignmentRole}
