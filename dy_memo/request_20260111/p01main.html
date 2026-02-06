@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>메인 (파트너사) - INOPNC 통합</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    /* =========================================
+       1. 디자인 토큰
+       ========================================= */
+    :root {
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      --primary: #31a3fa;          
+      --primary-bg: #eaf6ff;
+      --navy-dark: #1a254f;       
+      --text-main: #111111; 
+      --text-sub: #475569;  
+      --text-placeholder: #94a3b8;
+      --border: #e2e8f0; 
+      --bg-body: #f2f4f6; 
+      --bg-surface: #ffffff;
+      --radius-card: 16px;
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+
+      /* 배지 컬러 */
+      --tag-affil-bg: #eaf6ff; --tag-affil-text: #31a3fa; --tag-affil-border: #bae6fd;
+      --tag-weather-bg: #f1f5f9; --tag-weather-text: #475569; --tag-weather-border: #e2e8f0;
+      
+      /* 날짜 배지 컬러 - 블루 계열로 복구 (이미지 반영) */
+      --tag-date-bg: var(--primary-bg); --tag-date-text: var(--primary); --tag-date-border: transparent;
+      
+      /* 액션 버튼 컬러 */
+      --act-draw-bg: var(--primary-bg); --act-draw-text: var(--primary); --act-draw-border: #bae6fd;
+      --act-ptw-bg: #eff6ff; --act-ptw-text: #2563eb; --act-ptw-border: #dbeafe;
+      --act-log-bg: #f0fdf4; --act-log-text: #166534; --act-log-border: #bbf7d0;
+      
+      --btn-icon-bg: #eff6ff; --btn-icon-border: #dbeafe; --btn-icon-color: #1e3a8a;
+    }
+
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+    body { font-family: var(--font-main); font-size: 17px; color: var(--text-main); background-color: var(--bg-body); line-height: 1.6; transition: background-color 0.3s, color 0.3s; padding-bottom: 10px; }
+    button, select, input, textarea { font-family: var(--font-main); outline: none; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; }
+    a { text-decoration: none; color: inherit; }
+
+    .app-wrapper { width: 100%; max-width: 600px; margin: 0 auto; padding: 20px 16px 40px 16px; }
+
+    /* 빠른 메뉴 */
+    .quick-menu-section { padding: 10px 0 20px 0; }
+    .qm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-left: 4px; }
+    .qm-title-group { display: flex; align-items: center; gap: 6px; }
+    .qm-title-icon-img { width: 20px; height: 20px; object-fit: contain; }
+    .qm-title { font-size: 20px; font-weight: 700; color: var(--navy-dark); letter-spacing: -0.5px; } 
+    
+    .qm-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; width: 100%; }
+    .qm-item { display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px 0; width: 100%; transition: transform 0.12s ease-out; }
+    .qm-item:active { transform: scale(0.95); }
+    .qm-icon-wrapper { position: relative; display: inline-block; }
+    .qm-main-icon { width: 46px; height: 46px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06)); }
+    .qm-label { font-size: 13px; font-weight: 700; color: var(--text-main); text-align: center; line-height: 1.3; white-space: nowrap; letter-spacing: -0.5px; }
+    .qm-badge { position: absolute; top: 0; right: 0; transform: translate(50%, -50%); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; color: #fff; font-size: 10px; font-weight: 900; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 2px solid var(--bg-body); z-index: 10; line-height: 1; }
+    .qm-badge.req { background: #8b5cf6; animation: active-badge-pulse-req 1.6s infinite ease-out; }
+    .qm-badge.worklog { background: #16a34a; animation: active-badge-pulse-worklog 1.6s infinite ease-out; }
+
+    @keyframes active-badge-pulse-req {
+      0% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.45); }
+      30% { transform: translate(50%, -50%) scale(1.06); box-shadow: 0 0 0 6px rgba(139, 92, 246, 0); }
+      100% { transform: translate(50%, -50%) scale(1); }
+    }
+    @keyframes active-badge-pulse-worklog {
+      0% { transform: translate(50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.45); }
+      30% { transform: translate(50%, -50%) scale(1.06); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+      100% { transform: translate(50%, -50%) scale(1); }
+    }
+
+    /* 공지사항 */
+    .notice-slider-container { background: var(--bg-surface); border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.03); height: 56px; margin-bottom: 20px; position: relative; overflow: hidden; display: flex; align-items: center; padding: 0 16px; cursor: default; }
+    .notice-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; }
+    .notice-item { position: absolute; width: 100%; display: flex; align-items: center; gap: 12px; opacity: 0; transform: translateX(100%); transition: transform 0.5s ease, opacity 0.5s ease; pointer-events: none; }
+    .notice-item.active { opacity: 1; transform: translateX(0); }
+    .notice-item.prev { opacity: 0; transform: translateX(-100%); }
+    .notice-badge { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; white-space: nowrap; color: #fff; }
+    .badge-notice { background: var(--navy-dark); } .badge-update { background: var(--primary); }
+    .notice-text { font-size: 15px; font-weight: 500; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+    /* 투입 현황 */
+    .summary-card-box { background: var(--bg-surface); border-radius: var(--radius-card); padding: 22px; margin-bottom: 24px; box-shadow: var(--shadow-soft); }
+    .summary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .summary-title-group { display: flex; align-items: center; gap: 8px; }
+    .summary-title { font-size: 19px; font-weight: 800; color: var(--navy-dark); } 
+    
+    .summary-header-right { display: flex; align-items: center; gap: 10px; }
+    /* 날짜 배지 스타일 - 블루 계열 적용 (이미지 반영) */
+    .summary-date-badge { 
+        font-size: 14px; color: var(--tag-date-text); background: var(--tag-date-bg); 
+        padding: 5px 12px; border-radius: 20px; font-weight: 700; 
+    }
+    
+    
+    .site-status-list { display: flex; flex-direction: column; gap: 12px; }
+    .site-status-item { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 14px 18px; border-radius: 12px; }
+    .ss-name { font-size: 16px; font-weight: 700; color: var(--text-main); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 10px; }
+    .ss-count { font-size: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 4px; }
+
+    /* 현장 카드 */
+    .site-card { background: var(--bg-surface); border-radius: var(--radius-card); overflow: hidden; box-shadow: var(--shadow-soft); margin-bottom: 20px; border: none; position: relative; }
+    .card-header { padding: 20px 22px; border-bottom: 1px solid var(--border); position: relative; }
+    .card-meta-time { font-size: 15px; font-weight: 500; color: var(--text-sub); margin-bottom: 4px; display: block; }
+    .site-name-text { font-size: 20px; font-weight: 800; color: var(--navy-dark); line-height: 1.3; width: 85%; letter-spacing: -0.5px; margin-bottom: 16px; }
+    
+    .site-badge { 
+        position: absolute; top: 0; right: 0; z-index: 10;
+        font-size: 13px; font-weight: 700; padding: 6px 14px;
+        border-radius: 0 0 0 12px; color: #ffffff; line-height: 1;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .site-badge.bdg-ing { background: #3b82f6; }
+    .site-badge.bdg-wait { background: #8b5cf6; }
+
+    .site-sub-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .sub-group-left { display: flex; gap: 8px; align-items: center; }
+    .sub-badge { 
+        font-size: 13px; padding: 0 10px; height: 30px; border-radius: 6px; 
+        display: flex; align-items: center; font-weight: 700; 
+        background: var(--tag-affil-bg); color: var(--tag-affil-text); border: 1px solid var(--tag-affil-border); 
+    }
+    .sub-badge.contractor { 
+        background: #eef2ff; color: #6366f1; border: 1px solid #c7d2fe; 
+    }
+    .weather-badge { 
+        font-size: 13px; padding: 0 10px; height: 30px; border-radius: 6px; 
+        display: flex; align-items: center; font-weight: 700; gap: 4px;
+        background: var(--tag-weather-bg); color: var(--tag-weather-text); border: 1px solid var(--tag-weather-border); 
+    }
+
+    .indicator-group { display: flex; gap: 6px; align-items: center; padding-left: 8px; border-left: 1px solid var(--border); margin-left: 4px; }
+    .data-icon { color: #cbd5e1; width: 16px; height: 16px; transition: color 0.2s; }
+    .data-icon.active { color: var(--navy-dark); } 
+
+    .card-body { padding: 22px; }
+    
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+    .stat-box { background: #f8fafc; border-radius: 12px; padding: 14px; text-align: center; border: 1px solid #f1f5f9; }
+    .stat-label { font-size: 15px; color: var(--text-sub); display: block; margin-bottom: 6px; font-weight: 700; }
+    .stat-val { font-size: 20px; font-weight: 800; color: var(--text-main); }
+    .stat-val.blue { color: var(--primary); }
+
+    .contact-row-simple { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px dashed var(--border); font-size: 15px; color: var(--text-sub); }
+    .c-label { font-weight: 700; color: var(--text-sub); width: 80px; font-size: 17px; }
+    .c-val { flex: 1; font-weight: 600; color: var(--text-main); text-align: right; padding-right: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; }
+    .btn-icon-sm { width: 36px; height: 36px; border-radius: 10px; background: var(--btn-icon-bg); border: 1px solid var(--btn-icon-border); color: var(--btn-icon-color); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+
+    .action-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 20px; }
+    .act-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px 0; border-radius: 12px; border: 1px solid transparent; cursor: pointer; transition: 0.1s; background: #f8fafc; }
+    .act-btn:active { transform: scale(0.98); opacity: 0.8; }
+    .act-icon { width: 24px; height: 24px; }
+    .act-label { font-size: 14px; font-weight: 700; letter-spacing: -0.3px; }
+
+    .act-btn.type-draw { background: var(--act-draw-bg); border-color: var(--act-draw-border); color: var(--act-draw-text); }
+    .act-btn.type-photo { background: #eef2ff; border-color: #c7d2fe; color: #6366f1; }
+    .act-btn.type-ptw { background: #eff6ff; border-color: #dbeafe; color: #2563eb; }
+    .act-btn.type-log { background: var(--act-log-bg); border-color: var(--act-log-border); color: var(--act-log-text); }
+    .act-btn.type-action { background: #fef2f2; border-color: #fecaca; color: #b91c1c; }
+
+    /* Preview Modal */
+    .preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: 0.3s; }
+    .preview-overlay.active { opacity: 1; pointer-events: auto; }
+    .preview-header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+    .preview-title { color: #fff; font-weight: 700; font-size: 17px; }
+    .btn-close-preview { color: #fff; background: none; border: none; cursor: pointer; }
+    .preview-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+    #workConfirmFrame { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; border: none; background: #fff; display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="app-wrapper">
+    <section class="quick-menu-section">
+      <div class="qm-header">
+        <div class="qm-title-group">
+          <img src="https://postfiles.pstatic.net/MjAyNTA5MDlfMjYz/MDAxNzU3MzczOTIzNjUy.938EaPjiHzNGNoECgw9vItJhy_4pR6ZYVq3-8Z3tJecg.pSbWcXNy1U9El6kYe8OpwKmCEwkZiWJUiIM2R1qL2Swg.PNG/Flash.png?type=w966" alt="빠른메뉴" class="qm-title-icon-img">
+          <span class="qm-title">빠른메뉴</span>
+        </div>
+      </div>
+      <div class="qm-grid">
+        <div class="qm-item"><div class="qm-icon-wrapper"><img class="qm-main-icon" src="https://postfiles.pstatic.net/MjAyNTA5MDlfMTg4/MDAxNzU3MzczOTIzNjQ4.t3FLSpag_6badT7CAFsHXFj2wTbUWJh_3iHKxWR1DEwg.80vrXfmE4WGWg206E9n0XibJFSkfk1RkUr-lDpzyXh4g.PNG/%ED%98%84%EC%9E%A5%EC%A0%95%EB%B3%B4.png?type=w966"></div><span class="qm-label">현장정보</span></div>
+        <div class="qm-item"><div class="qm-icon-wrapper"><span class="qm-badge worklog">3</span><img class="qm-main-icon" src="https://postfiles.pstatic.net/MjAyNTA5MDlfNDIg/MDAxNzU3MzczOTIzOTE5.uKHob9PU2yFuDqyYrTvUYHunByHEBj0A7pUASU7CEREg.3-0zMZk_TTNxnCDNBVAvSSxeGYcWdeot0GzIWhgD72Ug.PNG/%EC%9E%91%EC%97%85%EC%9D%BC%EC%A7%80.png?type=w966"></div><span class="qm-label">작업일지</span></div>
+        <div class="qm-item"><div class="qm-icon-wrapper"><img class="qm-main-icon" src="https://postfiles.pstatic.net/MjAyNTA5MDlfMzMg/MDAxNzU3MzczOTIzOTg2.eKgzH2aeZVhrEtYCSg-Vjyuok2eudz505Ck18_zeqpsg.r-W69aHdwVPEBS58wMg5LyR7-mDy3WaW_Yyt9I-Ax8kg.PNG/%EC%B6%9C%EB%A0%A5%ED%98%84%ED%99%A9.png?type=w966"></div><span class="qm-label">출력현황</span></div>
+        <div class="qm-item"><div class="qm-icon-wrapper"><img class="qm-main-icon" src="https://postfiles.pstatic.net/MjAyNTA5MDlfMjc2/MDAxNzU3MzczOTIzNjUx.O1t90awoAKjRWjXhHYAnUEen68ptahXE1NWbYNvjy8Yg.440PWbQoaCp1dpPCgCvnlKU8EASGSAXMHb0zGEKnLHkg.PNG/%EB%AC%B8%EC%84%9C%ED%95%A8.png?type=w966"></div><span class="qm-label">문서함</span></div>
+        <div class="qm-item"><div class="qm-icon-wrapper"><span class="qm-badge req">2</span><img class="qm-main-icon" src="https://postfiles.pstatic.net/MjAyNTA5MDlfNjEg/MDAxNzU3MzczOTIzODI4.vHsIasE2fPt-A9r28ui5Sw7oGf9JXhxetAh96TdAHgcg.iV39dkzonq61Z_hvu1O1-FLwCNFqM-OCqrNDwN3EuI8g.PNG/%EB%B3%B8%EC%82%AC%EC%9A%94%EC%B2%AD.png?type=w966"></div><span class="qm-label">본사요청</span></div>
+      </div>
+    </section>
+
+    <div class="notice-slider-container">
+      <div class="notice-wrapper" id="notice-slider"></div>
+      <i data-lucide="chevron-right" style="width:18px; color:var(--text-sub);"></i>
+    </div>
+
+    <div class="summary-card-box">
+      <div class="summary-header">
+        <div class="summary-title-group">
+          <i data-lucide="map-pin" style="width:20px; color:var(--navy-dark);"></i>
+          <span class="summary-title">최근 현장 투입현황</span>
+        </div>
+        <div class="summary-header-right">
+          <span class="summary-date-badge" id="summaryDateBadge">12.24 (수)</span>
+        </div>
+      </div>
+      <div id="dailyStatusList" class="site-status-list"></div>
+    </div>
+
+    <div id="siteCardList"></div>
+  </div>
+
+  <div class="preview-overlay" id="previewModal">
+    <div class="preview-header">
+      <span class="preview-title" id="previewTitle">미리보기</span>
+      <button class="btn-close-preview" onclick="closeViewer()"><i data-lucide="x" style="width:28px; height:28px;"></i></button>
+    </div>
+    <div class="preview-body"><img src="" id="previewImg" class="preview-img"></div>
+  </div>
+  <iframe id="workConfirmFrame"></iframe>
+
+  <script>
+    lucide.createIcons();
+
+    // 1. 공지사항 슬라이더
+    function initNoticeSlider() {
+      const container = document.getElementById('notice-slider');
+      const notices = [
+          { type: '공지', text: '동절기 현장 안전 관리 지침이 업데이트 되었습니다.', badgeClass: 'badge-notice' },
+          { type: '업데이트', text: '작업완료확인서 PDF 저장 기능이 개선되었습니다.', badgeClass: 'badge-update' },
+          { type: '안내', text: '금일 전국 현장 강추위 주의 바랍니다.', badgeClass: 'badge-notice' }
+      ];
+      let idx = 0;
+      notices.forEach((n, i) => {
+        const item = document.createElement('div');
+        item.className = `notice-item ${i === 0 ? 'active' : ''}`;
+        item.innerHTML = `<span class="notice-badge ${n.badgeClass}">${n.type}</span><span class="notice-text">${n.text}</span>`;
+        container.appendChild(item);
+      });
+      setInterval(() => {
+        const items = document.querySelectorAll('.notice-item');
+        if(items.length <= 1) return;
+        const current = items[idx];
+        const nextIdx = (idx + 1) % items.length;
+        const next = items[nextIdx];
+        current.classList.remove('active'); current.classList.add('prev');
+        next.classList.add('active'); next.classList.remove('prev');
+        setTimeout(() => current.classList.remove('prev'), 500);
+        idx = nextIdx;
+      }, 4000);
+    }
+
+    // 2. 주소 기반 날씨 서비스
+    const WeatherService = {
+        regionMap: { 
+            "서울": { text: "흐림 2°C", icon: "cloud" }, 
+            "경기": { text: "비 4°C", icon: "cloud-rain" }, 
+            "부산": { text: "맑음 8°C", icon: "sun" }, 
+            "강남": { text: "맑음 3°C", icon: "sun" },
+            "성동": { text: "흐림 2°C", icon: "cloud" }
+        },
+        defaultWeather: { text: "맑음 3°C", icon: "sun" },
+        getWeather: function(address) {
+            if (!address) return this.defaultWeather;
+            const matchKey = Object.keys(this.regionMap).find(key => address.includes(key));
+            return matchKey ? this.regionMap[matchKey] : this.defaultWeather;
+        }
+    };
+
+    // 3. 데이터 리스트
+    const mySites = [
+        { 
+            id:1, name:'성수자이 아파트 101동', status:'ing', days:120, mp:450, address:'서울 성동구 성수동 1가 12-3', 
+            worker:8, manager:'이현수', safety:'김안전', affil:'수도권지사', lastUpdate:'2025-12-24 08:30',
+            hasDraw: true, hasPhoto: true, hasPTW: true, hasLog: true, hasAction: false
+        },
+        { 
+            id:2, name:'강남 타워 리모델링', status:'wait', days:45, mp:120, address:'서울 강남구 역삼동 123-45', 
+            worker:3, manager:'박현장', safety:'최안전', affil:'본사관리실', lastUpdate:'2025-12-24 09:00',
+            hasDraw: true, hasPhoto: false, hasPTW: false, hasLog: true, hasAction: true
+        }
+    ];
+
+    function renderPage() {
+        const summaryList = document.getElementById('dailyStatusList');
+        let summaryHTML = '';
+        mySites.forEach(s => {
+            summaryHTML += `<div class="site-status-item"><span class="ss-name">${s.name}</span><span class="ss-count"><i data-lucide="users" style="width:18px;"></i> ${s.worker}명</span></div>`;
+        });
+        summaryList.innerHTML = summaryHTML;
+
+        const cardList = document.getElementById('siteCardList');
+        let cardHTML = '';
+        mySites.forEach(s => {
+            const weather = WeatherService.getWeather(s.address);
+            let badgeClass = s.status === 'ing' ? 'bdg-ing' : 'bdg-wait';
+            let badgeText = s.status === 'ing' ? '진행중' : '예정';
+            
+            cardHTML += `
+            <div class="site-card">
+                <span class="site-badge ${badgeClass}">${badgeText}</span>
+                <div class="card-header">
+                    <span class="card-meta-time">${s.lastUpdate}</span>
+                    <div class="site-name-text">${s.name}</div>
+                    <div class="site-sub-info">
+                        <div class="sub-group-left">
+                            <span class="sub-badge contractor">현대건설</span>
+                            <span class="sub-badge">${s.affil}</span>
+                            <span class="weather-badge"><i data-lucide="${weather.icon}" width="14"></i>${weather.text}</span>
+                        </div>
+                        <div class="indicator-group">
+                            <i data-lucide="map" class="data-icon ${s.hasDraw ? 'active' : ''}"></i>
+                            <i data-lucide="camera" class="data-icon ${s.hasPhoto ? 'active' : ''}"></i>
+                            <i data-lucide="file-check-2" class="data-icon ${s.hasPTW ? 'active' : ''}"></i>
+                            <i data-lucide="clipboard-list" class="data-icon ${s.hasLog ? 'active' : ''}"></i>
+                            <i data-lucide="check-circle-2" class="data-icon ${s.hasAction ? 'active' : ''}"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="stats-row">
+                        <div class="stat-box"><span class="stat-label">작업일 누계</span><span class="stat-val">${s.days}일</span></div>
+                        <div class="stat-box"><span class="stat-label">누적 출력</span><span class="stat-val blue">${s.mp}명</span></div>
+                    </div>
+                    <div class="contact-row-simple">
+                        <span class="c-label">현장소장</span><span class="c-val">${s.manager} 소장</span>
+                        <button class="btn-icon-sm" onclick="location.href='tel:01000000000'"><i data-lucide="phone" style="width:16px;"></i></button>
+                    </div>
+                    <div class="contact-row-simple">
+                        <span class="c-label">안전담당</span><span class="c-val">${s.safety} 과장</span>
+                        <button class="btn-icon-sm" onclick="location.href='tel:01000000000'"><i data-lucide="phone" style="width:16px;"></i></button>
+                    </div>
+                    <div class="contact-row-simple">
+                        <span class="c-label">주소</span><span class="c-val">${s.address}</span>
+                        <button class="btn-icon-sm" onclick="alert('지도 이동')"><i data-lucide="map-pin" style="width:16px;"></i></button>
+                    </div>
+                    <div class="action-grid">
+                        <button class="act-btn type-draw" onclick="alert('도면')"><i data-lucide="map" class="act-icon"></i><span class="act-label">도면</span></button>
+                        <button class="act-btn type-photo" onclick="alert('사진')"><i data-lucide="camera" class="act-icon"></i><span class="act-label">사진</span></button>
+                        <button class="act-btn type-ptw" onclick="alert('문서')"><i data-lucide="file-text" class="act-icon"></i><span class="act-label">문서</span></button>
+                        <button class="act-btn type-log" onclick="alert('일지')"><i data-lucide="clipboard-list" class="act-icon"></i><span class="act-label">일지</span></button>
+                        <button class="act-btn type-action" onclick="alert('조치')"><i data-lucide="check-circle-2" class="act-icon"></i><span class="act-label">조치</span></button>
+                    </div>
+                </div>
+            </div>`;
+        });
+        cardList.innerHTML = cardHTML;
+        lucide.createIcons();
+    }
+
+    function updateDateInfo() {
+      const now = new Date();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const week = ['일', '월', '화', '수', '목', '금', '토'];
+      document.getElementById('summaryDateBadge').innerText = `${m}.${d} (${week[now.getDay()]})`;
+    }
+
+    function closeViewer() { document.getElementById('previewModal').classList.remove('active'); }
+
+    window.onload = function() {
+        renderPage();
+        initNoticeSlider();
+        updateDateInfo();
+    };
+  </script>
+</body>
+</html>

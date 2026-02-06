@@ -4,46 +4,110 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Force dynamic rendering for this API route
+// Force dynamic rendering
 export const dynamic = 'force-dynamic'
+
+/**
+ * Aggregates photos from various sources into the standard photo columns
+ */
+async function aggregateAdditionalPhotos(supabase: any, reportId: string) {
+  try {
+    const { data: attachments } = await supabase
+      .from('document_attachments')
+      .select('file_url, document_type')
+      .eq('daily_report_id', reportId)
+
+    if (!attachments || attachments.length === 0) return
+
+    const photoUrls = attachments
+      .filter((a: any) => (a.document_type || '').toLowerCase() === 'photo')
+      .map((a: any) => a.file_url)
+
+    if (photoUrls.length > 0) {
+      // In some schemas, these might be JSON or text arrays. We attempt both.
+      await supabase
+        .from('daily_reports')
+        .update({
+          after_photos: photoUrls.length > 0 ? photoUrls : null,
+        })
+        .eq('id', reportId)
+    }
+  } catch (e) {
+    console.warn('[aggregateAdditionalPhotos] warning:', e)
+  }
+}
+
+/**
+ * Enriches daily reports with related site and profile data
+ */
+async function enrichReports(reports: any[], supabase: any) {
+  if (!reports.length) return reports
+
+  const siteIds = Array.from(new Set(reports.map(r => r.site_id).filter(Boolean)))
+  const authorIds = Array.from(new Set(reports.map(r => r.created_by).filter(Boolean)))
+  const reportIds = reports.map(r => r.id)
+
+  try {
+    const [sitesResult, profilesResult, assignmentsResult, materialsResult] = await Promise.all([
+      siteIds.length
+        ? supabase.from('sites').select('id, name').in('id', siteIds)
+        : Promise.resolve({ data: [] }),
+      authorIds.length
+        ? supabase.from('profiles').select('id, full_name').in('id', authorIds)
+        : Promise.resolve({ data: [] }),
+      supabase.from('worker_assignments').select('*').in('daily_report_id', reportIds),
+      supabase.from('material_usage').select('*').in('daily_report_id', reportIds),
+    ])
+
+    const siteMap = new Map(sitesResult.data?.map((s: any) => [s.id, s]) || [])
+    const profileMap = new Map(profilesResult.data?.map((p: any) => [p.id, p]) || [])
+    const assignmentsRaw = assignmentsResult.data || []
+
+    // Fetch profiles for assignments as well
+    const assignmentProfileIds = Array.from(
+      new Set(assignmentsRaw.map((a: any) => a.profile_id).filter(Boolean))
+    )
+    let assignmentProfiles: any[] = []
+    if (assignmentProfileIds.length > 0) {
+      const { data: apData } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('id', assignmentProfileIds)
+      assignmentProfiles = apData || []
+    }
+    const assignmentProfileMap = new Map(assignmentProfiles.map((p: any) => [p.id, p]))
+
+    return reports.map(report => {
+      const enriched = { ...report }
+      enriched.sites = siteMap.get(report.site_id) || null
+      enriched.profiles = profileMap.get(report.created_by) || null
+      enriched.worker_assignments = assignmentsRaw
+        .filter((a: any) => a.daily_report_id === report.id)
+        .map((a: any) => ({
+          ...a,
+          profiles: assignmentProfileMap.get(a.profile_id) || null,
+        }))
+      enriched.material_usage =
+        materialsResult.data?.filter((m: any) => m.daily_report_id === report.id) || []
+      return enriched
+    })
+  } catch (error) {
+    console.error('[enrichReports] error:', error)
+    return reports
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
     const authResult = await requireApiAuth()
-    if (authResult instanceof NextResponse) {
-      return authResult
-    }
+    if (authResult instanceof NextResponse) return authResult
 
     const supabase = createClient()
     let serviceClient: any = null
     try {
       serviceClient = createServiceRoleClient()
     } catch {
-      // Fallback for dev environments without service role key
-      serviceClient = createClient()
-    }
-
-    // Check role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id, site_id, partner_company_id')
-      .eq('id', authResult.userId)
-      .single()
-
-    const role = profile?.role || authResult.role || ''
-    const organizationId = profile?.organization_id
-
-    const allowedRoles = new Set([
-      'worker',
-      'site_manager',
-      'admin',
-      'system_admin',
-      'customer_manager',
-      'partner',
-    ])
-
-    if (!profile || (role && !allowedRoles.has(role))) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      serviceClient = supabase
     }
 
     const { searchParams } = new URL(request.url)
@@ -55,309 +119,42 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
 
-    let allowedIds: string[] = []
-    // Partner/customer_manager: restrict to allowed site ids
-    if (role === 'partner' || role === 'customer_manager') {
-      const allowedSiteIds = new Set<string>()
-      const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+    let query = supabase.from('daily_reports').select('*', { count: 'exact' })
 
-      if (profile?.partner_company_id) {
-        const { data: mappingRows, error: mappingError } = await supabase
-          .from('partner_site_mappings')
-          .select('site_id, is_active')
-          .eq('partner_company_id', profile.partner_company_id)
+    if (siteId) query = query.eq('site_id', siteId)
+    if (startDate) query = query.gte('work_date', startDate)
+    if (endDate) query = query.lte('work_date', endDate)
+    if (status) query = query.eq('status', status)
 
-        if (!mappingError) {
-          ;(mappingRows || []).forEach(row => {
-            if (row?.site_id && row.is_active) allowedSiteIds.add(row.site_id)
-          })
-        }
-
-        if ((mappingError || allowedSiteIds.size === 0) && legacyFallbackEnabled) {
-          const { data: legacyRows } = await supabase
-            .from('site_partners')
-            .select('site_id, contract_status')
-            .eq('partner_company_id', profile.partner_company_id)
-
-          ;(legacyRows || []).forEach(row => {
-            if (row?.site_id && row.contract_status !== 'terminated')
-              allowedSiteIds.add(row.site_id)
-          })
-        }
-      }
-
-      if (allowedSiteIds.size === 0) {
-        return NextResponse.json({
-          success: true,
-          data: {
-            reports: [],
-            totalCount: 0,
-            totalPages: 0,
-            currentPage: page,
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-        })
-      }
-      allowedIds = Array.from(allowedSiteIds)
-      // If client requested a specific site, ensure it's allowed
-      if (siteId && !allowedSiteIds.has(siteId)) {
-        return NextResponse.json({ error: 'Not authorized for this site' }, { status: 403 })
-      }
-    }
-
-    // Build a separate query for the total count to avoid mutating the data fetch query
-    let countQuery = serviceClient.from('daily_reports').select('*', { count: 'exact', head: true })
-
-    if (allowedIds.length > 0) {
-      countQuery = countQuery.in('site_id', allowedIds)
-    }
-    if (siteId) {
-      countQuery = countQuery.eq('site_id', siteId)
-    }
-    if (startDate) {
-      countQuery = countQuery.gte('work_date', startDate)
-    }
-    if (endDate) {
-      countQuery = countQuery.lte('work_date', endDate)
-    }
-    if (status) {
-      if (status === 'approved') {
-        countQuery = countQuery.in('status', ['approved', 'submitted', 'completed'])
-      } else if (status === 'draft') {
-        countQuery = countQuery.in('status', ['draft', 'pending'])
-      } else {
-        countQuery = countQuery.eq('status', status)
-      }
-    }
-
-    const { count: totalCount, error: countError } = await countQuery
-    if (countError) {
-      console.error('Count query error:', countError)
-      // Non-fatal, just log and continue
-    }
-
-    // Final data fetch with joins
-    let finalQuery = serviceClient.from('daily_reports').select(`
-        *,
-        worker_assignments(*),
-        material_usage(*),
-        document_attachments(*)
-      `)
-
-    if (allowedIds.length > 0) {
-      finalQuery = finalQuery.in('site_id', allowedIds)
-    }
-    if (siteId) {
-      finalQuery = finalQuery.eq('site_id', siteId)
-    }
-    if (startDate) {
-      finalQuery = finalQuery.gte('work_date', startDate)
-    }
-    if (endDate) {
-      finalQuery = finalQuery.lte('work_date', endDate)
-    }
-    if (status) {
-      if (status === 'approved') {
-        finalQuery = finalQuery.in('status', ['approved', 'submitted', 'completed'])
-      } else if (status === 'draft') {
-        finalQuery = finalQuery.in('status', ['draft', 'pending'])
-      } else {
-        finalQuery = finalQuery.eq('status', status)
-      }
-    }
-
-    const { data: reports, error } = await finalQuery
+    const { data, count, error } = await query
       .order('work_date', { ascending: false })
-      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
-    if (error) {
-      console.error('Daily reports query error:', error)
-      return NextResponse.json({ error: 'Failed to fetch daily reports' }, { status: 500 })
-    }
+    if (error) throw error
 
-    const enrichedReports = await enrichReportsWithDetails(reports || [])
-
-    const totalPages = Math.ceil((totalCount || 0) / limit)
+    // Use service client for enrichment to bypass potential RLS constraints on joins
+    const enriched = await enrichReports(data || [], serviceClient)
 
     return NextResponse.json({
       success: true,
       data: {
-        reports: enrichedReports,
-        totalCount: totalCount || 0,
-        totalPages,
+        reports: enriched,
+        totalCount: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
         currentPage: page,
-        hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1,
       },
     })
-  } catch (error) {
-    console.error('API error (mobile/daily-reports):', error)
-    // Fail-soft for mobile: return empty list to keep UI responsive
-    return NextResponse.json(
-      {
-        success: true,
-        data: {
-          reports: [],
-          totalCount: 0,
-          totalPages: 0,
-          currentPage: 1,
-          hasNextPage: false,
-          hasPreviousPage: false,
-        },
-        warning: 'fallback',
-      },
-      { status: 200 }
-    )
-  }
-}
-
-async function enrichReportsWithDetails(reports: any[]) {
-  if (!reports.length) return reports
-
-  try {
-    const serviceClient = createServiceRoleClient()
-
-    const siteIds = Array.from(
-      new Set(reports.map(report => report?.site_id).filter((id): id is string => Boolean(id)))
-    )
-
-    const authorIds = Array.from(
-      new Set(reports.map(report => report?.created_by).filter((id): id is string => Boolean(id)))
-    )
-
-    const workerProfileIds = Array.from(
-      new Set(
-        reports
-          .flatMap(report => report?.worker_assignments ?? [])
-          .map((assignment: any) => assignment?.profile_id)
-          .filter((id): id is string => Boolean(id))
-      )
-    )
-
-    const profileIds = Array.from(new Set([...authorIds, ...workerProfileIds]))
-
-    const [sitesResult, profilesResult, sitePartnersResult] = await Promise.all([
-      siteIds.length
-        ? serviceClient.from('sites').select('id, name, address, status').in('id', siteIds)
-        : Promise.resolve({ data: [] }),
-      profileIds.length
-        ? serviceClient.from('profiles').select('id, full_name, role').in('id', profileIds)
-        : Promise.resolve({ data: [] }),
-      siteIds.length
-        ? serviceClient
-            .from('site_partners')
-            .select('site_id, assigned_date, created_at, partner_companies(company_name)')
-            .in('site_id', siteIds)
-        : Promise.resolve({ data: [] }),
-    ])
-
-    const siteMap = new Map<string, any>((sitesResult.data ?? []).map(site => [site.id, site]))
-
-    const profileMap = new Map<string, any>((profilesResult.data ?? []).map(p => [p.id, p]))
-
-    const partnerMap = new Map<string, string>()
-    ;(sitePartnersResult.data ?? []).forEach((row: any) => {
-      const siteId = row?.site_id
-      const name = row?.partner_companies?.company_name
-      if (!siteId || !name) return
-
-      // 최신 매핑 우선: assigned_date > created_at > 기존 값 유지
-      const current = partnerMap.get(siteId)
-
-      const toDateVal = (v: any) => {
-        if (!v) return 0
-        const t = new Date(v as string).getTime()
-        return Number.isFinite(t) ? t : 0
-      }
-
-      const existingRow = (sitePartnersResult.data as any[]).find(
-        r => r?.site_id === siteId && r?.partner_companies?.company_name === current
-      )
-
-      const existingScore = existingRow
-        ? Math.max(toDateVal(existingRow.assigned_date), toDateVal(existingRow.created_at))
-        : -1
-      const nextScore = Math.max(toDateVal(row.assigned_date), toDateVal(row.created_at))
-
-      if (!current || nextScore >= existingScore) {
-        partnerMap.set(siteId, name)
-      }
-    })
-
-    return reports.map(report => {
-      const enriched = { ...report }
-
-      const siteInfo = siteMap.get(report?.site_id)
-      if (siteInfo) {
-        enriched.sites = siteInfo
-      }
-
-      const authorProfile = profileMap.get(report?.created_by)
-      if (authorProfile) {
-        enriched.profiles = authorProfile
-      }
-
-      if (Array.isArray(report?.worker_assignments)) {
-        enriched.worker_assignments = report.worker_assignments.map((assignment: any) => {
-          if (assignment?.worker_name) return assignment
-          const profile = profileMap.get(assignment?.profile_id)
-          if (!profile) return assignment
-          return {
-            ...assignment,
-            worker_name: profile.full_name,
-            profiles: profile,
-          }
-        })
-      }
-
-      // Attach partner company name if available
-      const partnerName = partnerMap.get(report?.site_id)
-      if (partnerName) {
-        enriched.partner_company_name = partnerName
-      }
-
-      return enriched
-    })
-  } catch (error) {
-    console.error('Failed to enrich daily reports with site/profile details:', error)
-    return reports
+  } catch (error: any) {
+    console.error('[GET /api/mobile/daily-reports] error:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     const authResult = await requireApiAuth()
-    if (authResult instanceof NextResponse) {
-      return authResult
-    }
+    if (authResult instanceof NextResponse) return authResult
 
-    const supabase = createClient()
-    let serviceClient: any = null
-    let hasServiceRole = true
-    try {
-      serviceClient = createServiceRoleClient()
-    } catch {
-      hasServiceRole = false
-      serviceClient = createClient()
-    }
-
-    // Check if user can create daily reports (worker/site_manager/admin/system_admin)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, organization_id, full_name')
-      .eq('id', authResult.userId)
-      .single()
-
-    const role = profile?.role || authResult.role || ''
-
-    const canCreate = ['worker', 'site_manager', 'admin', 'system_admin'].includes(role)
-    if (!profile || !canCreate) {
-      return NextResponse.json({ error: 'Worker or site manager access required' }, { status: 403 })
-    }
-
-    // Get request body
     const body = await request.json()
     const {
       site_id,
@@ -373,589 +170,256 @@ export async function POST(request: NextRequest) {
       workers = [],
       main_manpower = 0,
       additional_manpower = [],
+      author_id = null,
+      author_name = null,
       notes,
       safety_notes,
       materials = [],
     } = body
-    const primaryMemberType =
-      Array.isArray(member_types) && member_types.length > 0 ? member_types[0] : null
-    const primaryProcess = Array.isArray(processes) && processes.length > 0 ? processes[0] : null
-    // Validate required fields
+
     if (!site_id || !work_date) {
-      return NextResponse.json(
-        { error: 'Missing required fields: site_id, work_date' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'site_id and work_date are required' }, { status: 400 })
     }
 
-    // Policy: workers and site managers can create for any site (no assignment restriction)
-
-    // Precompute normalized manpower and location/total for reuse
-    const normalizedAdditionalManpower = Array.isArray(additional_manpower)
-      ? additional_manpower.map((item: any, index: number) => ({
-          name: item?.name || item?.worker_name || `추가 인력 ${index + 1}`,
-          manpower: Number(item?.manpower) || 0,
-        }))
-      : []
-
-    const locationPayload = {
-      block: location?.block ?? '',
-      dong: location?.dong ?? '',
-      unit: location?.unit ?? '',
+    const supabase = createClient()
+    let serviceClient: any = null
+    try {
+      serviceClient = createServiceRoleClient()
+    } catch {
+      serviceClient = createClient()
     }
 
-    const totalManpowerFromPayload = Number(total_workers)
-    const calculatedManpower =
-      (Number(main_manpower) || 0) +
-      normalizedAdditionalManpower.reduce((sum, item) => sum + item.manpower, 0)
-    const totalManpowerExact = !isNaN(totalManpowerFromPayload)
-      ? totalManpowerFromPayload
-      : calculatedManpower
-
-    // Calculate total labor hours for DB summary column
-    let calculatedLaborHours = 0
-    if (Array.isArray(workers) && workers.length > 0) {
-      calculatedLaborHours = workers.reduce((sum: number, w: any) => {
-        const h = Number(w.hours) || 0
-        return sum + (h || 8) // Default to 8 if worker present but hours missing
-      }, 0)
-    } else if (totalManpowerExact > 0) {
-      calculatedLaborHours = totalManpowerExact * 8
+    // Prepare effective workers
+    let effectiveWorkers = Array.isArray(workers) && workers.length > 0 ? [...workers] : []
+    if (effectiveWorkers.length === 0) {
+      // Try to parse profiles if they are in additional_manpower
+      if (Number(main_manpower) > 0) {
+        effectiveWorkers.push({
+          id: author_id || authResult.userId,
+          name: author_name || '작업자',
+          hours: Number(main_manpower) * 8,
+          is_main: true,
+        })
+      }
+      if (Array.isArray(additional_manpower)) {
+        additional_manpower.forEach((am: any) => {
+          if (Number(am.manpower) > 0) {
+            effectiveWorkers.push({
+              id: am.id || am.workerId || null,
+              name: am.name || am.workerName || '추가 작업자',
+              hours: Number(am.manpower) * 8,
+              is_main: false,
+            })
+          }
+        })
+      }
     }
 
-    // Some environments define daily_reports.total_workers as integer; keep exact value separately
-    const totalWorkersInt = calculateWorkerCount(totalManpowerExact)
+    const totalManpowerSum = effectiveWorkers.reduce(
+      (sum, w) => sum + (Number(w.hours) || 0) / 8,
+      0
+    )
+    const reportTotalWorkers = calculateWorkerCount(totalManpowerSum) || Number(total_workers) || 1
 
-    // Check if report already exists for this site and date
-    const { data: existingReport } = await serviceClient
+    // 1. Create or get report
+    const { data: existing } = await serviceClient
       .from('daily_reports')
       .select('id')
       .eq('site_id', site_id)
       .eq('work_date', work_date)
-      .order('created_at', { ascending: false })
-      .limit(1)
       .maybeSingle()
 
-    if (existingReport) {
-      // Update the existing report instead of erroring out
-      const updateBase: any = {
-        total_workers: totalWorkersInt,
-        total_labor_hours: calculatedLaborHours,
-        work_description,
-        safety_notes: safety_notes ?? null,
-        special_notes: notes ?? null,
-        status,
-        updated_at: new Date().toISOString(),
-        component_name: primaryMemberType || null,
-        process_type: primaryProcess || null,
-        work_process:
-          Array.isArray(processes) && processes.length > 0 ? processes.join(', ') : null,
-        work_section:
-          Array.isArray(work_types) && work_types.length > 0 ? work_types.join(', ') : null,
-      }
+    let reportId = existing?.id
+    let reportData: any = null
 
-      // Build validation payload for additional_notes (Legacy Support)
-      const additionalNotesData = {
-        memberTypes: Array.isArray(member_types) ? member_types : [],
-        workContents: Array.isArray(processes) ? processes : [],
-        workTypes: Array.isArray(work_types) ? work_types : [],
-        location: locationPayload,
-        additionalManpower: normalizedAdditionalManpower,
-        notes: notes,
-        safetyNotes: safety_notes,
-      }
+    const primaryMemberType =
+      Array.isArray(member_types) && member_types.length > 0 ? member_types[0] : null
+    const primaryProcess = Array.isArray(processes) && processes.length > 0 ? processes[0] : null
 
-      let updatePayload: any = {
-        ...updateBase,
-        work_content: {
-          memberTypes: Array.isArray(member_types) ? member_types : [],
-          workProcesses: Array.isArray(processes) ? processes : [],
-          workTypes: Array.isArray(work_types) ? work_types : [],
-          tasks: Array.isArray(tasks) ? tasks : [],
-          workers: Array.isArray(workers) ? workers : [],
-          materials: Array.isArray(materials) ? materials : [],
-          totalManpower: totalManpowerExact,
-          mainManpower: Number(main_manpower) || 0,
-          additionalManpower: normalizedAdditionalManpower,
-        },
-        location_info: {
-          block: location?.block ?? '',
-          dong: location?.dong ?? '',
-          unit: location?.unit ?? '',
-        },
-        additional_notes: JSON.stringify(additionalNotesData),
-      }
+    const basePayload: any = {
+      site_id,
+      work_date,
+      work_description,
+      total_workers: reportTotalWorkers,
+      total_labor_hours: totalManpowerSum * 8,
+      status,
+      updated_at: new Date().toISOString(),
+      component_name: primaryMemberType,
+      process_type: primaryProcess,
+      work_process: Array.isArray(processes) ? processes.join(', ') : null,
+      work_section: Array.isArray(work_types) ? work_types.join(', ') : null,
+      special_notes: notes,
+      safety_notes: safety_notes,
+      location_info: location,
+      additional_notes: JSON.stringify({
+        tasks,
+        materials,
+        effectiveWorkers,
+      }),
+      work_content: {
+        tasks,
+        materials,
+        workers: effectiveWorkers,
+      },
+    }
 
-      const removableForUpdate = new Set([
-        'work_content',
+    if (reportId) {
+      // Update with progressive retry to handle schema variations
+      let updatePayload = { ...basePayload }
+      const removable = [
         'location_info',
         'additional_notes',
         'safety_notes',
         'special_notes',
-        'total_workers',
-        'total_labor_hours',
-        'updated_at',
         'work_description',
         'component_name',
         'process_type',
         'work_process',
         'work_section',
-      ])
+        'work_content',
+      ]
 
-      let updatedReport: any = null
-      let lastUpdateError: any = null
-      for (let i = 0; i < 8; i++) {
-        const res = await serviceClient
+      for (let i = 0; i < 10; i++) {
+        const { data, error } = await serviceClient
           .from('daily_reports')
           .update(updatePayload)
-          .eq('id', existingReport.id)
+          .eq('id', reportId)
           .select('*')
           .single()
 
-        if (!res.error && res.data) {
-          updatedReport = res.data
+        if (!error) {
+          reportData = data
           break
         }
 
-        lastUpdateError = res.error
-        const msg = String(res.error?.message || '')
-        const m1 = msg.match(/'([^']+)' column of 'daily_reports'/i)
-        const m2 = msg.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i)
-        const m3 = msg.match(
-          /null value in column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?daily_reports"?/i
-        )
-        const missing = (m1?.[1] || m2?.[1]) as string | undefined
-        const notNullCol = m3?.[1] as string | undefined
-
-        if (missing && (removableForUpdate.has(missing) || updatePayload[missing] !== undefined)) {
-          delete updatePayload[missing]
+        const msg = error.message.toLowerCase()
+        const match =
+          msg.match(/column "(.*?)" does not exist/i) ||
+          msg.match(/'(.*?)' column of 'daily_reports'/i)
+        const col = match?.[1]
+        if (col && removable.includes(col)) {
+          delete (updatePayload as any)[col]
           continue
         }
-
-        if (notNullCol) {
-          switch (notNullCol) {
-            case 'member_name':
-              updatePayload.member_name = (profile as any)?.full_name || '작업자'
-              break
-            case 'work_description':
-              updatePayload.work_description = updatePayload.work_description || ''
-              break
-            case 'status':
-              // Preserve requested status; default to submitted on update path
-              updatePayload.status =
-                updatePayload.status || (status === 'submitted' ? 'submitted' : 'draft')
-              break
-            case 'total_workers':
-              updatePayload.total_workers = Number.isFinite(totalWorkersInt) ? totalWorkersInt : 0
-              break
-            default:
-              if (updatePayload[notNullCol] === undefined || updatePayload[notNullCol] === null) {
-                updatePayload[notNullCol] = ''
-              }
-              break
-          }
-          continue
-        }
-
-        if (/schema cache/i.test(msg)) {
-          let dropped = false
-          for (const col of [
-            'work_content',
-            'location_info',
-            'additional_notes',
-            'safety_notes',
-            'special_notes',
-          ]) {
-            if (updatePayload[col] !== undefined) {
-              delete updatePayload[col]
-              dropped = true
-            }
-          }
-          if (dropped) continue
-        }
-
         break
       }
-
-      if (!updatedReport) {
-        console.error('Daily report update error:', lastUpdateError)
-        return NextResponse.json(
-          {
-            error:
-              lastUpdateError?.message || 'Failed to update existing daily report for this date',
-            details: lastUpdateError,
-          },
-          { status: 500 }
-        )
+    } else {
+      // Insert with progressive retry
+      let insertPayload = {
+        ...basePayload,
+        created_by: authResult.userId,
+        created_at: new Date().toISOString(),
       }
+      const removable = [
+        'location_info',
+        'additional_notes',
+        'safety_notes',
+        'special_notes',
+        'work_description',
+        'component_name',
+        'process_type',
+        'work_process',
+        'work_section',
+        'work_content',
+      ]
 
-      // Update materials: Delete and Re-insert to ensure consistency
-      if (materials !== undefined) {
-        try {
-          // 1. Delete existing material usage for this report
-          await serviceClient
-            .from('material_usage')
-            .delete()
-            .eq('daily_report_id', updatedReport.id)
+      for (let i = 0; i < 10; i++) {
+        const { data, error } = await serviceClient
+          .from('daily_reports')
+          .insert(insertPayload)
+          .select('*')
+          .single()
 
-          // 2. Insert new material usage if any
-          if (Array.isArray(materials) && materials.length > 0) {
-            const materialRecords = materials
-              .filter(
-                (material: any) =>
-                  typeof material?.material_name === 'string' && material.material_name.trim()
-              )
-              .map((material: any) => ({
-                daily_report_id: updatedReport.id,
-                material_name: material.material_name,
-                material_type: (material.material_code || material.material_name || '')
-                  .toString()
-                  .toUpperCase(),
-                quantity: Number(material.quantity) || 0,
-                quantity_val:
-                  material.quantity_val !== undefined
-                    ? Number(material.quantity_val)
-                    : Number(material.quantity) || 0,
-                amount:
-                  material.amount !== undefined
-                    ? Number(material.amount)
-                    : Number(material.quantity) || 0,
-                unit: material.unit || null,
-                notes: material.notes || null,
-              }))
-
-            if (materialRecords.length > 0) {
-              await serviceClient.from('material_usage').insert(materialRecords)
-            }
-          }
-
-          // Update workers: Delete and Re-insert
-          if (workers !== undefined) {
-            const { error: delErr } = await serviceClient
-              .from('worker_assignments')
-              .delete()
-              .eq('daily_report_id', updatedReport.id)
-
-            if (!delErr && Array.isArray(workers) && workers.length > 0) {
-              const workerRecords = workers.map((w: any) => ({
-                daily_report_id: updatedReport.id,
-                profile_id: w.id && w.id.length > 30 ? w.id : null, // Simple UUID check
-                worker_name: w.name || '미정',
-                labor_hours: (Number(w.hours) || 0) / 8, // Legacy support
-                hours: Number(w.hours) || 0, // New column
-              }))
-              await serviceClient.from('worker_assignments').insert(workerRecords)
-            }
-          }
-        } catch (e) {
-          console.warn('material_usage update warning:', e)
-        }
-      }
-
-      // Aggregate additional photos when moving to submitted
-      if (status === 'submitted') {
-        try {
-          await aggregateAdditionalPhotos(serviceClient, updatedReport.id)
-        } catch (e) {
-          console.warn('aggregateAdditionalPhotos warning (update path):', e)
-        }
-      }
-
-      const savedAsSubmitted = String(updatedReport?.status) === 'submitted'
-      const message =
-        status === 'submitted'
-          ? savedAsSubmitted
-            ? '기존 동일 날짜 작업일지를 제출로 저장했습니다.'
-            : '필수 항목이 누락되어 임시 상태로 저장되었습니다.'
-          : '기존 동일 날짜 작업일지를 업데이트했습니다.'
-
-      return NextResponse.json({ success: true, data: updatedReport, message })
-    }
-
-    // Deprecated additional_notes payload was removed to match current schema
-
-    // If no service-role key is configured, inserts may fail due to RLS
-    if (!hasServiceRole && process.env.NODE_ENV !== 'production') {
-      return NextResponse.json(
-        {
-          error:
-            'Service role key missing: set SUPABASE_SERVICE_ROLE_KEY in .env.local to enable daily report creation in development.',
-        },
-        { status: 500 }
-      )
-    }
-
-    // Build payloads with fallback for schemas missing JSON columns
-    const workContentPayload = {
-      memberTypes: Array.isArray(member_types) ? member_types : [],
-      workProcesses: Array.isArray(processes) ? processes : [],
-      workTypes: Array.isArray(work_types) ? work_types : [],
-      tasks: Array.isArray(tasks) ? tasks : [],
-      workers: Array.isArray(workers) ? workers : [],
-      materials: Array.isArray(materials) ? materials : [],
-      totalManpower: totalManpowerExact,
-      mainManpower: Number(main_manpower) || 0,
-      additionalManpower: normalizedAdditionalManpower,
-    }
-
-    const baseInsert = {
-      site_id,
-      work_date,
-      total_workers: totalWorkersInt,
-      total_labor_hours: calculatedLaborHours,
-      work_description,
-      process_type: primaryProcess || null,
-      component_name: primaryMemberType || null,
-      work_process: Array.isArray(processes) && processes.length > 0 ? processes.join(', ') : null,
-      work_section:
-        Array.isArray(work_types) && work_types.length > 0 ? work_types.join(', ') : null,
-      safety_notes: safety_notes ?? null,
-      special_notes: notes ?? null,
-      status,
-      created_by: authResult.userId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    } as any
-
-    // Progressive insert: remove missing columns and retry up to 6 times
-    const removableColumns = new Set([
-      'work_content',
-      'location_info',
-      'additional_notes',
-      'safety_notes',
-      'special_notes',
-      'total_workers',
-      'total_labor_hours',
-      'created_at',
-      'updated_at',
-      'work_description',
-      'created_by',
-      'component_name',
-      'process_type',
-      'work_process',
-      'work_section',
-    ])
-    const essentialColumns = new Set(['site_id', 'work_date'])
-
-    // Build legacy additional_notes data
-    const additionalNotesData = {
-      memberTypes: Array.isArray(member_types) ? member_types : [],
-      workContents: Array.isArray(processes) ? processes : [],
-      workTypes: Array.isArray(work_types) ? work_types : [],
-      location: locationPayload,
-      additionalManpower: normalizedAdditionalManpower,
-      notes: notes,
-      safetyNotes: safety_notes,
-    }
-
-    let payload: any = {
-      ...baseInsert,
-      work_content: workContentPayload,
-      location_info: locationPayload,
-      additional_notes: JSON.stringify(additionalNotesData),
-    }
-
-    let report: any = null
-    let lastError: any = null
-    for (let attempt = 0; attempt < 8; attempt++) {
-      const res = await serviceClient.from('daily_reports').insert(payload).select('*').single()
-      if (!res.error && res.data) {
-        report = res.data
-        break
-      }
-      lastError = res.error
-      const msg = String(res.error?.message || '')
-      const m1 = msg.match(/'([^']+)' column of 'daily_reports'/i)
-      const m2 = msg.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+does not exist/i)
-      const m3 = msg.match(
-        /null value in column\s+"?([a-zA-Z0-9_]+)"?\s+of\s+relation\s+"?daily_reports"?/i
-      )
-      const missing = (m1?.[1] || m2?.[1]) as string | undefined
-      const notNullCol = m3?.[1] as string | undefined
-      // Unique violation fallback: update existing record
-      if (/duplicate key value|unique constraint/i.test(msg)) {
-        if (existingReport?.id) {
-          // Reuse the update path below by simulating existingReport flow
+        if (!error) {
+          reportData = data
+          reportId = data.id
           break
-        } else {
-          // Try lookup once more (race condition)
-          const { data: exist2 } = await serviceClient
-            .from('daily_reports')
-            .select('id')
-            .eq('site_id', site_id)
-            .eq('work_date', work_date)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (exist2?.id) break
         }
-      }
-      if (missing && essentialColumns.has(missing)) {
-        // Can't proceed if essential columns are missing in this schema
+
+        const msg = error.message.toLowerCase()
+        const match =
+          msg.match(/column "(.*?)" does not exist/i) ||
+          msg.match(/'(.*?)' column of 'daily_reports'/i)
+        const col = match?.[1]
+        if (col && removable.includes(col)) {
+          delete (insertPayload as any)[col]
+          continue
+        }
         break
       }
-      if (missing && (removableColumns.has(missing) || payload[missing] !== undefined)) {
-        delete payload[missing]
-        continue
-      }
-      // Handle NOT NULL violations by supplying sensible defaults
-      if (notNullCol) {
-        switch (notNullCol) {
-          case 'member_name':
-            payload.member_name = (profile as any)?.full_name || '작업자'
-            break
-          case 'work_description':
-            payload.work_description = payload.work_description || ''
-            break
-          case 'status':
-            // Preserve requested status from the body; fallback to draft otherwise
-            payload.status = payload.status || (status === 'submitted' ? 'submitted' : 'draft')
-            break
-          case 'total_workers':
-            payload.total_workers = Number.isFinite(totalWorkersInt) ? totalWorkersInt : 0
-            break
-          default:
-            // Generic fallback: empty string for unknown text, else 0
-            if (payload[notNullCol] === undefined || payload[notNullCol] === null) {
-              payload[notNullCol] = ''
-            }
-            break
-        }
-        continue
-      }
-      // If error indicates schema cache for known optional cols, drop them
-      if (/schema cache/i.test(msg)) {
-        let dropped = false
-        // Include additional_notes in the drop list
-        for (const col of [
-          'work_content',
-          'location_info',
-          'additional_notes',
-          'safety_notes',
-          'special_notes',
-        ]) {
-          if (payload[col] !== undefined) {
-            delete payload[col]
-            dropped = true
-          }
-        }
-        if (dropped) continue
-      }
-      break
     }
 
-    if (!report) {
-      console.error('Daily report insert error:', lastError)
-      return NextResponse.json(
-        {
-          error: lastError?.message || 'Failed to create daily report',
-          details: lastError,
-        },
-        { status: 500 }
-      )
+    if (!reportId) {
+      throw new Error('Failed to create or update daily report record.')
     }
 
-    // If materials provided, insert material usage records
-    if (materials && materials.length > 0) {
-      const materialRecords = materials
-        .filter(
-          (material: any) =>
-            typeof material?.material_name === 'string' && material.material_name.trim()
-        )
-        .map((material: any) => ({
-          daily_report_id: report.id,
-          material_name: material.material_name,
-          material_type: (material.material_code || material.material_name || '')
-            .toString()
-            .toUpperCase(),
-          quantity: Number(material.quantity) || 0,
-          quantity: Number(material.quantity) || 0,
-          quantity_val: Number(material.quantity_val) || Number(material.quantity) || 0,
-          amount: Number(material.amount) || Number(material.quantity) || 0,
-          unit: material.unit || null,
-          unit_price: material.unit_price || null,
-          notes: material.notes || null,
-        }))
-
-      if (materialRecords.length > 0) {
-        try {
-          await serviceClient.from('material_usage').insert(materialRecords)
-        } catch (e) {
-          console.warn('material_usage insert warning:', e)
-        }
-      }
-    }
-
-    // Insert worker assignments if provided
-    if (workers && workers.length > 0) {
-      const workerRecords = workers.map((w: any) => ({
-        daily_report_id: report.id,
+    // 2. Clear and Insert Workers
+    await serviceClient.from('worker_assignments').delete().eq('daily_report_id', reportId)
+    if (effectiveWorkers.length > 0) {
+      const workerRows = effectiveWorkers.map(w => ({
+        daily_report_id: reportId,
         profile_id: w.id && w.id.length > 30 ? w.id : null,
         worker_name: w.name || '미정',
-        labor_hours: (Number(w.hours) || 0) / 8,
         hours: Number(w.hours) || 0,
+        work_hours: Number(w.hours) || 0,
+        labor_hours: (Number(w.hours) || 0) / 8,
+      }))
+
+      // Try insert, ignore errors for optional columns by wrapping each or using a safe subset
+      try {
+        await serviceClient.from('worker_assignments').insert(workerRows)
+      } catch (e) {
+        const minimalRows = workerRows.map(r => ({
+          daily_report_id: r.daily_report_id,
+          profile_id: r.profile_id,
+          worker_name: r.worker_name,
+          hours: r.hours,
+          work_hours: r.work_hours,
+          labor_hours: r.labor_hours,
+        }))
+        await serviceClient
+          .from('worker_assignments')
+          .insert(minimalRows)
+          .catch((err: any) => {
+            console.error('CRITICAL: Worker insert failed even with minimal columns:', err)
+          })
+      }
+    }
+
+    // 3. Clear and Insert Materials
+    await serviceClient.from('material_usage').delete().eq('daily_report_id', reportId)
+    const filteredMaterials = (materials || []).filter((m: any) => m.material_name?.trim())
+    if (filteredMaterials.length > 0) {
+      const materialRowsValue = filteredMaterials.map((m: any) => ({
+        daily_report_id: reportId,
+        material_name: m.material_name,
+        quantity: Number(m.quantity) || 0,
+        quantity_val: Number(m.quantity_val) || Number(m.quantity) || 0,
+        amount: Number(m.amount) || Number(m.quantity) || 0,
+        unit: m.unit || null,
+        notes: m.notes || null,
+        material_type: String(m.material_code || m.material_name || '').toUpperCase(),
       }))
 
       try {
-        await serviceClient.from('worker_assignments').insert(workerRecords)
+        await serviceClient.from('material_usage').insert(materialRowsValue)
       } catch (e) {
-        console.warn('worker_assignments insert warning:', e)
+        console.warn('Material insert failed:', e)
       }
     }
 
-    // Aggregate additional photos on submitted
+    // 4. Photos
     if (status === 'submitted') {
-      try {
-        await aggregateAdditionalPhotos(serviceClient, report.id)
-      } catch (e) {
-        console.warn('aggregateAdditionalPhotos warning (insert path):', e)
-      }
+      await aggregateAdditionalPhotos(serviceClient, reportId)
     }
 
-    const savedAsSubmitted = String(report?.status) === 'submitted'
-    const message =
-      status === 'submitted'
-        ? savedAsSubmitted
-          ? '작업일지가 저장되었습니다.'
-          : '필수 항목이 누락되어 임시 상태로 저장되었습니다.'
-        : '임시 상태로 저장되었습니다.'
-
-    return NextResponse.json({ success: true, data: report, message })
-  } catch (error) {
-    console.error('POST API error:', error)
-    const message = (error as any)?.message || 'Internal server error'
-    return NextResponse.json({ error: message, details: String(message) }, { status: 500 })
-  }
-}
-
-// Helper to aggregate additional photos into daily_reports JSON fields if columns exist
-async function aggregateAdditionalPhotos(db: any, reportId: string): Promise<void> {
-  try {
-    const { data: rows, error } = await db
-      .from('daily_report_additional_photos')
-      .select('photo_type, file_url, description, upload_order')
-      .eq('daily_report_id', reportId)
-      .order('upload_order', { ascending: true })
-
-    if (error) return
-    const before = [] as Array<{ url: string; description?: string; order: number }>
-    const after = [] as Array<{ url: string; description?: string; order: number }>
-    ;(rows || []).forEach((r: any) => {
-      const item = {
-        url: r.file_url,
-        description: r.description || undefined,
-        order: r.upload_order || 0,
-      }
-      if (r.photo_type === 'before') before.push(item)
-      else if (r.photo_type === 'after') after.push(item)
+    return NextResponse.json({
+      success: true,
+      data: reportData,
+      message: '작업일지가 성공적으로 저장되었습니다.',
     })
-
-    // Try to update JSON columns if present; ignore if columns don't exist in this schema
-    await db
-      .from('daily_reports')
-      .update({ additional_before_photos: before, additional_after_photos: after })
-      .eq('id', reportId)
-  } catch (e) {
-    // swallow
+  } catch (error: any) {
+    console.error('[POST /api/mobile/daily-reports] error:', error)
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }
 }

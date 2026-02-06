@@ -1,11 +1,10 @@
 'use server'
 
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType, logError } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
-import type { AsyncState, ApiResponse } from '@/types/utils'
-import { withAdminAuth, AdminErrors, validateRequired, type AdminActionResult } from './common'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { AdminErrors, withAdminAuth, type AdminActionResult } from './common'
 
 type AdminSupabaseClient = SupabaseClient<Database>
 
@@ -217,6 +216,7 @@ export async function getSalaryRecords(
           daily_report_workers(worker_name, work_hours)
         `
         )
+        .eq('status', 'approved')
         .order('work_date', { ascending: false })
 
       // Apply site filter
@@ -380,6 +380,7 @@ export async function calculateSalaries(
           daily_report_workers(worker_name, work_hours)
         `
         )
+        .eq('status', 'approved')
         .gte('work_date', date_from || new Date().toISOString().split('T')[0])
         .lte('work_date', date_to || new Date().toISOString().split('T')[0])
 
@@ -932,6 +933,7 @@ export async function getOutputSummary(
           daily_report_workers(worker_name, work_hours)
         `
         )
+        .eq('status', 'approved')
         .gte('work_date', startDate)
         .lte('work_date', endDate)
 
@@ -1177,6 +1179,7 @@ export async function getWorkerCalendarData(
           daily_report_workers(worker_name, work_hours)
         `
         )
+        .eq('status', 'approved')
         .gte('work_date', startDate)
         .lte('work_date', endDate)
 

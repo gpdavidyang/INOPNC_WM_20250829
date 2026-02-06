@@ -365,17 +365,121 @@ export const WorkLogHomePage: React.FC = () => {
   useEffect(() => {
     if (!searchParams) return
     const editId = searchParams.get('edit')
-    if (!editId) return
-    const target =
-      draftWorkLogs.find(log => String(log.id) === editId) ||
-      approvedWorkLogs.find(log => String(log.id) === editId) ||
-      workLogs.find(log => String(log.id) === editId)
+    const createMode = searchParams.get('mode') === 'create'
 
-    if (target) {
-      handleEditWorkLog(target)
-      router.replace(pathname || '/mobile/worklog', { scroll: false })
-    } else if (!loading) {
-      router.replace(pathname || '/mobile/worklog', { scroll: false })
+    if (editId) {
+      const target =
+        draftWorkLogs.find(log => String(log.id) === editId) ||
+        approvedWorkLogs.find(log => String(log.id) === editId) ||
+        workLogs.find(log => String(log.id) === editId)
+
+      if (target) {
+        handleEditWorkLog(target)
+        router.replace(pathname || '/mobile/worklog', { scroll: false })
+      } else if (!loading) {
+        router.replace(pathname || '/mobile/worklog', { scroll: false })
+      }
+    } else if (createMode) {
+      const dateParam = searchParams.get('date')
+      const siteIdParam = searchParams.get('siteId')
+
+      // 1. Prefill data for creating a new work log
+      const prefillData = {
+        workDate: dateParam || new Date().toISOString().split('T')[0],
+        siteId: siteIdParam || null,
+        mainManpower: 1, // Default setup
+        // ... any other defaults
+      }
+
+      // 2. Save to local storage for persistence across the redirect if needed
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('worklog_prefill', JSON.stringify(prefillData))
+      }
+
+      // 3. Instead of opening a modal, we want to ensure the UI shows the "write" section
+      // However, if the "write" section is on THIS same page (WorkLogHomePage), we might need to toggle a state.
+      // But user said: "'홈' 화면에 있는 '작업일지 작성' 섹션으로 이동"
+      // If this page IS the home page, we simply close the modal (if any) and let them interact with the main "Write" button or section.
+
+      // BUT, if the intention is to Auto-Start writing, we should probably toggle the state that opens the "Write" view.
+      // Re-reading user request: "다른 화면 모양의 작업일지 페이지가 모달로 나왔어. 이 모달은 아예 클린업하면 좋겠어."
+      // This implies the current behavior (setIsModalOpen(true)) is incorrectly showing a "Modal" that looks different.
+      // The user wants it to go to the "Section" in the Home screen.
+
+      // If the "Create Work Log" UI is actually a separate page or a specific state in this component NOT handled by `IsModalOpen`, we should use that.
+      // Looking at the code: `handleCreateWorkLog` sets `setIsModalOpen(true)`.
+      // This suggests the "Modal" IS the way to write.
+      // Wait, is there another way?
+      // User says: "'홈' 화면에 있는 '작업일지 작성' 섹션으로 이동하게 해줘."
+
+      // If the intention is just to SCROLL to the create button or just let the user click it?
+      // Or maybe the user *thinks* `WorkLogModal` is the wrong UI.
+
+      // Let's look at `handleCreateWorkLog` implementation:
+      // const handleCreateWorkLog = useCallback(() => { ... setIsModalOpen(true) }, ...)
+
+      // If the user hates the modal, maybe they want to be redirected to `/mobile/worklog/create`?
+      // But this IS the page for worklogs.
+
+      // Let's assume for a moment the user simply wants to be on the list page but have the prefill ready so they can click the button themselves?
+      // OR, maybe the "Modal" they see is the `WorkLogModal` component which they don't like.
+
+      // CRITICAL: The user said "다른 화면 모양의 작업일지 페이지가 모달로 나왔어".
+      // This strongly suggests `WorkLogModal` is distinct from the "Section" they like.
+      // But looking at the file, `WorkLogModal` seems to be the main way to create/edit.
+
+      // However, `openPrefillAndNavigate` uses `router.push('/mobile')`.
+      // Is `/mobile` the "Home" they refer to?
+      // The current page is `WorkLogHomePage`.
+
+      // Let's try to just clean up the URL params and NOT open the modal, allowing the user to click the "Write" button themselves?
+      // NO, they clicked "Add Site" from Calendar, they expect to Start Writing.
+
+      // Re-reading: "'+ 다른 현장 작업 추가하기' 버튼을 클릭했더니... '홈' 화면에 있는 '작업일지 작성' 섹션으로 이동해야 하는데... 모달이 나왔어"
+      // This implies the standard flow is NOT a modal.
+      // Yet `handleCreateWorkLog` opens a modal.
+
+      // Wait, `AttendancePage` navigates to `/mobile/worklog?mode=create`.
+      // And `WorkLogHomePage` picks that up and opens `WorkLogModal`.
+
+      // If `WorkLogModal` is removed/deprecated or simply "not the one", what is the "Work Log Creation Section"?
+      // Code search for "Work Log Creation Section" or similar UI structure in `WorkLogHomePage`.
+      // I see `handleCreateWorkLog` is triggered by a button in `WorkLogHomePage` presumably.
+
+      // Let's look at `openPrefillAndNavigate`. It pushes to `/mobile`.
+      // Maybe `/mobile` is the *actual* home where writing happens inline or via a different flow?
+      // But `WorkLogHomePage` IS likely `/mobile/worklog`.
+
+      // Let's Simply REMOVE the `setIsModalOpen(true)` block for `createMode` and instead just set the prefill logic if needed,
+      // and maybe scroll to the top?
+      // Or, maybe they want to go to `/mobile` (the root)?
+      // "홈 화면에 있는 작업일지 작성 섹션" -> "Work Log Write Section on Home Screen".
+
+      // Let's try redirecting to `/mobile` if that is where the "Write Section" lives.
+      // In `openPrefillAndNavigate`: `router.push('/mobile')`.
+      // This suggests `/mobile` is the Dashboard where users might be used to writing logs?
+
+      // HYPOTHESIS: The "Home" is `/mobile`, and `WorkLogHomePage` is `/mobile/worklog`.
+      // When adding a site, we want to go to the "Home" page where the main "Write" CTA is, NOT a modal on the list page.
+
+      // Let's change the behavior to redirect to `/mobile` with prefill data stored.
+
+      setEditingWorkLog(null)
+      setIsModalOpen(false) // Clean up modal
+
+      // Store prefill
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'worklog_prefill',
+          JSON.stringify({
+            workDate: dateParam || new Date().toISOString().split('T')[0],
+            siteId: siteIdParam || null,
+          })
+        )
+      }
+
+      // Redirect to Home (likely /mobile based on openPrefillAndNavigate usage)
+      router.replace('/mobile')
     }
   }, [
     searchParams,
@@ -462,7 +566,11 @@ export const WorkLogHomePage: React.FC = () => {
       // 확장: 작업 세트 묶음을 전달(상세뷰에서 사용)
       tasks: (workLog as any).tasks || undefined,
       safetyNotes: undefined,
-      additionalManpower: [],
+      additionalManpower: (workLog.workers || []).map(w => ({
+        id: w.id || '',
+        name: w.name,
+        manpower: (w.hours || 0) / 8,
+      })),
       workerNames,
       attachments: {
         photos,

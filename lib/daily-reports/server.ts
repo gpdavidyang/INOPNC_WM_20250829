@@ -62,24 +62,29 @@ export async function getUnifiedDailyReportForAdmin(
 
   const { data, error } = await supabase
     .from('daily_reports')
-    .select(
-      `
-        *,
-        sites!site_id(id, name, address, status, organization_id, organizations(name)),
-        created_by_profile:profiles!created_by(id, full_name, email, role),
-        document_attachments(
-          id,
-          document_type,
-          file_name,
-          file_url,
-          file_size,
-          uploaded_at,
-          uploaded_by
-        )
-      `
-    )
+    .select('*')
     .eq('id', id)
     .maybeSingle()
+
+  if (!error && data) {
+    // Enrich with sites and author profiles manually to avoid schema discovery issues
+    const [siteRes, authorRes] = await Promise.all([
+      supabase
+        .from('sites')
+        .select('id, name, address, status, organization_id, organizations(name)')
+        .eq('id', data.site_id)
+        .maybeSingle(),
+      data.created_by
+        ? supabase
+            .from('profiles')
+            .select('id, full_name, email, role')
+            .eq('id', data.created_by)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+    data.sites = siteRes.data
+    data.created_by_profile = authorRes.data
+  }
 
   if (error || !data) {
     console.error('[getUnifiedDailyReportForAdmin] failed:', error?.message)
@@ -128,8 +133,28 @@ export async function getUnifiedDailyReportForAdmin(
           supabase.from('material_usage').select('*').eq('daily_report_id', id),
         ])
 
-      const fallbackWorkerRows = assignmentRes.data?.length
-        ? assignmentRes.data
+      // Manually enrich fallback worker assignments with profiles
+      const assignmentsRaw = assignmentRes.data || []
+      const workerProfileIds = Array.from(
+        new Set(assignmentsRaw.map(a => a.profile_id).filter(Boolean))
+      )
+      let workerProfiles: any[] = []
+      if (workerProfileIds.length > 0) {
+        const { data: wpData } = await supabase
+          .from('profiles')
+          .select('id, full_name, role')
+          .in('id', workerProfileIds)
+        workerProfiles = wpData || []
+      }
+      const workerProfileMap = new Map(workerProfiles.map(p => [p.id, p]))
+
+      const enrichedAssignments = assignmentsRaw.map(a => ({
+        ...a,
+        profiles: workerProfileMap.get(a.profile_id) || null,
+      }))
+
+      const fallbackWorkerRows = enrichedAssignments.length
+        ? enrichedAssignments
         : mergeWorkers([], workerRes.data || [])
 
       const attachments = (attachmentRes.data || []).reduce<Record<string, any[]>>(
@@ -212,19 +237,43 @@ export async function getUnifiedDailyReportForAdmin(
       .select('id, full_name, email, role')
       .eq('id', data.created_by)
       .maybeSingle(),
-    supabase
-      .from('worker_assignments')
-      .select('*, profiles(id, full_name, role)')
-      .eq('daily_report_id', id),
+    supabase.from('worker_assignments').select('*').eq('daily_report_id', id),
     supabase.from('material_usage').select('*').eq('daily_report_id', id),
+    supabase
+      .from('document_attachments')
+      .select('id, document_type, file_name, file_url, file_size, uploaded_at, uploaded_by')
+      .eq('daily_report_id', id),
   ])
 
   const legacyWorkers = responses[0].data || []
-  const authorProfile = responses[1].data
-  const workerAssignments = responses[2].data || []
+  const authorProfileFetch = responses[1].data
+  const assignmentsRaw = responses[2].data || []
   const materials = responses[3].data || []
+  const attachmentsRaw = responses[4].data || []
 
-  const workerRows = workerAssignments.length > 0 ? workerAssignments : legacyWorkers
+  // Update data object with attachments for backward compatibility
+  data.document_attachments = attachmentsRaw
+
+  // Enrich assignments with profiles manually
+  const workerProfileIds = Array.from(
+    new Set(assignmentsRaw.map(a => a.profile_id).filter(Boolean))
+  )
+  let workerProfiles: any[] = []
+  if (workerProfileIds.length > 0) {
+    const { data: wpData } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .in('id', workerProfileIds)
+    workerProfiles = wpData || []
+  }
+  const workerProfileMap = new Map(workerProfiles.map(p => [p.id, p]))
+  const enrichedAssignments = assignmentsRaw.map(a => ({
+    ...a,
+    profiles: workerProfileMap.get(a.profile_id) || null,
+  }))
+
+  const workerRows = enrichedAssignments.length > 0 ? enrichedAssignments : legacyWorkers
+  const authorProfile = authorProfileFetch || data.created_by_profile
 
   // Simplify: Ensure dailyReport has everything unified-admin needs
   const dailyReport: Record<string, any> = {

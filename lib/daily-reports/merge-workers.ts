@@ -57,7 +57,7 @@ export const mergeWorkers = (
   const legacyList = Array.isArray(legacyWorkers) ? legacyWorkers : []
   const recordList = Array.isArray(workRecords) ? workRecords : []
 
-  const recordsByUserId = new Map<string, WorkRecordRow>()
+  const recordsByUserId = new Map<string, WorkRecordRow[]>()
   const recordsByName = new Map<string, WorkRecordRow[]>()
   const anonymousRecords: WorkRecordRow[] = []
 
@@ -65,7 +65,9 @@ export const mergeWorkers = (
     const key = record?.user_id ? String(record.user_id) : null
     const normalizedName = normalizeName(recordDisplayName(record))
     if (key) {
-      recordsByUserId.set(key, record)
+      const arr = recordsByUserId.get(key) || []
+      arr.push(record)
+      recordsByUserId.set(key, arr)
     } else if (normalizedName) {
       const arr = recordsByName.get(normalizedName) || []
       arr.push(record)
@@ -77,9 +79,13 @@ export const mergeWorkers = (
 
   const merged: LegacyWorkerRow[] = legacyList.map((worker, index) => {
     const key = worker?.worker_id ? String(worker.worker_id) : null
-    let record = key ? recordsByUserId.get(key) : undefined
-    if (record && key) {
-      recordsByUserId.delete(key)
+    let record: WorkRecordRow | undefined
+    if (key) {
+      const arr = recordsByUserId.get(key)
+      if (arr && arr.length > 0) {
+        record = arr.shift()
+        if (!arr.length) recordsByUserId.delete(key)
+      }
     }
 
     if (!record) {
@@ -106,12 +112,9 @@ export const mergeWorkers = (
     }
   })
 
+  const remainingIdRecords = Array.from(recordsByUserId.values()).flat()
   const remainingNamedRecords = Array.from(recordsByName.values()).flat()
-  const remainingRecords = [
-    ...recordsByUserId.values(),
-    ...remainingNamedRecords,
-    ...anonymousRecords,
-  ]
+  const remainingRecords = [...remainingIdRecords, ...remainingNamedRecords, ...anonymousRecords]
   remainingRecords.forEach((record, offset) => {
     const hours = extractHours(record?.labor_hours ?? record?.work_hours)
     merged.push({

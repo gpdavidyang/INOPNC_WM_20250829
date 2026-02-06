@@ -230,9 +230,7 @@ export default function DailyReportDetailClient({
       .filter(Boolean)
       .join(' / ') || '미기입'
 
-  const linkedDrawings = (report.attachments.drawings || []).filter(
-    att => att.metadata?.markup_document_id || att.metadata?.source_id
-  )
+  const linkedDrawings = report.attachments.drawings || []
 
   const normalizedStatus = String(report.status || status || '').toLowerCase()
   const canEditReport =
@@ -323,6 +321,8 @@ export default function DailyReportDetailClient({
               ? `/dashboard/admin/tools/markup?docId=${att.metadata.markup_document_id}`
               : null
           }
+          siteId={report.siteId}
+          reportId={report.id}
         />
       </div>
 

@@ -300,7 +300,12 @@
   justify-content: flex-start;
   padding: 8px 5px 10px;
   gap: 3px;
-  border-top: 1px solid #e6ecf4;
+  /* Use box-shadow for top border to prevent sub-pixel rendering gaps */
+  box-shadow: 0 -1px 0 0 #e6ecf4 inset;
+  border: 0;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
   cursor: default;
   transition:
     background-color 0.2s ease,
@@ -318,12 +323,16 @@
 /* Remove focus/active outlines that can appear as vertical lines on some devices */
 .cal-cell:focus,
 .cal-cell:active,
+.cal-cell:focus-visible,
 .cal-cell *:focus {
   outline: none !important;
   box-shadow: none !important;
+  border-top-color: #e6ecf4 !important; /* Force keep original border color */
+  border-color: #e6ecf4 !important;
+  caret-color: transparent !important;
 }
 
-/* Extend tap-highlight and selection suppression to all descendants to avoid thin vertical tap flash */
+/* Extend tap-highlight and selection suppression to all descendants */
 .cal-cell * {
   -webkit-tap-highlight-color: transparent !important;
   user-select: none !important;
@@ -334,16 +343,28 @@
 
 .cal-cell.cal-cell--clickable {
   cursor: pointer;
+  caret-color: transparent !important;
 }
 
 .cal-cell.cal-cell--clickable:hover {
-  border-color: #31a3fa;
+  /* Only background change on hover, no border color shift to avoid 'bold line' look */
   background: rgba(49, 163, 250, 0.08) !important;
+  border-color: #e6ecf4; /* Keep original border color */
+}
+
+/* Selected Active State - Controlled via React State, NOT focus */
+.cal-cell.active {
+  background: rgba(49, 163, 250, 0.12) !important;
+  /* Match the box-shadow approach for border color change */
+  box-shadow: 0 -1px 0 0 #31a3fa inset !important;
+}
+.cal-cell.active .date {
+  color: #2f6bff;
 }
 
 .cal-cell.cal-cell--clickable:focus-visible {
-  outline: 2px solid #31a3fa;
-  outline-offset: 2px;
+  outline: none !important;
+  caret-color: transparent !important;
 }
 
 /* Inner content should not capture hit testing to avoid transient insertion caret */
@@ -690,59 +711,40 @@ html.dark .recent-salary-item .t-cap.text-muted-foreground.value {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(229, 234, 243, 0.8);
 }
 
 .detail-date {
-  font-size: 14px;
-  color: #667085;
-  margin-bottom: 4px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
 }
 
 .detail-site {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a254f;
-  margin-bottom: 4px;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
 }
 
 .detail-address {
   font-size: 13px;
-  color: #98a2b3;
-}
-
-.detail-mandays {
-  text-align: right;
-  min-width: 90px;
-}
-
-.detail-mandays span {
-  display: block;
-  font-size: 13px;
-  color: #98a2b3;
-}
-
-.detail-mandays strong {
-  font-size: 22px;
-  color: #1a254f;
+  color: #94a3b8;
 }
 
 .detail-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
 .detail-section-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1f2a44;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a254f;
+  letter-spacing: -0.02em;
 }
 
 .detail-empty {
   font-size: 14px;
-  color: #98a2b3;
+  color: #94a3b8;
+  padding: 40px 0;
+  text-align: center;
 }
 
 .team-list,

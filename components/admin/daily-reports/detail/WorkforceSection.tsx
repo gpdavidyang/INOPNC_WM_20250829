@@ -42,7 +42,14 @@ export function WorkforceSection({ workers, formatNumber }: WorkforceSectionProp
               {workers.map(worker => (
                 <tr key={worker.id} className="group hover:bg-gray-50/30 transition-colors">
                   <td className="py-3.5 px-1 text-foreground font-bold">
-                    {worker.workerName || worker.workerId || '-'}
+                    <div className="flex items-center gap-2">
+                      {worker.workerName || worker.workerId || '-'}
+                      {worker.workerName?.includes('(본인입력)') && (
+                        <span className="inline-flex items-center rounded-md bg-blue-50 px-2 py-1 text-[10px] font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                          본인
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-1 text-right tabular-nums font-black italic text-blue-600 text-base">
                     {formatNumber(worker.hours, 1)}

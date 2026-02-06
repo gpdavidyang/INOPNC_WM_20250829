@@ -341,6 +341,9 @@ export const integratedResponseToUnifiedReport = (
   if (workerAssignments.length === 0 && Array.isArray(workContentData?.workers)) {
     workerAssignments = mapWorkers(workContentData.workers)
   }
+  if (workerAssignments.length === 0 && Array.isArray(additionalNotesData?.effectiveWorkers)) {
+    workerAssignments = mapWorkers(additionalNotesData.effectiveWorkers)
+  }
 
   // Fallback: If no workers assigned but total_workers > 0, use author
   if (
@@ -357,7 +360,7 @@ export const integratedResponseToUnifiedReport = (
         id: 'author-fallback',
         workerId: dailyReport.created_by,
         workerName: authorName,
-        hours: 8, // Default to a standard day
+        hours: 1, // Default to a standard day (1.0 공수)
         isDirectInput: true,
         notes: '자동 배정 (작성자 기준)',
       },
@@ -367,6 +370,9 @@ export const integratedResponseToUnifiedReport = (
   let materials = mapMaterials(response.material_usage || dailyReport.material_usage)
   if (materials.length === 0 && Array.isArray(workContentData?.materials)) {
     materials = mapMaterials(workContentData.materials)
+  }
+  if (materials.length === 0 && Array.isArray(additionalNotesData?.materials)) {
+    materials = mapMaterials(additionalNotesData.materials)
   }
 
   const memberTypes = [dailyReport.component_name, dailyReport.member_name].filter(

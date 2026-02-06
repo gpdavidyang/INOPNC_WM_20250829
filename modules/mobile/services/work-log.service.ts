@@ -310,6 +310,53 @@ export class WorkLogService {
           }))
 
           await supabase.from('worker_assignments').insert(workerAssignments)
+
+          // [FIX] work_records 동기화 (Calendar 연동용)
+          // 1. 기존 work_records 정리 (이 데일리 리포트와 연결된 것들)
+          await supabase.from('work_records').delete().eq('daily_report_id', id)
+
+          // 2. 새 work_records 생성 (Profile ID가 있는 작업자만)
+          const workRecords = data.workers
+            .filter(worker => worker.id && worker.id.length > 30) // 유효한 UUID(Profile ID)가 있는 경우만
+            .map(worker => ({
+              daily_report_id: id,
+              profile_id: worker.id,
+              user_id: worker.id, // user_id도 profile_id와 동일하게
+              site_id: data.siteId || updateData.site_id, // siteId가 있으면 사용
+              work_date: data.date || updateData.work_date,
+              labor_hours: (Number(worker.hours) || 0) / 8,
+              work_hours: Number(worker.hours) || 0,
+              status: data.status || 'submitted',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }))
+
+          if (workRecords.length > 0) {
+            // site_id나 work_date가 updateData에 없으면 DB에서 조회해야 할 수도 있음.
+            // 여기서는 data에 있다고 가정하거나, 없으면 무시되도록 함.
+            // 안전하게 하려면 daily_report 조회 후 처리해야 하지만,
+            // 보통 update 시에는 data에 필수 필드가 있거나 UI에서 전달됨.
+            if (!workRecords[0].site_id || !workRecords[0].work_date) {
+              // Fallback: 필수 데이터 누락 시 work_records 생성을 위해 리포트 조회
+              const { data: report } = await supabase
+                .from('daily_reports')
+                .select('site_id, work_date')
+                .eq('id', id)
+                .single()
+              if (report) {
+                workRecords.forEach(r => {
+                  r.site_id = r.site_id || report.site_id
+                  r.work_date = r.work_date || report.work_date
+                })
+                await supabase.from('work_records').insert(workRecords)
+              }
+            } else {
+              await supabase.from('work_records').insert(workRecords)
+            }
+          }
+        } else {
+          // 작업자가 모두 제거된 경우 work_records도 정리
+          await supabase.from('work_records').delete().eq('daily_report_id', id)
         }
       }
 
@@ -449,11 +496,16 @@ function mapReportToWorkLog(item: any): WorkLog {
     Array.isArray(workContent.workers) &&
     workContent.workers.length > 0
   ) {
-    workers = workContent.workers.map((w: any) => ({
-      id: w.id || '',
-      name: w.name || w.workerName || '미정',
-      hours: (Number(w.hours) || 0) * 8,
-    }))
+    workers = workContent.workers.map((w: any) => {
+      const rawVal = Number(w.hours) || 0
+      // Heuristic: If value > 2, it's already in physical hours. If <= 2, it's likely man-days.
+      const hours = rawVal > 2 ? rawVal : rawVal * 8
+      return {
+        id: w.id || '',
+        name: w.name || w.workerName || '미정',
+        hours,
+      }
+    })
   }
 
   const attachments = mapAttachments(item?.document_attachments)

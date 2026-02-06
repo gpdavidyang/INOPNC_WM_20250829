@@ -427,7 +427,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         },
         {} as Record<string, number>
       ),
-      material_usage: materialUsage,
+      material_usage: materials,
       related_reports: relatedReports || [],
       report_author: authorProfile,
     }

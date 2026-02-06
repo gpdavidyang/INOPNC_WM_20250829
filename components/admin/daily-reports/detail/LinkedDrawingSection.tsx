@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { UnifiedAttachment } from '@/types/daily-reports'
-import { Download } from 'lucide-react'
 import Image from 'next/image'
 
 interface LinkedDrawingSectionProps {
@@ -11,6 +10,8 @@ interface LinkedDrawingSectionProps {
   onPreview: (url: string) => void
   onDownload: (url: string, filename: string) => void
   getMarkupLink: (att: UnifiedAttachment) => string | null
+  siteId?: string
+  reportId?: string
 }
 
 export function LinkedDrawingSection({
@@ -18,16 +19,34 @@ export function LinkedDrawingSection({
   onPreview,
   onDownload,
   getMarkupLink,
+  siteId,
+  reportId,
 }: LinkedDrawingSectionProps) {
+  const markingToolUrl =
+    siteId && reportId
+      ? `/dashboard/admin/tools/markup?site_id=${siteId}&report_id=${reportId}&tab=list`
+      : '/dashboard/admin/tools/markup'
   return (
     <Card className="flex flex-col rounded-2xl border bg-card shadow-sm overflow-hidden">
       <CardHeader className="border-b border-gray-100 bg-gray-50/50 px-5 py-4">
-        <CardTitle className="text-base font-black text-foreground tracking-tight">
-          연동 도면 현황
-        </CardTitle>
-        <CardDescription className="text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30 pt-0.5">
-          공유함 및 마킹 연동 도면 내역
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <CardTitle className="text-base font-black text-foreground tracking-tight">
+              연동 도면 현황
+            </CardTitle>
+            <CardDescription className="text-[11px] font-black uppercase tracking-tighter text-muted-foreground/30 pt-0.5">
+              공유함 및 마킹 연동 도면 내역
+            </CardDescription>
+          </div>
+          <Button
+            asChild
+            size="xs"
+            variant="outline"
+            className="h-8 rounded-lg font-bold px-4 border-blue-100 bg-blue-50/50 text-[#31a3fa] hover:bg-[#31a3fa] hover:text-white hover:border-transparent transition-all shadow-sm"
+          >
+            <a href={markingToolUrl}>도면마킹 도구</a>
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 p-0">
         {linkedDrawings.length > 0 ? (
@@ -82,10 +101,9 @@ export function LinkedDrawingSection({
                       <Button
                         size="xs"
                         variant="outline"
-                        className="h-8 rounded-lg font-medium gap-1.5 border-gray-200 px-3 text-muted-foreground hover:bg-gray-50 whitespace-nowrap"
+                        className="h-8 rounded-lg font-bold border-gray-200 px-4 text-muted-foreground hover:bg-gray-50 whitespace-nowrap"
                         onClick={() => onDownload(att.url, att.name || 'document')}
                       >
-                        <Download className="h-3.5 w-3.5" />
                         다운로드
                       </Button>
                       {snapshotPdfUrl && (

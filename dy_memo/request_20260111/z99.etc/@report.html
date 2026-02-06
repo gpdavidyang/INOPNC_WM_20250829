@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>작업 완료 보고서 시스템 - INOPNC</title>
+
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.gh.io/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* [1] 미리보기 뷰어 엔진 스타일 (From @preview.html) */
+    :root {
+        --pm-bg-body: #121212;
+        --pm-primary: #31a3fa;
+        --pm-text-main: #ffffff;
+        --pm-font: "Pretendard Variable", Pretendard, sans-serif;
+        
+        /* 보고서용 변수 (From @report.html) */
+        --rpt-paper: #ffffff;
+        --rpt-text: #000000;
+        --rpt-border: #444444;
+        --rpt-header-bg: #e5e7eb;
+    }
+
+    body { margin: 0; padding: 0; background: var(--pm-bg-body); overflow: hidden; }
+
+    #pmOverlay {
+        position: fixed; inset: 0; background: var(--pm-bg-body);
+        display: flex; flex-direction: column; font-family: var(--pm-font); color: var(--pm-text-main);
+        z-index: 9999; user-select: none;
+    }
+
+    .pm-header {
+        height: 56px; background: #000; display: flex; align-items: center; justify-content: space-between;
+        padding: 0 12px; border-bottom: 1px solid #333; flex-shrink: 0;
+    }
+
+    .pm-title { font-size: 17px; font-weight: 700; flex: 1; text-align: center; }
+
+    .pm-icon-btn {
+        background: none; border: none; color: #fff; cursor: pointer;
+        padding: 8px; display: flex; align-items: center; justify-content: center;
+        border-radius: 50%; transition: 0.2s;
+    }
+    .pm-icon-btn:active { background: #333; }
+
+    .pm-viewport {
+        flex: 1; position: relative; overflow: hidden;
+        display: flex; justify-content: center; align-items: flex-start;
+        cursor: grab; touch-action: none; padding-top: 40px;
+    }
+    .pm-viewport.panning { cursor: grabbing; }
+
+    .pm-content-wrapper {
+        transform-origin: center top; transition: transform 0.1s ease-out;
+        display: flex; flex-direction: column; align-items: center; gap: 40px; padding-bottom: 120px;
+    }
+
+    .pm-controls {
+        position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+        background: #222; padding: 10px 24px; border-radius: 100px;
+        display: flex; gap: 28px; z-index: 200; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+
+    .pm-ctrl-btn {
+        background: none; border: none; color: #fff; display: flex; flex-direction: column;
+        align-items: center; gap: 4px; font-size: 11px; cursor: pointer; opacity: 0.7; transition: 0.2s;
+    }
+    .pm-ctrl-btn.active { color: var(--pm-primary); opacity: 1; font-weight: 700; }
+
+    /* [2] 보고서 디자인 스타일 (From @report.html) */
+    .page-a4 {
+        width: 210mm; min-height: 297mm; background: var(--rpt-paper); padding: 15mm;
+        color: var(--rpt-text); box-shadow: 0 15px 40px rgba(0,0,0,0.6); position: relative;
+    }
+
+    .rpt-title { font-size: 26px; font-weight: 900; text-align: center; margin-bottom: 15px; }
+    
+    .rpt-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 12px; }
+    .rpt-table th, .rpt-table td { border: 1px solid var(--rpt-border); padding: 10px 8px; vertical-align: middle; }
+    .rpt-table th { background: var(--rpt-header-bg); font-weight: 700; text-align: center; }
+    .rpt-center { text-align: center; }
+
+    .sign-table { width: 180px; margin-left: auto; margin-bottom: 15px; border-collapse: collapse; font-size: 11px; }
+    .sign-table th, .sign-table td { border: 1px solid var(--rpt-border); text-align: center; height: 60px; }
+    .sign-table th { height: 25px; background: var(--rpt-header-bg); }
+
+    .photo-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 15px; }
+    .photo-item { border: 1px solid var(--rpt-border); display: flex; flex-direction: column; }
+    .pi-img-box { height: 200px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #fff; border-bottom: 1px solid var(--rpt-border); }
+    .pi-img-box img { width: 100%; height: 100%; object-fit: contain; }
+    .pi-info { font-size: 11px; text-align: center; padding: 5px; background: #f9f9f9; }
+
+    .cert-box { border: 2px solid #000; padding: 40px; height: 100%; display: flex; flex-direction: column; text-align: center; }
+
+    /* [3] 유틸리티 (로딩, 토스트) */
+    .pm-loading { position: absolute; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; flex-direction: column; z-index: 300; }
+    .pm-spinner { width: 36px; height: 36px; border: 3px solid #555; border-top-color: var(--pm-primary); border-radius: 50%; animation: pm-spin 1s linear infinite; margin-bottom: 12px; }
+    @keyframes pm-spin { to { transform: rotate(360deg); } }
+    .pm-toast { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: #fff; color: #000; padding: 12px 24px; border-radius: 30px; opacity: 0; transition: 0.3s; z-index: 400; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; }
+    .pm-toast.show { opacity: 1; top: 90px; }
+  </style>
+</head>
+<body>
+
+<div id="pmOverlay">
+    <header class="pm-header">
+        <button class="pm-icon-btn" onclick="PreviewModal.close()" title="종료">
+            <i data-lucide="chevron-left" width="24"></i>
+        </button>
+        
+        <div class="pm-title" id="pmTitle">작업 완료 보고서 미리보기</div>
+        
+        <button class="pm-icon-btn" onclick="PreviewModal.savePDF()" title="PDF 저장">
+            <i data-lucide="download" width="20"></i>
+        </button>
+    </header>
+
+    <div class="pm-viewport" id="pmViewport">
+        <div class="pm-content-wrapper" id="pmContent">
+            </div>
+    </div>
+
+    <div class="pm-controls">
+        <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(-0.1)"><i data-lucide="minus" width="20"></i> 축소</button>
+        <button class="pm-ctrl-btn" id="pmPanBtn" onclick="PreviewModal.togglePan()"><i data-lucide="hand" width="20"></i> 이동</button>
+        <button class="pm-ctrl-btn" onclick="PreviewModal.zoom(0.1)"><i data-lucide="plus" width="20"></i> 확대</button>
+        <button class="pm-ctrl-btn" onclick="PreviewModal.share()"><i data-lucide="share-2" width="20"></i> 공유</button>
+    </div>
+
+    <div class="pm-loading" id="pmLoading"><div class="pm-spinner"></div><span>처리 중...</span></div>
+    <div class="pm-toast" id="pmToast"><i data-lucide="check" size="16"></i> <span id="pmToastMsg">완료</span></div>
+</div>
+
+<script>
+    // [샘플 데이터] (From @report.html)
+    const STAMP_SRC = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI0NSIgc3Ryb2tlPSJyZWQiIHN0cm9rZS13aWR0aD0iMyIgZmlsbD0ibm9uZSIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1zaXplPSIyNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0icmVkIiBmb250LXdlaWdodD0iYm9sZCI+KOiBlCk8L3RleHQ+PC9zdmc+";
+
+    const logData = {
+        site: "자이 아파트 101동",
+        date: "2025-04-21",
+        team: "본사 직영팀",
+        member: "지하주차장 PC부재",
+        process: "균열보수 공사",
+        location: "B1 전체 구역",
+        manpower: 3,
+        photos: [
+            {url:"https://images.unsplash.com/photo-1621252179027-94459d27d3ee?w=500", tag:"보수 전"},
+            {url:"https://images.unsplash.com/photo-1590069261209-f8e9b8642343?w=500", tag:"보수 중"},
+            {url:"https://images.unsplash.com/photo-1517646287270-a5a9ca602e5c?w=500", tag:"보수 후"},
+            {url:"https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=500", tag:"완료"}
+        ]
+    };
+
+    /**
+     * [1] 보고서 HTML 생성 (From @report.html)
+     */
+    function createReportHTML() {
+        return `
+        <div class="page-a4">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div style="flex:1;">
+                    <h1 class="rpt-title" style="text-align:left;">작업 완료 보고서</h1>
+                    <div style="font-size:12px; color:#666;">문서번호: WR-${logData.date.replace(/-/g,'')}-01</div>
+                </div>
+                <table class="sign-table">
+                    <tr><th>작 성</th><th>승 인</th></tr>
+                    <tr>
+                        <td style="position:relative;">${logData.team}<img src="${STAMP_SRC}" style="position:absolute; width:50px; top:5px; left:20px; opacity:0.6;"></td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+            <table class="rpt-table">
+                <colgroup><col width="15%"><col width="35%"><col width="15%"><col width="35%"></colgroup>
+                <tr><th>현장명</th><td>${logData.site}</td><th>작업일자</th><td>${logData.date}</td></tr>
+                <tr><th>소속</th><td>${logData.team}</td><th>작업인원</th><td>${logData.manpower}명</td></tr>
+            </table>
+            <div style="font-weight:800; margin-bottom:8px; border-left:4px solid #333; padding-left:8px;">작업 상세</div>
+            <table class="rpt-table">
+                <tr><th>부재명</th><th>공정명</th><th>위치</th><th>상태</th></tr>
+                <tr><td class="rpt-center">${logData.member}</td><td class="rpt-center">${logData.process}</td><td class="rpt-center">${logData.location}</td><td class="rpt-center" style="color:blue; font-weight:bold;">완료</td></tr>
+            </table>
+            <div style="margin-top:20px; border:1px solid #ddd; padding:15px; font-size:13px; min-height:100px; line-height:1.6;">
+                <strong>[종합 의견]</strong><br>
+                금일 지하주차장 B1 구역 균열 보수 작업을 안전하게 완료하였습니다. 시방서에 따른 정밀 보수를 실시하였으며 주변 정리를 마쳤습니다.
+            </div>
+        </div>
+        <div class="page-a4">
+            <h2 class="rpt-title" style="font-size:20px; border-bottom:2px solid #000; padding-bottom:10px;">사 진 대 지</h2>
+            <div class="photo-grid">
+                ${logData.photos.map(p => `
+                <div class="photo-item">
+                    <div class="pi-img-box"><img src="${p.url}"></div>
+                    <div class="pi-info">${p.tag}</div>
+                </div>`).join('')}
+            </div>
+        </div>
+        <div class="page-a4">
+            <div class="cert-box">
+                <div class="cert-title">작업 완료 확인서</div>
+                <div style="margin-top:60px; font-size:18px; line-height:2.5; text-align:left; padding-left:40px;">
+                    ■ 현장명 : ${logData.site}<br>
+                    ■ 공사명 : ${logData.process}<br>
+                    ■ 일 시 : ${logData.date}<br>
+                </div>
+                <div style="margin-top:40px; font-size:20px;">상기 현장의 작업이 완료되었음을 확인합니다.</div>
+                <div style="margin-top:auto; padding-bottom:40px;">
+                    <div style="font-size:22px; font-weight:bold; margin-bottom:30px;">${new Date().toLocaleDateString('ko-KR', {year:'numeric', month:'long', day:'numeric'})}</div>
+                    <div style="text-align:right; padding-right:60px;">확인자: ________________ (인)</div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    /**
+     * [2] PreviewModal 컨트롤러 (From @preview.html)
+     */
+    const PreviewModal = {
+        zoomLevel: 1, isPanning: false, pointX: 0, pointY: 0, startX: 0, startY: 0,
+        overlay: null, wrapper: null, viewport: null, panBtn: null,
+
+        init() {
+            this.overlay = document.getElementById('pmOverlay');
+            this.wrapper = document.getElementById('pmContent');
+            this.viewport = document.getElementById('pmViewport');
+            this.panBtn = document.getElementById('pmPanBtn');
+            this.setupEvents();
+            
+            // 보고서 렌더링
+            this.wrapper.innerHTML = createReportHTML();
+            lucide.createIcons();
+            this.resetView();
+        },
+
+        // 뒤로가기/종료 기능 [추가]
+        close() {
+            if (confirm("보고서 확인을 종료하시겠습니까?")) {
+                // 부모 창이 있거나 히스토리가 있는 경우 뒤로가기, 아니면 알림
+                if (window.history.length > 1) {
+                    window.history.back();
+                } else {
+                    alert("이전 페이지가 없습니다. 앱 메인으로 돌아갑니다.");
+                }
+            }
+        },
+
+        zoom(delta) {
+            this.zoomLevel = Math.max(0.2, this.zoomLevel + delta);
+            this.updateTransform();
+        },
+
+        resetView() {
+            const screenW = window.innerWidth;
+            this.zoomLevel = screenW < 800 ? screenW / 920 : 0.7; 
+            this.pointX = 0; this.pointY = 0;
+            this.updateTransform();
+        },
+
+        togglePan() {
+            this.isPanning = !this.isPanning;
+            this.panBtn.classList.toggle('active', this.isPanning);
+            this.viewport.classList.toggle('panning', this.isPanning);
+        },
+
+        updateTransform() {
+            if(this.wrapper) this.wrapper.style.transform = `translate(${this.pointX}px, ${this.pointY}px) scale(${this.zoomLevel})`;
+        },
+
+        setupEvents() {
+            const start = (e) => {
+                if (!this.isPanning) return;
+                if (e.target.closest('.pm-controls') || e.target.closest('.pm-header')) return;
+                e.preventDefault();
+                const evt = e.touches ? e.touches[0] : e;
+                this.startX = evt.clientX - this.pointX;
+                this.startY = evt.clientY - this.pointY;
+                document.addEventListener('mousemove', move);
+                document.addEventListener('touchmove', move, {passive:false});
+                document.addEventListener('mouseup', end);
+                document.addEventListener('touchend', end);
+            };
+            const move = (e) => {
+                const evt = e.touches ? e.touches[0] : e;
+                this.pointX = evt.clientX - this.startX;
+                this.pointY = evt.clientY - this.startY;
+                this.updateTransform();
+            };
+            const end = () => {
+                document.removeEventListener('mousemove', move);
+                document.removeEventListener('touchmove', move);
+            };
+            this.viewport.addEventListener('mousedown', start);
+            this.viewport.addEventListener('touchstart', start, {passive:false});
+        },
+
+        async savePDF() {
+            this.showLoading(true);
+            const oldTransform = this.wrapper.style.transform;
+            this.wrapper.style.transform = 'scale(1)'; 
+            
+            try {
+                const pages = this.wrapper.querySelectorAll('.page-a4');
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+
+                for (let i = 0; i < pages.length; i++) {
+                    if (i > 0) doc.addPage();
+                    const canvas = await html2canvas(pages[i], { scale: 2, useCORS: true });
+                    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+                    doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                }
+                doc.save(`보고서_${logData.site}_${logData.date}.pdf`);
+                this.showToast("PDF 저장이 완료되었습니다.");
+            } catch (e) { alert("저장 실패"); } 
+            finally {
+                this.wrapper.style.transform = oldTransform;
+                this.showLoading(false);
+            }
+        },
+
+        async share() {
+            if (!navigator.share) return alert("공유 미지원 환경");
+            this.showLoading(true);
+            const oldTransform = this.wrapper.style.transform;
+            this.wrapper.style.transform = 'scale(1)';
+            try {
+                const canvas = await html2canvas(this.wrapper.querySelector('.page-a4'), { scale: 1.5, useCORS: true });
+                canvas.toBlob(async (blob) => {
+                    const file = new File([blob], "report.jpg", { type: "image/jpeg" });
+                    await navigator.share({ title: "작업 보고서", files: [file] });
+                }, 'image/jpeg', 0.9);
+            } catch (e) {} finally {
+                this.wrapper.style.transform = oldTransform;
+                this.showLoading(false);
+            }
+        },
+
+        showLoading(v) { document.getElementById('pmLoading').style.display = v ? 'flex' : 'none'; },
+        showToast(msg) {
+            const t = document.getElementById('pmToast');
+            document.getElementById('pmToastMsg').innerText = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+    };
+
+    window.onload = () => PreviewModal.init();
+</script>
+
+</body>
+</html>

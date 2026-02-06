@@ -1,0 +1,4131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>INOPNC - 급여 관리</title>
+
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Disable Tailwind CSS production warning
+    tailwind.config = { 
+      jit: false,
+      prefix: '',
+      important: false,
+      separator: ':',
+      theme: {},
+      corePlugins: {},
+      plugins: []
+    };
+    // Set production mode to disable warning
+    if (typeof window !== 'undefined') {
+      window.TAILWIND_DISABLE_TOUCH = true;
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    /* =========================================================
+      INOPNC 통합 스타일 - @mainpage.html 폰트/간격, @money.html 컬러
+    ========================================================= */
+    html, body { 
+      margin:0; 
+      padding:0; 
+    }
+    body { 
+      background:#0000; 
+    }
+
+    #money-root {
+      /* 폰트 정의 - @mainpage.html 기준 */
+      --font-main: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+
+      /* Typography Design Tokens - @mainpage.html 기준 */
+      --fs-tiny: 13px;
+      --fs-sm: 15px;
+      --fs-base: 17px;
+      --fs-lg: 20px;
+      --fs-xl: 24px;
+
+      --fw-reg: 400;
+      --fw-med: 500;
+      --fw-bold: 700;
+      --fw-black: 800;
+
+      /* 모바일 가독성 */
+      --lh-tight: 1.35;
+      --lh-base: 1.65;
+      --lh-loose: 1.8;
+      --ls-base: 0.005em;
+
+      /* [Color System] - @money.html 기준 */
+      --primary: #31a3fa;
+      --primary-bg: #eaf6ff;
+      --header-navy: #1a254f;
+      --navy-dark: #1a254f;
+      --text-main: #111111;
+      --text-sub: #475569;
+      --text-placeholder: #94a3b8;
+
+      --bg-body: #f2f4f6;
+      --bg-surface: #ffffff;
+      --bg-input: #ffffff;
+      --bg-search-input: #f1f5f9;
+      --bg-hover: #f1f5f9;
+      --border: #e2e8f0;
+
+      --danger: #ef4444;
+      --del-btn-bg: #fef2f2;
+      --btn-logout-bg: #1a254f;
+      --btn-clear-bg: #cbd5e1;
+      --btn-clear-text: #ffffff;
+      --upload-photo-bg: #f8fafc;
+      --upload-photo-text: #475569;
+
+      --btn-cert-bg: #ecfdf5;
+      --btn-cert-text: #059669;
+      --btn-cert-border: #6ee7b7;
+
+      --shadow-soft: 0 4px 20px rgba(0,0,0,0.05);
+      --shadow-input: 0 4px 12px rgba(0,0,0,0.08);
+
+      /* @site.html 소속 배지 색상 변수 추가 */
+      --tag-affil-bg: #e0f2fe;
+      --tag-affil-text: #0284c7;
+      --tag-affil-border: #bae6fd;
+      --tag-gray-bg: #f8fafc;
+      --tag-gray-text: #64748b;
+      --tag-gray-border: #e2e8f0;
+
+      /* Component Sizes - @money.html 기준 */
+      --radius-card: 16px;
+      --header-height: 60px;
+      --nav-height: 65px;
+      --h-common: 48px;
+
+      /* Calendar Specific */
+      --cal-today-bg: #1a254f;
+      
+      /* Pay Stub Specific - @money.html 기준 */
+      --stub-navy: #1a254f;
+      --stub-gray-line: #d1d5db;
+      --stub-bg-light: #f8fafc;
+      --stub-highlight: #e0f2fe;
+
+      /* Container Styles - @mainpage.html 기준 */
+      --container-max-width: 600px;
+      --container-padding: 16px;
+      --container-padding-mobile: 12px;
+
+      font-family: var(--font-main);
+      font-size: var(--fs-base); 
+      color: var(--text-main);
+      background-color: var(--bg-body);
+      line-height: var(--lh-base);
+      letter-spacing: var(--ls-base);
+
+      min-height: 100vh;
+      -webkit-text-size-adjust: 100%;
+      overflow-x: hidden;
+      touch-action: manipulation;
+      transition: background-color 0.3s, color 0.3s;
+      position: relative;
+      width:100%;
+    }
+
+    /* [Dark Mode] - @money.html 기준 */
+    #money-root.dark-mode {
+      --primary: #31a3fa;
+      --primary-bg: #1e293b;
+      --header-navy: #f1f5f9;
+      --text-main: #f1f5f9;
+      --text-sub: #cbd5e1;
+      --text-placeholder: #64748b;
+      --bg-body: #0f172a;
+      --bg-surface: #1e293b;
+      --bg-input: #0f172a;
+      --bg-search-input: #0f172a;
+      --bg-hover: #334155;
+      --border: #334155;
+      --btn-logout-bg: #3b82f6;
+      --danger: #ef4444;
+      --del-btn-bg: #450a0a;
+      --upload-photo-bg: #1e293b;
+      --upload-photo-text: #94a3b8;
+
+      --btn-cert-bg: rgba(5, 150, 105, 0.2);
+      --btn-cert-text: #34d399;
+      --btn-cert-border: rgba(52, 211, 153, 0.3);
+
+      --shadow-soft: none;
+      --shadow-input: none;
+      --cal-today-bg: #31a3fa;
+    }
+
+    /* 기본 리셋 */
+    #money-root *, 
+    #money-root *::before, 
+    #money-root *::after { box-sizing: border-box; }
+    #money-root a { text-decoration: none; color: inherit; }
+    #money-root button,
+    #money-root select,
+    #money-root input,
+    #money-root textarea {
+      font-family: var(--font-main);
+      outline: none;
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+    }
+
+    /* 애니메이션 */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fadeIn {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .animate-slideDown {
+      animation: slideDown 0.2s ease-out;
+    }
+
+    /* 웹 최적화 */
+    @media (min-width: 768px) {
+      #money-root {
+        max-width: 600px;
+        margin: 0 auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        border-left: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+      }
+    }
+
+    /* Tab Navigation - @money.html 기준 */
+    .tab-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+      transition: color 0.3s;
+      height: 56px;
+    }
+
+    .tab-nav-inner {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      display: flex;
+      height: 56px;
+    }
+
+    .tab-button {
+      flex: 1 1 0%;
+      min-width: 0;
+      white-space: nowrap;
+      height: 100%;
+      border: none;
+      background: transparent;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text-sub);
+      border-bottom: 3px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: var(--font-main);
+    }
+
+    .tab-button.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 800;
+    }
+
+    /* Card Spacing - @mainpage.html 기준 */
+    .card-spacing {
+      margin-bottom: 16px; /* @mainpage.html의 mb-4 기준 */
+    }
+
+    .card-padding {
+      padding: 24px; /* @mainpage.html의 p-6 기준 */
+    }
+
+    .section-spacing {
+      margin-bottom: 12px; /* @mainpage.html의 mb-3 기준 */
+    }
+
+    .item-spacing {
+      margin-bottom: 8px; /* @mainpage.html의 mb-2 기준 */
+    }
+
+    .grid-gap {
+      gap: 12px; /* @mainpage.html의 gap-3 기준 */
+    }
+
+    .grid-gap-sm {
+      gap: 8px; /* @mainpage.html의 gap-2 기준 */
+    }
+
+    .grid-gap-xs {
+      gap: 4px; /* @mainpage.html의 gap-1 기준 */
+    }
+
+    /* Container & Mobile Optimization - @mainpage.html 기준 */
+    .container {
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+      padding: 0 var(--container-padding);
+    }
+
+    @media (max-width: 640px) {
+      .container {
+        padding: 0 var(--container-padding-mobile);
+      }
+      
+      /* 모든 입력 필드 폰트 적용 */
+      input, select, textarea {
+        font-family: var(--font-main) !important;
+      }
+    }
+
+    /* Mobile Responsive - @mainpage.html 기준 */
+    @media (min-width: 768px) {
+      #money-root {
+        max-width: var(--container-max-width);
+        margin: 0 auto;
+        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        border-left: 1px solid var(--border);
+        border-right: 1px solid var(--border);
+      }
+    }
+
+    /* Safe area padding for mobile */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* No scrollbar utility */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    /* 검색창 스타일 수정 (@site.html 최신순 필터와 컬러 통일) */
+    .site-search-optimized {
+      width: 100%;
+      height: 54px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0 48px 0 16px;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-main);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* 포커스 시: 최신순 필터와 동일한 rgba(49, 163, 250, 0.15) 적용 */
+    .site-search-optimized:focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15) !important;
+      transform: translateY(-1px);
+      outline: none;
+    }
+    
+    /* 호버 시: 테두리 색상도 Primary 톤으로 변경 */
+    .site-search-optimized:hover:not(:focus) {
+      border-color: rgba(49, 163, 250, 0.5);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Site Dropdown Optimized */
+    .site-dropdown-optimized {
+      animation: dropdownSlide 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes dropdownSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* =========================================
+       4. Detail Modal (참고: @pmoney.html 모달 스타일)
+       ========================================= */
+    .detail-modal-overlay { 
+        position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 3000; 
+        display: none; align-items: center; justify-content: center; padding: 20px;
+        opacity: 0; transition: opacity 0.3s;
+    }
+    .detail-modal-overlay.active { display: flex; opacity: 1; }
+    .detail-modal-content {
+        background: var(--bg-surface); width: 100%; max-width: 440px; 
+        border-radius: 20px; padding: 24px 22px; box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+        max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column;
+        border: 1px solid var(--border);
+    }
+    .detail-modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .detail-modal-title { font-size: 20px; font-weight: 800; color: var(--text-main); }
+    .detail-info-list { margin-top: 8px; }
+    .detail-info-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+    .detail-info-label { font-size: 15px; font-weight: 700; color: var(--text-sub); white-space: nowrap; }
+    .detail-info-value { font-size: 15px; font-weight: 600; color: var(--text-main); text-align: right; flex: 1; }
+    .detail-info-note { line-height: 1.5; }
+
+    /* [요구사항 1] 년-월 필터 디자인을 최신순 필터(Blue Glow)와 통일 */
+    .form-select {
+        appearance: none;
+        -webkit-appearance: none;
+        min-width: 140px; /* 너비 조정: min-width 140px로 변경 */
+        height: 54px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0 40px 0 16px;
+        font-family: var(--font-main);
+        font-size: 18px; /* 폰트 크기 18px 유지 */
+        font-weight: 700;
+        color: var(--text-main);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px center;
+        background-size: 18px;
+        cursor: pointer;
+        white-space: nowrap; /* 한 줄 표시 적용 */
+        line-height: 1.2;
+        height: auto;
+        min-height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    /* 포커스 시 @site.html의 최신순 필터와 동일한 효과 적용 */
+    .form-select:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15) !important;
+        outline: none;
+    }
+
+    .form-select:hover:not(:focus) {
+        border-color: rgba(49, 163, 250, 0.5);
+    }
+
+    /* 년월 필터 버튼 디자인 최적화 */
+    .filter-btn-optimized {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-width: 145px;
+        height: 54px;
+        padding: 0 16px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--text-main);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+    }
+
+    /* 블루 글로우 효과 (핵심) */
+    .filter-btn-optimized:focus, .filter-btn-optimized.active {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15) !important;
+        outline: none;
+    }
+
+    /* 월 선택 그리드 팝업 */
+    .month-picker-compact {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        width: 280px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        padding: 16px;
+        z-index: 1000;
+        display: none;
+        animation: slideDown 0.2s ease-out;
+        /* 모바일 화면 짤림 방지 */
+        max-height: 80vh;
+        overflow-y: auto;
+        left: auto;
+        transform: translateX(0);
+    }
+
+    @media (max-width: 768px) {
+        .month-picker-compact {
+            width: 260px;
+            right: -8px;
+            max-height: 70vh;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .month-picker-compact {
+            width: 240px;
+            right: -16px;
+            left: 8px;
+            right: 8px;
+            max-width: calc(100vw - 32px);
+        }
+    }
+
+    .month-picker-compact.show {
+        display: block;
+    }
+
+    .month-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .month-item {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-sub);
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    .month-item:hover {
+        background: var(--bg-hover);
+        color: var(--primary);
+    }
+
+    .month-item.active {
+        background: var(--primary-bg);
+        color: var(--primary);
+        font-weight: 800;
+    }
+
+    /* 현장 검색창과 년-월 버튼 스타일 통일 */
+    .site-search-optimized {
+        appearance: none;
+        -webkit-appearance: none;
+        height: 54px;
+        background-color: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0 16px;
+        font-family: var(--font-main);
+        font-size: 17px;
+        font-weight: 500;
+        color: var(--text-main);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        outline: none;
+    }
+
+    .site-search-optimized:focus {
+        border-color: var(--primary) !important;
+        box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15) !important;
+        outline: none;
+    }
+
+    .site-search-optimized:hover:not(:focus) {
+        border-color: rgba(49, 163, 250, 0.5);
+    }
+    .btn-load-more { 
+      width: 100%; 
+      height: 54px; 
+      background: var(--bg-surface); 
+      border: 1px solid var(--border); 
+      border-radius: 100px; 
+      color: var(--text-sub); 
+      font-weight: 600; 
+      font-size: 15px; 
+      cursor: pointer; 
+      margin-top: 10px; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 6px; 
+      transition: 0.2s; 
+      box-sizing: border-box;
+    }
+
+    /* Material Select - @mainpage.html 기준 */
+    .material-select {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      height: 54px;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0 40px 0 16px;
+      font-family: var(--font-main);
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-main);
+      transition: all 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 16px;
+      box-sizing: border-box;
+    }
+    
+    .material-select:focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15) !important;
+      transform: translateY(-1px);
+      outline: none;
+    }
+    
+    .material-select:hover:not(:focus) {
+      border-color: rgba(59, 130, 246, 0.5);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 다크모드 대응 */
+    body.dark-mode .material-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+
+    /* =========================================
+       [수정] 필터 박스 이벤트 효과 통일
+       (@site.html의 최신순 박스와 동일한 컬러 적용)
+       ========================================= */
+
+    /* 드롭다운(Select) 및 날짜(Month) 공통 스타일 */
+    .custom-select,
+    .date-filter-style {
+      appearance: none;
+      -webkit-appearance: none;
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* [핵심] 포커스 시: 그림자 색상을 rgba(49, 163, 250, 0.15)로 변경 */
+    .custom-select:focus,
+    .date-filter-style:focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15) !important; /* 색상 수정됨 */
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    /* 호버 시: 테두리 색상도 Primary 톤으로 변경 */
+    .custom-select:hover:not(:focus),
+    .date-filter-style:hover:not(:focus) {
+      border-color: rgba(49, 163, 250, 0.5); /* 색상 수정됨 */
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Custom Select 화살표 아이콘 (기존 유지) */
+    .custom-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23333333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      padding-right: 40px;
+    }
+
+    /* 다크모드 대응 (기존 유지) */
+    body.dark-mode .custom-select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    }
+    
+    /* 다크모드 소속 배지 색상 변수 */
+    body.dark-mode {
+      --tag-affil-bg: #0c4a6e;
+      --tag-affil-text: #7dd3fc;
+      --tag-affil-border: #075985;
+      --tag-gray-bg: #1e293b;
+      --tag-gray-text: #94a3b8;
+      --tag-gray-border: #334155;
+    }
+
+    /* Summary - @money.html 기준 */
+    .summary-grid { 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 10px; 
+      margin-bottom: 24px; 
+    }
+    
+    .sum-card { 
+      padding: 16px 4px; 
+      border-radius: 16px; 
+      text-align: center; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px; 
+      box-shadow: var(--shadow-soft); 
+      background: var(--bg-surface); 
+      border: 1px solid transparent; 
+    }
+    
+    body.dark-mode .sum-card { 
+      box-shadow: none; 
+    }
+    
+    .sum-card.sky { 
+      background-color: #eaf6ff; 
+      color: #0284c7; 
+      border-color: #0284c7; 
+    }
+    
+    .sum-card.navy { 
+      background-color: #f0f3f9; 
+      color: #1e3a8a; 
+      border-color: #1e3a8a; 
+    }
+    
+    .sum-card.periwinkle { 
+      background-color: #f1f5f9; 
+      color: #475569; 
+      border-color: #475569; 
+    }
+    
+    body.dark-mode .sum-card.sky { 
+      background-color: #0c4a6e; 
+      color: #38bdf8; 
+      border-color: #38bdf8; 
+    }
+    
+    body.dark-mode .sum-card.navy { 
+      background-color: #1e1b4b; 
+      color: #a5b4fc; 
+      border-color: #a5b4fc; 
+    }
+    
+    body.dark-mode .sum-card.periwinkle { 
+      background-color: #1e2540; 
+      color: #94a3b8; 
+      border-color: #94a3b8; 
+    }
+    
+    .sum-val { 
+      font-size: 24px; 
+      font-weight: 800; 
+      line-height: 1.1; 
+      letter-spacing: -0.5px; 
+    }
+    
+    .sum-label { 
+      font-size: 14px; 
+      font-weight: 700; 
+      opacity: 0.9; 
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      width: 100%;
+      max-width: 450px;
+      border-radius: 16px;
+      padding: 24px;
+      max-height: 85vh;
+      overflow-y: auto;
+      flex-direction: column;
+    }
+
+    /* Pay Stub Overlay */
+    .paystub-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: var(--bg-body);
+      z-index: 2000;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s;
+    }
+
+    .paystub-overlay.active {
+      transform: translateY(0);
+    }
+
+    .paystub-header {
+      height: 60px;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .paystub-content {
+      flex: 1;
+      padding: 20px;
+      padding-bottom: 40px;
+      overflow-y: auto;
+    }
+
+    .paystub-card {
+      width: 100%;
+      max-width: 500px;
+      background-color: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 40px 30px;
+      color: #111;
+      margin-bottom: 20px;
+      font-family: var(--font-main);
+      margin: 0 auto;
+    }
+
+    /* Clear Button Style */
+    .clear-button {
+      position: absolute;
+      right: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgb(226, 232, 240);
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 12px;
+      color: rgb(100, 116, 139);
+      transition: 0.2s;
+      z-index: 10;
+    }
+
+    .clear-button:hover {
+      background: rgb(203, 213, 225);
+      color: rgb(71, 85, 105);
+    }
+
+    .clear-button:active {
+      transform: translateY(-50%) scale(0.9);
+    }
+
+    /* 최적화된 현장 선택 검색창 효과 (@site.html 최신순 필터와 컬러 통일) */
+    .site-search-optimized {
+      width: 100%;
+      height: 54px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0 48px 0 16px;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-main);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-sizing: border-box;
+    }
+    
+    /* 포커스 시: 최신순 필터와 동일한 rgba(49, 163, 250, 0.15) 적용 */
+    .site-search-optimized:focus {
+      border-color: var(--primary) !important;
+      box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15) !important;
+      transform: translateY(-1px);
+      outline: none;
+    }
+    
+    /* 호버 시: 테두리 색상도 Primary 톤으로 변경 */
+    .site-search-optimized:hover:not(:focus) {
+      border-color: rgba(49, 163, 250, 0.5);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* 드롭다운 최적화 효과 */
+    .site-dropdown-optimized {
+      animation: dropdownSlide 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    @keyframes dropdownSlide {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Pay Stub Styles - @money.html 기준 */
+    .stub-header-modern { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-end; 
+      border-bottom: 2px solid var(--stub-navy); 
+      padding-bottom: 20px; 
+      margin-bottom: 30px; 
+    }
+    
+    .stub-title-main { 
+      font-size: 32px; 
+      font-weight: 800; 
+      color: var(--stub-navy); 
+      margin: 0; 
+      letter-spacing: -1px; 
+      line-height: 1.2; 
+    }
+    
+    .stub-month-sub { 
+      font-size: 22px; 
+      font-weight: 700; 
+      color: var(--stub-navy); 
+      text-decoration: none; 
+    }
+    
+    .stub-company-name { 
+      font-size: 16px; 
+      font-weight: 700; 
+      color: #111; 
+    }
+    
+    .stub-issue-date { 
+      font-size: 14px; 
+      color: #64748b; 
+      font-weight: 500; 
+    }
+    
+    .stub-info-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 20px; 
+      border: 1px solid var(--stub-gray-line); 
+    }
+    
+    .stub-info-table th, .stub-info-table td { 
+      border: 1px solid var(--stub-gray-line); 
+      padding: 8px 12px; 
+      font-size: 14px; 
+      text-align: center; 
+      height: 36px; 
+    }
+    
+    .stub-info-table th { 
+      background-color: var(--stub-bg-light); 
+      color: var(--stub-navy); 
+      font-weight: 700; 
+      width: 25%; 
+    }
+    
+    .stub-info-table td { 
+      font-weight: 500; 
+      color: #111; 
+    }
+    
+    .stub-detail-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 0px; 
+      border-top: 1px solid var(--stub-navy); 
+    }
+    
+    .stub-detail-table th { 
+      background-color: var(--stub-navy); 
+      color: #fff; 
+      padding: 10px; 
+      font-size: 14px; 
+      font-weight: 700; 
+      text-align: center; 
+      border: 1px solid #556080; 
+      border-bottom: none; 
+    }
+    
+    .stub-detail-table td { 
+      border: 1px solid var(--stub-gray-line); 
+      padding: 10px; 
+      font-size: 14px; 
+      color: #111; 
+      height: 40px; 
+    }
+    
+    .stub-sub-head { 
+      background-color: var(--stub-highlight); 
+      color: var(--stub-navy); 
+      font-weight: 700; 
+      text-align: center; 
+    }
+    
+    .stub-amount-cell { 
+      text-align: right; 
+      font-weight: 500; 
+    }
+    
+    .stub-total-row td { 
+      background-color: var(--stub-bg-light); 
+      font-weight: 800; 
+      border-top: 1px solid var(--stub-gray-line); 
+    }
+    
+    .stub-real-pay-box { 
+      margin-top: 20px; 
+      background-color: #eff6ff; 
+      border-radius: 16px; 
+      padding: 24px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+    }
+    
+    .stub-real-pay-label { 
+      font-size: 16px; 
+      font-weight: 700; 
+      color: var(--stub-navy); 
+    }
+    
+    .stub-real-pay-val { 
+      font-size: 28px; 
+      font-weight: 800; 
+      color: #2563eb; 
+    }
+    
+    .stub-calc-table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 20px; 
+    }
+    
+    .stub-calc-header-row td { 
+      background-color: var(--stub-navy); 
+      color: #ffffff !important; 
+      padding: 8px; 
+      text-align: center; 
+      font-weight: 700; 
+      font-size: 14px; 
+    }
+    
+    .stub-calc-table th { 
+      background-color: var(--stub-navy); 
+      color: #ffffff !important; 
+      padding: 8px; 
+      font-size: 13px; 
+      border: 1px solid #556080; 
+      width: 20%; 
+      text-align: center; 
+    }
+    
+    .stub-calc-table td { 
+      border: 1px solid var(--stub-gray-line); 
+      padding: 8px; 
+      font-size: 13px; 
+      text-align: center; 
+      color: #111; 
+    }
+    
+    .stub-footer-msg { 
+      margin-top: 24px; 
+      text-align: center; 
+      font-size: 14px; 
+      color: #64748b; 
+      font-weight: 500; 
+    }
+
+    /* Button Styles - @mainpage.html 스타일 (색상만 변경, transform/shadow 없음) */
+    .btn-primary {
+      background-color: var(--header-navy);
+      color: #ffffff;
+      border: none;
+      border-radius: var(--radius-card);
+      font-weight: var(--fw-bold);
+      transition: background-color 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-primary:hover {
+      background-color: #1e3a8a;
+    }
+
+    .btn-primary:active {
+      background-color: #1e40af;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-hover);
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      font-weight: var(--fw-bold);
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background-color: #cbd5e1;
+      border-color: #94a3b8;
+      color: var(--text-main);
+    }
+
+    .btn-secondary:active {
+      background-color: #b4bfcc;
+    }
+
+    .btn-danger {
+      background-color: var(--del-btn-bg);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: var(--radius-card);
+      font-weight: var(--fw-bold);
+      transition: background-color 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-danger:hover {
+      background-color: #dc2626;
+      color: white;
+    }
+
+    .btn-danger:active {
+      background-color: #b91c1c;
+    }
+
+    /* 버튼 아웃라인 스타일 */
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      border-radius: var(--radius-card);
+      font-weight: var(--fw-bold);
+      transition: background-color 0.2s;
+      cursor: pointer;
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary-bg);
+    }
+
+    .btn-outline:active {
+      background-color: rgba(59, 130, 246, 0.15);
+    }
+
+    .btn-outline {
+      background-color: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+      border-radius: var(--radius-card);
+      font-weight: var(--fw-bold);
+      transition: all 0.2s;
+    }
+
+    .btn-outline:hover {
+      background-color: var(--primary-bg);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline.active {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    /* Site Dropdown */
+    .site-dropdown {
+      position: absolute;
+      top: 60px;
+      left: 0;
+      right: 0;
+      border-radius: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      z-index: 100;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      animation: slideDown 0.2s ease-out;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+    }
+
+    .site-dropdown-item {
+      padding: 14px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text-main);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.2s;
+    }
+
+    .site-dropdown-item:last-child {
+      border-bottom: none;
+    }
+
+    .site-dropdown-item:hover {
+      background: var(--bg-hover);
+    }
+
+    /* Calendar Styles */
+    .calendar-cell {
+      min-height: 96px;
+      padding: 6px 1px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      position: relative;
+      cursor: pointer;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .calendar-cell:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+
+    .calendar-cell:hover {
+      background: var(--bg-hover);
+    }
+
+    .calendar-date-number {
+      font-size: 15px;
+      font-weight: var(--fw-bold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+
+    .calendar-date-number.today {
+      background: var(--header-navy);
+      color: white;
+      font-weight: var(--fw-black);
+    }
+
+    .calendar-work-info {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      padding: 2px 0;
+    }
+
+    .calendar-work-man {
+      font-size: 11px;
+      font-weight: var(--fw-bold);
+      color: var(--text-sub);
+      line-height: 1;
+      margin-bottom: 1px;
+    }
+
+    .calendar-work-amount {
+      font-size: 12px;
+      font-weight: var(--fw-black);
+      color: var(--primary);
+      line-height: 1;
+    }
+
+    .calendar-work-site {
+      font-size: 10px;
+      font-weight: var(--fw-bold);
+      color: var(--text-sub);
+      line-height: 1;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      display: block;
+      text-align: center;
+    }
+  
+
+    /* ============================================================
+       [Admin Console Tab] - @worklog/@site 디자인 토큰에 맞춘 스코프 적용
+       (기존 @money.html 스타일 100% 유지, 관리자 탭만 독립 스타일)
+       ============================================================ */
+    .admin-page {
+      --st-draft-bg: #eff6ff; --st-draft-text: #3b82f6; --st-draft-border: #bfdbfe;
+      --st-pending-bg: #eef2ff; --st-pending-text: #6366f1; --st-pending-border: #c7d2fe;
+      --st-reject-bg: #fef2f2; --st-reject-text: #dc2626; --st-reject-border: #fecaca;
+      --st-approved-bg: #f8fafc; --st-approved-text: #475569; --st-approved-border: #cbd5e1;
+
+      --btn-call-bg: #ecfdf5; --btn-call-text: #059669;
+      --btn-msg-bg: #eff6ff; --btn-msg-text: #2563eb;
+      --btn-rev-bg: #f1f5f9; --btn-rev-text: #1e293b;
+    }
+
+    .admin-page .admin-search-section {
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .admin-page .admin-search-container {
+      position: relative; flex: 1; display: flex; align-items: center;
+    }
+
+    .admin-page .admin-search-actions {
+      position: absolute; right: 14px; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* Admin - @worklog/@site 동일 입력/셀렉트 스펙 */
+    .admin-page .site-search-optimized{
+      padding: 0 75px 0 12px;
+      font-size: 17px;
+      font-weight: 500;
+      box-shadow: var(--shadow-soft);
+    }
+    .admin-page .custom-select{
+      appearance: none;
+      width: 95px;
+      height: 54px;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0 12px;
+      font-size: 15px;
+      font-weight: 600;
+      box-shadow: var(--shadow-soft);
+      outline: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2716%27 height=%2716%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23475569%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27%3E%3Cpath d=%27m6 9 6 6 6-6%27%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+    }
+
+    .admin-page .admin-btn-search-clear {
+      background: #e2e8f0; border: none; border-radius: 50%;
+      width: 20px; height: 20px; display: none;
+      align-items: center; justify-content: center;
+      color: #64748b; cursor: pointer;
+    }
+    .admin-page .admin-btn-search-clear.show { display: flex; }
+    .admin-page .admin-search-glass-icon { color: var(--text-placeholder); pointer-events: none; }
+
+    .admin-page .admin-summary-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin-bottom: 20px;
+    }
+
+    .admin-page .admin-sum-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-card);
+      padding: 14px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .admin-page .admin-sum-card:active {
+      transform: scale(0.98);
+      opacity: 0.8;
+    }
+    
+    .admin-page .admin-sum-card.all { background: var(--st-draft-bg); border-color: var(--st-draft-border); color: var(--st-draft-text); }
+    .admin-page .admin-sum-card.pending { background: var(--st-pending-bg); border-color: var(--st-pending-border); color: var(--st-pending-text); }
+    .admin-page .admin-sum-card.approved { background: #f1f5f9; border-color: #94a3b8; color: var(--text-sub); }
+
+    .admin-page .admin-sum-card.active {
+      outline: 1px solid rgba(49,163,250,0.35);
+      transform: translateY(-1px);
+    }
+    
+    .admin-page .admin-sum-card.all { --sum-ring: rgba(2, 132, 199, 0.22); }
+    .admin-page .admin-sum-card.pending { --sum-ring: rgba(99, 102, 241, 0.22); }
+    .admin-page .admin-sum-card.approved { --sum-ring: rgba(71, 85, 105, 0.18); }
+
+    .admin-page .admin-sum-val { font-size: 22px; font-weight: 800; display: block; margin-bottom: 2px; }
+    .admin-page .admin-sum-label { font-size: 12px; font-weight: 700; display: block; }
+
+    .admin-page .admin-worker-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-card);
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-soft);
+      border: none;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .admin-page .admin-worker-card.pinned-item { 
+      border: 2px solid var(--primary); 
+      box-shadow: 0 4px 12px rgba(49, 163, 250, 0.2); 
+      position: relative; 
+    }
+    
+    .admin-page .admin-worker-card.pinned-item::before { 
+      content: ''; 
+      position: absolute; 
+      top: -2px; 
+      left: -2px; 
+      right: -2px; 
+      bottom: -2px; 
+      border-radius: 14px; 
+      background: linear-gradient(135deg, rgba(49, 163, 250, 0.1), rgba(49, 163, 250, 0.05)); 
+      z-index: -1; 
+      pointer-events: none; 
+    }
+
+    .admin-page .admin-card-header {
+      padding: 20px 20px 12px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .admin-page .admin-site-badge {
+      position: absolute; top: 0; right: 0;
+      font-size: 11px; font-weight: 700;
+      padding: 6px 14px;
+      border-radius: 0 16px 0 12px;
+      color: #fff; z-index: 10;
+    }
+    
+    /* [최종 해결] 즐겨찾기 카드 배지 밀착 및 텍스트 가시성 수정 */
+    .admin-page .admin-worker-card.pinned-item {
+        /* 1. 배지가 바깥으로 나가지 않도록 다시 가둠 */
+        overflow: hidden !important; 
+        /* 2. 테두리가 밀리지 않도록 고정 */
+        border: 2px solid var(--primary) !important;
+        position: relative;
+    }
+
+    .admin-page .admin-worker-card.pinned-item .admin-site-badge {
+        /* 3. 좌표를 0, 0으로 원복 (바깥으로 밀지 않음) */
+        top: 0 !important;
+        right: 0 !important;
+
+        /* 4. [핵심] 테두리 안쪽 곡선에 맞게 배지 곡률 조정 */
+        /* 카드 전체 곡률(16px) - 테두리 두께(2px) = 14px */
+        border-radius: 0 14px 0 12px !important;
+
+        /* 5. 텍스트 가시성 및 중앙 정렬 강제 */
+        color: #ffffff !important;
+        font-size: 11px !important;
+        font-weight: 800 !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        z-index: 50 !important; /* 테두리보다 위에 표시 */
+        
+        /* 6. 미세한 흰 선 방지 (배경색을 아주 미세하게 확장) */
+        box-shadow: 0.2px -0.2px 0 0.5px inherit;
+    }
+
+    /* 배지 상태별 배경색 명확화 (글자색 흰색 유지) */
+    .admin-page .admin-site-badge.admin-bdg-wait { background-color: var(--st-pending-text) !important; }
+    .admin-page .admin-site-badge.admin-bdg-done { background-color: var(--st-approved-text) !important; }
+    .admin-page .admin-site-badge.admin-bdg-reject { background-color: #dc2626 !important; }
+    .admin-page .admin-bdg-wait { background: var(--st-pending-text); }
+    .admin-page .admin-bdg-done { background: var(--st-approved-text); }
+    .admin-page .admin-bdg-reject { background: #dc2626; }
+
+    .admin-page .admin-name-row { display:flex; align-items:center; gap:6px; margin-bottom: 4px; flex-wrap: wrap; }
+    .admin-page .admin-worker-name { font-size: 20px; font-weight: 800; color: var(--navy-dark); line-height: 1.3; word-break: keep-all; font-family: var(--font-main); }
+        
+    /* @psite.html 참고 - 배지 스타일 */
+    .admin-page .sub-badge { font-size: 14px; padding: 0 12px; height: 34px; border-radius: 8px; border: 1px solid transparent; display: flex; align-items: center; gap: 6px; font-weight: 600; margin-right: 8px; }
+    .admin-page .sub-badge.affil { background: var(--tag-affil-bg); color: var(--tag-affil-text); border-color: var(--tag-affil-border); }
+    .admin-page .sub-badge.contractor { background: #eef2ff; color: #6366f1; border: 1px solid #c7d2fe; padding: 0 8px; margin-right: 4px; }
+    
+    /* 직급 텍스트 - 이름 옆에 최적화된 텍스트로 표기 */
+    .admin-page .admin-role-text {
+      font-size: 16px; font-weight: 600; color: #475569; margin-left: 8px; font-family: var(--font-main);
+      opacity: 1;
+    }
+    .admin-page .admin-name-row .admin-site-trunc {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      max-width: none;
+      flex: 1 1 100%;
+      min-width: 0;
+      cursor: default;
+      text-decoration: none;
+      font-size: 17px;
+      color: var(--text-sub);
+      font-weight: 700;
+      font-family: var(--font-main);
+      padding: 0;
+      margin: 2px 0 0 0;
+      letter-spacing: -0.3px;
+      display: block;
+      line-height: 1.25;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    /* [추가] 날짜와 현장명을 묶어주는 그룹 */
+    .admin-page .admin-site-info-group {
+        display: flex;
+        align-items: center;
+        gap: 4px; /* 날짜와 현장명 사이의 고정 간격 */
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    /* [수정] 날짜 접두어 스타일 - 더 진한 하늘색 적용 */
+    .admin-page .admin-date-prefix {
+        display: inline;
+        font-size: inherit;
+        color: #0369a1 !important; /* 더 진한 하늘색으로 변경 */
+        font-weight: 800;
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
+        white-space: nowrap;
+    }
+
+    /* [수정] 현장명 텍스트 스타일 - @psite.html과 동일하게 적용 */
+    .admin-page .admin-site-name-text {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--navy-dark);
+        flex: 1;
+        line-height: 1.3;
+        margin-right: 10px;
+        word-break: keep-all;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: rgb(26, 37, 79);
+    }
+
+    /* [수정] 부모 컨테이너 유지 */
+    .admin-page .admin-name-row .admin-site-trunc {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* 그룹과 핀 버튼을 양끝으로 배치 */
+        width: 100%;
+        margin-top: 4px;
+    }
+
+    
+    /* 직급별 배지 색상 (메신저/전화 버튼 컬러 톤) */
+    .admin-page .admin-role-badge[title="팀장"] {
+      background: #eef2ff; border-color: #c7d2fe; color: #6366f1; /* 메신저 버튼 컬러 */
+    }
+    .admin-page .admin-role-badge[title="관리자"] {
+      background: #eef2ff; border-color: #c7d2fe; color: #6366f1; /* 메신저 버튼 컬러 */
+    }
+    .admin-page .admin-role-badge[title="선임"] {
+      background: #e0f2fe; border-color: #bae6fd; color: #0284c7; /* 하늘색 계열 */
+    }
+    .admin-page .admin-role-badge[title="주임"] {
+      background: #f0fdf4; border-color: #bbf7d0; color: #166534; /* 전화 버튼 컬러 */
+    }
+    .admin-page .admin-role-badge[title="반장"] {
+      background: var(--st-approved-bg); border-color: var(--st-approved-border); color: var(--st-approved-text); /* 금일 승인 카드 컬러 */
+    }
+    .admin-page .admin-role-badge[title="대리"] {
+      background: var(--tag-affil-bg); border-color: var(--tag-affil-border); color: var(--tag-affil-text); /* 소속 배지 컬러 */
+    }
+    .admin-page .admin-role-badge[title="사원"] {
+      background: var(--tag-affil-bg); border-color: var(--tag-affil-border); color: var(--tag-affil-text); /* 소속 배지 컬러 */
+    }
+
+    .admin-page .admin-site-row {
+      display:flex; align-items:center; justify-content: flex-start;
+      font-size: 16px; font-weight: 700;
+      color: var(--text-sub); font-family: var(--font-main);
+      margin-bottom: 8px;
+      line-height: 1.4;
+      margin-top: 0px;
+    }
+    .admin-page .admin-site-left { display:flex; align-items:center; gap:4px; overflow:hidden; flex: 1; }
+    .admin-page .admin-site-trunc { 
+      overflow:hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap; 
+      max-width: 120px;
+      flex-shrink: 0;
+    }
+    .admin-page .admin-meta-text { color: var(--text-sub); font-weight: 600; font-size: 14px; white-space: nowrap; font-family: var(--font-main); line-height: 1.4; }
+
+    .admin-page .admin-btn-pin {
+      background: none; border: none; padding: 4px;
+      color: var(--border); transition: 0.2s; cursor: pointer;
+      display:flex; align-items:center;
+      flex-shrink: 0;
+      margin-left: 8px; /* 텍스트와 아이콘 사이 간격 */
+    }
+    
+    .admin-page .admin-btn-pin.active {
+      color: var(--primary);
+      fill: var(--primary);
+    }
+
+    .admin-page .admin-cum-box {
+      display:grid; grid-template-columns: repeat(3, 1fr);
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 12px 4px;
+      border: 1px solid #edf2f7;
+    }
+    .admin-page .admin-cum-item { text-align:center; border-right: 1px solid var(--border); }
+    .admin-page .admin-cum-item:last-child { border-right: none; }
+    .admin-page .admin-cum-val { display:block; font-size: 17px; font-weight: 800; color: #31a3fa; margin-bottom: 2px; font-family: var(--font-main); line-height: 1.3; }
+    .admin-page .admin-cum-label { display:block; font-size: 11px; color: var(--text-sub); font-weight: 700; font-family: var(--font-main); line-height: 1.3; }
+
+    .admin-page .admin-actions {
+      padding: 0 20px 16px;
+      display:flex; gap: 8px;
+    }
+
+    .admin-page .admin-btn {
+      flex: 1; height: 48px;
+      display:flex; align-items:center; justify-content:center; gap: 6px;
+      font-size: 14px; font-weight: 700;
+      border-radius: 12px; border: 1px solid transparent;
+      cursor:pointer; transition: 0.1s;
+    }
+    .admin-page .admin-btn:active { transform: scale(0.98); opacity: 0.8; }
+    .admin-page .admin-btn.call { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .admin-page .admin-btn.msg { background: #eef2ff; border-color: #c7d2fe; color: #6366f1; }
+    .admin-page .admin-btn.review { background: #f1f5f9; border-color: #94a3b8; color: #334155; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+    .admin-page #adminLoadMoreBtn {
+      margin: 0 0 16px 0;
+    }
+
+    /* Admin Modal */
+    .admin-modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2000;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+    }
+    .admin-modal-overlay.active { display:flex; }
+
+    .admin-modal-content {
+      width: 100%;
+      max-width: 600px;
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      padding: 24px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.3s ease;
+    }
+    .admin-modal-overlay.active .admin-modal-content { transform: translateY(0); }
+
+    .admin-modal-header { display:flex; align-items:center; justify-content: space-between; margin-bottom: 18px; }
+    .admin-modal-title { font-size: 20px; font-weight: 700; color: var(--text-main); margin: 0; font-family: var(--font-main); line-height: 1.4; }
+    .admin-modal-close { background:none; border:none; color: var(--text-sub); cursor:pointer; padding: 4px; font-family: var(--font-main); }
+
+    .admin-review-doc-card {
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+    .admin-doc-sec-title {
+      font-size: 14px; font-weight: 800;
+      color: var(--header-navy);
+      margin-bottom: 10px;
+      display:flex; align-items:center; gap: 6px;
+    }
+    .admin-doc-data-val { font-size: 16px; font-weight: 800; color: #1e293b; line-height: 1.5; }
+    .admin-doc-data-sm { font-size: 13px; }
+
+    .admin-two-col { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .admin-kpi-box { background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #f1f5f9; }
+    .admin-kpi-label { display:block; font-size: 13px; font-weight: 800; color: #475569; margin-bottom: 6px; }
+    .admin-kpi-value { font-size: 19px; font-weight: 900; color: var(--header-navy); line-height: 1.2; }
+
+    .admin-btn-link {
+      width: 100%; height: 56px;
+      border-radius: 12px;
+      font-size: 16px; font-weight: 900;
+      border: 1px solid #e0f2fe;
+      background: #f0f9ff;
+      color: #0284c7;
+      display:flex; align-items:center; justify-content:center; gap: 8px;
+      cursor:pointer;
+      margin-bottom: 12px;
+    }
+
+    .admin-btn-primary {
+      width: 100%; height: 56px;
+      border-radius: 12px;
+      font-size: 16px; font-weight: 900;
+      border: none;
+      background: var(--header-navy);
+      color: #fff;
+      cursor:pointer;
+      box-shadow: 0 8px 22px rgba(26,37,79,0.18);
+    }
+
+    .admin-backrow { display:flex; align-items:center; gap: 6px; color: var(--text-sub); font-weight: 700; margin-bottom: 16px; cursor: pointer; font-family: var(--font-main); }
+
+    .admin-textarea {
+      width: 100%;
+      height: 96px;
+      padding: 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      outline: none;
+      margin-bottom: 14px;
+      resize: none;
+    }
+    .admin-textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(49,163,250,0.12); }
+
+    .admin-modal-actions { display:flex; gap: 12px; }
+    .admin-btn-reject {
+      flex: 1; height: 56px;
+      border-radius: 12px;
+      font-size: 16px; font-weight: 900;
+      border: 1.5px solid var(--st-reject-border);
+      background: var(--st-reject-bg);
+      color: var(--st-reject-text);
+      cursor:pointer;
+    }
+    .admin-btn-approve {
+      flex: 1; height: 56px;
+      border-radius: 12px;
+      font-size: 16px; font-weight: 900;
+      border: none;
+      background: var(--header-navy);
+      color: #fff;
+      cursor:pointer;
+    }
+
+  
+    /* =========================================================
+       PATCH (2026-01-08): 출력현황 탭 타이포/컬러를 관리탭 기준으로 정렬
+       - 폰트(종류/굵기/크기), 컬러 통일
+       - 모바일 가독성 개선
+       - 요약카드(출력현황) 버튼 이벤트 효과: 카드박스 톤과 동일
+    ========================================================= */
+
+    /* [1] 출력현황: 검색/필터 입력 UI를 관리탭 스펙으로 맞춤 */
+    #outputContent .site-search-optimized{
+      font-family: var(--font-main);
+      font-size: clamp(16px, 3.8vw, 17px);
+      font-weight: 500;
+      color: var(--text-main);
+      box-shadow: var(--shadow-soft);
+      padding: 0 75px 0 16px !important; /* (X/드롭다운 아이콘 영역 확보) */
+    }
+
+    #outputContent .filter-btn-optimized{
+      font-family: var(--font-main);
+      font-size: clamp(15px, 3.6vw, 17px);
+      font-weight: 600;
+      color: var(--text-main);
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+    }
+    #outputContent .filter-btn-optimized .lucide,
+    #outputContent .filter-btn-optimized svg{
+      color: var(--text-sub) !important;
+    }
+
+    /* [2] 출력현황: 요약카드 버튼 이벤트 효과(카드색/테두리 톤과 동일) */
+    #outputContent .summary-grid .sum-card{
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease, outline-color 0.12s ease;
+      position: relative;
+    }
+    #outputContent .summary-grid .sum-card.sky{ --sum-ring: rgba(2, 132, 199, 0.22); }
+    #outputContent .summary-grid .sum-card.navy{ --sum-ring: rgba(30, 58, 138, 0.22); }
+    #outputContent .summary-grid .sum-card.periwinkle{ --sum-ring: rgba(71, 85, 105, 0.18); }
+
+    #outputContent .summary-grid .sum-card:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 0 0 3px var(--sum-ring), 0 6px 24px rgba(0,0,0,0.06);
+    }
+    #outputContent .summary-grid .sum-card:active{
+      transform: scale(0.985);
+      filter: brightness(0.98);
+    }
+    #outputContent .summary-grid .sum-card:focus-visible{
+      outline: 2px solid var(--sum-ring);
+      outline-offset: 2px;
+    }
+
+</style>
+</head>
+
+<body>
+  <div id="money-root">
+
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <div class="tab-nav-inner">
+        <button id="outputTab" class="tab-button active" onclick="switchTab('output')">
+          출력현황
+        </button>
+        <button id="salaryTab" class="tab-button" onclick="switchTab('salary')">
+          급여현황
+        </button>
+        <button id="adminTab" class="tab-button" onclick="switchTab('admin')">
+          관리자
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container min-h-screen pb-safe" style="background-color: var(--bg-body); color: var(--text-main); max-width: var(--container-max-width); margin: 0 auto; padding: 68px var(--container-padding) 0 var(--container-padding);">
+      
+      <!-- Tab: Output -->
+      <div id="outputContent" class="animate-fadeIn" style="display: block;">
+        <!-- Filters: 현장 검색 + 년월 선택 (한 줄 배치) -->
+        <div class="flex items-center gap-3 section-spacing">
+          <!-- 현장 검색창 (flex-1으로 대부분 차지) -->
+          <div class="relative flex-1 min-w-[200px]">
+            <input 
+              type="text"
+              id="siteSearchInput"
+              placeholder="현장 선택 또는 검색"
+              class="site-search-optimized w-full h-[54px] bg-bg-input dark:bg-slate-900 border border-border dark:border-slate-600 rounded-xl px-4 text-[17px] font-medium outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              style="background: var(--bg-input); border: 1px solid var(--border)"
+              oninput="handleSiteSearch(this.value)"
+              onfocus="toggleSiteDropdown()"
+            />
+            <!-- X 버튼은 updateClearButton 함수에서 동적으로 생성됨 -->
+            <button onclick="toggleSiteDropdown()" class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <i data-lucide="chevron-down" style="width: 20px; height: 20px"></i>
+            </button>
+
+            <ul id="siteDropdown" class="site-dropdown-optimized absolute z-50 w-full mt-1.5 max-h-60 overflow-auto bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl shadow-xl hidden" style="background: var(--bg-surface); border: 1px solid var(--border)">
+              <!-- Site options will be rendered here -->
+            </ul>
+          </div>
+          
+          <!-- 년-월 선택 (우측 끝) -->
+          <div class="relative" id="monthPickerContainer">
+            <button 
+                type="button"
+                class="filter-btn-optimized"
+                id="monthFilterButton"
+                onclick="toggleMonthPicker()"
+            >
+              <span id="monthFilterDisplay">2025년 12월</span>
+              <i data-lucide="calendar" style="width: 18px; height: 18px; color: #6b7280;" class="lucide lucide-calendar"></i>
+            </button>
+            
+            <div id="monthPickerPopup" class="month-picker-compact">
+              <div class="flex justify-between items-center mb-4 px-1">
+                <button onclick="changePickerYear(-1)" class="p-1 hover:bg-gray-100 rounded"><i data-lucide="chevron-left" size="18"></i></button>
+                <span id="pickerYearDisplay" class="font-bold text-lg">2025년</span>
+                <button onclick="changePickerYear(1)" class="p-1 hover:bg-gray-100 rounded"><i data-lucide="chevron-right" size="18"></i></button>
+              </div>
+              <div class="month-grid" id="monthGridBody">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar -->
+        <div class="rounded-2xl overflow-hidden card-spacing bg-[var(--bg-surface)]" style="box-shadow: var(--shadow-soft)">
+          <div class="flex justify-between items-center card-padding border-b border-[var(--border)]">
+            <button onclick="changeMonth(-1)" class="bg-transparent border-none cursor-pointer text-text-sub p-2 hover:bg-[var(--bg-hover)] rounded-full">
+              <i data-lucide="chevron-left" style="width: 28px; height: 28px; color: var(--text-sub);"></i>
+            </button>
+            <span id="currentMonthDisplay" class="text-[22px] font-extrabold text-text-main"></span>
+            <button onclick="changeMonth(1)" class="bg-transparent border-none cursor-pointer text-text-sub p-2 hover:bg-[var(--bg-hover)] rounded-full">
+              <i data-lucide="chevron-right" style="width: 28px; height: 28px; color: var(--text-sub);"></i>
+            </button>
+          </div>
+          
+          <div class="grid grid-cols-7 text-center" id="calendarGrid">
+            <!-- Calendar will be rendered here -->
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-grid" style="margin-bottom: 24px;">
+          <div class="sum-card sky"><span class="sum-val" id="totalSites">0</span><span class="sum-label">현장수</span></div>
+          <div class="sum-card navy"><span class="sum-val" id="totalMan">0.0</span><span class="sum-label">공수</span></div>
+          <div class="sum-card periwinkle"><span class="sum-val" id="workedDays">0</span><span class="sum-label">근무일</span></div>
+        </div>
+      </div>
+
+      <!-- Tab: Salary -->
+      <div id="salaryContent" class="animate-fadeIn" style="display: none;">
+        <!-- Header -->
+        <div class="flex justify-between items-center section-spacing">
+          <div class="flex items-center gap-2">
+            <i data-lucide="clock" style="width: 22px; height: 22px; color: var(--header-navy)"></i>
+            <span class="text-xl font-bold text-header-navy font-main">이번 달 지급 대기</span>
+          </div>
+          <button 
+            onclick="togglePrivacy()" 
+            class="bg-transparent border-none flex items-center gap-1 cursor-pointer text-text-sub text-[15px] font-semibold p-0"
+          >
+            <span>금액 보기/숨기기</span>
+            <i id="privacyIcon" data-lucide="eye-off" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+
+        <!-- Current Salary Card -->
+        <div class="bg-[var(--bg-surface)] shadow-sm rounded-2xl card-padding card-spacing">
+          <div class="flex justify-between items-center item-spacing">
+            <span id="currentSalaryMonth" class="text-lg font-extrabold text-text-main"></span>
+            <span class="text-[13px] font-semibold px-2.5 py-1 rounded-full border bg-sky-50 text-sky-600 border-sky-300">지급대기</span>
+          </div>
+          
+          <div class="flex justify-between items-center item-spacing pb-3.5 border-b border-dashed border-[var(--border)] gap-2 flex-nowrap">
+            <span class="font-bold text-text-main shrink-0">실수령 예정액</span>
+            <div class="flex items-baseline justify-end gap-0.5 whitespace-nowrap shrink flex-nowrap">
+               <span id="currentNetPay" class="text-[24px] text-sky-500 font-extrabold tracking-tighter whitespace-nowrap">
+                  ****
+               </span>
+               <span class="text-base font-semibold text-sky-500">원</span>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center item-spacing text-[15px] text-text-sub flex-nowrap gap-2">
+            <span class="font-bold text-text-main shrink-0">공수</span>
+            <span id="currentMan" class="font-semibold text-text-main text-[16px]">0.0</span>
+          </div>
+          <div class="flex justify-between items-center item-spacing text-[15px] text-text-sub flex-nowrap gap-2">
+            <span class="font-bold text-text-main shrink-0">평균단가</span>
+            <span id="currentAvgPrice" class="font-semibold text-text-main text-[16px]">****</span>
+          </div>
+
+          <button 
+            class="w-full mt-4 p-3 rounded-[10px] btn-primary text-white font-bold text-base cursor-pointer flex items-center justify-center gap-2"
+            onclick="handlePaymentRequest()"
+          >
+            <i data-lucide="share" style="width: 18px; height: 18px;"></i>
+            지급 요청하기 (공유)
+          </button>
+        </div>
+
+        <!-- History Section -->
+        <div class="flex justify-between items-center section-spacing mt-[30px]">
+          <div class="flex items-center gap-2">
+            <i data-lucide="file-text" style="width: 22px; height: 22px; color: var(--header-navy)"></i>
+            <span class="text-xl font-bold text-header-navy font-main">지난 급여 내역</span>
+          </div>
+        </div>
+
+        <div class="flex grid-gap section-spacing">
+          <div class="relative flex-1" id="salDateFilterContainer">
+            <button type="button" class="filter-btn-optimized w-full" id="salDateFilterButton" onclick="toggleSalDatePicker()">
+              <span id="salDateFilterDisplay">2025년 전체</span>
+              <i data-lucide="calendar" style="width: 18px; height: 18px; color: #6b7280;" class="lucide lucide-calendar"></i>
+            </button>
+            
+            <div id="salDatePickerPopup" class="month-picker-compact">
+              <div class="flex justify-between items-center mb-4 px-1">
+                <button type="button" onclick="changeSalPickerYear(-1)" class="p-1 hover:bg-gray-100 rounded">
+                  <i data-lucide="chevron-left" size="18"></i>
+                </button>
+                <span id="salPickerYearDisplay" class="font-bold text-lg">2026년</span>
+                <button type="button" onclick="changeSalPickerYear(1)" class="p-1 hover:bg-gray-100 rounded">
+                  <i data-lucide="chevron-right" size="18"></i>
+                </button>
+              </div>
+              <div class="month-grid" id="salMonthGridBody">
+              </div>
+              <div class="mt-3 pt-3 border-t border-[var(--border)]">
+                <div class="month-item" style="width:100%;" onclick="selectSalDate('all')">해당 연도 전체</div>
+              </div>
+            </div>
+          </div>
+          <div class="relative flex-1">
+            <select 
+              id="salSortFilter"
+              class="w-full h-[54px] bg-[var(--bg-surface)] border border-[var(--border)] rounded-xl px-3.5 text-[17px] font-semibold text-[var(--text-main)] shadow-soft focus:outline-none focus:border-primary focus:shadow-[0_0_0_3px_rgba(49,163,250,0.15)] custom-select"
+              onchange="handleSalSortFilter(this.value)"
+            >
+              <option value="latest">최신순</option>
+              <option value="amount">금액순</option>
+            </select>
+            <i data-lucide="chevron-down" class="absolute right-4 top-1/2 -translate-y-1/2 text-text-sub pointer-events-none" style="width: 20px; height: 20px;"></i>
+          </div>
+        </div>
+
+        <!-- History List -->
+        <div id="historyList" class="flex flex-col grid-gap">
+          <!-- History items will be rendered here -->
+        </div>
+
+        <button 
+          onclick="toggleHistoryExpanded()"
+          class="btn-load-more"
+          id="loadMoreBtn"
+          style="display: flex; margin-bottom: 20px;"
+        >
+          <span id="historyToggleText">더 보기</span>
+          <i id="historyToggleIcon" data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+    
+
+<!-- Tab: Admin -->
+      <div id="adminContent" class="animate-fadeIn admin-page" style="display: none;">
+        <!-- 검색 + 정렬 -->
+        <div class="admin-search-section">
+          <div class="admin-search-container">
+            <input type="text" id="adminMasterSearch" class="site-search-optimized" placeholder="작업자명 또는 현장명 검색" oninput="adminHandleSearchInput(this)">
+            <div class="admin-search-actions">
+              <button id="adminSearchClearBtn" class="admin-btn-search-clear" type="button" onclick="adminClearSearch()">
+                <i data-lucide="x" style="width:12px;height:12px;"></i>
+              </button>
+              <i data-lucide="search" class="admin-search-glass-icon" style="width:20px;height:20px;"></i>
+            </div>
+          </div>
+
+          <select id="adminSortFilter" class="custom-select" onchange="adminRenderList()">
+            <option value="latest">최신순</option>
+            <option value="name">이름순</option>
+          </select>
+        </div>
+
+        <!-- 요약 -->
+        <div class="admin-summary-grid">
+          <div class="admin-sum-card all active" onclick="adminSetStatusFilter('all', this)" id="admin-sum-all">
+            <span class="admin-sum-val" id="admin-stat-all">0</span>
+            <span class="admin-sum-label">전체 현장</span>
+          </div>
+          <div class="admin-sum-card pending" onclick="adminSetStatusFilter('pending', this)" id="admin-sum-pending">
+            <span class="admin-sum-val" id="admin-stat-pending">0</span>
+            <span class="admin-sum-label">승인 대기</span>
+          </div>
+          <div class="admin-sum-card approved" onclick="adminSetStatusFilter('approved', this)" id="admin-sum-approved">
+            <span class="admin-sum-val" id="admin-stat-approved">0</span>
+            <span class="admin-sum-label">금일 승인</span>
+          </div>
+        </div>
+
+        <!-- 리스트 -->
+        <div id="adminWorkerList"></div>
+
+        <button id="adminLoadMoreBtn" class="btn-load-more hidden" type="button" onclick="adminToggleExpand()">
+          <span id="adminLoadMoreText">더 보기</span>
+          <i data-lucide="chevron-down" id="adminLoadMoreIcon" style="width:16px;height:16px;"></i>
+        </button>
+
+        <!-- 검토 모달 -->
+        <div id="adminReviewModal" class="admin-modal-overlay" onclick="adminBackdropClose(event)">
+          <div class="admin-modal-content">
+            <div class="admin-modal-header">
+              <h3 class="admin-modal-title">현장기록보고서 검토</h3>
+              <button class="admin-modal-close" type="button" onclick="adminCloseModal()"><i data-lucide="x"></i></button>
+            </div>
+
+            <div id="adminStage1">
+              <div class="admin-review-doc-card">
+                <div class="admin-doc-sec-title"><i data-lucide="file-text" style="width:16px;height:16px;"></i> 금일 주요 작업 내용</div>
+                <div class="admin-doc-data-val" id="admin-md-task-basic">-</div>
+              </div>
+
+              <div class="admin-two-col">
+                <div class="admin-kpi-box">
+                  <span class="admin-kpi-label">보고 공수</span>
+                  <div class="admin-kpi-value" id="admin-md-man-basic">-</div>
+                </div>
+                <div class="admin-kpi-box">
+                  <span class="admin-kpi-label">제출 시간</span>
+                  <div class="admin-kpi-value" id="admin-md-time-basic">-</div>
+                </div>
+              </div>
+
+              <button class="admin-btn-link" type="button" onclick="adminShowStage(2)">
+                상세 현장기록 보러가기 <i data-lucide="chevron-right" style="width:20px;height:20px;"></i>
+              </button>
+
+              <button class="admin-btn-primary" type="button" onclick="adminProcessAction('approved')">
+                즉시 승인확정
+              </button>
+            </div>
+
+            <div id="adminStage2" class="hidden">
+              <div class="admin-backrow" onclick="adminShowStage(1)">
+                <i data-lucide="chevron-left" style="width:20px;height:20px;"></i> 뒤로가기
+              </div>
+
+              <div class="admin-review-doc-card">
+                <div class="admin-doc-sec-title"><i data-lucide="map" style="width:16px;height:16px;"></i> 작업 위치 및 공정</div>
+                <div class="admin-doc-data-val" id="admin-md-worksets-detail">-</div>
+              </div>
+
+              <div class="admin-review-doc-card">
+                <div class="admin-doc-sec-title"><i data-lucide="package" style="width:16px;height:16px;"></i> 사용 자재 현황</div>
+                <div class="admin-doc-data-val admin-doc-data-sm" id="admin-md-material-detail">NPC-1000 (2말) ㅣ NPC-3000Q (1말)</div>
+              </div>
+
+              <textarea id="admin-md-comment" class="admin-textarea" placeholder="반려 사유 혹은 작업 지시사항을 입력하세요."></textarea>
+
+              <div class="admin-modal-actions">
+                <button type="button" class="admin-btn-reject" onclick="adminProcessAction('reject')">반려 처리</button>
+                <button type="button" class="admin-btn-approve" onclick="adminProcessAction('approved')">승인 확정</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+    <!-- Detail Modal -->
+    <div class="detail-modal-overlay" id="editModal">
+      <div class="detail-modal-content">
+        <div class="detail-modal-header">
+          <span class="detail-modal-title" id="editModalTitle">작업 상세 정보</span>
+          <button onclick="closeEditModal()" style="background:none; border:none; color:var(--text-sub); padding:4px;">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="detail-info-list" id="editEntriesContainer">
+          <!-- Detail entries will be rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- PayStub Overlay -->
+    <div id="paystubOverlay" class="paystub-overlay">
+      <div class="paystub-header">
+        <button class="bg-none border-none text-text-main dark:text-white cursor-pointer" onclick="closePayStub()">
+          <i data-lucide="x"></i>
+        </button>
+        <span class="text-lg font-bold text-text-main dark:text-white">급여명세서 조회</span>
+        <div class="w-6"></div>
+      </div>
+      
+      <div class="paystub-content">
+        <div id="paystubCard" class="paystub-card">
+          <!-- PayStub content will be rendered here -->
+        </div>
+
+        <button 
+          onclick="downloadPayStubPDF()"
+          class="mt-4 w-full max-w-[500px] mx-auto btn-primary text-white text-base font-bold rounded-xl h-14 border-none flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-95 shadow-[0_4px_12px_rgba(26,37,79,0.2)]"
+        >
+          <i data-lucide="download" style="width: 20px; height: 20px;"></i>
+          PDF 다운로드
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  
+
+</div>
+
+    
+      <script>
+    /* =========================================================
+      급여 관리 시스템 - MoneyPage.tsx 완전 복제
+    ========================================================= */
+
+    // 지역별 현장 데이터 (REGION_SITES) - @mainpage.html 기준
+    const REGION_SITES = {
+      '전체': [],
+      '수도권': [
+        { value: 'site1', text: '자이 아파트 101동', dept: 'HQ' },
+        { value: 'site2', text: '삼성 반도체 P3', dept: 'HQ' },
+        { value: 'site3', text: '힐스테이트 센트럴', dept: 'HQ' },
+        { value: 'site13', text: '서울 롯데타워 보수', dept: 'HQ' },
+        { value: 'site14', text: '인천 공항 제2터미널', dept: 'HQ' },
+        { value: 'site15', text: '광명 무역센터', dept: 'HQ' }
+      ],
+      '충청권': [
+        { value: 'site4', text: '대전 테크노밸리', dept: 'HQ' },
+        { value: 'site5', text: '청주 산업단지', dept: 'HQ' },
+        { value: 'site16', text: '천안 아산 배방지구', dept: 'HQ' },
+        { value: 'site17', text: '세종 정부청사 별관', dept: 'HQ' }
+      ],
+      '전라권': [
+        { value: 'site6', text: '광주 첨단단지', dept: 'HQ' },
+        { value: 'site7', text: '전주 혁신도시', dept: 'HQ' },
+        { value: 'site18', text: '여수 국가산업단지', dept: 'HQ' }
+      ],
+      '경상권': [
+        { value: 'site8', text: '부산 해운대 엘시티', dept: 'HQ' },
+        { value: 'site9', text: '울산 현대자동차 공장', dept: 'HQ' },
+        { value: 'site10', text: '대구 수성구 범어동', dept: 'HQ' },
+        { value: 'site19', text: '포항 제철소 2고로', dept: 'HQ' },
+        { value: 'site20', text: '창원 국가산단', dept: 'HQ' }
+      ],
+      '강원권': [
+        { value: 'site11', text: '강릉 관광단지', dept: 'HQ' },
+        { value: 'site12', text: '원주 혁신도시', dept: 'HQ' },
+        { value: 'site21', text: '춘천 레고랜드', dept: 'HQ' }
+      ]
+    };
+
+    // 급여 데이터 (SALARY_HISTORY)
+    const SALARY_HISTORY = [
+      { 
+        rawDate: '2026-01', 
+        month: '2026년 1월', 
+        baseTotal: 6000000, 
+        man: 26.0, 
+        price: 230769,
+        year: 2026,
+        netPay: 4950000,
+        grossPay: 6000000,
+        deductions: 1050000
+      },
+      { 
+        rawDate: '2026-02', 
+        month: '2026년 2월', 
+        baseTotal: 5800000, 
+        man: 24.5, 
+        price: 236735,
+        year: 2026,
+        netPay: 4787000,
+        grossPay: 5800000,
+        deductions: 1013000
+      },
+      { 
+        rawDate: '2025-12', 
+        month: '2025년 12월', 
+        baseTotal: 5500000, 
+        man: 25.0, 
+        price: 220000,
+        year: 2025,
+        netPay: 4537500,
+        grossPay: 5500000,
+        deductions: 962500
+      },
+      { 
+        rawDate: '2025-11', 
+        month: '2025년 11월', 
+        baseTotal: 4700000, 
+        man: 22.0, 
+        price: 213636,
+        year: 2025,
+        netPay: 3871000,
+        grossPay: 4700000,
+        deductions: 829000
+      },
+      { 
+        rawDate: '2025-10', 
+        month: '2025년 10월', 
+        baseTotal: 2300000, 
+        man: 10.0, 
+        price: 230000,
+        year: 2025,
+        netPay: 1894100,
+        grossPay: 2300000,
+        deductions: 405900
+      }
+    ];
+
+    // 작업 데이터 (기본 작업자 공수만 반영)
+    const INITIAL_WORK_DATA = {
+      '2025-12-02': [
+        { site: '자이 아파트 101동', man: 1.5, price: 337500, worker: '이현수' },
+        { site: '삼성 반도체 P3', man: 2, price: 450000, worker: '이현수' }
+      ],
+      '2025-12-01': [
+        { site: '힐스테이트 센트럴', man: 1, price: 225000, worker: '이현수' }
+      ],
+      '2025-12-03': [
+        { site: '서울 롯데타워 보수', man: 2.5, price: 562500, worker: '이현수' }
+      ],
+      '2025-12-05': [
+        { site: '인천 공항 제2터미널', man: 1.5, price: 337500, worker: '이현수' },
+        { site: '광명 무역센터', man: 1, price: 225000, worker: '이현수' }
+      ]
+    };
+
+    // @main.html에서 기본 작업자 정보 가져오기
+    function getBaseWorkerInfo() {
+      // localStorage에서 @main.html의 manpowerList 가져오기
+      const mainPageData = localStorage.getItem('mainPageState');
+      if (mainPageData) {
+        const state = JSON.parse(mainPageData);
+        // locked: true인 기본 작업자만 필터링
+        const baseWorkers = state.manpowerList.filter(m => m.locked && m.worker && m.workHours > 0);
+        return baseWorkers;
+      }
+      // 기본값: 이현수 1.0공수
+      return [{ worker: '이현수', workHours: 1.0, locked: true }];
+    }
+
+    // @worklog.html에서 작업일지 데이터 가져오기
+    function getWorklogData() {
+      const worklogData = localStorage.getItem('worklogReports');
+      if (worklogData) {
+        const reports = JSON.parse(worklogData);
+        // 승인된 작업일지만 필터링하여 @money2.html에 반영
+        return reports.filter(report => report.status === 'approved');
+      }
+      return [];
+    }
+
+    // 모든 현장 가져오기 함수 - @mainpage.html 기준
+    function getAllSites() {
+      return Object.values(REGION_SITES).flat().reverse();
+    }
+
+    // 전역 상태
+    let state = {
+      activeTab: 'output',
+      currentYear: 2025,
+      currentMonth: 12,
+      filterSite: '', // 초기값 빈 문자열 - 전체 달력 데이터 표기
+      workData: { ...INITIAL_WORK_DATA },
+      showSiteOptions: false,
+      isEditModalOpen: false,
+      editingDate: null,
+      editEntries: [],
+      editSiteDropdownIndex: null,
+      isPrivacyOn: true,
+      salHistoryExpanded: false,
+      salDateFilter: 'all-2025',
+      salSortFilter: 'latest',
+      selectedPayStub: null,
+      isPayStubOpen: false
+    };
+
+    // 유틸리티 함수
+    function $(id) { return document.getElementById(id); }
+    
+    function refreshIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === "function") {
+        window.lucide.createIcons();
+      }
+    }
+
+    // 고유 현장명 목록
+    function getUniqueSites() {
+      const sites = new Set();
+      Object.keys(state.workData).forEach(key => {
+        state.workData[key].forEach(entry => sites.add(entry.site));
+      });
+      return Array.from(sites).sort();
+    }
+
+    
+    // 탭 전환
+    function switchTab(tab) {
+      state.activeTab = tab;
+
+      // 탭 버튼 스타일 업데이트
+      const outputTab = $('outputTab');
+      const salaryTab = $('salaryTab');
+      const adminTab = $('adminTab');
+
+      const outputContent = $('outputContent');
+      const salaryContent = $('salaryContent');
+      const adminContent = $('adminContent');
+
+      // 안전 초기화
+      if (outputTab) outputTab.classList.remove('active');
+      if (salaryTab) salaryTab.classList.remove('active');
+      if (adminTab) adminTab.classList.remove('active');
+
+      if (outputContent) outputContent.style.display = 'none';
+      if (salaryContent) salaryContent.style.display = 'none';
+      if (adminContent) adminContent.style.display = 'none';
+
+      if (tab === 'output') {
+        if (outputTab) outputTab.classList.add('active');
+        if (outputContent) outputContent.style.display = 'block';
+      } else if (tab === 'salary') {
+        if (salaryTab) salaryTab.classList.add('active');
+        if (salaryContent) salaryContent.style.display = 'block';
+      } else if (tab === 'admin') {
+        if (adminTab) adminTab.classList.add('active');
+        if (adminContent) adminContent.style.display = 'block';
+
+        // 관리자 리스트 렌더(탭 진입 시 최신 갱신)
+        if (typeof adminRenderList === 'function') adminRenderList();
+      }
+
+      // 아이콘 갱신
+      refreshIcons();
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+
+    // 현장 검색 처리 - @mainpage.html 100% 동일
+    function handleSiteSearch(e) {
+      state.filterSite = e.target.value;
+      if (!e.target.value) {
+        state.filterSite = '';
+      }
+      state.showSiteOptions = true;
+      updateSiteDropdown();
+      
+      // 검색창 포커스 효과
+      e.target.style.borderColor = 'var(--primary)';
+      e.target.style.boxShadow = '0 0 0 2px rgba(49, 163, 250, 0.1)';
+      
+      // 지우기 버튼 표시/숨김 로직
+      updateClearButton(e.target);
+      
+      renderCalendar();
+    }
+
+    // 지우기 버튼 업데이트 함수 - @mainpage.html 기준
+    function updateClearButton(input) {
+      let clearBtn = input.parentNode.querySelector('.clear-button');
+      
+      if (input.value.length > 0) {
+        if (!clearBtn) {
+          clearBtn = document.createElement('button');
+          clearBtn.type = 'button';
+          clearBtn.className = 'clear-button';
+          clearBtn.innerHTML = '✕';
+          clearBtn.style.cssText = `
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #e2e8f0;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 12px;
+            color: #64748b;
+            transition: all 0.2s;
+            z-index: 10;
+          `;
+          
+          // 호버 효과
+          clearBtn.addEventListener('mouseenter', () => {
+            clearBtn.style.background = '#cbd5e1';
+            clearBtn.style.color = '#475569';
+          });
+          
+          clearBtn.addEventListener('mouseleave', () => {
+            clearBtn.style.background = '#e2e8f0';
+            clearBtn.style.color = '#64748b';
+          });
+          
+          // 클릭 이벤트
+          clearBtn.addEventListener('click', () => {
+            input.value = '';
+            state.filterSite = '';
+            state.showSiteOptions = true;
+            updateSiteDropdown();
+            updateClearButton(input);
+            renderCalendar();
+            updateCurrentMonthData();
+            input.focus();
+          });
+          
+          input.parentNode.style.position = 'relative';
+          input.parentNode.appendChild(clearBtn);
+        }
+      } else {
+        if (clearBtn) {
+          clearBtn.remove();
+        }
+      }
+    }
+
+    function clearSiteSearch() {
+      state.filterSite = '';
+      state.showSiteOptions = false;
+      $('siteSearchInput').value = '';
+      $('clearSearchBtn').classList.add('hidden');
+      $('searchIcon').classList.remove('hidden');
+      $('siteDropdown').classList.add('hidden');
+      renderCalendar();
+    }
+
+    function showSiteOptions() {
+      if (state.filterSite.trim().length > 0) {
+        state.showSiteOptions = true;
+        updateSiteDropdown();
+      }
+    }
+
+    function updateSiteDropdown() {
+      const dropdown = $('siteDropdown');
+      const uniqueSites = getUniqueSites();
+      const filteredSites = uniqueSites.filter(s => 
+        s.toLowerCase().includes(state.filterSite.toLowerCase())
+      );
+      
+      if (filteredSites.length === 0) {
+        dropdown.innerHTML = '<div class="p-4 text-slate-400 text-center">검색 결과가 없습니다</div>';
+      } else {
+        dropdown.innerHTML = filteredSites.map(site => `
+          <div class="site-dropdown-item" onclick="selectSite('${site}')">${site}</div>
+        `).join('');
+      }
+      
+      dropdown.classList.toggle('hidden', !state.showSiteOptions);
+    }
+
+    function selectSite(site) {
+      state.filterSite = site;
+      state.showSiteOptions = false;
+      $('siteSearchInput').value = site;
+      $('siteDropdown').classList.add('hidden');
+      renderCalendar();
+    }
+
+    // 년도 표시 업데이트 함수
+    function updateYearDisplay(value) {
+      const yearText = document.getElementById('yearText');
+      if (yearText) {
+        yearText.textContent = value ? value + '년' : '년';
+      }
+    }
+
+    // 년-월 표시 업데이트 함수
+    function updateYearMonthDisplay(value) {
+      const yearMonthText = document.getElementById('yearMonthText');
+      if (yearMonthText) {
+        yearMonthText.textContent = value ? value + '년-월' : '년-월';
+      }
+    }
+
+    // 년-월 선택 최적화 로직
+    let pickerYear = state.currentYear; 
+
+    function toggleMonthPicker() {
+      const popup = $('monthPickerPopup');
+      const btn = $('monthFilterButton');
+      if (!popup || !btn) return;
+      
+      const isShowing = popup.classList.contains('show');
+      
+      if (!isShowing) {
+        // [수정] 열 때마다 시스템의 현재 연도(state.currentYear)를 가져와 피커 연도 동기화
+        pickerYear = state.currentYear; 
+        
+        // UI 숫자 및 그리드 즉시 갱신
+        const yearDisplay = $('pickerYearDisplay');
+        if (yearDisplay) yearDisplay.textContent = `${pickerYear}년`;
+        renderMonthGrid();
+        
+        popup.classList.add('show');
+        btn.classList.add('active');
+        
+        setTimeout(() => document.addEventListener('click', closePickerOutside), 10);
+      } else {
+        closePicker();
+      }
+    }
+
+    function closePicker() {
+      $('monthPickerPopup').classList.remove('show');
+      $('monthFilterButton').classList.remove('active');
+      document.removeEventListener('click', closePickerOutside);
+    }
+
+    function closePickerOutside(e) {
+      if (!document.getElementById('monthPickerContainer').contains(e.target)) {
+        closePicker();
+      }
+    }
+
+    function changePickerYear(delta) {
+      pickerYear += delta;
+      
+      // [수정] 연도 텍스트를 즉시 변경하여 사용자 피드백 강화
+      const yearDisplay = $('pickerYearDisplay');
+      if (yearDisplay) yearDisplay.textContent = `${pickerYear}년`;
+      
+      renderMonthGrid(); // 변경된 연도에 맞춰 월 버튼 재생성
+    }
+
+    function renderMonthGrid() {
+      const grid = $('monthGridBody');
+      if (!grid) return;
+      
+      let html = '';
+      for (let m = 1; m <= 12; m++) {
+        // 현재 달력에 표시된 연도/월과 일치하는 항목에 강조 표시
+        const isActive = (pickerYear === state.currentYear && m === state.currentMonth);
+        html += `
+          <div class="month-item ${isActive ? 'active' : ''}" 
+               onclick="selectMonth(${pickerYear}, ${m})">
+            ${m}월
+          </div>
+        `;
+      }
+      grid.innerHTML = html;
+    }
+
+    function selectMonth(year, month) {
+      state.currentYear = year;
+      state.currentMonth = month;
+      
+      // UI 텍스트 업데이트 (2025년 12월 등)
+      updateMonthDisplay();
+      
+      // 달력 그리드 및 하단 요약(공수/현장수) 데이터 리프레시
+      renderCalendar();
+      updateCurrentMonthData();
+      
+      // [추가] 급여 탭의 연도 변수(salPickerYear)도 함께 동기화하여 혼선 방지
+      if (typeof salPickerYear !== 'undefined') {
+        salPickerYear = year;
+      }
+      
+      closePicker();
+      refreshIcons();
+    }
+
+    // 기존 handleYearFilter 함수는 유지하지만, 버튼 방식이 주력이 됨
+    function handleYearFilter(value) {
+      if (value && value.includes('-')) {
+        const [year, month] = value.split('-').map(Number);
+        if (year >= 2020 && year <= 2025 && month >= 1 && month <= 12) {
+          state.currentYear = year;
+          state.currentMonth = month;
+          renderCalendar();
+          updateCurrentMonthData();
+          updateMonthDisplay();
+        }
+      }
+    }
+
+    // 달력 처리
+    function changeMonth(delta) {
+      let nextMonth = state.currentMonth + delta;
+      let nextYear = state.currentYear;
+      if (nextMonth > 12) { nextMonth = 1; nextYear++; }
+      if (nextMonth < 1) { nextMonth = 12; nextYear--; }
+      state.currentMonth = nextMonth;
+      state.currentYear = nextYear;
+      
+      // [요구사항 2] 달력 이동 시 select 박스 값 동기화
+      const monthFilterVal = `${state.currentYear}-${state.currentMonth.toString().padStart(2, '0')}`;
+      const monthFilter = document.getElementById('monthFilter');
+      if (monthFilter) {
+        monthFilter.value = monthFilterVal;
+      }
+      
+      updateMonthDisplay();
+      renderCalendar();
+      updateCurrentMonthData();
+    }
+
+    function updateMonthDisplay() {
+      const displayStr = `${state.currentYear}년 ${state.currentMonth}월`;
+      $('monthFilterDisplay').textContent = displayStr;
+      $('currentMonthDisplay').textContent = displayStr;
+      $('currentSalaryMonth').textContent = displayStr;
+    }
+
+    function renderCalendar() {
+      const firstDay = new Date(state.currentYear, state.currentMonth - 1, 1).getDay();
+      const lastDate = new Date(state.currentYear, state.currentMonth, 0).getDate();
+      const cells = [];
+      
+      // 요일 헤더
+      const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
+      let html = weekDays.map((d, i) => 
+        `<div class="py-3.5 text-sm font-bold border-b border-[var(--border)] ${i === 0 ? 'text-danger' : 'text-text-sub'}">${d}</div>`
+      ).join('');
+      
+      // 빈 셀
+      for (let i = 0; i < firstDay; i++) {
+        html += '<div class="calendar-cell"></div>';
+      }
+      
+      // 날짜 셀
+      let totalSites = 0;
+      let totalMan = 0;
+      let workedDaysCount = 0;
+      
+      for (let d = 1; d <= lastDate; d++) {
+        const dateStr = `${state.currentYear}-${state.currentMonth.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+        const dayEntries = state.workData[dateStr] || [];
+        
+        // 필터링
+        const filteredEntries = dayEntries.filter(entry => {
+          return state.filterSite === '' || entry.site === state.filterSite;
+        });
+        
+        let dayTotalAmt = 0;
+        let dayTotalMan = 0;
+        let workContent = '';
+        
+        if (filteredEntries.length > 0) {
+          filteredEntries.forEach(e => {
+            dayTotalAmt += e.price;
+            dayTotalMan += e.man;
+          });
+          
+          // 현장명 요약
+          const baseName = filteredEntries[0].site.replace(/\s+/g, '');
+          const shortName = baseName.slice(0, 4);
+          const siteDisplay = filteredEntries.length > 1 ? `${shortName}외${filteredEntries.length - 1}` : shortName;
+          
+          workContent = `
+            <div class="calendar-work-info">
+              <span class="calendar-work-man">${dayTotalMan.toFixed(1)}</span>
+              <span class="calendar-work-amount">${(dayTotalAmt / 10000).toFixed(1)}만</span>
+              <span class="calendar-work-site">${siteDisplay}</span>
+            </div>
+          `;
+          
+          totalSites += filteredEntries.length;
+          totalMan += dayTotalMan;
+          workedDaysCount++;
+        }
+        
+        const isToday = new Date().toDateString() === new Date(state.currentYear, state.currentMonth - 1, d).toDateString();
+        
+        html += `
+          <div class="calendar-cell" onclick="openEditModal('${dateStr}')">
+            <span class="calendar-date-number ${isToday ? 'today' : ''}">${d}</span>
+            ${workContent}
+          </div>
+        `;
+      }
+      
+      $('calendarGrid').innerHTML = html;
+      
+      // 현재 월 표시 업데이트
+      $('currentMonthDisplay').textContent = `${state.currentYear}년 ${state.currentMonth}월`;
+      
+      // 요약 업데이트
+      $('totalSites').textContent = totalSites;
+      $('totalMan').textContent = totalMan.toFixed(1);
+      $('workedDays').textContent = workedDaysCount;
+    }
+
+    // 현재 월 데이터 계산
+    function updateCurrentMonthData() {
+      const prefix = `${state.currentYear}-${state.currentMonth.toString().padStart(2,'0')}`;
+      let mTotalMan = 0;
+      let mTotalPay = 0;
+      
+      Object.keys(state.workData).forEach(dateStr => {
+        if (dateStr.startsWith(prefix)) {
+          const entries = state.workData[dateStr];
+          entries.forEach(e => {
+            mTotalMan += e.man;
+            mTotalPay += e.price;
+          });
+        }
+      });
+      
+      const tax = Math.floor(mTotalPay * 0.033);
+      const netPay = mTotalPay - tax;
+      const avgPrice = mTotalMan > 0 ? Math.round(mTotalPay / mTotalMan) : 0;
+      
+      // UI 업데이트
+      const netPayElement = $('currentNetPay');
+      netPayElement.textContent = state.isPrivacyOn ? '****' : netPay.toLocaleString();
+      netPayElement.style.color = '#0ea5e9'; // sky-500
+      netPayElement.nextElementSibling.style.color = '#0ea5e9'; // 원 단위도 하늘색
+      $('currentMan').textContent = mTotalMan.toFixed(1);
+      $('currentAvgPrice').textContent = state.isPrivacyOn ? '****' : avgPrice.toLocaleString();
+      $('currentSalaryMonth').textContent = `${state.currentYear}년 ${state.currentMonth}월`;
+    }
+
+    // 프라이버시 토글
+    function togglePrivacy() {
+      state.isPrivacyOn = !state.isPrivacyOn;
+      const icon = $('privacyIcon');
+      icon.setAttribute('data-lucide', state.isPrivacyOn ? 'eye-off' : 'eye');
+      refreshIcons();
+      updateCurrentMonthData();
+      renderSalaryHistory();
+    }
+
+    // 급여 필터 최적화 로직
+    let salPickerYear = 2025; // 시스템 상태를 우선 추적하도록 설정
+
+    function toggleSalDatePicker() {
+      const popup = $('salDatePickerPopup');
+      const btn = $('salDateFilterButton');
+      if (!popup || !btn) return;
+      
+      const isShowing = popup.classList.contains('show');
+      
+      if (!isShowing) {
+        // [오류 해결] 'all-2025' 또는 '2025-10' 형태에서 연도만 정확히 추출 (NaN 방지)
+        if (state.salDateFilter && state.salDateFilter.includes('-')) {
+          const parts = state.salDateFilter.split('-');
+          // 'all-2025'인 경우 인덱스 1(2025)을, '2025-10'인 경우 인덱스 0(2025)을 선택
+          salPickerYear = parts[0] === 'all' ? parseInt(parts[1]) : parseInt(parts[0]);
+        } else {
+          salPickerYear = 2025; // 기본값
+        }
+
+        // 팝업 상단 연도 텍스트 강제 갱신
+        const yearDisplay = $('salPickerYearDisplay');
+        if (yearDisplay) yearDisplay.textContent = `${salPickerYear}년`;
+
+        renderSalMonthGrid();
+        popup.classList.add('show');
+        btn.classList.add('active');
+        
+        // 외부 클릭 시 닫기 이벤트 등록
+        setTimeout(() => document.addEventListener('click', closeSalPickerOutside), 10);
+      } else {
+        closeSalPicker();
+      }
+    }
+
+    function closeSalPicker() {
+      $('salDatePickerPopup').classList.remove('show');
+      $('salDateFilterButton').classList.remove('active');
+      document.removeEventListener('click', closeSalPickerOutside);
+    }
+
+    function closeSalPickerOutside(e) {
+      if (!document.getElementById('salDateFilterContainer').contains(e.target)) {
+        closeSalPicker();
+      }
+    }
+
+    function changeSalPickerYear(delta) {
+      salPickerYear += delta;
+      
+      // 헤더 텍스트 즉시 업데이트
+      const yearDisplay = $('salPickerYearDisplay');
+      if (yearDisplay) yearDisplay.textContent = `${salPickerYear}년`;
+      
+      renderSalMonthGrid(); 
+    }
+
+    function renderSalMonthGrid() {
+      const grid = $('salMonthGridBody');
+      if (!grid) return;
+
+      let html = '';
+      for (let m = 1; m <= 12; m++) {
+        const dateVal = `${salPickerYear}-${m.toString().padStart(2, '0')}`;
+        // 현재 필터 상태와 일치하는 월에 active 클래스 적용
+        const isActive = (state.salDateFilter === dateVal);
+        
+        html += `
+          <div class="month-item ${isActive ? 'active' : ''}" 
+               onclick="selectSalDate('${dateVal}')">
+            ${m}월
+          </div>
+        `;
+      }
+      grid.innerHTML = html;
+    }
+
+    function selectSalDate(value) {
+      const displayBtn = $('salDateFilterDisplay'); // 버튼 내 텍스트 영역
+      
+      if (value === 'all') {
+        // 현재 팝업에 표시된 연도를 기준으로 '연도 전체' 필터값 생성
+        state.salDateFilter = `all-${salPickerYear}`;
+        if (displayBtn) displayBtn.textContent = `${salPickerYear}년 전체`;
+      } else {
+        // 특정 월 선택 (예: 2025-12)
+        state.salDateFilter = value;
+        const [year, month] = value.split('-');
+        if (displayBtn) displayBtn.textContent = `${year}년 ${parseInt(month)}월`;
+      }
+      
+      renderSalaryHistory(); // 데이터 필터링 및 리스트 갱신 실행
+      closeSalPicker();      // 팝업 닫기
+    }
+
+    // 급여 내역 필터
+    function handleSalDateFilter(value) {
+      state.salDateFilter = value;
+      renderSalaryHistory();
+    }
+
+    function handleSalSortFilter(value) {
+      state.salSortFilter = value;
+      renderSalaryHistory();
+    }
+
+    function renderSalaryHistory() {
+      let filtered = SALARY_HISTORY.filter(item => {
+        if (state.salDateFilter === 'all') return true; // 진짜 전체 (초기값)
+        if (state.salDateFilter.startsWith('all-')) {
+          const filterYear = state.salDateFilter.split('-')[1];
+          return item.year.toString() === filterYear; // 해당 연도 데이터만
+        }
+        return item.rawDate === state.salDateFilter; // 특정 월 데이터만
+      });
+      
+      // 정렬
+      if (state.salSortFilter === 'amount') {
+        filtered = filtered.sort((a, b) => b.baseTotal - a.baseTotal);
+      } else {
+        filtered = filtered.sort((a, b) => {
+          const dateA = new Date(a.rawDate + '-01');
+          const dateB = new Date(b.rawDate + '-01');
+          return dateB.getTime() - dateA.getTime();
+        });
+      }
+      
+      const displayHistory = state.salHistoryExpanded ? filtered : filtered.slice(0, 2);
+      
+      const html = displayHistory.length === 0 ? 
+        '<div class="text-center py-8 text-text-placeholder">내역이 없습니다.</div>' :
+        displayHistory.map(item => {
+          const tax = Math.floor(item.baseTotal * 0.033);
+          const net = item.baseTotal - tax;
+          return `
+            <div class="bg-[var(--bg-surface)] shadow-sm rounded-2xl card-padding card-spacing">
+              <div class="flex justify-between items-center item-spacing">
+                <span class="text-lg font-extrabold text-text-main">${item.month}</span>
+                <span class="text-[13px] font-semibold px-2.5 py-1 rounded-full border bg-slate-100 text-slate-600 border-slate-300">지급완료</span>
+              </div>
+              <div class="flex justify-between items-center item-spacing pb-3.5 border-b border-dashed border-[var(--border)] gap-2 flex-nowrap">
+                <span class="font-bold text-text-main shrink-0">실수령액</span>
+                <div class="flex items-baseline justify-end gap-0.5 whitespace-nowrap shrink flex-nowrap">
+                  <span class="text-[20px] text-text-main font-extrabold tracking-tighter whitespace-nowrap">
+                    ${state.isPrivacyOn ? '****' : net.toLocaleString()}
+                  </span>
+                  <span class="text-base font-semibold text-text-main">원</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center item-spacing text-[15px] text-text-sub flex-nowrap gap-2">
+                <span class="font-bold text-text-main shrink-0">공수</span>
+                <span class="font-semibold text-text-main text-[16px]">${item.man.toFixed(1)}</span>
+              </div>
+              <div class="flex justify-between items-center item-spacing text-[15px] text-text-sub flex-nowrap gap-2">
+                <span class="font-bold text-text-main shrink-0">단가</span>
+                <span class="font-semibold text-text-main text-[16px]">
+                  ${state.isPrivacyOn ? '****' : Math.round(item.price).toLocaleString()}
+                </span>
+              </div>
+              <div class="flex justify-between items-center item-spacing text-[15px] text-text-sub flex-nowrap gap-2">
+                <span class="font-bold text-text-main shrink-0">공제 (3.3%)</span>
+                <span class="font-semibold text-[16px]" style="color: #ef4444;">
+                  ${state.isPrivacyOn ? '****' : `-${tax.toLocaleString()}`}
+                </span>
+              </div>
+              <button 
+                onclick="openPayStub(${JSON.stringify(item).replace(/"/g, '&quot;')})"
+                class="w-full mt-4 p-3 rounded-[10px] btn-secondary text-text-sub font-bold text-base cursor-pointer flex items-center justify-center"
+              >
+                급여명세서 조회
+              </button>
+            </div>
+          `;
+        }).join('');
+      
+      $('historyList').innerHTML = html;
+      
+      // 더보기/접기 버튼 표시 로직
+      const loadMoreBtn = document.getElementById('loadMoreBtn');
+      if (loadMoreBtn) {
+        // 내역이 없거나 2개 이하일 경우 버튼 숨김
+        if (filtered.length <= 2) {
+          loadMoreBtn.style.display = 'none';
+        } else {
+          loadMoreBtn.style.display = 'flex';
+          // 버튼 텍스트와 아이콘 상태 업데이트
+          const text = document.getElementById('historyToggleText');
+          const icon = document.getElementById('historyToggleIcon');
+          if (text && icon) {
+            if (state.salHistoryExpanded) {
+              text.textContent = '접기';
+              icon.setAttribute('data-lucide', 'chevron-up');
+            } else {
+              text.textContent = '더 보기';
+              icon.setAttribute('data-lucide', 'chevron-down');
+            }
+            refreshIcons();
+          }
+        }
+      }
+    }
+
+    function toggleHistoryExpanded() {
+      state.salHistoryExpanded = !state.salHistoryExpanded;
+      renderSalaryHistory();
+      
+      const btn = document.getElementById('loadMoreBtn');
+      const text = document.getElementById('historyToggleText');
+      const icon = document.getElementById('historyToggleIcon');
+      
+      if (state.salHistoryExpanded) {
+        text.textContent = '접기';
+        icon.setAttribute('data-lucide', 'chevron-up');
+      } else {
+        text.textContent = '더 보기';
+        icon.setAttribute('data-lucide', 'chevron-down');
+      }
+      
+      lucide.createIcons();
+    }
+
+    // Site Search Functions - @mainpage.html 기준
+    function handleSiteSearch(value) {
+      state.filterSite = value;
+      if (!value) {
+        state.filterSite = '';
+      }
+      state.showSiteOptions = true;
+      updateSiteDropdown();
+      
+      // 검색창 포커스 효과
+      const searchInput = document.getElementById('siteSearchInput');
+      if (searchInput) {
+        searchInput.style.borderColor = 'var(--primary)';
+        searchInput.style.boxShadow = '0 0 0 2px rgba(49, 163, 250, 0.1)';
+        
+        // 지우기 버튼 표시/숨김 로직
+        updateClearButton(searchInput);
+      }
+    }
+
+    function toggleSiteDropdown() {
+      const siteSearch = document.getElementById('siteSearchInput');
+      if (!state.filterSite.trim()) {
+        // 검색어가 없으면 최신순으로 현장 목록 표시
+        state.showSiteOptions = !state.showSiteOptions;
+        updateSiteDropdown();
+      }
+    }
+
+    function updateSiteDropdown() {
+      const dropdown = $('siteDropdown');
+      const allSites = getAllSites();
+      const filteredSites = state.filterSite.trim() 
+        ? allSites.filter(s => s.text.toLowerCase().includes(state.filterSite.toLowerCase()))
+        : allSites;
+
+      if (state.showSiteOptions) {
+        dropdown.classList.remove('hidden');
+        dropdown.innerHTML = filteredSites.length > 0 
+          ? filteredSites.map(s => `
+              <li 
+                onclick="selectSite(${JSON.stringify(s).replace(/"/g, '&quot;')})"
+                class="px-4 py-3.5 cursor-pointer text-[15px] font-medium border-b border-slate-50 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700 text-text-main dark:text-white"
+              >
+                <div class="flex justify-between items-center">
+                  <span>${s.text}</span>
+                  <span class="text-xs text-text-sub bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600" style="color: var(--text-sub); background: #f1f5f9; border: 1px solid var(--border)">${s.dept}</span>
+                </div>
+              </li>
+            `).join('')
+          : '<li class="px-4 py-3 text-center text-text-sub">검색 결과가 없습니다</li>';
+      } else {
+        dropdown.classList.add('hidden');
+      }
+    }
+
+    function selectSite(site) {
+      state.filterSite = site.text;
+      state.showSiteOptions = false;
+      
+      const searchInput = document.getElementById('siteSearchInput');
+      
+      if (searchInput) {
+        searchInput.value = site.text;
+        // 검색창 포커스 효과 초기화
+        searchInput.style.borderColor = '';
+        searchInput.style.boxShadow = '';
+        
+        // 지우기 버튼 업데이트
+        updateClearButton(searchInput);
+      }
+      
+      renderCalendar();
+      updateCurrentMonthData();
+    }
+
+    // 편집 모달
+    function openEditModal(dateStr) {
+      state.editingDate = dateStr;
+      const entries = state.workData[dateStr] || [];
+      if (entries.length === 0) {
+        state.editEntries = [];
+      } else {
+        state.editEntries = [...entries];
+      }
+      state.isEditModalOpen = true;
+      
+      updateEditModalTitle();
+      renderEditEntries();
+      $('editModal').classList.add('active');
+    }
+
+    function closeEditModal() {
+      state.isEditModalOpen = false;
+      state.editingDate = null;
+      state.editEntries = [];
+      state.editSiteDropdownIndex = null;
+      $('editModal').classList.remove('active');
+    }
+
+    function updateEditModalTitle() {
+      if (state.editingDate) {
+        const [year, month, day] = state.editingDate.split('-');
+        $('editModalTitle').textContent = `${year}년 ${month}월 ${day}일 작업 상세`;
+      }
+    }
+
+    function renderEditEntries() {
+      let html = '';
+      
+      if (state.editEntries.length === 0) {
+        html = `
+          <div class="detail-info-row" style="border-bottom:none;">
+            <span class="detail-info-label">작업 내역</span>
+            <span class="detail-info-value">등록된 작업이 없습니다</span>
+          </div>
+        `;
+      } else {
+        state.editEntries.forEach((entry, index) => {
+          html += `
+            <div class="detail-info-row">
+              <span class="detail-info-label">현장명</span>
+              <span class="detail-info-value">${entry.site || '-'}</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="detail-info-label">작업자</span>
+              <span class="detail-info-value">${entry.worker || '이현수'}</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="detail-info-label">공수</span>
+              <span class="detail-info-value">${entry.man}공수</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="detail-info-label">작업 금액</span>
+              <span class="detail-info-value">${entry.price >= 10000 ? (entry.price / 10000).toFixed(entry.price % 10000 === 0 ? 0 : 1) + '만원' : entry.price.toLocaleString() + '원'}</span>
+            </div>
+            <div class="detail-info-row">
+              <span class="detail-info-label">일당 단가</span>
+              <span class="detail-info-value">${entry.man > 0 ? Math.round(entry.price / entry.man).toLocaleString() + '원' : '-'}</span>
+            </div>
+          `;
+          
+          if (index < state.editEntries.length - 1) {
+            html += `<div class="detail-info-divider"></div>`;
+          }
+        });
+      }
+      
+      // 마지막 행에 border-bottom:none 추가
+      html = html.replace(/detail-info-row(?![^>]*border-bottom:none)/g, 'detail-info-row');
+      if (html.includes('detail-info-row')) {
+        const lastRowStart = html.lastIndexOf('<div class="detail-info-row"');
+        const lastRowEnd = html.indexOf('</div>', lastRowStart) + 6;
+        const lastRow = html.substring(lastRowStart, lastRowEnd);
+        const modifiedLastRow = lastRow.replace('detail-info-row"', 'detail-info-row" style="border-bottom:none;"');
+        html = html.substring(0, lastRowStart) + modifiedLastRow + html.substring(lastRowEnd);
+      }
+      
+      $('editEntriesContainer').innerHTML = html;
+      refreshIcons();
+    }
+
+    function renderEditSiteDropdown(index) {
+      const entry = state.editEntries[index];
+      const allSites = getAllSites();
+      const filteredSites = entry.site.trim()
+        ? allSites.filter(s => s.text.toLowerCase().includes(entry.site.toLowerCase()))
+        : allSites;
+      
+      if (filteredSites.length === 0) {
+        return '<div class="p-3 text-slate-400 text-center text-sm">검색 결과가 없습니다</div>';
+      } else {
+        return filteredSites.map(site => `
+          <div 
+            class="px-3 py-2.5 cursor-pointer hover:bg-[var(--bg-hover)] text-sm font-medium text-[var(--text-main)] border-b border-[var(--border)] last:border-0"
+            onclick="selectEditSite(${index}, ${JSON.stringify(site).replace(/"/g, '&quot;')})"
+          >
+            <div class="flex justify-between items-center">
+              <span>${site.text}</span>
+              <span class="text-xs text-text-sub bg-slate-100 px-2 py-0.5 rounded border border-slate-200" style="color: var(--text-sub); background: #f1f5f9; border: 1px solid var(--border)">${site.dept}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function showEditSiteDropdown(index) {
+      state.editSiteDropdownIndex = index;
+      renderEditEntries();
+    }
+
+    function hideEditSiteDropdown() {
+      state.editSiteDropdownIndex = null;
+      renderEditEntries();
+    }
+
+    function clearEditSite(index) {
+      state.editEntries[index].site = '';
+      state.editSiteDropdownIndex = index; // 지운 후에도 드롭다운 유지 (전체 목록 표시)
+      renderEditEntries();
+    }
+
+    function selectEditSite(index, site) {
+      state.editEntries[index].site = site.text || site;
+      state.editSiteDropdownIndex = null;
+      renderEditEntries();
+    }
+
+    function updateEditEntry(index, field, value) {
+      if (field === 'site') {
+        state.editEntries[index].site = value;
+        // 입력 중에는 항상 드롭다운 표시 (키워드 검색 가능)
+        state.editSiteDropdownIndex = index;
+      } else if (field === 'man') {
+        state.editEntries[index].man = Number(value);
+        // 공수에 따라 금액 자동 계산 (기본 단가 225,000원)
+        state.editEntries[index].price = Number(value) * 225000;
+      }
+      renderEditEntries();
+    }
+
+    function addEditRow() {
+      state.editEntries.push({ site: '', man: 1.0, price: 225000 });
+      renderEditEntries();
+    }
+
+    function removeEditRow(index) {
+      state.editEntries = state.editEntries.filter((_, i) => i !== index);
+      renderEditEntries();
+    }
+
+    function saveWorkData() {
+      if (!state.editingDate) return;
+      
+      const validEntries = state.editEntries.filter(entry => entry.site && entry.man > 0);
+      
+      if (validEntries.length === 0) {
+        delete state.workData[state.editingDate];
+      } else {
+        state.workData[state.editingDate] = validEntries;
+      }
+      
+      // 데이터 업데이트 후 달력 즉시 렌더링
+      renderCalendar();
+      updateCurrentMonthData();
+      
+      // 모달 닫기
+      closeEditModal();
+      
+      alert('저장되었습니다.');
+    }
+
+    // 급여명세서
+    function openPayStub(data) {
+      const tax = Math.floor(data.baseTotal * 0.033);
+      const net = data.baseTotal - tax;
+      
+      // Parse month and year for date calculations
+      const monthMatch = data.month.match(/(\d{4})년 (\d{1,2})월/);
+      const year = parseInt(monthMatch[1]);
+      const month = parseInt(monthMatch[2]);
+      
+      // Payment date is 10th of current month
+      const paymentDate = `${year}년 ${String(month).padStart(2, '0')}월 10일`;
+      
+      // Work period is previous month
+      let workYear = year;
+      let workMonth = month - 1;
+      if (workMonth === 0) {
+        workMonth = 12;
+        workYear = year - 1;
+      }
+      const workPeriod = `${workYear}년 ${String(workMonth).padStart(2, '0')}월분`;
+      
+      const html = `
+        <div class="stub-header-modern">
+          <div>
+            <h1 class="stub-title-main">급여명세서</h1>
+            <div class="stub-company-name" style="font-size: 16px; font-weight: 700; color: #1e293b;">（주）이노피앤씨</div>
+          </div>
+          <div style="text-align: right;">
+            <div class="stub-month-sub">${data.month}</div>
+            <div class="stub-issue-date">발급일: ${new Date().toLocaleDateString('ko-KR')}</div>
+          </div>
+        </div>
+        
+        <table class="stub-info-table">
+          <thead>
+            <tr>
+              <th>성명</th>
+              <td>홍길동</td>
+              <th>주민등록번호</th>
+              <td>********-*******</td>
+            </tr>
+            <tr>
+              <th>지급일</th>
+              <td>${paymentDate}</td>
+              <th>지급형태</th>
+              <td>계좌이체</td>
+            </tr>
+            <tr>
+              <th>작업기간</th>
+              <td colspan="3">${workPeriod}</td>
+            </tr>
+          </thead>
+        </table>
+        
+        <table class="stub-detail-table">
+          <thead>
+            <tr>
+              <th>구분</th>
+              <th>지급액</th>
+              <th>구분</th>
+              <th>공제액</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">기본급</td>
+              <td class="stub-amount-cell">${data.baseTotal.toLocaleString()}</td>
+              <td style="font-weight:600;">소득세</td>
+              <td class="stub-amount-cell">${Math.floor(data.baseTotal * 0.03).toLocaleString()}</td>
+            </tr>
+            <tr>
+              <td style="border-bottom:none;"></td>
+              <td style="border-bottom:none;"></td>
+              <td style="font-weight:600;">지방소득세</td>
+              <td class="stub-amount-cell">${Math.floor(data.baseTotal * 0.003).toLocaleString()}</td>
+            </tr>
+            <tr class="stub-total-row">
+              <td class="stub-sub-head">지급액 계</td>
+              <td class="stub-sub-head stub-amount-cell">${data.baseTotal.toLocaleString()}</td>
+              <td class="stub-sub-head">공제액 계</td>
+              <td class="stub-sub-head stub-amount-cell">${tax.toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="stub-real-pay-box">
+          <span class="stub-real-pay-label">실지급액</span>
+          <span class="stub-real-pay-val">${net.toLocaleString()}</span>
+        </div>
+        
+        <table class="stub-calc-table">
+          <thead>
+            <tr class="stub-calc-header-row">
+              <td colspan="3">계산 방법</td>
+            </tr>
+            <tr>
+              <th>구분</th>
+              <th>산출식 또는 산출방법</th>
+              <th>지급액(원)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:600;">기본급</td>
+              <td>${data.man.toFixed(1)}공수 × ${Math.round(data.price).toLocaleString()}원</td>
+              <td style="text-align:right;">${data.baseTotal.toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="stub-footer-msg" style="margin-top: 20px; margin-bottom: 20px;">본 명세서는 전자 발급되었습니다.</div>
+      `;
+      
+      $('paystubCard').innerHTML = html;
+      $('paystubOverlay').classList.add('active');
+      document.body.style.overflow = 'hidden'; // 이중 스크롤 방지
+    }
+
+    function closePayStub() {
+      $('paystubOverlay').classList.remove('active');
+      document.body.style.overflow = ''; // 스크롤 복원
+    }
+
+    // PDF 다운로드 기능 (비대칭 패딩 전략)
+    async function downloadPayStubPDF() {
+      try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        // 1. 임시 컨테이너 생성
+        const tempContainer = document.createElement('div');
+        tempContainer.style.position = 'fixed';
+        tempContainer.style.top = '-9999px';
+        tempContainer.style.left = '0';
+        tempContainer.style.width = '794px'; 
+        tempContainer.style.backgroundColor = '#ffffff';
+        tempContainer.style.padding = '40px'; 
+        tempContainer.style.boxSizing = 'border-box';
+        
+        // [수정 1] 폰트 강제 변경 - 렌더링 오차 제거
+        tempContainer.style.fontFamily = 'sans-serif, Arial'; 
+        
+        // 2. 내용 복사
+        tempContainer.innerHTML = $('paystubCard').innerHTML;
+        
+        // 3. 스타일 정밀 보정
+        const originalElements = $('paystubCard').querySelectorAll('*');
+        const tempElements = tempContainer.querySelectorAll('*');
+        
+        originalElements.forEach((original, index) => {
+          if (tempElements[index]) {
+            const computedStyle = window.getComputedStyle(original);
+            const temp = tempElements[index];
+            
+            temp.style.backgroundColor = computedStyle.backgroundColor;
+            temp.style.color = computedStyle.color;
+            temp.style.textAlign = computedStyle.textAlign;
+            temp.style.fontWeight = computedStyle.fontWeight;
+            temp.style.fontSize = computedStyle.fontSize;
+          }
+        });
+        
+        // 배경색 밝기 감지 함수 (어두운 배경 식별용)
+        function isDarkBackground(bgColor) {
+          const match = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+          if (!match) return false;
+          const brightness = (0.299 * parseInt(match[1])) + (0.587 * parseInt(match[2])) + (0.114 * parseInt(match[3]));
+          return brightness < 120;
+        }
+
+        // 4. [핵심 수정] 셀 스타일 강제 재정의
+        const cells = tempContainer.querySelectorAll('td, th');
+        cells.forEach(cell => {
+          const computedStyle = window.getComputedStyle(cell);
+          const bgColor = computedStyle.backgroundColor;
+          
+          // [수정 2] 비대칭 패딩 전략 - 텍스트를 강제로 위로 밀어올림
+          cell.style.paddingTop = '6px';     // 상단 패딩 최소화
+          cell.style.paddingBottom = '16px'; // 하단 패딩 대폭 증가 (10px 이상 차이)
+          cell.style.paddingLeft = '4px';
+          cell.style.paddingRight = '4px';
+          cell.style.verticalAlign = 'middle'; 
+          cell.style.lineHeight = '1.5';
+          cell.style.height = 'auto';         
+          cell.style.whiteSpace = 'nowrap';   
+          
+          // [수정 3] 테두리 가시성 유지
+          if (isDarkBackground(bgColor)) {
+            // 어두운 배경: 흰색 테두리 + box-shadow로 씹힘 방지
+            cell.style.border = '1px solid #ffffff';
+            cell.style.boxShadow = 'inset 0 0 0 1px rgba(255, 255, 255, 0.5)'; 
+          } else {
+            // 밝은 배경: 회색 테두리
+            cell.style.border = '1px solid #cbd5e1';
+            cell.style.boxShadow = 'none';
+          }
+          
+          cell.style.boxSizing = 'border-box';
+        });
+
+        // 5. 테이블 레이아웃
+        const tables = tempContainer.querySelectorAll('table');
+        tables.forEach(table => {
+          table.style.width = '100%';
+          table.style.borderCollapse = 'collapse'; 
+          table.style.borderSpacing = '0';
+          table.style.marginBottom = '10px';
+          table.style.border = 'none'; 
+        });
+
+        // 6. 렌더링
+        document.body.appendChild(tempContainer);
+        
+        const canvas = await html2canvas(tempContainer, { 
+          scale: 2, 
+          useCORS: true, 
+          backgroundColor: '#ffffff'
+        });
+        
+        document.body.removeChild(tempContainer);
+        
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 210; 
+        const imgHeight = canvas.height * imgWidth / canvas.width;
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        pdf.save('급여명세서.pdf');
+        
+      } catch (error) {
+        console.error('PDF 생성 오류:', error);
+        alert('PDF 생성 중 오류가 발생했습니다.');
+      }
+    }
+
+    // 지급 요청 (공유) - 캘린더 포함 버전
+    async function handlePaymentRequest() {
+      try {
+        // 임시 div 생성
+        const captureDiv = document.createElement('div');
+        captureDiv.style.position = 'fixed';
+        captureDiv.style.top = '-9999px';
+        captureDiv.style.left = '0';
+        captureDiv.style.width = '420px';
+        captureDiv.style.backgroundColor = '#ffffff';
+        captureDiv.style.padding = '30px';
+        captureDiv.style.boxSizing = 'border-box';
+        captureDiv.style.fontFamily = 'Pretendard Variable, Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif';
+        captureDiv.style.zIndex = '9999';
+        captureDiv.style.display = 'flex';
+        captureDiv.style.flexDirection = 'column';
+        captureDiv.style.gap = '20px';
+        
+        // 공유 카드 내용
+        const monthText = `${state.currentYear}년 ${state.currentMonth}월`;
+        const prefix = `${state.currentYear}-${state.currentMonth.toString().padStart(2,'0')}`;
+        let mTotalMan = 0;
+        let mTotalPay = 0;
+        
+        Object.keys(state.workData).forEach(dateStr => {
+          if (dateStr.startsWith(prefix)) {
+            const entries = state.workData[dateStr];
+            entries.forEach(e => {
+              mTotalMan += e.man;
+              mTotalPay += e.price;
+            });
+          }
+        });
+        
+        const netPay = mTotalPay - Math.floor(mTotalPay * 0.033);
+        const totalPay = Math.floor(netPay / 0.967);
+        const tax = totalPay - netPay;
+        
+        // 캘린더 HTML 생성
+        const firstDay = new Date(state.currentYear, state.currentMonth - 1, 1).getDay();
+        const lastDate = new Date(state.currentYear, state.currentMonth, 0).getDate();
+        
+        let calendarHTML = `
+          <div style="border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff;">
+            <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;">
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #ef4444; border-bottom: 1px solid #e2e8f0;">일</div>
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0;">월</div>
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0;">화</div>
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0;">수</div>
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0;">목</div>
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0;">금</div>
+              <div style="padding: 14px 0; font-size: 14px; font-weight: 700; color: #334155; border-bottom: 1px solid #e2e8f0;">토</div>
+        `;
+        
+        // 빈 칸
+        for(let i = 0; i < firstDay; i++) {
+          calendarHTML += `<div style="min-height: 75px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0;"></div>`;
+        }
+        
+        // 날짜 칸
+        for(let d = 1; d <= lastDate; d++) {
+          const dateStr = `${state.currentYear}-${state.currentMonth.toString().padStart(2,'0')}-${d.toString().padStart(2,'0')}`;
+          const dayEntries = state.workData[dateStr] || [];
+          
+          let dayTotalAmt = 0;
+          let dayTotalMan = 0;
+          let displayContent = '';
+          
+          if(dayEntries.length > 0) {
+            dayEntries.forEach(e => {
+              dayTotalAmt += e.price;
+              dayTotalMan += e.man;
+            });
+            
+            const baseName = dayEntries[0].site.replace(/\s+/g, '');
+            const shortName = baseName.slice(0, 4);
+            let siteDisplay = shortName;
+            if(dayEntries.length > 1) {
+              siteDisplay = `${shortName}외${dayEntries.length-1}`;
+            }
+            
+            displayContent = `
+              <div style="width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2px 4px;">
+                <span style="font-size: 11px; font-weight: 700; color: #334155; line-height: 1.2; margin-bottom: 1px;">${dayTotalMan.toFixed(1)}</span>
+                <span style="font-size: 11px; font-weight: 800; color: #31a3fa; line-height: 1.2;">${(dayTotalAmt/10000).toFixed(1)}만</span>
+                <span style="font-size: 10px; font-weight: 600; color: #334155; line-height: 1.3; margin-top: 2px; word-break: keep-all; max-width: 100%; display: block; text-align: center;">${siteDisplay}</span>
+              </div>
+            `;
+          }
+          
+          const today = new Date();
+          const isToday = (today.getDate() === d && today.getMonth()+1 === state.currentMonth && today.getFullYear() === state.currentYear);
+          const todayStyle = isToday ? 'background-color: #1a254f; color: #fff; font-weight: 800;' : '';
+          
+          calendarHTML += `
+            <div style="min-height: 75px; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 6px 1px; display: flex; flex-direction: column; align-items: center; gap: 3px;">
+              <span style="font-size: 14px; font-weight: 600; color: #0f172a; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; margin-bottom: 4px; ${todayStyle}">${d}</span>
+              ${displayContent}
+            </div>
+          `;
+        }
+        
+        calendarHTML += `</div></div>`;
+        
+        captureDiv.innerHTML = `
+          <div style="border-bottom: 2px solid #1a254f; padding-bottom: 15px; margin-bottom: 10px;">
+            <h1 style="font-size: 24px; font-weight: 800; color: #1a254f; margin: 0;">급여 지급 요청서</h1>
+            <div style="font-size: 16px; font-weight: 600; color: #64748b; margin-top: 4px;">${monthText}</div>
+          </div>
+          <div style="text-align: right; margin-bottom: 10px;">
+            <span style="font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 4px; display: block;">실수령 예정액</span>
+            <span style="font-size: 32px; font-weight: 800; color: #31a3fa; letter-spacing: -1px;">${netPay.toLocaleString()}원</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 12px; font-weight: 600; color: #64748b;">총 공수</span>
+              <span style="font-size: 16px; font-weight: 700; color: #111;">${mTotalMan.toFixed(1)} 공수</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <span style="font-size: 12px; font-weight: 600; color: #64748b;">총 지급액</span>
+              <span style="font-size: 16px; font-weight: 700; color: #111;">${totalPay.toLocaleString()} 원</span>
+            </div>
+            <div style="grid-column: span 2; border-top: 1px dashed #cbd5e1; padding-top: 10px; margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; font-weight: 600; color: #64748b;">공제금액 (3.3%)</span>
+              <span style="font-size: 16px; font-weight: 700; color: #ef4444;">-${tax.toLocaleString()} 원</span>
+            </div>
+          </div>
+          ${calendarHTML}
+          <div style="text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; font-weight: 500;">Generated by INOPNC App</div>
+        `;
+        
+        document.body.appendChild(captureDiv);
+        
+        // 캡처
+        const canvas = await html2canvas(captureDiv, {
+          scale: 2,
+          backgroundColor: "#ffffff",
+          useCORS: true,
+          logging: false,
+          windowWidth: 420
+        });
+        
+        // 임시 div 제거
+        document.body.removeChild(captureDiv);
+        
+        // blob으로 변환 및 공유
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            // Web Share API 시도
+            if (navigator.share && navigator.canShare && navigator.canShare({
+              files: [new File([blob], "pay_request.png", { type: "image/png" })]
+            })) {
+              try {
+                await navigator.share({
+                  files: [new File([blob], "pay_request.png", { type: "image/png" })],
+                  title: '급여 지급 요청',
+                  text: `${monthText} 급여 내역입니다.`
+                });
+              } catch (err) {
+                if (err.name !== 'AbortError') {
+                  console.error('Share failed:', err);
+                  downloadImage(canvas);
+                }
+              }
+            } else {
+              downloadImage(canvas);
+            }
+          }
+        }, 'image/png');
+      } catch (error) {
+        console.error('Error creating share image:', error);
+        alert('공유 이미지 생성 중 오류가 발생했습니다.');
+      }
+    }
+
+    function downloadImage(canvas) {
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `pay_request_${state.currentYear}_${state.currentMonth.toString().padStart(2, '0')}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 클릭 외부 처리
+    document.addEventListener('click', function(event) {
+      // 사이트 드롭다운
+      const siteSearchRef = $('siteSearchRef');
+      if (siteSearchRef && !siteSearchRef.contains(event.target)) {
+        state.showSiteOptions = false;
+        $('siteDropdown').classList.add('hidden');
+      }
+      
+      // 편집 모달 사이트 드롭다운
+      const editModalContent = $('editModalContent');
+      if (editModalContent && !editModalContent.contains(event.target)) {
+        state.editSiteDropdownIndex = null;
+        renderEditEntries();
+      }
+    });
+
+    // Event Listeners Setup
+    function setupEventListeners() {
+      const siteSearch = document.getElementById('siteSearchInput');
+      
+      if (siteSearch) {
+        siteSearch.addEventListener('input', handleSiteSearch);
+        siteSearch.addEventListener('focus', () => {
+          state.showSiteOptions = true;
+          updateSiteDropdown();
+        });
+        siteSearch.addEventListener('blur', () => {
+          setTimeout(() => {
+            state.showSiteOptions = false;
+            updateSiteDropdown();
+          }, 200);
+        });
+      }
+    }
+
+    // 초기화
+    function init() {
+      // 관리자 데이터 초기 로드 (1회만 실행)
+      loadWorkLogData();
+      
+      // 현재 월 설정
+      const today = new Date();
+      state.currentYear = today.getFullYear();
+      state.currentMonth = today.getMonth() + 1;
+      
+      // 기본 작업자 정보 가져오기
+      const baseWorkers = getBaseWorkerInfo();
+      console.log('기본 작업자 정보:', baseWorkers);
+      
+      // 작업일지 데이터 가져오기 (승인된 것만)
+      const worklogReports = getWorklogData();
+      console.log('작업일지 데이터:', worklogReports);
+      
+      // 작업일지 데이터를 workData에 병합
+      if (worklogReports.length > 0) {
+        worklogReports.forEach(report => {
+          if (report.dailyDates && Array.isArray(report.dailyDates)) {
+            report.dailyDates.forEach(dateInfo => {
+              const dateStr = dateInfo.date;
+              if (dateInfo.workSets && Array.isArray(dateInfo.workSets)) {
+                const entries = dateInfo.workSets.map(workSet => ({
+                  site: report.site?.text || '알수없음',
+                  man: workSet.workHours || 1.0,
+                  price: (workSet.workHours || 1.0) * 225000, // 기본 단가 적용
+                  worker: workSet.member || '이현수'
+                }));
+                
+                if (!state.workData[dateStr]) {
+                  state.workData[dateStr] = [];
+                }
+                state.workData[dateStr].push(...entries);
+              }
+            });
+          }
+        });
+      }
+      
+      // 년-월 팝업 초기화
+      pickerYear = state.currentYear;
+      
+      // 급여 필터 초기화 - 2025년을 기본값으로 설정
+      salPickerYear = 2025;
+      
+      // 버튼 텍스트 초기화
+      const salDateFilterDisplay = document.getElementById('salDateFilterDisplay');
+      if (salDateFilterDisplay) {
+        salDateFilterDisplay.textContent = '2025년 전체';
+      }
+      
+      // 현장 검색 이벤트 리스너 설정 - @mainpage.html 기준
+      const siteSearchInput = document.getElementById('siteSearchInput');
+      if (siteSearchInput) {
+        // input 이벤트 리스너 제거 - 한글 입력 방해 방지
+        siteSearchInput.addEventListener('focus', () => {
+          state.showSiteOptions = true;
+          updateSiteDropdown();
+        });
+        
+        siteSearchInput.addEventListener('blur', () => {
+          setTimeout(() => {
+            state.showSiteOptions = false;
+            updateSiteDropdown();
+          }, 200);
+        });
+      }
+      
+      renderCalendar();
+      updateCurrentMonthData();
+      
+      // 급여 내역 렌더링
+      renderSalaryHistory();
+      
+      // 관리자 리스트 렌더링
+      adminRenderList();
+      
+      // 아이콘 갱신
+      refreshIcons();
+    }
+
+       /* ============================================================
+       [Admin Console Logic] - 충돌 방지 위해 admin* prefix 사용
+       ============================================================ */
+    let adminSubmissions = [];
+
+    // 데이터 저장 함수 추가
+    function adminSaveData() {
+      localStorage.setItem('adminSubmissionsState', JSON.stringify(adminSubmissions));
+    }
+
+    // @main.html에서 저장된 데이터 로드
+    function loadWorkLogData() {
+      // 먼저 관리자 전용 저장 데이터 확인
+      const savedAdminData = localStorage.getItem('adminSubmissionsState');
+      if (savedAdminData) {
+        adminSubmissions = JSON.parse(savedAdminData);
+        
+        // 저장된 데이터가 3개 이하인 경우에만 테스트 데이터 추가
+        if (adminSubmissions.length <= 3) {
+          // 기본 데이터 (테스트용) 추가
+          const testItems = [
+            { id: Date.now() + 4, pinned: false, name: "최상훈", role: "선임", site: "LG화학 대산공장 리모델링", member: "보", process: "콘크리트", type: "시공", loc: "2F", man: 2.0, cumDays: 28, cumMan: 45.5, task: "구조 보강용 철근 배치 및 콘크리트 타설", status: "pending", latestDate: "2025-12-28 10:15", phone: "010-7777-8888" },
+            { id: Date.now() + 5, pinned: false, name: "정다은", role: "주임", site: "SK하이닉스 첨단소자 연구동", member: "슬래브", process: "방수", type: "보수", loc: "옥상", man: 1.5, cumDays: 18, cumMan: 22.0, task: "옥상 방수층 재시공 및 배관 점검", status: "approved", latestDate: "2025-12-27 14:20", phone: "010-9999-0000" }
+          ];
+          adminSubmissions = [...adminSubmissions, ...testItems];
+          adminSaveData(); // 업데이트 후 저장
+        }
+        return; // 저장된 데이터가 있으면 여기서 종료
+      }
+
+      try {
+        const rawData = localStorage.getItem('workLogData');
+        if (rawData) {
+          const data = JSON.parse(rawData);
+          adminSubmissions = data.map((item, index) => ({
+            id: Date.now() + index, // 고유 ID 생성
+            pinned: false, // 기본값은 false
+            name: item.manager || '미지정',
+            role: item.managerRole || '팀장',
+            site: item.siteName || '미지정 현장',
+            member: item.workSets?.[0]?.member || '미지정',
+            process: item.workSets?.[0]?.process || '미지정',
+            type: item.workSets?.[0]?.type || '미지정',
+            loc: `${item.workSets?.[0]?.location?.block || ''} ${item.workSets?.[0]?.location?.dong || ''} ${item.workSets?.[0]?.location?.floor || ''}`.trim() || '미지정',
+            man: item.manpowerList?.filter(m => m.locked).reduce((sum, m) => sum + (parseFloat(m.manpower) || 0), 0) || 0,
+            cumDays: calculateCumulativeDays(item.siteName),
+            cumMan: calculateCumulativeMan(item.siteName),
+            task: item.summary || '작업 내용 없음',
+            status: 'pending',
+            latestDate: item.workDate || new Date().toISOString().slice(0, 10),
+            phone: item.managerPhone || '010-0000-0000'
+          }));
+          
+          // [TEST] 관리자탭 카드가 3개 이하일 때 더보기/접기 버튼 검증용 테스트 카드 보강
+          if (adminSubmissions.length <= 3) {
+            const testMoreItems = [
+              { id: Date.now() + 1001, pinned: false, name: "테스트-최상훈", role: "반장", site: "테스트 현장(더보기)", member: "테스트", process: "방수", type: "보강", loc: "A동 3F", man: 1.0, cumDays: 12, cumMan: 18.0, task: "더보기/접기 테스트용 작업", status: "pending", latestDate: "2025-12-26 09:10", phone: "010-7000-0001" },
+              { id: Date.now() + 1002, pinned: false, name: "테스트-정다은", role: "팀장", site: "테스트 현장(더보기)", member: "테스트", process: "도장", type: "마감", loc: "B동 2F", man: 1.5, cumDays: 8, cumMan: 11.5, task: "더보기/접기 테스트용 작업", status: "approved", latestDate: "2025-12-25 16:40", phone: "010-7000-0002" },
+              { id: Date.now() + 1003, pinned: false, name: "테스트-김철수", role: "기사", site: "테스트 현장(더보기)", member: "테스트", process: "철근", type: "구조", loc: "C동 1F", man: 2.0, cumDays: 15, cumMan: 26.0, task: "더보기/접기 테스트용 작업", status: "pending", latestDate: "2025-12-24 08:05", phone: "010-7000-0003" },
+              { id: Date.now() + 1004, pinned: false, name: "테스트-박영희", role: "반장", site: "테스트 현장(더보기)", member: "테스트", process: "타설", type: "콘크리트", loc: "D동 4F", man: 1.0, cumDays: 20, cumMan: 30.0, task: "더보기/접기 테스트용 작업", status: "pending", latestDate: "2025-12-23 13:30", phone: "010-7000-0004" },
+              { id: Date.now() + 1005, pinned: false, name: "테스트-이민호", role: "대리", site: "테스트 현장(더보기)", member: "테스트", process: "마감", type: "정리", loc: "E동 5F", man: 1.0, cumDays: 6, cumMan: 7.0, task: "더보기/접기 테스트용 작업", status: "approved", latestDate: "2025-12-22 17:55", phone: "010-7000-0005" }
+            ];
+            const need = Math.max(0, 5 - adminSubmissions.length);
+            adminSubmissions = [...adminSubmissions, ...testMoreItems.slice(0, need)];
+          }
+          
+          adminSaveData(); // 초기화 후 저장
+        } else {
+          // 기본 데이터 (테스트용)
+          adminSubmissions = [
+            { id: Date.now() + 1, pinned: false, name: "김철수", role: "반장", site: "자이 아파트 101동 신축", member: "슬라브", process: "균열보수", type: "보수", loc: "B1", man: 1.0, cumDays: 12, cumMan: 14.5, task: "3층 지하주차장 균열 부위 보수 및 면처리", status: "pending", latestDate: "2025-12-28 09:45", phone: "010-1111-2222" },
+            { id: Date.now() + 2, pinned: true, name: "박영희", role: "팀장", site: "삼성 반도체 P3 공사", member: "거더", process: "인장테스트", type: "시험", loc: "3F", man: 1.5, cumDays: 35, cumMan: 48.0, task: "야간 배관 용접부 비파괴 검사 지원 작업", status: "pending", latestDate: "2025-12-28 08:20", phone: "010-3333-4444" },
+            { id: Date.now() + 3, pinned: false, name: "이민수", role: "기공", site: "현대차 울산공장 증축", member: "기둥", process: "마감", type: "마감", loc: "전구역", man: 1.0, cumDays: 5,  cumMan: 5.0, task: "외부 옹벽 마감 도장 및 주변 정리 정돈", status: "approved", latestDate: "2025-12-27 11:30", phone: "010-5555-6666" },
+            { id: Date.now() + 4, pinned: false, name: "최상훈", role: "선임", site: "LG화학 대산공장 리모델링", member: "보", process: "콘크리트", type: "시공", loc: "2F", man: 2.0, cumDays: 28, cumMan: 45.5, task: "구조 보강용 철근 배치 및 콘크리트 타설", status: "pending", latestDate: "2025-12-28 10:15", phone: "010-7777-8888" },
+            { id: Date.now() + 5, pinned: false, name: "정다은", role: "주임", site: "SK하이닉스 첨단소자 연구동", member: "슬래브", process: "방수", type: "보수", loc: "옥상", man: 1.5, cumDays: 18, cumMan: 22.0, task: "옥상 방수층 재시공 및 배관 점검", status: "approved", latestDate: "2025-12-27 14:20", phone: "010-9999-0000" }
+          ];
+          adminSaveData(); // 초기화 후 저장
+        }
+      } catch (error) {
+        console.error('데이터 로드 실패:', error);
+        adminSubmissions = [];
+      }
+    }
+
+    function calculateCumulativeDays(siteName) {
+      // 현장별 누적 일수 계산 로직
+      return Math.floor(Math.random() * 30) + 5;
+    }
+
+    function calculateCumulativeMan(siteName) {
+      // 현장별 누적 공수 계산 로직
+      return Math.floor(Math.random() * 50) + 5;
+    }
+
+    let adminCurrentFilter = 'all';
+    let adminIsExpanded = false;
+    let adminCurrentId = null;
+
+    function adminHandleSearchInput(input) {
+      const clearBtn = document.getElementById('adminSearchClearBtn');
+      if (!clearBtn) return;
+
+      if (input.value && input.value.length > 0) clearBtn.classList.add('show');
+      else clearBtn.classList.remove('show');
+
+      adminRenderList();
+    }
+
+    function adminClearSearch() {
+      const input = document.getElementById('adminMasterSearch');
+      const clearBtn = document.getElementById('adminSearchClearBtn');
+      if (input) input.value = '';
+      if (clearBtn) clearBtn.classList.remove('show');
+      adminRenderList();
+      if (input) input.focus();
+    }
+
+    function adminSetStatusFilter(st, el) {
+      adminCurrentFilter = st;
+      document.querySelectorAll('#adminContent .admin-sum-card').forEach(c => c.classList.remove('active'));
+      if (el) el.classList.add('active');
+      adminIsExpanded = false;
+      adminRenderList();
+    }
+
+    function adminToggleExpand() {
+      adminIsExpanded = !adminIsExpanded;
+      adminRenderList();
+    }
+
+    // Toast Message
+    let activeToast = null;
+    function showToast(message, duration = 2000) {
+        if (activeToast) { activeToast.remove(); activeToast = null; }
+        const shortMessage = message.length > 15 ? message.substring(0, 15) + '...' : message;
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-20 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-2.5 rounded-full text-[13px] font-bold shadow-xl flex items-center gap-2 z-[9999]';
+        toast.style.animation = 'fadeIn 0.3s ease-out';
+        const icon = document.createElement('div');
+        icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>';
+        toast.appendChild(icon);
+        const textSpan = document.createElement('span');
+        textSpan.textContent = shortMessage;
+        toast.appendChild(textSpan);
+        document.body.appendChild(toast);
+        activeToast = toast;
+        setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => { if (activeToast === toast) { document.body.removeChild(toast); activeToast = null; } }, 300); }, duration);
+    }
+
+    function adminTogglePin(id) {
+      const item = adminSubmissions.find(s => s.id === id);
+      if (item) {
+        item.pinned = !item.pinned;
+        showToast(item.pinned ? "상단에 고정되었습니다." : "고정이 해제되었습니다.");
+        adminRenderList();
+        adminSaveData();
+      }
+    }
+
+    function adminFormatYYMMDD(dateStr) {
+      if (!dateStr) return "00.00.00 l";
+      // dateStr 예: "2026-01-09 08:21"
+      const d = String(dateStr).trim().split(' ')[0]; // "2026-01-09"
+      const parts = d.split('-'); // ["2026", "01", "09"]
+      return `${parts[1]}.${parts[2]}.${parts[0].slice(2)} l`; // "01.09.26 l"
+    }
+
+
+    function adminRenderList() {
+  const container = document.getElementById('adminWorkerList');
+  if (!container) return;
+
+  const searchEl = document.getElementById('adminMasterSearch');
+  const searchQuery = (searchEl ? searchEl.value : '').toLowerCase();
+
+  const sortEl = document.getElementById('adminSortFilter');
+  const sortVal = sortEl ? sortEl.value : 'latest';
+
+  // 1. 데이터 필터링 (검색어 및 상태값 기준)
+  let filtered = adminSubmissions.filter(s => {
+    const matchSearch = (s.name || '').toLowerCase().includes(searchQuery) || 
+                        (s.site || '').toLowerCase().includes(searchQuery);
+    const matchStatus = adminCurrentFilter === 'all' || s.status === adminCurrentFilter;
+    return matchSearch && matchStatus;
+  });
+
+  // 2. 정렬 (고정 핀 우선 -> 선택 정렬 기준)
+  filtered.sort((a, b) => {
+    if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+    if (sortVal === 'name') return a.name.localeCompare(b.name, 'ko');
+    return new Date(b.latestDate) - new Date(a.latestDate);
+  });
+
+  // 3. 상단 요약 숫자 갱신
+  if ($('admin-stat-all')) $('admin-stat-all').textContent = adminSubmissions.length;
+  if ($('admin-stat-pending')) $('admin-stat-pending').textContent = adminSubmissions.filter(s => s.status === 'pending').length;
+  if ($('admin-stat-approved')) $('admin-stat-approved').textContent = adminSubmissions.filter(s => s.status === 'approved').length;
+
+  // 4. 슬라이싱 로직 (3개씩 보여주기)
+  const displayItems = adminIsExpanded ? filtered : filtered.slice(0, 3);
+
+  // 5. 리스트 렌더링
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="text-center py-20 text-slate-400">검색 결과가 없습니다.</div>`;
+  } else {
+    container.innerHTML = displayItems.map(s => `
+      <div class="admin-worker-card ${s.pinned ? 'pinned-item' : ''}">
+        <div class="admin-card-header" onclick="adminOpenReviewModal(${s.id})">
+          <span class="admin-site-badge ${s.status==='pending' ? 'admin-bdg-wait' : s.status==='approved' ? 'admin-bdg-done' : 'admin-bdg-reject'}">
+            ${s.status==='pending'?'승인대기':s.status==='approved'?'승인완료':'반려'}
+          </span>
+          <div class="admin-name-row">
+            <span class="admin-worker-name">${s.name}</span>
+            <span class="admin-role-text">${s.role}</span>
+            <span class="admin-site-trunc">
+              <span class="admin-site-info-group">
+                <span class="sub-badge contractor">현대건설</span>
+                <span class="sub-badge affil">${s.affil || '본사'}</span>
+                <span class="admin-site-name-text">${s.site}</span>
+              </span>
+              <button class="admin-btn-pin ${s.pinned ? 'active' : ''}" type="button" onclick="event.stopPropagation(); adminTogglePin(${s.id})">
+                <i data-lucide="${s.pinned ? 'pin' : 'pin-off'}" style="width:24px;height:24px;"></i>
+              </button>
+            </span>
+          </div>
+          <div class="admin-site-row">
+            <div class="admin-site-left">
+              <span class="admin-date-prefix">${adminFormatYYMMDD(s.latestDate)}</span>
+              <i data-lucide="map-pin" style="width:14px; height:14px; margin-right:4px;"></i>
+              <span class="admin-meta-text">${s.member} ㅣ ${s.process} ㅣ ${s.loc}</span>
+            </div>
+          </div>
+          <div class="admin-cum-box">
+            <div class="admin-cum-item"><span class="admin-cum-val">${s.man}</span><span class="admin-cum-label">금일 공수</span></div>
+            <div class="admin-cum-item"><span class="admin-cum-val">${s.cumDays}일</span><span class="admin-cum-label">누적 일수</span></div>
+            <div class="admin-cum-item"><span class="admin-cum-val">${s.cumMan}</span><span class="admin-cum-label">누적 공수</span></div>
+          </div>
+        </div>
+        <div class="admin-actions">
+          <button class="admin-btn call" onclick="event.stopPropagation(); window.location.href='tel:${s.phone}';"><i data-lucide="phone" width="14"></i>전화</button>
+          <button class="admin-btn msg" onclick="event.stopPropagation(); window.location.href='sms:${s.phone}';"><i data-lucide="message-square" width="14"></i>메신저</button>
+          <button class="admin-btn review" onclick="event.stopPropagation(); adminOpenReviewModal(${s.id});"><i data-lucide="file-check" width="14"></i>검토</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 6. [핵심] 더보기 버튼 노출 제어 및 상태 업데이트
+  const btnMore = document.getElementById('adminLoadMoreBtn');
+  if (btnMore) {
+    // 필터링된 데이터가 3개보다 많을 때만 버튼 표시
+    if (filtered.length > 3) {
+      btnMore.classList.remove('hidden');
+      btnMore.style.display = 'flex'; // Tailwind hidden 클래스 제거 시 display 강제 지정
+      
+      const moreText = document.getElementById('adminLoadMoreText');
+      const moreIcon = document.getElementById('adminLoadMoreIcon');
+      
+      if (adminIsExpanded) {
+        if (moreText) moreText.textContent = '접기';
+        if (moreIcon) moreIcon.setAttribute('data-lucide', 'chevron-up');
+      } else {
+        if (moreText) moreText.textContent = '더 보기';
+        if (moreIcon) moreIcon.setAttribute('data-lucide', 'chevron-down');
+      }
+    } else {
+      btnMore.classList.add('hidden');
+      btnMore.style.display = 'none';
+    }
+  }
+
+  refreshIcons(); // Lucide 아이콘 재생성
+}
+
+    function adminOpenReviewModal(id) {
+      const data = adminSubmissions.find(s => s.id === id);
+      if (!data) return;
+      adminCurrentId = id;
+
+      const task = document.getElementById('admin-md-task-basic');
+      const man = document.getElementById('admin-md-man-basic');
+      const time = document.getElementById('admin-md-time-basic');
+      const worksets = document.getElementById('admin-md-worksets-detail');
+      const material = document.getElementById('admin-md-material-detail');
+      const comment = document.getElementById('admin-md-comment');
+
+      if (task) task.textContent = data.task;
+      if (man) man.textContent = data.man + " 공수";
+      if (time) time.textContent = (data.latestDate.split(' ')[1] || data.latestDate);
+      if (worksets) worksets.textContent = `${data.member} ㅣ ${data.process} ㅣ ${data.loc}`;
+      if (material && !material.textContent.trim()) material.textContent = "NPC-1000 (2말) ㅣ NPC-3000Q (1말)";
+      if (comment) comment.value = "";
+
+      adminShowStage(1);
+
+      const modal = document.getElementById('adminReviewModal');
+      if (modal) modal.classList.add('active');
+      refreshIcons();
+    }
+
+    function adminBackdropClose(e) {
+      // overlay 바깥 클릭 시 닫기
+      if (e && e.target && e.target.id === 'adminReviewModal') adminCloseModal();
+    }
+
+    function adminCloseModal() {
+      const modal = document.getElementById('adminReviewModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    function adminShowStage(n) {
+      const s1 = document.getElementById('adminStage1');
+      const s2 = document.getElementById('adminStage2');
+      if (s1) s1.classList.toggle('hidden', n !== 1);
+      if (s2) s2.classList.toggle('hidden', n !== 2);
+      refreshIcons();
+    }
+
+    function adminProcessAction(status) {
+      const commentEl = document.getElementById('admin-md-comment');
+      const comment = commentEl ? commentEl.value : '';
+
+      if (status === 'reject' && !comment.trim()) {
+        alert("반려 사유를 입력해주세요.");
+        return;
+      }
+
+      const idx = adminSubmissions.findIndex(s => s.id === adminCurrentId);
+      if (idx < 0) return;
+
+      adminSubmissions[idx].status = status;
+
+      alert(status === 'approved' ? "정상 승인되었습니다." : "반려 처리되었습니다.");
+
+      adminCloseModal();
+      adminRenderList();
+    }
+
+
+    // 페이지 로드 시 초기화
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
+  </script>
+</body>
+</html>

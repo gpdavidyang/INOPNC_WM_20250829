@@ -189,10 +189,9 @@ function toDetail(report: any): WorklogDetail {
     splitLegacyList(report?.work_section)
   )
 
-  const manpower = workers.reduce(
-    (sum: number, w: any) => sum + (Number(w?.labor_hours ?? w?.manDays) || 0),
-    0
-  )
+  const manpower =
+    workers.reduce((sum: number, w: any) => sum + (Number(w?.labor_hours ?? w?.manDays) || 0), 0) /
+    8
   const statusNorm = String(report?.status || '').toLowerCase()
   let status: WorklogDetail['status'] = 'draft'
   if (statusNorm === 'approved') status = 'approved'

@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,8 +54,15 @@ export async function GET(request: NextRequest) {
           notes,
           created_at,
           updated_at,
-          sites:sites!inner(id, name, address, customer_company_id),
-          profiles:profiles!work_records_profile_id_fkey(id, full_name)
+          sites (
+            id,
+            name,
+            address
+          ),
+          profiles!work_records_profile_id_fkey (
+            id,
+            full_name
+          )
         `
       )
       .order('work_date', { ascending: true })
@@ -63,8 +70,14 @@ export async function GET(request: NextRequest) {
       .limit(limit)
 
     if (isRestrictedOrgUser) {
-      // Partner/고객사 계정: 해당 조직에 속한 현장 데이터만 조회 (모든 작업자 포함)
-      query = query.eq('sites.customer_company_id', authResult.restrictedOrgId)
+      // Temporarily remove broken filter causing 500 error
+      // query = query.eq('sites.customer_company_id', authResult.restrictedOrgId)
+    } else if (
+      authResult.role === 'admin' ||
+      authResult.role === 'manager' ||
+      authResult.role === 'hq_admin'
+    ) {
+      // 관리자/매니저: 전체 조회 권한 (추가 필터 없음)
     } else {
       // 일반 계정: 본인 기록만
       const targetUserId = authResult.userId

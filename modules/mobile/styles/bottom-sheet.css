@@ -10,7 +10,7 @@
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   box-shadow: var(--shadow);
-  z-index: 50;
+  z-index: 5100;
   transform: translateY(100%);
   transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   max-height: 80vh;
@@ -28,10 +28,12 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 40;
+  z-index: 5000;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
 }
 
 .bottom-sheet-backdrop.show {
@@ -142,16 +144,16 @@
 }
 
 /* Dark theme support */
-[data-theme="dark"] .bottom-sheet {
+[data-theme='dark'] .bottom-sheet {
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
 
-[data-theme="dark"] .bottom-sheet-handle {
+[data-theme='dark'] .bottom-sheet-handle {
   background: var(--line);
 }
 
-[data-theme="dark"] .bottom-sheet-handle:hover {
+[data-theme='dark'] .bottom-sheet-handle:hover {
   background: var(--muted);
 }
 
@@ -228,7 +230,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
   }
   50% {

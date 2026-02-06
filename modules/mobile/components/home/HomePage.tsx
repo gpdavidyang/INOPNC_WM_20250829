@@ -294,8 +294,8 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           setSelectedSite(String(data.siteId))
         }
 
-        // Set hasPrefill flag if we have any prefill data (siteId or legacy department)
-        if ((data?.department && isUuid(data.department)) || data?.siteId) {
+        // Set hasPrefill flag if we have any prefill data (siteId, legacy department, OR workDate)
+        if ((data?.department && isUuid(data.department)) || data?.siteId || data?.workDate) {
           setHasPrefill(true)
         }
 
@@ -789,8 +789,11 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       processes: repProcesses,
       work_types: repWorkTypes,
       location: repLocation,
+      author_id: selectedAuthorId,
+      author_name: selectedAuthorName,
       main_manpower: mainManpower,
       additional_manpower: additionalManpower.map(worker => ({
+        id: worker.workerId || worker.id,
         name: worker.workerName,
         manpower: worker.manpower,
       })),
@@ -1185,13 +1188,13 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           </div>
           <div className="form-row author-manpower-row">
             <div className="form-group">
-              <label className="form-label">작성자</label>
+              <label className="form-label">작업자</label>
               <CustomSelect
                 value={selectedAuthorId}
                 onValueChange={val => setSelectedAuthorId(val)}
               >
                 <CustomSelectTrigger className="form-select author-select">
-                  <CustomSelectValue placeholder={'작성자 선택'} />
+                  <CustomSelectValue placeholder={'작업자 선택'} />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   {usersLoading && userOptions.length === 0 ? (
@@ -1241,7 +1244,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             </div>
             <div className="form-row author-manpower-row">
               <div className="form-group">
-                <label className="form-label">작성자</label>
+                <label className="form-label">작업자</label>
                 <CustomSelect
                   value={item.workerId || ''}
                   onValueChange={val => {
@@ -1253,7 +1256,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                   }}
                 >
                   <CustomSelectTrigger className="form-select author-select">
-                    <CustomSelectValue placeholder={'작성자 선택'} />
+                    <CustomSelectValue placeholder={'작업자 선택'} />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
                     {usersLoading && userOptions.length === 0 ? (

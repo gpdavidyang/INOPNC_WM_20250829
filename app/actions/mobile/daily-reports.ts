@@ -1,23 +1,23 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { createClient } from '@/lib/supabase/server'
-import { requireServerActionAuth, assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
+import {
+  buildVariantStoragePaths,
+  deriveVariantPathsFromStoredPath,
+  generateImageVariants,
+} from '@/lib/admin/site-photos'
+import { assertOrgAccess, requireServerActionAuth, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType, logError, validateSupabaseResponse } from '@/lib/error-handling'
 import {
   notifyDailyReportApproved,
   notifyDailyReportRejected,
   notifyDailyReportSubmitted,
 } from '@/lib/notifications/triggers'
+import { createClient } from '@/lib/supabase/server'
 import type { DailyReport, DailyReportStatus } from '@/types'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
 import type { Database } from '@/types/database'
-import {
-  buildVariantStoragePaths,
-  deriveVariantPathsFromStoredPath,
-  generateImageVariants,
-} from '@/lib/admin/site-photos'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { revalidatePath } from 'next/cache'
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -1126,6 +1126,311 @@ export async function getAdditionalPhotos(reportId: string) {
     return {
       success: false,
       error: error instanceof AppError ? error.message : '사진 목록 조회에 실패했습니다.',
+    }
+  }
+}
+
+/**
+ * 작업자 본인의 공수를 특정 날짜/현장에 직접 입력하여 제출
+ */
+/**
+ * 작업자 본인의 공수를 특정 날짜/현장에 직접 입력/수정하여 제출
+ * - 이미 승인된(approved) 작업일지는 수정 불가
+ * - 이미 존재하는 내역이 있다면 업데이트, 없으면 생성
+ */
+export async function upsertMyLabor(data: { siteId: string; workDate: string; hours: number }) {
+  try {
+    const supabase = createClient()
+    const auth = await requireServerActionAuth(supabase)
+
+    // 1. 프로필 정보 조회
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', auth.userId)
+      .single()
+
+    if (!profile) {
+      throw new AppError('프로필 정보를 찾을 수 없습니다.', ErrorType.NOT_FOUND)
+    }
+
+    // 2. 해당 날짜/현장의 작업일지 존재 여부 확인
+    let { data: report } = await supabase
+      .from('daily_reports')
+      .select('id, status')
+      .eq('site_id', data.siteId)
+      .eq('work_date', data.workDate)
+      .maybeSingle()
+
+    // 3. 승인된 작업일지인 경우 수정 불가
+    if (report && report.status === 'approved') {
+      throw new AppError('이미 승인된 작업일지는 수정할 수 없습니다.', ErrorType.FORBIDDEN)
+    }
+
+    // 4. 작업일지가 없으면 새로 생성 (기본 제출 상태)
+    if (!report) {
+      const { data: newReport, error: createError } = await supabase
+        .from('daily_reports')
+        .insert({
+          site_id: data.siteId,
+          work_date: data.workDate,
+          status: 'submitted',
+          member_name: profile.full_name,
+          created_by: auth.userId,
+          process_type: '일반작업',
+        })
+        .select('id, status')
+        .single()
+
+      if (createError) throw createError
+      report = newReport
+    }
+
+    if (!report) throw new AppError('작업일지 생성에 실패했습니다.', ErrorType.UNKNOWN)
+
+    // 5. 인력 투입 정보 확인 (본인 이름 기준)
+    // 동명이인 이슈 방지를 위해 worker_name이 정확히 일치하는지 확인하거나,
+    // 본인입력 마킹이 된 건을 찾음. 여기서는 간단히 이름 + 본인입력 마커 로직 유지 또는 추가
+
+    // 기존 로직: 이름으로 찾기.
+    // 개선: daily_report_workers에는 user_id 필드가 없으므로 이름 매칭 혹은 메타데이터 필요.
+    // 현재 스키마 상 user_id 연결이 없으므로, 이름으로 검색하되 "(본인입력)" 접미사 처리를 유의.
+
+    const targetName = `${profile.full_name} (본인입력)`
+
+    // 5. 인력 투입 정보 (daily_report_workers) 업데이트
+    const { data: existingWorker } = await supabase
+      .from('daily_report_workers')
+      .select('id')
+      .eq('daily_report_id', report.id)
+      .eq('worker_name', targetName)
+      .maybeSingle()
+
+    if (existingWorker) {
+      const { error: updateError } = await supabase
+        .from('daily_report_workers')
+        .update({
+          work_hours: data.hours,
+          labor_hours: data.hours / 8,
+          worker_id: auth.userId,
+          man_days: data.hours / 8,
+        })
+        .eq('id', existingWorker.id)
+      if (updateError) console.error('Error updating worker record:', updateError)
+    } else {
+      const { error: insertError } = await supabase.from('daily_report_workers').insert({
+        daily_report_id: report.id,
+        worker_name: targetName,
+        worker_id: auth.userId,
+        work_hours: data.hours,
+        labor_hours: data.hours / 8,
+        man_days: data.hours / 8,
+      })
+      if (insertError) console.error('Error inserting worker record:', insertError)
+    }
+
+    // 6. 근태 기록 (work_records) 동기화 - 캘린더 연동 핵심
+    // 해당 날짜/현장에 이미 본인의 근태 기록이 있는지 확인
+    const { data: existingWorkRecord } = await supabase
+      .from('work_records')
+      .select('id')
+      .eq('profile_id', auth.userId)
+      .eq('work_date', data.workDate)
+      .eq('site_id', data.siteId)
+      .maybeSingle()
+
+    if (existingWorkRecord) {
+      await supabase
+        .from('work_records')
+        .update({
+          labor_hours: data.hours / 8,
+          work_hours: data.hours,
+          status: 'submitted',
+          daily_report_id: report.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existingWorkRecord.id)
+    } else {
+      await supabase.from('work_records').insert({
+        profile_id: auth.userId,
+        user_id: auth.userId,
+        site_id: data.siteId,
+        work_date: data.workDate,
+        labor_hours: data.hours / 8,
+        work_hours: data.hours,
+        status: 'submitted',
+        daily_report_id: report.id,
+      })
+    }
+
+    revalidatePath('/mobile/attendance')
+
+    return {
+      success: true,
+      message: '공수 정보가 저장되었습니다.',
+    }
+  } catch (error) {
+    logError(error, 'upsertMyLabor')
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '공수 제출에 실패했습니다.',
+    }
+  }
+}
+
+/**
+ * 다수의 공수 정보를 일괄 저장 (Batch Upsert)
+ */
+export async function batchUpsertMyLabor(
+  updates: Array<{ siteId: string; workDate: string; hours: number }>
+) {
+  try {
+    const supabase = createClient()
+    const auth = await requireServerActionAuth(supabase)
+
+    // 1. 프로필 정보 조회 (1회)
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', auth.userId)
+      .single()
+
+    if (!profile) {
+      throw new AppError('프로필 정보를 찾을 수 없습니다.', ErrorType.NOT_FOUND)
+    }
+
+    const results = []
+
+    // 순차 처리 (병렬 처리는 DB 락 이슈 가능성 있으므로 순차 권장)
+    for (const data of updates) {
+      try {
+        // --- Single Upsert Logic (Reused) ---
+
+        // 2. 해당 날짜/현장의 작업일지 존재 여부 확인
+        let { data: report } = await supabase
+          .from('daily_reports')
+          .select('id, status')
+          .eq('site_id', data.siteId)
+          .eq('work_date', data.workDate)
+          .maybeSingle()
+
+        // 3. 승인된 작업일지인 경우 수정 불가 -> Skip (or Error?)
+        // Batch 처리 시에는 실패한 건만 건너뛰거나 에러 리포팅. 여기서는 에러 발생 시 Catch로 이동
+        if (report && report.status === 'approved') {
+          throw new AppError(
+            `[${data.siteId}] 이미 승인된 작업일지는 수정할 수 없습니다.`,
+            ErrorType.FORBIDDEN
+          )
+        }
+
+        // 4. 작업일지가 없으면 새로 생성 (기본 제출 상태)
+        if (!report) {
+          const { data: newReport, error: createError } = await supabase
+            .from('daily_reports')
+            .insert({
+              site_id: data.siteId,
+              work_date: data.workDate,
+              status: 'submitted',
+              member_name: profile.full_name,
+              created_by: auth.userId,
+              process_type: '일반작업',
+            })
+            .select('id, status')
+            .single()
+
+          if (createError) throw createError
+          report = newReport
+        }
+
+        if (!report) throw new AppError('작업일지 생성에 실패했습니다.', ErrorType.UNKNOWN)
+
+        const targetName = `${profile.full_name} (본인입력)`
+
+        // 5. 인력 투입 정보 (daily_report_workers) 업데이트
+        const { data: existingWorker } = await supabase
+          .from('daily_report_workers')
+          .select('id')
+          .eq('daily_report_id', report.id)
+          .eq('worker_name', targetName)
+          .maybeSingle()
+
+        if (existingWorker) {
+          const { error: updateError } = await supabase
+            .from('daily_report_workers')
+            .update({
+              work_hours: data.hours,
+              labor_hours: data.hours / 8,
+              worker_id: auth.userId,
+              man_days: data.hours / 8,
+            })
+            .eq('id', existingWorker.id)
+        } else {
+          await supabase.from('daily_report_workers').insert({
+            daily_report_id: report.id,
+            worker_name: targetName,
+            worker_id: auth.userId,
+            work_hours: data.hours,
+            labor_hours: data.hours / 8,
+            man_days: data.hours / 8,
+          })
+        }
+
+        // 6. 근태 기록 (work_records) 동기화
+        const { data: existingWorkRecord } = await supabase
+          .from('work_records')
+          .select('id')
+          .eq('profile_id', auth.userId)
+          .eq('work_date', data.workDate)
+          .eq('site_id', data.siteId)
+          .maybeSingle()
+
+        if (existingWorkRecord) {
+          await supabase
+            .from('work_records')
+            .update({
+              labor_hours: data.hours / 8,
+              work_hours: data.hours,
+              status: 'submitted',
+              daily_report_id: report.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingWorkRecord.id)
+        } else {
+          await supabase.from('work_records').insert({
+            profile_id: auth.userId,
+            user_id: auth.userId,
+            site_id: data.siteId,
+            work_date: data.workDate,
+            labor_hours: data.hours / 8,
+            work_hours: data.hours,
+            status: 'submitted',
+            daily_report_id: report.id,
+          })
+        }
+
+        results.push({ siteId: data.siteId, success: true })
+      } catch (innerError) {
+        console.error(`Error processing batch item for site ${data.siteId}:`, innerError)
+        results.push({
+          siteId: data.siteId,
+          success: false,
+          error: innerError instanceof Error ? innerError.message : 'Unknown error',
+        })
+      }
+    }
+
+    revalidatePath('/mobile/attendance')
+
+    return {
+      success: true,
+      data: results,
+      message: `${results.filter(r => r.success).length}건이 저장되었습니다.`,
+    }
+  } catch (error) {
+    logError(error, 'batchUpsertMyLabor')
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '일괄 저장에 실패했습니다.',
     }
   }
 }

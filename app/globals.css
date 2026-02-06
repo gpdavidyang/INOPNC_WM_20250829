@@ -2166,8 +2166,13 @@ html.dark .doc-hub .grid-thumbs .thumb {
   border-right: none;
 }
 
-.cal-cell:hover {
+.cal-cell:hover,
+.cal-cell--clickable:hover {
   background: #f3f4f6;
+}
+
+.cal-cell--clickable {
+  cursor: pointer;
 }
 
 .cal-cell.today {
