@@ -1,9 +1,8 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { resolveStorageReference } from '@/lib/storage/paths'
 import { normalizeRequiredDocStatus, type RequiredDocStatus } from '@/lib/documents/status'
+import { resolveStorageReference } from '@/lib/storage/paths'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -164,20 +163,24 @@ export async function POST(request: NextRequest) {
     const supabase = createClient()
 
     const body = await request.json()
-    const { requirement_id, document_id } = body
+    const { requirement_id, document_id, file_url, file_name } = body
 
     if (!requirement_id) {
       return NextResponse.json({ error: 'requirement_id is required' }, { status: 400 })
     }
 
     const timestamp = new Date().toISOString()
-    const status: RequiredDocStatus = document_id ? 'pending' : 'not_submitted'
+    // Status is 'pending' if there is a document linked OR a file uploaded
+    const status: RequiredDocStatus = document_id || file_url ? 'submitted' : 'not_submitted'
+
     const payload: Record<string, any> = {
       user_id: authResult.userId,
       requirement_id,
       document_id: document_id || null,
       submission_status: status,
-      submitted_at: document_id ? timestamp : null,
+      file_url: file_url || null,
+      file_name: file_name || null,
+      submitted_at: document_id || file_url ? timestamp : null,
       approved_at: null,
       rejected_at: null,
       rejection_reason: null,

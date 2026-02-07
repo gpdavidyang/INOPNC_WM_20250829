@@ -1,11 +1,10 @@
-'use server'
-
-import { createClient } from '@/lib/supabase/server'
 import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 // Storage bucket configuration
 export const STORAGE_BUCKETS = {
-  SITE_DOCUMENTS: 'site-documents'
+  SITE_DOCUMENTS: 'site-documents',
 } as const
 
 // Document types
@@ -17,12 +16,12 @@ export const FILE_VALIDATION = {
   ALLOWED_MIME_TYPES: [
     'application/pdf',
     'image/jpeg',
-    'image/jpg', 
+    'image/jpg',
     'image/png',
     'image/gif',
-    'image/webp'
+    'image/webp',
   ],
-  ALLOWED_EXTENSIONS: ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp']
+  ALLOWED_EXTENSIONS: ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'],
 } as const
 
 // Validation errors
@@ -36,24 +35,38 @@ export class FileValidationError extends Error {
 // Import the comprehensive validation system
 
 // Re-export for backward compatibility
-export { FileValidationError } from '@/lib/validators/file'
+// Removed duplicate export of FileValidationError
 
 /**
  * Validate file before upload (using comprehensive validation)
  */
+/**
+ * Validate file before upload
+ */
 export function validateFile(file: File, documentType?: DocumentType): void {
-  try {
-    validateFileStrict(file, documentType)
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      throw new FileValidationError(error.message)
-    }
-    throw error
+  // Check size
+  if (file.size > FILE_VALIDATION.MAX_SIZE) {
+    throw new FileValidationError(
+      `파일 크기는 ${(FILE_VALIDATION.MAX_SIZE / (1024 * 1024)).toFixed(0)}MB 이하여야 합니다.`
+    )
+  }
+
+  // Check type
+  // Allow if mime type matches OR if extension matches (fallback)
+  const isMimeValid = FILE_VALIDATION.ALLOWED_MIME_TYPES.includes(file.type as any)
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  const isExtValid = FILE_VALIDATION.ALLOWED_EXTENSIONS.includes(ext)
+
+  if (!isMimeValid && !isExtValid) {
+    throw new FileValidationError(
+      `지원되지 않는 파일 형식입니다. (${FILE_VALIDATION.ALLOWED_EXTENSIONS.join(', ')})`
+    )
   }
 }
 
 /**
  * Generate a unique file path for storage
+ * Physical storage paths (keys) should be ASCII-safe to avoid "Invalid key" errors.
  */
 export function generateFilePath(
   siteId: string,
@@ -61,12 +74,30 @@ export function generateFilePath(
   originalFileName: string
 ): string {
   const timestamp = Date.now()
-  const fileExtension = originalFileName.split('.').pop()
-  const sanitizedFileName = originalFileName
-    .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special chars with underscore
-    .substring(0, 100) // Limit length
-  
-  return `${siteId}/${documentType}/${timestamp}_${sanitizedFileName}`
+  // 1. Extreme normalization (NFC)
+  const normalized = originalFileName.normalize('NFC')
+
+  // 2. Extract extension safely
+  const parts = normalized.split('.')
+  const ext = parts.length > 1 ? parts.pop()?.toLowerCase() || 'bin' : 'bin'
+  const base = parts.join('.') || 'file'
+
+  // 3. Strict ASCII-only for the PHYSICAL KEY
+  let safeBase = base
+    .replace(/[^\x00-\x7F]/g, '_') // Replace all non-ASCII characters
+    .replace(/[^a-zA-Z0-9_-]/g, '_') // Replace all non-safe characters
+    .replace(/_{2,}/g, '_') // Collapse multiple underscores
+    .replace(/^_+|_+$/g, '') // Trim underscores
+
+  if (!safeBase) safeBase = 'upload'
+
+  const finalKey = `${timestamp}_${safeBase}.${ext}`
+  const fullPath = `${siteId}/${documentType}/${finalKey}`
+
+  console.log('[SUPABASE_STORAGE] Original:', originalFileName)
+  console.log('[SUPABASE_STORAGE] Clean Key:', fullPath)
+
+  return fullPath
 }
 
 /**
@@ -75,7 +106,8 @@ export function generateFilePath(
 export async function uploadSiteDocument(
   file: File,
   siteId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
+  customFileName?: string
 ): Promise<{
   fileName: string
   publicUrl: string
@@ -83,20 +115,53 @@ export async function uploadSiteDocument(
 }> {
   // Validate file
   validateFile(file)
-  
-  const supabase = createClient()
-  
-  // Generate unique file path
-  const filePath = generateFilePath(siteId, documentType, file.name)
-  
+
+  // Use service role client to bypass RLS policies for server-side upload
+  const supabase = createServiceRoleClient()
+
+  // ORIGINAL name (NFC) for display in the UI and Database
+  // Use customFileName if provided, as it's less likely to be mangled than file.name
+  const rawName = customFileName || file.name
+  const displayNames = rawName.normalize('NFC')
+
+  // Generate unique file path (Safe ASCII key for storage)
+  const filePath = generateFilePath(siteId, documentType, displayNames)
+
   try {
     // Upload file to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    let { data: uploadData, error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false // Don't overwrite existing files
+        upsert: false, // Don't overwrite existing files
       })
+
+    // If bucket not found, try to create it and retry upload
+    if (
+      uploadError &&
+      (uploadError.message.includes('Bucket not found') ||
+        uploadError.message.includes('not found') ||
+        uploadError.message.includes('does not exist'))
+    ) {
+      try {
+        console.log('Bucket not found, attempting to create...', STORAGE_BUCKETS.SITE_DOCUMENTS)
+        await createStorageBucket()
+
+        // Retry upload using service role
+        const adminSupabase = createServiceRoleClient()
+        const retryResult = await adminSupabase.storage
+          .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false,
+          })
+
+        uploadData = retryResult.data
+        uploadError = retryResult.error
+      } catch (createError) {
+        console.error('Failed to auto-create bucket or upload:', createError)
+      }
+    }
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError)
@@ -104,14 +169,14 @@ export async function uploadSiteDocument(
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
-      .getPublicUrl(filePath)
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(STORAGE_BUCKETS.SITE_DOCUMENTS).getPublicUrl(filePath)
 
     return {
-      fileName: file.name,
+      fileName: displayNames, // UI/DB should use the Korean name
       publicUrl,
-      path: filePath
+      path: filePath,
     }
   } catch (error) {
     console.error('Upload site document error:', error)
@@ -125,7 +190,8 @@ export async function uploadSiteDocument(
 export async function uploadSiteDocumentClient(
   file: File,
   siteId: string,
-  documentType: DocumentType
+  documentType: DocumentType,
+  customFileName?: string
 ): Promise<{
   fileName: string
   publicUrl: string
@@ -133,19 +199,23 @@ export async function uploadSiteDocumentClient(
 }> {
   // Validate file
   validateFile(file)
-  
+
   const supabase = createBrowserClient()
-  
+
+  // Normalize file name
+  const rawName = customFileName || file.name
+  const displayNames = rawName.normalize('NFC')
+
   // Generate unique file path
-  const filePath = generateFilePath(siteId, documentType, file.name)
-  
+  const filePath = generateFilePath(siteId, documentType, displayNames)
+
   try {
     // Upload file to storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
       .upload(filePath, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
       })
 
     if (uploadError) {
@@ -154,14 +224,14 @@ export async function uploadSiteDocumentClient(
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
-      .getPublicUrl(filePath)
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(STORAGE_BUCKETS.SITE_DOCUMENTS).getPublicUrl(filePath)
 
     return {
-      fileName: file.name,
+      fileName: displayNames,
       publicUrl,
-      path: filePath
+      path: filePath,
     }
   } catch (error) {
     console.error('Upload site document client error:', error)
@@ -174,12 +244,10 @@ export async function uploadSiteDocumentClient(
  */
 export async function deleteSiteDocumentFile(filePath: string): Promise<void> {
   const supabase = createClient()
-  
+
   try {
-    const { error } = await supabase.storage
-      .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
-      .remove([filePath])
-      
+    const { error } = await supabase.storage.from(STORAGE_BUCKETS.SITE_DOCUMENTS).remove([filePath])
+
     if (error) {
       console.error('Storage delete error:', error)
       throw new Error(`파일 삭제 실패: ${error.message}`)
@@ -195,18 +263,18 @@ export async function deleteSiteDocumentFile(filePath: string): Promise<void> {
  */
 export async function getSiteDocumentInfo(filePath: string) {
   const supabase = createClient()
-  
+
   try {
     const { data, error } = await supabase.storage
       .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
       .list(filePath.split('/').slice(0, -1).join('/'), {
-        search: filePath.split('/').pop()
+        search: filePath.split('/').pop(),
       })
-      
+
     if (error) {
       throw new Error(`파일 정보 조회 실패: ${error.message}`)
     }
-    
+
     return data?.[0] || null
   } catch (error) {
     console.error('Get site document info error:', error)
@@ -218,24 +286,22 @@ export async function getSiteDocumentInfo(filePath: string) {
  * List all files for a site and document type
  */
 export async function listSiteDocuments(
-  siteId: string, 
+  siteId: string,
   documentType?: DocumentType
 ): Promise<any[]> {
   const supabase = createClient()
-  
+
   const path = documentType ? `${siteId}/${documentType}` : siteId
-  
+
   try {
-    const { data, error } = await supabase.storage
-      .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
-      .list(path, {
-        sortBy: { column: 'created_at', order: 'desc' }
-      })
-      
+    const { data, error } = await supabase.storage.from(STORAGE_BUCKETS.SITE_DOCUMENTS).list(path, {
+      sortBy: { column: 'created_at', order: 'desc' },
+    })
+
     if (error) {
       throw new Error(`파일 목록 조회 실패: ${error.message}`)
     }
-    
+
     return data || []
   } catch (error) {
     console.error('List site documents error:', error)
@@ -248,20 +314,19 @@ export async function listSiteDocuments(
  * This should be run once during deployment
  */
 export async function createStorageBucket(): Promise<void> {
-  const supabase = createClient()
-  
+  const supabase = createServiceRoleClient()
+
   try {
-    const { data, error } = await supabase.storage
-      .createBucket(STORAGE_BUCKETS.SITE_DOCUMENTS, {
-        public: true,
-        fileSizeLimit: FILE_VALIDATION.MAX_SIZE,
-        allowedMimeTypes: FILE_VALIDATION.ALLOWED_MIME_TYPES
-      })
-      
+    const { data, error } = await supabase.storage.createBucket(STORAGE_BUCKETS.SITE_DOCUMENTS, {
+      public: true,
+      fileSizeLimit: FILE_VALIDATION.MAX_SIZE,
+      allowedMimeTypes: FILE_VALIDATION.ALLOWED_MIME_TYPES,
+    })
+
     if (error && !error.message.includes('already exists')) {
       throw new Error(`스토리지 버킷 생성 실패: ${error.message}`)
     }
-    
+
     console.log('Storage bucket created successfully:', STORAGE_BUCKETS.SITE_DOCUMENTS)
   } catch (error) {
     console.error('Create storage bucket error:', error)
@@ -274,10 +339,10 @@ export async function createStorageBucket(): Promise<void> {
  */
 export function getFilePublicUrl(filePath: string): string {
   const supabase = createClient()
-  
-  const { data: { publicUrl } } = supabase.storage
-    .from(STORAGE_BUCKETS.SITE_DOCUMENTS)
-    .getPublicUrl(filePath)
-    
+
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from(STORAGE_BUCKETS.SITE_DOCUMENTS).getPublicUrl(filePath)
+
   return publicUrl
 }

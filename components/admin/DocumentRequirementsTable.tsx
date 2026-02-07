@@ -47,7 +47,9 @@ export default function DocumentRequirementsTable({
           >
             {t?.name_ko || t?.name_en || '-'}
           </Link>
-          <span className="text-[10px] font-medium text-gray-400 font-mono">{t.code}</span>
+          <span className="text-[10px] font-medium text-gray-400 line-clamp-1">
+            {t.description}
+          </span>
         </div>
       ),
     },

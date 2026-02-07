@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createClient } from '@/lib/supabase/server'
 import { resolveStorageReference } from '@/lib/storage/paths'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { NextRequest, NextResponse } from 'next/server'
 
 const FALLBACK_PREFIX = 'fallback-'
 
@@ -192,7 +192,9 @@ async function handleFallbackSubmissionAction({
 }): Promise<{ ok: boolean; error?: string; status?: number }> {
   const { data: submission, error: submissionError } = await supabase
     .from('user_document_submissions')
-    .select('id, user_id, requirement_id, document_id, submission_status, submitted_at')
+    .select(
+      'id, user_id, requirement_id, document_id, submission_status, submitted_at, file_url, file_name'
+    )
     .eq('id', submissionId)
     .maybeSingle()
 
@@ -223,7 +225,10 @@ async function handleFallbackSubmissionAction({
         .maybeSingle()
     ).data
 
-  if (!document && action !== 'delete') {
+  const finalFileUrl = submission.file_url || document?.file_url
+  const finalFileName = submission.file_name || document?.file_name
+
+  if (!finalFileUrl && action !== 'delete') {
     return {
       ok: false,
       error: '첨부된 파일이 없어 승인/반려를 진행할 수 없습니다.',
@@ -272,9 +277,13 @@ async function handleFallbackSubmissionAction({
 
   await upsertUnifiedDocFromSubmission({
     supabase,
-    submission,
+    submission: {
+      ...submission,
+      file_url: finalFileUrl,
+      file_name: finalFileName,
+    },
     requirement,
-    document: document!,
+    document: document || null,
     action,
     reviewerId,
     rejectionReason,
@@ -323,7 +332,7 @@ async function upsertUnifiedDocFromSubmission({
     name_en?: string | null
     instructions?: string | null
   } | null
-  document: any
+  document: any | null
   action: 'approve' | 'reject'
   reviewerId: string
   rejectionReason?: string
@@ -331,8 +340,11 @@ async function upsertUnifiedDocFromSubmission({
   try {
     if (!submission.user_id) return
     const requirementCode = requirement?.code || null
+    const finalFileUrl = submission.file_url || document?.file_url
+    const finalFileName = submission.file_name || document?.file_name
+
     const storageRef = resolveStorageReference({
-      url: document?.file_url || undefined,
+      url: finalFileUrl || undefined,
       bucket: document?.storage_bucket || undefined,
       path: document?.storage_path || document?.folder_path || undefined,
     })
@@ -341,12 +353,12 @@ async function upsertUnifiedDocFromSubmission({
         requirement?.name_ko ||
         requirement?.name_en ||
         document?.title ||
-        document?.file_name ||
+        finalFileName ||
         '제출 문서',
       description: document?.description || requirement?.instructions || '',
-      file_name: document?.file_name,
+      file_name: finalFileName,
       file_size: document?.file_size,
-      file_url: document?.file_url,
+      file_url: finalFileUrl,
       mime_type: document?.mime_type,
       storage_bucket: document?.storage_bucket || storageRef?.bucket || null,
       storage_path: document?.storage_path || storageRef?.objectPath || null,

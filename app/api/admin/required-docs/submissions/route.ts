@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { normalizeRequiredDocStatus } from '@/lib/documents/status'
+import { resolveStorageReference } from '@/lib/storage/paths'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { resolveStorageReference } from '@/lib/storage/paths'
-import { normalizeRequiredDocStatus } from '@/lib/documents/status'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,7 +166,9 @@ export async function GET(request: NextRequest) {
 
     const { data: submissionFallback, error: submissionFallbackError } = await db
       .from('user_document_submissions')
-      .select('id, submission_status, submitted_at, requirement_id, document_id, user_id')
+      .select(
+        'id, submission_status, submitted_at, requirement_id, document_id, user_id, file_url, file_name'
+      )
       .neq('submission_status', 'not_submitted')
 
     if (submissionFallbackError) {
@@ -252,8 +254,11 @@ export async function GET(request: NextRequest) {
         if (existingKeys.has(key)) return
         existingKeys.add(key)
 
+        const finalFileUrl = sub?.file_url || document?.file_url || ''
+        const finalFileName = sub?.file_name || document?.file_name || ''
+
         const storageRef = resolveStorageReference({
-          url: document?.file_url || undefined,
+          url: finalFileUrl || undefined,
           path: document?.storage_path || document?.folder_path || undefined,
           bucket: document?.storage_bucket || undefined,
         })
@@ -267,8 +272,8 @@ export async function GET(request: NextRequest) {
           requirement_id: sub?.requirement_id || requirementCode,
           document_code: requirementCode,
           document_id: sub?.document_id || null,
-          file_name: document?.file_name || '',
-          file_url: document?.file_url || '',
+          file_name: finalFileName,
+          file_url: finalFileUrl,
           file_size: document?.file_size || null,
           storage_bucket: document?.storage_bucket || storageRef?.bucket || null,
           storage_path: document?.storage_path || storageRef?.objectPath || null,
@@ -283,7 +288,7 @@ export async function GET(request: NextRequest) {
           site: null,
           submission_id: sub?.id || null,
           _key: key,
-          is_placeholder: !document?.file_url,
+          is_placeholder: !finalFileUrl,
         })
       })
     }

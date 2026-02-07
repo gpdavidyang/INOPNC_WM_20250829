@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createClient } from '@/lib/supabase/server'
 import {
   COMPANY_DOC_SLUG_REGEX,
   DEFAULT_COMPANY_DOCUMENT_TYPES,
   detectCompanyDocSlug,
   normalizeCompanyDocumentTypes,
 } from '@/lib/documents/company-types'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,36 +53,29 @@ export async function GET(request: NextRequest) {
     if (includeDocs) {
       const preparedDocs: any[] = []
 
-      const columnVariants = [
-        'id,title,file_name,file_url,folder_path,tags,document_type,status,created_at,metadata,storage_bucket,storage_path',
-        'id,title,file_name,file_url,folder_path,tags,document_type,status,created_at,metadata',
-        'id,title,file_name,file_url,tags,document_type,status,created_at,metadata',
-        'id,title,file_name,file_url,tags,document_type,status,created_at',
-      ]
+      const richSelect = `
+        id, title, file_name, file_url, tags, document_type, status, created_at, metadata,
+        uploaded_by,
+        uploader:profiles!uploaded_by(id, full_name, role)
+      `
+
       let docQuery: { data: any[] | null; error: any; note?: string } | null = null
 
-      for (const columns of columnVariants) {
-        const query = await supabase
-          .from('unified_documents')
-          .select(columns)
-          .eq('category_type', 'shared')
-          .in('status', ['uploaded', 'active', 'approved', 'draft'])
-          .order('created_at', { ascending: false })
-          .limit(500)
-        docQuery = { data: query.data, error: query.error, note: columns }
-        if (!query.error || query.error?.code !== '42703') {
-          break
-        }
-      }
+      const query = await supabase
+        .from('unified_documents')
+        .select(richSelect)
+        .eq('category_type', 'shared')
+        .in('status', ['uploaded', 'active', 'approved', 'draft'])
+        .order('created_at', { ascending: false })
+        .limit(500)
 
-      if (!docQuery) {
-        docQuery = { data: null, error: new Error('Unknown query state') }
-      }
+      docQuery = { data: query.data, error: query.error, note: 'unified_documents' }
 
       if (!docQuery.error && Array.isArray(docQuery.data)) {
         preparedDocs.push(
           ...docQuery.data.map(doc => ({
             ...doc,
+            uploader_name: doc.uploader?.full_name || '관리자',
             metadata:
               doc?.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
                 ? doc.metadata
@@ -92,15 +85,21 @@ export async function GET(request: NextRequest) {
         )
       } else {
         console.warn(
-          '[company-doc-types] unified_documents lookup failed, falling back to unified_document_system',
+          '[company-doc-types] unified_documents lookup failed or empty, trying unified_document_system',
           docQuery.error
         )
         const fallback = await supabase
           .from('unified_document_system')
-          .select('*')
+          .select(
+            `
+            *,
+            uploader:profiles!uploaded_by(id, full_name, role)
+          `
+          )
           .eq('category_type', 'shared')
           .order('created_at', { ascending: false })
           .limit(500)
+
         if (!fallback.error && Array.isArray(fallback.data)) {
           preparedDocs.push(
             ...fallback.data.map(doc => ({
@@ -115,6 +114,7 @@ export async function GET(request: NextRequest) {
               document_type: doc.document_type || doc.category_type || null,
               status: doc.status || null,
               created_at: doc.created_at,
+              uploader_name: doc.uploader?.full_name || '관리자',
               metadata:
                 doc?.metadata && typeof doc.metadata === 'object' && !Array.isArray(doc.metadata)
                   ? doc.metadata

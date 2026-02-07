@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { normalizeRequiredDocStatus } from '@/lib/documents/status'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -92,16 +92,77 @@ export async function GET(request: NextRequest) {
           email: doc.uploader?.email || '',
           role: doc.uploader?.role || 'worker',
         },
-        organization_name: doc.uploader?.organization_name || '', // Organization data can be added later if needed
+        organization_name: doc.uploader?.organization_name || '',
+        submission_id: (doc as any).metadata?.submission_id || null,
       })) || []
 
     console.log('Required documents API - Transformed documents:', transformedDocuments.length)
     console.log('Required documents API - Sample transformed:', transformedDocuments[0])
 
+    // 2. Fetch fallbacks from user_document_submissions for docs that might not be in unified_system yet
+    const { data: submissionFallback, error: fallbackError } = await clientToUse
+      .from('user_document_submissions')
+      .select('id, submission_status, submitted_at, requirement_id, user_id, file_url, file_name')
+      .neq('submission_status', 'not_submitted')
+
+    let fallbackRows: any[] = []
+    if (!fallbackError && submissionFallback) {
+      // Get requirement details for fallbacks
+      const reqIds = Array.from(
+        new Set(submissionFallback.map(s => s.requirement_id).filter(Boolean))
+      )
+      const userIds = Array.from(new Set(submissionFallback.map(s => s.user_id).filter(Boolean)))
+
+      const [reqs, profiles] = await Promise.all([
+        reqIds.length
+          ? clientToUse.from('required_document_types').select('id, code, name_ko').in('id', reqIds)
+          : Promise.resolve({ data: [] }),
+        userIds.length
+          ? clientToUse.from('profiles').select('id, full_name, email, role').in('id', userIds)
+          : Promise.resolve({ data: [] }),
+      ])
+
+      const reqMap = new Map((reqs.data || []).map((r: any) => [r.id, r]))
+      const profileMap = new Map((profiles.data || []).map((p: any) => [p.id, p]))
+
+      const existingDocIds = new Set(
+        transformedDocuments.map((d: any) => d.submission_id).filter(Boolean)
+      )
+
+      fallbackRows = submissionFallback
+        .filter(sub => !existingDocIds.has(sub.id))
+        .map(sub => {
+          const req = reqMap.get(sub.requirement_id)
+          const profile = profileMap.get(sub.user_id)
+          return {
+            id: `fallback-${sub.id}`,
+            title: req?.name_ko || '제출 문서',
+            description: '',
+            document_type: req?.code || req?.name_ko || 'unknown',
+            file_name: sub.file_name || '',
+            file_size: null,
+            status: normalizeRequiredDocStatus(sub.submission_status),
+            submission_date: sub.submitted_at || new Date().toISOString(),
+            submitted_by: {
+              id: sub.user_id,
+              full_name: profile?.full_name || 'Unknown',
+              email: profile?.email || '',
+              role: profile?.role || 'worker',
+            },
+            organization_name: '',
+            submission_id: sub.id,
+          }
+        })
+    }
+
+    const finalDocuments = [...transformedDocuments, ...fallbackRows].sort(
+      (a, b) => new Date(b.submission_date).getTime() - new Date(a.submission_date).getTime()
+    )
+
     return NextResponse.json({
       success: true,
-      documents: transformedDocuments,
-      total: transformedDocuments.length,
+      documents: finalDocuments,
+      total: finalDocuments.length,
     })
   } catch (error) {
     console.error('API error:', error)

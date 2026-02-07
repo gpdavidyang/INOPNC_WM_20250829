@@ -32,7 +32,6 @@ type FormState = {
   code: string
   name_ko: string
   description: string
-  instructions: string
   max_file_size_mb: number
   sort_order: number
   is_active: boolean
@@ -44,7 +43,6 @@ const DEFAULT_FORM: FormState = {
   code: '',
   name_ko: '',
   description: '',
-  instructions: '',
   max_file_size_mb: 10,
   sort_order: 0,
   is_active: true,
@@ -117,7 +115,6 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
       code: row.code || '',
       name_ko: row.name_ko || '',
       description: row.description || '',
-      instructions: row.instructions || '',
       max_file_size_mb: row.max_file_size
         ? Math.round(row.max_file_size / (1024 * 1024))
         : DEFAULT_FORM.max_file_size_mb,
@@ -167,7 +164,6 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
         name_ko: form.name_ko.trim(),
         name_en: autoNameEn || null,
         description: form.description.trim() || null,
-        instructions: form.instructions.trim() || null,
         file_types: DEFAULT_FILE_TYPES,
         max_file_size:
           Math.max(1, Number(form.max_file_size_mb) || DEFAULT_FORM.max_file_size_mb) * 1024 * 1024,
@@ -261,7 +257,7 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
   const formId = 'required-type-editor'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-1.5">
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
@@ -404,35 +400,19 @@ export default function RequiredTypesSettings({ initialTypes, onTypesUpdated }: 
                 </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6">
                 <div className="flex flex-col gap-1.5">
                   <Label
                     htmlFor="description"
                     className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
                   >
-                    세부 설명
+                    세부 설명 (모바일 서브제목)
                   </Label>
                   <Textarea
                     id="description"
                     value={form.description}
                     onChange={e => handleInput('description', e.target.value)}
-                    placeholder="이 서류 유형에 대한 간단한 설명을 입력하세요."
-                    rows={3}
-                    className="min-h-[80px] rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <Label
-                    htmlFor="instructions"
-                    className="text-[11px] font-semibold text-muted-foreground tracking-tight ml-1"
-                  >
-                    제출 지침 (사용자 안내용)
-                  </Label>
-                  <Textarea
-                    id="instructions"
-                    value={form.instructions}
-                    onChange={e => handleInput('instructions', e.target.value)}
-                    placeholder="사용자가 서류를 준비할 때 주의해야 할 사항을 입력하세요."
+                    placeholder="이 서류 유형에 대한 간단한 설명을 입력하세요. 이 내용은 사용자 앱의 서브제목으로 표시됩니다."
                     rows={3}
                     className="min-h-[80px] rounded-xl bg-white border-none shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500 font-medium"
                   />

@@ -1,8 +1,9 @@
-export type RequiredDocStatus = 'not_submitted' | 'pending' | 'approved' | 'rejected'
+export type RequiredDocStatus = 'not_submitted' | 'pending' | 'submitted' | 'approved' | 'rejected'
 
 export const REQUIRED_DOC_STATUS_LABELS: Record<RequiredDocStatus, string> = {
   not_submitted: '미제출',
   pending: '검토중',
+  submitted: '검토중',
   approved: '승인완료',
   rejected: '반려',
 }

@@ -11,9 +11,10 @@ import { SearchPage } from './SearchPage'
 interface MobileLayoutProps {
   children: ReactNode
   topTabs?: ReactNode
+  headerHeight?: number | string
 }
 
-export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs }) => {
+export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs, headerHeight }) => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
 
@@ -58,7 +59,14 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({ children, topTabs })
           {/* Main Content Area - Enforce max-width 600px centrally */}
           <main
             className={`${mainClassName} mx-auto w-full max-w-[600px] overflow-x-hidden min-h-screen pb-24`}
-            style={{ maxWidth: '600px' }} // Inline style backup
+            style={{
+              maxWidth: '600px', // Inline style backup
+              paddingTop: headerHeight
+                ? typeof headerHeight === 'number'
+                  ? `${headerHeight}px`
+                  : headerHeight
+                : undefined,
+            }}
           >
             {children}
           </main>

@@ -1,0 +1,907 @@
+/* =================================================================
+ [1. Master Design Tokens - @site.html 기반]
+ ================================================================= */
+:root {
+  --font-main:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    sans-serif;
+  --primary: #31a3fa;
+  --primary-bg: #eaf6ff;
+  --header-navy: #1a254f;
+  --navy-dark: #1a254f;
+  --navy-btn: #1a254f;
+  --btn-logout-bg: #1a254f;
+  --btn-logout-text: #ffffff;
+  --text-main: #111111;
+  --text-sub: #475569;
+  --text-placeholder: #94a3b8;
+  --border: #e2e8f0;
+  --bg-body: #f2f4f6;
+  --bg-surface: #ffffff;
+  --bg-input: #ffffff;
+  --bg-search-input: #ffffff;
+  --bg-hover: #f8fafc;
+  --danger: #ef4444;
+  --del-btn-bg: #fef2f2;
+  --badge-gray-bg: #f1f5f9;
+  --badge-gray-text: #475569;
+  --badge-gray-border: #e2e8f0;
+  --badge-sky-bg: var(--primary-bg);
+  --badge-sky-text: var(--primary);
+  --badge-sky-border: var(--primary);
+  --header-height: 54px;
+  --nav-height: 65px;
+  --radius-card: 16px;
+  --btn-clear-bg: #cbd5e1;
+  --btn-clear-text: #ffffff;
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+
+  --st-ing-bg: #eff6ff;
+  --st-ing-text: #3b82f6;
+  --st-ing-border: #bfdbfe;
+  --st-wait-bg: #eef2ff;
+  --st-wait-text: #6366f1;
+  --st-wait-border: #c7d2fe;
+  --st-done-bg: #f1f5f9;
+  --st-done-text: #64748b;
+  --st-done-border: #94a3b8;
+
+  --tag-affil-bg: #e0f2fe;
+  --tag-affil-text: #0284c7;
+  --tag-affil-border: #bae6fd;
+  --tag-gray-bg: #f8fafc;
+  --tag-gray-text: #64748b;
+  --tag-gray-border: #e2e8f0;
+
+  --act-draw-bg: var(--primary-bg);
+  --act-draw-text: var(--primary);
+  --act-draw-border: #bae6fd;
+  --act-ptw-bg: #eff6ff;
+  --act-ptw-text: #2563eb;
+  --act-ptw-border: #dbeafe;
+  --act-log-bg: #f0fdf4;
+  --act-log-text: #166534;
+  --act-log-border: #bbf7d0;
+  --act-req-bg: #f8fafc;
+  --act-req-text: #475569;
+  --act-req-border: #e2e8f0;
+
+  --btn-icon-bg: #eff6ff;
+  --btn-icon-border: #dbeafe;
+  --btn-icon-color: #1e3a8a;
+
+  --safe-area-bottom: env(safe-area-inset-bottom);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  font-family: var(--font-main);
+  font-size: 17px;
+  color: var(--text-main);
+  background-color: var(--bg-body);
+  line-height: 1.5;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
+}
+
+button,
+select,
+input,
+textarea {
+  font-family: var(--font-main);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* 탭 바 (상단 고정, 최대 너비 제한) - Replaced with .doc-tabs in React implementation */
+.doc-tabs {
+  position: sticky; /* Changed from fixed to sticky for better layout in React container */
+  top: 54px; /* Force sync with header height */
+  width: 100%;
+  height: 48px;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 40;
+  display: flex;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: background 0.3s;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+/* Mobile App: tabs live inside the scrolling .mobile-container which already offsets for the fixed header */
+.mobile-container .doc-tabs {
+  top: 0;
+}
+
+.tab-item {
+  flex: 1;
+  min-width: 80px; /* Ensure minimum width for scroll */
+  font-size: 15px; /* Slightly adjusted */
+  font-weight: 500;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  color: #64748b;
+  transition: all 0.2s;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.tab-item.active {
+  color: #0ea5e9;
+  font-weight: 800;
+}
+.tab-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 3px;
+  background-color: #0ea5e9;
+  border-radius: 3px 3px 0 0;
+}
+
+/* Main Content Wrapper */
+
+.doc-hub-container {
+  padding-bottom: 120px; /* Space for FAB and bottom nav */
+  background-color: var(--bg-body);
+  min-height: 100vh;
+  margin-top: 0; /* Updated: Spacing is handled by MobileLayout padding. */
+  padding-top: 0;
+}
+
+/* 
+ * [Layout Settings for User Reference]
+ * Header Height: 54px (Fixed via .header-content rule below)
+ * Tab Position: 54px (Sticky top via .doc-tabs rule)
+ * Page Padding: calc(54px + safe-area) (Controlled by MobileLayout prop)
+ */
+
+body:has(.doc-hub-container):not(:has(.mobile-root)) .header-content {
+  height: 54px !important;
+}
+
+body:has(.doc-hub-container):not(:has(.mobile-root)) .app-header {
+  height: auto !important; /* let it grow with padding if needed, or stick to content */
+}
+
+.doc-content {
+  padding: 16px;
+}
+
+.doc-sticky-header {
+  position: sticky;
+  top: calc(54px + 48px); /* Header + Tabs height */
+  z-index: 35;
+  background: var(--bg-body);
+}
+
+/* Mobile App: sticky offsets are relative to the .mobile-container scroll area */
+.mobile-container .doc-sticky-header {
+  top: 48px; /* Tabs height */
+}
+
+/* Search Bar */
+.search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--bg-search-input);
+  border-radius: 16px;
+  padding: 0 16px;
+  height: 54px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+}
+
+.search-bar:hover {
+  background-color: var(--bg-surface);
+  border-color: rgba(49, 163, 250, 0.5);
+}
+
+.search-bar:focus-within {
+  box-shadow: 0 0 0 2px var(--primary);
+  background-color: var(--bg-surface);
+  border-color: transparent;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-main);
+  outline: none;
+  height: 100%;
+}
+.search-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* Header */
+.doc-header {
+  height: var(--header-height);
+  background-color: var(--header-navy);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  color: white;
+}
+.header-title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  padding: 0 0 16px 0;
+  background: transparent;
+  position: relative;
+  top: auto;
+  z-index: 1;
+  width: 100%;
+}
+
+.filter-scroll {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(1px, 1fr)
+  ); /* Force equal width single row if possible, or wrap */
+  /* Actually, for 5 items, we want 5 cols. For 10 items? */
+  /* User request specifically listed the 5 items. I will use flex to distribute evenly. */
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.filter-chip {
+  flex: 1; /* Grow to fill width */
+  height: 40px;
+  padding: 0 4px; /* Reduced padding to fit text */
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px; /* Changed from 100px to 8px for rectangular grid look */
+  color: #64748b;
+  font-size: 14px; /* Slightly smaller for density */
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-chip.active {
+  font-weight: 700;
+  background-color: var(--header-navy);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15);
+  transform: translateY(-1px);
+}
+
+/* Document Card Improvements */
+/* Document Card - Optimized for Selection Flow */
+.doc-card {
+  background: var(--bg-surface);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.doc-card:hover {
+  background: var(--bg-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+}
+
+.doc-card.selected {
+  border-color: #31a3fa;
+  background: #f0f9ff;
+  box-shadow: 0 8px 30px rgba(49, 163, 250, 0.1);
+}
+
+.doc-card.no-file {
+  opacity: 0.8;
+  cursor: default;
+  background: #f8fafc;
+}
+
+.doc-card.no-file:hover {
+  background: #f8fafc;
+  transform: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.card-content {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+}
+
+.checkbox-wrapper {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-surface);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.checkbox.checked {
+  background: #0ea5e9;
+  border-color: #0ea5e9;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+.checkbox svg {
+  color: white;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.2s;
+  stroke: white;
+  stroke-width: 3;
+}
+
+.checkbox.checked svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.card-thumbnail {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--navy-dark);
+  line-height: 1.2;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-desc,
+.card-meta {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-sub);
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.meta-item {
+  flex-shrink: 0;
+}
+
+.meta-item.filename {
+  flex-shrink: 1;
+  min-width: 0;
+  color: #94a3b8;
+}
+
+.doc-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Badges */
+.badge-group {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sub-badge {
+  font-size: 14px;
+  padding: 0 12px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sub-badge.contractor {
+  background: #eef2ff;
+  color: #6366f1;
+  border: 1px solid #c7d2fe;
+}
+.sub-badge.affil {
+  background: var(--tag-affil-bg);
+  color: var(--tag-affil-text);
+  border: 1px solid var(--tag-affil-border);
+}
+
+/* Status Badges */
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.status-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+.status-pending {
+  background: #fef3c7;
+  color: #d97706;
+}
+.status-rejected {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.status-none {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* FAB */
+.fab-container {
+  position: fixed;
+  bottom: calc(var(--nav-height) + 20px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+  z-index: 50;
+}
+
+.fab-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--header-navy);
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.fab-button:active {
+  transform: scale(0.9);
+}
+
+.fab-text {
+  display: none; /* Icon only for FAB usually */
+}
+
+/* Action Buttons */
+.action-btn {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #475569;
+}
+.action-btn.primary {
+  background: #f0f9ff;
+  color: #0284c7;
+  border-color: #e0f2fe;
+}
+.action-btn.has-file {
+  /* Style for 'Preview' button */
+}
+.action-btn.no-file {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Punch Status Badge on Card */
+.punch-card-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  color: #ffffff;
+  border-radius: 0 var(--radius-card) 0 12px;
+  margin: 0;
+}
+.punch-card-badge.done {
+  background: #64748b;
+}
+.punch-card-badge.open {
+  background: #ef4444;
+}
+.punch-card-badge.ing {
+  background: #3b82f6;
+}
+
+/* Bottom Sheet */
+.bottom-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+}
+.bottom-sheet {
+  width: 100%;
+  background: white;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 24px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin: 0 auto 24px auto;
+}
+.upload-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  cursor: pointer;
+}
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+.icon-box.blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.icon-box.green {
+  background: #f0fdf4;
+  color: #166534;
+}
+.icon-box.purple {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+.icon-box.orange {
+  background: #fff7ed;
+  color: #c2410c;
+}
+/* Bottom Sheet Form Styles */
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.sheet-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--navy-dark);
+  margin: 0;
+}
+.close-button {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+.form-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+.form-input {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 16px;
+  font-size: 15px;
+  background: white;
+  transition: all 0.2s;
+  color: var(--text-main);
+}
+.form-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.15);
+}
+.form-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8fafc;
+  margin-bottom: 24px;
+}
+.upload-area:hover {
+  background: #f1f5f9;
+  border-color: var(--primary);
+}
+.upload-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-sub);
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 12px;
+}
+.btn-sheet-cancel {
+  flex: 1;
+  height: 52px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+}
+.btn-sheet-submit {
+  flex: 2;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--header-navy);
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+}
+
+/* Dropdown for 서류명 */
+.type-dropdown-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-top: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  list-style: none;
+  padding: 0;
+}
+.type-dropdown-list li {
+  padding: 14px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-main);
+  transition: background-color 0.2s;
+}
+.type-dropdown-list li:hover {
+  background-color: #f8fafc;
+}
+.type-dropdown-list li:last-child {
+  border-bottom: none;
+}
+.type-dropdown-list .item-desc {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+/* Clear button inside input */
+.input-with-clear {
+  position: relative;
+}
+.upload-clear-button {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #cbd5e1;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.text-separator {
+  margin: 0 8px;
+  color: #cbd5e1;
+}
+
+/* Batch Action Bar */
+.batch-bar {
+  position: fixed;
+  bottom: calc(65px + 20px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(24px);
+  background: #1e293b; /* Darker Navy - Slate 900 feel */
+  color: white;
+  border-radius: 20px;
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  z-index: 5000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  opacity: 0;
+  pointer-events: none;
+  width: auto;
+  min-width: 280px;
+}
+
+.batch-bar.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+.batch-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.batch-action:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.batch-action:active {
+  transform: scale(0.95);
+}
+
+.batch-action.delete {
+  color: #fca5a5;
+}
+
+.batch-action.delete:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.batch-action span {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
