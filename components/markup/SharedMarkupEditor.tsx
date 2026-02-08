@@ -35,7 +35,19 @@ export function SharedMarkupEditor({
   const isMobile = Boolean(embedded)
 
   // 1. Core Engine
-  const engine = useMarkupEngine(initialDocument?.markup_data || [])
+  const sanitizedMarkup = React.useMemo(() => {
+    return (initialDocument?.markup_data || []).map((o: any) => ({
+      ...o,
+      // Ensure ID exists and is a string. If missing, generate one.
+      id: o.id ? String(o.id) : `gen-${Math.random().toString(36).slice(2, 9)}`,
+      x: Number(o.x),
+      y: Number(o.y),
+      width: o.width ? Number(o.width) : undefined,
+      height: o.height ? Number(o.height) : undefined,
+    }))
+  }, [initialDocument])
+
+  const engine = useMarkupEngine(sanitizedMarkup)
   const {
     state,
     setState,
@@ -100,12 +112,23 @@ export function SharedMarkupEditor({
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => {
+      // Auto-fit logic
+      const container = document.querySelector('.markup-canvas-container')
+      let initialZoom = 1
+      if (container) {
+        const { width: cw, height: ch } = container.getBoundingClientRect()
+        const scaleW = cw / img.naturalWidth
+        const scaleH = ch / img.naturalHeight
+        initialZoom = Math.min(scaleW, scaleH, 1) * 0.9 // 90% fit
+      }
+
       setState(prev => ({
         ...prev,
         viewerState: {
           ...prev.viewerState,
-          imageWidth: img.width,
-          imageHeight: img.height,
+          imageWidth: img.naturalWidth,
+          imageHeight: img.naturalHeight,
+          zoom: initialZoom,
         },
       }))
     }
@@ -113,10 +136,12 @@ export function SharedMarkupEditor({
   }, [bgUrl, setState])
 
   // 4. Pointer Handlers
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
   const worldFromClient = React.useCallback(
     (pt: { x: number; y: number }) => {
       const { zoom, panX, panY } = state.viewerState
-      const rect = document.querySelector('.markup-canvas-container')?.getBoundingClientRect()
+      const rect = containerRef.current?.getBoundingClientRect()
       return {
         x: (pt.x - (rect?.left || 0) - panX) / zoom,
         y: (pt.y - (rect?.top || 0) - panY) / zoom,
@@ -125,13 +150,81 @@ export function SharedMarkupEditor({
     [state.viewerState]
   )
 
+  // Fetch full markup data if missing (e.g. from list view)
+  React.useEffect(() => {
+    if (!initialDocument?.id) return
+
+    // If we have no markup objects but expect them (user scenario), try fetching
+    // Or just always fetch to be safe?
+    // Let's fetch if initialDocument doesn't have explicit markup_data array
+    // (Note: empty array is valid, but undefined/null suggests missing data)
+
+    const fetchLatest = async () => {
+      // Prioritize markupId if this is a shared document that points to a markup document
+      const targetId = initialDocument?.markupId || initialDocument?.id
+      if (!targetId) return
+
+      try {
+        const res = await fetch(`/api/markup-documents/${targetId}/data`)
+        if (!res.ok) throw new Error('Failed to fetch markup data')
+
+        const data = await res.json()
+        const markupData = data.markupData
+
+        if (Array.isArray(markupData)) {
+          if (markupData.length > 0) {
+            // Determine if we need to merge or replace. Replacement is safer for "Load".
+            // We need to sanitize ID just like before
+            const sanitized = markupData.map((o: any) => {
+              const base = {
+                ...o,
+                id: o.id ? String(o.id) : `gen-${Math.random().toString(36).slice(2, 9)}`,
+                x: Number(o.x),
+                y: Number(o.y),
+                width: o.width ? Number(o.width) : undefined,
+                height: o.height ? Number(o.height) : undefined,
+                fontSize: o.fontSize ? Number(o.fontSize) : undefined,
+                strokeWidth: o.strokeWidth ? Number(o.strokeWidth) : undefined,
+              }
+
+              if ((o.type === 'pen' || o.type === 'drawing') && Array.isArray(o.path)) {
+                base.path = o.path.map((pt: any) => ({
+                  x: Number(pt.x) || 0,
+                  y: Number(pt.y) || 0,
+                }))
+              }
+              return base
+            })
+
+            // Update engine state
+            setState(prev => ({ ...prev, markupObjects: sanitized }))
+          }
+        }
+      } catch (e) {
+        // no-op
+      }
+    }
+
+    fetchLatest()
+  }, [initialDocument?.id, initialDocument?.markupId, setState])
+
+  // Dynamic margin based on zoom to ensure consistent click area on screen
+  const hitTestWrapper = React.useCallback(
+    (objects: any[], p: { x: number; y: number }, e?: React.PointerEvent) => {
+      // Adjusted margin for better precision
+      const margin = 20 / (state.viewerState.zoom || 1)
+      return hitTest(objects, p, margin)
+    },
+    [state.viewerState.zoom]
+  )
+
   const handlers = usePointerHandlers({
     state,
     setState,
     setPreviewObject: engine.setPreviewObject,
     addObject,
     worldFromClient,
-    hitTest,
+    hitTest: hitTestWrapper,
     boxShape,
     boxSize,
     penColor,
@@ -301,9 +394,15 @@ export function SharedMarkupEditor({
           </div>
         )}
 
-        <div className="markup-canvas-container min-h-0 flex-1 relative bg-gray-100">
+        <div
+          ref={containerRef}
+          className="markup-canvas-container min-h-0 flex-1 relative bg-gray-100 touch-none"
+          onPointerDown={handlers.handlePointerDown}
+          onPointerMove={handlers.handlePointerMove}
+          onPointerUp={handlers.handlePointerUp}
+        >
           {/* Legend (범례) */}
-          <div className="absolute left-4 top-4 z-20 flex flex-col gap-1.5 rounded-2xl border border-white/40 bg-white/70 p-3 shadow-xl backdrop-blur-md">
+          <div className="absolute left-4 top-4 z-20 flex flex-col gap-1.5 rounded-2xl border border-white/40 bg-white/70 p-3 shadow-xl backdrop-blur-md pointer-events-none select-none">
             <div className="flex items-center gap-2">
               <div className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-sm shadow-red-200" />
               <span className="text-xs font-bold text-gray-700">작업진행</span>
@@ -340,16 +439,18 @@ export function SharedMarkupEditor({
             </button>
           </div>
 
-          <MarkupCanvas
-            backgroundUrl={initialDocument?.original_blueprint_url || ''}
-            viewerState={state.viewerState}
-            objects={state.markupObjects}
-            selectedIds={state.selectedObjects}
-            onPointerDown={handlers.handlePointerDown}
-            onPointerMove={handlers.handlePointerMove}
-            onPointerUp={handlers.handlePointerUp}
-            previewObject={engine.previewObject}
-          />
+          <div className="w-full h-full pointer-events-none">
+            <MarkupCanvas
+              backgroundUrl={initialDocument?.original_blueprint_url || ''}
+              viewerState={state.viewerState}
+              objects={state.markupObjects}
+              selectedIds={state.selectedObjects}
+              onPointerDown={() => {}}
+              onPointerMove={() => {}}
+              onPointerUp={() => {}}
+              previewObject={engine.previewObject}
+            />
+          </div>
         </div>
       </div>
 

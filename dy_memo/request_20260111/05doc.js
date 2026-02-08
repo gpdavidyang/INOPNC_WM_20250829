@@ -1082,7 +1082,6 @@ function renderDocumentList() {
             <div class="card-info">
               <div class="badge-group">
                 ${doc.contractor ? `<span class="sub-badge contractor">${doc.contractor}</span>` : ''}
-                ${doc.affiliation ? `<span class="sub-badge affil">${doc.affiliation}</span>` : ''}
               </div>
               <div class="card-title">${doc.title}</div>
               <div class="card-meta">
@@ -1163,7 +1162,6 @@ function renderDocumentList() {
                 ? `
               <div class="badge-group">
                 ${doc.contractor ? `<span class="sub-badge contractor">${doc.contractor}</span>` : ''}
-                ${doc.affiliation ? `<span class="sub-badge affil">${doc.affiliation}</span>` : ''}
               </div>
             `
                 : ''

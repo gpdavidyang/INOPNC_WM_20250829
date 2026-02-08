@@ -37,7 +37,7 @@
 
   /* AppBar label controls */
   --appbar-label-size: 9px; /* was 10px */
-  --appbar-label-weight: 300; /* bumped from 200 for clarity */
+  --appbar-label-weight: 700; /* match i3 header-label weight */
 
   /* Compact vertical rhythm tokens */
   --space-xxs: 6px; /* ultra compact */
@@ -263,7 +263,7 @@ textarea {
 
 .header-icon-btn .icon-text {
   font-size: var(--appbar-label-size) !important;
-  font-weight: 600;
+  font-weight: var(--appbar-label-weight) !important;
   line-height: 1;
   letter-spacing: -0.3px;
   color: #1a254f;
@@ -1257,7 +1257,7 @@ body.large-text .drawer .logout-btn {
 }
 
 /* Additional drawer state management */
-body:not(.modal-open) .drawer {
+body:not(.modal-open) .drawer:not(.show) {
   display: none;
 }
 

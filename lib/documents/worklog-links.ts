@@ -4,6 +4,7 @@ export type LinkedDrawingRecord = {
   id: string
   title: string
   url: string
+  originalUrl?: string | null
   previewUrl?: string | null
   siteId?: string | null
   source: 'markup' | 'shared'
@@ -18,6 +19,7 @@ export type LinkedDrawingRecord = {
     email?: string | null
     role?: string | null
   } | null
+  markupData?: any[]
 }
 
 const isUuid = (value?: string | null) =>
@@ -48,7 +50,10 @@ export async function fetchLinkedDrawingsForWorklog(
           full_name,
           email,
           role
-        )
+          email,
+          role
+        ),
+        markup_data
       `
       )
       .eq('is_deleted', false),
@@ -107,6 +112,7 @@ export async function fetchLinkedDrawingsForWorklog(
           id: row.id,
           title: row.title || row.original_blueprint_filename || '도면마킹 문서',
           url: row.original_blueprint_url,
+          originalUrl: row.original_blueprint_url,
           previewUrl: row.preview_image_url,
           siteId: row.site_id,
           source: 'markup' as const,
@@ -120,6 +126,7 @@ export async function fetchLinkedDrawingsForWorklog(
           uploaderEmail:
             ((row as any).creator || (row as any).uploader || (row as any).profiles)?.email || null,
           uploader: (row as any).creator || (row as any).uploader || (row as any).profiles,
+          markupData: row.markup_data,
         }
       }) || []
 
@@ -161,6 +168,7 @@ export async function fetchLinkedDrawingsForWorklog(
           id: row.id,
           title: row.title || row.file_name || '도면',
           url: row.file_url,
+          originalUrl: metadata.original_blueprint_url || row.file_url,
           previewUrl,
           siteId: row.site_id,
           source: 'shared' as const,
@@ -245,18 +253,16 @@ export async function syncMarkupWorklogLinks(markupId: string, worklogIds: strin
     .map(id => ({ markup_document_id: markupId, worklog_id: id }))
   const toDelete = Array.from(existingIds).filter(id => !unique.includes(id))
   if (toInsert.length > 0) {
-    await svc
-      .from('markup_document_worklog_links')
-      .insert(toInsert)
-      .catch(() => null)
+    const { error } = await svc.from('markup_document_worklog_links').insert(toInsert)
+    if (error) console.error('Error inserting links:', error)
   }
   if (toDelete.length > 0) {
-    await svc
+    const { error } = await svc
       .from('markup_document_worklog_links')
       .delete()
       .eq('markup_document_id', markupId)
       .in('worklog_id', toDelete)
-      .catch(() => null)
+    if (error) console.error('Error deleting links:', error)
   }
   const primary = unique[0] ?? null
   await svc

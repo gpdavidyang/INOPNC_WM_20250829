@@ -40,7 +40,7 @@ export async function GET(_request: NextRequest, context: { params: { siteId: st
   try {
     const { data, error } = await supabase
       .from('sites')
-      .select('id, name, status, organization_id')
+      .select('id, name, status, address, organization_id, manager_name, safety_manager_name')
       .eq('id', siteId)
       .maybeSingle()
 
@@ -54,6 +54,9 @@ export async function GET(_request: NextRequest, context: { params: { siteId: st
         name: data.name ?? '현장',
         status: data.status,
         organization_id: data.organization_id ?? null,
+        address: (data as any).address ?? null,
+        manager_name: (data as any).manager_name ?? null,
+        safety_manager_name: (data as any).safety_manager_name ?? null,
       },
     ])
 

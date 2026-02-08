@@ -225,6 +225,7 @@ export const WorkLogHomePage: React.FC = () => {
     draft: 10,
     approved: 10,
   })
+  const [visibleSiteLogs, setVisibleSiteLogs] = useState(20)
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
 
   const [visibleUncompleted, setVisibleUncompleted] = useState(uncompletedByMonth)
@@ -290,10 +291,16 @@ export const WorkLogHomePage: React.FC = () => {
   }, [readOnly, activeTab])
 
   useEffect(() => {
+    // 현장 필터가 활성화된 경우: 상태 필터로 조회가 잘려 보이지 않도록 상태 필터를 제거한다.
+    if (filterSiteId) {
+      if (filterStatus) setFilter(prev => ({ ...prev, status: undefined }))
+      return
+    }
+
     if (filterStatus !== activeTab) {
       setFilter(prev => ({ ...prev, status: activeTab }))
     }
-  }, [activeTab, filterStatus, setFilter])
+  }, [activeTab, filterSiteId, filterStatus, setFilter])
 
   useEffect(() => {
     if (!filterSiteId) return
@@ -308,6 +315,12 @@ export const WorkLogHomePage: React.FC = () => {
     }
     return 'all'
   }, [filterSiteId, siteOptions])
+
+  const isSiteFiltered = selectedSite !== 'all'
+
+  useEffect(() => {
+    setVisibleSiteLogs(20)
+  }, [selectedSite])
 
   const selectedPeriod = useMemo(() => {
     if (!filterDateFrom || !filterDateTo) return 'all'
@@ -1178,6 +1191,62 @@ export const WorkLogHomePage: React.FC = () => {
     )
   }
 
+  const renderSiteWorkLogList = (draftLogs: WorkLog[], approvedLogs: WorkLog[]) => {
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12 text-sm text-[#667085]">
+          작업일지를 불러오는 중...
+        </div>
+      )
+    }
+
+    if (error) {
+      return (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+        </div>
+      )
+    }
+
+    const allLogs = [...(readOnly ? [] : draftLogs), ...approvedLogs].sort((a, b) => {
+      const da = new Date(a.date).getTime()
+      const db = new Date(b.date).getTime()
+      return db - da
+    })
+
+    if (allLogs.length === 0) {
+      return (
+        <div className="text-center py-16">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#f0f4ff] text-2xl">
+            📄
+          </div>
+          <p className="text-base font-semibold text-[#1A254F]">표시할 작업일지가 없습니다.</p>
+          <p className="mt-2 text-sm text-[#667085]">다른 현장을 선택하거나 기간을 변경해보세요.</p>
+        </div>
+      )
+    }
+
+    const displayed = allLogs.slice(0, visibleSiteLogs)
+    const hasMore = allLogs.length > visibleSiteLogs
+
+    return (
+      <>
+        {renderWorkLogItems(displayed)}
+        {hasMore && (
+          <div className="more-button-container">
+            <button
+              type="button"
+              className="more-btn"
+              onClick={() => setVisibleSiteLogs(v => v + 20)}
+            >
+              더보기
+            </button>
+          </div>
+        )}
+      </>
+    )
+  }
+
   // Monthly summary cards (좌측 시안의 하단 요약 블록)
   const monthlyStats = useMemo(() => {
     const uniqueSites = new Set<string>()
@@ -1717,7 +1786,7 @@ export const WorkLogHomePage: React.FC = () => {
         <div className={worklogBodyClassName}>
           {/* Title removed per spec */}
 
-          {!readOnly && (
+          {!readOnly && !isSiteFiltered && (
             <nav className="line-tabs" role="tablist" aria-label="작업일지 상태 탭">
               <button
                 type="button"
@@ -1817,9 +1886,11 @@ export const WorkLogHomePage: React.FC = () => {
           </section>
 
           <section className="worklog-list-section work-form-container">
-            {activeTab === 'draft'
-              ? renderWorkLogList(draftWorkLogs, 'draft')
-              : renderWorkLogList(approvedWorkLogs, 'approved')}
+            {isSiteFiltered
+              ? renderSiteWorkLogList(draftWorkLogs, approvedWorkLogs)
+              : activeTab === 'draft'
+                ? renderWorkLogList(draftWorkLogs, 'draft')
+                : renderWorkLogList(approvedWorkLogs, 'approved')}
           </section>
 
           {/* Monthly summary cards - unified with salary/output stat style */}

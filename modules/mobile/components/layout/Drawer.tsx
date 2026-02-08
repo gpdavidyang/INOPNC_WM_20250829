@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { useToast } from '@/components/ui/use-toast'
 import { useConfirm } from '@/components/ui/use-confirm'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/use-toast'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { normalizeUserRole } from '@/lib/auth/roles'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
 
 interface DrawerProps {
   isOpen: boolean
@@ -216,6 +217,10 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   }
 
   const isProductionManager = profile?.role === 'production_manager'
+  const isSiteManager = normalizeUserRole(profile?.role as string | null) === 'site_manager'
+  const worklogMenuItems = isSiteManager
+    ? [{ label: '작업일지', href: '/mobile/worklog' }]
+    : [{ label: '작업일지', href: '/mobile/worklog' }]
   const baseMenuItems = isProductionManager
     ? [
         { label: '주문요청', href: '/mobile/production/requests' },
@@ -225,7 +230,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     : [
         { label: '홈', href: '/mobile' },
         { label: '현장정보', href: '/mobile/sites' },
-        { label: '작업일지', href: '/mobile/worklog' },
+        { label: '현장정보2', href: '/mobile/sites2' },
+        ...worklogMenuItems,
         { label: '사진·도면 관리', href: '/mobile/media' },
         { label: '출력정보', href: '/mobile/attendance' },
         { label: '문서함', href: '/mobile/documents' },

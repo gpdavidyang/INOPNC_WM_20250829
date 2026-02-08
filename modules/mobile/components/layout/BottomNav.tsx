@@ -1,15 +1,17 @@
 'use client'
 
-import React from 'react'
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
-import { Home, Calculator, ClipboardList, Map, Folder, Factory, Truck } from 'lucide-react'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { normalizeUserRole } from '@/lib/auth/roles'
+import { Calculator, ClipboardList, Factory, Folder, Home, Map, MapPin, Truck } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import React from 'react'
 
 export const BottomNav: React.FC = () => {
   const pathname = usePathname()
   const { profile } = useUnifiedAuth()
   const isPartner = profile?.role === 'customer_manager' || profile?.role === 'partner'
+  const isSiteManager = normalizeUserRole(profile?.role) === 'site_manager'
 
   // 생산관리자 전용 하단 내비게이션 (문서 정의: 주문요청 조회 / 생산정보 관리 / 출고·배송·결제 관리)
   const navItems =
@@ -58,6 +60,12 @@ export const BottomNav: React.FC = () => {
             label: '현장정보',
             href: '/mobile/sites',
             icon: Map,
+          },
+          {
+            route: 'sites2',
+            label: '현장정보2',
+            href: '/mobile/sites2',
+            icon: MapPin,
           },
           {
             route: 'docs',

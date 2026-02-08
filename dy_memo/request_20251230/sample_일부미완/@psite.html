@@ -1006,8 +1006,6 @@
         const addrDisplay = site.addr && site.addr !== '-' ? site.addr : (site.isLocal ? '주소 입력(클릭)' : '주소 미입력');
 
         // 소속 배지 클래스: 직접등록인 경우 붉은 계열 배지 사용
-        const affilClass = site.affil === '직접등록' ? 'sub-badge direct' : 'sub-badge affil';
-
         let addrTextAction = site.isLocal ? `onclick="editInfo(${site.id}, 'addr')"` : `onclick="openTMap('${site.addr}')"`;
         let addrIconAction = `onclick="openTMap('${site.addr}')"`;
 
@@ -1020,6 +1018,9 @@
         const isExpanded = expandedCardIds.has(site.id) ? 'expanded' : '';
 
         const dateLabel = site.lastDate ? (site.lastTime ? `${site.lastDate} (최종 ${site.lastTime})` : site.lastDate) : '';
+        const approvedManDaysRaw = Number(site.mp || 0);
+        const approvedManDays = Number.isFinite(approvedManDaysRaw) ? Math.round(approvedManDaysRaw * 10) / 10 : 0;
+        const approvedManDaysLabel = Number.isInteger(approvedManDays) ? String(approvedManDays) : approvedManDays.toFixed(1);
 
         return `
         <div class="site-card ${site.pinned ? 'pinned-item' : ''} ${isExpanded}" id="card-${site.id}">
@@ -1033,7 +1034,7 @@
                         ${deleteBtn}
                     </div>
                 </div>
-                <div class="site-sub-info"><span class="${affilClass}">${site.affil}</span><span class="sub-badge weather"><i data-lucide="${weather.icon}" style="width:14px;"></i>${weather.text}</span></div>
+                <div class="site-sub-info"></div>
                 <div class="addr-row">
                     <div class="addr-text" ${addrTextAction} style="cursor:pointer;"><span>${addrDisplay}</span></div>
                     <button class="btn-icon-sq" ${addrIconAction}><i data-lucide="map-pin" style="width:18px;"></i></button>
@@ -1048,8 +1049,8 @@
                         <span class="stat-val">${site.days}일</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">하자(미조치)</span>
-                        <span class="stat-val danger">${site.mp}건</span>
+                        <span class="stat-label">총공수(승인)</span>
+                        <span class="stat-val">${approvedManDaysLabel}공수</span>
                     </div>
                 </div>
                 <div class="action-grid">

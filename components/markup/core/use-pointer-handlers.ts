@@ -10,7 +10,11 @@ interface PointerHandlersProps {
   setPreviewObject: (obj: MarkupObject | null) => void
   addObject: (obj: MarkupObject, select?: boolean) => void
   worldFromClient: (pt: { x: number; y: number }) => { x: number; y: number }
-  hitTest: (objects: MarkupObject[], p: { x: number; y: number }) => string | null
+  hitTest: (
+    objects: MarkupObject[],
+    p: { x: number; y: number },
+    e?: React.PointerEvent
+  ) => string | null
 
   // Preferences
   boxShape: string
@@ -139,7 +143,7 @@ export function usePointerHandlers({
       }
 
       // select (hit-test + drag start)
-      const hitId = hitTest(state.markupObjects, p)
+      const hitId = hitTest(state.markupObjects, p, e)
       if (hitId) {
         const selectedIds = [hitId]
         const pos: Record<string, { x: number; y: number }> = {}

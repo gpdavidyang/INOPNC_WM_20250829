@@ -9,24 +9,48 @@ import {
 } from '@/components/ui/custom-select'
 import { cn } from '@/lib/utils'
 import { Check, Download, Eye, FileText, Pencil, Save, Trash2, UploadCloud } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { deleteDrawingsAction, uploadDrawingAction } from '../actions'
-import { DrawingWorklog, formatDateShort } from '../doc-hub-data'
+import { DrawingWorklog } from '../doc-hub-data'
+import { HubDocumentCard } from './HubDocumentCard'
 
 interface DrawingsTabProps {
   docs: DrawingWorklog[]
   loading: boolean
   onRefresh: () => void
+  onOpenMarkup?: (
+    mode: 'upload' | 'start' | 'resume',
+    docId?: string,
+    targetWorklogId?: string,
+    directDrawing?: any
+  ) => void
+  onOpenViewer?: (url: string, title?: string) => void
+  initialSiteFilter?: string
+  initialExpandedDocId?: string
+  siteList?: string[]
+  onSiteChange?: (site: string) => void
 }
 
 type SubTabType = 'list' | 'upload' | 'tool'
-type UploadType = 'progress' | 'blueprint'
+type UploadType = 'progress' | 'blueprint' | 'completion'
 
-export function DrawingsTab({ docs, loading, onRefresh }: DrawingsTabProps) {
+export function DrawingsTab({
+  docs,
+  loading,
+  onRefresh,
+  onOpenMarkup,
+  onOpenViewer,
+  initialSiteFilter,
+  initialExpandedDocId,
+  siteList = [],
+  onSiteChange,
+}: DrawingsTabProps) {
   const [subTabState, setSubTabState] = useState<Record<string, SubTabType>>({})
   const [uploadTypeState, setUploadTypeState] = useState<Record<string, UploadType>>({})
   const [selectedDrawingIds, setSelectedDrawingIds] = useState<Set<string>>(new Set())
-  const [expandedDocIds, setExpandedDocIds] = useState<Set<string>>(new Set())
+  const [expandedDocIds, setExpandedDocIds] = useState<Set<string>>(
+    () => new Set(initialExpandedDocId ? [initialExpandedDocId] : [])
+  )
   const [activeUploadContext, setActiveUploadContext] = useState<{
     reportId: string
     siteId: string
@@ -39,11 +63,36 @@ export function DrawingsTab({ docs, loading, onRefresh }: DrawingsTabProps) {
   const [periodFilter, setPeriodFilter] = useState('all') // Default: All Time
   const [statusFilter, setStatusFilter] = useState('all') // Default: All Status
 
+  const initialSiteAppliedRef = useRef(false)
+  const initialExpandAppliedRef = useRef(false)
+
   // --- Filter Logic ---
   // 1. Unique Sites
-  const uniqueSites = Array.from(new Set(docs.map(d => d.siteName)))
-    .filter(Boolean)
-    .sort()
+  const uniqueSites =
+    siteList.length > 0
+      ? siteList
+      : Array.from(new Set(docs.map(d => d.siteName)))
+          .filter(Boolean)
+          .sort()
+
+  useEffect(() => {
+    if (initialSiteAppliedRef.current) return
+    if (!initialSiteFilter) return
+    if (docs.length === 0) return
+    const hasSite = docs.some(doc => doc.siteName === initialSiteFilter)
+    setSiteFilter(hasSite ? initialSiteFilter : 'all')
+    initialSiteAppliedRef.current = true
+  }, [initialSiteFilter, docs])
+
+  useEffect(() => {
+    if (initialExpandAppliedRef.current) return
+    if (!initialExpandedDocId) return
+    if (docs.length === 0) return
+    const has = docs.some(doc => doc.id === initialExpandedDocId)
+    if (!has) return
+    setExpandedDocIds(new Set([initialExpandedDocId]))
+    initialExpandAppliedRef.current = true
+  }, [initialExpandedDocId, docs])
 
   // 2. Filtered Docs
   const filteredDocs = docs.filter(doc => {
@@ -120,21 +169,51 @@ export function DrawingsTab({ docs, loading, onRefresh }: DrawingsTabProps) {
     alert(`${selectedDrawingIds.size}건의 도면 선택이 완료되었습니다.`)
   }
 
+  /* Batch Preview Logic */
   const handleBatchPreview = () => {
-    if (selectedDrawingIds.size === 0) return
-    const selected = docs.flatMap(d => d.drawings).filter(dr => selectedDrawingIds.has(dr.id))
+    if (selectedDrawingIds.size === 0) {
+      alert('선택된 도면이 없습니다.')
+      return
+    }
 
-    selected.forEach(item => {
-      if (item.url) window.open(item.url, '_blank')
-    })
+    // Find all selected drawings
+    const allDrawings = docs.flatMap(d => d.drawings || [])
+    const selected = allDrawings.filter(dr => selectedDrawingIds.has(dr.id))
+
+    if (selected.length === 0) {
+      alert('선택된 도면 정보를 찾을 수 없습니다.')
+      return
+    }
+
+    const firstValid = selected.find(item => item.url)
+    if (firstValid) {
+      if (onOpenViewer) {
+        onOpenViewer(firstValid.url, firstValid.title)
+      } else {
+        console.warn('onOpenViewer callback is missing')
+        window.open(firstValid.url, '_blank')
+      }
+    } else {
+      alert('미리보기할 수 있는 이미지 URL이 없습니다.')
+    }
   }
 
   const handleSingleEdit = (drawingId: string) => {
     // Find which doc this drawing belongs to
     const targetDoc = docs.find(d => d.drawings.some(dr => dr.id === drawingId))
-    if (targetDoc) {
-      setSubTab(targetDoc.id, 'tool')
-      setExpandedDocIds(new Set([targetDoc.id]))
+    if (!targetDoc) return
+
+    const drawing = targetDoc.drawings.find(dr => dr.id === drawingId)
+    if (drawing) {
+      // Just open the markup tool directly with this drawing
+      onOpenMarkup?.('start', undefined, targetDoc.id, {
+        id: drawing.id,
+        title: drawing.title,
+        url: drawing.originalUrl || drawing.url,
+        siteId: targetDoc.siteId,
+        markupData: drawing.markupData,
+        markupId: drawing.markupId,
+      })
     }
   }
 
@@ -174,7 +253,13 @@ export function DrawingsTab({ docs, loading, onRefresh }: DrawingsTabProps) {
       {/* --- Row 2: Filter Options (Sticky) --- */}
       <div className="sticky top-[102px] md:top-[156px] z-30 bg-[#f2f4f6] pt-4 pb-2 grid grid-cols-3 gap-1 -mt-4 border-b border-slate-200/50">
         {/* Site Filter */}
-        <CustomSelect value={siteFilter} onValueChange={setSiteFilter}>
+        <CustomSelect
+          value={siteFilter}
+          onValueChange={val => {
+            setSiteFilter(val)
+            onSiteChange?.(val)
+          }}
+        >
           <CustomSelectTrigger className="w-full h-10 text-[13px] font-bold text-slate-600 bg-white border-slate-200 rounded-lg px-2 shadow-none focus:ring-1 focus:ring-blue-500">
             <CustomSelectValue placeholder="전체 현장" />
           </CustomSelectTrigger>
@@ -229,295 +314,299 @@ export function DrawingsTab({ docs, loading, onRefresh }: DrawingsTabProps) {
           const currentUploadType = uploadTypeState[doc.id] || 'progress'
           const drawingCount = doc.drawings.length
           const isExpanded = expandedDocIds.has(doc.id)
+          const descText = (doc.desc || '작업일지').replace(/^작업일지\s*-\s*/, '')
 
           return (
-            <div
+            <HubDocumentCard
               key={doc.id}
-              className={cn(
-                'doc-card drawing-card bg-white rounded-2xl shadow-sm border overflow-hidden relative transition-all',
-                isExpanded ? 'border-blue-200 ring-1 ring-blue-100' : 'border-slate-100'
-              )}
+              id={doc.id}
+              title={doc.siteName}
+              date={doc.date}
+              author={doc.author}
+              status={doc.status}
+              desc={descText}
+              countLabel={`도면 ${drawingCount}건`}
+              count={drawingCount}
+              isExpanded={isExpanded}
+              onToggleExpand={toggleDocExpand}
             >
-              {/* --- Card Header Content (Clickable) --- */}
-              <div
-                className="card-content p-4 flex flex-col gap-0 cursor-pointer hover:bg-slate-50/50 transition-colors select-none"
-                onClick={() => toggleDocExpand(doc.id)}
-              >
-                {/* Header Top Row (Line 1): Title & Status Badge */}
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center flex-1 min-w-0 pr-3">
-                    {/* Title */}
-                    <div className="text-[20px] font-extrabold text-slate-900 leading-none truncate">
-                      {doc.desc || '작업일지'}
-                    </div>
-                  </div>
-
-                  {/* Status Badge: Right */}
-                  <span
+              <div>
+                {/* Line 4: Tabs */}
+                <div className="flex items-center gap-1 mb-4 bg-slate-100 p-1 rounded-xl">
+                  <button
                     className={cn(
-                      'text-[11px] font-bold px-1.5 py-0.5 rounded w-[40px] flex justify-center items-center shrink-0 border',
-                      doc.status === 'done'
-                        ? 'bg-slate-100 text-slate-500 border-slate-200'
-                        : doc.status === 'rejected'
-                          ? 'bg-red-50 text-red-500 border-red-100' // Added Rejected Style
-                          : 'bg-blue-50 text-blue-500 border-blue-100' // Default Submit (Open) Style - Changed from Red to Blue for 'Submit'
+                      'flex-1 py-2 text-[13px] font-bold rounded-lg flex items-center justify-center transition-all',
+                      currentSubTab === 'list'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-200/50'
                     )}
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSubTab(doc.id, 'list')
+                    }}
                   >
-                    {doc.status === 'done' ? '승인' : doc.status === 'rejected' ? '반려' : '제출'}
-                  </span>
+                    목록
+                  </button>
+                  <button
+                    className={cn(
+                      'flex-1 py-2 text-[13px] font-bold rounded-lg flex items-center justify-center transition-all',
+                      currentSubTab === 'upload'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-200/50'
+                    )}
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSubTab(doc.id, 'upload')
+                    }}
+                  >
+                    업로드
+                  </button>
+                  <button
+                    className={cn(
+                      'flex-1 py-2 text-[13px] font-bold rounded-lg flex items-center justify-center transition-all',
+                      currentSubTab === 'tool'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-500 hover:bg-slate-200/50'
+                    )}
+                    onClick={e => {
+                      e.stopPropagation()
+                      setSubTab(doc.id, 'tool')
+                    }}
+                  >
+                    마킹도구
+                  </button>
                 </div>
 
-                {/* Meta Row (Line 2): Author | Site | Date (Left) + Count Badge (Right) */}
-                <div className="flex items-center justify-between w-full -mt-3">
-                  <div className="flex-1 min-w-0 text-[15px] font-normal text-slate-600 flex items-center gap-2 overflow-hidden">
-                    <span className="shrink-0 font-medium">{doc.author}</span>
-                    <span className="text-slate-300 text-[10px]">|</span>
-                    <span className="truncate">{doc.siteName}</span>
-                    <span className="text-slate-300 text-[10px]">|</span>
-                    <span className="shrink-0">{formatDateShort(doc.date)}</span>
-                  </div>
+                {/* Sub Tab Content */}
+                <div className="sub-tab-content">
+                  {/* 1. List Tab */}
+                  {currentSubTab === 'list' && (
+                    <>
+                      {doc.drawings.length === 0 ? (
+                        <div className="py-8 text-center text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                          등록된 도면이 없습니다.
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2">
+                          {doc.drawings.map(drawing => {
+                            const isSelected = selectedDrawingIds.has(drawing.id)
+                            return (
+                              <div
+                                key={drawing.id}
+                                onClick={() => toggleDrawingSelection(drawing.id)}
+                                className={cn(
+                                  'relative flex items-center p-3 rounded-xl border-2 transition-all cursor-pointer',
+                                  isSelected
+                                    ? 'bg-[#f0f9ff] border-[#31a3fa] shadow-[0_4px_20px_rgba(49,163,250,0.1)]'
+                                    : 'bg-white border-transparent'
+                                )}
+                              >
+                                {/* Checkbox */}
+                                <div
+                                  className={cn(
+                                    'w-[30px] h-[30px] rounded-full border-2 flex items-center justify-center transition-all shrink-0 mr-3',
+                                    isSelected
+                                      ? 'bg-[#0ea5e9] border-[#0ea5e9] shadow-[0_2px_8px_rgba(14,165,233,0.3)]'
+                                      : 'bg-white border-[#cbd5e1]'
+                                  )}
+                                >
+                                  {isSelected && (
+                                    <Check size={14} className="text-white" strokeWidth={3} />
+                                  )}
+                                </div>
 
-                  {/* Drawing Count Badge: Right, 2nd line */}
-                  <span className="text-[12px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded ml-2 shrink-0 border border-blue-100">
-                    도면 {drawingCount}건
-                  </span>
+                                {/* Thumbnail */}
+                                <div
+                                  className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                                  onClick={e => {
+                                    e.stopPropagation()
+                                    if (drawing.url) onOpenViewer?.(drawing.url, drawing.title)
+                                  }}
+                                >
+                                  {drawing.url ? (
+                                    <img
+                                      src={drawing.url}
+                                      alt={drawing.title}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <FileText className="text-slate-300" size={20} />
+                                  )}
+                                </div>
+
+                                {/* Info */}
+                                <div className="flex-1 ml-3 min-w-0 flex flex-col justify-center">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <div className="text-[15px] font-bold text-slate-800 truncate">
+                                      {drawing.title}
+                                    </div>
+                                    <button
+                                      onClick={e => {
+                                        e.stopPropagation()
+                                        handleSingleEdit(drawing.id)
+                                      }}
+                                      className="p-1 hover:bg-slate-100 rounded-md transition-colors"
+                                      title="수정"
+                                    >
+                                      <Pencil size={14} className="text-slate-400" />
+                                    </button>
+                                  </div>
+                                  <div className="text-[13px] text-slate-400 font-medium">
+                                    {drawing.date}
+                                  </div>
+                                </div>
+
+                                {/* Right Badge */}
+                                <div className="ml-2 shrink-0">
+                                  {drawing.type === 'blueprint' ? (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                        파일
+                                      </span>
+                                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                        공도면
+                                      </span>
+                                    </div>
+                                  ) : drawing.type === 'completion' ? (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                        파일
+                                      </span>
+                                      <span className="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                                        완료도면
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
+                                        마킹
+                                      </span>
+                                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">
+                                        진행도면
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* 2. Upload Tab */}
+                  {currentSubTab === 'upload' && (
+                    <div className="flex flex-col gap-4">
+                      {/* Upload Type Switcher */}
+                      <div className="grid grid-cols-3 gap-2 bg-slate-50 p-1 rounded-xl">
+                        <button
+                          className={cn(
+                            'py-2 text-[13px] font-bold rounded-lg transition-all border border-blue-200',
+                            currentUploadType === 'blueprint'
+                              ? 'bg-slate-100 text-blue-900 shadow-sm'
+                              : 'bg-white text-slate-400 hover:bg-slate-50'
+                          )}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setUploadType(doc.id, 'blueprint')
+                          }}
+                        >
+                          공도면
+                        </button>
+                        <button
+                          className={cn(
+                            'py-2 text-[13px] font-bold rounded-lg transition-all border border-blue-200',
+                            currentUploadType === 'progress'
+                              ? 'bg-slate-100 text-blue-900 shadow-sm'
+                              : 'bg-white text-slate-400 hover:bg-slate-50'
+                          )}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setUploadType(doc.id, 'progress')
+                          }}
+                        >
+                          진행도면
+                        </button>
+                        <button
+                          className={cn(
+                            'py-2 text-[13px] font-bold rounded-lg transition-all border border-blue-200',
+                            currentUploadType === 'completion'
+                              ? 'bg-slate-100 text-blue-900 shadow-sm'
+                              : 'bg-white text-slate-400 hover:bg-slate-50'
+                          )}
+                          onClick={e => {
+                            e.stopPropagation()
+                            setUploadType(doc.id, 'completion')
+                          }}
+                        >
+                          완료도면
+                        </button>
+                      </div>
+
+                      <div
+                        onClick={() => {
+                          setActiveUploadContext({
+                            reportId: doc.id,
+                            siteId: doc.siteId,
+                            docType: currentUploadType,
+                          })
+                          fileInputRef.current?.click()
+                        }}
+                        className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group"
+                      >
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                          <UploadCloud className="text-slate-400" size={24} />
+                        </div>
+                        <span className="text-slate-600 font-bold text-[15px]">
+                          파일 선택 (다중 가능)
+                        </span>
+                        <span className="text-slate-400 text-xs mt-1">이미지, PDF 파일 지원</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. Tool Tab */}
+                  {currentSubTab === 'tool' && (
+                    <div className="flex flex-col">
+                      <div className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-100">
+                        <h4 className="text-[15px] font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                          <span>📏</span> 마킹할 도면 불러오기
+                        </h4>
+                        <p className="text-[13px] text-slate-600 leading-snug break-keep mb-3">
+                          로컬 이미지 파일을 선택하여 마킹 작업을 시작합니다.
+                        </p>
+                        <div className="relative">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            onChange={e => {
+                              const file = e.target.files?.[0]
+                              if (file) {
+                                const url = URL.createObjectURL(file)
+                                onOpenMarkup?.('start', undefined, doc.id, {
+                                  id: `temp-${Date.now()}`,
+                                  title: file.name,
+                                  url,
+                                  file,
+                                  siteId: doc.siteId,
+                                })
+                                // Reset input value to allow selecting same file again
+                                e.target.value = ''
+                              }
+                            }}
+                          />
+                          <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors shadow-sm active:scale-[0.98]">
+                            마킹할 도면 불러오기
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* --- Card Body (Line 3 & 4 & Content) - Conditionally Rendered --- */}
-              {isExpanded && (
-                <div className="doc-body flex flex-col animate-in slide-in-from-top-2 duration-200 fade-in-50">
-                  {/* Line 3: Horizontal Separator */}
-                  <div className="h-px bg-slate-200 mx-4 mb-4" />
-
-                  <div className="px-4 pb-4">
-                    {/* Line 4: Tabs */}
-                    <div className="flex items-center gap-1 mb-4 bg-slate-100 p-1 rounded-xl">
-                      <button
-                        className={cn(
-                          'flex-1 py-2 text-[13px] font-bold rounded-lg flex items-center justify-center transition-all',
-                          currentSubTab === 'list'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-slate-500 hover:bg-slate-200/50'
-                        )}
-                        onClick={e => {
-                          e.stopPropagation()
-                          setSubTab(doc.id, 'list')
-                        }}
-                      >
-                        목록
-                      </button>
-                      <button
-                        className={cn(
-                          'flex-1 py-2 text-[13px] font-bold rounded-lg flex items-center justify-center transition-all',
-                          currentSubTab === 'upload'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-slate-500 hover:bg-slate-200/50'
-                        )}
-                        onClick={e => {
-                          e.stopPropagation()
-                          setSubTab(doc.id, 'upload')
-                        }}
-                      >
-                        업로드
-                      </button>
-                      <button
-                        className={cn(
-                          'flex-1 py-2 text-[13px] font-bold rounded-lg flex items-center justify-center transition-all',
-                          currentSubTab === 'tool'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-slate-500 hover:bg-slate-200/50'
-                        )}
-                        onClick={e => {
-                          e.stopPropagation()
-                          setSubTab(doc.id, 'tool')
-                        }}
-                      >
-                        마킹도구
-                      </button>
-                    </div>
-
-                    {/* Sub Tab Content */}
-                    <div className="sub-tab-content">
-                      {/* 1. List Tab */}
-                      {currentSubTab === 'list' && (
-                        <>
-                          {doc.drawings.length === 0 ? (
-                            <div className="py-8 text-center text-slate-400 text-sm bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                              등록된 도면이 없습니다.
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-2">
-                              {doc.drawings.map(drawing => {
-                                const isSelected = selectedDrawingIds.has(drawing.id)
-                                return (
-                                  <div
-                                    key={drawing.id}
-                                    onClick={() => toggleDrawingSelection(drawing.id)}
-                                    className={cn(
-                                      'relative flex items-center p-3 rounded-xl border-2 transition-all cursor-pointer',
-                                      isSelected
-                                        ? 'bg-[#f0f9ff] border-[#31a3fa] shadow-[0_4px_20px_rgba(49,163,250,0.1)]'
-                                        : 'bg-white border-transparent'
-                                    )}
-                                  >
-                                    {/* Checkbox */}
-                                    <div
-                                      className={cn(
-                                        'w-[30px] h-[30px] rounded-full border-2 flex items-center justify-center transition-all shrink-0 mr-3',
-                                        isSelected
-                                          ? 'bg-[#0ea5e9] border-[#0ea5e9] shadow-[0_2px_8px_rgba(14,165,233,0.3)]'
-                                          : 'bg-white border-[#cbd5e1]'
-                                      )}
-                                    >
-                                      {isSelected && (
-                                        <Check size={14} className="text-white" strokeWidth={3} />
-                                      )}
-                                    </div>
-
-                                    {/* Thumbnail */}
-                                    <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden shrink-0 border border-slate-200 flex items-center justify-center">
-                                      {drawing.url ? (
-                                        <img
-                                          src={drawing.url}
-                                          alt={drawing.title}
-                                          className="w-full h-full object-cover"
-                                        />
-                                      ) : (
-                                        <FileText className="text-slate-300" size={20} />
-                                      )}
-                                    </div>
-
-                                    {/* Info */}
-                                    <div className="flex-1 ml-3 min-w-0 flex flex-col justify-center">
-                                      <div className="flex items-center gap-2 mb-0.5">
-                                        <div className="text-[15px] font-bold text-slate-800 truncate">
-                                          {drawing.title}
-                                        </div>
-                                        <button
-                                          onClick={e => {
-                                            e.stopPropagation()
-                                            handleSingleEdit(drawing.id)
-                                          }}
-                                          className="p-1 hover:bg-slate-100 rounded-md transition-colors"
-                                          title="수정"
-                                        >
-                                          <Pencil size={14} className="text-slate-400" />
-                                        </button>
-                                      </div>
-                                      <div className="text-[13px] text-slate-400 font-medium">
-                                        {drawing.date}
-                                      </div>
-                                    </div>
-
-                                    {/* Right Badge */}
-                                    <div className="ml-2 shrink-0">
-                                      {drawing.type === 'blueprint' ? (
-                                        <div className="flex flex-col items-end gap-1">
-                                          <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                                            파일
-                                          </span>
-                                          <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                                            공도면
-                                          </span>
-                                        </div>
-                                      ) : (
-                                        <div className="flex flex-col items-end gap-1">
-                                          <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
-                                            마킹
-                                          </span>
-                                          <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">
-                                            진행도면
-                                          </span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </>
-                      )}
-
-                      {/* 2. Upload Tab */}
-                      {currentSubTab === 'upload' && (
-                        <div className="flex flex-col gap-4">
-                          {/* Upload Type Switcher */}
-                          <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1 rounded-xl">
-                            <button
-                              className={cn(
-                                'py-2 text-[13px] font-bold rounded-lg transition-all border border-blue-200',
-                                currentUploadType === 'progress'
-                                  ? 'bg-slate-100 text-blue-900 shadow-sm'
-                                  : 'bg-white text-slate-400 hover:bg-slate-50'
-                              )}
-                              onClick={e => {
-                                e.stopPropagation()
-                                setUploadType(doc.id, 'progress')
-                              }}
-                            >
-                              진행 도면
-                            </button>
-                            <button
-                              className={cn(
-                                'py-2 text-[13px] font-bold rounded-lg transition-all border border-blue-200',
-                                currentUploadType === 'blueprint'
-                                  ? 'bg-slate-100 text-blue-900 shadow-sm'
-                                  : 'bg-white text-slate-400 hover:bg-slate-50'
-                              )}
-                              onClick={e => {
-                                e.stopPropagation()
-                                setUploadType(doc.id, 'blueprint')
-                              }}
-                            >
-                              공 도면
-                            </button>
-                          </div>
-
-                          <div
-                            onClick={() => {
-                              setActiveUploadContext({
-                                reportId: doc.id,
-                                siteId: doc.siteId,
-                                docType: currentUploadType,
-                              })
-                              fileInputRef.current?.click()
-                            }}
-                            className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors group"
-                          >
-                            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3 group-hover:scale-110 transition-transform">
-                              <UploadCloud className="text-slate-400" size={24} />
-                            </div>
-                            <span className="text-slate-600 font-bold text-[15px]">
-                              파일 선택 (다중 가능)
-                            </span>
-                            <span className="text-slate-400 text-xs mt-1">
-                              이미지, PDF 파일 지원
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 3. Tool Tab */}
-                      {currentSubTab === 'tool' && (
-                        <div className="flex flex-col">
-                          <div className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-100">
-                            <h4 className="text-[15px] font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
-                              <span>📏</span> 도면마킹도구 연동
-                            </h4>
-                            <p className="text-[13px] text-slate-600 leading-snug break-keep">
-                              촬영한 사진이나 업로드된 도면에 마킹(치수, 텍스트)을 하여 현재
-                              작업일지의 연계 도면으로 즉시 저장합니다.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            </HubDocumentCard>
           )
         })
       )}

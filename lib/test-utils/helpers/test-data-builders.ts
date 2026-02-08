@@ -1,6 +1,6 @@
 /**
  * Test Data Builders
- * 
+ *
  * Consolidated imports and builder patterns for creating test data
  * across the INOPNC Work Management System.
  */
@@ -41,7 +41,7 @@ export class OrganizationBuilder implements TestDataBuilder<Organization> {
       representative: faker.person.fullName(),
       is_active: true,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }
   }
 
@@ -90,7 +90,7 @@ export class SiteBuilder implements TestDataBuilder<Site> {
       status: 'active',
       description: faker.lorem.sentence(),
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }
   }
 
@@ -109,7 +109,7 @@ export class SiteBuilder implements TestDataBuilder<Site> {
     return this
   }
 
-  withStatus(status: 'planning' | 'active' | 'suspended' | 'completed'): this {
+  withStatus(status: 'planning' | 'active' | 'inactive' | 'completed'): this {
     this.site.status = status
     return this
   }
@@ -221,57 +221,37 @@ export class TestScenarioBuilder {
   // Predefined scenarios
   static constructionCompany() {
     return new TestScenarioBuilder()
-      .withOrganization(org => 
-        org.withName('대한건설(주)')
+      .withOrganization(org =>
+        org
+          .withName('대한건설(주)')
           .withBusinessNumber('123-45-67890')
           .withAddress('서울시 강남구 테헤란로 123')
       )
-      .addSite(site => 
-        site.withName('서울역 재개발 현장')
-          .withStatus('active')
+      .addSite(site => site.withName('서울역 재개발 현장').withStatus('active'))
+      .addSite(site => site.withName('부산항 확장 공사').withStatus('planning'))
+      .addProfile(profile =>
+        profile.withRole('admin').withName('김관리자').withPosition('현장총괄')
       )
-      .addSite(site => 
-        site.withName('부산항 확장 공사')
-          .withStatus('planning')
+      .addProfile(profile =>
+        profile.withRole('site_manager').withName('박현장장').withPosition('현장소장')
       )
-      .addProfile(profile => 
-        profile.withRole('admin')
-          .withName('김관리자')
-          .withPosition('현장총괄')
-      )
-      .addProfile(profile => 
-        profile.withRole('site_manager')
-          .withName('박현장장')
-          .withPosition('현장소장')
-      )
-      .addProfile(profile => 
-        profile.withRole('worker')
-          .withName('이작업자')
-          .withPosition('철근공')
-      )
+      .addProfile(profile => profile.withRole('worker').withName('이작업자').withPosition('철근공'))
   }
 
   static multiSiteOperation() {
-    const scenario = new TestScenarioBuilder()
-      .withOrganization(org => 
-        org.withName('글로벌건설그룹')
-      )
+    const scenario = new TestScenarioBuilder().withOrganization(org =>
+      org.withName('글로벌건설그룹')
+    )
 
     // Add 5 active sites
     for (let i = 1; i <= 5; i++) {
-      scenario.addSite(site => 
-        site.withName(`현장${i}`)
-          .withStatus('active')
-      )
+      scenario.addSite(site => site.withName(`현장${i}`).withStatus('active'))
     }
 
     // Add various roles
     const roles: Profile['role'][] = ['admin', 'site_manager', 'worker', 'customer_manager']
     roles.forEach((role, index) => {
-      scenario.addProfile(profile => 
-        profile.withRole(role)
-          .withName(`${role}_user_${index}`)
-      )
+      scenario.addProfile(profile => profile.withRole(role).withName(`${role}_user_${index}`))
     })
 
     return scenario
@@ -282,22 +262,21 @@ export class TestScenarioBuilder {
       organization: this.organization,
       sites: this.sites,
       profiles: this.profiles,
-      
+
       // Helper methods for accessing specific roles
       getAdmin: () => this.profiles.find(p => p.role === 'admin'),
       getManagers: () => this.profiles.filter(p => p.role === 'site_manager'),
       getWorkers: () => this.profiles.filter(p => p.role === 'worker'),
       getCustomers: () => this.profiles.filter(p => p.role === 'customer_manager'),
-      
+
       // Helper for getting site-specific profiles
-      getProfilesForSite: (siteId: string) => 
-        this.profiles.filter(p => p.site_id === siteId),
-      
+      getProfilesForSite: (siteId: string) => this.profiles.filter(p => p.site_id === siteId),
+
       // Helper for auth context
       getAuthContextFor: (profileId: string) => {
         const profile = this.profiles.find(p => p.id === profileId)
         return profile ? mockAuthState('authenticated', { profile }) : null
-      }
+      },
     }
   }
 }
@@ -307,57 +286,57 @@ export class WorkLogScenarioBuilder {
   static monthlyAttendance(year: number, month: number, profileId: string) {
     const attendanceList = []
     const daysInMonth = new Date(year, month, 0).getDate()
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month - 1, day)
       const isWeekend = date.getDay() === 0 || date.getDay() === 6
-      
+
       if (!isWeekend && faker.datatype.boolean({ probability: 0.9 })) {
         // 90% chance of attendance on weekdays
         const laborHours = faker.helpers.arrayElement([
           STANDARD_LABOR_HOUR, // Full day
           STANDARD_LABOR_HOUR * 1.5, // Overtime
-          STANDARD_LABOR_HOUR * 0.5 // Half day
+          STANDARD_LABOR_HOUR * 0.5, // Half day
         ])
-        
+
         attendanceList.push(
           createMockAttendanceWithLaborHours({
             profile_id: profileId,
             date: date.toISOString().split('T')[0],
             labor_hours: laborHours,
-            work_hours: laborHours * HOURS_PER_LABOR
+            work_hours: laborHours * HOURS_PER_LABOR,
           })
         )
       }
     }
-    
+
     return attendanceList
   }
 
   static overtimeWeek(profileId: string, weekStartDate: Date) {
     const attendanceList = []
-    
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(weekStartDate)
       date.setDate(date.getDate() + i)
-      
+
       // Heavy overtime week
       const laborHours = faker.helpers.arrayElement([
         STANDARD_LABOR_HOUR * 1.5, // 1.5x overtime
-        STANDARD_LABOR_HOUR * 2.0,  // Double overtime
-        STANDARD_LABOR_HOUR * 1.25  // Light overtime
+        STANDARD_LABOR_HOUR * 2.0, // Double overtime
+        STANDARD_LABOR_HOUR * 1.25, // Light overtime
       ])
-      
+
       attendanceList.push(
         createMockAttendanceWithLaborHours({
           profile_id: profileId,
           date: date.toISOString().split('T')[0],
           labor_hours: laborHours,
-          work_hours: laborHours * HOURS_PER_LABOR
+          work_hours: laborHours * HOURS_PER_LABOR,
         })
       )
     }
-    
+
     return attendanceList
   }
 }
@@ -366,32 +345,30 @@ export class WorkLogScenarioBuilder {
 export class DocumentScenarioBuilder {
   static markupDocumentLibrary(profileId: string, count = 10) {
     const documents = []
-    
+
     for (let i = 0; i < count; i++) {
       documents.push(
         createMockMarkupDocument({
           title: `도면 ${i + 1}`,
           created_by: profileId,
           location: faker.helpers.arrayElement(['personal', 'shared']),
-          markup_count: faker.number.int({ min: 0, max: 20 })
+          markup_count: faker.number.int({ min: 0, max: 20 }),
         })
       )
     }
-    
+
     return documents
   }
 
   static mixedDocumentCards(count = 15) {
     const documents = []
     const types = ['daily_report', 'approval', 'material', 'markup', 'file']
-    
+
     for (let i = 0; i < count; i++) {
       const type = faker.helpers.arrayElement(types)
-      documents.push(
-        createMockDocumentCard({ type })
-      )
+      documents.push(createMockDocumentCard({ type }))
     }
-    
+
     return documents
   }
 }
@@ -405,48 +382,41 @@ export const quickBuilders = {
   customer: () => new ProfileBuilder().withRole('customer_manager').build(),
 
   // Organizations
-  constructionCompany: () => new OrganizationBuilder()
-    .withName(`${faker.company.name()} 건설`)
-    .build(),
+  constructionCompany: () =>
+    new OrganizationBuilder().withName(`${faker.company.name()} 건설`).build(),
 
-  // Sites  
-  activeSite: () => new SiteBuilder()
-    .withStatus('active')
-    .withName(`${faker.location.city()} 현장`)
-    .build(),
+  // Sites
+  activeSite: () =>
+    new SiteBuilder().withStatus('active').withName(`${faker.location.city()} 현장`).build(),
 
-  completedSite: () => new SiteBuilder()
-    .withStatus('completed')
-    .completed()
-    .build(),
+  completedSite: () => new SiteBuilder().withStatus('completed').completed().build(),
 
   // Complete scenarios
   smallCompany: () => TestScenarioBuilder.constructionCompany().build(),
   multiSiteCompany: () => TestScenarioBuilder.multiSiteOperation().build(),
 
   // Work data
-  monthlyWork: (profileId: string) => WorkLogScenarioBuilder.monthlyAttendance(
-    new Date().getFullYear(),
-    new Date().getMonth() + 1,
-    profileId
-  ),
+  monthlyWork: (profileId: string) =>
+    WorkLogScenarioBuilder.monthlyAttendance(
+      new Date().getFullYear(),
+      new Date().getMonth() + 1,
+      profileId
+    ),
 
-  overtimeWork: (profileId: string) => WorkLogScenarioBuilder.overtimeWeek(
-    profileId,
-    new Date()
-  ),
+  overtimeWork: (profileId: string) => WorkLogScenarioBuilder.overtimeWeek(profileId, new Date()),
 
   // Documents
-  personalDocuments: (profileId: string) => DocumentScenarioBuilder.markupDocumentLibrary(profileId, 5),
-  sharedDocuments: () => DocumentScenarioBuilder.mixedDocumentCards(10)
+  personalDocuments: (profileId: string) =>
+    DocumentScenarioBuilder.markupDocumentLibrary(profileId, 5),
+  sharedDocuments: () => DocumentScenarioBuilder.mixedDocumentCards(10),
 }
 
 // Export builders
 export {
   OrganizationBuilder,
-  SiteBuilder, 
+  SiteBuilder,
   ProfileBuilder,
   TestScenarioBuilder,
   WorkLogScenarioBuilder,
-  DocumentScenarioBuilder
+  DocumentScenarioBuilder,
 }

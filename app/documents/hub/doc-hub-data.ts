@@ -40,6 +40,9 @@ export interface DrawingItem {
   source: 'file' | 'markup'
   date: string
   url: string
+  originalUrl?: string
+  markupData?: any[]
+  markupId?: string
 }
 
 export interface DrawingWorklog {
@@ -57,8 +60,18 @@ export interface DrawingWorklog {
 export interface PhotoItem {
   id: string
   url: string
-  tags: string[]
+  type?: 'before' | 'after' | 'ref' | 'ing'
+  caption?: string
+  tags?: string[]
   date: string
+  // For UI state
+  currentView?: 'before' | 'after'
+  url_before?: string
+  url_after?: string
+  // For modify actions
+  source?: 'doc_attach' | 'add_photo' | 'daily_report'
+  ref?: string // row ID (UUID) or file path
+  reportId?: string
 }
 
 export interface PhotoGroup {
@@ -68,10 +81,11 @@ export interface PhotoGroup {
   affiliation: string
   author: string
   date: string
+  time?: string
+  status?: string // Added for Filter
   desc?: string
   photos: PhotoItem[]
-  // Extended properties for the UI logic
-  files?: { url?: string; url_before?: string; url_after?: string; currentView?: string }[]
+  files?: PhotoItem[] // Alias for compatibility with shared logic if needed
 }
 
 export interface PunchItem {
@@ -128,6 +142,6 @@ export const FILTERS = {
   'my-docs': ['전체', '승인완료', '심사중', '반려됨', '미제출'],
   'company-docs': [],
   drawings: [],
-  photos: ['전체', '시공전', '시공중', '시공후', '검측', '안전', '기타'],
+  photos: [],
   punch: ['전체', '전기', '설비', '건축', '소방', '통신'],
 }

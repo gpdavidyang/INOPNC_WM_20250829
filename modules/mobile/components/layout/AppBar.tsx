@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/modules/shared/ui'
-import { Bell, Menu, Search } from 'lucide-react'
+import { Bell, FileCheck, Menu, Search } from 'lucide-react'
 import React, { useCallback, useEffect, useState } from 'react'
 import { NotificationModal } from '../notifications/NotificationModal'
 // Drawer is now managed by MobileLayout, not AppBar
@@ -9,6 +9,8 @@ import { SearchPage } from './SearchPage'
 // Switched to server API for unread count to align with notification_logs
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { isNotificationHiddenToday } from '@/modules/mobile/lib/notification-preferences'
+import { normalizeUserRole } from '@/lib/auth/roles'
+import { useRouter } from 'next/navigation'
 
 interface AppBarProps {
   onMenuClick?: () => void
@@ -36,6 +38,7 @@ export const AppBar: React.FC<AppBarProps> = ({
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user, profile } = useUnifiedAuth()
+  const router = useRouter()
   // Font size is managed elsewhere for accessibility; header no longer exposes toggle
 
   // Fetch notification count function
@@ -73,20 +76,10 @@ export const AppBar: React.FC<AppBarProps> = ({
     }
   }, [user?.id, fetchNotificationCount])
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark'
-    setTheme(newTheme)
-    try {
-      document.documentElement.setAttribute('data-theme', newTheme)
-      document.documentElement.classList.toggle('dark', newTheme === 'dark')
-      localStorage.setItem('inopnc_theme', newTheme)
-    } catch (_) {
-      /* ignore */
-    }
-  }
-
   const displayCount =
     typeof notificationCountOverride === 'number' ? notificationCountOverride : notificationCount
+
+  const isSiteManager = normalizeUserRole(profile?.role) === 'site_manager'
 
   const handleBrandClick = () => {
     const destination =
@@ -151,7 +144,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             size="sm"
             className="header-icon-btn"
             id="searchBtn"
-            aria-label="검색"
+            aria-label="통합검색"
             onClick={() => {
               if (onSearchClick) {
                 onSearchClick()
@@ -161,8 +154,23 @@ export const AppBar: React.FC<AppBarProps> = ({
             }}
           >
             <Search className="appbar-icon" />
-            {showLabels && <span className="icon-text">검색</span>}
+            {showLabels && <span className="icon-text">통합검색</span>}
           </Button>
+
+          {/* Completion Certificate */}
+          {isSiteManager ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="header-icon-btn"
+              id="certificateBtn"
+              aria-label="확인서"
+              onClick={() => router.push('/mobile/certificate')}
+            >
+              <FileCheck className="appbar-icon" />
+              {showLabels && <span className="icon-text">확인서</span>}
+            </Button>
+          ) : null}
 
           {/* Notifications */}
           <Button
@@ -188,7 +196,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             size="sm"
             className="header-icon-btn"
             id="menuBtn"
-            aria-label="메뉴"
+            aria-label="내정보"
             onClick={() => {
               if (onMenuClick) {
                 onMenuClick()
@@ -197,7 +205,7 @@ export const AppBar: React.FC<AppBarProps> = ({
             }}
           >
             <Menu className="appbar-icon" />
-            {showLabels && <span className="icon-text">메뉴</span>}
+            {showLabels && <span className="icon-text">내정보</span>}
           </Button>
         </div>
       </div>

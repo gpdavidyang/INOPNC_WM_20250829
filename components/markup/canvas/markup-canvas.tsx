@@ -35,14 +35,17 @@ export function MarkupCanvas({
   return (
     <div
       ref={rootRef}
-      className="relative h-full w-full overflow-hidden rounded border border-gray-200 bg-white"
+      className="markup-canvas-container relative h-full w-full overflow-hidden rounded border border-gray-200 bg-white"
       onPointerDown={handle(onPointerDown)}
       onPointerMove={handle(onPointerMove)}
       onPointerUp={handle(onPointerUp)}
     >
       <div
-        className="absolute left-0 top-0 origin-top-left"
-        style={{ transform: `translate(${panX}px, ${panY}px) scale(${zoom})` }}
+        className="absolute left-0 top-0"
+        style={{
+          transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+          transformOrigin: '0 0',
+        }}
       >
         {/* Background image */}
         {backgroundUrl ? (
@@ -52,6 +55,7 @@ export function MarkupCanvas({
             alt="blueprint"
             width={imageWidth || undefined}
             height={imageHeight || undefined}
+            style={{ maxWidth: 'none', maxHeight: 'none', display: 'block' }}
           />
         ) : (
           <div className="h-[480px] w-[640px] bg-gray-50" />
@@ -176,7 +180,7 @@ function renderObject(selectedIds: string[]) {
         (obj as any).label && !['작업진행', '작업완료', '기타'].includes((obj as any).label)
 
       return (
-        <g key={obj.id} pointerEvents="all">
+        <g key={obj.id} pointerEvents="none">
           {element}
           {displayLabel && (
             <text
@@ -197,6 +201,7 @@ function renderObject(selectedIds: string[]) {
       return (
         <text
           key={obj.id}
+          pointerEvents="none"
           x={obj.x}
           y={obj.y}
           fontSize={(obj as any).fontSize || 14}
@@ -214,6 +219,7 @@ function renderObject(selectedIds: string[]) {
       return (
         <path
           key={obj.id}
+          pointerEvents="none"
           d={d}
           stroke={(obj as any).strokeColor || '#ef4444'}
           strokeWidth={(obj as any).strokeWidth || 2}
@@ -225,19 +231,13 @@ function renderObject(selectedIds: string[]) {
       const color = colorToHex((obj as any).color || '#ef4444')
       const sz = sizeToPixels((obj as any).size || 'medium')
       const r = sz / 2
+      const commonProps = { fill: color, opacity: 0.85, pointerEvents: 'none' as const }
+
       if ((obj as any).shape === 'circle')
-        return <circle key={obj.id} cx={obj.x} cy={obj.y} r={r} fill={color} opacity={0.85} />
+        return <circle key={obj.id} {...commonProps} cx={obj.x} cy={obj.y} r={r} />
       if ((obj as any).shape === 'square')
         return (
-          <rect
-            key={obj.id}
-            x={obj.x - r}
-            y={obj.y - r}
-            width={sz}
-            height={sz}
-            fill={color}
-            opacity={0.85}
-          />
+          <rect key={obj.id} {...commonProps} x={obj.x - r} y={obj.y - r} width={sz} height={sz} />
         )
       if ((obj as any).shape === 'triangle') {
         const points = [
@@ -245,13 +245,13 @@ function renderObject(selectedIds: string[]) {
           `${obj.x - r},${obj.y + r}`,
           `${obj.x + r},${obj.y + r}`,
         ].join(' ')
-        return <polygon key={obj.id} points={points} fill={color} opacity={0.85} />
+        return <polygon key={obj.id} {...commonProps} points={points} />
       }
       // star
       const pts = starPoints(obj.x as number, obj.y as number, r, r / 2)
       const d =
         pts.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ') + ' Z'
-      return <path key={obj.id} d={d} fill={color} opacity={0.85} />
+      return <path key={obj.id} {...commonProps} d={d} />
     }
     return null
   }
@@ -288,7 +288,12 @@ type BoundingRect = { x: number; y: number; width: number; height: number }
 
 function getBoundingRect(obj: MarkupObject): BoundingRect | null {
   if (obj.type === 'box') {
-    return { x: obj.x, y: obj.y, width: (obj as any).width, height: (obj as any).height }
+    return {
+      x: obj.x,
+      y: obj.y,
+      width: Number((obj as any).width) || 0,
+      height: Number((obj as any).height) || 0,
+    }
   }
   if (obj.type === 'stamp') {
     const size = sizeToPixels((obj as any).size || 'medium')

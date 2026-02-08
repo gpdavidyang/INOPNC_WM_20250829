@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  Check,
+  ArrowLeft,
   Download,
   FileImage,
   FileText,
@@ -15,26 +15,39 @@ import {
   X,
 } from 'lucide-react'
 
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+
+import { renderMarkupSnapshotDataUrl } from '@/components/markup/utils/snapshot'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { toast } from 'sonner'
+
+import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
+import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
+
 import { CompanyDocsTab } from './components/CompanyDocsTab'
 import { DrawingsTab } from './components/DrawingsTab'
 import { MyDocsTab } from './components/MyDocsTab'
+import { PhotosTab } from './components/PhotosTab'
 
+import { useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  fetchAllSites,
   fetchCompanyDocs,
   fetchDrawings,
   fetchMyDocs,
   fetchPhotos,
+  uploadDrawingAction,
+  uploadPhotoAction,
   uploadUserDocumentAction,
 } from './actions'
-import {
-  CompanyDoc,
-  DrawingWorklog,
-  FILTERS,
-  MyDoc,
-  PhotoGroup,
-  formatDateShort,
-} from './doc-hub-data'
+import { CompanyDoc, DrawingWorklog, FILTERS, MyDoc, PhotoGroup } from './doc-hub-data'
 import './doc-hub.css'
 
 // Alias for compatibility if needed
@@ -42,6 +55,18 @@ const FileImageIcon = FileImage
 
 // Helper for class names
 const cn = (...classes: (string | undefined | null | false)[]) => classes.filter(Boolean).join(' ')
+
+const normalizeTabParam = (raw: string | null) => {
+  const value = String(raw || '')
+    .trim()
+    .toLowerCase()
+  if (!value) return null
+  if (value === 'photos' || value === 'photo') return 'photos'
+  if (value === 'drawings' || value === 'drawing') return 'drawings'
+  if (value === 'company-docs' || value === 'company') return 'company-docs'
+  if (value === 'my-docs' || value === 'my') return 'my-docs'
+  return null
+}
 
 export default function DocumentHubPage() {
   // State
@@ -51,7 +76,6 @@ export default function DocumentHubPage() {
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [expandedWorklogs, setExpandedWorklogs] = useState<Set<string>>(new Set())
-  const [expandedPhotoGroups, setExpandedPhotoGroups] = useState<Set<string>>(new Set())
 
   const [isUploadSheetOpen, setIsUploadSheetOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -68,6 +92,305 @@ export default function DocumentHubPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [directUploadTarget, setDirectUploadTarget] = useState<MyDoc | null>(null)
 
+  // Drawings Upload State
+  const [activeWorklogId, setActiveWorklogId] = useState<string>('')
+  const [uploadSiteId, setUploadSiteId] = useState<string>('')
+  const [drawingUploadType, setDrawingUploadType] = useState<string>('progress')
+  const [photoUploadType, setPhotoUploadType] = useState<string>('after')
+
+  const { user, profile } = useUnifiedAuth()
+  const markupObjectUrlRef = useRef<string | null>(null)
+
+  const searchParams = useSearchParams()
+  const deepLinkTab = useMemo(() => normalizeTabParam(searchParams.get('tab')), [searchParams])
+  const deepLinkSiteName = useMemo(() => searchParams.get('siteName') || '', [searchParams])
+  const deepLinkExpandId = useMemo(
+    () => searchParams.get('expandId') || searchParams.get('worklogId') || '',
+    [searchParams]
+  )
+
+  useEffect(() => {
+    if (!deepLinkTab) return
+    setActiveTab(deepLinkTab)
+  }, [deepLinkTab])
+
+  const [markupEditor, setMarkupEditor] = useState<{
+    open: boolean
+    mode: 'upload' | 'start' | 'resume'
+    docId?: string
+    worklogId?: string
+    siteId?: string
+    showBrowser: boolean
+    drawingFile: any | null
+    markupDocument: any | null
+  }>({
+    open: false,
+    mode: 'start',
+    showBrowser: false,
+    drawingFile: null,
+    markupDocument: null,
+  })
+
+  useEffect(() => {
+    if (markupEditor.open) return
+    const url = markupObjectUrlRef.current
+    if (url && url.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(url)
+      } catch {
+        // ignore
+      }
+    }
+    markupObjectUrlRef.current = null
+  }, [markupEditor.open])
+
+  // In-App Viewer State
+  const [drawingViewer, setDrawingViewer] = useState<{
+    open: boolean
+    url: string
+    title: string
+  }>({
+    open: false,
+    url: '',
+    title: '',
+  })
+
+  const handleOpenViewer = (url: string, title?: string) => {
+    setDrawingViewer({
+      open: true,
+      url,
+      title: title || '도면 미리보기',
+    })
+  }
+
+  const handleOpenMarkup = (
+    mode: 'upload' | 'start' | 'resume',
+    docId?: string,
+    targetWorklogId?: string,
+    directDrawing?: any
+  ) => {
+    let siteId: string | undefined
+    if (targetWorklogId) {
+      const w = documents.drawings.find(d => d.id === targetWorklogId)
+      if (w) siteId = w.siteId
+    }
+
+    const baseEditorState = {
+      open: true,
+      mode,
+      docId: directDrawing && mode === 'start' ? undefined : docId,
+      worklogId: targetWorklogId || markupEditor.worklogId,
+      siteId,
+      showBrowser: mode === 'upload',
+      drawingFile: null,
+      markupDocument: null,
+    }
+
+    if (directDrawing) {
+      const directUrl = typeof directDrawing.url === 'string' ? directDrawing.url : ''
+      if (directUrl.startsWith('blob:')) {
+        markupObjectUrlRef.current = directUrl
+      }
+      const drawingFile = {
+        id: directDrawing.id,
+        name: directDrawing.title || directDrawing.name,
+        size: 0,
+        type: 'image',
+        url: directDrawing.url,
+        file: directDrawing.file,
+        siteId: directDrawing.siteId || siteId,
+        uploadDate: new Date(),
+      }
+
+      const markupDocument = {
+        id: directDrawing.id,
+        title: directDrawing.title || directDrawing.name,
+        original_blueprint_filename: directDrawing.title || directDrawing.name,
+        original_blueprint_url: directDrawing.url,
+        markup_data: directDrawing.markupData || [],
+        markupId: directDrawing.markupId,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      setMarkupEditor({
+        ...baseEditorState,
+        drawingFile,
+        markupDocument,
+        showBrowser: false,
+      })
+    } else {
+      setMarkupEditor(baseEditorState)
+    }
+  }
+
+  const handleDrawingSelect = (drawing: any) => {
+    const drawingFile = {
+      id: drawing.id,
+      name: drawing.name || drawing.title,
+      size: drawing.size || 0,
+      type: drawing.type || 'image',
+      url: drawing.url,
+      siteId: drawing.siteId,
+      uploadDate: drawing.uploadDate || new Date(),
+    }
+
+    const markupDocument = {
+      id: drawing.id,
+      title: drawing.name || drawing.title,
+      original_blueprint_filename: drawing.name || drawing.title,
+      original_blueprint_url: drawing.url,
+      markup_data: drawing.markupData || [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    setMarkupEditor(prev => ({
+      ...prev,
+      drawingFile,
+      markupDocument,
+      showBrowser: false,
+    }))
+  }
+
+  const handleMarkupSave = async (doc: any) => {
+    const worklogId = markupEditor.worklogId
+
+    try {
+      const publish = Boolean(doc?.published)
+      const payload = {
+        title: (doc?.title || markupEditor.drawingFile?.name || '무제 도면') as string,
+        description: doc.description || '',
+        markup_data: Array.isArray(doc.markup_data) ? doc.markup_data : [],
+        preview_image_url: doc.preview_image_url || undefined,
+      }
+
+      let savedId: string | undefined
+
+      const blueprintUrl =
+        (markupEditor.drawingFile?.url as string | undefined) ||
+        (doc?.original_blueprint_url as string | undefined) ||
+        ''
+      const previewDataUrl = await renderMarkupSnapshotDataUrl(blueprintUrl, payload.markup_data)
+      if (publish && !previewDataUrl && !payload.preview_image_url) {
+        throw new Error('진행도면 저장을 위한 미리보기 생성에 실패했습니다.')
+      }
+
+      const isUuid = (value?: string | null) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+
+      const ensureBlueprintUpload = async () => {
+        const currentUrl = blueprintUrl
+        const blueprintFileName =
+          (markupEditor.drawingFile?.name as string | undefined) || 'blueprint.png'
+        if (!currentUrl) return { url: '', fileName: blueprintFileName }
+        const isEphemeral =
+          currentUrl.startsWith('blob:') ||
+          currentUrl.startsWith('data:') ||
+          currentUrl.startsWith('filesystem:') ||
+          currentUrl.startsWith('capacitor:') ||
+          currentUrl.startsWith('capacitor-file:')
+        if (!isEphemeral) return { url: currentUrl, fileName: blueprintFileName }
+        try {
+          const sourceFile: File | null =
+            markupEditor.drawingFile?.file instanceof File ? markupEditor.drawingFile.file : null
+          let uploadFile: File | null = sourceFile
+          let safeName = blueprintFileName
+
+          if (!uploadFile && currentUrl.startsWith('data:')) {
+            const match = /^data:([^;]+);base64,(.+)$/i.exec(currentUrl)
+            if (!match) throw new Error('지원하지 않는 파일 형식입니다.')
+            const [, mimeType, base64] = match
+            const bin = atob(base64)
+            const bytes = new Uint8Array(bin.length)
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+            const inferredType = mimeType || 'image/png'
+            const ext = (safeName.split('.').pop() || '').toLowerCase()
+            const hasExt = Boolean(ext && ext.length <= 5)
+            safeName = hasExt
+              ? safeName
+              : `blueprint.${(inferredType.split('/')[1] || 'png').split(';')[0]}`
+            uploadFile = new File([bytes], safeName, { type: inferredType })
+          }
+
+          if (!uploadFile) {
+            throw new Error('원본 도면 업로드에 실패했습니다. 파일을 다시 선택해 주세요.')
+          }
+
+          const fd = new FormData()
+          fd.append('file', uploadFile)
+          const uploadRes = await fetch('/api/uploads/preview', { method: 'POST', body: fd })
+          const uploadJson = await uploadRes.json().catch(() => ({}))
+          if (!uploadRes.ok || !uploadJson?.url) {
+            throw new Error(uploadJson?.error || '도면 업로드에 실패했습니다.')
+          }
+          return { url: uploadJson.url as string, fileName: safeName }
+        } catch (err) {
+          console.warn('Blueprint upload failed:', err)
+          throw err
+        }
+      }
+
+      if (!markupEditor.drawingFile) {
+        throw new Error('마킹할 도면을 먼저 선택해주세요.')
+      }
+
+      const ensured = await ensureBlueprintUpload()
+      const drawingId = isUuid(markupEditor.drawingFile?.id)
+        ? markupEditor.drawingFile.id
+        : undefined
+
+      const siteIdForSave =
+        markupEditor.siteId || (markupEditor.drawingFile?.siteId as string | undefined) || undefined
+      if (!drawingId && !siteIdForSave) {
+        throw new Error('현장을 먼저 선택해주세요.')
+      }
+
+      const body = {
+        ...(drawingId ? { drawingId } : {}),
+        siteId: siteIdForSave,
+        original_blueprint_url: ensured.url || blueprintUrl || undefined,
+        original_blueprint_filename:
+          ensured.fileName || markupEditor.drawingFile?.name || undefined,
+        title: payload.title,
+        description: payload.description,
+        markupData: payload.markupData || payload.markup_data,
+        preview_image_url: payload.preview_image_url,
+        preview_image_data: previewDataUrl,
+        published: publish,
+        linked_worklog_id: worklogId || undefined,
+        linked_worklog_ids: worklogId ? [worklogId] : undefined,
+      }
+
+      const res = await fetch('/api/docs/drawings/markups/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '마킹 저장 실패')
+      savedId = json?.data?.markup?.id
+
+      if (worklogId && savedId) {
+        const res = await fetch(`/api/markup-documents/${savedId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ linked_worklog_ids: [worklogId] }),
+        })
+        if (!res.ok) console.warn('작업일지 연동 실패')
+      }
+
+      toast.success(publish ? '진행도면으로 저장했습니다.' : '마킹을 저장했습니다.')
+
+      setMarkupEditor(prev => ({ ...prev, open: false }))
+      loadData()
+    } catch (error) {
+      console.error('Save error:', error)
+      toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
+    }
+  }
+
   // Data
   const [documents, setDocuments] = useState<{
     'my-docs': MyDoc[]
@@ -80,17 +403,19 @@ export default function DocumentHubPage() {
     drawings: [],
     photos: [],
   })
+  const [allSites, setAllSites] = useState<string[]>([])
 
   // Fetch Data
   const loadData = async () => {
     // Only set generic loading on initial load or full refresh, not necessarily on every small update
     // But here we want to refresh everything
     try {
-      const [myDocs, companyDocs, drawings, photos] = await Promise.all([
+      const [myDocs, companyDocs, drawings, photos, sites] = await Promise.all([
         fetchMyDocs(),
         fetchCompanyDocs(),
         fetchDrawings(),
         fetchPhotos(),
+        fetchAllSites(),
       ])
 
       setDocuments({
@@ -99,6 +424,7 @@ export default function DocumentHubPage() {
         drawings: drawings,
         photos: photos,
       })
+      setAllSites(sites)
     } catch (error) {
       console.error('Failed to load document hub data:', error)
     } finally {
@@ -183,6 +509,17 @@ export default function DocumentHubPage() {
       setUploadTypeId(null)
       setEditingDocId(null)
     }
+
+    if (activeTab === 'drawings') {
+      setActiveWorklogId('')
+      setUploadSiteId('')
+      setDrawingUploadType('progress')
+    } else if (activeTab === 'photos') {
+      setActiveWorklogId('')
+      setUploadSiteId('')
+      setPhotoUploadType('after')
+    }
+
     setUploadDate(new Date().toISOString().split('T')[0])
     setUploadFiles([])
     setShowTypeDropdown(false)
@@ -219,6 +556,7 @@ export default function DocumentHubPage() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('requirementId', directUploadTarget.typeId)
+      formData.append('originalName', file.name) // Explicitly send name for safe encoding
       // Check if it's an update to existing doc? current fetchMyDocs uses requirement_id to map
 
       const result = await uploadUserDocumentAction(formData)
@@ -249,104 +587,6 @@ export default function DocumentHubPage() {
     if (!drawingTabState[id]) {
       setDrawingTabState(prev => ({ ...prev, [id]: 'list' }))
     }
-  }
-
-  const togglePhotoGroupExpand = (id: string) => {
-    const newSet = new Set(expandedPhotoGroups)
-    if (newSet.has(id)) newSet.delete(id)
-    else newSet.add(id)
-    setExpandedPhotoGroups(newSet)
-  }
-
-  /* RenderPhotosTab - Pixel Perfect */
-  const renderPhotosTab = () => {
-    if (loading) return <div className="p-8 text-center text-slate-500">로딩중...</div>
-    if (filteredDocs.length === 0)
-      return <div className="p-8 text-center text-slate-500">사진이 없습니다.</div>
-
-    return (
-      <div className="doc-list">
-        {filteredDocs.map((doc: any) => {
-          const isSelected = selectedIds.has(doc.id)
-          const isExpanded = expandedPhotoGroups.has(doc.id)
-          const photoCount = doc.photos ? doc.photos.length : 0
-          const previewPhotos = doc.photos ? doc.photos.slice(0, 3) : []
-
-          return (
-            <div
-              key={doc.id}
-              className={cn('doc-card', isSelected && 'selected')}
-              style={{ display: 'block', cursor: 'pointer' }}
-              onClick={e => {
-                if ((e.target as HTMLElement).closest('.checkbox-wrapper')) return
-                togglePhotoGroupExpand(doc.id)
-              }}
-            >
-              <div
-                className="checkbox-wrapper"
-                onClick={e => {
-                  e.stopPropagation()
-                  toggleSelection(doc.id)
-                }}
-              >
-                <div className={cn('checkbox', isSelected && 'checked')}>
-                  <Check size={14} strokeWidth={3} />
-                </div>
-              </div>
-
-              <div className="mb-1.5 pr-10">
-                <div className="card-title text-[18px] font-bold text-slate-900 leading-tight">
-                  {doc.desc || doc.title}
-                </div>
-              </div>
-
-              <div className="card-meta text-[14px] text-slate-500 flex items-center">
-                <span className="font-semibold text-slate-600">{doc.author}</span>
-                <span className="text-separator mx-1.5 text-slate-300">|</span>
-                <span>{doc.title}</span>
-                <span className="text-separator mx-1.5 text-slate-300">|</span>
-                <span>{formatDateShort(doc.date)}</span>
-              </div>
-
-              <div className="mt-2 flex justify-between items-center">
-                <span className="inline-block text-[12px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
-                  사진 {photoCount}장
-                </span>
-              </div>
-
-              {/* Preview or Expanded Grid */}
-              <div className="mt-3">
-                {!isExpanded && previewPhotos.length > 0 && (
-                  <div className="flex gap-1.5 overflow-hidden">
-                    {previewPhotos.map((p: any) => (
-                      <div
-                        key={p.id}
-                        className="w-10 h-10 rounded-md bg-slate-100 overflow-hidden border border-slate-200"
-                      >
-                        <img src={p.url} className="w-full h-full object-cover" alt="" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {isExpanded && doc.photos && (
-                  <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
-                    {doc.photos.map((p: any) => (
-                      <div
-                        key={p.id}
-                        className="aspect-square bg-slate-100 rounded-lg overflow-hidden relative border border-slate-200"
-                      >
-                        <img src={p.url} className="w-full h-full object-cover" alt="" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
   }
 
   // --- Main Render ---
@@ -437,9 +677,25 @@ export default function DocumentHubPage() {
             docs={filteredDocs as DrawingWorklog[]}
             loading={loading}
             onRefresh={loadData}
+            onOpenMarkup={handleOpenMarkup}
+            onOpenViewer={handleOpenViewer}
+            initialSiteFilter={deepLinkSiteName || undefined}
+            initialExpandedDocId={deepLinkExpandId || undefined}
+            siteList={allSites}
           />
         )}
-        {activeTab === 'photos' && renderPhotosTab()}
+        {activeTab === 'photos' && (
+          <PhotosTab
+            docs={filteredDocs as PhotoGroup[]}
+            loading={loading}
+            selectedIds={selectedIds}
+            onToggleSelection={toggleSelection}
+            onRefresh={loadData}
+            initialSiteFilter={deepLinkSiteName || undefined}
+            initialExpandedDocId={deepLinkExpandId || undefined}
+            siteList={allSites}
+          />
+        )}
       </div>
 
       {/* Global Batch Bar */}
@@ -521,7 +777,8 @@ export default function DocumentHubPage() {
               if (result.success) {
                 alert(result.message || '삭제되었습니다.')
                 setSelectedIds(new Set())
-                loadData()
+                // Force reload data
+                await loadData()
               } else {
                 alert(result.error || '삭제 실패')
               }
@@ -536,7 +793,7 @@ export default function DocumentHubPage() {
       {/* FAB (Floating Action Button) */}
       <div className="fab-container">
         <button className="fab-button" onClick={() => openUploadSheet()}>
-          <Plus size={24} strokeWidth={3} />
+          <Plus size={32} strokeWidth={3} />
         </button>
       </div>
 
@@ -646,9 +903,372 @@ export default function DocumentHubPage() {
                   </button>
                   <button
                     className="btn-sheet-submit"
-                    onClick={() => {
-                      alert('등록되었습니다.')
-                      setIsUploadSheetOpen(false)
+                    onClick={async () => {
+                      if (!uploadTypeId) {
+                        alert('서류명을 선택해주세요.')
+                        return
+                      }
+                      if (uploadFiles.length === 0) {
+                        alert('파일을 선택해주세요.')
+                        return
+                      }
+
+                      setIsUploading(true)
+                      try {
+                        const { uploadUserDocumentAction } = await import('./actions')
+                        for (const file of uploadFiles) {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          formData.append('requirementId', uploadTypeId)
+                          if (editingDocId) {
+                            formData.append('documentId', editingDocId)
+                          }
+                          formData.append('originalName', file.name)
+
+                          const res = await uploadUserDocumentAction(formData)
+                          if (!res.success) throw new Error(res.error)
+                        }
+                        alert('서류가 등록되었습니다.')
+                        setIsUploadSheetOpen(false)
+                        setUploadFiles([])
+                        setUploadTitle('')
+                        setUploadTypeId(null)
+                        setEditingDocId(null)
+                        loadData()
+                      } catch (err: any) {
+                        console.error(err)
+                        alert(`등록 실패: ${err.message}`)
+                      } finally {
+                        setIsUploading(false)
+                      }
+                    }}
+                  >
+                    등록하기
+                  </button>
+                </div>
+              </div>
+            ) : activeTab === 'drawings' ? (
+              <div className="space-y-4">
+                <div className="sheet-header">
+                  <h3 className="sheet-title">도면 등록</h3>
+                  <button className="close-button" onClick={() => setIsUploadSheetOpen(false)}>
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">현장 선택</label>
+                  <CustomSelect
+                    value={uploadSiteId}
+                    onValueChange={value => {
+                      setUploadSiteId(value)
+                      setActiveWorklogId('') // Reset dependent worklog
+                    }}
+                  >
+                    <CustomSelectTrigger className="w-full h-12 text-[15px] bg-white border border-slate-200 rounded-xl px-3 focus:ring-2 focus:ring-blue-500/20">
+                      <CustomSelectValue placeholder="현장을 선택하세요" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {Array.from(new Set(documents.drawings.map(d => d.siteName)))
+                        .sort()
+                        .map(siteName => {
+                          const representative = documents.drawings.find(
+                            d => d.siteName === siteName
+                          )
+                          const siteId = representative?.siteId
+                          if (!siteId) return null
+                          return (
+                            <CustomSelectItem key={siteId} value={siteId}>
+                              {siteName}
+                            </CustomSelectItem>
+                          )
+                        })}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">작업일지 선택</label>
+                  <CustomSelect
+                    value={activeWorklogId}
+                    onValueChange={setActiveWorklogId}
+                    disabled={!uploadSiteId}
+                  >
+                    <CustomSelectTrigger className="w-full h-12 text-[15px] bg-white border border-slate-200 rounded-xl px-3 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400">
+                      <CustomSelectValue
+                        placeholder={
+                          uploadSiteId ? '작업일지를 선택하세요' : '현장을 먼저 선택하세요'
+                        }
+                      />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {documents.drawings
+                        .filter(d => d.siteId === uploadSiteId)
+                        .map(doc => (
+                          <CustomSelectItem key={doc.id} value={doc.id}>
+                            <span className="truncate">
+                              {doc.date} | {doc.desc}
+                            </span>
+                          </CustomSelectItem>
+                        ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">도면 구분</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      className={cn(
+                        'h-12 rounded-xl text-[14px] font-bold border transition-all',
+                        drawingUploadType === 'blueprint'
+                          ? 'bg-blue-50 border-blue-200 text-blue-600'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      )}
+                      onClick={() => setDrawingUploadType('blueprint')}
+                    >
+                      공도면
+                    </button>
+                    <button
+                      className={cn(
+                        'h-12 rounded-xl text-[14px] font-bold border transition-all',
+                        drawingUploadType === 'progress'
+                          ? 'bg-blue-50 border-blue-200 text-blue-600'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      )}
+                      onClick={() => setDrawingUploadType('progress')}
+                    >
+                      진행도면
+                    </button>
+                    <button
+                      className={cn(
+                        'h-12 rounded-xl text-[14px] font-bold border transition-all',
+                        drawingUploadType === 'completion'
+                          ? 'bg-blue-50 border-blue-200 text-blue-600'
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      )}
+                      onClick={() => setDrawingUploadType('completion')}
+                    >
+                      완료도면
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  className="upload-area"
+                  onClick={() => document.getElementById('drawingFileInput')?.click()}
+                >
+                  <UploadCloud size={32} className="text-slate-400" />
+                  <span className="upload-label">
+                    {uploadFiles.length > 0
+                      ? `${uploadFiles.length}개 파일 선택됨`
+                      : '파일 선택 (다중 가능)'}
+                  </span>
+                  <input
+                    type="file"
+                    id="drawingFileInput"
+                    multiple
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                    onChange={e => setUploadFiles(Array.from(e.target.files || []))}
+                  />
+                </div>
+
+                <div className="sheet-actions">
+                  <button className="btn-sheet-cancel" onClick={() => setIsUploadSheetOpen(false)}>
+                    취소
+                  </button>
+                  <button
+                    className="btn-sheet-submit"
+                    onClick={async () => {
+                      if (!activeWorklogId) {
+                        alert('작업일지를 선택해주세요.')
+                        return
+                      }
+                      if (uploadFiles.length === 0) {
+                        alert('파일을 선택해주세요.')
+                        return
+                      }
+
+                      const selectedDoc = documents.drawings.find(d => d.id === activeWorklogId)
+                      if (!selectedDoc) return
+
+                      setIsUploading(true)
+                      try {
+                        for (const file of uploadFiles) {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          formData.append('reportId', activeWorklogId)
+                          formData.append('siteId', selectedDoc.siteId)
+                          formData.append('docType', drawingUploadType)
+                          formData.append('originalName', file.name)
+
+                          const res = await uploadDrawingAction(formData)
+                          if (!res.success) throw new Error(res.error)
+                        }
+                        alert('도면이 업로드되었습니다.')
+                        setIsUploadSheetOpen(false)
+                        loadData()
+                      } catch (err: any) {
+                        console.error(err)
+                        alert(`업로드 실패: ${err.message}`)
+                      } finally {
+                        setIsUploading(false)
+                      }
+                    }}
+                  >
+                    등록하기
+                  </button>
+                </div>
+              </div>
+            ) : activeTab === 'photos' ? (
+              <div className="space-y-4">
+                <div className="sheet-header">
+                  <h3 className="sheet-title">사진 등록</h3>
+                  <button className="close-button" onClick={() => setIsUploadSheetOpen(false)}>
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">현장 선택</label>
+                  <CustomSelect
+                    value={uploadSiteId}
+                    onValueChange={value => {
+                      setUploadSiteId(value)
+                      setActiveWorklogId('')
+                    }}
+                  >
+                    <CustomSelectTrigger className="w-full h-12 text-[15px] bg-white border border-slate-200 rounded-xl px-3 focus:ring-2 focus:ring-blue-500/20">
+                      <CustomSelectValue placeholder="현장을 선택하세요" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {Array.from(new Set(documents.drawings.map(d => d.siteName)))
+                        .sort()
+                        .map(siteName => {
+                          const representative = documents.drawings.find(
+                            d => d.siteName === siteName
+                          )
+                          const siteId = representative?.siteId
+                          if (!siteId) return null
+                          return (
+                            <CustomSelectItem key={siteId} value={siteId}>
+                              {siteName}
+                            </CustomSelectItem>
+                          )
+                        })}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">작업일지 선택</label>
+                  <CustomSelect
+                    value={activeWorklogId}
+                    onValueChange={setActiveWorklogId}
+                    disabled={!uploadSiteId}
+                  >
+                    <CustomSelectTrigger className="w-full h-12 text-[15px] bg-white border border-slate-200 rounded-xl px-3 focus:ring-2 focus:ring-blue-500/20 disabled:bg-slate-100 disabled:text-slate-400">
+                      <CustomSelectValue
+                        placeholder={
+                          uploadSiteId ? '작업일지를 선택하세요' : '현장을 먼저 선택하세요'
+                        }
+                      />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {documents.drawings
+                        .filter(d => d.siteId === uploadSiteId)
+                        .map(doc => (
+                          <CustomSelectItem key={doc.id} value={doc.id}>
+                            <span className="truncate">
+                              {doc.date} | {doc.desc}
+                            </span>
+                          </CustomSelectItem>
+                        ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">사진 구분</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { id: 'before', label: '시공 전' },
+                      { id: 'after', label: '시공 후' },
+                    ].map(type => (
+                      <button
+                        key={type.id}
+                        className={cn(
+                          'h-10 rounded-lg text-[13px] font-bold border transition-all',
+                          photoUploadType === type.id
+                            ? 'bg-blue-50 border-blue-200 text-blue-600'
+                            : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                        )}
+                        onClick={() => setPhotoUploadType(type.id)}
+                      >
+                        {type.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div
+                  className="upload-area"
+                  onClick={() => document.getElementById('photoFileInput')?.click()}
+                >
+                  <FileImage size={32} className="text-slate-400" />
+                  <span className="upload-label">
+                    {uploadFiles.length > 0
+                      ? `${uploadFiles.length}개 파일 선택됨`
+                      : '사진 선택 (다중 가능)'}
+                  </span>
+                  <input
+                    type="file"
+                    id="photoFileInput"
+                    multiple
+                    className="hidden"
+                    accept="image/*"
+                    onChange={e => setUploadFiles(Array.from(e.target.files || []))}
+                  />
+                </div>
+
+                <div className="sheet-actions">
+                  <button className="btn-sheet-cancel" onClick={() => setIsUploadSheetOpen(false)}>
+                    취소
+                  </button>
+                  <button
+                    className="btn-sheet-submit"
+                    onClick={async () => {
+                      if (!activeWorklogId) {
+                        alert('작업일지를 선택해주세요.')
+                        return
+                      }
+                      if (uploadFiles.length === 0) {
+                        alert('사진을 선택해주세요.')
+                        return
+                      }
+
+                      setIsUploading(true)
+                      try {
+                        for (const file of uploadFiles) {
+                          const formData = new FormData()
+                          formData.append('file', file)
+                          formData.append('reportId', activeWorklogId)
+                          formData.append('photoType', photoUploadType)
+                          formData.append('originalName', file.name)
+
+                          const res = await uploadPhotoAction(formData)
+                          if (!res.success) throw new Error(res.error)
+                        }
+                        alert('사진이 등록되었습니다.')
+                        setIsUploadSheetOpen(false)
+                        loadData()
+                      } catch (err: any) {
+                        console.error(err)
+                        alert(`등록 실패: ${err.message}`)
+                      } finally {
+                        setIsUploading(false)
+                      }
                     }}
                   >
                     등록하기
@@ -696,6 +1316,96 @@ export default function DocumentHubPage() {
           <div className="bg-white px-8 py-6 rounded-xl flex flex-col items-center gap-4 shadow-xl">
             <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             <span className="font-bold text-slate-800 text-lg">업로드 중...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Viewer Overlay */}
+      {drawingViewer.open && (
+        <div className="fixed inset-0 z-[100000] flex flex-col bg-black/95 animate-in fade-in duration-200">
+          {/* Viewer Header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-black/50 backdrop-blur-sm border-b border-white/10">
+            <button
+              onClick={() => setDrawingViewer(prev => ({ ...prev, open: false }))}
+              className="p-2 -ml-2 text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h3 className="text-white font-bold text-sm truncate">{drawingViewer.title}</h3>
+          </div>
+
+          {/* Viewer Content */}
+          <div className="flex-1 overflow-auto flex items-center justify-center p-4">
+            {drawingViewer.url ? (
+              <img
+                src={drawingViewer.url}
+                alt={drawingViewer.title}
+                className="max-w-full max-h-full object-contain shadow-2xl"
+              />
+            ) : (
+              <div className="text-white/50 text-sm">이미지를 불러올 수 없습니다.</div>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Markup Tool Overlay */}
+      {markupEditor.open && (
+        <div className="fixed inset-0 z-[9999] flex flex-col bg-white pt-[env(safe-area-inset-top)]">
+          <div className="flex items-center justify-between border-b bg-white px-4 py-3 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setMarkupEditor(prev => ({ ...prev, open: false }))}
+              className="flex items-center gap-2 rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-bold text-[#6b7280] active:bg-gray-200"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              뒤로
+            </button>
+            <h2 className="text-sm font-bold text-[#1f2942]">
+              {markupEditor.showBrowser ? '도면 선택' : '도면 마킹 작업'}
+            </h2>
+            <div className="w-12" />
+          </div>
+
+          <div className="flex-1 overflow-hidden bg-[#f8f9fc]">
+            {markupEditor.showBrowser ? (
+              <DrawingBrowser
+                selectedSite={markupEditor.siteId}
+                userId={user?.id || ''}
+                onDrawingSelect={handleDrawingSelect}
+                initialMode={markupEditor.mode === 'upload' ? 'upload' : 'browse'}
+              />
+            ) : markupEditor.markupDocument ? (
+              <div className="h-full">
+                <SharedMarkupEditor
+                  initialDocument={markupEditor.markupDocument}
+                  onSave={handleMarkupSave}
+                  onClose={() => setMarkupEditor(prev => ({ ...prev, open: false }))}
+                  embedded={true}
+                  savePrompt="save-as"
+                />
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center p-10 text-center">
+                <div className="space-y-6">
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                    <UploadCloud className="h-10 w-10" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-bold text-[#1f2942]">마킹할 도면을 선택해주세요</h3>
+                    <p className="text-sm text-[#9aa4c5]">
+                      저장된 도면을 불러와서 치수 측정을 시작합니다.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setMarkupEditor(prev => ({ ...prev, showBrowser: true }))}
+                    className="w-full rounded-xl bg-[#31a3fa] py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-200 active:scale-[0.98]"
+                  >
+                    도면 불러오기
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

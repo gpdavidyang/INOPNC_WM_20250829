@@ -3,7 +3,7 @@
 import React from 'react'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
-import { WorkLogHomePage } from '@/modules/worker-site-manager/pages'
+import { WorkLogHomePage2 } from '@/modules/worker-site-manager/pages'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,14 +15,14 @@ export default function MobileWorklogPage() {
     // 파트너/고객담당자도 동일 UI 사용
     return (
       <MobileAuthGuard requiredRoles={['customer_manager', 'partner']}>
-        <WorkLogHomePage />
+        <WorkLogHomePage2 />
       </MobileAuthGuard>
     )
   }
 
   return (
     <MobileAuthGuard requiredRoles={['worker', 'site_manager']}>
-      <WorkLogHomePage />
+      <WorkLogHomePage2 />
     </MobileAuthGuard>
   )
 }

@@ -79,7 +79,10 @@ export async function GET() {
         id: string
         name: string
         status?: string
+        address?: string | null
         organization_id?: string | null
+        manager_name?: string | null
+        safety_manager_name?: string | null
       }> = []
       const pushSite = (row: any) => {
         if (!row?.id || row.is_deleted) return
@@ -89,7 +92,10 @@ export async function GET() {
           id,
           name: row.name || '현장',
           status: row.status,
+          address: row.address ?? null,
           organization_id: row.organization_id ?? null,
+          manager_name: row.manager_name ?? null,
+          safety_manager_name: row.safety_manager_name ?? null,
         })
       }
 
@@ -97,7 +103,7 @@ export async function GET() {
       if (orgIds.size > 0) {
         const { data: orgSites, error: orgError } = await serviceClient
           .from('sites')
-          .select('id, name, status, organization_id')
+          .select('id, name, status, address, organization_id, manager_name, safety_manager_name')
           .in('organization_id', Array.from(orgIds))
           .eq('is_deleted', false)
           .order('name', { ascending: true })
@@ -115,7 +121,7 @@ export async function GET() {
           `
           site_id, 
           is_active, 
-          sites(id, name, status, organization_id, is_deleted)
+          sites(id, name, status, address, organization_id, manager_name, safety_manager_name, is_deleted)
         `
         )
         .eq(
@@ -138,7 +144,9 @@ export async function GET() {
       if (legacyFallbackEnabled) {
         const { data: legacyRows, error: legacyError } = await serviceClient
           .from('site_partners')
-          .select('site_id, sites(id, name, status, organization_id, is_deleted)')
+          .select(
+            'site_id, sites(id, name, status, address, organization_id, manager_name, safety_manager_name, is_deleted)'
+          )
           .eq(
             'partner_company_id',
             partnerCompanyId || authResult.restrictedOrgId || profile.organization_id || ''
@@ -168,7 +176,7 @@ export async function GET() {
     // Other roles: basic visibility
     let query = serviceClient
       .from('sites')
-      .select('id, name, status, organization_id')
+      .select('id, name, status, address, organization_id, manager_name, safety_manager_name')
       .eq('is_deleted', false)
       .order('name', { ascending: true })
 
@@ -197,7 +205,10 @@ export async function GET() {
       id: site.id,
       name: site.name ?? '이름 없음',
       status: site.status,
+      address: (site as any).address ?? null,
       organization_id: site.organization_id,
+      manager_name: (site as any).manager_name ?? null,
+      safety_manager_name: (site as any).safety_manager_name ?? null,
     }))
 
     try {

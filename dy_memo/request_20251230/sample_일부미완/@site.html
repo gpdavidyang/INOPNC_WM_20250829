@@ -1095,8 +1095,6 @@
         const lodgeDisplay = site.lodge && site.lodge !== '-' ? site.lodge : (site.isLocal ? '숙소 입력(클릭)' : '-');
 
         // 소속 배지 클래스: 직접등록인 경우 붉은 계열 배지 사용
-        const affilClass = site.affil === '직접등록' ? 'sub-badge direct' : 'sub-badge affil';
-
         // 데이터 유무 인디케이터 (@pmain 로직 동일)
         const hasDraw = !!(site.drawings && (
             (site.drawings.construction && site.drawings.construction.length) ||
@@ -1124,6 +1122,9 @@
         const isExpanded = expandedCardIds.has(site.id) ? 'expanded' : '';
 
         const dateLabel = site.lastDate ? (site.lastTime ? `${site.lastDate} (최종 ${site.lastTime})` : site.lastDate) : '';
+        const approvedManDaysRaw = Number(site.mp || 0);
+        const approvedManDays = Number.isFinite(approvedManDaysRaw) ? Math.round(approvedManDaysRaw * 10) / 10 : 0;
+        const approvedManDaysLabel = Number.isInteger(approvedManDays) ? String(approvedManDays) : approvedManDays.toFixed(1);
 
         return `
         <div class="site-card ${site.pinned ? 'pinned-item' : ''} ${isExpanded}" id="card-${site.id}">
@@ -1137,7 +1138,7 @@
                         ${deleteBtn}
                     </div>
                 </div>
-                <div class="site-sub-info"><div class="site-sub-left"><span class="${affilClass}">${site.affil}</span><span class="sub-badge weather"><i data-lucide="${weather.icon}" style="width:14px;"></i>${weather.text}</span></div><div class="indicator-group"><i data-lucide="map" class="data-icon ${hasDraw ? 'active' : ''}"></i><i data-lucide="camera" class="data-icon ${hasPhoto ? 'active' : ''}"></i><i data-lucide="file-check-2" class="data-icon ${hasPTW ? 'active' : ''}"></i><i data-lucide="clipboard-list" class="data-icon ${hasLog ? 'active' : ''}"></i><i data-lucide="check-circle-2" class="data-icon ${hasAction ? 'active' : ''}"></i></div></div>
+                <div class="site-sub-info"><div class="site-sub-left"></div><div class="indicator-group"><i data-lucide="map" class="data-icon ${hasDraw ? 'active' : ''}"></i><i data-lucide="camera" class="data-icon ${hasPhoto ? 'active' : ''}"></i><i data-lucide="file-check-2" class="data-icon ${hasPTW ? 'active' : ''}"></i><i data-lucide="clipboard-list" class="data-icon ${hasLog ? 'active' : ''}"></i><i data-lucide="check-circle-2" class="data-icon ${hasAction ? 'active' : ''}"></i></div></div>
                 <div class="addr-row">
                     <div class="addr-text" ${addrTextAction} style="cursor:pointer;"><span>${addrDisplay}</span></div>
                     <button class="btn-icon-sq" ${addrIconAction}><i data-lucide="map-pin" style="width:18px;"></i></button>
@@ -1153,8 +1154,8 @@
                         <span class="stat-val">${site.days}일</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">하자(미조치)</span>
-                        <span class="stat-val danger">${site.mp}건</span>
+                        <span class="stat-label">총공수(승인)</span>
+                        <span class="stat-val">${approvedManDaysLabel}공수</span>
                     </div>
                 </div>
                 <div class="action-grid">

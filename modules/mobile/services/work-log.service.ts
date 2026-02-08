@@ -509,6 +509,47 @@ function mapReportToWorkLog(item: any): WorkLog {
   }
 
   const attachments = mapAttachments(item?.document_attachments)
+  const legacyBeforeUrls = mergeUniqueStrings(
+    extractAttachmentUrls(item?.before_photos),
+    extractAttachmentUrls(item?.additional_before_photos)
+  )
+  if (legacyBeforeUrls.length > 0) {
+    const existing = new Set((attachments.photos || []).map(p => p.url).filter(Boolean))
+    legacyBeforeUrls.forEach((url, idx) => {
+      if (!url || existing.has(url)) return
+      existing.add(url)
+      attachments.photos.push({
+        id: `legacy-before-photo-${item?.id || 'unknown'}-${idx}`,
+        url,
+        name: '사진',
+        size: 0,
+        uploadedAt: undefined,
+        documentType: 'photo',
+        metadata: { source: 'legacy', photo_type: 'before' },
+      })
+    })
+  }
+
+  const legacyAfterUrls = mergeUniqueStrings(
+    extractAttachmentUrls(item?.after_photos),
+    extractAttachmentUrls(item?.additional_after_photos)
+  )
+  if (legacyAfterUrls.length > 0) {
+    const existing = new Set((attachments.photos || []).map(p => p.url).filter(Boolean))
+    legacyAfterUrls.forEach((url, idx) => {
+      if (!url || existing.has(url)) return
+      existing.add(url)
+      attachments.photos.push({
+        id: `legacy-after-photo-${item?.id || 'unknown'}-${idx}`,
+        url,
+        name: '사진',
+        size: 0,
+        uploadedAt: undefined,
+        documentType: 'photo',
+        metadata: { source: 'legacy', photo_type: 'after' },
+      })
+    })
+  }
 
   let materials = mapMaterialUsages(item?.material_usage)
   // Check if materials from DB have valid quantities (not just 0s from legacy logic)
@@ -530,9 +571,32 @@ function mapReportToWorkLog(item: any): WorkLog {
   const status = resolveStatus(item?.status)
 
   const profileRelation = normalizeProfileRelation(item)
+  const additionalNotes = parseLooseJsonObject(item?.additional_notes)
+  const effectiveWorkers = Array.isArray((additionalNotes as any)?.effectiveWorkers)
+    ? ((additionalNotes as any).effectiveWorkers as any[])
+    : []
+  const effectiveAuthorName =
+    effectiveWorkers.find(w => w?.is_main)?.name || effectiveWorkers[0]?.name
+  const legacyAuthorName = [
+    item?.member_name,
+    item?.writer_name,
+    item?.author_name,
+    item?.created_by_name,
+    (additionalNotes as any)?.member_name,
+    (additionalNotes as any)?.writer_name,
+    (additionalNotes as any)?.author_name,
+    (additionalNotes as any)?.created_by_name,
+    (additionalNotes as any)?.memberName,
+    (additionalNotes as any)?.writerName,
+    (additionalNotes as any)?.authorName,
+    effectiveAuthorName,
+  ]
+    .map(value => (typeof value === 'string' ? value.trim() : ''))
+    .find(Boolean)
   const authorName =
     profileRelation?.full_name ||
     profileRelation?.name ||
+    legacyAuthorName ||
     workers[0]?.name ||
     (isLikelyUuid(item?.created_by) ? '알 수 없는 작성자' : item?.created_by) ||
     '알 수 없는 작성자'
@@ -544,7 +608,25 @@ function mapReportToWorkLog(item: any): WorkLog {
     item?.site_name ||
     item?.site_label ||
     '알 수 없는 현장'
+  const siteStatus =
+    (siteRelation as any)?.status ?? item?.sites?.status ?? item?.site_status ?? undefined
   const organizationId = siteRelation?.organization_id || item?.organization_id || undefined
+  const partnerCompanyName =
+    item?.partner_company_name ||
+    item?.partnerCompanyName ||
+    (() => {
+      const orgRel = (siteRelation as any)?.organizations ?? (siteRelation as any)?.organization
+      if (Array.isArray(orgRel)) return orgRel[0]?.name
+      if (orgRel && typeof orgRel === 'object') return orgRel?.name
+      return undefined
+    })() ||
+    (() => {
+      const orgRel = item?.sites?.organizations ?? item?.sites?.organization
+      if (Array.isArray(orgRel)) return orgRel[0]?.name
+      if (orgRel && typeof orgRel === 'object') return orgRel?.name
+      return undefined
+    })() ||
+    undefined
   const workDescription =
     typeof item?.work_description === 'string' && item.work_description.trim()
       ? item.work_description.trim()
@@ -613,8 +695,9 @@ function mapReportToWorkLog(item: any): WorkLog {
     siteId: item?.site_id,
     siteName,
     siteAddress: item?.sites?.address,
+    siteStatus,
     organizationId,
-    partnerCompanyName: item?.partner_company_name || item?.partnerCompanyName || undefined,
+    partnerCompanyName,
     title: item?.title || taskSummary || workDescription || siteName || item?.work_description,
     author: authorName,
     status,
@@ -624,7 +707,10 @@ function mapReportToWorkLog(item: any): WorkLog {
     tasks: normalizedTasks && normalizedTasks.length > 0 ? normalizedTasks : undefined,
     location,
     workers,
-    totalWorkers: calculateWorkerCount(totalHours / 8) || Number(item?.total_workers) || 0,
+    totalWorkers:
+      (Number.isFinite(Number(item?.total_workers)) ? Number(item?.total_workers) : 0) ||
+      calculateWorkerCount(totalHours / 8) ||
+      0,
     totalHours,
     materials: materials.length > 0 ? materials : undefined,
     attachments,
@@ -763,6 +849,21 @@ function parseLocationInfo(raw: unknown): {
   }
 }
 
+function parseLooseJsonObject(raw: unknown): Record<string, any> | undefined {
+  if (!raw) return undefined
+  if (typeof raw === 'object') return raw as Record<string, any>
+  if (typeof raw !== 'string') return undefined
+
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') return parsed as Record<string, any>
+  } catch {
+    // ignore
+  }
+
+  return undefined
+}
+
 function mapWorkerAssignments(assignments: any[]): {
   id: string
   name: string
@@ -814,12 +915,18 @@ function mapAttachments(attachments: any[]): {
       name: attachment?.file_name,
       size: attachment?.file_size ?? 0,
       uploadedAt: attachment?.uploaded_at,
+      documentType: attachment?.document_type,
+      metadata:
+        attachment?.metadata && typeof attachment.metadata === 'object'
+          ? attachment.metadata
+          : null,
     }
 
     switch (attachment?.document_type) {
       case 'drawing':
         initial.drawings.push(file)
         break
+      case 'completion':
       case 'confirmation':
         initial.confirmations.push(file)
         break
@@ -830,6 +937,45 @@ function mapAttachments(attachments: any[]): {
   })
 
   return initial
+}
+
+function extractAttachmentUrls(raw: unknown): string[] {
+  if (!raw) return []
+
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return extractAttachmentUrls(parsed)
+    } catch {
+      return []
+    }
+  }
+
+  if (Array.isArray(raw)) {
+    return raw
+      .map(entry => {
+        if (typeof entry === 'string') return entry
+        if (entry && typeof entry === 'object') {
+          const url = (entry as any).file_url || (entry as any).url || (entry as any).display_url
+          return typeof url === 'string' ? url : null
+        }
+        return null
+      })
+      .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+  }
+
+  if (raw && typeof raw === 'object') {
+    const candidates = [
+      (raw as any).urls,
+      (raw as any).files,
+      (raw as any).photos,
+      (raw as any).before_photos,
+      (raw as any).after_photos,
+    ]
+    return candidates.flatMap(value => extractAttachmentUrls(value))
+  }
+
+  return []
 }
 
 function mapMaterialUsages(materials: any[]): Array<{
@@ -1008,7 +1154,9 @@ function normalizeProfileRelation(item: any): { full_name?: string; name?: strin
 
 function normalizeSiteRelation(
   item: any
-): { name?: string; site_name?: string; organization_id?: string } | undefined {
+):
+  | { name?: string; site_name?: string; organization_id?: string; status?: string | null }
+  | undefined {
   const candidates = [item?.sites, item?.site, item?.site_info, item?.site_detail]
 
   for (const candidate of candidates) {

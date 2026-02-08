@@ -904,4 +904,5 @@ body:has(.doc-hub-container):not(:has(.mobile-root)) .app-header {
   font-size: 12px;
   font-weight: 800;
   line-height: 1;
+  white-space: nowrap;
 }

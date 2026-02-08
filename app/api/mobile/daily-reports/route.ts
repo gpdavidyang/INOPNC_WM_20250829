@@ -46,22 +46,197 @@ async function enrichReports(reports: any[], supabase: any) {
   const siteIds = Array.from(new Set(reports.map(r => r.site_id).filter(Boolean)))
   const authorIds = Array.from(new Set(reports.map(r => r.created_by).filter(Boolean)))
   const reportIds = reports.map(r => r.id)
+  const reportIdSet = new Set(reportIds.map(id => String(id)))
 
   try {
-    const [sitesResult, profilesResult, assignmentsResult, materialsResult] = await Promise.all([
+    const [
+      sitesResult,
+      profilesResult,
+      assignmentsResult,
+      materialsResult,
+      attachmentsResult,
+      additionalPhotosResult,
+      sharedByLinkedWorklogResult,
+      sharedByDailyReportIdResult,
+      sharedByLinkedArrayResult,
+      directMarkupsResult,
+      markupLinksResult,
+    ] = await Promise.all([
       siteIds.length
-        ? supabase.from('sites').select('id, name').in('id', siteIds)
+        ? supabase
+            .from('sites')
+            .select('id, name, address, status, organization_id, organizations(name)')
+            .in('id', siteIds)
         : Promise.resolve({ data: [] }),
       authorIds.length
         ? supabase.from('profiles').select('id, full_name').in('id', authorIds)
         : Promise.resolve({ data: [] }),
       supabase.from('worker_assignments').select('*').in('daily_report_id', reportIds),
       supabase.from('material_usage').select('*').in('daily_report_id', reportIds),
+      supabase
+        .from('document_attachments')
+        .select('id, daily_report_id, file_url, file_name, file_size, uploaded_at, document_type')
+        .in('daily_report_id', reportIds),
+      supabase
+        .from('daily_report_additional_photos')
+        .select('id, daily_report_id, file_url, file_name, file_size, created_at, photo_type')
+        .in('daily_report_id', reportIds),
+      supabase
+        .from('unified_document_system')
+        .select('id, title, file_url, file_name, created_at, metadata, sub_category')
+        .eq('category_type', 'shared')
+        .eq('status', 'active')
+        .eq('is_archived', false)
+        .in('metadata->>linked_worklog_id', reportIds),
+      supabase
+        .from('unified_document_system')
+        .select('id, title, file_url, file_name, created_at, metadata, sub_category')
+        .eq('category_type', 'shared')
+        .eq('status', 'active')
+        .eq('is_archived', false)
+        .in('metadata->>daily_report_id', reportIds),
+      siteIds.length
+        ? supabase
+            .from('unified_document_system')
+            .select('id, title, file_url, file_name, created_at, metadata, sub_category, site_id')
+            .eq('category_type', 'shared')
+            .eq('status', 'active')
+            .eq('is_archived', false)
+            .in('site_id', siteIds)
+            .not('metadata->linked_worklog_ids', 'is', null)
+            .order('created_at', { ascending: false })
+            .limit(2000)
+        : Promise.resolve({ data: [] }),
+      supabase
+        .from('markup_documents')
+        .select(
+          'id, title, original_blueprint_url, preview_image_url, created_at, linked_worklog_id'
+        )
+        .in('linked_worklog_id', reportIds)
+        .eq('is_deleted', false)
+        .not('original_blueprint_url', 'is', null),
+      supabase
+        .from('markup_document_worklog_links')
+        .select('worklog_id, markup_document_id')
+        .in('worklog_id', reportIds),
     ])
 
     const siteMap = new Map(sitesResult.data?.map((s: any) => [s.id, s]) || [])
     const profileMap = new Map(profilesResult.data?.map((p: any) => [p.id, p]) || [])
     const assignmentsRaw = assignmentsResult.data || []
+    const attachmentsRaw = attachmentsResult.data || []
+    const additionalPhotosRaw = additionalPhotosResult.data || []
+    const sharedDocsRaw = [
+      ...(sharedByLinkedWorklogResult.data || []),
+      ...(sharedByDailyReportIdResult.data || []),
+      ...(sharedByLinkedArrayResult.data || []),
+    ]
+    const sharedDocsDeduped = Array.from(
+      new Map(sharedDocsRaw.map((row: any) => [row?.id, row])).values()
+    )
+    const directMarkupsRaw = directMarkupsResult.data || []
+    const markupLinksRaw = markupLinksResult.data || []
+
+    const attachmentsByReport = new Map<string, any[]>()
+    for (const row of attachmentsRaw) {
+      const reportId = row?.daily_report_id
+      if (!reportId) continue
+      if (!attachmentsByReport.has(reportId)) attachmentsByReport.set(reportId, [])
+      attachmentsByReport.get(reportId)!.push(row)
+    }
+
+    const additionalPhotosByReport = new Map<string, any[]>()
+    for (const row of additionalPhotosRaw) {
+      const reportId = row?.daily_report_id
+      if (!reportId) continue
+      if (!additionalPhotosByReport.has(reportId)) additionalPhotosByReport.set(reportId, [])
+      additionalPhotosByReport.get(reportId)!.push(row)
+    }
+
+    const sharedDrawingsByReport = new Map<string, any[]>()
+    for (const row of sharedDocsDeduped) {
+      const metadata =
+        row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+          ? (row.metadata as Record<string, any>)
+          : {}
+      const linkedWorklogId =
+        typeof metadata.linked_worklog_id === 'string' ? metadata.linked_worklog_id : null
+      const dailyReportId =
+        typeof metadata.daily_report_id === 'string' ? metadata.daily_report_id : null
+      const linkedArray: string[] = Array.isArray(metadata.linked_worklog_ids)
+        ? metadata.linked_worklog_ids.filter((v: any) => typeof v === 'string')
+        : []
+      const candidateIds = Array.from(
+        new Set(
+          [linkedWorklogId, dailyReportId, ...linkedArray]
+            .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+            .map(String)
+        )
+      ).filter(id => reportIdSet.has(id))
+      if (candidateIds.length === 0) continue
+
+      const rawType =
+        row?.sub_category ||
+        metadata?.document_type ||
+        metadata?.documentType ||
+        metadata?.document_type ||
+        metadata?.sub_category
+      const normalizedType = String(rawType || '')
+        .trim()
+        .toLowerCase()
+      const isDrawing =
+        normalizedType.includes('drawing') ||
+        normalizedType.includes('blueprint') ||
+        normalizedType.includes('도면') ||
+        normalizedType.includes('progress') ||
+        normalizedType.includes('completion') ||
+        normalizedType.includes('done') ||
+        normalizedType.includes('final') ||
+        normalizedType.includes('완료')
+      if (!isDrawing) continue
+
+      candidateIds.forEach(reportId => {
+        if (!sharedDrawingsByReport.has(reportId)) sharedDrawingsByReport.set(reportId, [])
+        sharedDrawingsByReport.get(reportId)!.push(row)
+      })
+    }
+
+    const directMarkupsByReport = new Map<string, any[]>()
+    for (const row of directMarkupsRaw) {
+      const reportId = row?.linked_worklog_id
+      if (!reportId) continue
+      if (!directMarkupsByReport.has(reportId)) directMarkupsByReport.set(reportId, [])
+      directMarkupsByReport.get(reportId)!.push(row)
+    }
+
+    const linkRowsByReport = new Map<string, any[]>()
+    const linkedMarkupIds = Array.from(
+      new Set(
+        markupLinksRaw
+          .map((r: any) =>
+            typeof r?.markup_document_id === 'string' ? r.markup_document_id : null
+          )
+          .filter(Boolean)
+      )
+    )
+    for (const row of markupLinksRaw) {
+      const reportId = row?.worklog_id
+      if (!reportId) continue
+      if (!linkRowsByReport.has(reportId)) linkRowsByReport.set(reportId, [])
+      linkRowsByReport.get(reportId)!.push(row)
+    }
+
+    let linkedMarkups: any[] = []
+    if (linkedMarkupIds.length > 0) {
+      const { data } = await supabase
+        .from('markup_documents')
+        .select('id, title, original_blueprint_url, preview_image_url, created_at')
+        .in('id', linkedMarkupIds)
+        .eq('is_deleted', false)
+        .not('original_blueprint_url', 'is', null)
+      linkedMarkups = data || []
+    }
+    const linkedMarkupMap = new Map(linkedMarkups.map((m: any) => [m.id, m]))
 
     // Fetch profiles for assignments as well
     const assignmentProfileIds = Array.from(
@@ -87,6 +262,64 @@ async function enrichReports(reports: any[], supabase: any) {
           ...a,
           profiles: assignmentProfileMap.get(a.profile_id) || null,
         }))
+      const baseAttachments = attachmentsByReport.get(report.id) || []
+
+      const additionalPhotos = (additionalPhotosByReport.get(report.id) || []).map((p: any) => ({
+        id: `additional-photo-${p.id}`,
+        daily_report_id: report.id,
+        file_url: p.file_url,
+        file_name: p.file_name,
+        file_size: p.file_size,
+        uploaded_at: p.created_at,
+        document_type: 'photo',
+        metadata: { source: 'daily_report_additional_photos', photo_type: p.photo_type },
+      }))
+
+      const sharedDrawings = (sharedDrawingsByReport.get(report.id) || []).map((doc: any) => ({
+        id: `linked-shared-${doc.id}`,
+        daily_report_id: report.id,
+        file_url: doc.file_url,
+        file_name: doc.title || doc.file_name || '도면',
+        file_size: 0,
+        uploaded_at: doc.created_at,
+        document_type: 'drawing',
+        metadata: {
+          source: 'unified_document_system',
+          document_id: doc.id,
+          sub_category: doc.sub_category,
+        },
+      }))
+
+      const drawingMap = new Map<string, any>()
+      ;(directMarkupsByReport.get(report.id) || []).forEach((m: any) => {
+        if (m?.id) drawingMap.set(m.id, m)
+      })
+      ;(linkRowsByReport.get(report.id) || []).forEach((row: any) => {
+        const markupId = row?.markup_document_id
+        const doc = markupId ? linkedMarkupMap.get(markupId) : null
+        if (doc?.id) drawingMap.set(doc.id, doc)
+      })
+      const linkedDrawings = Array.from(drawingMap.values()).map((m: any) => ({
+        id: `linked-drawing-${m.id}`,
+        daily_report_id: report.id,
+        file_url: m.original_blueprint_url,
+        file_name: m.title || '도면',
+        file_size: 0,
+        uploaded_at: m.created_at,
+        document_type: 'drawing',
+        metadata: {
+          source: 'markup_documents',
+          markup_document_id: m.id,
+          preview_image_url: m.preview_image_url,
+        },
+      }))
+
+      enriched.document_attachments = [
+        ...baseAttachments,
+        ...additionalPhotos,
+        ...sharedDrawings,
+        ...linkedDrawings,
+      ]
       enriched.material_usage =
         materialsResult.data?.filter((m: any) => m.daily_report_id === report.id) || []
       return enriched
@@ -257,10 +490,14 @@ export async function POST(request: NextRequest) {
         effectiveWorkers,
       }),
       work_content: {
+        memberTypes: member_types,
+        workProcesses: processes,
+        workTypes: work_types,
         tasks,
         materials,
         workers: effectiveWorkers,
       },
+      member_types,
     }
 
     if (reportId) {
@@ -277,6 +514,7 @@ export async function POST(request: NextRequest) {
         'work_process',
         'work_section',
         'work_content',
+        'member_types',
       ]
 
       for (let i = 0; i < 10; i++) {
@@ -321,6 +559,7 @@ export async function POST(request: NextRequest) {
         'work_process',
         'work_section',
         'work_content',
+        'member_types',
       ]
 
       for (let i = 0; i < 10; i++) {

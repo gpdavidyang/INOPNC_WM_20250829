@@ -38,7 +38,14 @@ const NAV_ITEMS: NavItem[] = [
     label: '작업일지',
     icon: 'tasks',
     href: '/mobile/worklog',
-    roles: ['worker', 'site_manager'],
+    roles: ['worker'],
+  },
+  {
+    id: 'worklog1',
+    label: '작업일지',
+    icon: 'tasks',
+    href: '/mobile/worklog',
+    roles: ['site_manager'],
   },
   {
     id: 'sites',

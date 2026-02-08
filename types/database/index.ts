@@ -16,9 +16,16 @@ export type UUID = string
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
 // 데이터베이스 Enum 타입들
-export type UserRole = 'admin' | 'site_manager' | 'worker' | 'customer_manager' | 'partner' | 'accountant' | 'executive'
+export type UserRole =
+  | 'admin'
+  | 'site_manager'
+  | 'worker'
+  | 'customer_manager'
+  | 'partner'
+  | 'accountant'
+  | 'executive'
 export type DocumentStatus = 'draft' | 'pending' | 'active' | 'archived' | 'deleted' | 'rejected'
-export type SiteStatus = 'planning' | 'active' | 'completed' | 'suspended'
+export type SiteStatus = 'planning' | 'active' | 'inactive' | 'completed'
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave' | 'holiday'
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected'
 export type WeatherType = 'sunny' | 'cloudy' | 'rainy' | 'snowy' | 'foggy' | 'windy'

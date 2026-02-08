@@ -847,6 +847,9 @@
         const hasAction = !!site.punch;
 
         const dateLabel = site.lastDate ? (site.lastTime ? `${site.lastDate} (최종 ${site.lastTime})` : site.lastDate) : '';
+        const approvedManDaysRaw = Number(site.mp || 0);
+        const approvedManDays = Number.isFinite(approvedManDaysRaw) ? Math.round(approvedManDaysRaw * 10) / 10 : 0;
+        const approvedManDaysLabel = Number.isInteger(approvedManDays) ? String(approvedManDays) : approvedManDays.toFixed(1);
         const weather = WeatherService.getWeather(site.addr);
         
         // [수정] 입력 로직 개선 (event.stopPropagation 추가)
@@ -885,8 +888,6 @@
             ? `<button class="btn-star" style="color:#ef4444" onclick="event.stopPropagation(); window.deleteSite(${site.id})"><i data-lucide="trash-2" style="width:26px; height:26px;"></i></button>` 
             : '';
         
-        const affilClass = (site.affil === '직접등록' || site.affil === '직접') ? 'sub-badge direct' : 'sub-badge affil';
-
         // [수정] Lodge(숙소) 행 삭제
         return `
         <div class="site-card ${site.pinned ? 'pinned-item' : ''} ${isExpanded}" id="card-${site.id}" onclick="toggleExpand(${site.id})">
@@ -901,10 +902,7 @@
                     </div>
                 </div>
                 <div class="site-sub-info">
-                    <div class="site-sub-left">
-                        <span class="${affilClass}">${site.affil}</span>
-                        <span class="sub-badge weather"><i data-lucide="${weather.icon}" style="width:14px;"></i>${weather.text}</span>
-                    </div>
+                    <div class="site-sub-left"></div>
                     <div class="indicator-group">
                         <i data-lucide="map" class="data-icon ${hasDraw ? 'active' : ''}"></i>
                         <i data-lucide="camera" class="data-icon ${hasPhoto ? 'active' : ''}"></i>
@@ -924,7 +922,7 @@
                 
                 <div class="stats-row" style="border-bottom:none; margin-top:10px; border-top:1px dashed var(--border);">
                     <div class="stat-item"><span class="stat-label">작업일 누계</span><span class="stat-val">${site.days}일</span></div>
-                    <div class="stat-item"><span class="stat-label">하자(미조치)</span><span class="stat-val danger">${site.mp}건</span></div>
+                    <div class="stat-item"><span class="stat-label">총공수(승인)</span><span class="stat-val">${approvedManDaysLabel}공수</span></div>
                 </div>
                 <div class="action-grid">
                     <button class="act-btn type-draw ${hasDraw ? 'has-data' : ''}" onclick="handleDrawClick(${site.id})"><i data-lucide="map" class="act-icon"></i><span class="act-label">도면</span></button>

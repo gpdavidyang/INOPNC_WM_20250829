@@ -41,8 +41,10 @@ export interface AttachedFile {
   url: string
   name: string
   size: number
-  uploadedAt: string
+  uploadedAt?: string
   uploadedBy?: string
+  documentType?: string
+  metadata?: Record<string, any> | null
 }
 
 /**
@@ -103,6 +105,7 @@ export interface WorkLog {
   siteId: string
   siteName: string
   siteAddress?: string
+  siteStatus?: string | null
   organizationId?: string
   partnerCompanyName?: string
   title?: string

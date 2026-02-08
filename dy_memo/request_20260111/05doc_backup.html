@@ -4108,10 +4108,9 @@
                     <img src="${thumbUrl}" alt="${doc.title}" />
                   </div>
                   <div class="card-info">
-                    <div class="badge-group">
-                      ${doc.contractor ? `<span class="sub-badge contractor">${doc.contractor}</span>` : ''}
-                      ${doc.affiliation ? `<span class="sub-badge affil">${doc.affiliation}</span>` : ''}
-                    </div>
+                      <div class="badge-group">
+                        ${doc.contractor ? `<span class="sub-badge contractor">${doc.contractor}</span>` : ''}
+                      </div>
                     <div class="card-title">${doc.title}</div>
                     <div class="card-meta">
                       ${doc.author} <span class="text-separator">|</span> ${formatDateShort(doc.date)} <span class="text-placeholder">${doc.time}</span>
@@ -4189,10 +4188,9 @@
                   ${
                     doc.contractor || doc.affiliation
                       ? `
-                    <div class="badge-group">
-                      ${doc.contractor ? `<span class="sub-badge contractor">${doc.contractor}</span>` : ''}
-                      ${doc.affiliation ? `<span class="sub-badge affil">${doc.affiliation}</span>` : ''}
-                    </div>
+                      <div class="badge-group">
+                        ${doc.contractor ? `<span class="sub-badge contractor">${doc.contractor}</span>` : ''}
+                      </div>
                   `
                       : ''
                   }

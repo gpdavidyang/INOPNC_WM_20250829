@@ -683,7 +683,6 @@
         const hasLodge = site.lodge && site.lodge !== '-' && site.lodge !== '입력' && site.lodge !== null && site.lodge !== undefined && String(site.lodge).trim() !== '';
         const lodgeDisplay = hasLodge ? site.lodge : '<span style="color:var(--text-placeholder);">주소 미등록</span>';
 
-        const affilClass = site.affil === '직접등록' ? 'sub-badge direct' : 'sub-badge affil';
         const hasDraw = !!(site.drawings && (site.drawings.construction.length || site.drawings.progress.length || site.drawings.completion.length));
         const hasPhoto = !!(site.images && site.images.length);
         const hasPTW = !!site.ptw;
@@ -728,6 +727,9 @@
 
         const isExpanded = expandedCardIds.has(site.id) ? 'expanded' : '';
         const dateLabel = site.lastDate ? (site.lastTime ? `${site.lastDate} (최종 ${site.lastTime})` : site.lastDate) : '';
+        const approvedManDaysRaw = Number(site.mp || 0);
+        const approvedManDays = Number.isFinite(approvedManDaysRaw) ? Math.round(approvedManDaysRaw * 10) / 10 : 0;
+        const approvedManDaysLabel = Number.isInteger(approvedManDays) ? String(approvedManDays) : approvedManDays.toFixed(1);
 
         return `
         <div class="site-card ${site.pinned ? 'pinned-item' : ''} ${isExpanded}" id="card-${site.id}">
@@ -741,7 +743,7 @@
                         ${deleteBtn}
                     </div>
                 </div>
-                <div class="site-sub-info"><div class="site-sub-left"><span class="sub-badge contractor">현대건설</span><span class="${affilClass}">${site.affil}</span><span class="sub-badge weather"><i data-lucide="${weather.icon}" style="width:14px;"></i>${weather.text}</span></div><div class="indicator-group"><i data-lucide="map" class="data-icon ${hasDraw ? 'active' : ''}"></i><i data-lucide="camera" class="data-icon ${hasPhoto ? 'active' : ''}"></i><i data-lucide="file-check-2" class="data-icon ${hasPTW ? 'active' : ''}"></i><i data-lucide="clipboard-list" class="data-icon ${hasLog ? 'active' : ''}"></i><i data-lucide="check-circle-2" class="data-icon ${hasAction ? 'active' : ''}"></i></div></div>
+                <div class="site-sub-info"><div class="site-sub-left"><span class="sub-badge contractor">현대건설</span></div><div class="indicator-group"><i data-lucide="map" class="data-icon ${hasDraw ? 'active' : ''}"></i><i data-lucide="camera" class="data-icon ${hasPhoto ? 'active' : ''}"></i><i data-lucide="file-check-2" class="data-icon ${hasPTW ? 'active' : ''}"></i><i data-lucide="clipboard-list" class="data-icon ${hasLog ? 'active' : ''}"></i><i data-lucide="check-circle-2" class="data-icon ${hasAction ? 'active' : ''}"></i></div></div>
                 <div class="addr-row">
                     <div class="addr-text" ${addrAction} style="${addrCursor}"><span>${addrDisplay}</span></div>
                     <button class="btn-icon-sq" ${addrAction} style="${addrIconStyle}"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg></button>
@@ -756,8 +758,8 @@
                         <span class="stat-val">${site.days}일</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label">하자(미조치)</span>
-                        <span class="stat-val danger">${site.mp}건</span>
+                        <span class="stat-label">총공수(승인)</span>
+                        <span class="stat-val">${approvedManDaysLabel}공수</span>
                     </div>
                 </div>
                 <div class="action-grid">
