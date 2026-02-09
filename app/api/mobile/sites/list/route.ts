@@ -40,6 +40,32 @@ export async function GET() {
       authResult.restrictedOrgId ||
       null
 
+    // Common columns to select (includes accommodation & manager info)
+    const SITE_COLUMNS = `
+      id, name, status, address, organization_id, 
+      manager_name, manager_phone, manager_email,
+      safety_manager_name, safety_manager_phone, safety_manager_email,
+      accommodation_name, accommodation_address, accommodation_phone
+    `
+
+    // Helper to map DB row to API response
+    const mapSiteRow = (row: any) => ({
+      id: row.id,
+      name: row.name || '현장',
+      status: row.status,
+      address: row.address ?? null,
+      organization_id: row.organization_id ?? null,
+      manager_name: row.manager_name ?? null,
+      manager_phone: row.manager_phone ?? null,
+      manager_email: row.manager_email ?? null,
+      safety_manager_name: row.safety_manager_name ?? null,
+      safety_manager_phone: row.safety_manager_phone ?? null,
+      safety_manager_email: row.safety_manager_email ?? null,
+      accommodation_name: row.accommodation_name ?? null,
+      accommodation_address: row.accommodation_address ?? null,
+      accommodation_phone: row.accommodation_phone ?? null,
+    })
+
     // Partner user: resolve organization-aligned site list
     if (role === 'customer_manager') {
       // Build possible organization ids (aligns with admin org detail)
@@ -75,35 +101,20 @@ export async function GET() {
         }
       }
 
-      const sites: Array<{
-        id: string
-        name: string
-        status?: string
-        address?: string | null
-        organization_id?: string | null
-        manager_name?: string | null
-        safety_manager_name?: string | null
-      }> = []
+      const sitesMap = new Map<string, any>()
       const pushSite = (row: any) => {
         if (!row?.id || row.is_deleted) return
         const id = String(row.id)
-        if (sites.some(s => s.id === id)) return
-        sites.push({
-          id,
-          name: row.name || '현장',
-          status: row.status,
-          address: row.address ?? null,
-          organization_id: row.organization_id ?? null,
-          manager_name: row.manager_name ?? null,
-          safety_manager_name: row.safety_manager_name ?? null,
-        })
+        if (!sitesMap.has(id)) {
+          sitesMap.set(id, mapSiteRow(row))
+        }
       }
 
       // 1) Primary: organization-based (matches admin org detail)
       if (orgIds.size > 0) {
         const { data: orgSites, error: orgError } = await serviceClient
           .from('sites')
-          .select('id, name, status, address, organization_id, manager_name, safety_manager_name')
+          .select(SITE_COLUMNS)
           .in('organization_id', Array.from(orgIds))
           .eq('is_deleted', false)
           .order('name', { ascending: true })
@@ -121,7 +132,7 @@ export async function GET() {
           `
           site_id, 
           is_active, 
-          sites(id, name, status, address, organization_id, manager_name, safety_manager_name, is_deleted)
+          sites(${SITE_COLUMNS}, is_deleted)
         `
         )
         .eq(
@@ -144,9 +155,7 @@ export async function GET() {
       if (legacyFallbackEnabled) {
         const { data: legacyRows, error: legacyError } = await serviceClient
           .from('site_partners')
-          .select(
-            'site_id, sites(id, name, status, address, organization_id, manager_name, safety_manager_name, is_deleted)'
-          )
+          .select(`site_id, sites(${SITE_COLUMNS}, is_deleted)`)
           .eq(
             'partner_company_id',
             partnerCompanyId || authResult.restrictedOrgId || profile.organization_id || ''
@@ -161,9 +170,9 @@ export async function GET() {
         }
       }
 
-      let sitesWithMeta = sites
+      let sitesWithMeta = Array.from(sitesMap.values())
       try {
-        sitesWithMeta = await withOrganizationMeta(serviceClient, sites)
+        sitesWithMeta = await withOrganizationMeta(serviceClient, sitesWithMeta)
       } catch (err) {
         console.error('[mobile/sites/list] organization metadata error:', err)
       }
@@ -176,7 +185,7 @@ export async function GET() {
     // Other roles: basic visibility
     let query = serviceClient
       .from('sites')
-      .select('id, name, status, address, organization_id, manager_name, safety_manager_name')
+      .select(SITE_COLUMNS)
       .eq('is_deleted', false)
       .order('name', { ascending: true })
 
@@ -201,15 +210,7 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Failed to fetch sites' }, { status: 500 })
     }
 
-    let sites = (data ?? []).map(site => ({
-      id: site.id,
-      name: site.name ?? '이름 없음',
-      status: site.status,
-      address: (site as any).address ?? null,
-      organization_id: site.organization_id,
-      manager_name: (site as any).manager_name ?? null,
-      safety_manager_name: (site as any).safety_manager_name ?? null,
-    }))
+    let sites = (data ?? []).map(mapSiteRow)
 
     try {
       sites = await withOrganizationMeta(serviceClient, sites)

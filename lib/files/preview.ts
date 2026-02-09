@@ -66,11 +66,8 @@ export async function fetchSignedUrlForRecord(
   if (reference.url) {
     params.set('url', reference.url)
   }
-  if (options?.downloadName !== null) {
-    const downloadName = options?.downloadName ?? reference.downloadName
-    if (downloadName) {
-      params.set('filename', downloadName)
-    }
+  if (options?.downloadName) {
+    params.set('filename', options.downloadName)
   }
 
   if (params.toString().length === 0) {

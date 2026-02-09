@@ -17,13 +17,22 @@ type MobileSitesListItem = {
   organization_name?: string | null
   address?: string | null
   manager_name?: string | null
+  manager_phone?: string | null
   safety_manager_name?: string | null
+  safety_manager_phone?: string | null
+  accommodation_name?: string | null
+}
+
+type SiteStats = {
+  manDays: number
+  totalWorkDays: number
+  lastWorkDate: string
 }
 
 type Sites2CardItem = {
   id: number
   pinned: boolean
-  status: 'ing' | 'plan' | 'done' | 'stop'
+  status: 'ing' | 'wait' | 'done' | 'stop'
   contractor: string
   affil: string
   name: string
@@ -74,7 +83,7 @@ function mapDbStatusToMock(status?: string | null): Sites2CardItem['status'] {
     return 'stop'
   }
   if (['wait', 'pending', 'plan', 'planned', 'scheduled', 'ready'].includes(normalized)) {
-    return 'plan'
+    return 'wait'
   }
   return 'ing'
 }
@@ -140,7 +149,7 @@ async function fetchMobileSitesList(): Promise<MobileSitesListItem[]> {
   }
 }
 
-async function fetchApprovedManDaysBySiteIds(siteIds: string[]): Promise<Map<string, number>> {
+async function fetchSiteStats(siteIds: string[]): Promise<Map<string, SiteStats>> {
   if (siteIds.length === 0) return new Map()
 
   let client: any
@@ -151,22 +160,45 @@ async function fetchApprovedManDaysBySiteIds(siteIds: string[]): Promise<Map<str
   }
 
   try {
+    // Fetch aggregated data might be heavy, so we limit fields strictly
     const { data, error } = await client
       .from('daily_reports')
-      .select('site_id, hours:total_labor_hours.sum()')
+      .select('site_id, work_date, total_labor_hours')
       .eq('status', 'approved')
       .in('site_id', siteIds)
 
     if (error || !Array.isArray(data)) return new Map()
 
-    const result = new Map<string, number>()
+    const statsMap = new Map<string, { totalHours: number; dates: Set<string> }>()
+
     data.forEach((row: any) => {
       const siteId = row?.site_id ? String(row.site_id) : ''
       if (!siteId) return
-      const hours = Number(row?.hours || 0)
-      const manDays = Number.isFinite(hours) ? hours / 8 : 0
-      result.set(siteId, Math.round(manDays * 10) / 10)
+
+      if (!statsMap.has(siteId)) {
+        statsMap.set(siteId, { totalHours: 0, dates: new Set() })
+      }
+
+      const entry = statsMap.get(siteId)!
+      const hours = Number(row?.total_labor_hours || 0)
+      if (Number.isFinite(hours)) entry.totalHours += hours
+
+      if (row.work_date) entry.dates.add(row.work_date)
     })
+
+    const result = new Map<string, SiteStats>()
+    for (const [siteId, entry] of statsMap.entries()) {
+      const manDays = Math.round((entry.totalHours / 8) * 10) / 10
+      // Sort dates to find last date
+      const sortedDates = Array.from(entry.dates).sort()
+      const lastDate = sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : ''
+
+      result.set(siteId, {
+        manDays,
+        totalWorkDays: entry.dates.size,
+        lastWorkDate: lastDate,
+      })
+    }
     return result
   } catch {
     return new Map()
@@ -183,40 +215,47 @@ export default async function MobileSites2Page() {
   const mobileSites = await fetchMobileSitesList()
   if (srcDoc && mobileSites.length) {
     const siteIds = mobileSites.map(site => String(site.id)).filter(Boolean)
-    const approvedManDaysBySiteId = await fetchApprovedManDaysBySiteIds(siteIds)
+    const siteStats = await fetchSiteStats(siteIds)
 
-    const mapped: Sites2CardItem[] = mobileSites.slice(0, 200).map((site, idx) => ({
-      id: idx + 1,
-      pinned: false,
-      status: mapDbStatusToMock(site.status),
-      contractor: (site.organization_name || '').trim() || ORGANIZATION_UNASSIGNED_LABEL,
-      affil: (site.organization_name || '').trim() || ORGANIZATION_UNASSIGNED_LABEL,
-      name: (site.name || '').trim() || '현장',
-      addr: (site.address || '').trim(),
-      days: 0,
-      mp: approvedManDaysBySiteId.get(String(site.id)) || 0,
-      manager: (site.manager_name || '').trim(),
-      safety: (site.safety_manager_name || '').trim(),
-      phoneM: '',
-      phoneS: '',
-      lodge: '',
-      note: '',
-      lastDate: '',
-      lastTime: '',
-      drawings: { construction: [], progress: [], completion: [] },
-      ptw: null,
-      workLog: null,
-      doc: null,
-      punch: null,
-      images: [],
-      isLocal: false,
-      db_site_id: String(site.id),
-    }))
+    const mapped: Sites2CardItem[] = mobileSites.slice(0, 200).map((site, idx) => {
+      const stats = siteStats.get(String(site.id)) || {
+        manDays: 0,
+        totalWorkDays: 0,
+        lastWorkDate: '',
+      }
+      return {
+        id: idx + 1,
+        pinned: false,
+        status: mapDbStatusToMock(site.status),
+        contractor: (site.organization_name || '').trim() || ORGANIZATION_UNASSIGNED_LABEL,
+        affil: (site.organization_name || '').trim() || ORGANIZATION_UNASSIGNED_LABEL,
+        name: (site.name || '').trim() || '현장',
+        addr: (site.address || '').trim(),
+        days: stats.totalWorkDays,
+        mp: stats.manDays,
+        manager: (site.manager_name || '').trim(),
+        safety: (site.safety_manager_name || '').trim(),
+        phoneM: (site.manager_phone || '').trim(),
+        phoneS: (site.safety_manager_phone || '').trim(),
+        lodge: (site.accommodation_name || '').trim(),
+        note: '',
+        lastDate: stats.lastWorkDate,
+        lastTime: '',
+        drawings: { construction: [], progress: [], completion: [] },
+        ptw: null,
+        workLog: null,
+        doc: null,
+        punch: null,
+        images: [],
+        isLocal: false,
+        db_site_id: String(site.id),
+      }
+    })
 
     srcDoc = injectDbSitesIntoMockHtml(srcDoc, mapped)
   }
 
-  // INOPNC: Validation & CSS Overrides (Applied to both Mock & Real Data)
+  // INOPNC: UI overrides are injected via `srcDoc` (keep `04site.html` as a reference-only file).
   if (srcDoc) {
     const cssOverrides = `
     <style>
@@ -224,7 +263,7 @@ export default async function MobileSites2Page() {
       html, body { min-height: 100vh !important; height: auto !important; overflow-y: auto !important; }
       .app-wrapper { min-height: 100vh !important; padding-bottom: 150px !important; }
       
-      /* Fix Badge Sizing (Match Worklog Style) */
+      /* Fix Badge Sizing */
       .sub-badge {
         padding: 4px 10px !important;
         height: auto !important;
@@ -234,7 +273,6 @@ export default async function MobileSites2Page() {
         white-space: normal !important;
         line-height: 1.2 !important;
         font-weight: 700 !important;
-        /* Force auto width, overriding inline flex:1 if present */
         flex: none !important;
         width: auto !important;
       }
@@ -242,7 +280,7 @@ export default async function MobileSites2Page() {
       /* Reduce Card Header Padding */
       .card-header-main { padding: 16px 16px !important; }
       
-      /* Tighten Row Spacing (Gap between Name and Address) */
+      /* Tighten Row Spacing */
       .site-top-row { margin-bottom: 4px !important; }
       .site-sub-info { margin-bottom: 6px !important; }
       .addr-row { padding-top: 0 !important; }
@@ -250,23 +288,86 @@ export default async function MobileSites2Page() {
       /* Hide Unnecessary Badges (Keep only Affiliation) */
       .sub-badge.contractor, .sub-badge.weather { display: none !important; }
       
-      /* Fix Icon Visibility - Enforce Dark Color on SVG Stroke */
-      .btn-star, .data-icon { color: #475569 !important; } /* Slate 600 */
-      .btn-star svg, .data-icon svg { stroke: #475569 !important; }
+      /* Stop Badge Style */
+      .site-badge.bdg-stop { background-color: #fef2f2; color: #ef4444; border: 1px solid #fecaca; }
+      body.dark-mode .site-badge.bdg-stop { background-color: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+
+      /* Icon Visibility (Lucide uses currentColor) */
+      .btn-star, .data-icon { color: var(--text-sub) !important; }
+
+      /* --- INOPNC: Added for Site Status Filter (Grid Layout & Stopped Status) --- */
+      :root {
+        --st-stop-bg: #fef2f2; --st-stop-text: #ef4444; --st-stop-border: #fecaca;
+      }
+      body.dark-mode {
+        --st-stop-bg: #450a0a; --st-stop-text: #fca5a5; --st-stop-border: #7f1d1d;
+      }
       
+      /* Filter Grid Layout (5 columns) */
+      .filter-row-scroll {
+        display: grid !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 8px !important;
+        overflow-x: visible !important;
+      }
+      .filter-chip {
+        width: 100% !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 0 8px !important;
+      }
+
+      /* Stopped Status Styles */
+      .filter-chip.status-stop {
+        background-color: var(--st-stop-bg);
+        color: var(--st-stop-text);
+        border: 1px solid var(--st-stop-border);
+      }
+      .filter-chip.status-stop.active {
+        background-color: var(--st-stop-text); 
+        border-color: var(--st-stop-text); 
+        color: white; 
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+      }
+
+      .btn-star svg, .data-icon svg { stroke: currentColor !important; }
       .btn-star.active, .btn-star.active svg { color: var(--primary) !important; stroke: var(--primary) !important; }
-      .data-icon.active, .data-icon.active svg { color: #1a254f !important; stroke: #1a254f !important; }
+      .data-icon.active, .data-icon.active svg { color: var(--header-navy) !important; stroke: var(--header-navy) !important; }
     </style>`
     srcDoc = srcDoc.replace('</head>', `${cssOverrides}</head>`)
 
-    // INOPNC: Custom Logic Injection (Swapping Title <-> Affil)
     const scriptInjection = `
     <script>
+    // INOPNC: Inject "Stopped" Filter Button if missing (Client-side check)
+    (function() {
+      const scrollRow = document.querySelector('.filter-row-scroll');
+      if (scrollRow && !document.querySelector('.filter-chip.status-stop')) {
+        const btn = document.createElement('button');
+        btn.className = 'filter-chip status-stop';
+        btn.textContent = '중단';
+        btn.onclick = function() { setStatusFilter('stop', this); };
+        scrollRow.appendChild(btn);
+      }
+    })();
+
+    // INOPNC: Override setStatusFilter to handle generic active toggling
+    window.setStatusFilter = function(status, btn) {
+        currentFilter = status;
+        document.querySelectorAll('.filter-chip').forEach(c => {
+             c.classList.remove('active');
+        });
+        btn.classList.add('active');
+        visibleCount = initialCount;
+        if(window.renderSites) renderSites();
+    };
+
     window.createCard = function(site) {
         const weather = WeatherService.getWeather(site.addr);
         let badgeClass = 'bdg-ing', badgeText = '진행중';
         if(site.status === 'wait') { badgeClass = 'bdg-wait'; badgeText = '예정'; }
         if(site.status === 'done') { badgeClass = 'bdg-done'; badgeText = '완료'; }
+        if(site.status === 'stop') { badgeClass = 'bdg-stop'; badgeText = '중단'; }
         const pinClass = site.pinned ? 'active' : '';
         
         const hasAddr = site.addr && site.addr !== '-' && site.addr !== '입력' && site.addr !== null && site.addr !== undefined && String(site.addr).trim() !== '';
@@ -317,24 +418,19 @@ export default async function MobileSites2Page() {
                 \${dateLabel ? \`<div class="site-date">\${dateLabel}</div>\` : ''}
                 
                 <div class="site-top-row">
-                    <!-- [SWAPPED] Affiliation Badge (Top Left) -->
                     <div style="flex:1; display:flex; align-items:center;">
                         <span class="\${affilClass}" style="margin-right:0;">\${site.affil}</span>
                     </div>
-                    
-                    <!-- Status & Pin (Top Right) -->
                     <div style="display:flex; gap:6px; align-items:center;">
                         <span class="site-badge \${badgeClass}">\${badgeText}</span>
-                        <button class="btn-star \${pinClass}" onclick="togglePin(\${site.id}, event)"><i data-lucide="\${site.pinned ? 'pin-off' : 'pin'}" style="width:22px; height:22px; \${site.pinned ? 'color:var(--primary);' : ''}"></i></button>
+                        <button class="btn-star \${pinClass}" onclick="togglePin(\${site.id}, event)"><i data-lucide="\${site.pinned ? 'pin-off' : 'pin'}" style="width:22px; height:22px;"></i></button>
                     </div>
                 </div>
 
                 <div class="site-sub-info">
-                   <!-- [SWAPPED] Title (Below) -->
                    <div class="site-sub-left">
                        <div class="site-name-text" style="font-size:20px; font-weight:800; margin-right:8px;">\${site.name}</div>
                    </div>
-                   <!-- Indicator Icons -->
                    <div class="indicator-group" style="margin-left:auto;">
                        <i data-lucide="map" class="data-icon \${hasDraw ? 'active' : ''}"></i>
                        <i data-lucide="camera" class="data-icon \${hasPhoto ? 'active' : ''}"></i>
@@ -356,7 +452,7 @@ export default async function MobileSites2Page() {
                 <div class="info-row"><span class="info-label" style="margin-bottom:0; align-self:center;">숙소</span><div style="display:flex; align-items:center; justify-content:flex-end; flex:1; gap:8px;"><span class="info-val" \${lodgeTextAction} style="\${lodgeTextStyle}">\${lodgeDisplay}</span>\${lodgeIcon}</div></div>
                 <div class="stats-row" style="border-bottom:none;">
                     <div class="stat-item"><span class="stat-label">작업일 누계</span><span class="stat-val">\${site.days}일</span></div>
-                    <div class="stat-item"><span class="stat-label">하자(미조치)</span><span class="stat-val danger">\${site.mp}건</span></div>
+                    <div class="stat-item"><span class="stat-label">총공수(승인)</span><span class="stat-val danger">\${site.mp}공수</span></div>
                 </div>
                 <div class="action-grid">
                     <button class="act-btn type-draw \${hasDraw ? '' : 'inactive'}" onclick="handleDrawClick(\${site.id})"><i data-lucide="map" class="act-icon"></i><span class="act-label">도면</span></button>
@@ -369,7 +465,6 @@ export default async function MobileSites2Page() {
             <div class="toggle-btn-area" onclick="toggleExpand(\${site.id})"><span class="toggle-text">상세 정보 보기</span><i data-lucide="chevron-down" class="chevron-icon"></i></div>
         </div>\`;
     };
-    // Re-render
     setTimeout(() => { if(window.renderSites) window.renderSites(); }, 50);
     </script>
     `

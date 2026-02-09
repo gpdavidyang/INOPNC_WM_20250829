@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 import { UI_TRACK_COOKIE_MAX_AGE, UI_TRACK_COOKIE_NAME } from '@/lib/auth/constants'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { createEdgeSupabaseClient } from '@/lib/supabase/edge'
 import { getSupabaseEnv } from '@/lib/supabase/env'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 // Authentication event logging utility
 function logAuthEvent(event: string, details: Record<string, any> = {}) {
@@ -223,7 +223,7 @@ export async function middleware(request: NextRequest) {
         "font-src 'self' https://fonts.gstatic.com",
         `img-src ${imgSources.join(' ')}`,
         `connect-src ${connectSources.join(' ')}`,
-        "frame-src 'self' https://*.daumcdn.net https://*.kakao.com https://postcode.map.kakao.com https://postcode.map.daum.net http://*.daum.net http://*.kakao.com",
+        `frame-src 'self' https://*.daumcdn.net https://*.kakao.com https://postcode.map.kakao.com https://postcode.map.daum.net http://*.daum.net http://*.kakao.com ${supabaseHttpOrigin || ''}`,
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

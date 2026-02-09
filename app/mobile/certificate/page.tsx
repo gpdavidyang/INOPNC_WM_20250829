@@ -2,11 +2,8 @@
 
 import './certificate.css'
 
-import Script from 'next/script'
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import {
   Check,
   ChevronLeft,
@@ -23,6 +20,9 @@ import {
   Undo2,
   X,
 } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Script from 'next/script'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 export const dynamic = 'force-dynamic'
 
@@ -1298,10 +1298,10 @@ export default function MobileCompletionCertificatePage() {
         <div className="header-title">작업완료확인서</div>
         <div className="header-right">
           <button type="button" className="icon-btn" aria-label="새로고침" onClick={resetAll}>
-            <RotateCcw width={22} height={22} />
+            <RotateCcw width={24} height={24} />
           </button>
           <button type="button" className="icon-btn" aria-label="다운로드" onClick={savePdf}>
-            <Download width={22} height={22} />
+            <Download width={24} height={24} />
           </button>
         </div>
       </header>

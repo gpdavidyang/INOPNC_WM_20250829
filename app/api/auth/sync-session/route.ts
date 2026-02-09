@@ -1,10 +1,21 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import { normalizeUserRole } from '@/lib/auth/roles'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { logAuthEvent } from '@/lib/auth/audit'
 
 export const dynamic = 'force-dynamic'
+
+const UI_TRACKS: Record<string, string> = {
+  worker: '/mobile',
+  site_manager: '/mobile',
+  production_manager: '/mobile/production/production',
+  customer_manager: '/mobile/partner',
+  partner: '/mobile/partner',
+  admin: '/dashboard/admin',
+  system_admin: '/dashboard/admin',
+}
 
 /**
  * Session Sync API Endpoint
@@ -44,9 +55,17 @@ export async function POST(request: NextRequest) {
 
     const { data: profile } = await serviceClient
       .from('profiles')
-      .select('mfa_enabled, mfa_session_token, mfa_session_expires_at')
+      .select(
+        'mfa_enabled, mfa_session_token, mfa_session_expires_at, role, organization_id, partner_company_id'
+      )
       .eq('id', userId)
       .maybeSingle()
+
+    const normalizedRole = normalizeUserRole((profile as any)?.role)
+    const uiTrack = UI_TRACKS[normalizedRole] || '/mobile'
+    const isRestricted = normalizedRole === 'customer_manager'
+    const restrictedOrgId =
+      (profile as any)?.partner_company_id ?? (profile as any)?.organization_id ?? null
 
     if (profile?.mfa_enabled) {
       if (!mfa_session_token) {
@@ -104,18 +123,6 @@ export async function POST(request: NextRequest) {
 
     console.log('[SYNC-SESSION API] Session set successfully:', data.user?.email)
 
-    const { data: userData, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !userData.user) {
-      console.error('[SYNC-SESSION API] User verification failed', userError)
-      return NextResponse.json(
-        { success: false, error: 'Session verification failed' },
-        { status: 500 }
-      )
-    }
-
-    console.log('[SYNC-SESSION API] Session verified for user:', userData.user.email)
-
     if (profile?.mfa_enabled) {
       await serviceClient
         .from('profiles')
@@ -124,16 +131,19 @@ export async function POST(request: NextRequest) {
     }
 
     await logAuthEvent('MFA_SESSION_SYNC_SUCCESS', {
-      userEmail: userData.user.email,
+      userEmail: data.user?.email ?? authUser.user.email,
       details: { userId },
     })
 
     return NextResponse.json({
       success: true,
       user: {
-        id: userData.user.id,
-        email: userData.user.email,
+        id: data.user?.id ?? authUser.user.id,
+        email: data.user?.email ?? authUser.user.email,
       },
+      uiTrack,
+      isRestricted,
+      restrictedOrgId,
     })
   } catch (error) {
     console.error('[SYNC-SESSION API] Unexpected error:', error)

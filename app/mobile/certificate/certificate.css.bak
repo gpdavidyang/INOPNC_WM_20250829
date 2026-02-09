@@ -44,7 +44,8 @@
    MODULE: CORE STYLES
    ========================================= */
 :root {
-  --font-main: 'Pretendard Variable', Pretendard, sans-serif;
+  /* Match i3 prototype: "Pretendard Variable" is not actually loaded there, so Pretendard static is used. */
+  --font-main: Pretendard, sans-serif;
   --bg-viewer: #1e1e1e;
   --bg-paper: #ffffff;
   --border-color: #1e293b;
@@ -56,24 +57,26 @@
   --primary-bg: #eaf6ff;
 }
 
+body.completion-cert,
+body.completion-cert * {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body.completion-cert {
   margin: 0;
   padding: 0;
   font-family: var(--font-main);
   background: var(--bg-viewer);
   color: #fff;
+  line-height: 1.2; /* override app-wide 1.6 to match i3 prototype */
   height: 100vh;
   width: 100vw;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   overscroll-behavior: none;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-body.completion-cert * {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
+  font-synthesis: none;
 }
 
 /* iframe 모드일 때 헤더 숨기기 */
@@ -211,7 +214,7 @@ body.completion-cert.iframe-mode .viewport {
   font-size: 16px;
   color: #000;
   outline: none;
-  padding: 2px !important;
+  padding: 2px;
   font-weight: 600;
   resize: none;
   overflow: hidden;
@@ -221,9 +224,8 @@ body.completion-cert.iframe-mode .viewport {
   display: block;
 }
 
-/* [중요] font-family inherit 추가: 시스템 폰트로 렌더링되어 높이가 달라지는 문제 방지 */
-body.completion-cert input,
-body.completion-cert textarea {
+input,
+textarea {
   width: 100%;
   border: none;
   background: transparent;
@@ -235,13 +237,13 @@ body.completion-cert textarea {
   font-weight: 600;
   resize: none;
 }
-body.completion-cert input::placeholder,
-body.completion-cert textarea::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #cbd5e1;
   font-weight: 400;
 }
-body.completion-cert input:focus,
-body.completion-cert textarea:focus {
+input:focus,
+textarea:focus {
   background: rgba(37, 99, 235, 0.05);
 }
 
@@ -289,15 +291,13 @@ body.completion-cert.clean-mode textarea {
   margin-bottom: 30px;
 }
 
-/* [수정] 회사명 및 귀중 정렬 CSS - 윗부분 잘림 완벽 해결 */
 .recipient-row {
   margin-top: 40px;
   display: flex;
   justify-content: center;
-  align-items: flex-end; /* 입력창의 밑변을 기준으로 정렬 */
+  align-items: flex-end;
   gap: 8px;
   font-weight: 700;
-  /* 행 전체 높이를 넉넉히 주어 레이아웃 확보 */
   height: 80px;
 }
 
@@ -307,16 +307,12 @@ body.completion-cert.clean-mode textarea {
   font-weight: 800;
   width: 300px;
   border-bottom: 2px solid #000;
-
-  /* [핵심 수정] 높이를 60px로 크게 늘리고, 상단 패딩을 주어 글자를 아래로 밀어냄 */
-  /* 이렇게 하면 글자 위에 15px 이상의 빈 공간이 생겨 절대 잘리지 않음 */
   height: 60px;
   padding-top: 20px;
   padding-bottom: 0;
-  box-sizing: border-box; /* 패딩이 높이에 포함되도록 설정 */
-
+  box-sizing: border-box;
   line-height: 1.4;
-  margin-bottom: 3px; /* 미세 위치 조정 */
+  margin-bottom: 3px;
   background: transparent;
   border-radius: 0;
 }
@@ -329,7 +325,7 @@ body.completion-cert.clean-mode textarea {
   border: none;
   background: transparent;
   cursor: text;
-  margin-bottom: 10px; /* 회사명 밑줄과 '귀중' 텍스트 높이 맞춤 */
+  margin-bottom: 10px;
 }
 
 /* =========================================

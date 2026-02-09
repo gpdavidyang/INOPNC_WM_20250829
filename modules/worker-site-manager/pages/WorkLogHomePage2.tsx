@@ -1,7 +1,5 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -9,11 +7,15 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
+import { PtwPreviewDialog } from '@/modules/mobile/components/work-log/PtwPreviewDialog'
 import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+
 import type { WorkLog, WorkLogStatus } from '@/modules/mobile/types/work-log.types'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import { AlertCircle, Calendar, FileCheck, FileImage, FileText, Pin, Search, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import styles from './WorkLogHomePage2.module.css'
 
 type UiStatus = 'draft' | 'pending' | 'reject' | 'approved'
@@ -195,9 +197,9 @@ const buildCardSummaryItems = (log?: WorkLog): SummaryItem[] => {
     .join(' / ')
 
   const items: SummaryItem[] = []
-  if (members.length) items.push({ label: '부재명:', value: members.join(', ') })
-  if (processes.length) items.push({ label: '작업공정:', value: processes.join(', ') })
-  if (types.length) items.push({ label: '작업유형:', value: types.join(', ') })
+  if (members.length) items.push({ label: '부재:', value: members.join(', ') })
+  if (processes.length) items.push({ label: '공정:', value: processes.join(', ') })
+  if (types.length) items.push({ label: '유형:', value: types.join(', ') })
   if (locationText) items.push({ label: '위치:', value: locationText })
   return items
 }
@@ -298,6 +300,7 @@ export const WorkLogHomePage2: React.FC = () => {
   const [detailTab, setDetailTab] = useState<DetailTab>('status')
   const [activeSiteId, setActiveSiteId] = useState<string | null>(null)
   const [materialsExpanded, setMaterialsExpanded] = useState(false)
+  const [ptwDialogOpen, setPtwDialogOpen] = useState(false)
 
   useEffect(() => {
     writePinnedSet(pinnedSites)
@@ -422,7 +425,9 @@ export const WorkLogHomePage2: React.FC = () => {
       drawingsBlueprint: 0,
       drawingsProgress: 0,
       drawingsCompletion: 0,
+      ptwCount: 0,
     }
+
     if (!activeGroup) return summary
 
     const normalizePhotoType = (file: any) => {
@@ -494,6 +499,17 @@ export const WorkLogHomePage2: React.FC = () => {
         else if (t === 'completion') summary.drawingsCompletion += 1
         else summary.drawingsProgress += 1
       })
+
+      // PTW Count Logic (Mock based on attachments or separate ptw field if available)
+      // Assuming ptw might be in attachments.others or a separate field in future.
+      // For now, check if there are any 'ptw' related files in 'others' or specific metadata
+      const ptwFiles = (log.attachments?.others || []).filter(
+        file =>
+          String(file?.name || '')
+            .toLowerCase()
+            .includes('ptw') || String(file?.name || '').includes('허가서')
+      )
+      summary.ptwCount += ptwFiles.length
     })
 
     return summary
@@ -570,6 +586,9 @@ export const WorkLogHomePage2: React.FC = () => {
 
       const periodRange = getWorkLogPeriodRange(activeGroup.workLogs || [])
       const periodLabel = formatPeriodLabel(periodRange.from, periodRange.to)
+      const worklogLabel = detailTab === 'attachment' ? '일지' : '작업일지'
+      const approvedHoursLabel = detailTab === 'attachment' ? '총공수(승인)' : '총 공수(승인)'
+      const approvedDaysLabel = detailTab === 'attachment' ? '총작업일(승인)' : '총 작업일(승인)'
 
       return (
         <section className={styles.detailSection}>
@@ -598,15 +617,15 @@ export const WorkLogHomePage2: React.FC = () => {
             </div>
 
             <div className={styles.siteInfoSummaryLine}>
-              <span className={styles.siteInfoSummaryLabel}>작업일지:</span>
+              <span className={styles.siteInfoSummaryLabel}>{worklogLabel}:</span>
               <span className={styles.siteInfoSummaryValue}>{worklogCount}건</span>
               <span className={styles.siteInfoSummarySep}>ㅣ</span>
-              <span className={styles.siteInfoSummaryLabel}>총 공수(승인):</span>
+              <span className={styles.siteInfoSummaryLabel}>{approvedHoursLabel}:</span>
               <span className={styles.siteInfoSummaryValue}>
                 {formatManDays(approvedTotalHours)} 공수
               </span>
               <span className={styles.siteInfoSummarySep}>ㅣ</span>
-              <span className={styles.siteInfoSummaryLabel}>총 작업일(승인):</span>
+              <span className={styles.siteInfoSummaryLabel}>{approvedDaysLabel}:</span>
               <span className={styles.siteInfoSummaryValue}>{approvedTotalDays}일</span>
             </div>
           </div>
@@ -614,7 +633,7 @@ export const WorkLogHomePage2: React.FC = () => {
       )
     }
 
-    if (detailTab === 'attachment') {
+    const renderAttachmentTab = () => {
       const goDocHub = (tab: 'photos' | 'drawings') => {
         const params = new URLSearchParams()
         params.set('tab', tab)
@@ -622,7 +641,7 @@ export const WorkLogHomePage2: React.FC = () => {
         router.push(`/mobile/documents?${params.toString()}`)
       }
 
-      const materialGroups = (() => {
+      const getMaterialGroups = () => {
         const map = new Map<string, NonNullable<WorkLog['materials']>>()
         activeGroup.workLogs.forEach(log => {
           const materials = Array.isArray(log.materials) ? log.materials : []
@@ -634,13 +653,15 @@ export const WorkLogHomePage2: React.FC = () => {
         })
         const dates = Array.from(map.keys()).sort((a, b) => (a < b ? 1 : -1))
         return { map, dates }
-      })()
+      }
+      const materialGroups = getMaterialGroups()
 
       const materialsCount = materialGroups.dates.reduce(
         (sum, date) => sum + (materialGroups.map.get(date)?.length || 0),
         0
       )
-      const materialsUniqueNames = (() => {
+
+      const getMaterialsUniqueNames = () => {
         const names = new Set<string>()
         materialGroups.dates.forEach(date => {
           ;(materialGroups.map.get(date) || []).forEach(m => {
@@ -649,7 +670,8 @@ export const WorkLogHomePage2: React.FC = () => {
           })
         })
         return names.size
-      })()
+      }
+      const materialsUniqueNames = getMaterialsUniqueNames()
 
       return (
         <>
@@ -748,10 +770,10 @@ export const WorkLogHomePage2: React.FC = () => {
               </button>
             </div>
             <div className={styles.summaryLine}>
-              <span className={styles.summaryLabel}>보수전</span>
+              <span className={styles.summaryLabel}>시공 전</span>
               <span className={styles.summaryValue}>{attachmentSummary.photosBefore}장</span>
               <span className={styles.summarySep}>/</span>
-              <span className={styles.summaryLabel}>보수후</span>
+              <span className={styles.summaryLabel}>시공 후</span>
               <span className={styles.summaryValue}>{attachmentSummary.photosAfter}장</span>
             </div>
           </section>
@@ -803,13 +825,39 @@ export const WorkLogHomePage2: React.FC = () => {
                   router.push(`/mobile/certificate?${params.toString()}`)
                 }}
               >
-                확인서 실행
+                확인서실행
               </button>
+            </div>
+            <div className={styles.summaryLine}>
+              <span className={styles.summaryLabel}>확인서</span>
+              <span className={styles.summaryValue}>{attachmentSummary.confirmations || 0}건</span>
+            </div>
+          </section>
+
+          <section className={styles.detailSection}>
+            <div className={styles.secHeadRowTight}>
+              <div className={styles.secHeadLeft}>
+                <FileCheck size={20} className={styles.secIcon} />
+                <span>PTW 작업허가서</span>
+              </div>
+              <button
+                type="button"
+                className={styles.inlineDetailBtn}
+                onClick={() => setPtwDialogOpen(true)}
+              >
+                상세
+              </button>
+            </div>
+            <div className={styles.summaryLine}>
+              <span className={styles.summaryLabel}>발급된 허가서</span>
+              <span className={styles.summaryValue}>{attachmentSummary.ptwCount}건</span>
             </div>
           </section>
         </>
       )
     }
+
+    if (detailTab === 'attachment') return renderAttachmentTab()
 
     return (
       <>
@@ -832,12 +880,12 @@ export const WorkLogHomePage2: React.FC = () => {
 
                 <div className={styles.worklogSummary}>
                   <div className={styles.worklogSummaryLine}>
-                    <span className={styles.worklogSummaryLabel}>작성자:</span>
+                    <span className={styles.worklogSummaryLabel}>작성:</span>
                     <span className={styles.worklogSummaryValue}>
                       {String(log.author || '').trim() || '-'}
                     </span>
                     <span className={styles.worklogSummarySep}>ㅣ</span>
-                    <span className={styles.worklogSummaryLabel}>작업자:</span>
+                    <span className={styles.worklogSummaryLabel}>작업:</span>
                     <span className={styles.worklogSummaryValue}>
                       {(() => {
                         const { workerName, manDays, workDays } = getPrimaryWorkerInfo(log)
@@ -860,9 +908,9 @@ export const WorkLogHomePage2: React.FC = () => {
                         .join(' / ')
 
                       const items: Array<{ label: string; value: string }> = []
-                      if (memberText) items.push({ label: '부재명:', value: memberText })
-                      if (processText) items.push({ label: '작업공정:', value: processText })
-                      if (typeText) items.push({ label: '작업유형:', value: typeText })
+                      if (memberText) items.push({ label: '부재:', value: memberText })
+                      if (processText) items.push({ label: '공정:', value: processText })
+                      if (typeText) items.push({ label: '유형:', value: typeText })
                       if (loc) items.push({ label: '위치:', value: loc })
 
                       if (items.length === 0) return <span>-</span>
@@ -989,6 +1037,11 @@ export const WorkLogHomePage2: React.FC = () => {
   return (
     <MobileLayoutShell>
       <div className={styles.worklog2} ref={wrapperRef}>
+        <PtwPreviewDialog
+          open={ptwDialogOpen}
+          onClose={() => setPtwDialogOpen(false)}
+          siteId={activeGroup?.siteId}
+        />
         <div className={styles.appWrapper}>
           {/* Search + Sort */}
           <div className={styles.topRow}>
@@ -1191,12 +1244,12 @@ export const WorkLogHomePage2: React.FC = () => {
 
                         <div className={styles.worklogSummary}>
                           <div className={styles.worklogSummaryLine}>
-                            <span className={styles.worklogSummaryLabel}>작성자:</span>
+                            <span className={styles.worklogSummaryLabel}>작성:</span>
                             <span className={styles.worklogSummaryValue}>
                               {String(log.author || '').trim() || '-'}
                             </span>
                             <span className={styles.worklogSummarySep}>ㅣ</span>
-                            <span className={styles.worklogSummaryLabel}>작업자:</span>
+                            <span className={styles.worklogSummaryLabel}>작업:</span>
                             <span className={styles.worklogSummaryValue}>
                               {(() => {
                                 const { workerName, manDays, workDays } = getPrimaryWorkerInfo(log)
@@ -1223,10 +1276,9 @@ export const WorkLogHomePage2: React.FC = () => {
                                 .join(' / ')
 
                               const items: Array<{ label: string; value: string }> = []
-                              if (memberText) items.push({ label: '부재명:', value: memberText })
-                              if (processText)
-                                items.push({ label: '작업공정:', value: processText })
-                              if (typeText) items.push({ label: '작업유형:', value: typeText })
+                              if (memberText) items.push({ label: '부재:', value: memberText })
+                              if (processText) items.push({ label: '공정:', value: processText })
+                              if (typeText) items.push({ label: '유형:', value: typeText })
                               if (loc) items.push({ label: '위치:', value: loc })
 
                               if (items.length === 0) return <span>-</span>
@@ -1331,8 +1383,6 @@ export const WorkLogHomePage2: React.FC = () => {
                   const photoCount =
                     group.latestLog?.attachments?.photos?.length ?? group.counts.photos
                   const drawingCount = countUnifiedDrawings(group.latestLog)
-                  const periodRange = getWorkLogPeriodRange(group.workLogs || [])
-                  const periodLabel = formatPeriodLabel(periodRange.from, periodRange.to)
 
                   return (
                     <div
@@ -1358,28 +1408,12 @@ export const WorkLogHomePage2: React.FC = () => {
                               <span className={`${styles.subBadge} ${styles.subDept}`}>
                                 {group.latestLog?.partnerCompanyName || '현장관리'}
                               </span>
-                              <span className={styles.cardAuthor}>
-                                <span className={styles.cardAuthorLabel}>작성자:</span>
-                                <span className={styles.cardAuthorValue}>
-                                  {String(group.latestLog?.author || '').trim() || '-'}
-                                </span>
-                              </span>
                             </div>
                             <div className={styles.siteTitleRow}>
                               <div className={styles.siteTitleLeft}>
                                 <span className={styles.siteName}>{group.siteName}</span>
-                                <span className={styles.cardWorker}>
-                                  <span className={styles.cardWorkerLabel}>작업자:</span>
-                                  <span className={styles.cardWorkerValue}>
-                                    {(() => {
-                                      const info = getPrimaryWorkerInfo(group.latestLog)
-                                      const name = info.workerName || '-'
-                                      const manDays = formatManDaysFixed1(
-                                        group.latestLog?.totalHours
-                                      )
-                                      return `${name}(${manDays} 공수)`
-                                    })()}
-                                  </span>
+                                <span className={styles.siteDate}>
+                                  {formatYmd(group.latestDate || group.latestLog?.date)}
                                 </span>
                               </div>
 
@@ -1396,6 +1430,25 @@ export const WorkLogHomePage2: React.FC = () => {
                                   <Pin size={18} />
                                 </button>
                               </div>
+                            </div>
+                            <div className={styles.authorWorkerRow}>
+                              <span className={styles.cardAuthor}>
+                                <span className={styles.cardAuthorLabel}>작성:</span>
+                                <span className={styles.cardAuthorValue}>
+                                  {String(group.latestLog?.author || '').trim() || '-'}
+                                </span>
+                              </span>
+                              <span className={styles.cardWorker}>
+                                <span className={styles.cardWorkerLabel}>작업:</span>
+                                <span className={styles.cardWorkerValue}>
+                                  {(() => {
+                                    const info = getPrimaryWorkerInfo(group.latestLog)
+                                    const name = info.workerName || '-'
+                                    const manDays = formatManDaysFixed1(group.latestLog?.totalHours)
+                                    return `${name}(${manDays} 공수)`
+                                  })()}
+                                </span>
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1511,3 +1564,4 @@ export const WorkLogHomePage2: React.FC = () => {
 }
 
 export default WorkLogHomePage2
+// Verified at 14:30

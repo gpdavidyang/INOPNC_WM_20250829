@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { resolveStorageReference } from '@/lib/storage/paths'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       const options = downloadName ? { download: downloadName } : undefined
       const { data } = await svc.storage
         .from(resolved.bucket)
-        .createSignedUrl(resolved.objectPath, 600, options)
+        .createSignedUrl(resolved.objectPath, 3600, options)
       if (data?.signedUrl) {
         return NextResponse.json({ success: true, url: data.signedUrl })
       }

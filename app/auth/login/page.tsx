@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import Link from 'next/link'
-import { Eye, EyeOff } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import LogoImage from '@/components/LogoImage'
-import { getLoginLogoSrc } from '@/lib/ui/brand'
 import { getDemoAccountPassword, isDemoAccountEmail } from '@/lib/auth/demo-accounts'
+import { createClient } from '@/lib/supabase/client'
+import { getLoginLogoSrc } from '@/lib/ui/brand'
+import { Eye, EyeOff } from 'lucide-react'
+import Link from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { generateMfaSecret, verifyMfaCode } from './actions'
 
 const TEST_EMAIL_DOMAIN =
@@ -172,7 +172,7 @@ export default function LoginPage() {
   const syncSession = async (
     tokens: PendingSession,
     options?: { mfaToken?: string }
-  ): Promise<boolean> => {
+  ): Promise<{ success: boolean; uiTrack?: string | null }> => {
     try {
       const res = await fetch('/api/auth/sync-session', {
         method: 'POST',
@@ -187,13 +187,13 @@ export default function LoginPage() {
       const payload = await res.json().catch(() => ({}))
       if (!res.ok || !payload?.success) {
         setError(payload?.error || '세션 동기화에 실패했습니다.')
-        return false
+        return { success: false }
       }
-      return true
+      return { success: true, uiTrack: payload?.uiTrack ?? null }
     } catch (err) {
       console.error('Session sync error:', err)
       setError('세션 동기화 중 오류가 발생했습니다.')
-      return false
+      return { success: false }
     }
   }
 
@@ -348,7 +348,7 @@ export default function LoginPage() {
         console.error('Login error:', signInError)
         if (msgLower.includes('invalid login credentials')) {
           setError(
-            '계정이 존재하지 않거나 비밀번호가 일치하지 않습니다. 가입 승인 여부는 "가입상태확인"에서 확인해주세요.'
+            '계정이 존재하지 않거나 비밀번호가 일치하지 않습니다. 가입 승인 여부는 "가입확인"에서 확인해주세요.'
           )
           if (process.env.NODE_ENV !== 'production' && normalizedEmail === 'partner@inopnc.com') {
             setDevHelp('개발 환경에서 파트너 테스트 계정을 생성할 수 있습니다.')
@@ -380,7 +380,11 @@ export default function LoginPage() {
       if (bypassMfa) {
         const synced = await syncSession(tokens)
         setIsLoading(false)
-        if (synced) {
+        if (synced.success) {
+          if (synced.uiTrack) {
+            window.location.replace(synced.uiTrack)
+            return
+          }
           await redirectAfterLogin()
         }
         return
@@ -442,7 +446,7 @@ export default function LoginPage() {
       }
 
       const synced = await syncSession(pendingSession, { mfaToken: verifyResult.token })
-      if (!synced) {
+      if (!synced.success) {
         setIsMfaSubmitting(false)
         return
       }
@@ -453,6 +457,10 @@ export default function LoginPage() {
       setMfaUri(null)
       setMfaCode('')
       setInfo(null)
+      if (synced.uiTrack) {
+        window.location.replace(synced.uiTrack)
+        return
+      }
       await redirectAfterLogin()
     } catch (error) {
       console.error('MFA submit error:', error)
@@ -812,42 +820,25 @@ export default function LoginPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
           margin: 20px 0;
         }
 
         .checkbox {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 0;
           cursor: pointer;
+          flex: 0 0 auto;
+          position: relative;
         }
         .checkbox-input {
-          /* Use native checkbox rendering to avoid double ticks */
           width: 18px;
           height: 18px;
+          margin-right: 8px;
           cursor: pointer;
-          appearance: auto;
-          -webkit-appearance: checkbox;
-          -moz-appearance: checkbox;
-          background: #ffffff;
-          border: 1px solid #d1d5db;
-          border-radius: 4px;
-          vertical-align: middle;
-          transition: all 0.2s ease;
-          accent-color: #31a3fa;
-        }
-        .checkbox-input:hover {
-          border-color: #31a3fa;
-        }
-        .checkbox-input:focus {
-          outline: none;
-          border-color: #31a3fa;
-          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
-        }
-        /* Remove custom tick rendering to prevent double checkmarks */
-        .checkbox-input:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+          accent-color: #1a254f;
         }
         .checkbox label {
           font-size: 16px;
@@ -860,6 +851,8 @@ export default function LoginPage() {
           align-items: center;
           gap: 4px;
           justify-content: flex-end;
+          margin-left: auto;
+          min-width: 0;
         }
         .forgot-password {
           font-size: 16px;
@@ -894,6 +887,15 @@ export default function LoginPage() {
           font-weight: 500;
           /* Make the clickable label text compact horizontally */
           padding: 0;
+          white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          line-height: 1;
+        }
+        .checkbox-input:focus-visible + span {
+          outline: 2px solid #31a3fa;
+          outline-offset: 2px;
+          border-radius: 6px;
         }
 
         /* Ensure the overall label itself stays compact horizontally */
@@ -1210,15 +1212,15 @@ export default function LoginPage() {
 
                   <div className="forgot-links">
                     <button type="button" className="forgot-password" onClick={openFindId}>
-                      아이디찾기
+                      아이디
                     </button>
                     <span className="separator">|</span>
                     <Link href="/auth/reset-password" className="forgot-password">
-                      비밀번호찾기
+                      비밀번호
                     </Link>
                     <span className="separator">|</span>
                     <button type="button" className="forgot-password" onClick={openSignupStatus}>
-                      가입상태확인
+                      가입확인
                     </button>
                   </div>
                 </div>

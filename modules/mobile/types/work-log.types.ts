@@ -94,6 +94,8 @@ export interface WorkLogAttachments {
   photos: AttachedFile[] // 사진대지
   drawings: AttachedFile[] // 진행도면
   confirmations: AttachedFile[] // 작업완료확인서
+  ptw?: AttachedFile[] // PTW (작업허가서)
+  others?: AttachedFile[] // 기타 첨부파일
 }
 
 /**
@@ -206,6 +208,18 @@ export const FILE_UPLOAD_CONFIG: Record<keyof WorkLogAttachments, FileUploadConf
     accept: ['application/pdf'],
     multiple: false,
     maxCount: 1,
+  },
+  ptw: {
+    maxSize: 10 * 1024 * 1024,
+    accept: ['application/pdf', 'image/jpeg', 'image/png'],
+    multiple: true,
+    maxCount: 5,
+  },
+  others: {
+    maxSize: 20 * 1024 * 1024,
+    accept: ['*/*'],
+    multiple: true,
+    maxCount: 10,
   },
 }
 

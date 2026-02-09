@@ -68,7 +68,8 @@ export async function fetchLinkedDrawingsForWorklog(
       )
       .eq('category_type', 'shared')
       .eq('status', 'active')
-      .eq('is_archived', false),
+      .eq('is_archived', false)
+      .eq('site_id', siteId),
     svc
       .from('daily_reports')
       .select('id, work_date, work_description')

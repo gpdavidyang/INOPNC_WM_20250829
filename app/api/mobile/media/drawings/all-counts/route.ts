@@ -52,7 +52,8 @@ export async function GET(request: NextRequest) {
         .select('id, metadata')
         .eq('category_type', 'shared')
         .eq('status', 'active')
-        .eq('is_archived', false),
+        .eq('is_archived', false)
+        .eq('site_id', siteId),
     ])
 
     const validMarkupIds = new Set<string>(
