@@ -6,7 +6,6 @@ import path from 'node:path'
 let baseFontFamily = 'Helvetica'
 
 // 한글 폰트 등록
-// 에러 발생 시 기본 폰트 사용을 위해 try-catch 래핑
 try {
   const fontPath = path.join(process.cwd(), 'public/fonts/Pretendard-Regular.woff')
 
@@ -15,8 +14,14 @@ try {
     Font.register({
       family: 'Pretendard',
       src: fontPath,
+      fontWeight: 'normal',
     })
-    // 폰트 등록 성공 시에만 폰트 패밀리 변경
+    // Register Bold if available, otherwise reuse regular with weight (works for some fonts)
+    // Ideally we should checking for a Bold font file, but for now we assume the single font file
+    // or relying on renderer synthetic bold.
+    // Let's check if we have a Bold variant in the project?
+    // The user's env only showed Regular in previous steps usually.
+    // We will stick to 'Pretendard' family.
     baseFontFamily = 'Pretendard'
   } else {
     console.warn('Font file not found at:', fontPath, '- Falling back to Helvetica')
@@ -27,80 +32,162 @@ try {
 
 const styles = StyleSheet.create({
   page: {
-    padding: 30,
+    padding: 40,
     fontFamily: baseFontFamily,
     fontSize: 10,
-    lineHeight: 1.5,
+    color: '#111827', // Gray 900
+    lineHeight: 1.4,
   },
-  header: {
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 20,
-    textAlign: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
+    borderBottomWidth: 2,
+    borderBottomColor: '#111827',
     paddingBottom: 10,
+    alignItems: 'flex-start', // Changed to flex-start for top alignment
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 26, // Increased size
+    fontWeight: 'heavy', // Extra Bold equivalent in some libs, or use numeric 800/900 if font supports
+    // Since we only regiestered one font file, 'bold' might just be synthetic.
+    // Let's use 'bold' and larger size to emphasize.
+    fontFamily: baseFontFamily,
   },
-  infoRow: {
+  metaTable: {
+    width: 200,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    // borderBottomWidth: 1, // Default is 1 if not specified? No, View has 0 by default.
+    // We set borderWidth: 1 above, so it has bottom border.
+  },
+  metaRow: {
     flexDirection: 'row',
-    marginBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1d5db',
+    height: 20,
+    alignItems: 'center',
   },
-  infoLabel: {
+  metaRowLast: {
+    flexDirection: 'row',
+    height: 20,
+    alignItems: 'center',
+    borderBottomWidth: 0, // Last row needs no bottom border if table has one?
+    // Actually, if table has border, we don't need row border on last element.
+  },
+  metaLabel: {
     width: 60,
+    backgroundColor: '#f3f4f6',
+    textAlign: 'center',
+    fontSize: 9,
     fontWeight: 'bold',
+    height: '100%',
+    paddingTop: 4,
+    borderRightWidth: 1,
+    borderRightColor: '#d1d5db',
   },
-  infoValue: {
+  metaValue: {
     flex: 1,
+    paddingLeft: 8,
+    fontSize: 9,
   },
   section: {
-    marginVertical: 10,
+    marginBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#3b82f6',
+    paddingLeft: 8,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 5,
-    backgroundColor: '#f0f0f0',
-    padding: 2,
   },
+  sectionSub: {
+    fontSize: 10,
+    color: '#6b7280',
+  },
+  // Standard Table Styles
   table: {
-    display: 'flex',
-    width: 'auto',
-    borderStyle: 'solid',
+    width: '100%',
     borderWidth: 1,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    marginVertical: 5,
+    borderColor: '#d1d5db',
+    // borderBottomWidth: 1, // Explicitly ensure bottom border
   },
   tableRow: {
     flexDirection: 'row',
-    margin: 'auto',
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1d5db',
+    minHeight: 24,
+    alignItems: 'center',
   },
-  tableCol: {
-    width: '25%',
-    borderStyle: 'solid',
-    borderWidth: 1,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
+  tableRowLast: {
+    flexDirection: 'row',
+    minHeight: 24,
+    alignItems: 'center',
+    borderBottomWidth: 0,
   },
-  tableCell: {
-    margin: 5,
+  // Overview Specific Columns
+  overviewLabel: {
+    width: '20%', // Adjusted for longer text "위치(블록/동/층)"
+    backgroundColor: '#f3f4f6',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    height: '100%',
+    padding: 5,
     fontSize: 9,
+    borderRightWidth: 1,
+    borderRightColor: '#d1d5db',
+    justifyContent: 'center',
   },
+  overviewValue: {
+    width: '30%',
+    padding: 5,
+    fontSize: 9,
+    borderRightWidth: 1,
+    borderRightColor: '#d1d5db',
+  },
+  overviewValueLast: {
+    width: '30%',
+    padding: 5,
+    fontSize: 9,
+    borderRightWidth: 0,
+  },
+  // Manpower & Material Columns
+  colHeader: {
+    backgroundColor: '#f3f4f6',
+    textAlign: 'center',
+    fontWeight: 'bold',
+    padding: 5,
+    fontSize: 9,
+    borderRightWidth: 1,
+    borderRightColor: '#d1d5db',
+  },
+  colCell: {
+    padding: 5,
+    fontSize: 9,
+    textAlign: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#d1d5db',
+  },
+  // Image Grid
   imageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginTop: 5,
   },
   imageContainer: {
-    width: '48%', // 2 columns
-    height: 200,
+    width: '48%',
+    aspectRatio: 1.33,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#e5e7eb',
+    backgroundColor: '#f9fafb',
+    padding: 5,
   },
   image: {
     width: '100%',
@@ -110,12 +197,14 @@ const styles = StyleSheet.create({
   footer: {
     position: 'absolute',
     bottom: 30,
-    left: 0,
-    right: 0,
+    left: 40,
+    right: 40,
     textAlign: 'center',
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#666',
+    fontSize: 10,
+    color: '#9ca3af',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 10,
   },
 })
 
@@ -127,6 +216,7 @@ interface WorkReportPDFProps {
     location: string
     workProcess: string
     workType: string
+    componentNames: string
     manHours: number
     workers: { name: string; hours: number }[]
     materials: { name: string; quantity: number | string; unit: string }[]
@@ -135,111 +225,187 @@ interface WorkReportPDFProps {
   }
 }
 
-export const WorkReportPDF = ({ data }: WorkReportPDFProps) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>작 업 보 고 서</Text>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>현 장 명 :</Text>
-          <Text style={styles.infoValue}>{data.siteName}</Text>
+export const WorkReportPDF = ({ data }: WorkReportPDFProps) => {
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <Text style={{ ...styles.title, fontWeight: 'bold' }}>작 업 보 고 서</Text>
+          <View style={styles.metaTable}>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>일 자</Text>
+              <Text style={styles.metaValue}>{data.workDate}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>현 장</Text>
+              <Text style={styles.metaValue}>{data.siteName}</Text>
+            </View>
+            <View style={styles.metaRowLast}>
+              <Text style={styles.metaLabel}>작 성</Text>
+              <Text style={styles.metaValue}>{data.author}</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>작 업 일 :</Text>
-          <Text style={styles.infoValue}>{data.workDate}</Text>
-          <Text style={styles.infoLabel}>작 성 자 :</Text>
-          <Text style={styles.infoValue}>{data.author}</Text>
-        </View>
-      </View>
 
-      {/* 1. 작업 개요 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>1. 작업 개요</Text>
-        <View style={styles.table}>
-          <View style={styles.tableRow}>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>위치</Text>
+        {/* 1. 작업 개요 (Work Overview) */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>1. 작업 개요</Text>
+          </View>
+          <View style={styles.table}>
+            <View style={styles.tableRow}>
+              <Text style={styles.overviewLabel}>부 재 명</Text>
+              <Text style={styles.overviewValue}>{data.componentNames || '-'}</Text>
+              <Text style={styles.overviewLabel}>작 업 공 정</Text>
+              <Text style={styles.overviewValueLast}>{data.workProcess || '-'}</Text>
             </View>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>{data.location}</Text>
+            <View style={styles.tableRowLast}>
+              <Text style={styles.overviewLabel}>작 업 유 형</Text>
+              <Text style={styles.overviewValue}>{data.workType || '-'}</Text>
+              <Text style={styles.overviewLabel}>위치(블록/동/층)</Text>
+              <Text style={styles.overviewValueLast}>{data.location || '-'}</Text>
             </View>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>공종</Text>
+          </View>
+        </View>
+
+        {/* 2. 인력 투입 현황 (Manpower) */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>2. 인력 투입 현황</Text>
+            <Text style={styles.sectionSub}>
+              총 {data.manHours} 공수 / {data.workers.length} 명
+            </Text>
+          </View>
+          <View style={styles.table}>
+            <View style={styles.tableRow}>
+              <Text style={{ ...styles.colHeader, width: '40%' }}>성 명</Text>
+              <Text style={{ ...styles.colHeader, width: '30%' }}>공 수</Text>
+              <Text style={{ ...styles.colHeader, width: '30%', borderRightWidth: 0 }}>비 고</Text>
             </View>
-            <View style={styles.tableCol}>
-              <Text style={styles.tableCell}>
-                {data.workProcess} {'>'} {data.workType}
+            {data.workers.length > 0 ? (
+              data.workers.map((worker, i) => (
+                <View
+                  key={i}
+                  style={i === data.workers.length - 1 ? styles.tableRowLast : styles.tableRow}
+                >
+                  <Text style={{ ...styles.colCell, width: '40%' }}>{worker.name}</Text>
+                  <Text style={{ ...styles.colCell, width: '30%' }}>{worker.hours}</Text>
+                  <Text style={{ ...styles.colCell, width: '30%', borderRightWidth: 0 }}>-</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.tableRowLast}>
+                <Text
+                  style={{
+                    ...styles.colCell,
+                    width: '100%',
+                    borderRightWidth: 0,
+                    color: '#9ca3af',
+                  }}
+                >
+                  투입 인력이 없습니다.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* 3. 자재 투입 내역 (Materials) */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>3. 자재 투입 내역</Text>
+          </View>
+          <View style={styles.table}>
+            <View style={styles.tableRow}>
+              <Text style={{ ...styles.colHeader, width: '50%' }}>품 명</Text>
+              <Text style={{ ...styles.colHeader, width: '25%' }}>수 량</Text>
+              <Text style={{ ...styles.colHeader, width: '25%', borderRightWidth: 0 }}>단 위</Text>
+            </View>
+            {data.materials.length > 0 ? (
+              data.materials.map((mat, i) => (
+                <View
+                  key={i}
+                  style={i === data.materials.length - 1 ? styles.tableRowLast : styles.tableRow}
+                >
+                  <Text
+                    style={{ ...styles.colCell, width: '50%', textAlign: 'left', paddingLeft: 10 }}
+                  >
+                    {mat.name}
+                  </Text>
+                  <Text style={{ ...styles.colCell, width: '25%' }}>{mat.quantity}</Text>
+                  <Text style={{ ...styles.colCell, width: '25%', borderRightWidth: 0 }}>
+                    {mat.unit}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.tableRowLast}>
+                <Text
+                  style={{
+                    ...styles.colCell,
+                    width: '100%',
+                    borderRightWidth: 0,
+                    color: '#9ca3af',
+                  }}
+                >
+                  투입 자재가 없습니다.
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* 4. 도면 (Drawings) */}
+        <View style={styles.section} break={data.drawings.length > 0}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>4. 도면 (진행도면, 완료도면)</Text>
+            <Text style={styles.sectionSub}>총 {data.drawings.length} 장</Text>
+          </View>
+          <View style={styles.imageGrid}>
+            {data.drawings.length > 0 ? (
+              data.drawings.map((src, i) => (
+                <View key={i} style={styles.imageContainer}>
+                  <Image src={src} style={styles.image} />
+                </View>
+              ))
+            ) : (
+              <Text style={{ fontSize: 10, color: '#9ca3af', padding: 10 }}>
+                첨부된 도면이 없습니다.
               </Text>
-            </View>
+            )}
           </View>
         </View>
-      </View>
 
-      {/* 2. 인력 투입 현황 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>2. 인력 투입 현황 (총 {data.manHours} 공수)</Text>
-        <View style={styles.table}>
-          <View style={styles.tableRow}>
-            {data.workers.map((worker, i) => (
-              <View key={i} style={styles.tableCol}>
-                <Text style={styles.tableCell}>
-                  {worker.name} ({worker.hours})
-                </Text>
-              </View>
-            ))}
+        {/* 5. 현장 사진 (Photos) */}
+        <View
+          style={styles.section}
+          break={data.photos.length > 0 || (data.drawings.length === 0 && data.photos.length > 0)}
+        >
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>5. 현장 사진</Text>
+            <Text style={styles.sectionSub}>총 {data.photos.length} 장</Text>
+          </View>
+          <View style={styles.imageGrid}>
+            {data.photos.length > 0 ? (
+              data.photos.map((src, i) => (
+                <View key={i} style={styles.imageContainer}>
+                  <Image src={src} style={styles.image} />
+                </View>
+              ))
+            ) : (
+              <Text style={{ fontSize: 10, color: '#9ca3af', padding: 10 }}>
+                첨부된 사진이 없습니다.
+              </Text>
+            )}
           </View>
         </View>
-      </View>
 
-      {/* 3. 자재 투입 내역 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>3. 자재 투입 내역</Text>
-        <View style={styles.table}>
-          {data.materials.map((mat, i) => (
-            <View key={i} style={styles.tableRow}>
-              <View style={{ ...styles.tableCol, width: '70%' }}>
-                <Text style={styles.tableCell}>{mat.name}</Text>
-              </View>
-              <View style={{ ...styles.tableCol, width: '30%' }}>
-                <Text style={styles.tableCell}>
-                  {mat.quantity} {mat.unit}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* 4. 도면 현황 */}
-      <View style={styles.section} break={data.drawings.length > 0}>
-        <Text style={styles.sectionTitle}>4. 도면 현황 & 이미지</Text>
-        <Text style={{ fontSize: 9, marginBottom: 5 }}>완료 도면 수: {data.drawings.length}</Text>
-        <View style={styles.imageGrid}>
-          {data.drawings.map((src, i) => (
-            <View key={i} style={styles.imageContainer}>
-              <Image src={src} style={styles.image} alt="" />
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* 5. 현장 사진 */}
-      <View style={styles.section} break={data.photos.length > 0}>
-        <Text style={styles.sectionTitle}>5. 현장 사진</Text>
-        <View style={styles.imageGrid}>
-          {data.photos.map((src, i) => (
-            <View key={i} style={styles.imageContainer}>
-              <Image src={src} style={styles.image} alt="" />
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* Footer */}
-      <Text style={styles.footer} fixed>
-        (주) 이 노 피 앤 씨
-      </Text>
-    </Page>
-  </Document>
-)
+        {/* Footer */}
+        <Text style={styles.footer} fixed>
+          (주) 이 노 피 앤 씨 - INOPNC Construction Management System
+        </Text>
+      </Page>
+    </Document>
+  )
+}

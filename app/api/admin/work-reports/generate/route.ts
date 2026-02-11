@@ -114,6 +114,7 @@ export async function POST(req: NextRequest) {
         .join(' '),
       workProcess: report.workProcesses?.join(', ') || '',
       workType: report.workTypes?.join(', ') || '',
+      componentNames: report.memberTypes?.join(', ') || '',
       manHours: report.workerStatistics?.total_hours || 0,
       workers: (report.workers || []).map((w: any) => ({
         name: w.workerName || w.name || 'Unknown',
