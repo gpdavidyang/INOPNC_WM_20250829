@@ -29,6 +29,7 @@ import { ReportInfoGrid } from './detail/ReportInfoGrid'
 import { ReportRejectionForm } from './detail/ReportRejectionForm'
 import { ReportStats } from './detail/ReportStats'
 import { WorkforceSection } from './detail/WorkforceSection'
+import { WorkReportManagementSection } from './detail/WorkReportManagementSection'
 
 interface DailyReportDetailClientProps {
   reportId: string
@@ -38,6 +39,7 @@ interface DailyReportDetailClientProps {
   author?: string
   initialReport?: UnifiedDailyReport
   allowEditing?: boolean
+  canManageWorkReport?: boolean
 }
 
 export default function DailyReportDetailClient({
@@ -48,6 +50,7 @@ export default function DailyReportDetailClient({
   author,
   initialReport,
   allowEditing = false,
+  canManageWorkReport = false,
 }: DailyReportDetailClientProps) {
   const { toast } = useToast()
 
@@ -371,6 +374,12 @@ export default function DailyReportDetailClient({
       </section>
 
       <ImageLightbox previewImage={previewImage} onClose={() => setPreviewImage(null)} />
+
+      <WorkReportManagementSection
+        reportId={report.id || reportId}
+        status={report.status || status || 'draft'}
+        canManage={canManageWorkReport}
+      />
     </div>
   )
 }

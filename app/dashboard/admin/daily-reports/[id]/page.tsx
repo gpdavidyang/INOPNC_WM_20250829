@@ -165,6 +165,7 @@ export default async function AdminDailyReportDetailPage({ params }: { params: {
           author={report?.profiles?.full_name || ''}
           initialReport={unifiedReport || undefined}
           allowEditing
+          canManageWorkReport
         />
       ) : (
         <EmptyState title="오류" description="작업일지 정보를 불러오지 못했습니다." />

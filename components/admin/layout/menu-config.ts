@@ -157,6 +157,7 @@ export const menuCategories: MenuGroup[] = [
         label: '본사요청 관리',
         icon: Inbox,
         href: '/dashboard/admin/hq-requests',
+        hidden: true,
       },
     ],
   },

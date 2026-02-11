@@ -1,5 +1,6 @@
 'use client'
 
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { UnifiedAttachment } from '@/types/daily-reports'
@@ -12,6 +13,92 @@ interface LinkedDrawingSectionProps {
   getMarkupLink: (att: UnifiedAttachment) => string | null
   siteId?: string
   reportId?: string
+}
+
+type DrawingKind = 'blueprint' | 'progress' | 'completion'
+
+const resolveDrawingKind = (att: UnifiedAttachment): DrawingKind | null => {
+  const meta =
+    att.metadata && typeof att.metadata === 'object' && !Array.isArray(att.metadata)
+      ? (att.metadata as Record<string, unknown>)
+      : {}
+
+  const source = typeof meta.source === 'string' ? meta.source.trim().toLowerCase() : ''
+
+  const candidates: string[] = [
+    typeof meta.sub_category === 'string' ? meta.sub_category : '',
+    typeof (meta as any).subcategory === 'string' ? ((meta as any).subcategory as string) : '',
+    typeof meta.document_type === 'string' ? meta.document_type : '',
+    typeof (meta as any).documentType === 'string' ? ((meta as any).documentType as string) : '',
+    typeof (meta as any).sub_type === 'string' ? ((meta as any).sub_type as string) : '',
+    typeof (meta as any).subType === 'string' ? ((meta as any).subType as string) : '',
+    typeof att.name === 'string' ? att.name : '',
+  ].filter(Boolean)
+
+  const normalized = candidates.join(' | ').trim().toLowerCase()
+
+  // Markup-linked drawings are treated as progress drawings by default.
+  if (source.includes('markup')) return 'progress'
+
+  if (
+    normalized.includes('공도면') ||
+    normalized.includes('blueprint') ||
+    normalized.includes('construction_drawing') ||
+    normalized.includes('construction')
+  ) {
+    return 'blueprint'
+  }
+
+  if (
+    normalized.includes('완료도면') ||
+    normalized.includes('completion') ||
+    normalized.includes('complete') ||
+    normalized.includes('done') ||
+    normalized.includes('final')
+  ) {
+    return 'completion'
+  }
+
+  if (
+    normalized.includes('진행도면') ||
+    normalized.includes('progress') ||
+    normalized.includes('ing')
+  )
+    return 'progress'
+
+  return null
+}
+
+const drawingKindBadge = (kind: DrawingKind) => {
+  switch (kind) {
+    case 'blueprint':
+      return (
+        <Badge
+          variant="warning"
+          className="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-black tracking-tight bg-amber-50 text-amber-700 border border-amber-100"
+        >
+          공도면
+        </Badge>
+      )
+    case 'progress':
+      return (
+        <Badge
+          variant="success"
+          className="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-black tracking-tight bg-green-50 text-green-700 border border-green-100"
+        >
+          진행도면
+        </Badge>
+      )
+    case 'completion':
+      return (
+        <Badge
+          variant="secondary"
+          className="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-black tracking-tight bg-slate-50 text-slate-600 border border-slate-200"
+        >
+          완료도면
+        </Badge>
+      )
+  }
 }
 
 export function LinkedDrawingSection({
@@ -58,6 +145,7 @@ export function LinkedDrawingSection({
               ) as any
               const markupHref = getMarkupLink(att)
               const snapshotPdfUrl = meta?.snapshot_pdf_url || meta?.pdf_url
+              const drawingKind = resolveDrawingKind(att)
 
               return (
                 <div key={att.id} className="group px-5 py-4 transition-colors hover:bg-gray-50/30">
@@ -82,8 +170,14 @@ export function LinkedDrawingSection({
                         )}
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col justify-center">
-                        <div className="truncate text-sm font-bold text-gray-900" title={att.name}>
-                          {att.name}
+                        <div className="flex min-w-0 items-center gap-2">
+                          <div
+                            className="min-w-0 truncate text-sm font-bold text-gray-900"
+                            title={att.name}
+                          >
+                            {att.name}
+                          </div>
+                          {drawingKind ? drawingKindBadge(drawingKind) : null}
                         </div>
                       </div>
                     </div>

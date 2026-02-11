@@ -48,13 +48,13 @@ export function RegistryBulkActions({
               variant="secondary"
               className="bg-blue-50 text-blue-700 text-[11px] font-black tracking-tighter h-6 px-3 border-none"
             >
-              보수 전 {beforeCount}
+              시공 전 {beforeCount}
             </Badge>
             <Badge
               variant="secondary"
               className="bg-emerald-50 text-emerald-700 text-[11px] font-black tracking-tighter h-6 px-3 border-none"
             >
-              보수 후 {afterCount}
+              시공 후 {afterCount}
             </Badge>
           </div>
         </div>

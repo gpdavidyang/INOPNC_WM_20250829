@@ -167,7 +167,7 @@ export function RegistryPhotoItem({
               type === 'before' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
             )}
           >
-            {type === 'before' ? '보수 전' : '보수 후'}
+            {type === 'before' ? '시공 전' : '시공 후'}
           </Badge>
           <span className="text-[10px] font-medium text-muted-foreground/40 truncate flex-1 text-right">
             {photo.filename}

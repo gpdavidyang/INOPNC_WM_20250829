@@ -37,7 +37,7 @@ export function ReportRejectionForm({
       <CardContent className="px-4 pb-4">
         <textarea
           className="mb-3 w-full rounded-md border-rose-200 bg-white p-3 text-sm focus:border-rose-500 focus:ring-rose-500"
-          placeholder="반려 사유를 구체적으로 입력해 주세요 (예: 보수 전/후 사진 누락)"
+          placeholder="반려 사유를 구체적으로 입력해 주세요 (예: 시공 전/후 사진 누락)"
           rows={3}
           value={rejectionReason}
           onChange={e => setRejectionReason(e.target.value)}

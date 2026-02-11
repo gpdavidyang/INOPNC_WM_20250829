@@ -862,6 +862,48 @@ export type Database = {
           },
         ]
       }
+      work_reports: {
+        Row: {
+          id: string
+          daily_report_id: string
+          file_url: string
+          created_at: string
+          created_by: string
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          daily_report_id: string
+          file_url: string
+          created_at?: string
+          created_by?: string
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          daily_report_id?: string
+          file_url?: string
+          created_at?: string
+          created_by?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'work_reports_daily_report_id_fkey'
+            columns: ['daily_report_id']
+            isOneToOne: true
+            referencedRelation: 'daily_reports'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'work_reports_created_by_fkey'
+            columns: ['created_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       communication_overview_v: {

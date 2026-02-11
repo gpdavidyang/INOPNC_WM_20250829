@@ -1005,6 +1005,25 @@ export const WorkLogHomePage2: React.FC = () => {
       )
     }
 
+    const handleReportView = async () => {
+      if (!activeGroup?.latestLog?.id) return
+      const reportId = activeGroup.latestLog.id
+
+      try {
+        const res = await fetch(`/api/work-reports/${reportId}`)
+        const data = await res.json()
+
+        if (data.exists && data.data?.file_url) {
+          // Open PDF in new tab
+          window.open(data.data.file_url, '_blank')
+        } else {
+          toast('생성된 작업보고서가 없습니다. 본사 관리자에게 문의하세요.')
+        }
+      } catch (e) {
+        toast.error('보고서 정보를 불러오는데 실패했습니다.')
+      }
+    }
+
     switch (activeGroup.status) {
       case 'draft':
         return (
@@ -1028,7 +1047,7 @@ export const WorkLogHomePage2: React.FC = () => {
         return (
           <>
             {btn('닫기', 'white', closeDetail)}
-            {btn('보고서 보기', 'navy', () => toast('보고서 보기 기능은 준비중입니다.'))}
+            {btn('보고서 보기', 'navy', handleReportView)}
           </>
         )
     }

@@ -44,7 +44,7 @@ export async function GET() {
     const SITE_COLUMNS = `
       id, name, status, address, organization_id, 
       manager_name, manager_phone, manager_email,
-      safety_manager_name, safety_manager_phone, safety_manager_email,
+      safety_manager_name, safety_manager_phone,
       accommodation_name, accommodation_address, accommodation_phone
     `
 
@@ -60,7 +60,6 @@ export async function GET() {
       manager_email: row.manager_email ?? null,
       safety_manager_name: row.safety_manager_name ?? null,
       safety_manager_phone: row.safety_manager_phone ?? null,
-      safety_manager_email: row.safety_manager_email ?? null,
       accommodation_name: row.accommodation_name ?? null,
       accommodation_address: row.accommodation_address ?? null,
       accommodation_phone: row.accommodation_phone ?? null,

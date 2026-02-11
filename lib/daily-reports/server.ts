@@ -181,6 +181,8 @@ export async function getUnifiedDailyReportForAdmin(
             uploader: doc.uploader,
             metadata: {
               source: doc.source,
+              document_type: doc.documentType,
+              sub_category: doc.documentType,
               uploader_name: doc.uploaderName,
               uploader_email: doc.uploaderEmail,
               original_url: doc.url,
@@ -322,6 +324,8 @@ export async function getUnifiedDailyReportForAdmin(
           uploader: doc.uploader,
           metadata: {
             source: doc.source,
+            document_type: doc.documentType,
+            sub_category: doc.documentType,
             uploader_name: doc.uploaderName,
             uploader_email: doc.uploaderEmail,
             original_url: doc.url,

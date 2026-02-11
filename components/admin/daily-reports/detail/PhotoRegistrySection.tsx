@@ -163,8 +163,8 @@ export function PhotoRegistrySection({
       />
 
       <div className="space-y-8">
-        {renderSection('보수 전 사진 기록', 'before')}
-        {renderSection('보수 후 사진 기록', 'after')}
+        {renderSection('시공 전 사진 기록', 'before')}
+        {renderSection('시공 후 사진 기록', 'after')}
       </div>
     </div>
   )
