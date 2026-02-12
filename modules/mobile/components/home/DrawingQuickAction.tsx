@@ -29,17 +29,14 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
         <div className="section-header">
           <h3 className="section-title">도면마킹</h3>
         </div>
-        <div className="media-cta-banner" role="note">
-          <p className="media-cta-text">도면함 이동</p>
-          <Link
-            href={drawingMediaHref}
-            className="media-cta-button"
-            aria-label="도면 업로드 열기"
-            prefetch
-          >
-            도면 업로드
-          </Link>
-        </div>
+        <Link
+          href={drawingMediaHref}
+          className="media-cta-button"
+          aria-label="도면마킹 열기"
+          prefetch
+        >
+          도면마킹
+        </Link>
       </div>
     </section>
   )

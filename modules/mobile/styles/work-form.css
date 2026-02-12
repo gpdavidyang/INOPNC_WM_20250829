@@ -189,6 +189,10 @@
   border-bottom: 1px solid #f3f4f6;
 }
 
+.form-section.work-section {
+  padding-bottom: var(--space-xs, 8px);
+}
+
 [data-theme='dark'] .work-section {
   border-bottom-color: #374151;
 }
@@ -431,28 +435,22 @@
 
 .site-search-option {
   width: 100%;
-  min-height: var(--h-input, 54px);
-  padding: 10px 14px;
+  min-height: 40px;
+  padding: 8px 12px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 8px;
   border: none;
   background: transparent;
   text-align: left;
   cursor: pointer;
   font-family: var(--font-main, var(--font));
-  font-size: var(--fs-base, 17px);
+  font-size: 15px;
   font-weight: 600;
   color: #0f172a;
   transition: background-color var(--dur-ui, 0.2s) var(--ease-ui, cubic-bezier(0.4, 0, 0.2, 1));
-}
-
-.site-search-option .meta {
-  font-size: var(--fs-base, 17px);
-  font-weight: 600;
-  color: #64748b;
 }
 
 .site-search-option:hover {
@@ -960,6 +958,8 @@ textarea.form-input {
 .author-manpower-row {
   height: auto;
   min-height: 40px;
+  margin-bottom: 0;
+  padding-bottom: var(--gap-16, 16px);
 }
 
 .author-select {
@@ -982,7 +982,7 @@ textarea.form-input {
   display: flex;
   gap: 12px;
   margin-top: 16px;
-  padding-top: 16px;
+  padding-top: 0;
   border-top: none;
   width: 100%;
 }
@@ -1191,4 +1191,39 @@ textarea.form-input {
 
 [data-theme='dark'] .form-label {
   color: #a8b0c2;
+}
+
+/* Standard Button Styles for Accessibility (Standard 5) */
+.add-manpower-btn,
+.delete-tag-btn,
+.add-btn {
+  min-height: 54px;
+  border-radius: var(--r-control, 12px);
+  padding: 0 16px; /* Ensure horizontal padding */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-main, var(--font));
+  font-size: var(--fs-base, 17px); /* Ensure readable text */
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Ensure add-manpower-btn has specific style if needed, inheriting from above base */
+.add-manpower-btn {
+  background: var(--bg-input, #f8fafc);
+  border: 1px solid var(--primary, #0ea5e9);
+  color: var(--primary, #0ea5e9);
+}
+
+.delete-tag-btn {
+  background: transparent;
+  border: 1px solid var(--danger, #ef4444);
+  color: var(--danger, #ef4444);
+}
+
+.add-btn {
+  background: var(--bg-input, #f8fafc);
+  border: 1px solid var(--primary, #0ea5e9);
+  color: var(--primary, #0ea5e9);
 }

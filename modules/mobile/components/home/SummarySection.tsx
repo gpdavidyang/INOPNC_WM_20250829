@@ -81,8 +81,8 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
     <section className="summary-section">
       <div className="work-form-container">
         <div className="form-section">
-          <div className="section-header">
-            <h3 className="section-title">작성 내용 요약</h3>
+          <div className="work-form-title summary-title-bar">
+            <h2 className="work-form-main-title">작성 내용 요약</h2>
             <button
               type="button"
               className="summary-toggle ui-pressable"

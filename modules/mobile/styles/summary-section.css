@@ -7,7 +7,7 @@
 .summary-section .work-form-container {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--r, 8px);
+  border-radius: var(--r-control, 12px);
   padding: var(--pad-16, 16px);
   box-shadow: var(--shadow, 0 2px 10px rgba(2, 6, 23, 0.04));
 }
@@ -16,22 +16,11 @@
   padding: 0;
 }
 
-.summary-section .section-header {
+.summary-section .summary-title-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-8, 8px);
-  margin-bottom: var(--space-sm);
-  padding-bottom: var(--space-xs);
-  border-bottom: 1px solid var(--line);
-}
-
-.summary-section .section-title {
-  font-family: var(--font-main, var(--font));
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text);
-  margin: 0;
 }
 
 .summary-toggle {

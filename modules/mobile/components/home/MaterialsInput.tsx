@@ -185,7 +185,7 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
       <div className="section-header">
         <h3 className="section-title">자재 사용 내역</h3>
         <button className="add-btn" type="button" onClick={handleAdd}>
-          추가
+          + 추가
         </button>
       </div>
 

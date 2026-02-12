@@ -1,12 +1,5 @@
 'use client'
 
-import {
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
 import { useLaborHourOptions } from '@/hooks/use-labor-hour-options'
 import { useWorkOptions } from '@/hooks/use-work-options'
 import {
@@ -28,14 +21,12 @@ import { User } from '@supabase/supabase-js'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { DrawingQuickAction } from './DrawingQuickAction'
-import { LocationInput } from './LocationInput'
-import { MaterialsInput } from './MaterialsInput'
-import { MultiSelectButtons } from './MultiSelectButtons'
 import { NoticeSection } from './NoticeSection'
-import { NumberInput } from './NumberInput'
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { QuickMenu } from './QuickMenu'
+import { SiteSearchHandle, SiteSearchInput } from './SiteSearchInput'
 import { SummarySection } from './SummarySection'
+import { WorkLogInputs } from './WorkLogInputs'
 
 const isUuid = (val: string) => /^[0-9a-fA-F-]{36}$/.test(String(val || ''))
 
@@ -131,13 +122,12 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   // 기본 상태
   const [selectedSite, setSelectedSite] = useState('')
+  const [workDate, setWorkDate] = useState('')
   const [siteQuery, setSiteQuery] = useState('')
   const [siteDropdownOpen, setSiteDropdownOpen] = useState(false)
   const [siteActiveIndex, setSiteActiveIndex] = useState(0)
-  const siteSearchRef = useRef<HTMLDivElement | null>(null)
-  const siteInputRef = useRef<HTMLInputElement | null>(null)
+  const siteInputRef = useRef<SiteSearchHandle>(null)
   const siteUserEditingRef = useRef(false)
-  const [workDate, setWorkDate] = useState('')
   const [workCards, setWorkCards] = useState([{ id: 1 }])
   // 사용자 프로필 상태 - Use auth context profile or initial profile
   const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
@@ -772,38 +762,6 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     siteInputRef.current?.focus()
   }, [])
 
-  const handleSiteKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === 'Escape') {
-        setSiteDropdownOpen(false)
-        siteUserEditingRef.current = false
-        return
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        setSiteDropdownOpen(true)
-        setSiteActiveIndex(prev => Math.min(prev + 1, Math.max(0, siteDropdownItems.length - 1)))
-        return
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        setSiteDropdownOpen(true)
-        setSiteActiveIndex(prev => Math.max(prev - 1, 0))
-        return
-      }
-
-      if (event.key === 'Enter') {
-        if (!siteDropdownOpen) return
-        event.preventDefault()
-        const chosen = siteDropdownItems[siteActiveIndex]
-        if (chosen) handleSelectSite(chosen)
-      }
-    },
-    [handleSelectSite, siteActiveIndex, siteDropdownItems, siteDropdownOpen]
-  )
-
   useEffect(() => {
     if (!selectedSite) {
       if (!siteUserEditingRef.current) setSiteQuery('')
@@ -813,19 +771,6 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       setSiteQuery(resolvedSite.name)
     }
   }, [resolvedSite?.name, selectedSite])
-
-  useEffect(() => {
-    const handler = (event: PointerEvent) => {
-      const root = siteSearchRef.current
-      if (!root) return
-      const target = event.target as Node | null
-      if (target && root.contains(target)) return
-      setSiteDropdownOpen(false)
-      siteUserEditingRef.current = false
-    }
-    document.addEventListener('pointerdown', handler)
-    return () => document.removeEventListener('pointerdown', handler)
-  }, [])
 
   const organizationLabel = resolvedSite
     ? resolvedSite.organization_name ||
@@ -1008,94 +953,45 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         </div>
 
         {/* 선택 현장 */}
-        <div className="form-section">
+        <div className="form-section no-divider" style={{ paddingBottom: 0 }}>
           <div className="section-header">
             <h3 className="section-title">
-              선택 현장 <span className="required">*</span>
+              작업현장 <span className="required">*</span>
             </h3>
             <span className="form-note">* 필수 입력</span>
           </div>
           <div className="form-row" style={{ marginBottom: 12, gridTemplateColumns: '1fr' }}>
             <div className="form-group">
-              <label className="form-label">
-                현장 <span className="required">*</span>
-              </label>
-              <div className="site-search" ref={siteSearchRef}>
-                <div className="site-search-wrap">
-                  <input
-                    ref={siteInputRef}
-                    value={siteQuery}
-                    onChange={event => {
-                      siteUserEditingRef.current = true
-                      const next = event.target.value
-                      setSiteQuery(next)
-                      setSiteDropdownOpen(true)
-                      setSiteActiveIndex(0)
-                      if (!next.trim()) {
-                        setSelectedSite('')
-                        setExternalSiteInfo(null)
-                      } else if (selectedSite) {
-                        setSelectedSite('')
-                        setExternalSiteInfo(null)
-                      }
-                    }}
-                    onFocus={() => setSiteDropdownOpen(true)}
-                    onKeyDown={handleSiteKeyDown}
-                    className="site-search-input"
-                    placeholder={
-                      sitesLoading && sites.length === 0
-                        ? '현장 목록 불러오는 중...'
-                        : sitesError
-                          ? '현장 목록 불러오기 실패'
-                          : '현장명 검색 (TOP 10)'
+              <SiteSearchInput
+                ref={siteInputRef as any}
+                siteQuery={siteQuery}
+                onQueryChange={query => {
+                  siteUserEditingRef.current = true
+                  setSiteQuery(query)
+                  setSiteDropdownOpen(true)
+                  setSiteActiveIndex(0)
+                  if (!query.trim()) {
+                    if (selectedSite) {
+                      setSelectedSite('')
+                      setExternalSiteInfo(null)
                     }
-                    role="combobox"
-                    aria-expanded={siteDropdownOpen}
-                    aria-controls="site-search-listbox"
-                    aria-activedescendant={
-                      siteDropdownOpen && siteDropdownItems[siteActiveIndex]
-                        ? `site-opt-${siteDropdownItems[siteActiveIndex].id}`
-                        : undefined
-                    }
-                    inputMode="search"
-                    autoComplete="off"
-                  />
-                  {siteQuery.trim() && (
-                    <button type="button" className="site-search-clear" onClick={handleClearSite}>
-                      <span className="sr-only">현장 검색어 지우기</span>×
-                    </button>
-                  )}
-                </div>
-
-                {siteDropdownOpen && (
-                  <div className="site-search-dropdown" role="listbox" id="site-search-listbox">
-                    {sitesLoading && sites.length === 0 ? (
-                      <div className="site-search-empty">현장 목록 불러오는 중...</div>
-                    ) : siteDropdownItems.length > 0 ? (
-                      siteDropdownItems.map((site, index) => (
-                        <button
-                          key={site.id}
-                          id={`site-opt-${site.id}`}
-                          type="button"
-                          role="option"
-                          aria-selected={index === siteActiveIndex}
-                          className={[
-                            'site-search-option',
-                            index === siteActiveIndex ? 'active' : '',
-                          ].join(' ')}
-                          onMouseEnter={() => setSiteActiveIndex(index)}
-                          onClick={() => handleSelectSite(site)}
-                        >
-                          <span>{site.name}</span>
-                          <span className="meta">{site.organization_name || '소속사 미지정'}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <div className="site-search-empty">검색 결과가 없습니다.</div>
-                    )}
-                  </div>
-                )}
-              </div>
+                  } else if (selectedSite) {
+                    setSelectedSite('')
+                    setExternalSiteInfo(null)
+                  }
+                }}
+                siteDropdownOpen={siteDropdownOpen}
+                setSiteDropdownOpen={setSiteDropdownOpen}
+                siteActiveIndex={siteActiveIndex}
+                setSiteActiveIndex={setSiteActiveIndex}
+                sites={sites}
+                sitesLoading={sitesLoading}
+                sitesError={sitesError}
+                siteDropdownItems={siteDropdownItems}
+                onSiteSelect={handleSelectSite}
+                onClear={handleClearSite}
+                siteUserEditingRef={siteUserEditingRef}
+              />
               {sitesError && (
                 <div className="inline-error" role="alert">
                   <span>{sitesError}</span>
@@ -1105,326 +1001,43 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                 </div>
               )}
             </div>
-            <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0 }}>
-              <div className="form-group">
-                <label className="form-label">소속</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  value={organizationLabel}
-                  readOnly
-                  style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
-                />
-                <p className="text-xs text-gray-500 mt-1">현장 선택 시 자동 표시 됨</p>
-              </div>
-              <div className="form-group">
-                <label className="form-label">
-                  작업일자 <span className="required">*</span>
-                </label>
-                <div className="date-input-wrapper">
-                  <input
-                    type="date"
-                    className="form-input date-input"
-                    value={workDate}
-                    onChange={e => setWorkDate(e.target.value)}
-                    required
-                  />
-                  <button
-                    type="button"
-                    className="calendar-icon"
-                    aria-label="작업일자 선택"
-                    onClick={handleCalendarClick}
-                    onKeyDown={handleCalendarKeyDown}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="20"
-                      height="20"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M8 2v4" />
-                      <path d="M16 2v4" />
-                      <rect width="18" height="18" x="3" y="4" rx="2" />
-                      <path d="M3 10h18" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* 공수(일) */}
-        <div className="form-section manpower-section">
-          <div className="section-header">
-            <h3 className="section-title">
-              공수(일) <span className="required">*</span>
-            </h3>
-            <button
-              className="add-btn"
-              onClick={() => {
-                const newManpower: AdditionalManpower = {
-                  id: Date.now().toString(),
-                  workerId: userProfile?.id || '',
-                  workerName: userProfile?.full_name || '사용자',
-                  manpower: defaultLaborHour,
-                }
-                setAdditionalManpower([...additionalManpower, newManpower])
-              }}
-            >
-              + 추가
-            </button>
-          </div>
-          <div className="form-row author-manpower-row">
-            <div className="form-group">
-              <label className="form-label">작업자</label>
-              <CustomSelect
-                value={selectedAuthorId || ''}
-                onValueChange={val => setSelectedAuthorId(val)}
-              >
-                <CustomSelectTrigger className="form-select author-select">
-                  <CustomSelectValue placeholder={'작업자 선택'} />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  {usersLoading && userOptions.length === 0 ? (
-                    <CustomSelectItem value="__loading__" disabled>
-                      사용자 불러오는 중...
-                    </CustomSelectItem>
-                  ) : userOptions.length === 0 ? (
-                    <CustomSelectItem value="__empty__" disabled>
-                      표시할 사용자가 없습니다
-                    </CustomSelectItem>
-                  ) : (
-                    userOptions.map(u => (
-                      <CustomSelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </CustomSelectItem>
-                    ))
-                  )}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
-            <div className="form-group">
-              <NumberInput
-                label="공수"
-                value={mainManpower}
-                onChange={setMainManpower}
-                values={laborHourValues}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* 추가된 공수들 */}
-        {additionalManpower.map(item => (
-          <div key={item.id} className="additional-manpower-section">
-            <div className="section-header">
-              <h3 className="section-title">공수(일)</h3>
-              <div className="header-actions">
-                <button
-                  className="delete-tag-btn"
-                  onClick={() =>
-                    setAdditionalManpower(additionalManpower.filter(m => m.id !== item.id))
-                  }
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
-            <div className="form-row author-manpower-row">
-              <div className="form-group">
-                <label className="form-label">작업자</label>
-                <CustomSelect
-                  value={item.workerId || ''}
-                  onValueChange={val => {
-                    const opt = userOptions.find(u => u.id === val)
-                    const updated = additionalManpower.map(m =>
-                      m.id === item.id ? { ...m, workerId: val, workerName: opt?.name || '' } : m
-                    )
-                    setAdditionalManpower(updated)
-                  }}
-                >
-                  <CustomSelectTrigger className="form-select author-select">
-                    <CustomSelectValue placeholder={'작업자 선택'} />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    {usersLoading && userOptions.length === 0 ? (
-                      <CustomSelectItem value="__loading__" disabled>
-                        사용자 불러오는 중...
-                      </CustomSelectItem>
-                    ) : userOptions.length === 0 ? (
-                      <CustomSelectItem value="__empty__" disabled>
-                        표시할 사용자가 없습니다
-                      </CustomSelectItem>
-                    ) : (
-                      userOptions.map(u => (
-                        <CustomSelectItem key={u.id} value={u.id}>
-                          {u.name}
-                        </CustomSelectItem>
-                      ))
-                    )}
-                  </CustomSelectContent>
-                </CustomSelect>
-              </div>
-              <div className="form-group">
-                <NumberInput
-                  label="공수"
-                  value={item.manpower}
-                  onChange={value => {
-                    const updated = additionalManpower.map(m =>
-                      m.id === item.id ? { ...m, manpower: value } : m
-                    )
-                    setAdditionalManpower(updated)
-                  }}
-                  values={laborHourValues}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* 작업 내용 기록 */}
-        <div className="form-section work-content-section no-divider">
-          <div className="section-header">
-            <h3 className="section-title">
-              작업 내용 기록 <span className="required">*</span>
-            </h3>
-            <button
-              className="add-btn"
-              onClick={() => {
-                // 요구사항: [추가] 클릭 시 즉시 빈 작업 세트 입력 섹션이 추가되어야 함
-                setTasks(prev => [
-                  ...prev,
-                  {
-                    memberTypes: [],
-                    processes: [],
-                    workTypes: [],
-                    location: { block: '', dong: '', unit: '' },
-                  },
-                ])
-              }}
-            >
-              + 추가
-            </button>
-          </div>
-
-          {/* 부재명 멀티 선택 */}
-          <MultiSelectButtons
-            label="부재명"
-            options={MEMBER_TYPE_OPTIONS}
-            selectedValues={memberTypes}
-            onChange={setMemberTypes}
-            customInputPlaceholder="부재명을 직접 입력하세요"
-            className="mb-3"
-          />
-
-          {/* 작업공정 멀티 선택 */}
-          <MultiSelectButtons
-            label="작업공정"
-            options={WORK_PROCESS_OPTIONS}
-            selectedValues={workContents}
-            onChange={setWorkContents}
-            customInputPlaceholder="작업공정을 직접 입력하세요"
-            className="mb-3"
-          />
-        </div>
-
-        {/* 작업구간 */}
-        <div className="form-section work-section">
-          {/* 작업유형 멀티 선택 */}
-          <MultiSelectButtons
-            label="작업유형"
-            options={WORK_TYPE_OPTIONS}
-            selectedValues={workTypes}
-            onChange={setWorkTypes}
-            customInputPlaceholder="작업유형을 직접 입력하세요"
-            className="mb-3"
-          />
-
-          {/* 블럭/동/층 */}
-          <LocationInput location={location} onChange={setLocation} className="mt-3" />
-        </div>
-
-        {/* 추가된 작업 세트 - 편집 가능한 입력 섹션 */}
-        {tasks.length > 0 && (
-          <div className="form-section">
-            <div className="section-header">
-              <h3 className="section-title">추가된 작업 세트</h3>
-            </div>
-            <div className="space-y-3">
-              {tasks.map((t, i) => (
-                <div key={i} className="work-section-item">
-                  <div className="section-header">
-                    <h4 className="section-subtitle">작업 세트 #{i + 1}</h4>
-                    <button
-                      className="delete-tag-btn"
-                      onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
-                    >
-                      삭제
-                    </button>
-                  </div>
-
-                  <MultiSelectButtons
-                    label="부재명"
-                    options={MEMBER_TYPE_OPTIONS}
-                    selectedValues={t.memberTypes}
-                    onChange={vals =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, memberTypes: vals } : row))
-                      )
-                    }
-                    customInputPlaceholder="부재명을 직접 입력하세요"
-                    className="mb-3"
-                  />
-
-                  <MultiSelectButtons
-                    label="작업공정"
-                    options={WORK_PROCESS_OPTIONS}
-                    selectedValues={t.processes}
-                    onChange={vals =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, processes: vals } : row))
-                      )
-                    }
-                    customInputPlaceholder="작업공정을 직접 입력하세요"
-                    className="mb-3"
-                  />
-
-                  <MultiSelectButtons
-                    label="작업유형"
-                    options={WORK_TYPE_OPTIONS}
-                    selectedValues={t.workTypes}
-                    onChange={vals =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, workTypes: vals } : row))
-                      )
-                    }
-                    customInputPlaceholder="작업유형을 직접 입력하세요"
-                    className="mb-3"
-                  />
-
-                  <LocationInput
-                    location={t.location}
-                    onChange={loc =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, location: loc } : row))
-                      )
-                    }
-                    className="mt-3"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <MaterialsInput materials={materials} onChange={setMaterials} />
+        <WorkLogInputs
+          organizationLabel={organizationLabel}
+          workDate={workDate}
+          setWorkDate={setWorkDate}
+          onCalendarClick={handleCalendarClick}
+          onCalendarKeyDown={handleCalendarKeyDown}
+          selectedAuthorId={selectedAuthorId}
+          setSelectedAuthorId={setSelectedAuthorId}
+          userOptions={userOptions}
+          usersLoading={usersLoading}
+          mainManpower={mainManpower}
+          setMainManpower={setMainManpower}
+          additionalManpower={additionalManpower}
+          setAdditionalManpower={setAdditionalManpower}
+          laborHourValues={laborHourValues}
+          userProfile={userProfile}
+          defaultLaborHour={defaultLaborHour}
+          allUserOptions={allUserOptions}
+          memberTypes={memberTypes}
+          setMemberTypes={setMemberTypes}
+          MEMBER_TYPE_OPTIONS={MEMBER_TYPE_OPTIONS}
+          workContents={workContents}
+          setWorkContents={setWorkContents}
+          WORK_PROCESS_OPTIONS={WORK_PROCESS_OPTIONS}
+          workTypes={workTypes}
+          setWorkTypes={setWorkTypes}
+          WORK_TYPE_OPTIONS={WORK_TYPE_OPTIONS}
+          location={location}
+          setLocation={setLocation}
+          tasks={tasks}
+          setTasks={setTasks}
+          materials={materials}
+          setMaterials={setMaterials}
+        />
 
         {/* 액션 버튼 */}
         <div className="form-actions">
@@ -1451,7 +1064,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       </div>
 
       {userProfile?.role === 'site_manager' ? (
-        <div className="work-form-container">
+        <div className="work-form-container home-media-wrapper">
           <div className="work-form-title">
             <h2 className="work-form-main-title">사진 및 도면</h2>
           </div>

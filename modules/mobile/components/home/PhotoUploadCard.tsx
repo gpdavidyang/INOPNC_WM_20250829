@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Camera } from 'lucide-react'
 import React, { useMemo } from 'react'
 
 interface PhotoUploadCardProps {
@@ -21,22 +22,15 @@ export const PhotoUploadCard: React.FC<
 
   return (
     <section className={`section ${className}`}>
-      <div className="work-form-container">
+      <div className="work-form-container home-media-card">
         <div className="form-section">
           <div className="section-header">
-            <h3 className="section-title">사진업로드</h3>
+            <h3 className="section-title">사진등록</h3>
           </div>
-          <div className="media-cta-banner" role="note">
-            <p className="media-cta-text">사진함 이동</p>
-            <Link
-              href={photoMediaHref}
-              className="media-cta-button"
-              aria-label="사진함 열기"
-              prefetch
-            >
-              사진함 열기
-            </Link>
-          </div>
+          <Link href={photoMediaHref} className="media-cta-button" aria-label="사진 등록" prefetch>
+            <Camera className="media-cta-button__icon" aria-hidden="true" />
+            <span>사진 등록</span>
+          </Link>
         </div>
       </div>
     </section>

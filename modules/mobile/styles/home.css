@@ -14,6 +14,7 @@
   --primary-bg: #e0f2fe;
   --header-navy: #1a254f;
   --danger: #ef4444;
+  --space-xxs: 8px;
 }
 
 .dark {
@@ -98,12 +99,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   width: 100%;
   max-width: 240px;
   margin: 0 auto;
-  min-height: 40px;
-  padding: 10px 16px;
-  border-radius: 999px;
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: var(--r-control, 12px);
   background: var(--primary);
   color: #ffffff;
   font-size: 14px;
@@ -130,13 +132,25 @@ body {
     0 8px 18px rgba(14, 165, 233, 0.24);
 }
 
+.media-cta-button__icon {
+  width: 18px;
+  height: 18px;
+}
+
 /* Site manager home: photo + drawing in 2 columns */
+.work-form-container.home-media-wrapper {
+  padding-top: var(--pad-16, 16px);
+  padding-bottom: 0;
+}
+
 .home-media-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-16, 16px);
-  margin-top: var(--gap-16, 16px);
-  margin-bottom: var(--gap-16, 16px);
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 .home-media-grid .work-form-container {
   margin-top: 0;
@@ -159,6 +173,12 @@ body {
 }
 .home-media-grid .drawing-quick-section .media-cta-banner {
   margin-top: auto;
+}
+
+/* Remove border/shadow for media cards */
+.work-form-container.home-media-card {
+  border: 0;
+  box-shadow: none;
 }
 .qm-header {
   display: flex;
