@@ -292,7 +292,7 @@ export const WorkLogInputs: React.FC<WorkLogInputsProps> = ({
               ])
             }}
           >
-            + 추가
+            <span>+</span> 추가
           </button>
         </div>
 

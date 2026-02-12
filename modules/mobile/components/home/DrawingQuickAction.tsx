@@ -1,5 +1,6 @@
 'use client'
 
+import { ScanLine } from 'lucide-react'
 import Link from 'next/link'
 import React, { useMemo } from 'react'
 
@@ -31,11 +32,12 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
         </div>
         <Link
           href={drawingMediaHref}
-          className="media-cta-button"
+          className="media-cta-button media-btn-drawing"
           aria-label="도면마킹 열기"
           prefetch
         >
-          도면마킹
+          <ScanLine className="media-cta-button__icon" aria-hidden="true" />
+          <span>도면마킹</span>
         </Link>
       </div>
     </section>

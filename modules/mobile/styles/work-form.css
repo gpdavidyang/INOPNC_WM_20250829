@@ -1194,9 +1194,9 @@ textarea.form-input {
 }
 
 /* Standard Button Styles for Accessibility (Standard 5) */
+/* Standard Button Styles for Accessibility (Standard 5) */
 .add-manpower-btn,
-.delete-tag-btn,
-.add-btn {
+.delete-tag-btn {
   min-height: 54px;
   border-radius: var(--r-control, 12px);
   padding: 0 16px; /* Ensure horizontal padding */
@@ -1222,8 +1222,31 @@ textarea.form-input {
   color: var(--danger, #ef4444);
 }
 
+/* Custom Add Button Style (Reference 00main.html) */
 .add-btn {
-  background: var(--bg-input, #f8fafc);
-  border: 1px solid var(--primary, #0ea5e9);
-  color: var(--primary, #0ea5e9);
+  height: 32px; /* h-8 */
+  padding: 0 14px; /* px-3.5 */
+  border-radius: 12px; /* rounded-xl */
+  font-size: 14px; /* text-sm */
+  font-weight: 700; /* font-bold */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px; /* gap-1 */
+  background: var(--primary-bg); /* bg-primary-bg */
+  color: var(--primary); /* text-primary */
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-btn:hover {
+  filter: brightness(0.95); /* hover effect approximation */
+}
+
+/* Internal span style requires wrapper class or global */
+.add-btn span {
+  font-size: 18px; /* text-lg */
+  font-weight: 900; /* font-black */
+  line-height: 1;
 }

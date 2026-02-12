@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import { Camera } from 'lucide-react'
+import Link from 'next/link'
 import React, { useMemo } from 'react'
 
 interface PhotoUploadCardProps {
@@ -27,7 +27,12 @@ export const PhotoUploadCard: React.FC<
           <div className="section-header">
             <h3 className="section-title">사진등록</h3>
           </div>
-          <Link href={photoMediaHref} className="media-cta-button" aria-label="사진 등록" prefetch>
+          <Link
+            href={photoMediaHref}
+            className="media-cta-button media-btn-photo"
+            aria-label="사진 등록"
+            prefetch
+          >
             <Camera className="media-cta-button__icon" aria-hidden="true" />
             <span>사진 등록</span>
           </Link>

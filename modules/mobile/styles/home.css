@@ -103,38 +103,45 @@ body {
   width: 100%;
   max-width: 240px;
   margin: 0 auto;
-  min-height: 54px;
+  min-height: 50px; /* Reference h-[50px] */
   padding: 0 16px;
-  border-radius: var(--r-control, 12px);
-  background: var(--primary);
-  color: #ffffff;
-  font-size: 14px;
-  font-weight: 900;
-  letter-spacing: -0.2px;
+  border-radius: 12px; /* Reference rounded-xl */
+  font-size: 15px; /* Reference text-[15px] */
+  font-weight: 700; /* font-bold */
   text-decoration: none;
-  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.24);
-  transition:
-    transform 0.12s ease-out,
-    filter 0.12s ease-out,
-    box-shadow 0.12s ease-out;
+  transition: all 0.2s ease;
+  line-height: 1.5;
 }
-.media-cta-button:hover {
-  filter: brightness(0.98);
-  transform: translateY(-1px);
+
+/* Photo Register Button (Sky Theme) */
+.media-btn-photo {
+  background: #f0f9ff; /* bg-sky-50 */
+  border: 1px dashed #38bdf8; /* border-sky-400 */
+  color: #0ea5e9; /* text-sky-500 */
 }
+
+.media-btn-photo:hover {
+  background: #e0f2fe; /* hover:bg-sky-100 */
+}
+
+/* Drawing Marking Button (Teal Theme) */
+.media-btn-drawing {
+  background: #f0fdfa; /* bg-teal-50 */
+  border: 1px dashed #2dd4bf; /* border-teal-400 */
+  color: #0d9488; /* text-teal-600 */
+}
+
+.media-btn-drawing:hover {
+  background: #ccfbf1; /* hover:bg-teal-100 */
+}
+
 .media-cta-button:active {
-  transform: translateY(0) scale(0.99);
-}
-.media-cta-button:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 3px rgba(14, 165, 233, 0.22),
-    0 8px 18px rgba(14, 165, 233, 0.24);
+  transform: scale(0.98);
 }
 
 .media-cta-button__icon {
-  width: 18px;
-  height: 18px;
+  width: 20px; /* Reference 20px */
+  height: 20px;
 }
 
 /* Site manager home: photo + drawing in 2 columns */
@@ -602,4 +609,13 @@ body.dark-mode .qm-title {
   textarea {
     font-family: var(--font-main) !important;
   }
+}
+
+/* Site Search Dropdown Item Alignment */
+.site-search-option {
+  display: flex !important;
+  justify-content: flex-start !important; /* Force Left Align */
+  text-align: left !important;
+  align-items: center;
+  padding-left: 16px !important;
 }
