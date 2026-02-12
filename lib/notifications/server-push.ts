@@ -1,5 +1,6 @@
 import { sendSystemEmail } from '@/lib/notifications/system-email'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import webpush from 'web-push'
 
 // Configure VAPID details (Environment variables should be set)
@@ -20,6 +21,14 @@ interface PushPayload {
   icon?: string
   badge?: string
   data?: any
+  /**
+   * Service worker expects a top-level url; keep for backward compatibility with existing sw.js.
+   */
+  url?: string
+  /**
+   * Service worker expects a top-level type (e.g. DAILY_REPORT_REMINDER).
+   */
+  type?: string
   actions?: any[]
   tag?: string
   requireInteraction?: boolean
@@ -35,6 +44,55 @@ interface SendPushOptions {
   notificationType: string
   senderId?: string // User ID who triggered this, or 'system'
   skipPrefs?: boolean // Force send? (Usually false)
+}
+
+type ServiceRoleDispatchOptions = SendPushOptions & {
+  /**
+   * Extra metadata persisted in notification_logs.metadata (e.g. work_date, report_id).
+   */
+  logMetadata?: Record<string, unknown>
+  /**
+   * Optional de-duplication selector. If provided, recipients who already have a matching
+   * notification_logs row are skipped.
+   */
+  dedupe?: {
+    /**
+     * JSONB key under metadata, queried via `metadata->>key = value`.
+     */
+    key: string
+    value: string
+  }
+}
+
+const NOTIFICATION_PREF_KEY_MAP: Record<string, string> = {
+  material_approval: 'material_approvals',
+  daily_report_reminder: 'daily_report_reminders',
+  daily_report_submission: 'daily_report_updates',
+  daily_report_approval: 'daily_report_updates',
+  daily_report_rejection: 'daily_report_updates',
+  safety_alert: 'safety_alerts',
+  equipment_maintenance: 'equipment_maintenance',
+  site_announcements: 'site_announcements',
+}
+
+const SW_TYPE_MAP: Record<string, string> = {
+  daily_report_reminder: 'DAILY_REPORT_REMINDER',
+  material_approval: 'MATERIAL_APPROVAL',
+  safety_alert: 'SAFETY_ALERT',
+  equipment_maintenance: 'EQUIPMENT_MAINTENANCE',
+  site_announcement: 'SITE_ANNOUNCEMENT',
+}
+
+function resolveServiceWorkerType(notificationType: string, payloadType?: string) {
+  if (payloadType && typeof payloadType === 'string') return payloadType
+  const mapped = SW_TYPE_MAP[String(notificationType || '').trim()]
+  return mapped || 'GENERAL'
+}
+
+function resolveTopLevelUrl(payload: PushPayload) {
+  if (payload.url && typeof payload.url === 'string') return payload.url
+  const maybe = payload.data?.url
+  return typeof maybe === 'string' ? maybe : '/mobile'
 }
 
 export async function sendPushToUsers({
@@ -234,5 +292,153 @@ export async function sendPushToUsers({
     pushCount: pushSuccessCount,
     emailCount: emailSuccessCount,
     totalSent: pushSuccessCount + emailSuccessCount,
+  }
+}
+
+/**
+ * Service-role dispatcher for system workflows (cron, cross-user notifications).
+ * - Reads profiles with service role
+ * - Always writes notification_logs with service role
+ * - Attempts web push if eligible; falls back to in-app log only
+ *
+ * NOTE: This is intentionally separate from sendPushToUsers() to avoid cookie/RLS limitations.
+ */
+export async function dispatchNotificationServiceRole({
+  userIds,
+  payload,
+  notificationType,
+  senderId = 'system',
+  logMetadata,
+  dedupe,
+}: ServiceRoleDispatchOptions) {
+  if (!userIds.length) return { success: false, message: 'No users provided' as const }
+
+  const supabase = createServiceRoleClient()
+
+  const prefKey = NOTIFICATION_PREF_KEY_MAP[notificationType]
+  const swType = resolveServiceWorkerType(notificationType, payload.type)
+  const url = resolveTopLevelUrl(payload)
+
+  const { data: users, error } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, push_subscription, notification_preferences, role, site_id')
+    .in('id', userIds)
+
+  if (error || !users) {
+    console.error('[dispatchNotificationServiceRole] profiles fetch error:', error)
+    return { success: false, error: 'Failed to fetch user profiles' as const }
+  }
+
+  let alreadySent = new Set<string>()
+  if (dedupe?.key && dedupe?.value) {
+    try {
+      const { data: existing } = await supabase
+        .from('notification_logs')
+        .select('user_id')
+        .eq('notification_type', notificationType)
+        .eq(`metadata->>${dedupe.key}`, dedupe.value)
+        .in(
+          'user_id',
+          users.map(u => u.id)
+        )
+      alreadySent = new Set((existing || []).map((r: any) => String(r.user_id)))
+    } catch (e) {
+      console.warn('[dispatchNotificationServiceRole] dedupe query failed (ignored):', e)
+    }
+  }
+
+  const results = await Promise.allSettled(
+    users.map(async (user: any) => {
+      if (!user?.id) return { skipped: true, reason: 'missing_user_id' as const }
+      if (alreadySent.has(String(user.id))) return { skipped: true, reason: 'deduped' as const }
+
+      const prefs = user.notification_preferences || {}
+      if (prefKey && prefs[prefKey] === false) {
+        return { skipped: true, reason: 'pref_disabled' as const }
+      }
+
+      const finalPayload: PushPayload = {
+        ...payload,
+        type: swType,
+        url,
+        timestamp: Date.now(),
+        data: {
+          ...(payload.data || {}),
+          notificationType,
+          userId: user.id,
+        },
+      }
+
+      const canAttemptPush =
+        Boolean(user.push_subscription) &&
+        prefs.push_enabled !== false &&
+        vapidDetails.publicKey &&
+        vapidDetails.privateKey
+          ? true
+          : false
+
+      let pushSent = false
+      let pushError: string | null = null
+
+      if (canAttemptPush) {
+        try {
+          const sub =
+            typeof user.push_subscription === 'string'
+              ? JSON.parse(user.push_subscription)
+              : user.push_subscription
+
+          if (sub?.endpoint) {
+            await webpush.sendNotification(sub, JSON.stringify(finalPayload), {
+              urgency: (finalPayload.urgency as any) || 'normal',
+            })
+            pushSent = true
+          }
+        } catch (err: any) {
+          pushError = err?.message || 'Unknown push error'
+          if (err?.statusCode === 410 || err?.statusCode === 404) {
+            await supabase.from('profiles').update({ push_subscription: null }).eq('id', user.id)
+          }
+        }
+      }
+
+      const channel = pushSent ? 'push' : 'in_app'
+      const metadata = {
+        ...(logMetadata || {}),
+        url,
+        sw_type: swType,
+        push_attempted: canAttemptPush,
+        push_sent: pushSent,
+        push_error: pushError,
+      }
+
+      await supabase.from('notification_logs').insert({
+        user_id: user.id,
+        notification_type: notificationType,
+        title: finalPayload.title,
+        body: finalPayload.body,
+        status: 'delivered',
+        sent_at: new Date().toISOString(),
+        sent_by: senderId === 'system' ? null : senderId,
+        target_role: user.role,
+        target_site_id: user.site_id,
+        channel,
+        payload: finalPayload as any,
+        metadata,
+      })
+
+      return { userId: user.id, pushSent }
+    })
+  )
+
+  const fulfilled = results.filter(r => r.status === 'fulfilled') as Array<any>
+  const pushCount = fulfilled.filter(r => r.value?.pushSent).length
+  const skipped = fulfilled.filter(r => r.value?.skipped).length
+
+  return {
+    success: true,
+    pushCount,
+    skipped,
+    processed: fulfilled.length,
+    total: users.length,
   }
 }

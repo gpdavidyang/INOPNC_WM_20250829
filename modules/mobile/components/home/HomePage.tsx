@@ -21,7 +21,6 @@ import { useAuth } from '@/modules/mobile/providers/AuthProvider'
 import '@/modules/mobile/styles/drawing-quick.css'
 import '@/modules/mobile/styles/home.css'
 import '@/modules/mobile/styles/summary-section.css'
-import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/work-form.css'
 import { AdditionalManpower, WorkLogLocation, WorkSection } from '@/types/worklog'
@@ -132,6 +131,12 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   // 기본 상태
   const [selectedSite, setSelectedSite] = useState('')
+  const [siteQuery, setSiteQuery] = useState('')
+  const [siteDropdownOpen, setSiteDropdownOpen] = useState(false)
+  const [siteActiveIndex, setSiteActiveIndex] = useState(0)
+  const siteSearchRef = useRef<HTMLDivElement | null>(null)
+  const siteInputRef = useRef<HTMLInputElement | null>(null)
+  const siteUserEditingRef = useRef(false)
   const [workDate, setWorkDate] = useState('')
   const [workCards, setWorkCards] = useState([{ id: 1 }])
   // 사용자 프로필 상태 - Use auth context profile or initial profile
@@ -268,6 +273,15 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     [workTypes]
   )
   const createWorklogMutation = useCreateWorklog()
+  const [showSlowSaving, setShowSlowSaving] = useState(false)
+  useEffect(() => {
+    if (!createWorklogMutation.isPending) {
+      setShowSlowSaving(false)
+      return
+    }
+    const timeout = window.setTimeout(() => setShowSlowSaving(true), 3000)
+    return () => window.clearTimeout(timeout)
+  }, [createWorklogMutation.isPending])
 
   // 현장 데이터 상태
   const [sites, setSites] = useState<Site[]>([])
@@ -275,6 +289,8 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [sitesError, setSitesError] = useState<string | null>(null)
   const [externalSiteInfo, setExternalSiteInfo] = useState<Site | null>(null)
   const [singleSiteLoading, setSingleSiteLoading] = useState(false)
+  const [sitesRequestKey, setSitesRequestKey] = useState(0)
+  const reloadSites = useCallback(() => setSitesRequestKey(prev => prev + 1), [])
 
   // Prefill from localStorage (draft redirect)
   useEffect(() => {
@@ -448,7 +464,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     const currentId = authProfile?.id || initialProfile?.id || ''
     if (currentId && userOptions.some(u => u.id === currentId)) {
       setSelectedAuthorId(prev => (prev ? prev : currentId))
-    } else if (!selectedAuthorId) {
+    } else if (selectedAuthorId === '') {
       setSelectedAuthorId(userOptions[0].id)
     }
   }, [userOptions, authProfile?.id, initialProfile?.id, selectedAuthorId])
@@ -463,8 +479,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     }
     setAllUserOptions(prev => mergeUsers(prev, [selfOption]))
     setUserOptions(prev => mergeUsers(prev, [selfOption]))
-    setSelectedAuthorId(prev => (prev ? prev : userProfile.id))
-  }, [userProfile?.id, userProfile?.full_name, userProfile?.role, mergeUsers])
+    if (!selectedAuthorId) {
+      setSelectedAuthorId(userProfile.id)
+    }
+  }, [userProfile?.id, userProfile?.full_name, userProfile?.role, mergeUsers, selectedAuthorId])
 
   // Fetch site-assigned users when a site is selected
   useEffect(() => {
@@ -609,7 +627,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       isActive = false
       controller.abort()
     }
-  }, [])
+  }, [sitesRequestKey])
 
   // 선택된 현장이 목록에 없을 때 단일 조회 (프리필된 케이스 대응)
   useEffect(() => {
@@ -677,7 +695,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     if (existsInList || externalSiteInfo) return
 
     setSelectedSite('')
-    toast.warning('저장된 현장을 찾을 수 없습니다. 현장을 다시 선택해 주세요.')
+    toast.warning('저장된 현장을 찾을 수 없습니다. 현장을 다시 선택해 주세요.', { duration: 2500 })
   }, [
     hasPrefill,
     prefillData?.siteId,
@@ -702,6 +720,10 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const handleReset = () => {
     if (confirm('모든 입력 내용을 초기화하시겠습니까?')) {
       setSelectedSite('')
+      setSiteQuery('')
+      setSiteDropdownOpen(false)
+      setSiteActiveIndex(0)
+      siteUserEditingRef.current = false
       setExternalSiteInfo(null)
       setWorkCards([{ id: 1 }])
       const today = new Date().toISOString().split('T')[0]
@@ -716,7 +738,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       setAdditionalManpower([])
       setMaterials([])
       setActionStatus({ type: 'success', message: '입력 내용을 초기화했습니다.' })
-      toast.success('초기화되었습니다.')
+      toast.success('초기화되었습니다.', { duration: 1800 })
     }
   }
 
@@ -724,6 +746,86 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     if (!selectedSite) return null
     return sites.find(site => site.id === selectedSite) || externalSiteInfo
   }, [selectedSite, sites, externalSiteInfo])
+
+  const siteDropdownItems = useMemo(() => {
+    const q = siteQuery.trim().toLowerCase()
+    const base = sites
+    if (!q) return base.slice(0, 10)
+    return base.filter(site => site.name?.toLowerCase().includes(q)).slice(0, 10)
+  }, [siteQuery, sites])
+
+  const handleSelectSite = useCallback((site: Site) => {
+    siteUserEditingRef.current = false
+    setSelectedSite(site.id)
+    setSiteQuery(site.name)
+    setSiteDropdownOpen(false)
+    setSiteActiveIndex(0)
+  }, [])
+
+  const handleClearSite = useCallback(() => {
+    siteUserEditingRef.current = false
+    setSelectedSite('')
+    setExternalSiteInfo(null)
+    setSiteQuery('')
+    setSiteDropdownOpen(true)
+    setSiteActiveIndex(0)
+    siteInputRef.current?.focus()
+  }, [])
+
+  const handleSiteKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Escape') {
+        setSiteDropdownOpen(false)
+        siteUserEditingRef.current = false
+        return
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        setSiteDropdownOpen(true)
+        setSiteActiveIndex(prev => Math.min(prev + 1, Math.max(0, siteDropdownItems.length - 1)))
+        return
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        setSiteDropdownOpen(true)
+        setSiteActiveIndex(prev => Math.max(prev - 1, 0))
+        return
+      }
+
+      if (event.key === 'Enter') {
+        if (!siteDropdownOpen) return
+        event.preventDefault()
+        const chosen = siteDropdownItems[siteActiveIndex]
+        if (chosen) handleSelectSite(chosen)
+      }
+    },
+    [handleSelectSite, siteActiveIndex, siteDropdownItems, siteDropdownOpen]
+  )
+
+  useEffect(() => {
+    if (!selectedSite) {
+      if (!siteUserEditingRef.current) setSiteQuery('')
+      return
+    }
+    if (resolvedSite?.name && !siteUserEditingRef.current) {
+      setSiteQuery(resolvedSite.name)
+    }
+  }, [resolvedSite?.name, selectedSite])
+
+  useEffect(() => {
+    const handler = (event: PointerEvent) => {
+      const root = siteSearchRef.current
+      if (!root) return
+      const target = event.target as Node | null
+      if (target && root.contains(target)) return
+      setSiteDropdownOpen(false)
+      siteUserEditingRef.current = false
+    }
+    document.addEventListener('pointerdown', handler)
+    return () => document.removeEventListener('pointerdown', handler)
+  }, [])
 
   const organizationLabel = resolvedSite
     ? resolvedSite.organization_name ||
@@ -803,7 +905,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   const handleTemporarySave = async () => {
     if (!selectedSite) {
-      toast.error('현장을 선택해주세요.')
+      toast.error('현장을 선택해주세요.', { duration: 2500 })
       setActionStatus({
         type: 'error',
         message: '현장을 선택한 뒤 임시 저장을 진행해주세요.',
@@ -824,11 +926,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
       const res: any = await createWorklogMutation.mutateAsync(fullPayload)
       const msg = res?.message || '임시 상태로 저장되었습니다.'
-      toast.success(msg)
+      toast.success(msg, { duration: 1800 })
       setActionStatus({ type: 'success', message: msg })
     } catch (error) {
       console.error('Temporary save error:', error)
-      toast.error(error instanceof Error ? error.message : '임시 저장에 실패했습니다.')
+      toast.error(error instanceof Error ? error.message : '임시 저장에 실패했습니다.', {
+        duration: 2500,
+        action: { label: '재시도', onClick: () => void handleTemporarySave() },
+      })
       setActionStatus({
         type: 'error',
         message: error instanceof Error ? error.message : '임시 저장에 실패했습니다.',
@@ -838,12 +943,12 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   const handleSave = async () => {
     if (!selectedSite) {
-      toast.error('현장을 선택해주세요.')
+      toast.error('현장을 선택해주세요.', { duration: 2500 })
       setActionStatus({ type: 'error', message: '현장을 선택한 뒤 저장을 진행해주세요.' })
       return
     }
     if (!workDate) {
-      toast.error('작업일자를 입력해주세요.')
+      toast.error('작업일자를 입력해주세요.', { duration: 2500 })
       setActionStatus({ type: 'error', message: '작업일자를 입력한 뒤 저장을 진행해주세요.' })
       return
     }
@@ -855,11 +960,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         tasks,
       })
       const msg = res?.message || '작업일지가 저장되었습니다.'
-      toast.success(msg)
+      toast.success(msg, { duration: 1800 })
       setActionStatus({ type: 'success', message: msg })
     } catch (error) {
       console.error('Save error:', error)
-      toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
+      toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.', {
+        duration: 2500,
+        action: { label: '재시도', onClick: () => void handleSave() },
+      })
       setActionStatus({
         type: 'error',
         message: error instanceof Error ? error.message : '작업일지 저장에 실패했습니다.',
@@ -870,11 +978,27 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   return (
     <main className="container fs-100">
       {/* Auth Debug Info - Only in development */}
+      {showSlowSaving && (
+        <div className="slow-loading-overlay" role="status" aria-live="polite" aria-busy="true">
+          <div className="slow-loading-card">
+            <div className="slow-loading-header">
+              <div className="slow-loading-spinner" aria-hidden="true" />
+              <div className="slow-loading-title">저장 중...</div>
+            </div>
+            <div className="slow-loading-bar" aria-hidden="true">
+              <div className="slow-loading-bar__indeterminate" />
+            </div>
+            <div className="slow-loading-sub">
+              처리가 3초 이상 걸리고 있습니다. 잠시만 기다려 주세요.
+            </div>
+          </div>
+        </div>
+      )}
       {/* 빠른메뉴 */}
       <QuickMenu />
 
       {/* 공지사항 */}
-      <NoticeSection />
+      {userProfile?.role !== 'site_manager' && <NoticeSection />}
 
       {/* 통합된 작업 섹션 - 요구사항에 맞게 하나의 카드로 통합 */}
       <div className="work-form-container">
@@ -889,281 +1013,152 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             <h3 className="section-title">
               선택 현장 <span className="required">*</span>
             </h3>
-            <span className="form-note">필수입력값(*)작성 후 저장</span>
+            <span className="form-note">* 필수 입력</span>
           </div>
-          <div className="form-row" style={{ marginBottom: 12 }}>
+          <div className="form-row" style={{ marginBottom: 12, gridTemplateColumns: '1fr' }}>
             <div className="form-group">
               <label className="form-label">
                 현장 <span className="required">*</span>
               </label>
-              <CustomSelect
-                value={selectedSite}
-                onValueChange={setSelectedSite}
-                disabled={sitesLoading && sites.length === 0}
-              >
-                <CustomSelectTrigger className="form-select">
-                  <CustomSelectValue
+              <div className="site-search" ref={siteSearchRef}>
+                <div className="site-search-wrap">
+                  <input
+                    ref={siteInputRef}
+                    value={siteQuery}
+                    onChange={event => {
+                      siteUserEditingRef.current = true
+                      const next = event.target.value
+                      setSiteQuery(next)
+                      setSiteDropdownOpen(true)
+                      setSiteActiveIndex(0)
+                      if (!next.trim()) {
+                        setSelectedSite('')
+                        setExternalSiteInfo(null)
+                      } else if (selectedSite) {
+                        setSelectedSite('')
+                        setExternalSiteInfo(null)
+                      }
+                    }}
+                    onFocus={() => setSiteDropdownOpen(true)}
+                    onKeyDown={handleSiteKeyDown}
+                    className="site-search-input"
                     placeholder={
-                      sitesLoading
-                        ? '현장 로딩 중...'
+                      sitesLoading && sites.length === 0
+                        ? '현장 목록 불러오는 중...'
                         : sitesError
-                          ? '현장 선택 불가'
-                          : sites.length > 0
-                            ? '현장 선택'
-                            : '등록된 현장이 없습니다'
+                          ? '현장 목록 불러오기 실패'
+                          : '현장명 검색 (TOP 10)'
                     }
+                    role="combobox"
+                    aria-expanded={siteDropdownOpen}
+                    aria-controls="site-search-listbox"
+                    aria-activedescendant={
+                      siteDropdownOpen && siteDropdownItems[siteActiveIndex]
+                        ? `site-opt-${siteDropdownItems[siteActiveIndex].id}`
+                        : undefined
+                    }
+                    inputMode="search"
+                    autoComplete="off"
                   />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  {sites.length > 0 ? (
-                    sites.map(site => (
-                      <CustomSelectItem key={site.id} value={site.id || `site-${site.name}`}>
-                        {site.name}
-                      </CustomSelectItem>
-                    ))
-                  ) : (
-                    <CustomSelectItem value="none" disabled>
-                      선택 가능한 현장이 없습니다
-                    </CustomSelectItem>
+                  {siteQuery.trim() && (
+                    <button type="button" className="site-search-clear" onClick={handleClearSite}>
+                      <span className="sr-only">현장 검색어 지우기</span>×
+                    </button>
                   )}
-                </CustomSelectContent>
-              </CustomSelect>
-              {sitesError && <div className="text-red-500 text-sm mt-1">{sitesError}</div>}
-            </div>
-            <div className="form-group">
-              <label className="form-label">소속</label>
-              <input
-                type="text"
-                className="form-input"
-                value={organizationLabel}
-                readOnly
-                style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
-              />
-              <p className="text-xs text-gray-500 mt-1">현장 선택 시 자동 표시 됨</p>
-            </div>
-          </div>
+                </div>
 
-          {/* 선택된 현장 확인 표시 */}
-          {selectedSite && (
-            <div className="form-row mt-0" style={{ gridTemplateColumns: '1fr', marginTop: 12 }}>
+                {siteDropdownOpen && (
+                  <div className="site-search-dropdown" role="listbox" id="site-search-listbox">
+                    {sitesLoading && sites.length === 0 ? (
+                      <div className="site-search-empty">현장 목록 불러오는 중...</div>
+                    ) : siteDropdownItems.length > 0 ? (
+                      siteDropdownItems.map((site, index) => (
+                        <button
+                          key={site.id}
+                          id={`site-opt-${site.id}`}
+                          type="button"
+                          role="option"
+                          aria-selected={index === siteActiveIndex}
+                          className={[
+                            'site-search-option',
+                            index === siteActiveIndex ? 'active' : '',
+                          ].join(' ')}
+                          onMouseEnter={() => setSiteActiveIndex(index)}
+                          onClick={() => handleSelectSite(site)}
+                        >
+                          <span>{site.name}</span>
+                          <span className="meta">{site.organization_name || '소속사 미지정'}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="site-search-empty">검색 결과가 없습니다.</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {sitesError && (
+                <div className="inline-error" role="alert">
+                  <span>{sitesError}</span>
+                  <button type="button" className="retry-btn" onClick={reloadSites}>
+                    재시도
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="form-row" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0 }}>
               <div className="form-group">
-                <label className="form-label">선택된 현장</label>
+                <label className="form-label">소속</label>
                 <input
                   type="text"
                   className="form-input"
-                  value={resolvedSite?.name || ''}
+                  value={organizationLabel}
                   readOnly
                   style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
                 />
+                <p className="text-xs text-gray-500 mt-1">현장 선택 시 자동 표시 됨</p>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* 작성 정보 입력 */}
-        <div className="form-section">
-          <div className="section-header">
-            <h3 className="section-title">
-              작성 정보 입력 <span className="required">*</span>
-            </h3>
-            <span className="author-info">작성자</span>
-          </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">작업일자</label>
-              <div className="date-input-wrapper">
-                <input
-                  type="date"
-                  className="form-input date-input"
-                  value={workDate}
-                  onChange={e => setWorkDate(e.target.value)}
-                  required
-                />
-                <div
-                  className="calendar-icon"
-                  onClick={handleCalendarClick}
-                  onKeyDown={handleCalendarKeyDown}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="날짜 선택"
-                >
-                  <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
+              <div className="form-group">
+                <label className="form-label">
+                  작업일자 <span className="required">*</span>
+                </label>
+                <div className="date-input-wrapper">
+                  <input
+                    type="date"
+                    className="form-input date-input"
+                    value={workDate}
+                    onChange={e => setWorkDate(e.target.value)}
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="calendar-icon"
+                    aria-label="작업일자 선택"
+                    onClick={handleCalendarClick}
+                    onKeyDown={handleCalendarKeyDown}
                   >
-                    <rect
-                      x="3"
-                      y="4"
-                      width="18"
-                      height="18"
-                      rx="2"
-                      ry="2"
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
                       stroke="currentColor"
                       strokeWidth="2"
-                    />
-                    <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" />
-                    <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" />
-                    <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" />
-                  </svg>
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 2v4" />
+                      <path d="M16 2v4" />
+                      <rect width="18" height="18" x="3" y="4" rx="2" />
+                      <path d="M3 10h18" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">작성자</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="작성자"
-                value={
-                  authLoading || profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'
-                }
-                readOnly
-              />
-            </div>
           </div>
         </div>
-
-        {/* 작업 내용 기록 */}
-        <div className="form-section work-content-section">
-          <div className="section-header">
-            <h3 className="section-title">
-              작업 내용 기록 <span className="required">*</span>
-            </h3>
-            <button
-              className="add-btn"
-              onClick={() => {
-                // 요구사항: [추가] 클릭 시 즉시 빈 작업 세트 입력 섹션이 추가되어야 함
-                setTasks(prev => [
-                  ...prev,
-                  {
-                    memberTypes: [],
-                    processes: [],
-                    workTypes: [],
-                    location: { block: '', dong: '', unit: '' },
-                  },
-                ])
-              }}
-            >
-              추가
-            </button>
-          </div>
-
-          {/* 부재명 멀티 선택 */}
-          <MultiSelectButtons
-            label="부재명"
-            options={MEMBER_TYPE_OPTIONS}
-            selectedValues={memberTypes}
-            onChange={setMemberTypes}
-            customInputPlaceholder="부재명을 직접 입력하세요"
-            className="mb-3"
-          />
-
-          {/* 작업공정 멀티 선택 */}
-          <MultiSelectButtons
-            label="작업공정"
-            options={WORK_PROCESS_OPTIONS}
-            selectedValues={workContents}
-            onChange={setWorkContents}
-            customInputPlaceholder="작업공정을 직접 입력하세요"
-            className="mb-3"
-          />
-        </div>
-
-        {/* 작업구간 */}
-        <div className="form-section work-section">
-          <div className="section-header">
-            <h3 className="section-title">작업구간</h3>
-          </div>
-
-          {/* 작업유형 멀티 선택 */}
-          <MultiSelectButtons
-            label="작업유형"
-            options={WORK_TYPE_OPTIONS}
-            selectedValues={workTypes}
-            onChange={setWorkTypes}
-            customInputPlaceholder="작업유형을 직접 입력하세요"
-            className="mb-3"
-          />
-
-          {/* 블럭/동/층 */}
-          <LocationInput location={location} onChange={setLocation} className="mt-3" />
-        </div>
-
-        {/* 추가된 작업 세트 - 편집 가능한 입력 섹션 */}
-        {tasks.length > 0 && (
-          <div className="form-section">
-            <div className="section-header">
-              <h3 className="section-title">추가된 작업 세트</h3>
-            </div>
-            <div className="space-y-3">
-              {tasks.map((t, i) => (
-                <div key={i} className="work-section-item">
-                  <div className="section-header">
-                    <h4 className="section-subtitle">작업 세트 #{i + 1}</h4>
-                    <button
-                      className="delete-tag-btn"
-                      onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
-                    >
-                      삭제
-                    </button>
-                  </div>
-
-                  <MultiSelectButtons
-                    label="부재명"
-                    options={MEMBER_TYPE_OPTIONS}
-                    selectedValues={t.memberTypes}
-                    onChange={vals =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, memberTypes: vals } : row))
-                      )
-                    }
-                    customInputPlaceholder="부재명을 직접 입력하세요"
-                    className="mb-3"
-                  />
-
-                  <MultiSelectButtons
-                    label="작업공정"
-                    options={WORK_PROCESS_OPTIONS}
-                    selectedValues={t.processes}
-                    onChange={vals =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, processes: vals } : row))
-                      )
-                    }
-                    customInputPlaceholder="작업공정을 직접 입력하세요"
-                    className="mb-3"
-                  />
-
-                  <MultiSelectButtons
-                    label="작업유형"
-                    options={WORK_TYPE_OPTIONS}
-                    selectedValues={t.workTypes}
-                    onChange={vals =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, workTypes: vals } : row))
-                      )
-                    }
-                    customInputPlaceholder="작업유형을 직접 입력하세요"
-                    className="mb-3"
-                  />
-
-                  <LocationInput
-                    location={t.location}
-                    onChange={loc =>
-                      setTasks(prev =>
-                        prev.map((row, idx) => (idx === i ? { ...row, location: loc } : row))
-                      )
-                    }
-                    className="mt-3"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* 공수(일) */}
         <div className="form-section manpower-section">
@@ -1183,14 +1178,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
                 setAdditionalManpower([...additionalManpower, newManpower])
               }}
             >
-              추가
+              + 추가
             </button>
           </div>
           <div className="form-row author-manpower-row">
             <div className="form-group">
               <label className="form-label">작업자</label>
               <CustomSelect
-                value={selectedAuthorId}
+                value={selectedAuthorId || ''}
                 onValueChange={val => setSelectedAuthorId(val)}
               >
                 <CustomSelectTrigger className="form-select author-select">
@@ -1294,12 +1289,147 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           </div>
         ))}
 
+        {/* 작업 내용 기록 */}
+        <div className="form-section work-content-section no-divider">
+          <div className="section-header">
+            <h3 className="section-title">
+              작업 내용 기록 <span className="required">*</span>
+            </h3>
+            <button
+              className="add-btn"
+              onClick={() => {
+                // 요구사항: [추가] 클릭 시 즉시 빈 작업 세트 입력 섹션이 추가되어야 함
+                setTasks(prev => [
+                  ...prev,
+                  {
+                    memberTypes: [],
+                    processes: [],
+                    workTypes: [],
+                    location: { block: '', dong: '', unit: '' },
+                  },
+                ])
+              }}
+            >
+              + 추가
+            </button>
+          </div>
+
+          {/* 부재명 멀티 선택 */}
+          <MultiSelectButtons
+            label="부재명"
+            options={MEMBER_TYPE_OPTIONS}
+            selectedValues={memberTypes}
+            onChange={setMemberTypes}
+            customInputPlaceholder="부재명을 직접 입력하세요"
+            className="mb-3"
+          />
+
+          {/* 작업공정 멀티 선택 */}
+          <MultiSelectButtons
+            label="작업공정"
+            options={WORK_PROCESS_OPTIONS}
+            selectedValues={workContents}
+            onChange={setWorkContents}
+            customInputPlaceholder="작업공정을 직접 입력하세요"
+            className="mb-3"
+          />
+        </div>
+
+        {/* 작업구간 */}
+        <div className="form-section work-section">
+          {/* 작업유형 멀티 선택 */}
+          <MultiSelectButtons
+            label="작업유형"
+            options={WORK_TYPE_OPTIONS}
+            selectedValues={workTypes}
+            onChange={setWorkTypes}
+            customInputPlaceholder="작업유형을 직접 입력하세요"
+            className="mb-3"
+          />
+
+          {/* 블럭/동/층 */}
+          <LocationInput location={location} onChange={setLocation} className="mt-3" />
+        </div>
+
+        {/* 추가된 작업 세트 - 편집 가능한 입력 섹션 */}
+        {tasks.length > 0 && (
+          <div className="form-section">
+            <div className="section-header">
+              <h3 className="section-title">추가된 작업 세트</h3>
+            </div>
+            <div className="space-y-3">
+              {tasks.map((t, i) => (
+                <div key={i} className="work-section-item">
+                  <div className="section-header">
+                    <h4 className="section-subtitle">작업 세트 #{i + 1}</h4>
+                    <button
+                      className="delete-tag-btn"
+                      onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
+                    >
+                      삭제
+                    </button>
+                  </div>
+
+                  <MultiSelectButtons
+                    label="부재명"
+                    options={MEMBER_TYPE_OPTIONS}
+                    selectedValues={t.memberTypes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, memberTypes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="부재명을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <MultiSelectButtons
+                    label="작업공정"
+                    options={WORK_PROCESS_OPTIONS}
+                    selectedValues={t.processes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, processes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="작업공정을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <MultiSelectButtons
+                    label="작업유형"
+                    options={WORK_TYPE_OPTIONS}
+                    selectedValues={t.workTypes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, workTypes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="작업유형을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <LocationInput
+                    location={t.location}
+                    onChange={loc =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, location: loc } : row))
+                      )
+                    }
+                    className="mt-3"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <MaterialsInput materials={materials} onChange={setMaterials} />
 
         {/* 액션 버튼 */}
         <div className="form-actions">
           <button className="btn btn-secondary" onClick={handleReset}>
-            처음부터
+            초기화
           </button>
           <button
             className="btn btn-temp-save"
@@ -1309,26 +1439,49 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             임시 저장
           </button>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary btn-save"
             onClick={handleSave}
             disabled={createWorklogMutation.isPending}
           >
-            저장하기
+            저장
           </button>
         </div>
 
         {/* Inline action feedback is intentionally hidden to avoid duplicate messaging with toasts */}
       </div>
 
-      {/* 사진 업로드 - 별도 카드 */}
-      <PhotoUploadCard selectedSite={selectedSite} workDate={workDate} />
+      {userProfile?.role === 'site_manager' ? (
+        <div className="work-form-container">
+          <div className="work-form-title">
+            <h2 className="work-form-main-title">사진 및 도면</h2>
+          </div>
+          <div className="home-media-grid">
+            <PhotoUploadCard
+              className="home-media-grid__item"
+              selectedSite={selectedSite}
+              workDate={workDate}
+            />
+            <DrawingQuickAction
+              className="home-media-grid__item"
+              selectedSite={selectedSite}
+              workDate={workDate}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* 사진 업로드 - 별도 카드 */}
+          <PhotoUploadCard selectedSite={selectedSite} workDate={workDate} />
 
-      {/* 도면마킹 - 간소화된 Quick Action */}
-      <DrawingQuickAction selectedSite={selectedSite} />
+          {/* 도면마킹 - 간소화된 Quick Action */}
+          <DrawingQuickAction selectedSite={selectedSite} workDate={workDate} />
+        </>
+      )}
 
       {/* 작성 내용 요약 - 페이지 맨 아래 배치 */}
       <SummarySection
         site={sites.find(s => s.id === selectedSite)?.name || ''}
+        organization={organizationLabel}
         workDate={workDate}
         author={selectedAuthorName}
         memberTypes={normalizedMemberTypes}

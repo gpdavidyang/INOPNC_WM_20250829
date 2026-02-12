@@ -227,7 +227,7 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
                     </span>
                   </CustomSelectValue>
                 </CustomSelectTrigger>
-                <CustomSelectContent>
+                <CustomSelectContent className="mobile-select-content">
                   {optionsLoading ? (
                     <CustomSelectItem value={LOADING_VALUE} disabled>
                       자재 목록 불러오는 중...
@@ -291,29 +291,28 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
                 placeholder="선택 입력"
               />
             </div>
-            <div
-              className="form-group material-remove"
-              style={{
-                gridColumn: '1 / -1',
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                // let CSS grid handle width so the item can align to the right edge
-                width: 'auto',
-                // Hide if there's only 1 item
-                visibility: materials.length > 1 ? 'visible' : 'hidden',
-              }}
-            >
-              <button
-                className="delete-tag-btn"
-                type="button"
-                onClick={() => handleRemove(index)}
-                disabled={materials.length <= 1}
+            {materials.length > 1 ? (
+              <div
+                className="form-group material-remove"
+                style={{
+                  gridColumn: '1 / -1',
+                  display: 'flex',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  // let CSS grid handle width so the item can align to the right edge
+                  width: 'auto',
+                }}
               >
-                삭제
-              </button>
-            </div>
+                <button
+                  className="delete-tag-btn"
+                  type="button"
+                  onClick={() => handleRemove(index)}
+                >
+                  삭제
+                </button>
+              </div>
+            ) : null}
           </div>
         )
       })}

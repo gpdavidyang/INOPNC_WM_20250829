@@ -6,18 +6,22 @@ import React, { useMemo } from 'react'
 interface DrawingQuickActionProps {
   className?: string
   selectedSite?: string
+  workDate?: string
 }
 
 export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
   className = '',
   selectedSite,
+  workDate,
 }) => {
   const drawingMediaHref = useMemo(() => {
     const params = new URLSearchParams()
     params.set('tab', 'drawing')
+    params.set('sheet', 'upload')
     if (selectedSite) params.set('siteId', selectedSite)
-    return `/mobile/media?${params.toString()}`
-  }, [selectedSite])
+    if (workDate) params.set('workDate', workDate)
+    return `/mobile/documents?${params.toString()}`
+  }, [selectedSite, workDate])
 
   return (
     <section className={`drawing-quick-section ${className}`}>
@@ -26,14 +30,14 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
           <h3 className="section-title">도면마킹</h3>
         </div>
         <div className="media-cta-banner" role="note">
-          <p className="media-cta-text">사진 도면 관리 페이지로 이동</p>
+          <p className="media-cta-text">도면함 이동</p>
           <Link
             href={drawingMediaHref}
             className="media-cta-button"
-            aria-label="도면 탭으로 이동"
+            aria-label="도면 업로드 열기"
             prefetch
           >
-            도면 탭 열기
+            도면 업로드
           </Link>
         </div>
       </div>

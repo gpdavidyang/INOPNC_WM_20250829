@@ -9,13 +9,15 @@ interface PhotoUploadCardProps {
 
 export const PhotoUploadCard: React.FC<
   PhotoUploadCardProps & { selectedSite?: string; workDate?: string }
-> = ({ className = '', selectedSite }) => {
+> = ({ className = '', selectedSite, workDate }) => {
   const photoMediaHref = useMemo(() => {
     const params = new URLSearchParams()
-    params.set('tab', 'photo')
+    params.set('tab', 'photos')
+    params.set('openUploadSheet', '1')
     if (selectedSite) params.set('siteId', selectedSite)
-    return `/mobile/media?${params.toString()}`
-  }, [selectedSite])
+    if (workDate) params.set('workDate', workDate)
+    return `/mobile/documents?${params.toString()}`
+  }, [selectedSite, workDate])
 
   return (
     <section className={`section ${className}`}>
@@ -25,14 +27,14 @@ export const PhotoUploadCard: React.FC<
             <h3 className="section-title">사진업로드</h3>
           </div>
           <div className="media-cta-banner" role="note">
-            <p className="media-cta-text">사진 도면 관리 페이지로 이동</p>
+            <p className="media-cta-text">사진함 이동</p>
             <Link
               href={photoMediaHref}
               className="media-cta-button"
-              aria-label="사진 탭으로 이동"
+              aria-label="사진함 열기"
               prefetch
             >
-              사진 탭 열기
+              사진함 열기
             </Link>
           </div>
         </div>

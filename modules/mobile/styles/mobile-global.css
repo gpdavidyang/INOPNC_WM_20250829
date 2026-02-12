@@ -4,6 +4,20 @@
   /* Colors - 100% HTML Match */
   --font:
     var(--font-noto-sans-kr, 'Noto Sans KR'), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  /* Mobile Design Style Standard (DY260212) */
+  --font-main:
+    'Pretendard Variable', Pretendard, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --fs-base: 17px;
+  --lh-base: 1.6;
+  --h-input: 54px;
+  --r-control: 12px;
+  --gap-8: 8px;
+  --gap-16: 16px;
+  --pad-16: 16px;
+  --maxw-mobile: 600px;
+  --dur-ui: 0.2s;
+  --ease-ui: cubic-bezier(0.4, 0, 0.2, 1);
   --bg: #f6f9ff;
   --card: #ffffff;
   --text: #101828;
@@ -88,10 +102,10 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
-  font-size: 15px;
+  font-family: var(--font-main, var(--font));
+  font-size: var(--fs-base, 17px);
   font-weight: 400; /* Increased from 200 for better readability */
-  line-height: 1.6;
+  line-height: var(--lh-base, 1.6);
   transition: font-size 0.3s ease;
   overscroll-behavior: contain;
   min-height: 100vh; /* changed from height: 100% */
@@ -102,44 +116,28 @@ body {
 /* Apply large-font mode on mobile by overriding px-based body size */
 .large-font-mode body {
   /* Keep header/nav unaffected via their own resets below */
-  font-size: 18px !important; /* ~20% larger for readability */
+  font-size: 20px !important; /* ~20% larger for readability */
   line-height: 1.7;
 }
 
 /* Font Size Switch Classes */
 body.fs-100 {
-  font-size: 15px;
+  font-size: var(--fs-base, 17px);
   font-weight: 400; /* Increased from 200 for elderly users */
-  font-family:
-    'Noto Sans KR',
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Apple SD Gothic Neo,
-    Malgun Gothic,
-    sans-serif;
+  font-family: var(--font-main, var(--font));
 }
 
 body.fs-150 {
-  font-size: 27px; /* 15px * 1.8 = 27px */
+  font-size: calc(var(--fs-base, 17px) * 1.5);
   font-weight: 400; /* Increased from 200 for elderly users */
-  font-family:
-    'Noto Sans KR',
-    system-ui,
-    -apple-system,
-    Segoe UI,
-    Roboto,
-    Apple SD Gothic Neo,
-    Malgun Gothic,
-    sans-serif;
+  font-family: var(--font-main, var(--font));
 }
 
 /* Mobile Input Field Optimization */
 input,
 select,
 textarea {
-  font-size: 16px !important;
+  font-size: var(--fs-base, 17px) !important;
   -webkit-appearance: none;
   appearance: none;
   border-radius: 0;

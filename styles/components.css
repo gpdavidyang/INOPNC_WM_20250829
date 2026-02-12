@@ -345,8 +345,9 @@ textarea {
 /* 빠른메뉴 */
 .quick-grid {
   display: grid !important;
-  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(var(--quick-menu-columns, 5), minmax(0, 1fr)) !important;
   gap: 1px !important;
+  width: 100% !important;
   padding: 0;
   margin: 0;
   list-style: none;

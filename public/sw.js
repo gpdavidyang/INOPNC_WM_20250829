@@ -383,13 +383,13 @@ async function handleNotificationAction(action, data, type) {
     case 'DAILY_REPORT_REMINDER':
       switch (action) {
         case 'create':
-          targetUrl = `${baseUrl}/dashboard/daily-reports/new`
+          targetUrl = `${baseUrl}/mobile`
           break
         case 'later':
           await scheduleReminderLater(data.siteId)
           return // Don't open app
         default:
-          targetUrl = `${baseUrl}/dashboard/daily-reports`
+          targetUrl = `${baseUrl}/mobile`
           break
       }
       break

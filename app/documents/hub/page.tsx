@@ -68,6 +68,18 @@ const normalizeTabParam = (raw: string | null) => {
   return null
 }
 
+const normalizeDateLike = (raw: string) => {
+  const value = String(raw || '').trim()
+  if (!value) return ''
+  const match = value.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})$/)
+  if (match) {
+    const [, yyyy, mm, dd] = match
+    return `${yyyy}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  return value
+}
+
 export default function DocumentHubPage() {
   // State
   const [activeTab, setActiveTab] = useState('my-docs')
@@ -104,6 +116,17 @@ export default function DocumentHubPage() {
   const searchParams = useSearchParams()
   const deepLinkTab = useMemo(() => normalizeTabParam(searchParams.get('tab')), [searchParams])
   const deepLinkSiteName = useMemo(() => searchParams.get('siteName') || '', [searchParams])
+  const deepLinkOpenUploadSheet = useMemo(() => {
+    const raw = String(searchParams.get('openUploadSheet') || '').toLowerCase()
+    const sheet = String(searchParams.get('sheet') || '').toLowerCase()
+    return ['1', 'true', 'yes'].includes(raw) || sheet === 'upload'
+  }, [searchParams])
+  const deepLinkUploadSiteId = useMemo(() => searchParams.get('siteId') || '', [searchParams])
+  const deepLinkUploadWorkDate = useMemo(
+    () => searchParams.get('workDate') || searchParams.get('date') || '',
+    [searchParams]
+  )
+  const deepLinkUploadWorklogId = useMemo(() => searchParams.get('worklogId') || '', [searchParams])
   const deepLinkExpandId = useMemo(
     () => searchParams.get('expandId') || searchParams.get('worklogId') || '',
     [searchParams]
@@ -113,6 +136,81 @@ export default function DocumentHubPage() {
     if (!deepLinkTab) return
     setActiveTab(deepLinkTab)
   }, [deepLinkTab])
+
+  const uploadSheetDeepLinkAppliedRef = useRef(false)
+  const uploadWorklogDeepLinkAppliedRef = useRef(false)
+
+  useEffect(() => {
+    if (uploadSheetDeepLinkAppliedRef.current) return
+    if (!deepLinkOpenUploadSheet) return
+
+    const targetTab =
+      deepLinkTab === 'drawings' || deepLinkTab === 'photos' ? deepLinkTab : 'photos'
+    setActiveTab(targetTab)
+    setActiveFilter('전체')
+    setSearchQuery('')
+    setSelectedIds(new Set())
+
+    setUploadTitle('')
+    setUploadTypeId(null)
+    setEditingDocId(null)
+    setActiveWorklogId('')
+    setUploadSiteId('')
+    if (targetTab === 'drawings') {
+      setDrawingUploadType('progress')
+    } else {
+      setPhotoUploadType('after')
+    }
+    setUploadFiles([])
+    setShowTypeDropdown(false)
+    setIsUploadSheetOpen(true)
+
+    if (deepLinkUploadSiteId) {
+      setUploadSiteId(deepLinkUploadSiteId)
+    }
+
+    if (deepLinkUploadWorklogId) {
+      setActiveWorklogId(deepLinkUploadWorklogId)
+      uploadWorklogDeepLinkAppliedRef.current = true
+    }
+
+    if (deepLinkUploadWorkDate) {
+      setUploadDate(deepLinkUploadWorkDate)
+    }
+
+    uploadSheetDeepLinkAppliedRef.current = true
+  }, [
+    deepLinkOpenUploadSheet,
+    deepLinkTab,
+    deepLinkUploadSiteId,
+    deepLinkUploadWorkDate,
+    deepLinkUploadWorklogId,
+  ])
+
+  useEffect(() => {
+    if (!deepLinkOpenUploadSheet) return
+    if (uploadWorklogDeepLinkAppliedRef.current) return
+    if (activeWorklogId) return
+    if (!deepLinkUploadSiteId || !deepLinkUploadWorkDate) return
+    if (documents.drawings.length === 0) return
+
+    const desiredDate = normalizeDateLike(deepLinkUploadWorkDate)
+    const match = documents.drawings.find((doc: any) => {
+      const siteId = String(doc?.siteId || '')
+      const date = normalizeDateLike(String(doc?.date || ''))
+      return siteId === String(deepLinkUploadSiteId) && date === desiredDate
+    })
+    if (!match?.id) return
+
+    setActiveWorklogId(String(match.id))
+    uploadWorklogDeepLinkAppliedRef.current = true
+  }, [
+    activeWorklogId,
+    deepLinkOpenUploadSheet,
+    deepLinkUploadSiteId,
+    deepLinkUploadWorkDate,
+    documents.drawings,
+  ])
 
   const [markupEditor, setMarkupEditor] = useState<{
     open: boolean

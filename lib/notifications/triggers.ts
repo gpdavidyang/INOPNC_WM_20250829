@@ -1,8 +1,9 @@
 import { logError } from '@/lib/error-handling'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import type { DailyReport } from '@/types'
 
-import { sendPushToUsers } from '@/lib/notifications/server-push'
+import { dispatchNotificationServiceRole, sendPushToUsers } from '@/lib/notifications/server-push'
 
 // 일일보고서 제출 시 알림 생성
 export async function notifyDailyReportSubmitted(report: DailyReport, submitterId: string) {
@@ -82,20 +83,71 @@ export async function notifyDailyReportApproved(report: DailyReport, approverId:
       logError(error, 'notifyDailyReportApproved')
     }
 
-    // 2. Push Notification
-    if (report.created_by) {
-      await sendPushToUsers({
-        userIds: [report.created_by],
+    // 2. Push + In-app (service role)
+    const service = createServiceRoleClient()
+    const recipients = new Set<string>()
+    if (report.created_by) recipients.add(String(report.created_by))
+
+    try {
+      const { data: site } = await service
+        .from('sites')
+        .select('name')
+        .eq('id', report.site_id)
+        .single()
+      const siteName = (site as any)?.name ? String((site as any).name) : ''
+
+      // Site managers (best-effort: support both site_id and site_ids array schemas)
+      try {
+        const { data: bySiteId } = await service
+          .from('profiles')
+          .select('id')
+          .eq('role', 'site_manager')
+          .eq('site_id', report.site_id)
+        ;(bySiteId || []).forEach((u: any) => recipients.add(String(u.id)))
+      } catch {
+        /* ignore */
+      }
+      try {
+        const { data: bySiteIds } = await service
+          .from('profiles')
+          .select('id')
+          .eq('role', 'site_manager')
+          .contains('site_ids', [report.site_id])
+        ;(bySiteIds || []).forEach((u: any) => recipients.add(String(u.id)))
+      } catch {
+        /* ignore */
+      }
+
+      recipients.delete(String(approverId))
+
+      const url = siteName
+        ? `/mobile/worklog?siteName=${encodeURIComponent(siteName)}`
+        : '/mobile/worklog'
+
+      await dispatchNotificationServiceRole({
+        userIds: Array.from(recipients),
         notificationType: 'daily_report_approval',
         senderId: approverId,
+        dedupe: { key: 'report_id', value: String(report.id) },
+        logMetadata: {
+          report_id: String(report.id),
+          site_id: String(report.site_id),
+          work_date: String(report.work_date),
+          result: 'approved',
+        },
         payload: {
-          title: '작업일지 승인 완료',
+          title: '작업일지 승인',
           body: `${report.work_date} 작업일지가 승인되었습니다.`,
-          data: { reportId: report.id, type: 'daily_report_approved' },
-          url: `/dashboard/daily-reports/${report.id}`,
+          url,
+          type: 'GENERAL',
           icon: '/icons/approve-icon.png',
-        } as any,
+          data: { reportId: report.id, type: 'daily_report_approved', url },
+          urgency: 'medium',
+        },
       })
+    } catch (e) {
+      // Do not fail approval flow on notification errors
+      logError(e as any, 'notifyDailyReportApproved:dispatch')
     }
   } catch (error) {
     logError(error, 'notifyDailyReportApproved')
@@ -135,21 +187,70 @@ export async function notifyDailyReportRejected(
       logError(error, 'notifyDailyReportRejected')
     }
 
-    // 2. Push Notification
-    if (report.created_by) {
-      await sendPushToUsers({
-        userIds: [report.created_by],
+    // 2. Push + In-app (service role)
+    const service = createServiceRoleClient()
+    const recipients = new Set<string>()
+    if (report.created_by) recipients.add(String(report.created_by))
+
+    try {
+      const { data: site } = await service
+        .from('sites')
+        .select('name')
+        .eq('id', report.site_id)
+        .single()
+      const siteName = (site as any)?.name ? String((site as any).name) : ''
+
+      try {
+        const { data: bySiteId } = await service
+          .from('profiles')
+          .select('id')
+          .eq('role', 'site_manager')
+          .eq('site_id', report.site_id)
+        ;(bySiteId || []).forEach((u: any) => recipients.add(String(u.id)))
+      } catch {
+        /* ignore */
+      }
+      try {
+        const { data: bySiteIds } = await service
+          .from('profiles')
+          .select('id')
+          .eq('role', 'site_manager')
+          .contains('site_ids', [report.site_id])
+        ;(bySiteIds || []).forEach((u: any) => recipients.add(String(u.id)))
+      } catch {
+        /* ignore */
+      }
+
+      recipients.delete(String(rejectedBy))
+
+      const url = siteName
+        ? `/mobile/worklog?siteName=${encodeURIComponent(siteName)}`
+        : '/mobile/worklog'
+
+      await dispatchNotificationServiceRole({
+        userIds: Array.from(recipients),
         notificationType: 'daily_report_rejection',
         senderId: rejectedBy,
+        dedupe: { key: 'report_id', value: String(report.id) },
+        logMetadata: {
+          report_id: String(report.id),
+          site_id: String(report.site_id),
+          work_date: String(report.work_date),
+          result: 'rejected',
+          reason: reason || null,
+        },
         payload: {
           title: '작업일지 반려',
           body: reason ? `반려 사유: ${reason}` : `${report.work_date} 작업일지가 반려되었습니다.`,
-          data: { reportId: report.id, type: 'daily_report_rejected' },
-          url: `/dashboard/daily-reports/${report.id}/edit`,
-          urgency: 'high',
+          url,
+          type: 'GENERAL',
           icon: '/icons/reject-icon.png',
-        } as any,
+          urgency: 'high',
+          data: { reportId: report.id, type: 'daily_report_rejected', url, reason: reason || null },
+        },
       })
+    } catch (e) {
+      logError(e as any, 'notifyDailyReportRejected:dispatch')
     }
   } catch (error) {
     logError(error, 'notifyDailyReportRejected')

@@ -136,11 +136,6 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
           value={customInput}
           onChange={e => handleCustomInputChange(e.target.value)}
           onBlur={handleCustomInputBlur}
-          style={{
-            display: 'block',
-            marginTop: '8px',
-            borderRadius: '14px',
-          }}
           autoFocus
         />
       )}

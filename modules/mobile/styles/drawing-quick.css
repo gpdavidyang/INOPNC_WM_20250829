@@ -4,8 +4,8 @@
   background: var(--card, #ffffff);
   border-radius: 12px;
   margin-bottom: var(--space-sm);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid var(--border, #e5e7eb);
+  box-shadow: none;
+  border: none;
 }
 
 .drawing-quick-container {
@@ -21,7 +21,7 @@
 }
 
 .drawing-quick-section .section-title {
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-family: var(--font-main, var(--font));
   font-size: 20px;
   font-weight: 600;
   color: var(--text, #1f2937);
@@ -37,14 +37,8 @@
   margin-left: auto; /* push to the right like form-note */
   text-align: right;
   /* Match typography with form-note / author-info */
-  font-family:
-    'Noto Sans KR',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
-  font-size: 16px;
+  font-family: var(--font-main, var(--font));
+  font-size: var(--fs-base, 17px);
   font-weight: 600;
   color: #31a3fa; /* same accent color */
 }
@@ -82,15 +76,9 @@
 .drawing-quick-section .empty-text {
   /* Align exactly with photo upload placeholder */
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-base, 17px);
   font-weight: 500;
-  font-family:
-    'Noto Sans KR',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--font-main, var(--font));
 }
 
 /* Loading State */
@@ -114,7 +102,9 @@
 
 .drawing-quick-section .loading-text {
   color: var(--text-muted, #6b7280);
-  font-size: 0.875rem;
+  font-size: var(--fs-base, 17px);
+  font-family: var(--font-main, var(--font));
+  font-weight: 600;
 }
 
 /* Quick Content */
@@ -145,14 +135,14 @@
 
 .drawing-quick-section .preview-label {
   /* Improve readability of the field caption */
-  font-size: 0.875rem; /* 14px */
+  font-size: var(--fs-base, 17px);
   font-weight: 600; /* Semi-bold */
   color: var(--brand, #1a254f); /* higher contrast */
   letter-spacing: 0.2px; /* reduce spacing for Hangul */
 }
 
 .drawing-quick-section .preview-title {
-  font-size: 0.875rem;
+  font-size: var(--fs-base, 17px);
   font-weight: 500;
   color: var(--text, #1e293b);
   white-space: nowrap;
@@ -166,15 +156,19 @@
   color: #ffffff;
   border: none;
   border-radius: 12px;
-  padding: 1rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 600;
+  min-height: var(--h-input, 54px);
+  padding: 0 16px;
+  font-size: var(--fs-base, 17px);
+  font-weight: 800;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
+  transition:
+    transform var(--dur-ui, 0.2s) var(--ease-ui, cubic-bezier(0.4, 0, 0.2, 1)),
+    box-shadow var(--dur-ui, 0.2s) var(--ease-ui, cubic-bezier(0.4, 0, 0.2, 1)),
+    background-color var(--dur-ui, 0.2s) var(--ease-ui, cubic-bezier(0.4, 0, 0.2, 1));
   box-shadow: 0 4px 12px rgba(26, 37, 79, 0.3);
 }
 
@@ -184,7 +178,8 @@
 }
 
 .drawing-quick-section .primary-action-btn:active {
-  transform: translateY(0);
+  transform: scale(0.98);
+  box-shadow: 0 0 0 4px rgba(49, 163, 250, 0.22);
 }
 
 /* Disabled state kept gray for clarity */
