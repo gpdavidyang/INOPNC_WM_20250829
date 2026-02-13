@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronDown, ChevronUp, FileText } from 'lucide-react'
 import React from 'react'
 
 interface SummarySectionProps {
@@ -78,67 +79,75 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
     Math.max(0, Number(beforePhotosCount) || 0) + Math.max(0, Number(afterPhotosCount) || 0)
 
   return (
-    <section className="summary-section">
-      <div className="work-form-container">
-        <div className="form-section">
-          <div className="work-form-title summary-title-bar">
-            <h2 className="work-form-main-title">작성 내용 요약</h2>
-            <button
-              type="button"
-              className="summary-toggle ui-pressable"
-              aria-label={collapsed ? '작성 내용 요약 펼치기' : '작성 내용 요약 접기'}
-              aria-expanded={!collapsed}
-              onClick={() => setCollapsed(prev => !prev)}
-            >
-              <span className="summary-toggle__icon" aria-hidden="true">
-                {collapsed ? '︾' : '︿'}
-              </span>
-            </button>
-          </div>
-          {!collapsed ? (
-            <div className="summary-grid">
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">현장</span>
-                <span className="summary-value">{site || '선택 안됨'}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">소속</span>
-                <span className="summary-value">{organization || '소속사 미지정'}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">작업일자</span>
-                <span className="summary-value">{workDate || '-'}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">투입인원</span>
-                <span className="summary-value">{personnelCount}명</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">부재명</span>
-                <span className="summary-value">{formatArray(memberTypes)}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">작업공정</span>
-                <span className="summary-value">{formatArray(workContents)}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">작업유형</span>
-                <span className="summary-value">{formatArray(workTypes)}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">블럭/동/층</span>
-                <span className="summary-value">{formatLocation()}</span>
-              </div>
-              <div className="summary-item summary-full-width">
-                <span className="summary-label">사진/도면 업로드</span>
-                <span className="summary-value">
-                  사진 {totalPhotos}장, 도면 {drawingCount}건
-                </span>
-              </div>
-            </div>
-          ) : null}
+    <div
+      className="bg-white rounded-2xl p-6 mb-4 shadow-sm border border-gray-100"
+      style={{
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div
+        className="flex justify-between items-center mb-3 cursor-pointer"
+        onClick={() => setCollapsed(prev => !prev)}
+      >
+        <div
+          className="text-xl font-bold text-header-navy dark:text-white flex items-center gap-2"
+          style={{ color: 'var(--header-navy)' }}
+        >
+          <FileText className="w-5 h-5 text-[#1a254f]" style={{ color: 'var(--header-navy)' }} />
+          작성 내용 요약
         </div>
+        <button
+          type="button"
+          className="text-gray-400"
+          aria-label={collapsed ? '작성 내용 요약 펼치기' : '작성 내용 요약 접기'}
+        >
+          {collapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+        </button>
       </div>
-    </section>
+
+      {!collapsed && (
+        <div className="summary-grid mt-4">
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">현장</span>
+            <span className="summary-value">{site || '선택 안됨'}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">소속</span>
+            <span className="summary-value">{organization || '소속사 미지정'}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">작업일자</span>
+            <span className="summary-value">{workDate || '-'}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">투입인원</span>
+            <span className="summary-value">{personnelCount}명</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">부재명</span>
+            <span className="summary-value">{formatArray(memberTypes)}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">작업공정</span>
+            <span className="summary-value">{formatArray(workContents)}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">작업유형</span>
+            <span className="summary-value">{formatArray(workTypes)}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">블럭/동/층</span>
+            <span className="summary-value">{formatLocation()}</span>
+          </div>
+          <div className="summary-item summary-full-width">
+            <span className="summary-label">사진/도면 업로드</span>
+            <span className="summary-value">
+              사진 {totalPhotos}장, 도면 {drawingCount}건
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

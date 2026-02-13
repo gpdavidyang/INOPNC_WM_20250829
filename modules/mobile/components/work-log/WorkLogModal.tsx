@@ -1,19 +1,8 @@
 'use client'
 
-import {
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectGroup,
-  CustomSelectItem,
-  CustomSelectLabel,
-  CustomSelectSeparator,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
 import { useToast } from '@/components/ui/use-toast'
 import { useWorkOptions } from '@/hooks/use-work-options'
 import { createClient } from '@/lib/supabase/client'
-import { cn } from '@/lib/utils'
 import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
@@ -21,15 +10,12 @@ import type {
   WorkProcess as WProc,
   WorkType as WType,
 } from '../../types/work-log.types'
-import {
-  MaterialUsageEntry,
-  MemberType,
-  WorkLog,
-  WorkProcess,
-  WorkType,
-  WorkerHours,
-} from '../../types/work-log.types'
+import { WorkLog, WorkType, WorkerHours } from '../../types/work-log.types'
 import { FileUploadSection } from './FileUploadSection'
+import { WorkLogContent } from './WorkLogContent'
+import { SiteOption, WorkLogInputs } from './WorkLogInputs'
+import { WorkLogManpower } from './WorkLogManpower'
+import { WorkLogMaterials } from './WorkLogMaterials'
 
 interface WorkLogModalProps {
   isOpen: boolean
@@ -192,6 +178,16 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     if (isOpen) fetchSites()
   }, [isOpen])
 
+  const mappedSiteOptions: SiteOption[] = useMemo(
+    () =>
+      siteOptions.map(s => ({
+        value: s.id,
+        text: s.name,
+        dept: '현장관리', // Default as specific dept info isn't in the list API yet
+      })),
+    [siteOptions]
+  )
+
   const fetchLinkedDocs = useCallback(async () => {
     if (!workLog?.id || mode === 'create') return
     setLoadingLinks(true)
@@ -232,51 +228,6 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   const hasWorkerError = Boolean(errors.workers)
   const materialEntries = formData.materials || []
 
-  const handleAddTaskSet = () => {
-    if (isViewMode) return
-    // 클릭 시 새로운 빈 작업 세트 입력 섹션을 추가
-    setTasks(prev => [
-      ...prev,
-      {
-        memberTypes: [],
-        workProcesses: [],
-        workTypes: [],
-        location: { block: '', dong: '', unit: '' },
-      },
-    ])
-  }
-
-  const updateTaskAt = (
-    index: number,
-    updater: (t: {
-      memberTypes: MType[]
-      workProcesses: WProc[]
-      workTypes: WType[]
-      location: { block: string; dong: string; unit: string }
-    }) => {
-      memberTypes: MType[]
-      workProcesses: WProc[]
-      workTypes: WType[]
-      location: { block: string; dong: string; unit: string }
-    }
-  ) => {
-    setTasks(prev => prev.map((t, i) => (i === index ? updater(t) : t)))
-  }
-
-  const toggleTaskArrayValue = (
-    index: number,
-    field: 'memberTypes' | 'workProcesses' | 'workTypes',
-    value: MType | WProc | WType
-  ) => {
-    if (isViewMode) return
-    updateTaskAt(index, t => {
-      const arr = t[field] as (MType | WProc | WType)[]
-      const exists = arr.includes(value)
-      const next = exists ? (arr.filter(v => v !== value) as any) : ([...arr, value] as any)
-      return { ...t, [field]: next } as any
-    })
-  }
-
   const validateForm = (status: 'draft' | 'submitted') => {
     const nextErrors: Record<string, string> = {}
 
@@ -303,91 +254,6 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
 
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
-  }
-
-  const handleToggleArrayValue = (
-    field: 'memberTypes' | 'workProcesses' | 'workTypes',
-    value: MemberType | WorkProcess | WorkType
-  ) => {
-    if (isViewMode) return
-    setFormData(prev => {
-      const current = prev[field] || []
-      const exists = current.includes(value)
-      const updated = exists ? current.filter(item => item !== value) : [...current, value]
-      return { ...prev, [field]: updated }
-    })
-  }
-
-  const handleAddWorker = () => {
-    if (isViewMode) return
-    if (!newWorker.name || newWorker.hours <= 0) return
-
-    const workerId = newWorker.id || `w-${Date.now()}`
-    setFormData(prev => ({
-      ...prev,
-      workers: [...(prev.workers || []), { ...newWorker, id: workerId }],
-    }))
-    setNewWorker({ id: '', name: '', hours: 0 })
-  }
-
-  const handleRemoveWorker = (workerId: string) => {
-    if (isViewMode) return
-    setFormData(prev => ({
-      ...prev,
-      workers: prev.workers?.filter(worker => worker.id !== workerId) || [],
-    }))
-  }
-
-  const handleAddMaterial = () => {
-    if (isViewMode) return
-    setFormData(prev => ({
-      ...prev,
-      materials: [
-        ...(prev.materials || []),
-        { material_name: '', material_code: null, quantity: 0, unit: '', notes: '' },
-      ],
-    }))
-  }
-
-  const handleMaterialChange = (index: number, field: keyof MaterialUsageEntry, value: string) => {
-    if (isViewMode) return
-    setFormData(prev => {
-      const current = [...(prev.materials || [])]
-      if (!current[index]) {
-        current[index] = {
-          material_name: '',
-          material_code: null,
-          quantity: 0,
-          unit: '',
-          notes: '',
-        }
-      }
-      const entry = { ...current[index] }
-
-      if (field === 'quantity') {
-        const numeric = Number(value)
-        entry.quantity = Number.isFinite(numeric) ? numeric : 0
-      } else if (field === 'material_code') {
-        entry.material_code = value || null
-      } else if (field === 'material_name') {
-        entry.material_name = value
-      } else if (field === 'unit') {
-        entry.unit = value
-      } else if (field === 'notes') {
-        entry.notes = value
-      }
-
-      current[index] = entry
-      return { ...prev, materials: current }
-    })
-  }
-
-  const handleRemoveMaterialEntry = (index: number) => {
-    if (isViewMode) return
-    setFormData(prev => ({
-      ...prev,
-      materials: (prev.materials || []).filter((_, i) => i !== index),
-    }))
   }
 
   const handleSave = async (targetStatus: 'draft' | 'submitted') => {
@@ -535,6 +401,18 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
     [fetchLinkedDocs, linkedDrawings, toast, workLog]
   )
 
+  const handleReset = () => {
+    if (confirm('작성 중인 내용을 초기화하시겠습니까?')) {
+      setFormData(createInitialFormData(workLog))
+      setTasks((workLog?.tasks as any) || [])
+      setErrors({})
+      toast({
+        title: '초기화 완료',
+        description: '입력하신 내용이 초기화되었습니다.',
+      })
+    }
+  }
+
   const handleDrawingSelection = useCallback(
     (drawing: any) => {
       if (!drawing) return
@@ -589,519 +467,65 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
         </header>
 
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
-          {/* 상단 섹션 제목 + 추가 버튼 */}
-          <div className="flex items-center mb-3">
-            <h3 className="text-base font-semibold text-[#1A254F]">작업 내용 기록</h3>
-            {!isViewMode && (
-              <button
-                type="button"
-                onClick={handleAddTaskSet}
-                className="ml-auto rounded-full border border-[#cbd5e1] px-3 py-1.5 text-sm font-semibold text-[#1A254F] hover:bg-gray-50"
-              >
-                추가
-              </button>
-            )}
+          <div className="space-y-4">
+            <WorkLogInputs
+              sites={mappedSiteOptions}
+              selectedSiteId={formData.siteId || ''}
+              onSiteChange={site => {
+                setFormData(prev => ({
+                  ...prev,
+                  siteId: site.value,
+                  siteName: site.text,
+                }))
+                if (errors.site) setErrors(prev => ({ ...prev, site: '' }))
+              }}
+              workDate={formData.date || ''}
+              onDateChange={date => {
+                setFormData(prev => ({ ...prev, date }))
+                if (errors.date) setErrors(prev => ({ ...prev, date: '' }))
+              }}
+              disabled={isViewMode}
+            />
+            {errors.date && <p className="mt-1 text-xs text-red-500">{errors.date}</p>}
+            {errors.site && <p className="mt-1 text-xs text-red-500">{errors.site}</p>}
+
+            <WorkLogContent
+              memberTypeOptions={memberTypeOptions}
+              workProcessOptions={workProcessOptions}
+              workTypeOptions={workTypeOptions}
+              baseTask={{
+                memberTypes: formData.memberTypes || [],
+                workProcesses: formData.workProcesses || [],
+                workTypes: formData.workTypes || [],
+                location: formData.location || { block: '', dong: '', unit: '' },
+              }}
+              additionalTasks={tasks.map(t => ({
+                memberTypes: t.memberTypes || [],
+                workProcesses: t.workProcesses || [],
+                workTypes: t.workTypes || [],
+                location: t.location || { block: '', dong: '', unit: '' },
+              }))}
+              onBaseTaskChange={updates => setFormData(prev => ({ ...prev, ...updates }))}
+              onAdditionalTasksChange={newTasks => setTasks(newTasks as any[])}
+              disabled={isViewMode}
+            />
           </div>
-          <div className="grid gap-5 md:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">작업일자 *</label>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  disabled={isViewMode}
-                  className={cn(
-                    'mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]',
-                    errors.date ? 'border-red-400 bg-red-50' : 'border-gray-300'
-                  )}
-                />
-                {errors.date && <p className="mt-1 text-xs text-red-500">{errors.date}</p>}
-              </div>
+          <WorkLogMaterials
+            materials={formData.materials || []}
+            onChange={m => setFormData(prev => ({ ...prev, materials: m }))}
+            disabled={isViewMode}
+          />
 
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">현장 *</label>
-                <select
-                  value={formData.siteId}
-                  onChange={e => {
-                    const option = e.target.options[e.target.selectedIndex]
-                    setFormData(prev => ({
-                      ...prev,
-                      siteId: e.target.value,
-                      siteName: option.text,
-                    }))
-                  }}
-                  disabled={isViewMode}
-                  className={cn(
-                    'mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]',
-                    errors.site ? 'border-red-400 bg-red-50' : 'border-gray-300'
-                  )}
-                >
-                  <option value="">현장 선택</option>
-                  {siteOptions.map(site => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.site && <p className="mt-1 text-xs text-red-500">{errors.site}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">부재명 *</label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {memberTypeOptions.map(type => {
-                    const active = (formData.memberTypes as any)?.includes(type)
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        disabled={isViewMode}
-                        onClick={() => handleToggleArrayValue('memberTypes', type as any)}
-                        className={cn(
-                          'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                          active
-                            ? 'bg-[#1A254F] text-white'
-                            : 'border border-gray-300 text-[#475467] hover:border-[#1A254F] hover:text-[#1A254F]'
-                        )}
-                      >
-                        {type}
-                      </button>
-                    )
-                  })}
-                </div>
-                {errors.memberTypes && (
-                  <p className="mt-1 text-xs text-red-500">{errors.memberTypes}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">작업공정 *</label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {workProcessOptions.map(type => {
-                    const active = (formData.workProcesses as any)?.includes(type)
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        disabled={isViewMode}
-                        onClick={() => handleToggleArrayValue('workProcesses', type as any)}
-                        className={cn(
-                          'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                          active
-                            ? 'bg-[#1A254F] text-white'
-                            : 'border border-gray-300 text-[#475467] hover:border-[#1A254F] hover:text-[#1A254F]'
-                        )}
-                      >
-                        {type}
-                      </button>
-                    )
-                  })}
-                </div>
-                {errors.workProcesses && (
-                  <p className="mt-1 text-xs text-red-500">{errors.workProcesses}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">작업공간 *</label>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {workTypeOptions.map(type => {
-                    const active = formData.workTypes?.includes(type)
-                    return (
-                      <button
-                        key={type}
-                        type="button"
-                        disabled={isViewMode}
-                        onClick={() => handleToggleArrayValue('workTypes', type)}
-                        className={cn(
-                          'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                          active
-                            ? 'bg-[#1A254F] text-white'
-                            : 'border border-gray-300 text-[#475467] hover:border-[#1A254F] hover:text-[#1A254F]'
-                        )}
-                      >
-                        {type}
-                      </button>
-                    )
-                  })}
-                </div>
-                {errors.workTypes && (
-                  <p className="mt-1 text-xs text-red-500">{errors.workTypes}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {(['block', 'dong', 'unit'] as const).map(field => (
-                  <div key={field}>
-                    <label className="block text-xs font-medium text-[#475467]">
-                      {field === 'block' ? '블럭' : field === 'dong' ? '동' : '층'}
-                    </label>
-                    <input
-                      type="text"
-                      disabled={isViewMode}
-                      value={(formData.location as any)?.[field] || ''}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          location: { ...prev.location!, [field]: e.target.value },
-                        }))
-                      }
-                      className={cn(
-                        'mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]',
-                        errors[field] ? 'border-red-400 bg-red-50' : 'border-gray-300'
-                      )}
-                    />
-                    {errors[field] && <p className="mt-1 text-xs text-red-500">{errors[field]}</p>}
-                  </div>
-                ))}
-              </div>
-
-              {/* 추가된 작업 세트: 개별 입력 섹션 */}
-              <div className="mt-2">
-                {!isViewMode && (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={handleAddTaskSet}
-                      className="rounded-full border border-[#cbd5e1] px-3 py-1.5 text-sm font-semibold text-[#1A254F] hover:bg-gray-50"
-                    >
-                      추가
-                    </button>
-                  </div>
-                )}
-                {tasks.length > 0 && (
-                  <div className="mt-3 space-y-4">
-                    {tasks.map((t, i) => (
-                      <div key={i} className="rounded-xl border border-[#e5e7eb] p-3">
-                        <div className="mb-2 flex items-center">
-                          <span className="text-sm font-semibold text-[#1A254F]">
-                            작업 세트 #{i + 1}
-                          </span>
-                          {!isViewMode && (
-                            <button
-                              type="button"
-                              onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
-                              className="ml-auto text-xs text-[#dc2626] hover:underline"
-                            >
-                              삭제
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid gap-3 md:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-medium text-[#475467]">
-                              부재명
-                            </label>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {memberTypeOptions.map(type => {
-                                const active = (t.memberTypes as any)?.includes(type)
-                                return (
-                                  <button
-                                    key={type}
-                                    type="button"
-                                    disabled={isViewMode}
-                                    onClick={() =>
-                                      toggleTaskArrayValue(i, 'memberTypes', type as any)
-                                    }
-                                    className={cn(
-                                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                                      active
-                                        ? 'bg-[#1A254F] text-white'
-                                        : 'border border-gray-300 text-[#475467] hover:border-[#1A254F] hover:text-[#1A254F]'
-                                    )}
-                                  >
-                                    {type}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-[#475467]">
-                              작업공정
-                            </label>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {workProcessOptions.map(type => {
-                                const active = (t.workProcesses as any)?.includes(type)
-                                return (
-                                  <button
-                                    key={type}
-                                    type="button"
-                                    disabled={isViewMode}
-                                    onClick={() =>
-                                      toggleTaskArrayValue(i, 'workProcesses', type as any)
-                                    }
-                                    className={cn(
-                                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                                      active
-                                        ? 'bg-[#1A254F] text-white'
-                                        : 'border border-gray-300 text-[#475467] hover:border-[#1A254F] hover:text-[#1A254F]'
-                                    )}
-                                  >
-                                    {type}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-3 grid gap-3 md:grid-cols-2">
-                          <div>
-                            <label className="block text-xs font-medium text-[#475467]">
-                              작업유형
-                            </label>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {workTypeOptions.map(type => {
-                                const active = t.workTypes?.includes(type)
-                                return (
-                                  <button
-                                    key={type}
-                                    type="button"
-                                    disabled={isViewMode}
-                                    onClick={() => toggleTaskArrayValue(i, 'workTypes', type)}
-                                    className={cn(
-                                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                                      active
-                                        ? 'bg-[#1A254F] text-white'
-                                        : 'border border-gray-300 text-[#475467] hover:border-[#1A254F] hover:text-[#1A254F]'
-                                    )}
-                                  >
-                                    {type}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2">
-                            {(['block', 'dong', 'unit'] as const).map(field => (
-                              <div key={field}>
-                                <label className="block text-xs font-medium text-[#475467]">
-                                  {field === 'block' ? '블럭' : field === 'dong' ? '동' : '층'}
-                                </label>
-                                <input
-                                  type="text"
-                                  disabled={isViewMode}
-                                  value={(t.location as any)?.[field] || ''}
-                                  onChange={e =>
-                                    updateTaskAt(i, current => ({
-                                      ...current,
-                                      location: { ...current.location, [field]: e.target.value },
-                                    }))
-                                  }
-                                  className="mt-1 w-full rounded-lg border px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F] border-gray-300"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">작업자 *</label>
-                <div className="mt-2 flex gap-2">
-                  <div className="w-full">
-                    <CustomSelect
-                      value={newWorker.id}
-                      onValueChange={val => {
-                        const opt = userOptions.find(u => u.id === val)
-                        setNewWorker(prev => ({ ...prev, id: val, name: opt?.name || '' }))
-                      }}
-                      disabled={isViewMode}
-                    >
-                      <CustomSelectTrigger className="h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm font-medium shadow-sm focus:outline-none focus:ring-1 focus:ring-[#1A254F]">
-                        <CustomSelectValue placeholder="작업자 선택" />
-                      </CustomSelectTrigger>
-                      <CustomSelectContent className="max-h-64 overflow-auto">
-                        {groupedUserOptions.length === 0 ? (
-                          <CustomSelectItem value="__empty__" disabled>
-                            불러올 사용자가 없습니다
-                          </CustomSelectItem>
-                        ) : (
-                          groupedUserOptions.map((group, index) => (
-                            <CustomSelectGroup key={group.key}>
-                              <CustomSelectLabel className="pl-3 text-xs text-gray-500">
-                                {group.label}
-                              </CustomSelectLabel>
-                              {group.options.map(u => (
-                                <CustomSelectItem key={u.id} value={u.id}>
-                                  <span className="flex flex-col">
-                                    <span className="text-sm font-medium">{u.name}</span>
-                                    <span className="text-xs text-gray-500">
-                                      {
-                                        ROLE_LABELS[
-                                          u.role === 'site_manager' ? 'site_manager' : 'worker'
-                                        ]
-                                      }
-                                    </span>
-                                  </span>
-                                </CustomSelectItem>
-                              ))}
-                              {index < groupedUserOptions.length - 1 && <CustomSelectSeparator />}
-                            </CustomSelectGroup>
-                          ))
-                        )}
-                      </CustomSelectContent>
-                    </CustomSelect>
-                  </div>
-                  <input
-                    type="number"
-                    placeholder="시간"
-                    min={0.5}
-                    step={0.5}
-                    value={newWorker.hours || ''}
-                    disabled={isViewMode}
-                    onChange={e =>
-                      setNewWorker(prev => ({ ...prev, hours: parseFloat(e.target.value) || 0 }))
-                    }
-                    className="w-28 h-10 rounded-lg border border-gray-300 px-3 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddWorker}
-                    disabled={isViewMode}
-                    className="rounded-lg bg-[#1A254F] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#101a3f] disabled:cursor-not-allowed disabled:bg-gray-300"
-                  >
-                    추가
-                  </button>
-                </div>
-                {hasWorkerError && <p className="mt-1 text-xs text-red-500">{errors.workers}</p>}
-
-                <ul className="mt-3 space-y-2 text-sm">
-                  {(formData.workers || []).map(worker => (
-                    <li
-                      key={worker.id}
-                      className="flex items-center justify-between rounded-lg bg-[#f8f9fb] px-3 py-2"
-                    >
-                      <span>
-                        {worker.name} ({worker.hours}시간)
-                      </span>
-                      {!isViewMode && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveWorker(worker.id)}
-                          className="text-xs text-[#dc2626] hover:underline"
-                        >
-                          제거
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#475467]">자재 사용량</label>
-                {isViewMode ? (
-                  <div className="mt-3 space-y-2 text-sm text-[#1A254F]">
-                    {materialEntries.length === 0 ? (
-                      <p className="text-xs text-[#98a2b3]">자재 사용이 기록되지 않았습니다.</p>
-                    ) : (
-                      materialEntries.map((material, index) => {
-                        const quantity = Number(material.quantity ?? 0)
-                        const quantityText = Number.isFinite(quantity)
-                          ? quantity.toLocaleString('ko-KR')
-                          : String(material.quantity || '')
-                        const unitText = material.unit ? ` ${material.unit}` : ''
-                        return (
-                          <div
-                            key={`material-view-${index}`}
-                            className="flex items-center justify-between rounded-lg bg-[#f8f9fb] px-3 py-2"
-                          >
-                            <span>
-                              {material.material_name || material.material_code || '자재'}
-                            </span>
-                            <span className="font-semibold text-[#1A254F]">
-                              {quantityText}
-                              {unitText}
-                            </span>
-                          </div>
-                        )
-                      })
-                    )}
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-3">
-                    {materialEntries.map((material, index) => (
-                      <div
-                        key={`material-edit-${index}`}
-                        className="rounded-lg border border-gray-200 p-3"
-                      >
-                        <div className="flex flex-wrap gap-2">
-                          <input
-                            type="text"
-                            placeholder="자재명"
-                            value={material.material_name}
-                            onChange={e =>
-                              handleMaterialChange(index, 'material_name', e.target.value)
-                            }
-                            className="flex-1 min-w-[120px] rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                          />
-                          <input
-                            type="text"
-                            placeholder="코드"
-                            value={material.material_code || ''}
-                            onChange={e =>
-                              handleMaterialChange(index, 'material_code', e.target.value)
-                            }
-                            className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                          />
-                          <input
-                            type="number"
-                            placeholder="수량"
-                            value={material.quantity ?? ''}
-                            onChange={e => handleMaterialChange(index, 'quantity', e.target.value)}
-                            className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                          />
-                          <select
-                            value={material.unit || ''}
-                            onChange={e => handleMaterialChange(index, 'unit', e.target.value)}
-                            className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                          >
-                            <option value="">단위</option>
-                            <option value="ea">ea</option>
-                            <option value="kg">kg</option>
-                            <option value="L">L</option>
-                            <option value="m">m</option>
-                            <option value="m²">m²</option>
-                            <option value="m³">m³</option>
-                            <option value="ton">ton</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveMaterialEntry(index)}
-                            className="px-3 py-2 text-xs font-semibold text-[#dc2626] transition-colors hover:underline"
-                          >
-                            삭제
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          placeholder="비고 (선택)"
-                          value={material.notes || ''}
-                          onChange={e => handleMaterialChange(index, 'notes', e.target.value)}
-                          className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-[#1A254F] focus:outline-none focus:ring-1 focus:ring-[#1A254F]"
-                        />
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={handleAddMaterial}
-                      className="inline-flex items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-2 text-sm text-[#1A254F] hover:border-[#1A254F]"
-                    >
-                      + 자재 추가
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <WorkLogManpower
+            workers={formData.workers || []}
+            onChange={newWorkers => {
+              setFormData(prev => ({ ...prev, workers: newWorkers }))
+              if (errors.workers) setErrors(prev => ({ ...prev, workers: '' }))
+            }}
+            userOptions={userOptions}
+            disabled={isViewMode}
+          />
+          {hasWorkerError && <p className="mt-1 text-xs text-red-500">{errors.workers}</p>}
 
           <div className="mt-5">
             <label className="block text-xs font-medium text-[#475467]">진행률</label>
@@ -1243,40 +667,45 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
           </div>
         </div>
 
-        <footer className="border-t border-gray-200 bg-[#f8f9fb] px-6 py-4">
+        <footer className="bg-transparent px-6 pb-6 pt-2">
           {isViewMode ? (
             <button
               type="button"
               onClick={onClose}
-              className="w-full rounded-lg bg-[#1A254F] py-3 text-sm font-semibold text-white hover:bg-[#101a3f]"
+              className="w-full h-[50px] rounded-xl bg-[#1A254F] text-[15px] font-bold text-white hover:bg-[#101a3f] transition-colors"
             >
               닫기
             </button>
           ) : (
-            <div className="grid gap-3 md:grid-cols-3">
+            <div
+              className="flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-white p-2.5 shadow-xl"
+              style={{
+                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+              }}
+            >
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-lg border border-[#d0d5dd] bg-white py-3 text-sm font-semibold text-[#475467] transition-colors hover:bg-gray-100"
+                onClick={handleReset}
                 disabled={loading}
+                className="flex-1 h-[50px] rounded-xl border border-gray-300 bg-gray-100 text-[15px] font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-50 transition-colors"
               >
-                취소
+                초기화
               </button>
               <button
                 type="button"
                 onClick={() => handleSave('draft')}
-                className="rounded-lg border border-[#1A254F] bg-white py-3 text-sm font-semibold text-[#1A254F] transition-colors hover:bg-[#1A254F] hover:text-white disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
                 disabled={loading}
+                className="flex-1 h-[50px] rounded-xl border border-sky-200 bg-sky-50 text-[15px] font-bold text-sky-600 hover:bg-sky-100 disabled:opacity-50 transition-colors"
               >
                 {loading ? '저장 중...' : '임시 저장'}
               </button>
               <button
                 type="button"
                 onClick={() => handleSave('submitted')}
-                className="rounded-lg bg-[#1A254F] py-3 text-sm font-semibold text-white transition-colors hover:bg-[#101a3f] disabled:cursor-not-allowed disabled:bg-gray-300"
                 disabled={loading}
+                className="flex-1 h-[50px] rounded-xl bg-[#1A254F] text-[15px] font-bold text-white hover:bg-[#101a3f] disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? '제출 중...' : '제출'}
+                {loading ? '저장 중...' : '일지저장'}
               </button>
             </div>
           )}

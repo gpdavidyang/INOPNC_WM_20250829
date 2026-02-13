@@ -18,6 +18,7 @@ import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/work-form.css'
 import { AdditionalManpower, WorkLogLocation, WorkSection } from '@/types/worklog'
 import { User } from '@supabase/supabase-js'
+import { Image, MapPin } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { DrawingQuickAction } from './DrawingQuickAction'
@@ -921,7 +922,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   }
 
   return (
-    <main className="container fs-100">
+    <div className="container fs-100 pb-40">
       {/* Auth Debug Info - Only in development */}
       {showSlowSaving && (
         <div className="slow-loading-overlay" role="status" aria-live="polite" aria-busy="true">
@@ -941,156 +942,211 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       )}
       {/* 빠른메뉴 */}
       <QuickMenu />
-
       {/* 공지사항 */}
       {userProfile?.role !== 'site_manager' && <NoticeSection />}
-
-      {/* 통합된 작업 섹션 - 요구사항에 맞게 하나의 카드로 통합 */}
-      <div className="work-form-container">
-        {/* 작업일지 작성 제목 */}
-        <div className="work-form-title">
-          <h2 className="work-form-main-title">작업일지 작성</h2>
+      {/* Work Site Card */}
+      <div
+        className="rounded-2xl p-6 shadow-sm border border-transparent dark:border-slate-700 mb-4"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <div
+            className="text-xl font-bold text-header-navy dark:text-white flex items-center gap-2"
+            style={{ color: 'var(--header-navy)' }}
+          >
+            <MapPin className="w-5 h-5" style={{ color: 'var(--header-navy)' }} />
+            작업현장 <span className="text-red-500">*</span>
+          </div>
+          <span className="bg-red-50 text-red-500 text-[13px] font-bold h-8 px-3.5 rounded-xl flex items-center">
+            * 필수 입력
+          </span>
         </div>
 
-        {/* 선택 현장 */}
-        <div className="form-section no-divider" style={{ paddingBottom: 0 }}>
-          <div className="section-header">
-            <h3 className="section-title">
-              작업현장 <span className="required">*</span>
-            </h3>
-            <span className="form-note">* 필수 입력</span>
+        <div className="mb-3">
+          <SiteSearchInput
+            ref={siteInputRef as any}
+            siteQuery={siteQuery}
+            onQueryChange={query => {
+              siteUserEditingRef.current = true
+              setSiteQuery(query)
+              setSiteDropdownOpen(true)
+              setSiteActiveIndex(0)
+              if (!query.trim()) {
+                if (selectedSite) {
+                  setSelectedSite('')
+                  setExternalSiteInfo(null)
+                }
+              } else if (selectedSite) {
+                setSelectedSite('')
+                setExternalSiteInfo(null)
+              }
+            }}
+            siteDropdownOpen={siteDropdownOpen}
+            setSiteDropdownOpen={setSiteDropdownOpen}
+            siteActiveIndex={siteActiveIndex}
+            setSiteActiveIndex={setSiteActiveIndex}
+            sites={sites}
+            sitesLoading={sitesLoading}
+            sitesError={sitesError}
+            siteDropdownItems={siteDropdownItems}
+            onSiteSelect={handleSelectSite}
+            onClear={handleClearSite}
+            siteUserEditingRef={siteUserEditingRef}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label
+              className="block text-[15px] font-bold mb-2"
+              style={{ color: 'var(--text-sub)' }}
+            >
+              소속 <span className="text-[14px] font-medium ml-1">ㅣ 자동연동</span>
+            </label>
+            <input
+              type="text"
+              className="w-full h-[54px] bg-slate-100 rounded-xl px-4 text-[17px] font-medium cursor-not-allowed"
+              style={{
+                background: '#f1f5f9',
+                border: '1px solid var(--border)',
+                color: 'var(--text-sub)',
+              }}
+              value={organizationLabel}
+              readOnly
+              placeholder="자동연동"
+            />
           </div>
-          <div className="form-row" style={{ marginBottom: 12, gridTemplateColumns: '1fr' }}>
-            <div className="form-group">
-              <SiteSearchInput
-                ref={siteInputRef as any}
-                siteQuery={siteQuery}
-                onQueryChange={query => {
-                  siteUserEditingRef.current = true
-                  setSiteQuery(query)
-                  setSiteDropdownOpen(true)
-                  setSiteActiveIndex(0)
-                  if (!query.trim()) {
-                    if (selectedSite) {
-                      setSelectedSite('')
-                      setExternalSiteInfo(null)
-                    }
-                  } else if (selectedSite) {
-                    setSelectedSite('')
-                    setExternalSiteInfo(null)
-                  }
+          <div>
+            <label
+              className="block text-[15px] font-bold mb-2"
+              style={{ color: 'var(--text-sub)' }}
+            >
+              작업일자
+            </label>
+            <div className="relative" onClick={handleCalendarClick}>
+              <input
+                type="date"
+                className="w-full h-[54px] bg-[var(--bg-input)] border border-[var(--border)] rounded-xl px-4 text-[17px] font-medium outline-none date-input"
+                style={{
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  fontFamily: 'var(--font-main)',
                 }}
-                siteDropdownOpen={siteDropdownOpen}
-                setSiteDropdownOpen={setSiteDropdownOpen}
-                siteActiveIndex={siteActiveIndex}
-                setSiteActiveIndex={setSiteActiveIndex}
-                sites={sites}
-                sitesLoading={sitesLoading}
-                sitesError={sitesError}
-                siteDropdownItems={siteDropdownItems}
-                onSiteSelect={handleSelectSite}
-                onClear={handleClearSite}
-                siteUserEditingRef={siteUserEditingRef}
+                value={workDate}
+                onChange={e => setWorkDate(e.target.value)}
               />
-              {sitesError && (
-                <div className="inline-error" role="alert">
-                  <span>{sitesError}</span>
-                  <button type="button" className="retry-btn" onClick={reloadSites}>
-                    재시도
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
-
-        <WorkLogInputs
-          organizationLabel={organizationLabel}
-          workDate={workDate}
-          setWorkDate={setWorkDate}
-          onCalendarClick={handleCalendarClick}
-          onCalendarKeyDown={handleCalendarKeyDown}
-          selectedAuthorId={selectedAuthorId}
-          setSelectedAuthorId={setSelectedAuthorId}
-          userOptions={userOptions}
-          usersLoading={usersLoading}
-          mainManpower={mainManpower}
-          setMainManpower={setMainManpower}
-          additionalManpower={additionalManpower}
-          setAdditionalManpower={setAdditionalManpower}
-          laborHourValues={laborHourValues}
-          userProfile={userProfile}
-          defaultLaborHour={defaultLaborHour}
-          allUserOptions={allUserOptions}
-          memberTypes={memberTypes}
-          setMemberTypes={setMemberTypes}
-          MEMBER_TYPE_OPTIONS={MEMBER_TYPE_OPTIONS}
-          workContents={workContents}
-          setWorkContents={setWorkContents}
-          WORK_PROCESS_OPTIONS={WORK_PROCESS_OPTIONS}
-          workTypes={workTypes}
-          setWorkTypes={setWorkTypes}
-          WORK_TYPE_OPTIONS={WORK_TYPE_OPTIONS}
-          location={location}
-          setLocation={setLocation}
-          tasks={tasks}
-          setTasks={setTasks}
-          materials={materials}
-          setMaterials={setMaterials}
-        />
-
-        {/* 액션 버튼 */}
-        <div className="form-actions">
-          <button className="btn btn-secondary" onClick={handleReset}>
+        {sitesError && (
+          <div className="inline-error mt-3" role="alert">
+            <span>{sitesError}</span>
+            <button type="button" className="retry-btn" onClick={reloadSites}>
+              재시도
+            </button>
+          </div>
+        )}
+      </div>
+      <WorkLogInputs
+        organizationLabel={organizationLabel}
+        workDate={workDate}
+        setWorkDate={setWorkDate}
+        onCalendarClick={handleCalendarClick}
+        onCalendarKeyDown={handleCalendarKeyDown}
+        selectedAuthorId={selectedAuthorId}
+        setSelectedAuthorId={setSelectedAuthorId}
+        userOptions={userOptions}
+        usersLoading={usersLoading}
+        mainManpower={mainManpower}
+        setMainManpower={setMainManpower}
+        additionalManpower={additionalManpower}
+        setAdditionalManpower={setAdditionalManpower}
+        laborHourValues={laborHourValues}
+        userProfile={userProfile}
+        defaultLaborHour={defaultLaborHour}
+        allUserOptions={allUserOptions}
+        memberTypes={memberTypes}
+        setMemberTypes={setMemberTypes}
+        MEMBER_TYPE_OPTIONS={MEMBER_TYPE_OPTIONS}
+        workContents={workContents}
+        setWorkContents={setWorkContents}
+        WORK_PROCESS_OPTIONS={WORK_PROCESS_OPTIONS}
+        workTypes={workTypes}
+        setWorkTypes={setWorkTypes}
+        WORK_TYPE_OPTIONS={WORK_TYPE_OPTIONS}
+        location={location}
+        setLocation={setLocation}
+        tasks={tasks}
+        setTasks={setTasks}
+        materials={materials}
+        setMaterials={setMaterials}
+      />
+      {/* 액션 버튼 */}
+      <div
+        className="sticky bottom-[80px] z-40 p-2.5 bg-white border border-gray-200 rounded-2xl shadow-xl mb-5 transition-all"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div className="flex gap-2.5">
+          <button
+            className="flex-1 h-[50px] bg-slate-100 text-slate-600 font-bold rounded-xl border border-slate-300 text-[15px]"
+            onClick={handleReset}
+          >
             초기화
           </button>
           <button
-            className="btn btn-temp-save"
+            className="flex-1 h-[50px] bg-sky-50 text-sky-600 font-bold rounded-xl border border-sky-200 text-[15px]"
             onClick={handleTemporarySave}
             disabled={createWorklogMutation.isPending}
           >
             임시 저장
           </button>
           <button
-            className="btn btn-primary btn-save"
+            className="flex-1 h-[50px] text-white font-bold rounded-xl transition-all text-[15px]"
+            style={{ background: 'var(--header-navy)' }}
             onClick={handleSave}
             disabled={createWorklogMutation.isPending}
           >
-            저장
+            일지저장
           </button>
         </div>
-
-        {/* Inline action feedback is intentionally hidden to avoid duplicate messaging with toasts */}
-      </div>
-
-      {userProfile?.role === 'site_manager' ? (
-        <div className="work-form-container home-media-wrapper">
-          <div className="work-form-title">
-            <h2 className="work-form-main-title">사진 및 도면</h2>
-          </div>
-          <div className="home-media-grid">
-            <PhotoUploadCard
-              className="home-media-grid__item"
-              selectedSite={selectedSite}
-              workDate={workDate}
-            />
-            <DrawingQuickAction
-              className="home-media-grid__item"
-              selectedSite={selectedSite}
-              workDate={workDate}
-            />
+      </div>{' '}
+      {/* Inline action feedback is intentionally hidden to avoid duplicate messaging with toasts */}
+      <div
+        className="work-form-container home-media-wrapper rounded-2xl p-6 shadow-sm border border-transparent dark:border-slate-700 mb-4"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <div
+            className="text-xl font-bold text-header-navy dark:text-white flex items-center gap-2"
+            style={{ color: 'var(--header-navy)' }}
+          >
+            <Image className="w-5 h-5" style={{ color: 'var(--header-navy)' }} />
+            사진 및 도면
           </div>
         </div>
-      ) : (
-        <>
-          {/* 사진 업로드 - 별도 카드 */}
-          <PhotoUploadCard selectedSite={selectedSite} workDate={workDate} />
 
-          {/* 도면마킹 - 간소화된 Quick Action */}
-          <DrawingQuickAction selectedSite={selectedSite} workDate={workDate} />
-        </>
-      )}
-
+        <div className="home-media-grid">
+          <PhotoUploadCard
+            className="home-media-grid__item"
+            selectedSite={selectedSite}
+            workDate={workDate}
+          />
+          <DrawingQuickAction
+            className="home-media-grid__item"
+            selectedSite={selectedSite}
+            workDate={workDate}
+          />
+        </div>
+      </div>
       {/* 작성 내용 요약 - 페이지 맨 아래 배치 */}
       <SummarySection
         site={sites.find(s => s.id === selectedSite)?.name || ''}
@@ -1111,6 +1167,6 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         manpower={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}
         drawingCount={0}
       />
-    </main>
+    </div>
   )
 }

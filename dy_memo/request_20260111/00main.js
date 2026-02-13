@@ -1,0 +1,3787 @@
+/* global lucide */
+// Constants
+const REGION_SITES = {
+  전체: [],
+  수도권: [
+    { value: 'site1', text: '자이 아파트 101동', dept: 'HQ' },
+    { value: 'site2', text: '삼성 반도체 P3', dept: 'HQ' },
+    { value: 'site3', text: '힐스테이트 센트럴', dept: 'HQ' },
+    { value: 'site13', text: '서울 롯데타워 보수', dept: 'HQ' },
+    { value: 'site14', text: '인천 공항 제2터미널', dept: 'HQ' },
+    { value: 'site15', text: '광명 무역센터', dept: 'HQ' },
+  ],
+  충청권: [
+    { value: 'site4', text: '대전 테크노밸리', dept: 'HQ' },
+    { value: 'site5', text: '청주 산업단지', dept: 'HQ' },
+    { value: 'site16', text: '천안 아산 배방지구', dept: 'HQ' },
+    { value: 'site17', text: '세종 정부청사 별관', dept: 'HQ' },
+  ],
+  전라권: [
+    { value: 'site6', text: '광주 첨단단지', dept: 'HQ' },
+    { value: 'site7', text: '전주 혁신도시', dept: 'HQ' },
+    { value: 'site18', text: '여수 국가산업단지', dept: 'HQ' },
+  ],
+  경상권: [
+    { value: 'site8', text: '부산 해운대 엘시티', dept: 'HQ' },
+    { value: 'site9', text: '울산 현대자동차 공장', dept: 'HQ' },
+    { value: 'site10', text: '대구 수성구 범어동', dept: 'HQ' },
+    { value: 'site19', text: '포항 제철소 2고로', dept: 'HQ' },
+    { value: 'site20', text: '창원 국가산단', dept: 'HQ' },
+  ],
+  강원권: [
+    { value: 'site11', text: '강릉 관광단지', dept: 'HQ' },
+    { value: 'site12', text: '원주 혁신도시', dept: 'HQ' },
+    { value: 'site21', text: '춘천 레고랜드', dept: 'HQ' },
+  ],
+}
+
+const PREDEFINED_WORKERS = ['이현수', '김철수', '박영희', '정민수', '최지영']
+const MEMBER_CHIPS = ['슬라브', '거더', '기둥', '기타']
+const PROCESS_CHIPS = ['균열', '면', '마감', '기타']
+const TYPE_CHIPS = ['지하', '지상', '지붕', '기타']
+
+const quickMenuItems = [
+  {
+    id: 1,
+    label: '출력현황',
+    path: '/money',
+    icon: '../../public/icons/pay_output.png',
+  },
+  {
+    id: 2,
+    label: '작업일지',
+    path: '/worklog',
+    badge: 3,
+    badgeClass: 'qm-badge req worklog',
+    icon: '../../public/icons/report_worklog.png',
+  },
+  {
+    id: 3,
+    label: '현장정보',
+    path: '/site',
+    icon: '../../public/icons/map_site.png',
+  },
+  {
+    id: 4,
+    label: '문서함',
+    path: '/doc',
+    icon: '../../public/icons/doc_documents.png',
+  },
+  {
+    id: 5,
+    label: '본사요청',
+    path: '/request',
+    badge: 'N',
+    badgeClass: 'qm-badge req',
+    icon: '../../public/icons/request_hq.png',
+  },
+]
+
+// State
+let state = {
+  selectedSite: '',
+  siteSearch: '',
+  showSiteDropdown: false,
+  dept: '',
+  workDate: new Date().toISOString().slice(0, 10),
+  manpowerList: [{ id: 1, worker: '이현수', workHours: 1.0, isCustom: false, locked: true }],
+  workSets: [
+    {
+      id: Date.now(),
+      member: '',
+      process: '',
+      type: '',
+      location: { block: '', dong: '', floor: '' },
+      isCustomMember: false,
+      isCustomProcess: false,
+      customMemberValue: '',
+      customProcessValue: '',
+      customTypeValue: '',
+    },
+  ],
+  materials: [],
+  materialQty: '',
+  selectedMaterialName: 'NPC-1000',
+  isMaterialDirect: false,
+  customMaterialValue: '',
+  customMaterialOption: null,
+  customReceiptFile: null,
+  photos: [],
+  drawings: [],
+  isSummaryCollapsed: true,
+  isDrawingSheetOpen: false,
+  isSiteDrawingViewerOpen: false,
+  siteDrawingPages: [],
+  isDrawingModalOpen: false,
+  drawingImgSrc: null,
+  isPreviewOpen: false,
+  previewUrl: null,
+  previewZoom: 1,
+  previewPan: { x: 0, y: 0 },
+  isPreviewPanning: false,
+  imgObj: null,
+  drawObjects: [],
+  currentTool: 'rect',
+  currentColor: 'blue',
+  currentSize: 5,
+  currentStamp: 'circle',
+  isCanvasLocked: false,
+  camera: { x: 0, y: 0, scale: 1 },
+  lassoPoints: [],
+  selectedIndices: [],
+  isProcessing: false,
+  previewDragStart: null,
+  isReadyToSave: false,
+  wasReadyToSave: false,
+  hasSavedOnce: false,
+  lastSavedData: null,
+  saveVersion: 0,
+  lastSaveTime: null,
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function () {
+  lucide.createIcons()
+
+  // 오늘 날짜를 기본값으로 설정
+  const today = new Date().toISOString().slice(0, 10)
+  const workDateEl = document.getElementById('workDate')
+  if (workDateEl) {
+    workDateEl.value = today
+    state.workDate = today
+  }
+
+  // 기본 소속 정보 설정
+  state.dept = 'INOPNC'
+
+  // 렌더링 함수들 호출
+  setTimeout(() => {
+    renderQuickMenu()
+    renderSiteDropdown()
+    renderManpowerList()
+    renderWorkSets()
+    renderMaterialsList()
+    updateMediaPreview()
+    updateSummary()
+    updateValidation()
+    setupEventListeners()
+
+    // NPC-1000이 기본 선택되어 있으므로 영수증 업로드 UI 표시
+    toggleReceiptUploadUI(true)
+  }, 100)
+})
+
+// Setup Event Listeners
+function setupEventListeners() {
+  const siteSearch = document.getElementById('siteSearch')
+  const workDate = document.getElementById('workDate')
+  const materialSelect = document.getElementById('materialSelect')
+  const materialQty = document.getElementById('materialQty')
+
+  siteSearch.addEventListener('input', handleSiteSearch)
+  siteSearch.addEventListener('focus', () => {
+    state.showSiteDropdown = true
+    renderSiteDropdown()
+  })
+  siteSearch.addEventListener('blur', () => {
+    setTimeout(() => {
+      state.showSiteDropdown = false
+      renderSiteDropdown()
+    }, 200)
+  })
+
+  workDate.addEventListener('change', e => {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+    if (dateRegex.test(e.target.value) || e.target.value === '') {
+      state.workDate = e.target.value
+
+      // 에러 효과 즉시 해제
+      e.target.classList.remove('section-error-highlight')
+
+      if (e.target.value) {
+        // 다음 단계로 이동: 공수 입력 영역으로 스크롤 및 강조
+        setTimeout(() => {
+          const targetElement = document.getElementById('manpower-card')
+          if (targetElement) {
+            // 화면 중앙보다 약간 위에 위치하도록 조정
+            const rect = targetElement.getBoundingClientRect()
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+            const targetY = rect.top + scrollTop - window.innerHeight * 0.3
+
+            window.scrollTo({
+              top: targetY,
+              behavior: 'smooth',
+            })
+
+            guideToNextStep('manpower-card', '투입인원(공수)를 확인해주세요', true)
+          }
+        }, 300)
+      }
+
+      saveToLocalStorage()
+      updateValidation()
+    }
+  })
+
+  materialSelect.addEventListener('change', handleMaterialSelect)
+  materialQty.addEventListener('input', e => {
+    state.materialQty = e.target.value
+  })
+}
+
+// Quick Menu
+function renderQuickMenu() {
+  const grid = document.getElementById('quickMenuGrid')
+  grid.innerHTML = quickMenuItems
+    .map(
+      item => `
+                <div 
+                    class="${item.badgeClass ? 'qm-item--event' : ''} qm-item"
+                    onclick="navigateTo('${item.path}')"
+                    style="cursor: pointer"
+                >
+                    <div class="qm-icon-wrapper">
+                        ${
+                          item.badge !== undefined
+                            ? `
+                            <span class="${item.badgeClass || ''}">
+                                ${item.badge}
+                            </span>
+                        `
+                            : ''
+                        }
+                        <img src="${item.icon}" alt="${item.label}" class="qm-main-icon" />
+                    </div>
+                    <span class="qm-label">${item.label}</span>
+                </div>
+            `
+    )
+    .join('')
+  lucide.createIcons()
+}
+
+function navigateTo(path) {
+  console.log('Navigate to:', path)
+  showToast(`${path} 페이지로 이동`)
+}
+
+// Site Functions
+function getAllSites() {
+  return Object.values(REGION_SITES).flat().reverse()
+}
+
+function handleSiteSearch(e) {
+  state.siteSearch = e.target.value
+  if (!e.target.value) {
+    state.selectedSite = ''
+  }
+  state.showSiteDropdown = true
+  renderSiteDropdown()
+
+  // 검색창 클릭 시 과도한 효과 최적화 - 부드러운 포커스 효과만 적용
+  e.target.style.borderColor = 'var(--primary)'
+  e.target.style.boxShadow = '0 0 0 2px rgba(49, 163, 250, 0.1)'
+
+  // 지우기 버튼 표시/숨김 로직
+  updateClearButton(e.target)
+}
+
+// 지우기 버튼 업데이트 함수
+function updateClearButton(input) {
+  let clearBtn = input.parentNode.querySelector('.clear-button')
+
+  if (input.value.length > 0) {
+    if (!clearBtn) {
+      clearBtn = document.createElement('button')
+      clearBtn.type = 'button'
+      clearBtn.className = 'clear-button'
+      clearBtn.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#cbd5e1" stroke="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px"><circle cx="12" cy="12" r="10"></circle><path d="m15 9-6 6" stroke="white" stroke-width="2" stroke-linecap="round"></path><path d="m9 9 6 6" stroke="white" stroke-width="2" stroke-linecap="round"></path></svg>'
+      clearBtn.style.cssText = `
+                        position: absolute;
+                        right: 40px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        background: transparent;
+                        border: none;
+                        border-radius: 50%;
+                        width: 20px;
+                        height: 20px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        font-size: 12px;
+                        color: #64748b;
+                        transition: all 0.2s;
+                        z-index: 10;
+                    `
+
+      // 클릭 이벤트
+      clearBtn.addEventListener('click', () => {
+        input.value = ''
+        state.siteSearch = ''
+        state.selectedSite = ''
+        state.showSiteDropdown = true
+        renderSiteDropdown()
+        updateClearButton(input)
+        input.focus()
+      })
+
+      input.parentNode.style.position = 'relative'
+      input.parentNode.appendChild(clearBtn)
+    }
+  } else {
+    if (clearBtn) {
+      clearBtn.remove()
+    }
+  }
+}
+
+function toggleSiteDropdown() {
+  const siteSearch = document.getElementById('siteSearch')
+  if (!state.siteSearch.trim()) {
+    // 검색어가 없으면 최신순으로 현장 목록 표시
+    state.showSiteDropdown = !state.showSiteDropdown
+    renderSiteDropdown()
+  }
+}
+
+function renderSiteDropdown() {
+  const dropdown = document.getElementById('siteDropdown')
+  const allSites = getAllSites()
+  const filtered = state.siteSearch.trim()
+    ? allSites.filter(s => s.text.toLowerCase().includes(state.siteSearch.toLowerCase()))
+    : allSites
+
+  if (state.showSiteDropdown) {
+    dropdown.classList.remove('hidden')
+    dropdown.innerHTML =
+      filtered.length > 0
+        ? filtered
+            .map(
+              s => `
+                        <li 
+                            onclick="handleSiteSelect(${JSON.stringify(s).replace(/"/g, '&quot;')})"
+                            class="px-4 py-3.5 cursor-pointer text-[15px] font-medium border-b border-slate-50 dark:border-slate-700 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-700 ${
+                              state.selectedSite === s.value
+                                ? 'text-primary bg-sky-50 dark:bg-slate-700/50'
+                                : 'text-text-main dark:text-white'
+                            }"
+                            style="${state.selectedSite === s.value ? 'color: var(--primary); background: rgba(14, 165, 233, 0.1)' : 'color: var(--text-main)'}"
+                        >
+                            <div class="flex justify-between items-center">
+                                <span>${s.text}</span>
+                                <span class="text-xs text-text-sub bg-slate-100 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600" style="color: var(--text-sub); background: #f1f5f9; border: 1px solid var(--border)">${s.dept}</span>
+                            </div>
+                        </li>
+                    `
+            )
+            .join('')
+        : '<li class="px-4 py-3 text-center text-text-sub">검색 결과가 없습니다</li>'
+  } else {
+    dropdown.classList.add('hidden')
+  }
+}
+
+function handleSiteSelect(site) {
+  state.selectedSite = site.value
+  state.siteSearch = site.text
+  state.dept = site.dept
+  state.showSiteDropdown = false
+
+  const searchInput = document.getElementById('siteSearch')
+  const deptInput = document.getElementById('dept')
+
+  if (searchInput) {
+    searchInput.value = site.text
+    // 검색창 포커스 효과 초기화
+    searchInput.style.borderColor = ''
+    searchInput.style.boxShadow = ''
+  }
+
+  if (deptInput) {
+    // 현장에 연동된 소속 자동 입력 (테스트 데이터)
+    const siteDeptMapping = {
+      // 서울 권역
+      seoul_gangnam: '본사 건설팀',
+      seoul_gangbuk: '서울 북부지사',
+      seoul_mapo: '서울 서부지사',
+      seoul_songpa: '서울 동부지사',
+      seoul_yeongdeungpo: '서울 남부지사',
+      // 경기 권역
+      gyeonggi_suwon: '수원 지사',
+      gyeonggi_seongnam: '성남 지사',
+      gyeonggi_yongin: '용인 지사',
+      gyeonggi_goyang: '고양 지사',
+      gyeonggi_bucheon: '부천 지사',
+      // 부산/경남 권역
+      busan_haeundae: '부산 지사',
+      busan_sasang: '부산 서부지사',
+      gyeongnam_changwon: '창원 지사',
+      gyeongnam_gimhae: '김해 지사',
+      gyeongnam_jinju: '진주 지사',
+      // 대구/경북 권역
+      daegu_suseong: '대구 지사',
+      daegu_dalseo: '대구 서부지사',
+      gyeongbuk_pohang: '포항 지사',
+      gyeongbuk_gumi: '구미 지사',
+      gyeongbuk_gyeongju: '경주 지사',
+      // 인천 권역
+      incheon_namdong: '인천 지사',
+      incheon_yeonsu: '인천 동부지사',
+      incheon_seo: '인천 공항팀',
+      // 광주/전남 권역
+      gwangju_seo: '광주 지사',
+      jeonnam_mokpo: '목포 지사',
+      jeonnam_yeosu: '여수 지사',
+      jeonnam_suncheon: '순천 지사',
+      // 대전/세종/충남 권역
+      daejeon_yuseong: '대전 지사',
+      sejong_city: '세종 지사',
+      chungnam_cheonan: '천안 지사',
+      chungnam_asan: '아산 지사',
+      // 울산 권역
+      ulsan_nam: '울산 지사',
+      ulsan_dong: '울산 동부지사',
+      // 강원 권역
+      gangwon_chuncheon: '춘천 지사',
+      gangwon_wonju: '원주 지사',
+      gangwon_gangneung: '강릉 지사',
+      // 제주 권역
+      jeju_city: '제주 지사',
+      jeju_seogwipo: '서귀포 지사',
+    }
+
+    const autoDept = siteDeptMapping[site.value] || `${site.text}팀`
+    deptInput.value = autoDept
+    deptInput.disabled = true
+    deptInput.style.backgroundColor = '#f1f5f9'
+    deptInput.style.color = 'var(--text-sub)'
+
+    // 상태 업데이트
+    state.dept = autoDept
+  }
+
+  // 에러 효과 즉시 해제
+  const siteCard = document.getElementById('site-card')
+  if (siteCard) {
+    siteCard.classList.remove('section-error-highlight')
+  }
+
+  renderSiteDropdown()
+  saveToLocalStorage()
+  updateValidation()
+
+  // 다음 단계로 이동: 작업일자 필드로 스크롤 및 강조
+  setTimeout(() => {
+    const workDateEl = document.getElementById('workDate')
+    if (workDateEl) {
+      const rect = workDateEl.getBoundingClientRect()
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      // 작업일자 필드는 더 많은 여백 확보 (배지가 박스 안에 가려지지 않도록)
+      const targetY = rect.top + scrollTop - window.innerHeight * 0.35 - 120
+
+      window.scrollTo({
+        top: Math.max(0, targetY),
+        behavior: 'smooth',
+      })
+
+      setTimeout(() => {
+        showNextStepOverlay('workDate', '작업일자를 확인해주세요')
+      }, 400)
+    } else {
+      showNextStepOverlay('workDate', '작업일자를 확인해주세요')
+    }
+  }, 300)
+}
+
+// Manpower Functions
+function renderManpowerList() {
+  const container = document.getElementById('manpowerList')
+  container.innerHTML = state.manpowerList
+    .map(
+      item => `
+                <div class="grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)_auto] sm:grid-cols-[1.2fr_1fr_auto] gap-2 sm:gap-2.5 items-center bg-slate-50 dark:bg-slate-700/50 p-3 sm:p-3.5 rounded-2xl transition-all" style="background: var(--bg-input)">
+                    ${
+                      item.locked
+                        ? `
+                        <div class="text-[17px] font-bold text-text-main dark:text-white truncate px-1" style="color: var(--text-main)">${item.worker}</div>
+                    `
+                        : `
+                        <div class="relative w-full min-w-0">
+                            ${
+                              !item.isCustom
+                                ? `
+                                <select 
+                                    onchange="updateManpower(${item.id}, 'worker', this.value === '__custom__' ? 'CUSTOM' : this.value)"
+                                    class="worker-select"
+                                >
+                                    <option value="">작업자</option>
+                                    ${PREDEFINED_WORKERS.map(w => `<option value="${w}" ${item.worker === w ? 'selected' : ''}>${w}</option>`).join('')}
+                                    ${item.worker && !PREDEFINED_WORKERS.includes(item.worker) ? `<option value="${item.worker}" selected>${item.worker}</option>` : ''}
+                                    <option value="__custom__">직접입력</option>
+                                </select>
+                            `
+                                : `
+                                <input 
+                                    autoFocus
+                                    placeholder="이름 입력"
+                                    value="${item.worker}"
+                                    onblur="updateManpower(${item.id}, 'worker', this.value || 'CANCEL')"
+                                    onkeypress="if(event.key === 'Enter') { this.blur(); }"
+                                    class="w-full h-[50px] bg-[var(--bg-surface)] dark:bg-slate-900 border border-border dark:border-slate-600 rounded-xl px-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all text-[15px] font-medium placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                                    style="background: var(--bg-surface); border: 1px solid var(--border)"
+                                />
+                            `
+                            }
+                        </div>
+                    `
+                    }
+                    
+                    <div class="flex h-[48px] border border-border rounded-xl bg-[var(--bg-surface)] overflow-hidden w-full min-w-0" style="border: 1px solid var(--border); background: var(--bg-surface)">
+                        <button onclick="updateHours(${item.id}, -0.5)" class="flex-1 flex items-center justify-center text-xl text-text-sub hover:bg-slate-50 w-10 sm:w-auto">－</button>
+                        <span class="flex-1 flex items-center justify-center text-base font-bold border-x border-slate-100 min-w-[30px] sm:min-w-[50px]" style="border-color: var(--border)">${item.workHours.toFixed(1)}</span>
+                        <button onclick="updateHours(${item.id}, 0.5)" class="flex-1 flex items-center justify-center text-xl text-text-sub hover:bg-slate-50 w-10 sm:w-auto">＋</button>
+                    </div>
+
+                    ${
+                      !item.locked
+                        ? `
+                        <button onclick="removeManpower(${item.id})" class="bg-red-50 text-red-500 text-sm font-bold px-2.5 py-1 rounded-xl">삭제</button>
+                    `
+                        : ''
+                    }
+                </div>
+            `
+    )
+    .join('')
+  lucide.createIcons()
+}
+
+function addManpower() {
+  state.manpowerList.push({
+    id: Date.now(),
+    worker: '',
+    workHours: 1.0,
+    isCustom: false,
+    locked: false,
+  })
+  renderManpowerList()
+  saveToLocalStorage()
+  updateValidation()
+}
+
+function updateManpower(id, field, value) {
+  const item = state.manpowerList.find(m => m.id === id)
+  if (item) {
+    if (field === 'worker') {
+      if (value === 'CUSTOM') {
+        item.isCustom = true
+        item.worker = ''
+      } else if (value === 'CANCEL') {
+        item.isCustom = false
+        item.worker = ''
+      } else {
+        item.worker = value
+        item.isCustom = false
+      }
+    } else if (field === 'workHours') {
+      item.workHours = value
+    }
+    renderManpowerList()
+    saveToLocalStorage()
+    updateValidation()
+  }
+}
+
+function updateHours(id, delta) {
+  const item = state.manpowerList.find(m => m.id === id)
+  if (item) {
+    let newH = item.workHours + delta
+    if (newH < 0) newH = 0
+    if (newH > 3.5) newH = 3.5
+    newH = Math.round(newH * 2) / 2
+    item.workHours = newH
+    renderManpowerList()
+    saveToLocalStorage()
+    updateValidation()
+  }
+}
+
+function removeManpower(id) {
+  state.manpowerList = state.manpowerList.filter(m => m.id !== id)
+  renderManpowerList()
+  saveToLocalStorage()
+  updateValidation()
+}
+
+// Work Set Functions
+function renderWorkSets() {
+  const container = document.getElementById('workSets')
+  container.innerHTML = state.workSets
+    .map(
+      (ws, idx) => `
+                <div class="bg-[var(--bg-surface)] border-2 border-primary rounded-2xl p-5" style="background: var(--bg-surface); border: 2px solid var(--primary); animation: slideDown 0.3s ease-out">
+                    <div class="flex justify-between items-center mb-5">
+                        <span class="text-sm font-bold text-primary bg-primary-bg px-3 py-1.5 rounded-lg" style="color: var(--primary); background: var(--primary-bg)">작업 세트 ${idx + 1}</span>
+                        <button onclick="removeWorkSet(${ws.id})" class="bg-red-50 text-red-500 text-sm font-bold px-3 py-1 rounded-xl">삭제</button>
+                    </div>
+
+                    ${renderWorkSetSection(ws, 'member', '부재명', MEMBER_CHIPS, 'customMemberValue', 'isCustomMember')}
+                    ${renderWorkSetSection(ws, 'process', '작업공정', PROCESS_CHIPS, 'customProcessValue', 'isCustomProcess')}
+                    ${renderWorkSetSection(ws, 'type', '작업유형', TYPE_CHIPS, 'customTypeValue', 'isCustomType', false)}
+                    
+                    <div>
+                        <label class="block text-[17px] font-bold text-text-sub mb-2">블럭 / 동 / 층</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input class="h-[54px] border border-border rounded-xl px-4 text-center outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-bg-input" placeholder="블럭" 
+                                value="${ws.location.block}" onchange="updateWorkSet(${ws.id}, 'location', { block: this.value })" style="background: var(--bg-input); border: 1px solid var(--border)" />
+                            <input class="h-[54px] border border-border rounded-xl px-4 text-center outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-bg-input" placeholder="동" 
+                                value="${ws.location.dong}" onchange="updateWorkSet(${ws.id}, 'location', { dong: this.value })" style="background: var(--bg-input); border: 1px solid var(--border)" />
+                            <input class="h-[54px] border border-border rounded-xl px-4 text-center outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all bg-bg-input" placeholder="층" 
+                                value="${ws.location.floor}" onchange="updateWorkSet(${ws.id}, 'location', { floor: this.value })" style="background: var(--bg-input); border: 1px solid var(--border)" />
+                        </div>
+                    </div>
+                </div>
+            `
+    )
+    .join('')
+}
+
+function renderWorkSetSection(ws, field, label, items, customKey, isCustomKey, required = true) {
+  return `
+                <div id="ws-${ws.id}-${field}" class="mb-3">
+                    <label class="block text-[17px] font-bold text-text-sub mb-2">${label} ${required ? '<span style="color: var(--danger)">*</span>' : ''}</label>
+                    <div class="grid grid-cols-4 gap-2 mb-2">
+                        ${items
+                          .map(
+                            chip => `
+                            <button 
+                                onclick="toggleWorkSetChip(${ws.id}, '${field}', '${chip}', '${customKey}', '${isCustomKey}')"
+                                class="h-[54px] rounded-xl border text-[17px] font-medium transition-all ${
+                                  ws[field] === chip
+                                    ? 'bg-[var(--bg-surface)] border-primary text-primary font-bold shadow-sm'
+                                    : 'bg-bg-input border-border text-text-sub'
+                                }"
+                                style="${ws[field] === chip ? 'background: var(--bg-surface); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-input); border: 1px solid var(--border); color: var(--text-sub)'}"
+                            >
+                                ${chip}
+                            </button>
+                        `
+                          )
+                          .join('')}
+                    </div>
+                    ${
+                      ws[field] === '기타'
+                        ? `
+                        <input 
+                            class="w-full h-[54px] border border-border rounded-xl px-4 text-[17px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            placeholder="직접 입력"
+                            value="${ws[customKey]}"
+                            onchange="updateWorkSet(${ws.id}, '${customKey}', this.value)"
+                            style="border: 1px solid var(--border); animation: slideDown 0.2s"
+                        />
+                    `
+                        : ''
+                    }
+                </div>
+            `
+}
+
+function addWorkSet() {
+  state.workSets.push({
+    id: Date.now(),
+    member: '',
+    process: '',
+    type: '',
+    location: { block: '', dong: '', floor: '' },
+    isCustomMember: false,
+    isCustomProcess: false,
+    customMemberValue: '',
+    customProcessValue: '',
+    customTypeValue: '',
+  })
+  renderWorkSets()
+  saveToLocalStorage()
+  updateValidation()
+}
+
+function removeWorkSet(id) {
+  state.workSets = state.workSets.filter(ws => ws.id !== id)
+  renderWorkSets()
+  saveToLocalStorage()
+  updateValidation()
+}
+
+function updateWorkSet(id, field, value) {
+  const ws = state.workSets.find(w => w.id === id)
+  if (ws) {
+    if (field === 'location') {
+      ws.location = { ...ws.location, ...value }
+    } else {
+      ws[field] = value
+    }
+    saveToLocalStorage()
+    updateValidation()
+
+    // 기타 입력 시 요약에 반영
+    if (field.includes('custom') && value) {
+      updateSummary()
+    }
+
+    // 블럭/동/층 입력 시 요약에 즉시 반영
+    if (field === 'location') {
+      setTimeout(() => updateSummary(), 100)
+    }
+  }
+}
+
+function toggleWorkSetChip(wsId, field, value, customKey, isCustomKey) {
+  const ws = state.workSets.find(w => w.id === wsId)
+  if (ws) {
+    const currentValue = ws[field]
+    const isSame = currentValue === value
+    const nextValue = isSame ? '' : value
+
+    ws[field] = nextValue
+
+    if (value === '기타') {
+      ws[isCustomKey] = !isSame
+      if (isSame) ws[customKey] = ''
+    } else {
+      ws[isCustomKey] = false
+    }
+
+    if (!isSame && field === 'member') {
+      setTimeout(() => guideToNextStep(`ws-${wsId}-process`, '작업공정을 선택해주세요'), 100)
+    }
+
+    renderWorkSets()
+    saveToLocalStorage()
+    updateValidation()
+    updateSummary() // 기타 입력 시 요약에 반영
+  }
+}
+
+// Material Functions
+// 영수증 업로드 UI 표시/숨김 헬퍼 함수
+function toggleReceiptUploadUI(show) {
+  const receiptUploadSection = document.getElementById('receiptUploadSection')
+  if (receiptUploadSection) {
+    if (show) {
+      receiptUploadSection.classList.remove('hidden')
+    } else {
+      receiptUploadSection.classList.add('hidden')
+    }
+  }
+}
+
+function handleMaterialSelect(e) {
+  const customMaterialInput = document.getElementById('customMaterialInput')
+
+  if (e.target.value === 'custom') {
+    // 직접입력 모드
+    state.isMaterialDirect = true
+    state.selectedMaterialName = '직접입력'
+    state.customMaterialValue = ''
+    if (customMaterialInput) customMaterialInput.classList.remove('hidden')
+    toggleReceiptUploadUI(false)
+  } else if (e.target.value) {
+    // 자재 선택 시 영수증 업로드 UI 표시
+    state.isMaterialDirect = false
+    state.selectedMaterialName = e.target.value
+    if (customMaterialInput) customMaterialInput.classList.add('hidden')
+    toggleReceiptUploadUI(true)
+
+    // 영수증 업로드 UI가 표시되었는지 확인
+    setTimeout(() => {
+      const receiptSection = document.getElementById('receiptUploadSection')
+      if (receiptSection && receiptSection.classList.contains('hidden')) {
+        receiptSection.classList.remove('hidden')
+      }
+    }, 50)
+  } else {
+    // 선택 해제 시 모두 숨김
+    state.isMaterialDirect = false
+    state.selectedMaterialName = ''
+    if (customMaterialInput) customMaterialInput.classList.add('hidden')
+    toggleReceiptUploadUI(false)
+  }
+  saveToLocalStorage()
+}
+
+function handleConfirmCustomMaterial() {
+  const value = document.getElementById('customMaterialValue').value.trim()
+  if (!value) {
+    showToast('자재명을 입력하세요')
+    return
+  }
+
+  // 상태 업데이트
+  state.customMaterialOption = value
+  state.selectedMaterialName = value
+  state.isMaterialDirect = false
+
+  // UI 업데이트
+  document.getElementById('customMaterialInput').classList.add('hidden')
+
+  // select 옵션 추가
+  const select = document.getElementById('materialSelect')
+  const option = document.createElement('option')
+  option.value = value
+  option.textContent = value
+  option.selected = true
+  select.appendChild(option)
+
+  // 영수증 업로드 UI 표시
+  toggleReceiptUploadUI(true)
+
+  showToast('자재 선택')
+  saveToLocalStorage()
+}
+
+function handleCustomReceiptUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  // 파일 크기 검증 (10MB)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024
+  if (file.size > MAX_FILE_SIZE) {
+    showToast('파일 크기는 10MB 이하만 가능합니다')
+    event.target.value = ''
+    return
+  }
+
+  // 파일 형식 검증
+  const isValidType = file.type.startsWith('image/') || file.type.includes('pdf')
+  if (!isValidType) {
+    showToast('이미지 또는 PDF 파일만 업로드 가능합니다')
+    event.target.value = ''
+    return
+  }
+
+  // 파일 정보 저장
+  state.customReceiptFile = {
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    uploadTime: new Date().toISOString(),
+    materialName: state.selectedMaterialName || state.customMaterialValue || '직접입력',
+  }
+
+  // UI 업데이트
+  document.getElementById('customReceiptFileName').textContent = file.name
+  document.getElementById('customReceiptPreview').classList.remove('hidden')
+
+  showToast('영수증이 업로드되었습니다')
+  saveToLocalStorage()
+
+  // 아이콘 재렌더링
+  if (window.lucide) {
+    lucide.createIcons()
+  }
+}
+
+function removeCustomReceipt() {
+  state.customReceiptFile = null
+  document.getElementById('customReceiptPreview').classList.add('hidden')
+  document.getElementById('customReceiptInput').value = ''
+  showToast('영수증이 제거되었습니다')
+  saveToLocalStorage()
+}
+
+function addMaterial() {
+  const qty = parseFloat(state.materialQty)
+  if (!state.selectedMaterialName || isNaN(qty) || qty <= 0) {
+    showToast('올바른 수량을 입력하세요')
+    return
+  }
+
+  state.materials.push({
+    id: Date.now(),
+    name: state.selectedMaterialName,
+    qty: qty,
+  })
+
+  state.materialQty = ''
+  document.getElementById('materialQty').value = ''
+
+  renderMaterialsList()
+  saveToLocalStorage()
+}
+
+function renderMaterialsList() {
+  const container = document.getElementById('materialsList')
+  if (state.materials.length === 0) {
+    container.innerHTML = ''
+    return
+  }
+
+  container.innerHTML = state.materials
+    .map(
+      mat => `
+                <div class="bg-bg-surface border border-border rounded-xl p-3 flex justify-between items-center text-[15px]" style="background: var(--bg-surface); border: 1px solid var(--border)">
+                    <div>
+                        <span class="font-semibold">${mat.name}</span>
+                        <span class="text-primary ml-2" style="color: var(--primary)">${mat.qty}말</span>
+                    </div>
+                    <button onclick="removeMaterial(${mat.id})" class="bg-red-50 text-red-500 text-sm font-bold px-2.5 py-1 rounded-xl">삭제</button>
+                </div>
+            `
+    )
+    .join('')
+}
+
+function removeMaterial(id) {
+  state.materials = state.materials.filter(m => m.id !== id)
+  renderMaterialsList()
+  saveToLocalStorage()
+}
+
+// Photo & Drawing Functions
+function handleNativePhotoUpload(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    const files = Array.from(e.target.files)
+    const currentSet = state.workSets[0]
+    const member =
+      currentSet?.member === '기타' ? currentSet.customMemberValue : currentSet?.member || ''
+    const process =
+      currentSet?.process === '기타' ? currentSet.customProcessValue : currentSet?.process || ''
+
+    // 파일 처리를 위한 함수
+    const processFile = file => {
+      return new Promise(resolve => {
+        // 이미지 파일인지 확인
+        if (!file.type.startsWith('image/')) {
+          showToast('이미지 파일만 업로드 가능합니다.')
+          resolve(null)
+          return
+        }
+
+        // 파일 크기 확인 (10MB 제한)
+        if (file.size > 10 * 1024 * 1024) {
+          showToast('파일 크기는 10MB 이하여야 합니다.')
+          resolve(null)
+          return
+        }
+
+        const reader = new FileReader()
+        reader.onload = ev => {
+          const dataUrl = ev.target.result
+          // DataURL 유효성 검사 - 웹 환경에서 더 안정적인 검사
+          if (
+            dataUrl &&
+            (dataUrl.startsWith('data:image/') ||
+              dataUrl.startsWith('data:application/octet-stream'))
+          ) {
+            resolve({
+              img: dataUrl,
+              member: member,
+              process: process,
+              desc: '보수후',
+              fileName: file.name,
+            })
+          } else {
+            // DataURL이 유효하지 않으면 URL.createObjectURL 사용
+            resolve({
+              img: URL.createObjectURL(file),
+              member: member,
+              process: process,
+              desc: '보수후',
+              fileName: file.name,
+            })
+          }
+        }
+
+        reader.onerror = error => {
+          console.error('FileReader error:', error)
+          // FileReader 실패 시 URL.createObjectURL로 대체
+          resolve({
+            img: URL.createObjectURL(file),
+            member: member,
+            process: process,
+            desc: '보수후',
+            fileName: file.name,
+          })
+        }
+
+        // FileReader 읽기 시작
+        try {
+          reader.readAsDataURL(file)
+        } catch (error) {
+          console.error('FileReader read error:', error)
+          // FileReader 읽기 실패 시 바로 URL.createObjectURL 사용
+          resolve({
+            img: URL.createObjectURL(file),
+            member: member,
+            process: process,
+            desc: '보수후',
+            fileName: file.name,
+          })
+        }
+      })
+    }
+
+    // 모든 파일 처리
+    Promise.all(files.map(processFile))
+      .then(results => {
+        const validPhotos = results.filter(photo => photo !== null)
+
+        if (validPhotos.length > 0) {
+          state.photos.push(...validPhotos)
+          updateMediaPreview()
+          updateSummary() // 요약에 사진 데이터 연동
+          showToast(`${validPhotos.length}장의 사진이 등록되었습니다.`)
+          saveToLocalStorage()
+          updateValidation()
+        }
+
+        e.target.value = ''
+      })
+      .catch(error => {
+        console.error('Photo upload error:', error)
+        showToast('사진 업로드 중 오류가 발생했습니다.')
+      })
+  }
+}
+
+function handleDrawingUpload(e) {
+  if (e.target.files && e.target.files.length > 0) {
+    const files = Array.from(e.target.files)
+    const readers = files.map(file => {
+      return new Promise(resolve => {
+        const reader = new FileReader()
+        reader.onload = ev => {
+          // 이미지 해상도 최적화
+          const img = new Image()
+          img.onload = function () {
+            const canvas = document.createElement('canvas')
+            const ctx = canvas.getContext('2d')
+
+            // 최대 해상도 제한 (성능 최적화)
+            const maxWidth = 2048
+            const maxHeight = 2048
+
+            let width = img.width
+            let height = img.height
+
+            // 해상도 조정
+            if (width > maxWidth || height > maxHeight) {
+              const ratio = Math.min(maxWidth / width, maxHeight / height)
+              width = Math.round(width * ratio)
+              height = Math.round(height * ratio)
+            }
+
+            canvas.width = width
+            canvas.height = height
+
+            // 고품질 이미지 렌더링
+            ctx.imageSmoothingEnabled = true
+            ctx.imageSmoothingQuality = 'high'
+            ctx.drawImage(img, 0, 0, width, height)
+
+            const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.9)
+
+            resolve({
+              dataUrl: optimizedDataUrl,
+              desc: '진행도면',
+              fileName: file.name,
+            })
+          }
+          img.src = ev.target.result
+        }
+        reader.readAsDataURL(file)
+      })
+    })
+
+    Promise.all(readers).then(results => {
+      const drawings = results.map(r => r.dataUrl)
+      state.drawings.push(...drawings)
+      updateMediaPreview()
+      updateSummary() // 요약에 도면 데이터 연동
+      showToast(`도면 ${results.length}건이 등록되었습니다.`)
+      saveToLocalStorage()
+      updateValidation()
+    })
+
+    e.target.value = ''
+    closeDrawingSheet()
+  }
+}
+
+function updateMediaPreview() {
+  const container = document.getElementById('mediaPreview')
+
+  if (state.photos.length === 0 && state.drawings.length === 0) {
+    container.classList.add('hidden')
+    return
+  }
+
+  container.classList.remove('hidden')
+
+  // Render photos
+  const photoHTML = state.photos
+    .map((photo, index) => {
+      const imgSrc =
+        (photo && typeof photo === 'object' ? photo.img || photo.dataUrl : null) || photo
+      const desc = photo && typeof photo === 'object' && photo.desc ? photo.desc : '보수후'
+      const badgeClass = desc === '보수후' ? 'badge-gray' : ''
+      return `
+            <div class="photo-thumbnail flex-shrink-0 w-32 relative">
+                <div class="photo-badge ${badgeClass}" onclick="toggleMediaStatus('photo', ${index})" title="클릭하여 상태 변경">${desc}</div>
+                <img src="${imgSrc}" alt="photo-${index}" class="w-full h-30 object-cover rounded-xl" />
+                <button 
+                    onclick="openReplaceMedia('photo', ${index})"
+                    class="media-replace-btn"
+                    title="사진 교체"
+                >
+                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px"></i>
+                </button>
+                <button 
+                    onclick="removeMedia('photo', ${index})"
+                    class="photo-delete-btn"
+                    title="삭제"
+                >
+                    ×
+                </button>
+            </div>
+        `
+    })
+    .join('')
+
+  // Render drawings
+  const drawingHTML = state.drawings
+    .map((drawing, index) => {
+      const imgSrc =
+        (drawing && typeof drawing === 'object' ? drawing.dataUrl || drawing.img : null) || drawing
+      const desc =
+        drawing && typeof drawing === 'object' && drawing.desc ? drawing.desc : '진행도면'
+      const badgeClass = desc === '완료도면' ? 'badge-gray' : ''
+      return `
+            <div class="photo-thumbnail flex-shrink-0 w-32 relative">
+                <div class="drawing-badge ${badgeClass}" onclick="toggleMediaStatus('drawing', ${index})" title="클릭하여 상태 변경">${desc}</div>
+                <img src="${imgSrc}" alt="drawing-${index}" class="w-full h-30 object-cover rounded-xl" />
+                <button 
+                    onclick="openReplaceMedia('drawing', ${index})"
+                    class="media-replace-btn"
+                    title="도면 교체"
+                >
+                    <i data-lucide="refresh-cw" style="width: 16px; height: 16px"></i>
+                </button>
+                <button 
+                    onclick="removeMedia('drawing', ${index})"
+                    class="photo-delete-btn"
+                    title="삭제"
+                >
+                    ×
+                </button>
+            </div>
+        `
+    })
+    .join('')
+
+  container.innerHTML = photoHTML + drawingHTML
+  lucide.createIcons()
+}
+
+function removeMedia(type, index) {
+  if (type === 'photo') {
+    state.photos.splice(index, 1)
+    showToast('사진이 삭제되었습니다')
+  } else {
+    state.drawings.splice(index, 1)
+    showToast('도면이 삭제되었습니다')
+  }
+
+  updateMediaPreview()
+  updateSummary() // 요약 업데이트
+  saveToLocalStorage()
+  updateValidation()
+}
+
+// 개별 미디어 교체 (사진/도면)
+let replaceMediaTarget = null
+
+function openReplaceMedia(type, index) {
+  replaceMediaTarget = { type, index }
+  const input = document.getElementById('replaceMediaInput')
+  if (!input) return
+  input.value = ''
+  input.click()
+}
+
+function handleReplaceMedia(e) {
+  try {
+    const input = e.target
+    if (!replaceMediaTarget || !input.files || input.files.length === 0) return
+
+    const file = input.files[0]
+
+    // 이미지 파일인지 확인
+    if (!file.type || !file.type.startsWith('image/')) {
+      showToast('이미지 파일만 업로드 가능합니다.')
+      replaceMediaTarget = null
+      input.value = ''
+      return
+    }
+
+    const applyResult = dataUrl => {
+      if (!replaceMediaTarget) return
+
+      if (replaceMediaTarget.type === 'photo') {
+        const current = state.photos[replaceMediaTarget.index]
+        if (current && typeof current === 'object') {
+          current.desc = current.desc || '보수후'
+          current.img = dataUrl
+          current.fileName = file.name
+        } else {
+          state.photos[replaceMediaTarget.index] = {
+            img: dataUrl,
+            desc: '보수후',
+            fileName: file.name,
+          }
+        }
+        showToast('사진이 교체되었습니다')
+      } else if (replaceMediaTarget.type === 'drawing') {
+        const current = state.drawings[replaceMediaTarget.index]
+        if (current && typeof current === 'object') {
+          current.desc = current.desc || '진행도면'
+          current.dataUrl = dataUrl
+          current.fileName = file.name
+        } else {
+          state.drawings[replaceMediaTarget.index] = {
+            dataUrl: dataUrl,
+            desc: '진행도면',
+            fileName: file.name,
+          }
+        }
+        showToast('도면이 교체되었습니다')
+      }
+
+      replaceMediaTarget = null
+      input.value = ''
+
+      updateMediaPreview()
+      updateSummary() // 요약 업데이트
+      saveToLocalStorage()
+      updateValidation()
+    }
+
+    const reader = new FileReader()
+    reader.onload = ev => applyResult(ev.target.result)
+
+    try {
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Replace FileReader read error:', error)
+      // FileReader 실패 시 objectURL로 대체 (미리보기 용도)
+      applyResult(URL.createObjectURL(file))
+    }
+  } catch (err) {
+    console.error('handleReplaceMedia error:', err)
+    showToast('이미지 교체 중 오류가 발생했습니다.')
+  }
+}
+
+function toggleMediaStatus(type, index) {
+  try {
+    if (type === 'photo') {
+      const item = state.photos[index]
+      if (!item) return
+
+      if (!item || typeof item !== 'object') {
+        state.photos[index] = { img: item, desc: '보수후', fileName: '' }
+      }
+      const cur = state.photos[index]
+      cur.desc = cur.desc === '보수후' ? '보수전' : '보수후'
+      showToast(`사진 상태가 '${cur.desc}'로 변경되었습니다.`)
+    } else if (type === 'drawing') {
+      const item = state.drawings[index]
+      if (!item) return
+
+      if (!item || typeof item !== 'object') {
+        state.drawings[index] = { dataUrl: item, desc: '진행도면', fileName: '' }
+      }
+      const cur = state.drawings[index]
+      cur.desc = cur.desc === '진행도면' ? '완료도면' : '진행도면'
+      showToast(`도면 상태가 '${cur.desc}'로 변경되었습니다.`)
+    }
+
+    updateMediaPreview()
+    updateSummary()
+    saveToLocalStorage()
+    updateValidation()
+  } catch (err) {
+    console.error('toggleMediaStatus error:', err)
+  }
+}
+
+// Drawing Sheet Functions
+function openDrawingSheet() {
+  state.isDrawingSheetOpen = true
+  document.getElementById('drawingSheet').classList.remove('hidden')
+}
+
+function closeDrawingSheet(event) {
+  if (!event || event.target.id === 'drawingSheet') {
+    state.isDrawingSheetOpen = false
+    document.getElementById('drawingSheet').classList.add('hidden')
+  }
+}
+
+function handleLoadSiteDrawing() {
+  const siteName = getAllSites().find(s => s.value === state.selectedSite)?.text || '현장 도면'
+  const pages = [1, 2, 3].map(page => {
+    const c = document.createElement('canvas')
+    c.width = 1000
+    c.height = 1414
+    const ctx = c.getContext('2d')
+    if (ctx) {
+      ctx.fillStyle = 'white'
+      ctx.fillRect(0, 0, 1000, 1414)
+      ctx.strokeStyle = 'rgb(51, 51, 51)'
+      ctx.lineWidth = 5
+      ctx.strokeRect(50, 50, 900, 1314)
+      ctx.font = 'bold 40px sans-serif'
+      ctx.fillStyle = 'rgb(51, 51, 51)'
+      ctx.textAlign = 'center'
+      ctx.fillText(`${siteName} - Page ${page}`, 500, 200)
+
+      ctx.beginPath()
+      for (let i = 0; i < 5; i++) {
+        ctx.moveTo(100, 300 + i * 200)
+        ctx.lineTo(900, 300 + i * 200)
+      }
+      ctx.stroke()
+    }
+    return c.toDataURL()
+  })
+
+  state.siteDrawingPages = pages
+  state.isSiteDrawingViewerOpen = true
+  closeDrawingSheet()
+  renderSiteDrawingPages()
+}
+
+function renderSiteDrawingPages() {
+  const container = document.getElementById('siteDrawingPages')
+  if (!container) return
+
+  container.innerHTML = state.siteDrawingPages
+    .map(
+      (src, i) => `
+                <div class="bg-[var(--bg-surface)] rounded-xl overflow-hidden shadow-lg mb-4" style="background: var(--bg-surface)">
+                    <div class="p-3 border-b border-[var(--border)] flex justify-between items-center bg-[var(--bg-hover)]" style="border-bottom: 1px solid var(--border); background: var(--bg-hover)">
+                        <span class="font-bold text-[var(--text-main)]" style="color: var(--text-main)">Page ${i + 1}</span>
+                        <button onclick="openDrawingModal('${src}')" class="text-xs bg-primary text-white px-3 py-1.5 rounded-lg font-bold" style="background: var(--primary); color: white">마킹 실행</button>
+                    </div>
+                    <div class="cursor-pointer" onclick="openDrawingModal('${src}')">
+                        <img src="${src}" class="w-full h-auto object-contain bg-[var(--bg-surface)]" alt="Page ${i + 1}" style="background: var(--bg-surface)" />
+                    </div>
+                </div>
+            `
+    )
+    .join('')
+
+  document.getElementById('siteDrawingViewer').classList.remove('hidden')
+}
+
+function closeSiteDrawingViewer() {
+  state.isSiteDrawingViewerOpen = false
+  document.getElementById('siteDrawingViewer').classList.add('hidden')
+}
+
+// DrawingModal.tsx 미리보기 기능 (100% 동일)
+function generateImage(format = 'image/jpeg', quality = 0.95) {
+  try {
+    if (!state.imgObj) {
+      console.error('No image object')
+      return null
+    }
+
+    const tempCanvas = document.createElement('canvas')
+    tempCanvas.width = state.imgObj.width
+    tempCanvas.height = state.imgObj.height
+    const tempCtx = tempCanvas.getContext('2d')
+    if (!tempCtx) {
+      console.error('Failed to get canvas context')
+      return null
+    }
+
+    // JPG의 경우 흰색 배경 추가
+    if (format === 'image/jpeg') {
+      tempCtx.fillStyle = '#FFFFFF'
+      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height)
+    }
+
+    // 배경 이미지 그리기
+    tempCtx.drawImage(state.imgObj, 0, 0)
+
+    // 모든 도면 객체 그리기 - DrawingModal.tsx와 100% 동일
+    const drawSingle = o => {
+      if (!o) return
+
+      if (o.type === 'rect') {
+        tempCtx.lineWidth = o.size / 5
+        tempCtx.strokeStyle = o.stroke || o.color
+        tempCtx.fillStyle = o.fill || 'transparent'
+        tempCtx.beginPath()
+        tempCtx.rect(o.x, o.y, o.w || o.width || 0, o.h || o.height || 0)
+        if (o.fill) tempCtx.fill()
+        tempCtx.stroke()
+      } else if (o.type === 'brush' && o.points) {
+        tempCtx.lineWidth = o.size
+        tempCtx.strokeStyle = o.stroke || o.color
+        tempCtx.lineCap = 'round'
+        tempCtx.lineJoin = 'round'
+        tempCtx.beginPath()
+        if (o.points.length > 0) {
+          tempCtx.moveTo(o.points[0].x, o.points[0].y)
+          o.points.forEach(p => tempCtx.lineTo(p.x, p.y))
+        }
+        tempCtx.stroke()
+      } else if (o.type === 'text' && o.text) {
+        const fontSize = o.size + 20
+        tempCtx.font = `bold ${fontSize}px Pretendard, Arial`
+        tempCtx.fillStyle = o.stroke || o.color
+        tempCtx.fillText(o.text, o.x, o.y)
+      } else if (o.type === 'stamp') {
+        const s = o.size
+        tempCtx.fillStyle = o.stroke || o.color
+        tempCtx.beginPath()
+        if (o.shape === 'circle') {
+          tempCtx.arc(o.x, o.y, s, 0, Math.PI * 2)
+        } else if (o.shape === 'square') {
+          tempCtx.rect(o.x - s, o.y - s, s * 2, s * 2)
+        } else if (o.shape === 'triangle') {
+          tempCtx.moveTo(o.x, o.y - s)
+          tempCtx.lineTo(o.x + s, o.y + s)
+          tempCtx.lineTo(o.x - s, o.y + s)
+          tempCtx.closePath()
+        } else if (o.shape === 'star') {
+          let rot = (Math.PI / 2) * 3,
+            step = Math.PI / 5,
+            outer = s,
+            inner = s / 2
+          tempCtx.moveTo(o.x, o.y - outer)
+          for (let i = 0; i < 5; i++) {
+            tempCtx.lineTo(o.x + Math.cos(rot) * outer, o.y + Math.sin(rot) * outer)
+            rot += step
+            tempCtx.lineTo(o.x + Math.cos(rot) * inner, o.y + Math.sin(rot) * inner)
+            rot += step
+          }
+          tempCtx.lineTo(o.x, o.y - outer)
+          tempCtx.closePath()
+        } else if (o.shape === 'diagonal') {
+          tempCtx.font = `bold ${s * 2}px Arial`
+          tempCtx.textAlign = 'center'
+          tempCtx.textBaseline = 'middle'
+          tempCtx.fillText('/', o.x, o.y)
+        }
+        tempCtx.fill()
+      }
+    }
+
+    // DrawingModal.tsx와 동일한 객체 그리기
+    state.drawObjects.forEach(o => drawSingle(o))
+
+    const dataUrl = tempCanvas.toDataURL(format, quality)
+    console.log('✅ Generated image dataUrl length:', dataUrl.length)
+    return dataUrl
+  } catch (error) {
+    console.error('❌ generateImage error:', error)
+    console.error('Stack:', error.stack)
+    return null
+  }
+}
+
+function handlePreview() {
+  if (!state.imgObj) {
+    showToast('이미지를 불러오는 중입니다')
+    return
+  }
+
+  try {
+    const canvas = document.getElementById('drawingCanvas')
+    if (!canvas) {
+      showToast('캔버스를 찾을 수 없습니다')
+      return
+    }
+
+    // 캔버스 상태 확인
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      showToast('캔버스 컨텍스트 오류')
+      return
+    }
+
+    // 그리기 객체가 없으면 경고
+    if (state.drawObjects.length === 0) {
+      showToast('마킹된 내용이 없습니다')
+      return
+    }
+
+    // 이미지 생성
+    const dataUrl = generateImage('image/jpeg', 0.95)
+
+    if (!dataUrl) {
+      console.error('generateImage returned null for preview')
+      showToast('미리보기 실패: 이미지 생성 실패')
+      return
+    }
+
+    if (dataUrl.length < 100) {
+      console.error('Preview dataUrl too short:', dataUrl.length)
+      showToast('미리보기 실패: 이미지 데이터 부족')
+      return
+    }
+
+    if (!dataUrl.startsWith('data:image')) {
+      console.error('Invalid preview dataUrl format:', dataUrl.substring(0, 50))
+      showToast('미리보기 실패: 잘못된 이미지 형식')
+      return
+    }
+
+    // 미리보기 성공
+    console.log('✅ Preview generated successfully')
+    state.previewUrl = dataUrl
+    state.isPreviewOpen = true
+    state.previewZoom = 1
+    state.previewPan = { x: 0, y: 0 }
+    state.isPreviewPanning = false
+    renderDrawingModal()
+  } catch (error) {
+    console.error('Preview error:', error)
+    console.error('Stack:', error.stack)
+    showToast('미리보기 오류: ' + error.message)
+  }
+}
+
+function handlePreviewDownload() {
+  if (state.previewUrl) {
+    const link = document.createElement('a')
+    link.href = state.previewUrl
+    link.download = `drawing_marking_${Date.now()}.jpg`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+}
+
+async function handlePreviewShare() {
+  if (state.previewUrl && navigator.share) {
+    try {
+      const blob = await (await fetch(state.previewUrl)).blob()
+      const file = new File([blob], `drawing_marking_${Date.now()}.jpg`, { type: 'image/jpeg' })
+      await navigator.share({
+        files: [file],
+        title: '도면 마킹',
+      })
+    } catch (e) {
+      console.error(e)
+    }
+  } else {
+    alert('공유를 지원하지 않는 브라우저입니다.')
+  }
+}
+
+// Preview Pan Handlers
+function onPreviewDown(e) {
+  if (!state.isPreviewPanning) return
+  const cx = e.touches ? e.touches[0].clientX : e.clientX
+  const cy = e.touches ? e.touches[0].clientY : e.clientY
+  state.previewDragStart = { x: cx - state.previewPan.x, y: cy - state.previewPan.y }
+}
+
+function onPreviewMove(e) {
+  if (!state.isPreviewPanning || !state.previewDragStart) return
+  const cx = e.touches ? e.touches[0].clientX : e.clientX
+  const cy = e.touches ? e.touches[0].clientY : e.clientY
+  state.previewPan = {
+    x: cx - state.previewDragStart.x,
+    y: cy - state.previewDragStart.y,
+  }
+  renderDrawingModal() // 패닝 시 다시 렌더링
+}
+
+function onPreviewUp() {
+  state.previewDragStart = null
+}
+
+// DrawingModal 초기화 함수 (DrawingModal.tsx와 100% 동일)
+function initializeDrawingModal(imageSrc) {
+  const canvas = document.getElementById('drawingCanvas')
+  if (!canvas) return
+
+  // Canvas 크기 설정 - 부모 컨테이너 크기에 맞춤
+  const container = canvas.parentElement
+  if (container) {
+    const rect = container.getBoundingClientRect()
+    canvas.width = rect.width
+    canvas.height = rect.height
+    canvas.style.width = rect.width + 'px'
+    canvas.style.height = rect.height + 'px'
+  }
+
+  // 이미지 로드 및 표시 - DrawingModal.tsx와 동일한 로직
+  const img = new Image()
+  img.onload = function () {
+    state.imgObj = img
+    state.drawObjects = [] // 초기화
+
+    // DrawingModal.tsx와 동일한 카메라 설정 (모바일 최적화)
+    const w = canvas.clientWidth
+    const h = canvas.clientHeight
+    const imgAspect = img.width / img.height
+    const canvasAspect = w / h
+
+    let scale
+    if (imgAspect > canvasAspect) {
+      // 이미지가 더 넓음 - 너비 기준
+      scale = (w / img.width) * 0.9
+    } else {
+      // 이미지가 더 높음 - 높이 기준
+      scale = (h / img.height) * 0.9
+    }
+
+    state.camera = {
+      scale: scale,
+      x: (w - img.width * scale) / 2,
+      y: (h - img.height * scale) / 2,
+    }
+
+    // 캔버스 다시 그리기
+    redrawCanvas()
+
+    // 도면 마킹 이벤트 설정
+    setupDrawingEvents(canvas)
+  }
+  img.onerror = function () {
+    console.error('Failed to load image:', imageSrc)
+    showToast('이미지 로드 실패')
+  }
+  img.src = imageSrc
+}
+
+// [정밀도 100%] 좌표 변환 및 올가미 유실 방지 설정
+function setupDrawingEvents(canvas) {
+  let lastPos = { x: 0, y: 0 }
+  let lastWorldPos = { x: 0, y: 0 }
+  let isDrawing = false
+  let startX, startY
+  let currentPath = []
+  let isDraggingSelection = false
+
+  function toWorld(clientX, clientY) {
+    const rect = canvas.getBoundingClientRect()
+    // 캔버스 해상도 비율 정밀 계산
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    const x = (clientX - rect.left) * scaleX
+    const y = (clientY - rect.top) * scaleY
+    return {
+      x: (x - state.camera.x) / state.camera.scale,
+      y: (y - state.camera.y) / state.camera.scale,
+    }
+  }
+
+  // Hit Test - 모든 객체 타입 지원 (문자 포함, 정밀화)
+  function isHit(o, x, y, tolerance = 25) {
+    const pad = tolerance
+    if (o.type === 'rect') {
+      return (
+        x >= o.x - pad &&
+        x <= o.x + (o.w || o.width || 0) + pad &&
+        y >= o.y - pad &&
+        y <= o.y + (o.h || o.height || 0) + pad
+      )
+    }
+    if (o.type === 'text' && o.text) {
+      const fontSize = o.size || 20
+      // 텍스트 길이에 따른 대략적인 가로 폭 계산 (글자수 * 폰트크기의 약 60%)
+      const textWidth = (o.text?.length || 0) * (fontSize * 0.6)
+      const textHeight = fontSize
+      return (
+        x >= o.x - pad &&
+        x <= o.x + textWidth + pad &&
+        y >= o.y - textHeight / 2 - pad &&
+        y <= o.y + textHeight / 2 + pad
+      )
+    }
+    if (o.type === 'brush' && o.points) {
+      return o.points.some(pt => Math.hypot(x - pt.x, y - pt.y) < 20)
+    }
+    return false
+  }
+
+  const handleStart = e => {
+    // 이벤트 중복 실행 방지
+    if (e.type === 'touchstart') e.preventDefault()
+
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const wp = toWorld(clientX, clientY)
+
+    isDrawing = true
+    startX = wp.x
+    startY = wp.y
+
+    // 이동 툴(Hand) 로직 - 올가미 영역 클릭 시 유실 방지
+    if (state.currentTool === 'hand') {
+      const foundIdx = [...state.drawObjects].reverse().findIndex(o => isHit(o, wp.x, wp.y, 25))
+      if (foundIdx !== -1) {
+        const realIdx = state.drawObjects.length - 1 - foundIdx
+        state.selectedIndices = [realIdx]
+        isDraggingSelection = true
+        state.dragStartWorld = wp
+        const obj = state.drawObjects[realIdx]
+        obj.dragStartX = obj.x
+        obj.dragStartY = obj.y
+
+        // 선택된 객체의 속성을 현재 UI에 반영
+        if (obj) {
+          if (obj.color) state.currentColor = obj.color
+          if (obj.size) state.currentSize = obj.size
+          if (obj.shape) state.currentStamp = obj.shape
+          updateDrawingModalUI()
+        }
+      } else {
+        state.selectedIndices = []
+        isDraggingSelection = false
+      }
+      redrawCanvas()
+      return
+    }
+
+    // 문자 입력 중복 방지 (setTimeout 사용)
+    if (state.currentTool === 'text') {
+      isDrawing = false
+      setTimeout(() => {
+        const text = prompt('입력할 문자를 작성하세요:')
+        if (text) {
+          state.drawObjects.push({
+            type: 'text',
+            x: wp.x,
+            y: wp.y,
+            text,
+            stroke: getStrokeColor(state.currentColor),
+            size: state.currentSize,
+          })
+          redrawCanvas()
+        }
+      }, 10)
+      return
+    }
+
+    if (state.currentTool === 'lasso') {
+      state.lassoPoints = [wp]
+      state.selectedIndices = []
+    } else if (state.currentTool === 'brush') {
+      currentPath = [{ x: wp.x, y: wp.y }]
+    }
+  }
+
+  canvas.onmousedown = handleStart
+  canvas.ontouchstart = handleStart
+
+  // 나머지 이벤트 핸들러는 기존 로직 유지하되 toWorld 좌표값만 사용
+  // (mousemove, mouseup 등 기존 코드는 그대로 유지)
+
+  // 마우스 무브 이벤트 - DrawingModal.tsx와 동일
+  const handleMove = e => {
+    if (!isDrawing) return
+
+    const rect = canvas.getBoundingClientRect()
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY
+    const x = clientX - rect.left
+    const y = clientY - rect.top
+    const wp = toWorld(clientX, clientY)
+
+    // 지우개는 드래그 안해도 커서를 보여줘야 함
+    if (state.currentTool === 'eraser') {
+      if (isDrawing) {
+        // 드래그 중 지우기 (Area/Swipe Erase)
+        const eraseRadius = state.currentSize
+        state.drawObjects = state.drawObjects.filter(o => !isHit(o, wp.x, wp.y, eraseRadius))
+      }
+      redrawCanvas({ x: x, y: y })
+      return
+    }
+
+    if (state.currentTool === 'hand') {
+      if (isDraggingSelection && state.selectedIndices.length > 0) {
+        const obj = state.drawObjects[state.selectedIndices[0]]
+
+        // [핵심] 시작점으로부터의 전체 이동 거리만큼만 더함 (떠다니는 현상 제거)
+        const totalDx = wp.x - state.dragStartWorld.x
+        const totalDy = wp.y - state.dragStartWorld.y
+
+        if (obj.type === 'brush' && obj.points) {
+          // 브러시 이동 로직 (초기 포인트들 기준 이동)
+          const brushStartDx = totalDx - (obj.x - (obj.dragStartX || 0))
+          const brushStartDy = totalDy - (obj.y - (obj.dragStartY || 0))
+          obj.points.forEach(p => {
+            p.x += brushStartDx
+            p.y += brushStartDy
+          })
+          obj.x = (obj.dragStartX || 0) + totalDx
+          obj.y = (obj.dragStartY || 0) + totalDy
+        } else {
+          obj.x = (obj.dragStartX || obj.x) + totalDx
+          obj.y = (obj.dragStartY || obj.y) + totalDy
+        }
+        redrawCanvas()
+      } else if (!state.isCanvasLocked) {
+        // [화면 잠금] 잠겨있지 않을 때만 캔버스 팬(Panning) 이동
+        state.camera.x += x - lastPos.x
+        state.camera.y += y - lastPos.y
+        redrawCanvas()
+      }
+
+      // 좌표 갱신
+      lastPos = { x, y }
+      lastWorldPos = wp
+      return
+    }
+
+    if (state.currentTool === 'lasso') {
+      state.lassoPoints.push(wp)
+      redrawCanvas()
+      drawLassoPath(state.lassoPoints)
+      return
+    }
+
+    lastPos = { x, y }
+
+    if (state.currentTool === 'brush') {
+      currentPath.push({ x: wp.x, y: wp.y })
+      redrawCanvas()
+      drawCurrentBrushStroke(currentPath)
+    } else if (state.currentTool === 'rect') {
+      redrawCanvas()
+      drawCurrentRect(startX, startY, wp.x, wp.y)
+    }
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect()
+    const screenX = e.clientX - rect.left
+    const screenY = e.clientY - rect.top
+
+    // 지우개는 항상 커서 표시 (드래그 중이 아니어도)
+    if (state.currentTool === 'eraser') {
+      handleMove(e)
+      return
+    }
+
+    // 다른 도구는 드래그 중일 때만
+    if (isDrawing) {
+      handleMove(e)
+    }
+  })
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault()
+    handleMove(e)
+  })
+
+  // 마우스 업 이벤트 - DrawingModal.tsx와 동일
+  canvas.addEventListener('mouseup', e => {
+    if (state.currentTool === 'hand') {
+      isDraggingSelection = false
+    }
+
+    if (!isDrawing) return
+
+    const wp = toWorld(e.clientX, e.clientY)
+
+    // 올가미 도구 - 영역 내 객체 선택 및 영역 저장
+    if (state.currentTool === 'lasso') {
+      if (state.lassoPoints.length > 2) {
+        // 1. 올가미 영역을 폐곡선(brush)으로 저장
+        const lassoPath = {
+          type: 'brush',
+          points: [...state.lassoPoints, state.lassoPoints[0]], // 폐곡선 처리 (시작점으로 돌아감)
+          stroke: getStrokeColor(state.currentColor),
+          size: state.currentSize,
+        }
+        state.drawObjects.push(lassoPath)
+
+        // 2. 영역 내 객체 선택
+        state.selectedIndices = []
+        state.drawObjects.forEach((obj, idx) => {
+          // 객체의 중심점 계산
+          let cx, cy
+          if (obj.type === 'brush' && obj.points && obj.points.length > 0) {
+            cx = obj.points[0].x
+            cy = obj.points[0].y
+          } else if (obj.type === 'rect') {
+            cx = obj.x + (obj.w || 0) / 2
+            cy = obj.y + (obj.h || 0) / 2
+          } else {
+            cx = obj.x
+            cy = obj.y
+          }
+
+          if (isPointInLasso({ x: cx, y: cy }, state.lassoPoints)) {
+            state.selectedIndices.push(idx)
+          }
+        })
+
+        if (state.selectedIndices.length > 0) {
+          showToast(`${state.selectedIndices.length}개 객체 선택됨 + 영역 저장`)
+          // 선택 후 자동으로 이동 도구로 변경 (UX 편의상)
+          setDrawingTool('hand')
+        } else {
+          showToast('올가미 영역 저장됨')
+        }
+      }
+      state.lassoPoints = []
+      redrawCanvas()
+      isDrawing = false
+      return
+    }
+
+    if (state.currentTool === 'brush' && currentPath.length > 0) {
+      const drawingObj = {
+        type: 'brush',
+        points: [...currentPath],
+        stroke: getStrokeColor(state.currentColor),
+        size: state.currentSize,
+      }
+      state.drawObjects.push(drawingObj)
+    } else if (state.currentTool === 'rect') {
+      let rectX = Math.min(startX, wp.x)
+      let rectY = Math.min(startY, wp.y)
+      let rectW = Math.abs(wp.x - startX)
+      let rectH = Math.abs(wp.y - startY)
+
+      if (rectW > 5 || rectH > 5) {
+        const drawingObj = {
+          type: 'rect',
+          x: rectX,
+          y: rectY,
+          w: rectW,
+          h: rectH,
+          stroke: getStrokeColor(state.currentColor),
+          fill: getFillColor(state.currentColor),
+          size: state.currentSize,
+        }
+        state.drawObjects.push(drawingObj)
+      }
+    }
+
+    if (state.currentTool !== 'lasso') {
+      redrawCanvas()
+    }
+    isDrawing = false
+    currentPath = []
+  })
+
+  // 터치 이벤트 지원 - DrawingModal.tsx와 동일
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const rect = canvas.getBoundingClientRect()
+    const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
+    const wp = toWorld(touch.clientX, touch.clientY)
+
+    // 1. 선택/이동 도구 (Hand) - 터치 (이동 반응성 최적화)
+    if (state.currentTool === 'hand') {
+      isDrawing = true
+      lastPos = { x, y }
+      lastWorldPos = wp // 월드 좌표 저장
+
+      // [변경] 잠금 상태와 상관없이 객체 선택은 가능하게 유지
+      const foundIdx = [...state.drawObjects].reverse().findIndex(o => isHit(o, wp.x, wp.y, 25))
+
+      if (foundIdx !== -1) {
+        const realIdx = state.drawObjects.length - 1 - foundIdx
+        const alreadySelected = state.selectedIndices.includes(realIdx)
+        if (alreadySelected) {
+          isDraggingSelection = true
+        } else {
+          state.selectedIndices = [realIdx]
+          isDraggingSelection = true
+
+          // [핵심] 드래그 시작 시점의 객체 위치와 마우스 클릭 위치를 박제
+          const obj = state.drawObjects[realIdx]
+          obj.dragStartX = obj.x
+          obj.dragStartY = obj.y
+          state.dragStartWorld = wp
+
+          // 선택된 객체의 속성을 현재 UI에 반영 (텍스트 포함)
+          if (obj) {
+            if (obj.color) state.currentColor = obj.color
+            if (obj.size) state.currentSize = obj.size
+            if (obj.shape) state.currentStamp = obj.shape
+            updateDrawingModalUI()
+          }
+        }
+      } else {
+        state.selectedIndices = []
+        isDraggingSelection = false
+      }
+
+      redrawCanvas()
+      return
+    }
+
+    isDrawing = true
+    lastPos = { x, y }
+    startX = wp.x
+    startY = wp.y
+
+    // 2. 올가미 도구 (터치)
+    if (state.currentTool === 'lasso') {
+      state.lassoPoints = [wp]
+      state.selectedIndices = []
+      redrawCanvas()
+      return
+    }
+
+    // 3. 지우개 도구 (터치)
+    if (state.currentTool === 'eraser') {
+      const eraseRadius = state.currentSize
+      const initialCount = state.drawObjects.length
+      state.drawObjects = state.drawObjects.filter(o => !isHit(o, wp.x, wp.y, eraseRadius))
+      if (state.drawObjects.length !== initialCount) {
+        redrawCanvas({ x: x, y: y })
+      }
+      return
+    }
+
+    // 4. 그 외 그리기 도구
+    state.selectedIndices = []
+
+    if (state.currentTool === 'brush') {
+      currentPath = [{ x: wp.x, y: wp.y }]
+    } else if (state.currentTool === 'stamp') {
+      // 도장 위치 100% 정확도 보장 - startX, startY 사용
+      const drawingObj = {
+        type: 'stamp',
+        x: startX,
+        y: startY,
+        shape: state.currentStamp,
+        stroke: getStrokeColor(state.currentColor),
+        size: state.currentSize,
+      }
+      state.drawObjects.push(drawingObj)
+      redrawCanvas()
+      // 햅틱 피드백 (모바일)
+      if (navigator.vibrate) navigator.vibrate(10)
+      isDrawing = false
+    } else if (state.currentTool === 'text') {
+      isDrawing = false // 텍스트는 드래그 불필요
+      // 0.1초 지연을 주어 이벤트 전파로 인한 중복 프롬프트 완전 차단
+      setTimeout(() => {
+        const text = prompt('도면에 표시할 문자를 입력하세요:')
+        if (text) {
+          state.drawObjects.push({
+            type: 'text',
+            x: wp.x,
+            y: wp.y,
+            text: text,
+            stroke: getStrokeColor(state.currentColor),
+            size: state.currentSize,
+          })
+          redrawCanvas()
+        }
+      }, 10)
+      return
+    }
+  })
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault()
+    if (state.currentTool === 'hand') {
+      isDraggingSelection = false
+    }
+
+    if (!isDrawing) return
+
+    const touch = e.changedTouches[0]
+    const wp = toWorld(touch.clientX, touch.clientY)
+
+    // 올가미 도구 - 영역 내 객체 선택 및 영역 저장 (터치)
+    if (state.currentTool === 'lasso') {
+      if (state.lassoPoints.length > 2) {
+        // 1. 올가미 영역을 폐곡선(brush)으로 저장
+        const lassoPath = {
+          type: 'brush',
+          points: [...state.lassoPoints, state.lassoPoints[0]], // 폐곡선 처리 (시작점으로 돌아감)
+          stroke: getStrokeColor(state.currentColor),
+          size: state.currentSize,
+        }
+        state.drawObjects.push(lassoPath)
+
+        // 2. 영역 내 객체 선택
+        state.selectedIndices = []
+        state.drawObjects.forEach((obj, idx) => {
+          let cx, cy
+          if (obj.type === 'brush' && obj.points && obj.points.length > 0) {
+            cx = obj.points[0].x
+            cy = obj.points[0].y
+          } else if (obj.type === 'rect') {
+            cx = obj.x + (obj.w || 0) / 2
+            cy = obj.y + (obj.h || 0) / 2
+          } else {
+            cx = obj.x
+            cy = obj.y
+          }
+
+          if (isPointInLasso({ x: cx, y: cy }, state.lassoPoints)) {
+            state.selectedIndices.push(idx)
+          }
+        })
+
+        if (state.selectedIndices.length > 0) {
+          showToast(`${state.selectedIndices.length}개 객체 선택됨 + 영역 저장`)
+          setDrawingTool('hand')
+        } else {
+          showToast('올가미 영역 저장됨')
+        }
+      }
+      state.lassoPoints = []
+      redrawCanvas()
+      isDrawing = false
+      return
+    }
+
+    if (state.currentTool === 'brush' && currentPath.length > 0) {
+      const drawingObj = {
+        type: 'brush',
+        points: [...currentPath],
+        stroke: getStrokeColor(state.currentColor),
+        size: state.currentSize,
+      }
+      state.drawObjects.push(drawingObj)
+    } else if (state.currentTool === 'rect') {
+      let rectX = Math.min(startX, wp.x)
+      let rectY = Math.min(startY, wp.y)
+      let rectW = Math.abs(wp.x - startX)
+      let rectH = Math.abs(wp.y - startY)
+
+      if (rectW > 5 || rectH > 5) {
+        const drawingObj = {
+          type: 'rect',
+          x: rectX,
+          y: rectY,
+          w: rectW,
+          h: rectH,
+          stroke: getStrokeColor(state.currentColor),
+          fill: getFillColor(state.currentColor),
+          size: state.currentSize,
+        }
+        state.drawObjects.push(drawingObj)
+      }
+    }
+
+    if (state.currentTool !== 'lasso') {
+      redrawCanvas()
+    }
+    isDrawing = false
+    currentPath = []
+  })
+}
+
+// 현재 브러시 스트로크 그리기 - DrawingModal.tsx와 동일
+function drawCurrentBrushStroke(points) {
+  if (points.length < 2) return
+
+  const canvas = document.getElementById('drawingCanvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  ctx.save()
+  ctx.setTransform(state.camera.scale, 0, 0, state.camera.scale, state.camera.x, state.camera.y)
+
+  ctx.strokeStyle = getStrokeColor(state.currentColor)
+  ctx.lineWidth = state.currentSize
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+
+  ctx.beginPath()
+  ctx.moveTo(points[0].x, points[0].y)
+  for (let i = 1; i < points.length; i++) {
+    ctx.lineTo(points[i].x, points[i].y)
+  }
+  ctx.stroke()
+  ctx.restore()
+}
+
+// 현재 사각형 그리기 - DrawingModal.tsx와 동일 (점선 유지, 기존 객체 유지)
+function drawCurrentRect(startX, startY, endX, endY) {
+  const canvas = document.getElementById('drawingCanvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // 먼저 기존 모든 객체를 다시 그림 (기존 구역이 사라지지 않도록)
+  redrawCanvas()
+
+  // 그 위에 현재 그리는 중인 사각형을 점선으로 표시
+  ctx.save()
+  ctx.setTransform(state.camera.scale, 0, 0, state.camera.scale, state.camera.x, state.camera.y)
+
+  ctx.strokeStyle = getStrokeColor(state.currentColor)
+  ctx.lineWidth = state.currentSize / 5
+  ctx.setLineDash([10, 5]) // 점선 패턴 명확하게
+
+  const x = Math.min(startX, endX)
+  const y = Math.min(startY, endY)
+  const width = Math.abs(endX - startX)
+  const height = Math.abs(endY - startY)
+
+  ctx.strokeRect(x, y, width, height)
+  ctx.setLineDash([]) // 점선 해제
+  ctx.restore()
+}
+
+// DrawingModal.tsx의 고급 그리기 기능
+function setupAdvancedDrawing(canvas, ctx, primaryColor = '#2AC1BC') {
+  let isDrawing = false
+  let currentTool = 'rect'
+  let startX, startY
+  let drawings = []
+
+  // 툴 설정 함수
+  window.setDrawingTool = function (tool) {
+    currentTool = tool
+    canvas.style.cursor = tool === 'text' ? 'text' : 'crosshair'
+  }
+
+  // 캔버스 지우기 함수
+  window.clearCanvas = function () {
+    drawings = []
+    const img = new Image()
+    img.onload = function () {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      const scale = Math.min(canvas.width / img.width, canvas.height / img.height)
+      const x = (canvas.width - img.width * scale) / 2
+      const y = (canvas.height - img.height * scale) / 2
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+    }
+    img.src = state.drawingImgSrc
+  }
+
+  // 마우스 이벤트 처리
+  canvas.addEventListener('mousedown', e => {
+    isDrawing = true
+    const rect = canvas.getBoundingClientRect()
+    startX = e.clientX - rect.left
+    startY = e.clientY - rect.top
+
+    if (currentTool === 'text') {
+      const text = prompt('텍스트를 입력하세요:')
+      if (text) {
+        ctx.fillStyle = primaryColor
+        ctx.font = '16px Arial'
+        ctx.fillText(text, startX, startY)
+        drawings.push({ type: 'text', x: startX, y: startY, text, color: primaryColor })
+      }
+      isDrawing = false
+    } else if (currentTool === 'stamp') {
+      // 도장 기능 - #2AC1BC 컬러로 원형 도장
+      ctx.strokeStyle = primaryColor
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5])
+      ctx.beginPath()
+      ctx.arc(startX, startY, 20, 0, 2 * Math.PI)
+      ctx.stroke()
+      ctx.setLineDash([])
+      ctx.fillStyle = primaryColor + '33' // 투명한 배경
+      ctx.fill()
+
+      ctx.fillStyle = primaryColor
+      ctx.font = 'bold 12px Arial'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText('확인', startX, startY)
+
+      drawings.push({ type: 'stamp', x: startX, y: startY, color: primaryColor })
+      isDrawing = false
+    }
+  })
+
+  canvas.addEventListener('mousemove', e => {
+    if (!isDrawing) return
+
+    const rect = canvas.getBoundingClientRect()
+    const currentX = e.clientX - rect.left
+    const currentY = e.clientY - rect.top
+
+    if (currentTool === 'brush') {
+      ctx.strokeStyle = primaryColor
+      ctx.lineWidth = 2
+      ctx.lineCap = 'round'
+      ctx.beginPath()
+      ctx.moveTo(startX, startY)
+      ctx.lineTo(currentX, currentY)
+      ctx.stroke()
+
+      drawings.push({
+        type: 'brush',
+        startX,
+        startY,
+        endX: currentX,
+        endY: currentY,
+        color: primaryColor,
+      })
+      startX = currentX
+      startY = currentY
+    }
+  })
+
+  canvas.addEventListener('mouseup', e => {
+    if (!isDrawing) return
+
+    const rect = canvas.getBoundingClientRect()
+    const endX = e.clientX - rect.left
+    const endY = e.clientY - rect.top
+
+    if (currentTool === 'rect') {
+      ctx.strokeStyle = primaryColor
+      ctx.lineWidth = 2
+      ctx.setLineDash([5, 5]) // 점선 테두리
+      ctx.strokeRect(startX, startY, endX - startX, endY - startY)
+      ctx.setLineDash([])
+
+      drawings.push({ type: 'rect', startX, startY, endX, endY, color: primaryColor })
+    }
+
+    isDrawing = false
+  })
+
+  // 터치 이벤트 지원
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const mouseEvent = new MouseEvent('mousedown', {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    })
+    canvas.dispatchEvent(mouseEvent)
+  })
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault()
+    const touch = e.touches[0]
+    const mouseEvent = new MouseEvent('mousemove', {
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+    })
+    canvas.dispatchEvent(mouseEvent)
+  })
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault()
+    const mouseEvent = new MouseEvent('mouseup', {})
+    canvas.dispatchEvent(mouseEvent)
+  })
+}
+
+function openDrawingModal(imageSrc) {
+  // 현장 도면 뷰어 닫기
+  closeSiteDrawingViewer()
+
+  state.drawingImgSrc = imageSrc
+  state.isDrawingModalOpen = true
+  state.drawObjects = []
+  state.selectedIndices = []
+  state.currentTool = 'rect'
+  state.currentColor = 'blue'
+  state.currentSize = 30
+  state.isPreviewOpen = false
+
+  // 이미지 객체 로드
+  const img = new Image()
+  img.onload = () => {
+    state.imgObj = img
+    renderDrawingModal()
+
+    // 모달 렌더링 후 캔버스 초기화
+    setTimeout(() => {
+      initializeDrawingModal(imageSrc)
+    }, 150)
+  }
+  img.src = imageSrc
+}
+
+function renderDrawingModal() {
+  const modal = document.getElementById('drawingModal')
+  if (!modal) return
+
+  if (!state.isDrawingModalOpen) {
+    modal.classList.add('hidden')
+    return
+  }
+
+  modal.classList.remove('hidden')
+
+  if (!state.isPreviewOpen) {
+    // 도면 편집 모드 (DrawingModal.tsx와 100% 동일) - 반응형 최적화
+    modal.innerHTML = `
+                    <div class="fixed inset-0 z-50 flex flex-col" style="width: 100%; height: 100vh;">
+                    <div class="h-[52px] bg-header-navy flex items-center justify-between px-2 sm:px-3 text-white border-b border-white/10 shrink-0" style="background: var(--header-navy); width: 100%;">
+                        <div class="flex items-center gap-1 sm:gap-2">
+                            <button onclick="closeDrawingModal()"><i data-lucide="x" class="w-5 h-5 sm:w-6 sm:h-6"></i></button>
+                            <span class="font-bold text-sm sm:text-lg whitespace-nowrap">도면마킹</span>
+                        </div>
+                        <div class="flex gap-1.5 sm:gap-2 items-center">
+                            <button onclick="undoLastDrawing()" class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-slate-50/10 hover:bg-slate-50/20 rounded-lg text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors">
+                                <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span>이전</span>
+                            </button>
+                            <button onclick="clearAllDrawings()" class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-slate-50/10 hover:bg-slate-50/20 rounded-lg text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span>모두삭제</span>
+                            </button>
+                            <button onclick="handlePreview()" class="flex items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-slate-50/10 hover:bg-slate-50/20 rounded-lg text-[11px] sm:text-xs font-medium whitespace-nowrap transition-colors">
+                                <i data-lucide="eye" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span>미리보기</span>
+                            </button>
+                            <button onclick="saveDrawingFromModal()" class="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 bg-primary hover:bg-primary/90 rounded-lg text-[11px] sm:text-sm font-bold whitespace-nowrap transition-colors" style="background: var(--primary)">
+                                <i data-lucide="check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i> <span>저장</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex-1 overflow-hidden relative bg-slate-950 flex items-center justify-center" style="touch-action: none; width: 100%;">
+                        <canvas id="drawingCanvas" class="w-full h-full cursor-crosshair" style="display: block; max-width: 100%; max-height: 100%;"></canvas>
+                    </div>
+                    <div class="bg-[var(--bg-surface)] pb-safe shrink-0" style="background: var(--bg-surface); width: 100%;">
+                        <div class="max-w-[1200px] mx-auto flex justify-around p-2 border-t border-[var(--border)]" style="border-top: 1px solid var(--border)">
+                            <button onclick="setDrawingTool('hand')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'hand' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'hand' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="mouse-pointer" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">이동</span>
+                            </button>
+                            <button onclick="setDrawingTool('rect')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'rect' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'rect' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="scan" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">구역</span>
+                            </button>
+                            <button onclick="setDrawingTool('lasso')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'lasso' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'lasso' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="lasso" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">올가미</span>
+                            </button>
+                            <button onclick="setDrawingTool('brush')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'brush' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'brush' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="brush" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">펜</span>
+                            </button>
+                            <button onclick="setDrawingTool('stamp')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'stamp' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'stamp' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="stamp" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">도장</span>
+                            </button>
+                            <button onclick="setDrawingTool('text')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'text' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'text' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="type" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">문자</span>
+                            </button>
+                            <button onclick="setDrawingTool('eraser')" class="flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${state.currentTool === 'eraser' ? 'text-primary bg-primary/10 scale-110' : 'text-text-sub hover:bg-slate-100'}" style="${state.currentTool === 'eraser' ? 'color: var(--primary); background: rgba(42, 193, 188, 0.1);' : ''}">
+                                <i data-lucide="eraser" class="w-5 h-5"></i>
+                                <span class="text-xs font-medium">삭제</span>
+                            </button>
+                        </div>
+                        <div class="max-w-[1200px] mx-auto flex flex-wrap items-center gap-2 px-3 py-2 border-t border-slate-100">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(35px, 1fr)); gap: 4px; flex: 1; max-width: 450px;">
+                                ${[
+                                  'blue',
+                                  'red',
+                                  'gray',
+                                  'green',
+                                  'orange',
+                                  'purple',
+                                  'yellow',
+                                  'pink',
+                                  'cyan',
+                                  'lime',
+                                ]
+                                  .map(
+                                    c => `
+                                    <button 
+                                        onclick="setDrawingColor('${c}')"
+                                        class="aspect-square rounded-full border-2 transition-all ${state.currentColor === c ? 'border-white ring-2 ring-slate-800 scale-110' : 'border-slate-200'}"
+                                        style="background-color: ${getStrokeColor(c)}; width: 100%;"
+                                    />
+                                `
+                                  )
+                                  .join('')}
+                            </div>
+                            <div class="w-px h-6 bg-slate-200 mx-1 shrink-0"></div>
+                            <div class="flex items-center gap-2 text-[13px] text-text-sub flex-1 min-w-[140px] max-w-[200px]">
+                                <span class="text-xs whitespace-nowrap shrink-0">크기</span>
+                                <input type="range" id="sizeSlider" min="1" max="50" value="${state.currentSize}" oninput="adjustDrawingSizeSlider(this.value)" class="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer" style="accent-color: var(--primary);">
+                                <span class="min-w-[24px] text-center font-medium text-xs shrink-0">${state.currentSize}</span>
+                            </div>
+                            <div class="w-px h-6 bg-slate-200 mx-1 shrink-0"></div>
+                            <div class="flex gap-1 shrink-0">
+                                <button onclick="zoomCanvas(-0.2)" class="p-1.5 rounded hover:bg-slate-100 transition-colors" title="축소">
+                                    <i data-lucide="zoom-out" class="w-4 h-4 text-slate-600"></i>
+                                </button>
+                                <button onclick="zoomCanvas(0.2)" class="p-1.5 rounded hover:bg-slate-100 transition-colors" title="확대">
+                                    <i data-lucide="zoom-in" class="w-4 h-4 text-slate-600"></i>
+                                </button>
+                                <button onclick="resetCanvasZoom()" class="p-1.5 rounded hover:bg-slate-100 transition-colors" title="맞춤">
+                                    <i data-lucide="maximize-2" class="w-4 h-4 text-slate-600"></i>
+                                </button>
+                                <button onclick="toggleCanvasLock()" class="p-1.5 rounded transition-colors ${state.isCanvasLocked ? 'bg-primary text-white' : 'hover:bg-slate-100'}" style="${state.isCanvasLocked ? 'background: var(--primary);' : ''}" title="${state.isCanvasLocked ? '잠금' : '이동'}">
+                                    <i data-lucide="lock" class="w-4 h-4 ${state.isCanvasLocked ? '' : 'text-slate-600'}"></i>
+                                </button>
+                            </div>
+                        </div>
+                        ${
+                          state.currentTool === 'stamp'
+                            ? `
+                            <div class="grid grid-cols-6 p-2 bg-slate-50 gap-2 border-t border-slate-100">
+                                <button onclick="setStampShape('circle')" class="p-2 rounded-lg border ${state.currentStamp === 'circle' ? 'bg-primary-bg border-primary text-primary' : 'bg-[var(--bg-surface)] border-[var(--border)]'}" style="${state.currentStamp === 'circle' ? 'background: var(--primary-bg); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-surface); border: 1px solid var(--border)'}">
+                                    <div class="w-4 h-4 rounded-full border-2 border-current mx-auto"></div>
+                                </button>
+                                <button onclick="setStampShape('square')" class="p-2 rounded-lg border ${state.currentStamp === 'square' ? 'bg-primary-bg border-primary text-primary' : 'bg-[var(--bg-surface)] border-[var(--border)]'}" style="${state.currentStamp === 'square' ? 'background: var(--primary-bg); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-surface); border: 1px solid var(--border)'}">
+                                    <div class="w-4 h-4 border-2 border-current mx-auto"></div>
+                                </button>
+                                <button onclick="setStampShape('triangle')" class="p-2 rounded-lg border ${state.currentStamp === 'triangle' ? 'bg-primary-bg border-primary text-primary' : 'bg-[var(--bg-surface)] border-[var(--border)]'}" style="${state.currentStamp === 'triangle' ? 'background: var(--primary-bg); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-surface); border: 1px solid var(--border)'}">
+                                    <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 16px solid currentColor; margin: 0 auto;"></div>
+                                </button>
+                                <button onclick="setStampShape('star')" class="p-2 rounded-lg border ${state.currentStamp === 'star' ? 'bg-primary-bg border-primary text-primary' : 'bg-[var(--bg-surface)] border-[var(--border)]'}" style="${state.currentStamp === 'star' ? 'background: var(--primary-bg); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-surface); border: 1px solid var(--border)'}">
+                                    <div class="text-lg text-center">★</div>
+                                </button>
+                                <button onclick="setStampShape('horizontal')" class="p-2 rounded-lg border ${state.currentStamp === 'horizontal' ? 'bg-primary-bg border-primary text-primary' : 'bg-[var(--bg-surface)] border-[var(--border)]'}" style="${state.currentStamp === 'horizontal' ? 'background: var(--primary-bg); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-surface); border: 1px solid var(--border)'}">
+                                    <div style="width: 20px; height: 2px; background-color: currentColor; margin: 0 auto;"></div>
+                                </button>
+                                <button onclick="setStampShape('diagonal')" class="p-2 rounded-lg border ${state.currentStamp === 'diagonal' ? 'bg-primary-bg border-primary text-primary' : 'bg-[var(--bg-surface)] border-[var(--border)]'}" style="${state.currentStamp === 'diagonal' ? 'background: var(--primary-bg); border: 1px solid var(--primary); color: var(--primary)' : 'background: var(--bg-surface); border: 1px solid var(--border)'}">
+                                    <div class="text-2xl font-bold text-center">/</div>
+                                </button>
+                            </div>
+                        `
+                            : ''
+                        }
+                    </div>
+                    </div>
+                `
+
+    // Canvas initialization is handled in openDrawingModal
+    lucide.createIcons()
+
+    // 편집 모드로 돌아왔을 때 이벤트 리스너 재설정
+    setTimeout(() => {
+      const canvas = document.getElementById('drawingCanvas')
+      if (canvas && state.imgObj) {
+        setupDrawingEvents(canvas)
+      }
+    }, 100)
+  } else {
+    // 미리보기 모드 (DrawingModal.tsx와 100% 동일) - A3 가로형 최적화
+    modal.innerHTML = `
+                    <div class="absolute inset-0 bg-black flex flex-col z-50">
+                        <div class="h-[52px] bg-black border-b border-slate-800 flex items-center justify-between px-3 shrink-0 text-white">
+                            <div class="flex items-center gap-2 overflow-hidden">
+                                <button onclick="closePreview()"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+                                <span class="font-bold truncate max-w-[200px]">도면 마킹 - ${state.drawObjects.length > 0 ? `Object_${state.drawObjects.length}` : 'New'}</span>
+                            </div>
+                            <button onclick="handlePreviewDownload()" class="p-2"><i data-lucide="download" class="w-5 h-5 text-white"></i></button>
+                        </div>
+                        
+                        <div 
+                            class="flex-1 relative overflow-hidden flex items-center justify-center bg-slate-950 touch-none ${state.isPreviewPanning ? 'cursor-grab active:cursor-grabbing' : ''}"
+                            onmousedown="onPreviewDown(event)"
+                            onmousemove="onPreviewMove(event)"
+                            onmouseup="onPreviewUp()"
+                            onmouseleave="onPreviewUp()"
+                            ontouchstart="onPreviewDown(event)"
+                            ontouchmove="onPreviewMove(event)"
+                            ontouchend="onPreviewUp()"
+                        >
+                            <img 
+                                src="${state.previewUrl}" 
+                                style="transform: translate(${state.previewPan.x}px, ${state.previewPan.y}px) scale(${state.previewZoom}); max-width: 95%; max-height: 90%; width: auto; height: auto;"
+                                class="object-contain transition-transform duration-75" 
+                                alt="Preview" 
+                                draggable="false"
+                            />
+                        </div>
+
+                        <div class="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur-lg border border-white/20 px-4 sm:px-6 py-2.5 sm:py-3 rounded-2xl flex gap-4 sm:gap-6 shadow-2xl z-50">
+                            <button onclick="zoomPreviewOut()" class="flex flex-col items-center gap-1 text-[10px] sm:text-[11px] font-medium text-white/80 hover:text-white active:scale-95 transition-all">
+                                <i data-lucide="zoom-out" class="w-5 h-5 sm:w-5 sm:h-5"></i>
+                                <span class="whitespace-nowrap">축소</span>
+                            </button>
+                            <button 
+                                onclick="togglePreviewPanning()" 
+                                class="flex flex-col items-center gap-1 text-[10px] sm:text-[11px] font-medium active:scale-95 transition-all ${state.isPreviewPanning ? 'text-[#2AC1BC]' : 'text-white/80 hover:text-white'}" style="${state.isPreviewPanning ? 'color: #2AC1BC;' : ''}"
+                            >
+                                <i data-lucide="hand" class="w-5 h-5 sm:w-5 sm:h-5"></i>
+                                <span class="whitespace-nowrap">이동</span>
+                            </button>
+                            <button onclick="zoomPreviewIn()" class="flex flex-col items-center gap-1 text-[10px] sm:text-[11px] font-medium text-white/80 hover:text-white active:scale-95 transition-all">
+                                <i data-lucide="zoom-in" class="w-5 h-5 sm:w-5 sm:h-5"></i>
+                                <span class="whitespace-nowrap">확대</span>
+                            </button>
+                            <div class="w-px h-6 sm:h-7 bg-slate-50/30 self-center mx-1"></div>
+                            <button onclick="handlePreviewShare()" class="flex flex-col items-center gap-1 text-[10px] sm:text-[11px] font-medium text-white/80 hover:text-white active:scale-95 transition-all">
+                                <i data-lucide="share-2" class="w-5 h-5 sm:w-5 sm:h-5"></i>
+                                <span class="whitespace-nowrap">공유</span>
+                            </button>
+                        </div>
+                    </div>
+                `
+  }
+
+  lucide.createIcons()
+}
+
+function closeDrawingModal() {
+  state.isDrawingModalOpen = false
+  state.drawingImgSrc = null
+  state.imgObj = null
+  state.drawObjects = []
+  state.isPreviewOpen = false
+  state.currentTool = 'rect'
+  state.currentColor = 'blue'
+  state.currentSize = 5
+  const modal = document.getElementById('drawingModal')
+  if (modal) {
+    modal.classList.add('hidden')
+  }
+}
+
+function saveDrawingFromModal() {
+  if (!state.imgObj) {
+    showToast('이미지를 불러오는 중입니다')
+    return
+  }
+
+  if (state.drawObjects.length === 0) {
+    showToast('마킹된 내용이 없습니다')
+    return
+  }
+
+  try {
+    console.log('이미지 생성 시작:', {
+      drawObjectsCount: state.drawObjects.length,
+      imgObjSize: `${state.imgObj.width}x${state.imgObj.height}`,
+    })
+
+    // 이미지 생성
+    const dataUrl = generateImage('image/jpeg', 0.95)
+
+    if (!dataUrl) {
+      console.error('generateImage returned null')
+      return
+    }
+
+    if (dataUrl.length < 100) {
+      console.error('DataUrl too short:', dataUrl.length)
+      return
+    }
+
+    if (!dataUrl.startsWith('data:image')) {
+      console.error('Invalid dataUrl format:', dataUrl.substring(0, 50))
+      return
+    }
+
+    // 저장 성공
+    console.log('✅ Saving drawing with', state.drawObjects.length, 'objects')
+    console.log('이미지 데이터 크기:', Math.round(dataUrl.length / 1024), 'KB')
+
+    state.drawings.push(dataUrl)
+    updateMediaPreview()
+    updateSummary()
+    saveToLocalStorage()
+    updateValidation()
+    showToast('도면 마킹이 저장되었습니다')
+
+    // 모달 닫기 전 짧은 딜레이
+    setTimeout(() => {
+      closeDrawingModal()
+    }, 300)
+  } catch (error) {
+    console.error('도면 저장 오류:', error)
+    console.error('오류 스택:', error.stack)
+  }
+}
+
+// 미리보기 관련 함수들
+function closePreview() {
+  state.isPreviewOpen = false
+  renderDrawingModal()
+  // 캠버스 재초기화 및 이벤트 리스너 재설정
+  setTimeout(() => {
+    const canvas = document.getElementById('drawingCanvas')
+    if (canvas && state.imgObj) {
+      canvas.width = canvas.clientWidth
+      canvas.height = canvas.clientHeight
+
+      const w = canvas.clientWidth
+      const h = canvas.clientHeight
+      const scale = Math.min(w / state.imgObj.width, h / state.imgObj.height) * 0.9
+
+      state.camera = {
+        scale: scale,
+        x: (w - state.imgObj.width * scale) / 2,
+        y: (h - state.imgObj.height * scale) / 2,
+      }
+
+      redrawCanvas()
+
+      // 마킹 이벤트 재설정 (미리보기 후 마킹 실행 가능하도록)
+      setupDrawingEvents(canvas)
+    }
+  }, 150)
+}
+
+function zoomPreviewOut() {
+  state.previewZoom = Math.max(0.5, state.previewZoom - 0.2)
+  renderDrawingModal()
+}
+
+function zoomPreviewIn() {
+  state.previewZoom = Math.min(3, state.previewZoom + 0.2)
+  renderDrawingModal()
+}
+
+function togglePreviewPanning() {
+  state.isPreviewPanning = !state.isPreviewPanning
+  renderDrawingModal()
+}
+
+function undoLastDrawing() {
+  if (state.drawObjects.length > 0) {
+    state.drawObjects.pop()
+    redrawCanvas()
+    saveToLocalStorage()
+  }
+}
+
+// 점이 폴리곤 내부에 있는지 확인하는 알고리즘 (Ray-casting)
+function isPointInLasso(point, vs) {
+  const x = point.x,
+    y = point.y
+  let inside = false
+  for (let i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+    const xi = vs[i].x,
+      yi = vs[i].y
+    const xj = vs[j].x,
+      yj = vs[j].y
+    const intersect = yi > y != yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+// 올가미 선택 중 점선 표시 함수 - 현재 크기와 동기화
+function drawLassoPath(points) {
+  const canvas = document.getElementById('drawingCanvas')
+  const ctx = canvas.getContext('2d')
+  if (!ctx || points.length < 2) return
+
+  ctx.save()
+  ctx.setTransform(state.camera.scale, 0, 0, state.camera.scale, state.camera.x, state.camera.y)
+  ctx.beginPath()
+  // 올가미 선 두께를 현재 설정된 크기와 동기화
+  ctx.lineWidth = state.currentSize / 10 / state.camera.scale
+  ctx.strokeStyle = '#0ea5e9' // 하늘색 점선
+  ctx.setLineDash([5, 5])
+  ctx.moveTo(points[0].x, points[0].y)
+  points.forEach(p => ctx.lineTo(p.x, p.y))
+  ctx.closePath() // 폐곱선 처리
+  ctx.stroke()
+  ctx.fillStyle = 'rgba(14, 165, 233, 0.1)' // 내부 반투명 채우기
+  ctx.fill()
+  ctx.restore()
+}
+
+function clearAllDrawings() {
+  if (confirm('모든 마킹을 삭제하시겠습니까?')) {
+    state.drawObjects = []
+    redrawCanvas()
+    saveToLocalStorage()
+    showToast('모든 마킹이 삭제되었습니다')
+  }
+}
+
+function redrawCanvas(cursorPos = null) {
+  const canvas = document.getElementById('drawingCanvas')
+  if (!canvas || !state.imgObj) return
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // 1. 초기화
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  // 2. 카메라 적용 및 배경 이미지
+  ctx.setTransform(state.camera.scale, 0, 0, state.camera.scale, state.camera.x, state.camera.y)
+  ctx.drawImage(state.imgObj, 0, 0)
+
+  // 3. 객체 그리기 함수 - 시안성 강화 선택 효과
+  const drawSingle = (o, index) => {
+    if (!o) return
+
+    const isSelected = state.selectedIndices && state.selectedIndices.includes(index)
+    ctx.save()
+
+    // 1. 세련된 선택 효과 (Figma 스타일) - 전문적인 디자인 툴 느낌
+    if (isSelected) {
+      let bx, by, bw, bh
+
+      // 객체 타입별 바운딩 박스 계산
+      if (o.type === 'rect') {
+        bx = o.x
+        by = o.y
+        bw = o.w || 0
+        bh = o.h || 0
+      } else if (o.type === 'brush') {
+        const xs = o.points.map(p => p.x)
+        const ys = o.points.map(p => p.y)
+        bx = Math.min(...xs)
+        by = Math.min(...ys)
+        bw = Math.max(...xs) - bx
+        bh = Math.max(...ys) - by
+      } else if (o.type === 'stamp' || o.type === 'text') {
+        const s = o.size || 20
+        bx = o.x - s
+        by = o.y - (o.type === 'text' ? s / 2 : s)
+        bw = s * 2
+        bh = s * 2
+      }
+
+      ctx.save()
+      // 1. 은은한 블루 글로우 (Shadow)
+      ctx.shadowColor = 'rgba(14, 165, 233, 0.4)'
+      ctx.shadowBlur = 10 / state.camera.scale
+
+      // 2. 아주 얇은 브랜드 컬러 실선
+      ctx.strokeStyle = '#0ea5e9'
+      ctx.lineWidth = 2 / state.camera.scale
+      ctx.strokeRect(bx - 2, by - 2, bw + 4, bh + 4)
+
+      // 3. 모서리 미세 핸들 (정교한 느낌 추가)
+      ctx.shadowBlur = 0
+      ctx.fillStyle = '#ffffff'
+      ctx.strokeStyle = '#0ea5e9'
+      const hs = 6 / state.camera.scale // 핸들 사이즈
+      ;[
+        [bx - 2, by - 2],
+        [bx + bw + 2, by - 2],
+        [bx - 2, by + bh + 2],
+        [bx + bw + 2, by + bh + 2],
+      ].forEach(([hx, hy]) => {
+        ctx.beginPath()
+        ctx.arc(hx, hy, hs / 2, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+      })
+      ctx.restore()
+    }
+
+    // 2. 실제 객체 그리기 (기존 로직 유지하되 shadow 효과만 제거하여 깔끔하게)
+    if (o.type === 'rect') {
+      ctx.lineWidth = o.size / 5
+      ctx.strokeStyle = o.stroke
+      ctx.fillStyle = o.fill
+      ctx.beginPath()
+      ctx.rect(o.x, o.y, o.w, o.h)
+      if (o.fill) ctx.fill()
+      ctx.stroke()
+    } else if (o.type === 'brush' && o.points) {
+      ctx.lineWidth = o.size
+      ctx.strokeStyle = o.stroke || o.color
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.beginPath()
+      if (o.points.length > 0) {
+        ctx.moveTo(o.points[0].x, o.points[0].y)
+        o.points.forEach(p => ctx.lineTo(p.x, p.y))
+      }
+      ctx.stroke()
+    } else if (o.type === 'text' && o.text) {
+      // 폰트 크기를 o.size와 1:1 매칭하여 직관적으로 조절되게 수정
+      const fontSize = o.size
+      ctx.font = `bold ${fontSize}px Pretendard, Arial`
+      ctx.fillStyle = o.stroke || getStrokeColor(o.color)
+      ctx.textBaseline = 'middle' // 위치 기준점을 중앙으로 하여 이동 시 정밀도 향상
+      ctx.fillText(o.text, o.x, o.y)
+    } else if (o.type === 'stamp') {
+      const s = o.size
+      ctx.fillStyle = o.stroke || o.color
+      ctx.beginPath()
+      if (o.shape === 'circle') {
+        ctx.arc(o.x, o.y, s, 0, Math.PI * 2)
+      } else if (o.shape === 'square') {
+        ctx.rect(o.x - s, o.y - s, s * 2, s * 2)
+      } else if (o.shape === 'triangle') {
+        ctx.moveTo(o.x, o.y - s)
+        ctx.lineTo(o.x + s, o.y + s)
+        ctx.lineTo(o.x - s, o.y + s)
+        ctx.closePath()
+      } else if (o.shape === 'star') {
+        let rot = (Math.PI / 2) * 3,
+          step = Math.PI / 5,
+          outer = s,
+          inner = s / 2
+        ctx.moveTo(o.x, o.y - outer)
+        for (let i = 0; i < 5; i++) {
+          ctx.lineTo(o.x + Math.cos(rot) * outer, o.y + Math.sin(rot) * outer)
+          rot += step
+          ctx.lineTo(o.x + Math.cos(rot) * inner, o.y + Math.sin(rot) * inner)
+          rot += step
+        }
+        ctx.lineTo(o.x, o.y - outer)
+        ctx.closePath()
+      } else if (o.shape === 'horizontal') {
+        // 수평 라인 스탬프
+        ctx.rect(o.x - s, o.y - 2, s * 2, 4)
+      } else if (o.shape === 'diagonal') {
+        ctx.font = `bold ${s * 2}px Arial`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText('/', o.x, o.y)
+      }
+      ctx.fill()
+    }
+    ctx.restore()
+  }
+
+  state.drawObjects.forEach((obj, i) => drawSingle(obj, i))
+
+  // 4. 지우개 커서 그리기 (화면 좌표 기준)
+  if (state.currentTool === 'eraser' && cursorPos) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0)
+    ctx.beginPath()
+    const radius = state.currentSize * state.camera.scale
+    ctx.arc(cursorPos.x, cursorPos.y, radius, 0, Math.PI * 2)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'
+    ctx.strokeStyle = '#333'
+    ctx.lineWidth = 1
+    ctx.fill()
+    ctx.stroke()
+  }
+}
+
+// DrawingModal.tsx 툴 함수들 (100% 동일)
+function setDrawingTool(tool) {
+  state.currentTool = tool
+
+  // 툴별 기본 크기 설정 (모바일 최적화)
+  if (tool === 'brush') {
+    state.currentSize = 3 // 모바일에서 더 정밀한 브러시
+  } else if (tool === 'stamp') {
+    state.currentSize = 20
+  } else if (tool === 'rect' || tool === 'text') {
+    state.currentSize = 25
+  } else if (tool === 'lasso') {
+    state.currentSize = 15 // 올가미 기본 크기
+  } else if (tool === 'eraser') {
+    state.currentSize = 20 // 지우개 기본 크기
+  }
+
+  updateDrawingModalUI() // UI만 업데이트 (캔버스 유지)
+}
+
+// [수정] 색상 변경 시 텍스트 객체도 포함하여 갱신
+function setDrawingColor(color) {
+  state.currentColor = color
+  if (state.selectedIndices.length > 0) {
+    state.selectedIndices.forEach(idx => {
+      const obj = state.drawObjects[idx]
+      if (obj) {
+        obj.color = color
+        obj.stroke = getStrokeColor(color) // 도형용
+        if (obj.type === 'rect') obj.fill = getFillColor(color) // 사각형용
+      }
+    })
+    redrawCanvas()
+  }
+  updateDrawingModalUI()
+}
+
+function adjustDrawingSize(delta) {
+  state.currentSize = Math.max(1, Math.min(50, state.currentSize + delta))
+
+  // 선택된 객체가 있으면 크기 변경
+  if (state.selectedIndices && state.selectedIndices.length > 0) {
+    state.selectedIndices.forEach(idx => {
+      const obj = state.drawObjects[idx]
+      if (obj) {
+        obj.size = state.currentSize
+      }
+    })
+    redrawCanvas()
+  }
+
+  updateDrawingModalUI() // UI만 업데이트 (캔버스 유지)
+}
+
+// [수정] 크기 조절 시 텍스트 폰트 크기도 즉시 변경
+function adjustDrawingSizeSlider(value) {
+  const newSize = parseInt(value)
+  state.currentSize = newSize
+  if (state.selectedIndices.length > 0) {
+    state.selectedIndices.forEach(idx => {
+      if (state.drawObjects[idx]) {
+        state.drawObjects[idx].size = newSize
+      }
+    })
+    redrawCanvas()
+  }
+  updateDrawingModalUI()
+}
+
+function zoomCanvas(delta) {
+  try {
+    const canvas = document.getElementById('drawingCanvas')
+    if (!canvas || !state.imgObj) {
+      console.warn('Cannot zoom: canvas or image not ready')
+      return
+    }
+
+    const oldScale = state.camera.scale
+    const newScale = Math.max(0.3, Math.min(5, oldScale + delta))
+
+    if (oldScale === newScale) {
+      console.log('Zoom limit reached')
+      return
+    }
+
+    // 중심점 기준으로 줄 (모바일 최적화)
+    const centerX = canvas.clientWidth / 2
+    const centerY = canvas.clientHeight / 2
+
+    // 줄 전 중심점의 월드 좌표
+    const worldX = (centerX - state.camera.x) / oldScale
+    const worldY = (centerY - state.camera.y) / oldScale
+
+    // 새로운 스케일 적용
+    state.camera.scale = newScale
+
+    // 중심점이 유지되도록 카메라 위치 조정
+    state.camera.x = centerX - worldX * newScale
+    state.camera.y = centerY - worldY * newScale
+
+    console.log('Zoom:', oldScale.toFixed(2), '→', newScale.toFixed(2))
+    redrawCanvas()
+  } catch (error) {
+    console.error('Zoom error:', error)
+  }
+}
+
+function resetCanvasZoom() {
+  if (!state.imgObj) {
+    console.warn('Cannot reset zoom: no image')
+    return
+  }
+
+  const canvas = document.getElementById('drawingCanvas')
+  if (!canvas) {
+    console.warn('Cannot reset zoom: no canvas')
+    return
+  }
+
+  const cw = canvas.clientWidth
+  const ch = canvas.clientHeight
+  const imgAspect = state.imgObj.width / state.imgObj.height
+  const canvasAspect = cw / ch
+
+  let scale
+  if (imgAspect > canvasAspect) {
+    scale = (cw / state.imgObj.width) * 0.9
+  } else {
+    scale = (ch / state.imgObj.height) * 0.9
+  }
+
+  state.camera = {
+    scale,
+    x: (cw - state.imgObj.width * scale) / 2,
+    y: (ch - state.imgObj.height * scale) / 2,
+  }
+
+  console.log('✅ Zoom reset to fit')
+  redrawCanvas()
+}
+
+function toggleCanvasLock() {
+  state.isCanvasLocked = !state.isCanvasLocked
+  console.log('Canvas lock:', state.isCanvasLocked ? 'LOCKED' : 'UNLOCKED')
+  updateDrawingModalUI() // UI만 업데이트 (캔버스 초기화 안 함)
+  lucide.createIcons() // 아이콘 재생성
+}
+
+function setStampShape(shape) {
+  state.currentStamp = shape
+  updateDrawingModalUI() // UI만 업데이트 (캔버스 유지)
+}
+
+function updateStampShapeUI() {
+  const shapes = ['circle', 'square', 'triangle', 'star', 'diagonal']
+  shapes.forEach(s => {
+    const element = document.querySelector(`button[onclick="setStampShape('${s}')"]`)
+    if (element) {
+      if (state.currentStamp === s) {
+        element.className = 'p-2 rounded-lg border transition-all scale-110'
+        element.style.cssText =
+          'background: var(--primary-bg); border: 2px solid var(--primary); color: var(--primary);'
+      } else {
+        element.className = 'p-2 rounded-lg border transition-all'
+        element.style.cssText = 'background: var(--bg-surface); border: 1px solid var(--border);'
+      }
+    }
+  })
+}
+
+// UI만 업데이트하는 함수 (캔버스는 유지)
+function updateDrawingModalUI() {
+  // 툴 버튼 활성화 상태 업데이트
+  const toolButtons = [
+    { id: 'hand', tool: 'hand' },
+    { id: 'rect', tool: 'rect' },
+    { id: 'brush', tool: 'brush' },
+    { id: 'stamp', tool: 'stamp' },
+    { id: 'text', tool: 'text' },
+    { id: 'eraser', tool: 'eraser' },
+  ]
+
+  toolButtons.forEach(btn => {
+    const element = document.querySelector(`button[onclick="setDrawingTool('${btn.tool}')"]`)
+    if (element) {
+      if (state.currentTool === btn.tool) {
+        element.className =
+          'flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-primary bg-primary/10 scale-110'
+        element.style.cssText = 'color: var(--primary); background: rgba(42, 193, 188, 0.1);'
+      } else {
+        element.className =
+          'flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-text-sub hover:bg-slate-100'
+        element.style.cssText = ''
+      }
+    }
+  })
+
+  // 색상 버튼 활성화 상태 업데이트 (모든 컬러 포함)
+  const colors = [
+    'blue',
+    'red',
+    'gray',
+    'green',
+    'orange',
+    'purple',
+    'yellow',
+    'pink',
+    'cyan',
+    'lime',
+  ]
+  colors.forEach(c => {
+    const element = document.querySelector(`button[onclick="setDrawingColor('${c}')"]`)
+    if (element) {
+      if (state.currentColor === c) {
+        element.className =
+          'w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 shrink-0 transition-transform border-white ring-2 ring-slate-800 scale-110'
+      } else {
+        element.className =
+          'w-6 h-6 sm:w-7 sm:h-7 rounded-full border-2 shrink-0 transition-transform border-slate-200'
+      }
+    }
+  })
+
+  // 크기 표시 및 슬라이더 업데이트
+  const sizeDisplay = document.querySelector('.min-w-\\[24px\\]')
+  if (sizeDisplay) {
+    sizeDisplay.textContent = state.currentSize
+  }
+  const sizeSlider = document.getElementById('sizeSlider')
+  if (sizeSlider) {
+    sizeSlider.value = state.currentSize
+  }
+
+  // 잠금 버튼 UI 업데이트
+  const lockButtons = document.querySelectorAll('button[onclick="toggleCanvasLock()"]')
+  lockButtons.forEach(btn => {
+    const icon = btn.querySelector('i[data-lucide]')
+    if (icon) {
+      icon.setAttribute('data-lucide', state.isCanvasLocked ? 'lock' : 'move')
+      icon.className = state.isCanvasLocked ? 'w-4 h-4' : 'w-4 h-4 text-slate-600'
+    }
+    if (state.isCanvasLocked) {
+      btn.style.background = 'var(--primary)'
+      btn.style.color = 'white'
+      btn.classList.remove('hover:bg-slate-100')
+    } else {
+      btn.style.background = ''
+      btn.style.color = ''
+      if (!btn.classList.contains('hover:bg-slate-100')) {
+        btn.classList.add('hover:bg-slate-100')
+      }
+    }
+  })
+
+  // 도장 도구 선택 시 도장 모양 선택기 표시/숨김
+  const stampSelector = document.querySelector('.flex.justify-around.p-2.bg-slate-50')
+  if (state.currentTool === 'stamp') {
+    if (!stampSelector) {
+      // 도장 선택기 추가
+      const toolsContainer = document.querySelector('.bg-\\[var\\(--bg-surface\\)\\].pb-safe')
+      if (toolsContainer) {
+        const stampHTML = `
+                            <div class="flex justify-around p-2 bg-slate-50 gap-2 border-t border-slate-100">
+                                <button onclick="setStampShape('circle')" class="p-2 rounded-lg border transition-all ${state.currentStamp === 'circle' ? 'scale-110' : ''}" style="${state.currentStamp === 'circle' ? 'background: var(--primary-bg); border: 2px solid var(--primary); color: var(--primary);' : 'background: var(--bg-surface); border: 1px solid var(--border);'}">
+                                    <div class="w-4 h-4 rounded-full border-2 border-current"></div>
+                                </button>
+                                <button onclick="setStampShape('square')" class="p-2 rounded-lg border transition-all ${state.currentStamp === 'square' ? 'scale-110' : ''}" style="${state.currentStamp === 'square' ? 'background: var(--primary-bg); border: 2px solid var(--primary); color: var(--primary);' : 'background: var(--bg-surface); border: 1px solid var(--border);'}">
+                                    <div class="w-4 h-4 border-2 border-current"></div>
+                                </button>
+                                <button onclick="setStampShape('triangle')" class="p-2 rounded-lg border transition-all ${state.currentStamp === 'triangle' ? 'scale-110' : ''}" style="${state.currentStamp === 'triangle' ? 'background: var(--primary-bg); border: 2px solid var(--primary); color: var(--primary);' : 'background: var(--bg-surface); border: 1px solid var(--border);'}">
+                                    <div style="width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; border-bottom: 16px solid currentColor;"></div>
+                                </button>
+                                <button onclick="setStampShape('star')" class="p-2 rounded-lg border transition-all ${state.currentStamp === 'star' ? 'scale-110' : ''}" style="${state.currentStamp === 'star' ? 'background: var(--primary-bg); border: 2px solid var(--primary); color: var(--primary);' : 'background: var(--bg-surface); border: 1px solid var(--border);'}">
+                                    <div class="text-lg">★</div>
+                                </button>
+                                <button onclick="setStampShape('diagonal')" class="p-2 rounded-lg border transition-all ${state.currentStamp === 'diagonal' ? 'scale-110' : ''}" style="${state.currentStamp === 'diagonal' ? 'background: var(--primary-bg); border: 2px solid var(--primary); color: var(--primary);' : 'background: var(--bg-surface); border: 1px solid var(--border);'}">
+                                    <div class="text-2xl font-bold">/</div>
+                                </button>
+                            </div>
+                        `
+        toolsContainer.insertAdjacentHTML('beforeend', stampHTML)
+      }
+    } else {
+      // 도장 모양 선택 UI 업데이트
+      updateStampShapeUI()
+    }
+  } else {
+    if (stampSelector) {
+      stampSelector.remove()
+    }
+  }
+}
+
+// 색상 변환 함수 (DrawingModal.tsx와 동일)
+function getStrokeColor(color) {
+  const colorMap = {
+    blue: 'rgb(49, 163, 250)',
+    red: 'rgb(239, 68, 68)',
+    gray: 'rgb(100, 116, 139)',
+    green: 'rgb(34, 197, 94)',
+    orange: 'rgb(249, 115, 22)',
+    purple: 'rgb(168, 85, 247)',
+    yellow: 'rgb(234, 179, 8)',
+    pink: 'rgb(236, 72, 153)',
+    cyan: 'rgb(6, 182, 212)',
+    lime: 'rgb(132, 204, 22)',
+  }
+  return colorMap[color] || 'rgb(49, 163, 250)'
+}
+
+function getFillColor(color) {
+  const colorMap = {
+    blue: 'rgba(49, 163, 250, 0.3)',
+    red: 'rgba(239, 68, 68, 0.3)',
+    gray: 'rgba(100, 116, 139, 0.3)',
+    green: 'rgba(34, 197, 94, 0.3)',
+    orange: 'rgba(249, 115, 22, 0.3)',
+    purple: 'rgba(168, 85, 247, 0.3)',
+    yellow: 'rgba(234, 179, 8, 0.3)',
+    pink: 'rgba(236, 72, 153, 0.3)',
+    cyan: 'rgba(6, 182, 212, 0.3)',
+    lime: 'rgba(132, 204, 22, 0.3)',
+  }
+  return colorMap[color] || 'rgba(49, 163, 250, 0.3)'
+}
+
+// Summary Functions
+function toggleSummary() {
+  state.isSummaryCollapsed = !state.isSummaryCollapsed
+  updateSummary()
+}
+
+function updateSummary() {
+  const content = document.getElementById('summaryContent')
+  const icon = document.getElementById('summaryIcon')
+
+  if (state.isSummaryCollapsed) {
+    content.style.maxHeight = '0'
+    content.style.opacity = '0'
+    icon.setAttribute('data-lucide', 'chevron-down')
+  } else {
+    content.style.maxHeight = '500px'
+    content.style.opacity = '1'
+    icon.setAttribute('data-lucide', 'chevron-up')
+
+    const site = getAllSites().find(s => s.value === state.selectedSite)
+    const workSet = state.workSets[0] || {}
+
+    // 기타 입력값 반영
+    const memberValue = workSet.member === '기타' ? workSet.customMemberValue : workSet.member
+    const processValue = workSet.process === '기타' ? workSet.customProcessValue : workSet.process
+    const typeValue = workSet.type === '기타' ? workSet.customTypeValue : workSet.type
+
+    content.innerHTML = [
+      { label: '현장', value: site?.text || '선택 안됨' },
+      { label: '소속', value: state.dept || '-' },
+      { label: '작업일자', value: state.workDate },
+      { label: '투입인원', value: `${state.manpowerList.length}명` },
+      { label: '부재명', value: memberValue || '-' },
+      { label: '작업공정', value: processValue || '-' },
+      { label: '작업유형', value: typeValue || '-' },
+      {
+        label: '블럭/동/층',
+        value:
+          `${workSet.location?.block || ''} ${workSet.location?.dong || ''} ${workSet.location?.floor || ''}`.trim() ||
+          '-',
+      },
+      {
+        label: '사진/도면 업로드',
+        value: `사진 ${state.photos.length}장, 도면 ${state.drawings.length}건`,
+      },
+    ]
+      .map(
+        (row, i, arr) => `
+                    <div class="flex justify-between py-1.5 ${i === arr.length - 1 ? '' : 'border-b border-slate-100 dark:border-slate-700'}" style="${i === arr.length - 1 ? '' : 'border-bottom: 1px solid var(--border)'}">
+                        <span class="text-[17px] font-bold text-text-sub">${row.label}</span>
+                        <span class="text-[17px] font-semibold text-text-main dark:text-white text-right break-words" style="max-width: 60%; word-break: break-all">${row.value}</span>
+                    </div>
+                `
+      )
+      .join('')
+  }
+  lucide.createIcons()
+}
+
+// Validation Functions
+/* 2. 저장 검증 및 로직 최적화 (추가 입력 시 방해 금지) */
+function updateValidation() {
+  const hasSite = !!state.selectedSite
+  const hasWorkDate = !!state.workDate
+  const hasManpower = state.manpowerList.some(m => m.worker && m.workHours > 0)
+  const hasWorkSet =
+    state.workSets.length > 0 &&
+    state.workSets.every(ws => {
+      const m = ws.member === '기타' ? ws.customMemberValue : ws.member
+      const p = ws.process === '기타' ? ws.customProcessValue : ws.process
+      return !!m && !!p
+    })
+
+  const isCurrentlyValid = hasSite && hasWorkDate && hasManpower && hasWorkSet
+
+  const indicator = document.getElementById('readyToSaveIndicator')
+  const saveButton = document.getElementById('saveButton')
+
+  // 유효성 통과 시 버튼 상태 업데이트
+  if (isCurrentlyValid) {
+    state.isReadyToSave = true
+    if (indicator) indicator.classList.remove('hidden')
+    saveButton.style.background = '#87CEEB' // 하늘색
+    saveButton.style.boxShadow = '0 0 0 3px rgba(135, 206, 235, 0.3)'
+    saveButton.textContent = '일지저장 가능'
+  } else {
+    state.isReadyToSave = false
+    if (indicator) indicator.classList.add('hidden')
+    saveButton.style.background = 'var(--header-navy)'
+    saveButton.style.boxShadow = 'none'
+    saveButton.textContent = '일지저장'
+  }
+}
+
+// Save & Reset Functions
+/* 4. 저장 버튼 실행 시 불필요한 재검증 제거 */
+function handleSave() {
+  // 필수 정보 재확인 (이미 updateValidation에서 검증됨)
+  if (!state.isReadyToSave) {
+    if (!state.selectedSite) {
+      triggerShake('site-card')
+      showToast('현장을 선택하세요')
+      return
+    }
+    if (!state.workDate) {
+      triggerShake('site-card')
+      showToast('작업일자를 선택하세요')
+      return
+    }
+    const hasManpower = state.manpowerList.some(m => m.worker && m.workHours > 0)
+    if (!hasManpower) {
+      triggerShake('manpower-card')
+      showToast('투입 인원을 입력하세요')
+      return
+    }
+    const hasWorkSet =
+      state.workSets.length > 0 &&
+      state.workSets.every(ws => {
+        const m = ws.member === '기타' ? ws.customMemberValue : ws.member
+        const p = ws.process === '기타' ? ws.customProcessValue : ws.process
+        return !!m && !!p
+      })
+    if (!hasWorkSet) {
+      showToast('부재명과 작업공정을 선택하세요')
+      return
+    }
+    return
+  }
+
+  // 저장 실행 (이미 저장 가능 상태이므로 추가 로직 없이 진행)
+  state.saveVersion += 1
+  state.lastSaveTime = new Date().toISOString()
+
+  saveWorklogToSite() // 데이터 이동 함수 실행
+
+  state.hasSavedOnce = true
+  showToast(`성공적으로 저장되었습니다 (v${state.saveVersion})`)
+
+  // 저장 후 버튼 상태만 살짝 변경 (UX)
+  const saveButton = document.getElementById('saveButton')
+  saveButton.textContent = '일지저장 완료'
+  setTimeout(() => {
+    updateValidation()
+  }, 2000)
+}
+
+// 현장과 연동된 작업일지 저장 함수 (날짜별 단일 일지 + 버전 관리)
+function saveWorklogToSite() {
+  try {
+    const site = getAllSites().find(s => s.value === state.selectedSite)
+    const currentTimestamp = new Date().toISOString()
+
+    // 기존 작업일지 데이터 가져오기
+    const existingWorklogs = JSON.parse(localStorage.getItem('siteWorklogs') || '{}')
+
+    // 현장별 데이터 구조 초기화
+    if (!existingWorklogs[state.selectedSite]) {
+      existingWorklogs[state.selectedSite] = {}
+    }
+
+    // 날짜별 작업일지 관리
+    const dateKey = state.workDate
+
+    if (!existingWorklogs[state.selectedSite][dateKey]) {
+      // 새로운 날짜의 작업일지 생성
+      existingWorklogs[state.selectedSite][dateKey] = {
+        baseInfo: {
+          siteName: site?.text || '',
+          siteValue: state.selectedSite,
+          dept: state.dept,
+          workDate: state.workDate,
+          manpower: state.manpowerList,
+          workSets: state.workSets,
+          createdAt: currentTimestamp,
+        },
+        versions: [],
+      }
+    } else {
+      // 기존 날짜의 기본정보 업데이트 (필수정보 변경 시)
+      existingWorklogs[state.selectedSite][dateKey].baseInfo = {
+        siteName: site?.text || '',
+        siteValue: state.selectedSite,
+        dept: state.dept,
+        workDate: state.workDate,
+        manpower: state.manpowerList,
+        workSets: state.workSets,
+        updatedAt: currentTimestamp,
+      }
+    }
+
+    // 추가 데이터를 버전으로 추가
+    existingWorklogs[state.selectedSite][dateKey].versions.push({
+      version: state.saveVersion,
+      timestamp: currentTimestamp,
+      materials: state.materials,
+      photos: state.photos,
+      drawings: state.drawings,
+    })
+
+    // 저장
+    localStorage.setItem('siteWorklogs', JSON.stringify(existingWorklogs))
+
+    // 사진함으로 데이터 이동 (날짜별 관리)
+    if (state.photos.length > 0) {
+      const existingPhotos = JSON.parse(localStorage.getItem('sitePhotos') || '{}')
+      if (!existingPhotos[state.selectedSite]) {
+        existingPhotos[state.selectedSite] = {}
+      }
+      if (!existingPhotos[state.selectedSite][state.workDate]) {
+        existingPhotos[state.selectedSite][state.workDate] = []
+      }
+
+      state.photos.forEach(photo => {
+        existingPhotos[state.selectedSite][state.workDate].push({
+          ...photo,
+          version: state.saveVersion,
+          timestamp: currentTimestamp,
+          siteName: site?.text || '',
+          workDate: state.workDate,
+        })
+      })
+
+      localStorage.setItem('sitePhotos', JSON.stringify(existingPhotos))
+    }
+
+    // 도면함으로 데이터 이동 (날짜별 관리)
+    if (state.drawings.length > 0) {
+      const existingDrawings = JSON.parse(localStorage.getItem('siteDrawings') || '{}')
+      if (!existingDrawings[state.selectedSite]) {
+        existingDrawings[state.selectedSite] = {}
+      }
+      if (!existingDrawings[state.selectedSite][state.workDate]) {
+        existingDrawings[state.selectedSite][state.workDate] = []
+      }
+
+      state.drawings.forEach(drawing => {
+        existingDrawings[state.selectedSite][state.workDate].push({
+          img: drawing,
+          version: state.saveVersion,
+          timestamp: currentTimestamp,
+          siteName: site?.text || '',
+          workDate: state.workDate,
+        })
+      })
+
+      localStorage.setItem('siteDrawings', JSON.stringify(existingDrawings))
+    }
+
+    console.log('현장과 연동된 작업일지 저장 완료:', {
+      site: state.selectedSite,
+      date: state.workDate,
+      version: state.saveVersion,
+      timestamp: currentTimestamp,
+    })
+  } catch (error) {
+    console.error('작업일지 저장 오류:', error)
+    throw error
+  }
+}
+
+/* 1. 초기화 기능 완전 복구 및 강화 */
+function handleReset() {
+  if (confirm('모든 입력 내용을 초기화하시겠습니까?')) {
+    // 모든 관련 로컬 스토리지 삭제
+    const keysToRemove = ['inopnc_work_log', 'siteWorklogs', 'sitePhotos', 'siteDrawings']
+    keysToRemove.forEach(key => localStorage.removeItem(key))
+
+    // 상태값 초기화
+    state.selectedSite = ''
+    state.dept = ''
+    state.workDate = new Date().toISOString().split('T')[0]
+    state.manpowerList = [
+      { id: 1, worker: '이현수', workHours: 1.0, isCustom: false, locked: true },
+    ]
+    state.workSets = [
+      {
+        id: Date.now(),
+        member: '',
+        process: '',
+        type: '',
+        location: { block: '', dong: '', floor: '' },
+        isCustomMember: false,
+        isCustomProcess: false,
+        customMemberValue: '',
+        customProcessValue: '',
+        customTypeValue: '',
+      },
+    ]
+    state.materials = []
+    state.photos = []
+    state.drawings = []
+    state.hasSavedOnce = false
+    state.isReadyToSave = false
+
+    showToast('초기화 중...')
+
+    // 즉시 페이지 새로고침으로 UI 리셋
+    setTimeout(() => {
+      window.location.href = window.location.pathname
+    }, 300)
+  }
+}
+
+// Utility Functions
+let activeToast = null // 활성 토스트 추적
+
+function showToast(message, duration = 2000) {
+  // 기존 토스트가 있으면 제거
+  if (activeToast) {
+    activeToast.remove()
+    activeToast = null
+  }
+
+  // 간략한 문구로 표시 (15자 이상이면 축약)
+  const shortMessage = message.length > 15 ? message.substring(0, 15) + '...' : message
+
+  const toast = document.createElement('div')
+  toast.className =
+    'fixed top-20 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-4 py-2.5 rounded-full text-[13px] font-bold shadow-xl flex items-center gap-2 z-[9999]'
+  toast.style.animation = 'fadeIn 0.3s ease-out'
+
+  // CheckCircle2 아이콘 추가
+  const icon = document.createElement('div')
+  icon.innerHTML =
+    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-400"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+  toast.appendChild(icon)
+
+  // 메시지 텍스트 추가
+  const textSpan = document.createElement('span')
+  textSpan.textContent = shortMessage
+  toast.appendChild(textSpan)
+
+  document.body.appendChild(toast)
+  activeToast = toast // 활성 토스트로 설정
+
+  setTimeout(() => {
+    toast.style.opacity = '0'
+    setTimeout(() => {
+      if (activeToast === toast) {
+        document.body.removeChild(toast)
+        activeToast = null
+      }
+    }, 300)
+  }, duration)
+}
+
+function triggerShake(id) {
+  const el = document.getElementById(id)
+  if (el) {
+    el.classList.add('section-error-highlight')
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    setTimeout(() => el.classList.remove('section-error-highlight'), 2000)
+  }
+}
+
+// 다음 단계 안내 함수 (showNextStepOverlay 별칭)
+function showNextStepOverlay(targetId, message) {
+  guideToNextStep(targetId, message, false)
+}
+
+// 다음 단계 안내 함수 복원
+function guideToNextStep(targetId, message, isCard = false) {
+  const el = document.getElementById(targetId)
+  if (el) {
+    // 기존 가이드 효과 제거
+    document.querySelectorAll('.next-step-guide').forEach(guide => {
+      guide.classList.remove('next-step-guide')
+    })
+
+    // 작업일자 필드인 경우 박스 위에 안내 배지 표시
+    if (targetId === 'workDate') {
+      // 기존 배지 제거
+      const existingBadge = document.getElementById('workDateGuideBadge')
+      if (existingBadge) {
+        existingBadge.remove()
+      }
+
+      // 새로운 안내 배지 생성 (다음단계 배지 컬러와 동일하게)
+      const badge = document.createElement('div')
+      badge.id = 'workDateGuideBadge'
+      badge.className =
+        'absolute -top-8 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg z-50 whitespace-nowrap'
+      badge.style.cssText = 'background: #87CEEB; animation: slideDown 0.3s ease-out;'
+      badge.textContent = message
+
+      // 작업일자 입력란의 부모 요소에 배지 추가
+      const parent = el.closest('.relative') || el.parentElement
+      if (parent) {
+        parent.style.position = 'relative'
+        parent.appendChild(badge)
+
+        // 2.5초 후 배지 제거
+        setTimeout(() => {
+          badge.style.opacity = '0'
+          badge.style.transition = 'opacity 0.3s'
+          setTimeout(() => badge.remove(), 300)
+        }, 2500)
+      }
+    }
+
+    // 새로운 가이드 효과 추가 (작업일자는 테두리만 적용)
+    if (targetId === 'workDate') {
+      // 작업일자는 테두리만 적용
+      el.style.border = '2px solid #87CEEB'
+      el.style.borderRadius = '12px'
+      el.style.transition = 'border 0.3s'
+
+      setTimeout(() => {
+        el.style.border = ''
+        el.style.borderRadius = ''
+      }, 2500)
+    } else {
+      el.classList.remove('next-step-guide')
+      void el.offsetWidth
+      el.classList.add('next-step-guide')
+    }
+
+    // 부드러운 스크롤 - 타겟 영역이 화면에 잘 보이도록 조정 (절대 위로 올라가지 않음)
+    const rect = el.getBoundingClientRect()
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+
+    // 요소가 화면 하단에 가려져 있는지 확인 (충분한 여백 고려)
+    const isBelowViewport = rect.bottom > window.innerHeight - 150
+
+    // 요소가 화면 하단에 있을 때만 아래로 스크롤 (절대 위로 올라가지 않음)
+    if (isBelowViewport) {
+      const elementTop = rect.top + scrollTop
+
+      if (!isCard) {
+        // 일반 입력 필드: 요소를 화면 상단에서 25% 위치에 배치 (충분한 여백 확보)
+        const targetY = elementTop - window.innerHeight * 0.25
+
+        // 현재 스크롤 위치보다 아래로만 이동 (위로 절대 올라가지 않음)
+        if (targetY > scrollTop) {
+          window.scrollTo({
+            top: targetY,
+            behavior: 'smooth',
+          })
+        }
+      } else {
+        // 카드 요소: 화면 상단에서 약간 아래에 배치
+        const targetY = elementTop - 120
+
+        // 현재 스크롤 위치보다 아래로만 이동 (위로 절대 올라가지 않음)
+        if (targetY > scrollTop) {
+          window.scrollTo({
+            top: targetY,
+            behavior: 'smooth',
+          })
+        }
+      }
+    }
+
+    // 다음단계 안내 시에는 토스트 메시지를 표시하지 않음 (하이라이트 효과만 사용)
+    // showToast(message); // 제거됨
+
+    setTimeout(() => {
+      el.classList.remove('next-step-guide')
+    }, 2500)
+  }
+}
+
+// Local Storage Functions
+function saveToLocalStorage() {
+  const data = {
+    selectedSite: state.selectedSite,
+    dept: state.dept,
+    workDate: state.workDate,
+    manpowerList: state.manpowerList,
+    workSets: state.workSets,
+    materials: state.materials,
+    photos: state.photos,
+    drawings: state.drawings,
+  }
+  localStorage.setItem('inopnc_work_log', JSON.stringify(data))
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem('inopnc_work_log')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      Object.assign(state, parsed)
+
+      // Update UI
+      document.getElementById('siteSearch').value = state.siteSearch
+      document.getElementById('dept').value = state.dept
+      document.getElementById('workDate').value = state.workDate
+      document.getElementById('materialQty').value = state.materialQty
+
+      if (state.customMaterialOption) {
+        const select = document.getElementById('materialSelect')
+        const option = document.createElement('option')
+        option.value = state.customMaterialOption
+        option.textContent = state.customMaterialOption
+        option.selected = true
+        select.appendChild(option)
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load saved data', e)
+  }
+}

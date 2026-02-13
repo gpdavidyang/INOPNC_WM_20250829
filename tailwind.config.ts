@@ -207,7 +207,7 @@ const config: Config = {
         sm: ['0.875rem', { lineHeight: '1.25rem' }], // 14px
         base: ['0.9375rem', { lineHeight: '1.4' }], // 15px
         lg: ['1.125rem', { lineHeight: '1.75rem' }], // 18px
-        xl: ['1.5rem', { lineHeight: '2rem' }], // 24px
+        xl: ['1.25rem', { lineHeight: '1.75rem' }], // 20px
         '2xl': ['1.875rem', { lineHeight: '2.25rem' }], // 30px
         '3xl': ['2.25rem', { lineHeight: '2.5rem' }], // 36px
         '4xl': ['3rem', { lineHeight: '1' }], // 48px

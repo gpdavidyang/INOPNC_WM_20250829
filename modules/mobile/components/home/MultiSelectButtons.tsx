@@ -114,26 +114,51 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
   }
 
   return (
-    <div className={`form-group ${className}`}>
-      <label className="form-label">{label}</label>
-      <div className="button-group">
-        {options.map(option => (
-          <button
-            key={option.value}
-            type="button"
-            className={`option-btn ${selectedValues.includes(option.value) ? 'active' : ''}`}
-            onClick={() => handleButtonClick(option.value)}
-          >
-            {option.label}
-          </button>
-        ))}
+    <div className={`mb-3 ${className}`}>
+      <label className="block text-[17px] font-bold text-text-sub mb-2">{label}</label>
+      <div className="grid grid-cols-4 gap-2 mb-2">
+        {options.map(option => {
+          const isActive = selectedValues.includes(option.value)
+          return (
+            <button
+              key={option.value}
+              type="button"
+              className={`h-[54px] rounded-xl border text-[17px] font-medium transition-all ${
+                isActive
+                  ? 'bg-[var(--bg-surface)] border-primary text-primary font-bold shadow-sm'
+                  : 'bg-[var(--bg-input)] border-[var(--border)] text-text-sub'
+              }`}
+              style={
+                isActive
+                  ? {
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--primary)',
+                      color: 'var(--primary)',
+                    }
+                  : {
+                      background: 'var(--bg-input)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text-sub)',
+                    }
+              }
+              onClick={() => handleButtonClick(option.value)}
+            >
+              {option.label}
+            </button>
+          )
+        })}
       </div>
       {showCustomInput && (
         <input
           type="text"
-          className="form-input custom-input"
+          className="w-full h-[54px] border border-[var(--border)] rounded-xl px-4 text-[17px] mt-1 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
           placeholder={customInputPlaceholder}
           value={customInput}
+          style={{
+            border: '1px solid var(--border)',
+            animation: 'slideDown 0.2s ease-out',
+            background: 'var(--bg-surface)',
+          }}
           onChange={e => handleCustomInputChange(e.target.value)}
           onBlur={handleCustomInputBlur}
           autoFocus

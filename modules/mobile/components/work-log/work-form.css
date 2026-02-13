@@ -1,0 +1,135 @@
+/* CSS Variables */
+:root {
+  --font-main:
+    'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    sans-serif;
+  --bg-body: #f2f4f6;
+  --bg-surface: #ffffff;
+  --bg-input: #f8fafc;
+  --bg-hover: #f1f5f9;
+  --text-main: #111111;
+  --text-sub: #64748b;
+  --border: #e2e8f0;
+  --primary: #0ea5e9;
+  --primary-bg: #e0f2fe;
+  --header-navy: #1a254f;
+  --danger: #ef4444;
+}
+
+.dark {
+  --bg-body: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-input: #0f172a;
+  --bg-hover: #334155;
+  --text-main: #ffffff;
+  --text-sub: #94a3b8;
+  --border: #334155;
+  --primary: #0ea5e9;
+  --primary-bg: #075985;
+  --header-navy: #1a254f;
+  --danger: #ef4444;
+}
+
+/* 자재 선택박스 화살표 및 이벤트 효과 */
+.material-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 48px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 40px 0 16px;
+  font-family: var(--font-main);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--text-main);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+
+  /* 커스텀 SVG 화살표 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+}
+
+.material-select:focus {
+  border-color: #87ceeb !important;
+  box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.15) !important;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+/* 최적화된 현장 선택 검색창 효과 */
+.site-search-optimized {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.site-search-optimized:focus {
+  border-color: #87ceeb !important;
+  box-shadow: 0 0 0 3px rgba(135, 206, 235, 0.15) !important;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.site-search-optimized:hover:not(:focus) {
+  border-color: rgba(135, 206, 235, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 드롭다운 최적화 효과 */
+.site-dropdown-optimized {
+  animation: dropdownSlide 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 작업자 선택박스 화살표 및 이벤트 효과 */
+.worker-select {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 50px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 40px 0 16px;
+  font-family: var(--font-main);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-main);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+
+  /* 커스텀 SVG 화살표 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 16px;
+}
+
+.worker-select:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15) !important;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.worker-select:hover:not(:focus) {
+  border-color: rgba(14, 165, 233, 0.5);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

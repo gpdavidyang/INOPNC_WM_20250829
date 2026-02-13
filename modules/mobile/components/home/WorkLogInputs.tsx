@@ -7,11 +7,11 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
+import { WorkLogMaterials } from '@/modules/mobile/components/work-log/WorkLogMaterials'
 import { AdditionalManpower, WorkLogLocation } from '@/types/worklog'
-import { Calendar } from 'lucide-react'
+import { HardHat, Users } from 'lucide-react'
 import React from 'react'
 import { LocationInput } from './LocationInput'
-import { MaterialsInput } from './MaterialsInput'
 import { MultiSelectButtons } from './MultiSelectButtons'
 import { NumberInput } from './NumberInput'
 
@@ -107,66 +107,41 @@ export const WorkLogInputs: React.FC<WorkLogInputsProps> = ({
   materials,
   setMaterials,
 }) => {
+  /* Helper to add additional manpower */
+  const handleAddManpower = () => {
+    setAdditionalManpower([
+      ...additionalManpower,
+      { id: Date.now().toString(), manpower: defaultLaborHour },
+    ])
+  }
+
   return (
     <>
-      {/* Basic Info and Manpower Card */}
-      <div className="form-section">
-        <div className="work-form-title">
-          <h2 className="work-form-main-title">작업 정보</h2>
-        </div>
-        <div
-          className="form-row"
-          style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0, paddingBottom: 12 }}
-        >
-          <div className="form-group">
-            <label className="form-label">소속</label>
-            <input
-              type="text"
-              className="form-input"
-              value={organizationLabel}
-              readOnly
-              style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
-            />
+      {/* Basic Info moved to HomePage */}
+
+      {/* Manpower Card */}
+      <div
+        className="rounded-2xl p-6 shadow-sm border border-transparent dark:border-slate-700 mb-4"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <div
+            className="text-xl font-bold text-header-navy dark:text-white flex items-center gap-2"
+            style={{ color: 'var(--header-navy)' }}
+          >
+            <Users className="w-5 h-5" style={{ color: 'var(--header-navy)' }} />
+            투입 인원(공수) <span className="text-red-500">*</span>
           </div>
-          <div className="form-group">
-            <label className="form-label">
-              작업일자 <span className="required">*</span>
-            </label>
-            <div
-              className="date-input-wrap"
-              style={{ position: 'relative' }}
-              onClick={onCalendarClick}
-            >
-              <input
-                type="date"
-                className="form-input date-input"
-                style={{ paddingRight: '40px' }}
-                value={workDate}
-                onChange={e => setWorkDate(e.target.value)}
-                required
-              />
-              <Calendar
-                className="calendar-icon"
-                size={16}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  pointerEvents: 'none',
-                  color: '#666',
-                  width: '16px',
-                  height: '16px',
-                }}
-                aria-hidden="true"
-              />
-            </div>
-          </div>
+          <button className="add-btn" onClick={handleAddManpower}>
+            <span>+</span> 추가
+          </button>
         </div>
 
         <div className="form-row author-manpower-row">
           <div className="form-group">
-            <label className="form-label">작업자</label>
             <CustomSelect
               value={selectedAuthorId || ''}
               onValueChange={val => setSelectedAuthorId(val)}
@@ -194,24 +169,60 @@ export const WorkLogInputs: React.FC<WorkLogInputsProps> = ({
             </CustomSelect>
           </div>
           <div className="form-group">
-            <NumberInput
-              label="공수"
-              value={mainManpower}
-              onChange={setMainManpower}
-              values={laborHourValues}
-            />
+            <NumberInput value={mainManpower} onChange={setMainManpower} values={laborHourValues} />
           </div>
         </div>
-      </div>
 
-      {/* Logically separate section for Additional Manpower */}
-      {additionalManpower.map(item => (
-        <div key={item.id} className="additional-manpower-section">
-          <div className="section-header">
-            <h3 className="section-title">공수(일)</h3>
-            <div className="header-actions">
+        {additionalManpower.map(item => (
+          <div key={item.id} className="additional-manpower-section pt-3 border-t mt-3">
+            <div className="grid grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)_auto] gap-2 items-center">
+              <div>
+                <CustomSelect
+                  value={item.workerId || ''}
+                  onValueChange={val => {
+                    const opt = userOptions.find(u => u.id === val)
+                    const updated = additionalManpower.map(m =>
+                      m.id === item.id ? { ...m, workerId: val, workerName: opt?.name || '' } : m
+                    )
+                    setAdditionalManpower(updated)
+                  }}
+                >
+                  <CustomSelectTrigger className="form-select author-select">
+                    <CustomSelectValue placeholder={'작업자 선택'} />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {usersLoading && userOptions.length === 0 ? (
+                      <CustomSelectItem value="__loading__" disabled>
+                        사용자 불러오는 중...
+                      </CustomSelectItem>
+                    ) : userOptions.length === 0 ? (
+                      <CustomSelectItem value="__empty__" disabled>
+                        표시할 사용자가 없습니다
+                      </CustomSelectItem>
+                    ) : (
+                      userOptions.map(u => (
+                        <CustomSelectItem key={u.id} value={u.id}>
+                          {u.name}
+                        </CustomSelectItem>
+                      ))
+                    )}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
+              <div>
+                <NumberInput
+                  value={item.manpower}
+                  onChange={value => {
+                    const updated = additionalManpower.map(m =>
+                      m.id === item.id ? { ...m, manpower: value } : m
+                    )
+                    setAdditionalManpower(updated)
+                  }}
+                  values={laborHourValues}
+                />
+              </div>
               <button
-                className="delete-tag-btn"
+                className="bg-red-50 text-red-500 text-sm font-bold px-2.5 py-1 rounded-xl h-[48px] whitespace-nowrap"
                 onClick={() =>
                   setAdditionalManpower(additionalManpower.filter(m => m.id !== item.id))
                 }
@@ -220,64 +231,25 @@ export const WorkLogInputs: React.FC<WorkLogInputsProps> = ({
               </button>
             </div>
           </div>
-          <div className="form-row author-manpower-row">
-            <div className="form-group">
-              <label className="form-label">작업자</label>
-              <CustomSelect
-                value={item.workerId || ''}
-                onValueChange={val => {
-                  const opt = userOptions.find(u => u.id === val)
-                  const updated = additionalManpower.map(m =>
-                    m.id === item.id ? { ...m, workerId: val, workerName: opt?.name || '' } : m
-                  )
-                  setAdditionalManpower(updated)
-                }}
-              >
-                <CustomSelectTrigger className="form-select author-select">
-                  <CustomSelectValue placeholder={'작업자 선택'} />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  {usersLoading && userOptions.length === 0 ? (
-                    <CustomSelectItem value="__loading__" disabled>
-                      사용자 불러오는 중...
-                    </CustomSelectItem>
-                  ) : userOptions.length === 0 ? (
-                    <CustomSelectItem value="__empty__" disabled>
-                      표시할 사용자가 없습니다
-                    </CustomSelectItem>
-                  ) : (
-                    userOptions.map(u => (
-                      <CustomSelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </CustomSelectItem>
-                    ))
-                  )}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
-            <div className="form-group">
-              <NumberInput
-                label="공수"
-                value={item.manpower}
-                onChange={value => {
-                  const updated = additionalManpower.map(m =>
-                    m.id === item.id ? { ...m, manpower: value } : m
-                  )
-                  setAdditionalManpower(updated)
-                }}
-                values={laborHourValues}
-              />
-            </div>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
 
       {/* Work Content */}
-      <div className="form-section work-content-section no-divider">
-        <div className="section-header">
-          <h3 className="section-title">
-            작업 내용 기록 <span className="required">*</span>
-          </h3>
+      <div
+        className="rounded-2xl p-6 shadow-sm border border-transparent dark:border-slate-700 mb-4"
+        style={{
+          background: 'var(--bg-surface)',
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <div
+            className="text-xl font-bold text-header-navy dark:text-white flex items-center gap-2"
+            style={{ color: 'var(--header-navy)' }}
+          >
+            <HardHat className="w-5 h-5" style={{ color: 'var(--header-navy)' }} />
+            작업내용 <span className="text-red-500">*</span>
+          </div>
           <button
             className="add-btn"
             onClick={() => {
@@ -313,10 +285,7 @@ export const WorkLogInputs: React.FC<WorkLogInputsProps> = ({
           customInputPlaceholder="작업공정을 직접 입력하세요"
           className="mb-3"
         />
-      </div>
 
-      {/* Work Types & Location */}
-      <div className="form-section work-section">
         <MultiSelectButtons
           label="작업유형"
           options={WORK_TYPE_OPTIONS}
@@ -327,82 +296,85 @@ export const WorkLogInputs: React.FC<WorkLogInputsProps> = ({
         />
 
         <LocationInput location={location} onChange={setLocation} className="mt-3" />
+
+        {/* Additional Tasks */}
+        {tasks.length > 0 && (
+          <div className="pt-4 mt-4 border-t border-dashed">
+            <div className="section-header mb-3">
+              <h3 className="section-title text-base font-bold">추가된 작업 세트</h3>
+            </div>
+            <div className="space-y-3">
+              {tasks.map((t, i) => (
+                <div
+                  key={i}
+                  className="work-section-item p-4 bg-slate-50 rounded-xl border border-slate-200"
+                >
+                  <div className="section-header flex justify-between items-center mb-3">
+                    <h4 className="section-subtitle font-bold text-sm">작업 세트 #{i + 1}</h4>
+                    <button
+                      className="bg-red-50 text-red-500 text-sm font-bold px-3 py-1.5 rounded-xl hover:bg-red-100 transition-colors shrink-0"
+                      onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
+                    >
+                      삭제
+                    </button>
+                  </div>
+
+                  <MultiSelectButtons
+                    label="부재명"
+                    options={MEMBER_TYPE_OPTIONS}
+                    selectedValues={t.memberTypes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, memberTypes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="부재명을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <MultiSelectButtons
+                    label="작업공정"
+                    options={WORK_PROCESS_OPTIONS}
+                    selectedValues={t.processes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, processes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="작업공정을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <MultiSelectButtons
+                    label="작업유형"
+                    options={WORK_TYPE_OPTIONS}
+                    selectedValues={t.workTypes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, workTypes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="작업유형을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <LocationInput
+                    location={t.location}
+                    onChange={loc =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, location: loc } : row))
+                      )
+                    }
+                    className="mt-3"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Additional Tasks */}
-      {tasks.length > 0 && (
-        <div className="form-section">
-          <div className="section-header">
-            <h3 className="section-title">추가된 작업 세트</h3>
-          </div>
-          <div className="space-y-3">
-            {tasks.map((t, i) => (
-              <div key={i} className="work-section-item">
-                <div className="section-header">
-                  <h4 className="section-subtitle">작업 세트 #{i + 1}</h4>
-                  <button
-                    className="delete-tag-btn"
-                    onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
-                  >
-                    삭제
-                  </button>
-                </div>
-
-                <MultiSelectButtons
-                  label="부재명"
-                  options={MEMBER_TYPE_OPTIONS}
-                  selectedValues={t.memberTypes}
-                  onChange={vals =>
-                    setTasks(prev =>
-                      prev.map((row, idx) => (idx === i ? { ...row, memberTypes: vals } : row))
-                    )
-                  }
-                  customInputPlaceholder="부재명을 직접 입력하세요"
-                  className="mb-3"
-                />
-
-                <MultiSelectButtons
-                  label="작업공정"
-                  options={WORK_PROCESS_OPTIONS}
-                  selectedValues={t.processes}
-                  onChange={vals =>
-                    setTasks(prev =>
-                      prev.map((row, idx) => (idx === i ? { ...row, processes: vals } : row))
-                    )
-                  }
-                  customInputPlaceholder="작업공정을 직접 입력하세요"
-                  className="mb-3"
-                />
-
-                <MultiSelectButtons
-                  label="작업유형"
-                  options={WORK_TYPE_OPTIONS}
-                  selectedValues={t.workTypes}
-                  onChange={vals =>
-                    setTasks(prev =>
-                      prev.map((row, idx) => (idx === i ? { ...row, workTypes: vals } : row))
-                    )
-                  }
-                  customInputPlaceholder="작업유형을 직접 입력하세요"
-                  className="mb-3"
-                />
-
-                <LocationInput
-                  location={t.location}
-                  onChange={loc =>
-                    setTasks(prev =>
-                      prev.map((row, idx) => (idx === i ? { ...row, location: loc } : row))
-                    )
-                  }
-                  className="mt-3"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <MaterialsInput materials={materials} onChange={setMaterials} />
+      <WorkLogMaterials materials={materials} onChange={setMaterials} disabled={false} />
     </>
   )
 }
