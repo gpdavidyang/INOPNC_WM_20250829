@@ -157,14 +157,20 @@ export async function createDailyReport(
         // Delete existing worker details
         await supabase.from('daily_report_workers').delete().eq('daily_report_id', report.id)
 
+        // Sync: Delete existing work_records for this report to prevent stale data
+        await supabase.from('work_records').delete().eq('daily_report_id', report.id)
+
         // Insert new worker details
         if (workerDetails.length > 0) {
           const workerInserts = workerDetails
             .filter((worker: unknown) => worker.worker_name && worker.labor_hours > 0)
-            .map((worker: unknown) => ({
+            .map((worker: any) => ({
               daily_report_id: report.id,
               worker_name: worker.worker_name,
+              worker_id: worker.worker_id || null, // Fix: Save worker_id
               work_hours: worker.labor_hours,
+              labor_hours: worker.labor_hours / 8, // Derive labor_hours
+              man_days: worker.labor_hours / 8,
               created_at: new Date().toISOString(),
             }))
 
@@ -175,6 +181,26 @@ export async function createDailyReport(
 
             if (workerError) {
               console.error('Error saving worker details:', workerError)
+            } else {
+              // Sync to work_records (Calendar Cache)
+              const workRecordInserts = workerInserts
+                .filter(w => w.worker_id)
+                .map(w => ({
+                  user_id: w.worker_id,
+                  profile_id: w.worker_id,
+                  site_id: report.site_id,
+                  work_date: report.work_date,
+                  work_hours: w.work_hours,
+                  labor_hours: w.labor_hours,
+                  status: 'submitted',
+                  daily_report_id: report.id,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                }))
+
+              if (workRecordInserts.length > 0) {
+                await supabase.from('work_records').insert(workRecordInserts)
+              }
             }
           }
         }
@@ -212,10 +238,13 @@ export async function createDailyReport(
     if (workerDetails && workerDetails.length > 0 && report) {
       const workerInserts = workerDetails
         .filter((worker: unknown) => worker.worker_name && worker.labor_hours > 0)
-        .map((worker: unknown) => ({
+        .map((worker: any) => ({
           daily_report_id: report.id,
           worker_name: worker.worker_name,
+          worker_id: worker.worker_id || null, // Fix: Save worker_id if present
           work_hours: worker.labor_hours,
+          labor_hours: worker.labor_hours / 8, // Derive labor_hours (man_days equivalent)
+          man_days: worker.labor_hours / 8, // Explicitly set man_days
           created_at: new Date().toISOString(),
         }))
 
@@ -226,7 +255,38 @@ export async function createDailyReport(
 
         if (workerError) {
           console.error('Error saving worker details:', workerError)
-          // Don't throw error here to avoid transaction rollback, just log
+        } else {
+          // Sync to work_records (Calendar Cache)
+          // We must iterate because work_records is per-user
+          for (const worker of workerInserts) {
+            if (worker.worker_id) {
+              // Check existing record
+              const { data: existingRecord } = await supabase
+                .from('work_records')
+                .select('id')
+                .eq('daily_report_id', report.id)
+                .eq('user_id', worker.worker_id)
+                .maybeSingle()
+
+              const recordData = {
+                user_id: worker.worker_id,
+                profile_id: worker.worker_id,
+                site_id: report.site_id,
+                work_date: report.work_date,
+                work_hours: worker.work_hours,
+                labor_hours: worker.labor_hours,
+                status: 'submitted', // Default status for manager input
+                daily_report_id: report.id,
+                updated_at: new Date().toISOString(),
+              }
+
+              if (existingRecord) {
+                await supabase.from('work_records').update(recordData).eq('id', existingRecord.id)
+              } else {
+                await supabase.from('work_records').insert(recordData)
+              }
+            }
+          }
         }
       }
     }
