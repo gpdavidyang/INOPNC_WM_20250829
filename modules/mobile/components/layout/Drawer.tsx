@@ -229,10 +229,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       ]
     : [
         { label: '홈', href: '/mobile' },
-        { label: '현장정보', href: '/mobile/sites' },
-        { label: '현장정보2', href: '/mobile/sites2' },
+        { label: '현장정보', href: '/mobile/sites2' },
         ...worklogMenuItems,
-        { label: '사진·도면 관리', href: '/mobile/media' },
         { label: '출력정보', href: '/mobile/attendance' },
         { label: '문서함', href: '/mobile/documents' },
       ]

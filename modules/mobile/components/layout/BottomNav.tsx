@@ -2,7 +2,7 @@
 
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { normalizeUserRole } from '@/lib/auth/roles'
-import { Calculator, ClipboardList, Factory, Folder, Home, Map, MapPin, Truck } from 'lucide-react'
+import { Calculator, ClipboardList, Factory, Folder, Home, MapPin, Truck } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React from 'react'
@@ -55,15 +55,10 @@ export const BottomNav: React.FC = () => {
             href: '/mobile/worklog',
             icon: ClipboardList,
           },
-          {
-            route: 'sites',
-            label: '현장정보',
-            href: '/mobile/sites',
-            icon: Map,
-          },
+
           {
             route: 'sites2',
-            label: '현장정보2',
+            label: '현장정보',
             href: '/mobile/sites2',
             icon: MapPin,
           },

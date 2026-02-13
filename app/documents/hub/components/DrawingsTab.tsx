@@ -435,57 +435,44 @@ export function DrawingsTab({
                                 </div>
 
                                 {/* Info */}
-                                <div className="flex-1 ml-3 min-w-0 flex flex-col justify-center">
-                                  <div className="flex items-center gap-2 mb-0.5">
-                                    <div className="text-[15px] font-bold text-slate-800 truncate">
-                                      {drawing.title}
-                                    </div>
-                                    <button
-                                      onClick={e => {
-                                        e.stopPropagation()
-                                        handleSingleEdit(drawing.id)
-                                      }}
-                                      className="p-1 hover:bg-slate-100 rounded-md transition-colors"
-                                      title="수정"
-                                    >
-                                      <Pencil size={14} className="text-slate-400" />
-                                    </button>
+                                <div className="flex-1 ml-3 min-w-0 flex flex-col justify-center gap-1">
+                                  <div className="text-[15px] font-bold text-slate-800 truncate leading-tight">
+                                    {drawing.title}
                                   </div>
-                                  <div className="text-[13px] text-slate-400 font-medium">
-                                    {drawing.date}
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {drawing.type === 'blueprint' ? (
+                                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 whitespace-nowrap">
+                                        공도면
+                                      </span>
+                                    ) : drawing.type === 'completion' ? (
+                                      <span className="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200 whitespace-nowrap">
+                                        완료도면
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 whitespace-nowrap">
+                                        진행도면
+                                      </span>
+                                    )}
+                                    <span className="text-[11px] text-slate-400 font-medium border-l pl-1.5 border-slate-200">
+                                      {drawing.date}
+                                    </span>
                                   </div>
                                 </div>
 
-                                {/* Right Badge */}
+                                {/* Right Action - Mark Button */}
                                 <div className="ml-2 shrink-0">
-                                  {drawing.type === 'blueprint' ? (
-                                    <div className="flex flex-col items-end gap-1">
-                                      <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                                        파일
-                                      </span>
-                                      <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
-                                        공도면
-                                      </span>
-                                    </div>
-                                  ) : drawing.type === 'completion' ? (
-                                    <div className="flex flex-col items-end gap-1">
-                                      <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
-                                        파일
-                                      </span>
-                                      <span className="text-[10px] font-bold text-slate-600 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
-                                        완료도면
-                                      </span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex flex-col items-end gap-1">
-                                      <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">
-                                        마킹
-                                      </span>
-                                      <span className="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded border border-green-100">
-                                        진행도면
-                                      </span>
-                                    </div>
-                                  )}
+                                  <button
+                                    onClick={e => {
+                                      e.stopPropagation()
+                                      handleSingleEdit(drawing.id)
+                                    }}
+                                    className="flex items-center gap-1 h-8 px-2.5 bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 rounded-lg shadow-sm transition-all active:scale-95"
+                                  >
+                                    <Pencil size={13} strokeWidth={2.5} />
+                                    <span className="text-[12px] font-bold tracking-tight">
+                                      도면마킹하기
+                                    </span>
+                                  </button>
                                 </div>
                               </div>
                             )

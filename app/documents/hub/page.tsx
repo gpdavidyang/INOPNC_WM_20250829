@@ -110,6 +110,19 @@ export default function DocumentHubPage() {
   const [drawingUploadType, setDrawingUploadType] = useState<string>('progress')
   const [photoUploadType, setPhotoUploadType] = useState<string>('after')
 
+  const [documents, setDocuments] = useState<{
+    'my-docs': MyDoc[]
+    'company-docs': CompanyDoc[]
+    drawings: DrawingWorklog[]
+    photos: PhotoGroup[]
+  }>({
+    'my-docs': [],
+    'company-docs': [],
+    drawings: [],
+    photos: [],
+  })
+  const [allSites, setAllSites] = useState<{ id: string; name: string }[]>([])
+
   const { user, profile } = useUnifiedAuth()
   const markupObjectUrlRef = useRef<string | null>(null)
 
@@ -131,6 +144,14 @@ export default function DocumentHubPage() {
     () => searchParams.get('expandId') || searchParams.get('worklogId') || '',
     [searchParams]
   )
+  const resolvedSiteFilter = useMemo(() => {
+    if (deepLinkSiteName) return deepLinkSiteName
+    if (deepLinkUploadSiteId && allSites.length > 0) {
+      const found = allSites.find(s => s.id === deepLinkUploadSiteId)
+      return found ? found.name : ''
+    }
+    return ''
+  }, [deepLinkSiteName, deepLinkUploadSiteId, allSites])
 
   useEffect(() => {
     if (!deepLinkTab) return
@@ -489,20 +510,6 @@ export default function DocumentHubPage() {
     }
   }
 
-  // Data
-  const [documents, setDocuments] = useState<{
-    'my-docs': MyDoc[]
-    'company-docs': CompanyDoc[]
-    drawings: DrawingWorklog[]
-    photos: PhotoGroup[]
-  }>({
-    'my-docs': [],
-    'company-docs': [],
-    drawings: [],
-    photos: [],
-  })
-  const [allSites, setAllSites] = useState<string[]>([])
-
   // Fetch Data
   const loadData = async () => {
     // Only set generic loading on initial load or full refresh, not necessarily on every small update
@@ -544,6 +551,18 @@ export default function DocumentHubPage() {
   // Derived State
   const filteredDocs = useMemo(() => {
     let docs = documents[activeTab as keyof typeof documents] || []
+
+    // Special Filter for Drawings Tab: Hide empty worklogs from list view
+    // (But keep them in 'documents.drawings' so Upload Sheet can still select them)
+    if (activeTab === 'drawings') {
+      docs = docs.filter((d: any) => d.drawings && d.drawings.length > 0)
+    }
+    // Same for Photos Tab: Hide empty worklogs from list view for cleaner look,
+    // but keep them in state for Upload Sheet access (e.g. adding new photos)
+    if (activeTab === 'photos') {
+      docs = docs.filter((d: any) => d.photos && d.photos.length > 0)
+    }
+
     console.log(`filteredDocs: Tab=${activeTab}, docsCount=${docs.length}, filter=${activeFilter}`)
 
     // Search Filter
@@ -777,9 +796,9 @@ export default function DocumentHubPage() {
             onRefresh={loadData}
             onOpenMarkup={handleOpenMarkup}
             onOpenViewer={handleOpenViewer}
-            initialSiteFilter={deepLinkSiteName || undefined}
+            initialSiteFilter={resolvedSiteFilter || undefined}
             initialExpandedDocId={deepLinkExpandId || undefined}
-            siteList={allSites}
+            siteList={allSites.map(s => s.name)}
           />
         )}
         {activeTab === 'photos' && (
@@ -789,9 +808,9 @@ export default function DocumentHubPage() {
             selectedIds={selectedIds}
             onToggleSelection={toggleSelection}
             onRefresh={loadData}
-            initialSiteFilter={deepLinkSiteName || undefined}
+            initialSiteFilter={resolvedSiteFilter || undefined}
             initialExpandedDocId={deepLinkExpandId || undefined}
-            siteList={allSites}
+            siteList={allSites.map(s => s.name)}
           />
         )}
       </div>
@@ -1067,20 +1086,11 @@ export default function DocumentHubPage() {
                       <CustomSelectValue placeholder="현장을 선택하세요" />
                     </CustomSelectTrigger>
                     <CustomSelectContent>
-                      {Array.from(new Set(documents.drawings.map(d => d.siteName)))
-                        .sort()
-                        .map(siteName => {
-                          const representative = documents.drawings.find(
-                            d => d.siteName === siteName
-                          )
-                          const siteId = representative?.siteId
-                          if (!siteId) return null
-                          return (
-                            <CustomSelectItem key={siteId} value={siteId}>
-                              {siteName}
-                            </CustomSelectItem>
-                          )
-                        })}
+                      {allSites.map(site => (
+                        <CustomSelectItem key={site.id} value={site.id}>
+                          {site.name}
+                        </CustomSelectItem>
+                      ))}
                     </CustomSelectContent>
                   </CustomSelect>
                 </div>
@@ -1241,20 +1251,11 @@ export default function DocumentHubPage() {
                       <CustomSelectValue placeholder="현장을 선택하세요" />
                     </CustomSelectTrigger>
                     <CustomSelectContent>
-                      {Array.from(new Set(documents.drawings.map(d => d.siteName)))
-                        .sort()
-                        .map(siteName => {
-                          const representative = documents.drawings.find(
-                            d => d.siteName === siteName
-                          )
-                          const siteId = representative?.siteId
-                          if (!siteId) return null
-                          return (
-                            <CustomSelectItem key={siteId} value={siteId}>
-                              {siteName}
-                            </CustomSelectItem>
-                          )
-                        })}
+                      {allSites.map(site => (
+                        <CustomSelectItem key={site.id} value={site.id}>
+                          {site.name}
+                        </CustomSelectItem>
+                      ))}
                     </CustomSelectContent>
                   </CustomSelect>
                 </div>

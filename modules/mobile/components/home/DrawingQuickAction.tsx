@@ -20,7 +20,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
     params.set('tab', 'drawing')
     params.set('sheet', 'upload')
     if (selectedSite) params.set('siteId', selectedSite)
-    if (workDate) params.set('workDate', workDate)
+    // if (workDate) params.set('workDate', workDate) -- REMOVED to force manual worklog selection
     return `/mobile/documents?${params.toString()}`
   }, [selectedSite, workDate])
 

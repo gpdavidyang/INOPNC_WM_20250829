@@ -410,6 +410,8 @@ export async function POST(request: NextRequest) {
       materials = [],
     } = body
 
+    console.log('[POST /api/mobile/daily-reports] Payload:', JSON.stringify(body, null, 2))
+
     if (!site_id || !work_date) {
       return NextResponse.json({ error: 'site_id and work_date are required' }, { status: 400 })
     }
@@ -473,6 +475,7 @@ export async function POST(request: NextRequest) {
       site_id,
       work_date,
       work_description,
+      member_name: author_name || '작업자',
       total_workers: reportTotalWorkers,
       total_labor_hours: totalManpowerSum * 8,
       status,
@@ -517,6 +520,7 @@ export async function POST(request: NextRequest) {
         'member_types',
       ]
 
+      let lastError: any = null
       for (let i = 0; i < 10; i++) {
         const { data, error } = await serviceClient
           .from('daily_reports')
@@ -530,16 +534,23 @@ export async function POST(request: NextRequest) {
           break
         }
 
+        lastError = error
+        console.error(`[POST] Update attempt ${i + 1} failed:`, error.message)
+
         const msg = error.message.toLowerCase()
         const match =
           msg.match(/column "(.*?)" does not exist/i) ||
           msg.match(/'(.*?)' column of 'daily_reports'/i)
         const col = match?.[1]
         if (col && removable.includes(col)) {
+          console.log(`[POST] Removing column '${col}' and retrying update...`)
           delete (updatePayload as any)[col]
           continue
         }
         break
+      }
+      if (!reportData && lastError) {
+        console.error('[POST] Update failed finally with:', lastError)
       }
     } else {
       // Insert with progressive retry
@@ -562,6 +573,7 @@ export async function POST(request: NextRequest) {
         'member_types',
       ]
 
+      let lastError: any = null
       for (let i = 0; i < 10; i++) {
         const { data, error } = await serviceClient
           .from('daily_reports')
@@ -575,16 +587,24 @@ export async function POST(request: NextRequest) {
           break
         }
 
+        lastError = error
+        console.error(`[POST] Insert attempt ${i + 1} failed:`, error.message)
+
         const msg = error.message.toLowerCase()
         const match =
           msg.match(/column "(.*?)" does not exist/i) ||
           msg.match(/'(.*?)' column of 'daily_reports'/i)
         const col = match?.[1]
         if (col && removable.includes(col)) {
+          console.log(`[POST] Removing column '${col}' and retrying insert...`)
           delete (insertPayload as any)[col]
           continue
         }
         break
+      }
+      if (!reportId && lastError) {
+        console.error('[POST] Insert failed finally with:', lastError)
+        throw new Error(`Failed to create daily report: ${lastError.message}`)
       }
     }
 

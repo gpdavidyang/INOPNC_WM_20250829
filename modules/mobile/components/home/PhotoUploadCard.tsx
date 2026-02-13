@@ -16,7 +16,7 @@ export const PhotoUploadCard: React.FC<
     params.set('tab', 'photos')
     params.set('openUploadSheet', '1')
     if (selectedSite) params.set('siteId', selectedSite)
-    if (workDate) params.set('workDate', workDate)
+    // if (workDate) params.set('workDate', workDate) -- REMOVED to force manual worklog selection
     return `/mobile/documents?${params.toString()}`
   }, [selectedSite, workDate])
 

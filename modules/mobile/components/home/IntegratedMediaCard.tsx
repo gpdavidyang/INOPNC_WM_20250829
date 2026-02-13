@@ -11,9 +11,11 @@ interface IntegratedMediaCardProps {
 export function IntegratedMediaCard({ selectedSite }: IntegratedMediaCardProps) {
   const getHref = (tab: string) => {
     const params = new URLSearchParams()
-    params.set('tab', tab)
+    const targetTab = tab === 'photo' ? 'photos' : tab === 'drawing' ? 'drawings' : tab
+    params.set('tab', targetTab)
+    params.set('openUploadSheet', '1')
     if (selectedSite) params.set('siteId', selectedSite)
-    return `/mobile/media?${params.toString()}`
+    return `/mobile/documents?${params.toString()}`
   }
 
   return (

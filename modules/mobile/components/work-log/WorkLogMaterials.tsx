@@ -2,6 +2,13 @@
 
 import { Package } from 'lucide-react'
 import React, { useState } from 'react'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import { MaterialUsageEntry } from '../../types/work-log.types'
 import './work-form.css'
 
@@ -18,34 +25,17 @@ export const WorkLogMaterials: React.FC<WorkLogMaterialsProps> = ({
   onChange,
   disabled = false,
 }) => {
-  const [options, setOptions] = useState<string[]>(DEFAULT_OPTIONS)
-  const [selectedValue, setSelectedValue] = useState<string>('')
-  const [customInput, setCustomInput] = useState<string>('')
+  const [selectedValue, setSelectedValue] = useState<string>('NPC-1000')
   const [qty, setQty] = useState<string>('')
-
-  const isCustomMode = selectedValue === 'custom'
 
   const handleAdd = () => {
     if (disabled) return
 
-    // Determine exact name
-    // If custom mode, user must have confirmed custom input?
-    // A's logic: confirm custom -> adds to select -> user selects it -> then adds material.
-    // My UI logic can be simpler:
-    // If custom mode, use customInput. If select mode, use selectedValue.
-
-    // But A's UI hides custom input after confirm.
-    // I will implement "Direct Input" mode: where selecting "Direct Input" shows input.
-    // Confirming it adds to options? Or just adds to list?
-    // A's `handleConfirmCustomMaterial` adds to options.
-    // I can stick to A's flow or simplify.
-    // Simplify: If 'custom', show input. Add Button uses input value.
-
-    const materialName = isCustomMode ? customInput.trim() : selectedValue
+    const materialName = selectedValue
     const quantity = parseFloat(qty)
 
     if (!materialName) {
-      alert('자재명을 선택하거나 입력해주세요.')
+      alert('자재를 선택해주세요.')
       return
     }
     if (isNaN(quantity) || quantity <= 0) {
@@ -65,30 +55,6 @@ export const WorkLogMaterials: React.FC<WorkLogMaterialsProps> = ({
 
     // Reset
     setQty('')
-    if (isCustomMode) {
-      // If we want to keep the custom option available?
-      // A adds it to options. I'll do the same for convenience.
-      if (!options.includes(materialName)) {
-        setOptions(prev => [...prev, materialName])
-      }
-      setSelectedValue('') // Select the newly added one? Or reset?
-      // A resets qty. Keeps material selected?
-      // I'll reset selection to allow rapid entry or keep it?
-      // Usually reset is safer.
-      setCustomInput('')
-    } else {
-      setSelectedValue('')
-    }
-  }
-
-  const handleCustomConfirm = () => {
-    if (!customInput.trim()) return
-    // Add to options and select it
-    if (!options.includes(customInput.trim())) {
-      setOptions(prev => [...prev, customInput.trim()])
-    }
-    setSelectedValue(customInput.trim())
-    setCustomInput('')
   }
 
   const handleRemove = (index: number) => {
@@ -120,28 +86,25 @@ export const WorkLogMaterials: React.FC<WorkLogMaterialsProps> = ({
 
       {/* Input Row */}
       <div className="grid grid-cols-[1.8fr_1fr_auto] gap-2.5 mb-3 items-center">
-        <select
-          value={selectedValue}
-          onChange={e => setSelectedValue(e.target.value)}
-          disabled={disabled}
-          className="material-select w-full h-[48px] rounded-xl px-4 font-medium outline-none transition-all appearance-none bg-no-repeat"
-          style={{
-            background: 'var(--bg-input)',
-            border: '1px solid var(--border)',
-            backgroundPosition: 'right 14px center',
-            // Arrow icon handled by CSS class 'material-select' usually, or I need to add it manually if class not enough
-          }}
-        >
-          <option value="" disabled>
-            자재 선택
-          </option>
-          {options.map(opt => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-          <option value="custom">직접입력</option>
-        </select>
+        <CustomSelect value={selectedValue} onValueChange={setSelectedValue} disabled={disabled}>
+          <CustomSelectTrigger
+            aria-label="자재 선택"
+            className="w-full h-[48px] rounded-xl px-4 text-[15px] font-medium"
+            style={{
+              background: 'var(--bg-input)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <CustomSelectValue placeholder="자재 선택" />
+          </CustomSelectTrigger>
+          <CustomSelectContent align="start">
+            {DEFAULT_OPTIONS.map(opt => (
+              <CustomSelectItem key={opt} value={opt}>
+                {opt}
+              </CustomSelectItem>
+            ))}
+          </CustomSelectContent>
+        </CustomSelect>
 
         <div
           className="flex items-center rounded-xl h-[48px] px-3 border"
@@ -167,7 +130,7 @@ export const WorkLogMaterials: React.FC<WorkLogMaterialsProps> = ({
         <button
           type="button"
           onClick={handleAdd}
-          disabled={disabled || (isCustomMode && !customInput)} // HandleAdd logic handles validation
+          disabled={disabled}
           className="w-12 h-[48px] rounded-xl font-black text-lg flex items-center justify-center transition-colors hover:bg-sky-100"
           style={{
             background: 'var(--primary-bg)',
@@ -177,33 +140,6 @@ export const WorkLogMaterials: React.FC<WorkLogMaterialsProps> = ({
           +
         </button>
       </div>
-
-      {/* Custom Input Row */}
-      {isCustomMode && (
-        <div className="flex gap-2 items-center mb-3 animate-[slideDown_0.2s_ease-out]">
-          <input
-            type="text"
-            value={customInput}
-            onChange={e => setCustomInput(e.target.value)}
-            disabled={disabled}
-            placeholder="자재명 직접 입력"
-            className="flex-1 h-[48px] rounded-xl px-3 outline-none transition-all border focus:ring-2 focus:ring-[#87CEEB]/20"
-            style={{
-              background: 'var(--bg-input)',
-              borderColor: 'var(--border)',
-              border: '1px solid var(--border)',
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleCustomConfirm}
-            className="px-4 h-[48px] rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap text-white hover:bg-slate-700 transition-colors"
-            style={{ background: 'var(--header-navy)' }}
-          >
-            확인
-          </button>
-        </div>
-      )}
 
       {/* List */}
       <div className="flex flex-col gap-2">

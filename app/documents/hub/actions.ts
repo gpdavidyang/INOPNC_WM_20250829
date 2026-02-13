@@ -218,6 +218,10 @@ export async function fetchCompanyDocs(): Promise<CompanyDoc[]> {
     })
   }
 
+  console.log(
+    `[fetchCompanyDocs] Types: ${types?.length}, Docs: ${Array.isArray(docs) ? docs.length : 0}, Mapped Items: ${results.length}, WithURL: ${results.filter(r => r.url).length}`
+  )
+
   return results
 }
 
@@ -342,7 +346,9 @@ export async function fetchDrawings(
       const workContentInfo = details ? `작업일지 - ${details}` : '작업일지'
 
       const linked = await fetchLinkedDrawingsForWorklog(report.id, report.site_id)
+
       // if (linked.length > 0) { // REMOVED FILTER: Show all worklogs to allow uploading
+
       const drawingItems: DrawingItem[] = linked.map(d => ({
         id: String(d.id),
         title: d.title,
@@ -643,7 +649,7 @@ export async function fetchPhotos(siteName?: string): Promise<PhotoGroup[]> {
         }))
       }
 
-      if (beforeCtx.length === 0 && afterCtx.length === 0) return null
+      // if (beforeCtx.length === 0 && afterCtx.length === 0) return null // REMOVED FILTER: Allow empty for upload
 
       const photoItems: PhotoItem[] = []
 
@@ -1365,9 +1371,23 @@ export async function uploadPhotoAction(formData: FormData) {
 }
 
 export async function fetchAllSites() {
-  const supabase = createClient()
-  const { data } = await supabase.from('sites').select('name').eq('is_active', true).order('name')
-
-  if (!data) return []
-  return Array.from(new Set(data.map(s => s.name)))
+  const supabase = createServiceRoleClient()
+  try {
+    // Filter out deleted sites (is_deleted must be false or null)
+    // Using .neq('is_deleted', true) is safer if nulls exist, but .eq('is_deleted', false) is standard if default is false.
+    // Based on admin adapter, it uses .eq('is_deleted', false).
+    const { data, error } = await supabase
+      .from('sites')
+      .select('id, name')
+      .eq('is_deleted', false)
+      .order('name')
+    if (error) {
+      console.error('fetchAllSites error:', error)
+      return []
+    }
+    return (data || []).map(s => ({ id: String(s.id), name: s.name }))
+  } catch (err) {
+    console.error('fetchAllSites exception:', err)
+    return []
+  }
 }
